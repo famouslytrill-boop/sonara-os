@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "sonara-industries-platform",
   "version": "0.1.0",
   "private": true,
@@ -114,5 +115,22 @@
       "next@16.2.6>postcss": "8.5.15",
       "postcss@<8.5.15": "8.5.15"
     }
+=======
+  "name": "demo",
+  "version": "0.0.0",
+  "private": "true",
+  "main": "server.js",
+  "scripts": {
+    "test": "mocha --exit tests/*",
+    "start": "node server.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "supertest": "^6.3.4"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+>>>>>>> 451d11f (Initialized from 'NodeJS Express' project template)
   }
 }
