@@ -1,0 +1,19 @@
+{
+  "name": "signal-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Clean Signal OS workspace scaffolded from the phased gate.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "node scripts/typecheck.mjs",
+    "build": "node scripts/build.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "test": "npm run smoke"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
