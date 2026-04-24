@@ -14,7 +14,10 @@ export default [
       sourceType: "module",
       globals: {
         console: "readonly",
-        process: "readonly"
+        document: "readonly",
+        HTMLElement: "readonly",
+        process: "readonly",
+        window: "readonly"
       }
     },
     rules: {

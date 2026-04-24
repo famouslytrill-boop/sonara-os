@@ -31,6 +31,13 @@ for (const sourceFile of walkFiles(
   fs.writeFileSync(outputFile, transpileSource(source), "utf8");
 }
 
+for (const assetFile of walkFiles(srcDir, (filePath) => /\.(css|html)$/.test(filePath))) {
+  const relativeAsset = path.relative(srcDir, assetFile);
+  const outputFile = path.join(distDir, relativeAsset);
+  fs.mkdirSync(path.dirname(outputFile), { recursive: true });
+  fs.copyFileSync(assetFile, outputFile);
+}
+
 function transpileSource(source) {
   const output = ts.transpileModule(source, {
     compilerOptions: {

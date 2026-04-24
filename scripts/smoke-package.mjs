@@ -36,6 +36,9 @@ async function runSmoke(name, mod) {
     case "@signal-os/routes":
       smokeRoutes(mod);
       return;
+    case "@signal-os/web":
+      smokeWeb(mod);
+      return;
     default:
       throw new Error(
         `No smoke test registered for ${name} at ${path.relative(repoRoot, packageDir)}`
@@ -147,6 +150,27 @@ function smokeRoutes(mod) {
   }
   if (admin.user("user 1") !== "/admin/users/user%201") {
     throw new Error("Admin user route helper failed.");
+  }
+}
+
+function smokeWeb(mod) {
+  const context = mod.createSessionContext();
+  context.setState(mod.completeUploadSimulation("smoke.wav"));
+  if (context.getState().currentStep !== "analyze") {
+    throw new Error("Web SessionContext did not advance to analyze after upload simulation.");
+  }
+  if (context.getState().uploadedFileName !== "smoke.wav") {
+    throw new Error("Web SessionContext did not persist uploadedFileName.");
+  }
+  const progress = mod
+    .createUploadSimulationSnapshots("smoke.wav")
+    .map((snapshot) => snapshot.progress);
+  assertArrayEqual(progress, [0, 23, 67, 100], "upload simulation progress");
+  if (!mod.mutationVariants.some((variant) => variant.name === "Short-Form Hook Variant")) {
+    throw new Error("Web mutation variants missing Short-Form Hook Variant.");
+  }
+  if (mod.normalizeRoute("/mutation") !== "/mutation") {
+    throw new Error("Web route normalization did not preserve /mutation.");
   }
 }
 
