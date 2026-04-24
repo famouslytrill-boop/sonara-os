@@ -11,6 +11,18 @@ export const DawNames = Object.freeze([
   "reason"
 ]);
 
+export type DawName =
+  | "ableton-live"
+  | "logic-pro"
+  | "fl-studio"
+  | "pro-tools"
+  | "cubase"
+  | "studio-one"
+  | "reaper"
+  | "bitwig"
+  | "garageband"
+  | "reason";
+
 export const ExportTiers = Object.freeze([
   "prompt_bundle",
   "production_bundle",
@@ -18,6 +30,13 @@ export const ExportTiers = Object.freeze([
   "release_bundle",
   "elite_mutation_bundle"
 ]);
+
+export type ExportTier =
+  | "prompt_bundle"
+  | "production_bundle"
+  | "daw_bundle"
+  | "release_bundle"
+  | "elite_mutation_bundle";
 
 export const WorkflowStates = Object.freeze([
   "idle",
@@ -29,11 +48,22 @@ export const WorkflowStates = Object.freeze([
   "archived"
 ]);
 
+export type WorkflowState =
+  | "idle"
+  | "session-started"
+  | "analysis-ready"
+  | "compose-ready"
+  | "decision-ready"
+  | "export-ready"
+  | "archived";
+
 export const DecisionStatuses = Object.freeze([
   "accepted",
   "rejected",
   "needs-revision"
 ]);
+
+export type DecisionStatus = "accepted" | "rejected" | "needs-revision";
 
 export const ExportBundleFileKinds = Object.freeze([
   "audio",
@@ -42,6 +72,13 @@ export const ExportBundleFileKinds = Object.freeze([
   "metadata",
   "provenance"
 ]);
+
+export type ExportBundleFileKind =
+  | "audio"
+  | "midi"
+  | "stems"
+  | "metadata"
+  | "provenance";
 
 /**
  * Shared runtime contract notes:

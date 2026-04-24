@@ -1,14 +1,28 @@
-export function createStore(initialState) {
+export type StoreListener<TState> = (state: Readonly<TState>) => void;
+export type StoreUpdater<TState> =
+  | TState
+  | ((state: TState) => TState);
+
+export type Store<TState> = Readonly<{
+  getState(): Readonly<TState>;
+  setState(updater: StoreUpdater<TState>): Readonly<TState>;
+  reset(nextState?: TState): Readonly<TState>;
+  subscribe(listener: StoreListener<TState>): () => void;
+}>;
+
+export function createStore<TState>(initialState: TState): Store<TState> {
   let state = freezeSnapshot(initialState);
-  const listeners = new Set();
+  const listeners = new Set<StoreListener<TState>>();
 
   function getState() {
     return state;
   }
 
-  function setState(updater) {
+  function setState(updater: StoreUpdater<TState>) {
     const nextState =
-      typeof updater === "function" ? updater(cloneState(state)) : updater;
+      typeof updater === "function"
+        ? (updater as (state: TState) => TState)(cloneState(state) as TState)
+        : updater;
     state = freezeSnapshot(nextState);
     for (const listener of listeners) {
       listener(state);
@@ -16,13 +30,15 @@ export function createStore(initialState) {
     return state;
   }
 
-  function reset(nextState = initialState) {
+  function reset(nextState: TState = initialState) {
     return setState(nextState);
   }
 
-  function subscribe(listener) {
+  function subscribe(listener: StoreListener<TState>) {
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   }
 
   return Object.freeze({
@@ -33,13 +49,13 @@ export function createStore(initialState) {
   });
 }
 
-export function cloneState(value) {
+export function cloneState<TValue>(value: TValue): TValue {
   return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
-function freezeSnapshot(value) {
+function freezeSnapshot<TValue>(value: TValue): Readonly<TValue> {
   if (value == null || typeof value !== "object") {
-    return value;
+    return value as Readonly<TValue>;
   }
   return Object.freeze(cloneState(value));
 }

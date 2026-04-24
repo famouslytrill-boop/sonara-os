@@ -1,6 +1,27 @@
 import { createEventBus } from "./eventBus.ts";
+import type { EventBus, RuntimeEvent } from "./eventBus.ts";
 
-export function createRuntimeAdapter({ adapterName, capabilities = {}, eventBus = createEventBus() }) {
+export type RuntimeAdapterOptions = {
+  adapterName: string;
+  capabilities?: Record<string, unknown>;
+  eventBus?: EventBus;
+};
+
+export type RuntimeAdapter = Readonly<{
+  adapterName: string;
+  capabilities: Readonly<Record<string, unknown>>;
+  eventBus: EventBus;
+  start(context?: Record<string, unknown>): RuntimeEvent;
+  stop(context?: Record<string, unknown>): RuntimeEvent;
+  reportHealth(status?: string, details?: Record<string, unknown>): RuntimeEvent;
+}>;
+
+type RuntimeAdapterVariantOptions = {
+  capabilities?: Record<string, unknown>;
+  eventBus?: EventBus;
+};
+
+export function createRuntimeAdapter({ adapterName, capabilities = {}, eventBus = createEventBus() }: RuntimeAdapterOptions): RuntimeAdapter {
   if (!adapterName) {
     throw new Error("Runtime adapter requires adapterName.");
   }
@@ -9,19 +30,19 @@ export function createRuntimeAdapter({ adapterName, capabilities = {}, eventBus 
     adapterName,
     capabilities: Object.freeze({ ...capabilities }),
     eventBus,
-    start(context = {}) {
+    start(context: Record<string, unknown> = {}) {
       return eventBus.emit("runtime.adapter.started", {
         adapterName,
         context
       });
     },
-    stop(context = {}) {
+    stop(context: Record<string, unknown> = {}) {
       return eventBus.emit("runtime.adapter.stopped", {
         adapterName,
         context
       });
     },
-    reportHealth(status = "ok", details = {}) {
+    reportHealth(status: string = "ok", details: Record<string, unknown> = {}) {
       return eventBus.emit("runtime.adapter.health", {
         adapterName,
         status,
@@ -38,7 +59,7 @@ export function createRuntimeAdapter({ adapterName, capabilities = {}, eventBus 
   return Object.freeze(adapter);
 }
 
-export function createBrowserRuntimeAdapter(options = {}) {
+export function createBrowserRuntimeAdapter(options: RuntimeAdapterVariantOptions = {}) {
   return createRuntimeAdapter({
     adapterName: "browser",
     capabilities: {
@@ -50,7 +71,7 @@ export function createBrowserRuntimeAdapter(options = {}) {
   });
 }
 
-export function createServerRuntimeAdapter(options = {}) {
+export function createServerRuntimeAdapter(options: RuntimeAdapterVariantOptions = {}) {
   return createRuntimeAdapter({
     adapterName: "server",
     capabilities: {

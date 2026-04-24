@@ -1,4 +1,4 @@
-export function createAdminRouteHelpers(basePath = "/admin") {
+export function createAdminRouteHelpers(basePath: string = "/admin") {
   return Object.freeze({
     dashboard() {
       return normalizeRoute(basePath);
@@ -6,7 +6,7 @@ export function createAdminRouteHelpers(basePath = "/admin") {
     users() {
       return normalizeRoute(`${basePath}/users`);
     },
-    user(userId) {
+    user(userId: string) {
       return normalizeRoute(`${basePath}/users/${encodeURIComponent(userId)}`);
     },
     auditLog() {
@@ -18,6 +18,6 @@ export function createAdminRouteHelpers(basePath = "/admin") {
   });
 }
 
-function normalizeRoute(route) {
+function normalizeRoute(route: string) {
   return route.replace(/\/+/g, "/");
 }

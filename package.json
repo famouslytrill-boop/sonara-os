@@ -8,12 +8,15 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "node scripts/typecheck.mjs",
+    "typecheck": "node scripts/typecheck.mjs && tsc --noEmit",
     "build": "node scripts/build.mjs",
     "smoke": "node scripts/smoke.mjs",
     "test": "npm run smoke"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

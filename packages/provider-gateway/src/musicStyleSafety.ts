@@ -16,6 +16,35 @@ export const AllowedMusicStyles = Object.freeze([
   "world"
 ]);
 
+export type MusicStyle =
+  | "ambient"
+  | "cinematic"
+  | "classical"
+  | "country"
+  | "electronic"
+  | "folk"
+  | "funk"
+  | "hip-hop"
+  | "jazz"
+  | "latin"
+  | "pop"
+  | "r-and-b"
+  | "rock"
+  | "soul"
+  | "world";
+
+export type MusicStyleRequest = {
+  prompt?: string;
+  musicStyle?: string;
+};
+
+export type MusicStyleSafetyResult = Readonly<{
+  allowed: boolean;
+  musicStyle: string | undefined;
+  safePrompt: string;
+  reasons: readonly string[];
+}>;
+
 const disallowedStylePatterns = Object.freeze([
   /\bin the style of\b/i,
   /\bsounds like\b/i,
@@ -24,12 +53,12 @@ const disallowedStylePatterns = Object.freeze([
   /\bexactly like\b/i
 ]);
 
-export function enforceMusicStyleSafety(request) {
+export function enforceMusicStyleSafety(request: MusicStyleRequest): MusicStyleSafetyResult {
   const musicStyle = request?.musicStyle;
   const prompt = String(request?.prompt ?? "");
-  const reasons = [];
+  const reasons: string[] = [];
 
-  if (!AllowedMusicStyles.includes(musicStyle)) {
+  if (typeof musicStyle !== "string" || !AllowedMusicStyles.includes(musicStyle)) {
     reasons.push(`Unsupported music style: ${musicStyle ?? "missing"}`);
   }
 

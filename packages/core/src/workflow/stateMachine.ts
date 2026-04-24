@@ -1,4 +1,5 @@
 import { WorkflowStates } from "../lib/types.ts";
+import type { WorkflowState } from "../lib/types.ts";
 
 export const WorkflowEvents = Object.freeze({
   START_SESSION: "START_SESSION",
@@ -10,7 +11,26 @@ export const WorkflowEvents = Object.freeze({
   RESET: "RESET"
 });
 
-export const WorkflowTransitions = Object.freeze({
+export type WorkflowEventName =
+  | "START_SESSION"
+  | "COMPLETE_ANALYSIS"
+  | "COMPLETE_COMPOSE"
+  | "RECORD_DECISION"
+  | "PREPARE_EXPORT"
+  | "ARCHIVE"
+  | "RESET";
+
+export type WorkflowHistoryEntry = Readonly<{
+  from: WorkflowState;
+  eventName: WorkflowEventName;
+  to: WorkflowState;
+  metadata: Readonly<Record<string, unknown>>;
+  at: string;
+}>;
+
+type WorkflowTransitionMap = Readonly<Record<WorkflowState, Readonly<Partial<Record<WorkflowEventName, WorkflowState>>>>>;
+
+export const WorkflowTransitions: WorkflowTransitionMap = Object.freeze({
   idle: Object.freeze({
     START_SESSION: "session-started"
   }),
@@ -38,22 +58,22 @@ export const WorkflowTransitions = Object.freeze({
   archived: Object.freeze({
     RESET: "idle"
   })
-});
+}) as WorkflowTransitionMap;
 
-export function createWorkflowStateMachine(initialState = "idle") {
+export function createWorkflowStateMachine(initialState: WorkflowState = "idle") {
   assertWorkflowState(initialState);
   let state = initialState;
-  const history = [];
+  const history: WorkflowHistoryEntry[] = [];
 
   function getState() {
     return state;
   }
 
-  function can(eventName) {
+  function can(eventName: WorkflowEventName) {
     return Boolean(WorkflowTransitions[state]?.[eventName]);
   }
 
-  function send(eventName, metadata = {}) {
+  function send(eventName: WorkflowEventName, metadata: Record<string, unknown> = {}) {
     const nextState = WorkflowTransitions[state]?.[eventName];
     if (!nextState) {
       throw new Error(`Invalid workflow transition: ${state} -> ${eventName}`);
@@ -80,7 +100,7 @@ export function createWorkflowStateMachine(initialState = "idle") {
   });
 }
 
-export function assertWorkflowState(state) {
+export function assertWorkflowState(state: string): asserts state is WorkflowState {
   if (!WorkflowStates.includes(state)) {
     throw new Error(`Unknown workflow state: ${state}`);
   }

@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import ts from "typescript";
 import { repoRoot, walkFiles } from "./workspace.mjs";
 
 const packageArg = process.argv[2];
@@ -28,5 +29,12 @@ for (const sourceFile of walkFiles(srcDir, (filePath) => filePath.endsWith(".ts"
 }
 
 function transpileSource(source) {
-  return source.replace(/from "([^"]+)\.ts"/g, 'from "$1.mjs"');
+  const output = ts.transpileModule(source, {
+    compilerOptions: {
+      module: ts.ModuleKind.ES2022,
+      target: ts.ScriptTarget.ES2022,
+      importsNotUsedAsValues: ts.ImportsNotUsedAsValues.Remove
+    }
+  }).outputText;
+  return output.replace(/from "([^"]+)\.ts"/g, 'from "$1.mjs"');
 }

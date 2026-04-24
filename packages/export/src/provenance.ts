@@ -1,4 +1,31 @@
-export function createProvenanceFiles({ session, analysis, compose, decisionResult, generatedAt = new Date().toISOString() }) {
+export type ExportBundleFile = Readonly<{
+  path: string;
+  kind: string;
+  contentType: string;
+  content: string;
+}>;
+
+export type ExportBundleInput = Readonly<{
+  bundleId?: string;
+  files?: readonly ExportBundleFile[];
+  createdAt?: string;
+}>;
+
+export type ProvenanceInput = Readonly<{
+  session?: unknown;
+  analysis?: unknown;
+  compose?: unknown;
+  decisionResult?: unknown;
+  generatedAt?: string;
+}>;
+
+export type ExportBundle = Readonly<{
+  bundleId: string;
+  files: readonly ExportBundleFile[];
+  createdAt: string;
+}>;
+
+export function createProvenanceFiles({ session, analysis, compose, decisionResult, generatedAt = new Date().toISOString() }: ProvenanceInput = {}): readonly ExportBundleFile[] {
   return Object.freeze([
     createJsonFile("provenance/session.json", {
       kind: "session",
@@ -23,8 +50,11 @@ export function createProvenanceFiles({ session, analysis, compose, decisionResu
   ]);
 }
 
-export function attachProvenanceFiles(bundle, provenanceInput) {
-  const files = Array.isArray(bundle?.files) ? bundle.files : [];
+export function attachProvenanceFiles<TBundle extends ExportBundleInput>(
+  bundle: TBundle,
+  provenanceInput: ProvenanceInput = {}
+): Readonly<TBundle & { files: readonly ExportBundleFile[] }> {
+  const files: readonly ExportBundleFile[] = Array.isArray(bundle?.files) ? bundle.files : [];
   const provenanceFiles = createProvenanceFiles(provenanceInput);
   const manifest = createJsonFile("provenance/manifest.json", {
     kind: "provenance-manifest",
@@ -38,10 +68,10 @@ export function attachProvenanceFiles(bundle, provenanceInput) {
   return Object.freeze({
     ...bundle,
     files: Object.freeze([...files, ...provenanceFiles, manifest])
-  });
+  }) as Readonly<TBundle & { files: readonly ExportBundleFile[] }>;
 }
 
-export function createExportBundle({ bundleId, files = [], provenance }) {
+export function createExportBundle({ bundleId, files = [], provenance }: ExportBundleInput & { bundleId: string; provenance?: ProvenanceInput }): ExportBundle {
   if (!bundleId) {
     throw new Error("Export bundle requires bundleId.");
   }
@@ -53,7 +83,7 @@ export function createExportBundle({ bundleId, files = [], provenance }) {
   }, provenance ?? {});
 }
 
-function createJsonFile(path, value) {
+function createJsonFile(path: string, value: unknown): ExportBundleFile {
   return Object.freeze({
     path,
     kind: "provenance",

@@ -1,6 +1,23 @@
 import { createStore } from "./createStore.ts";
+import type { DecisionStatus } from "../lib/types.ts";
 
-export const initialDecisionResultState = Object.freeze({
+export type DecisionResultState = {
+  decisionId: string | null;
+  sessionId: string | null;
+  status: DecisionStatus;
+  reasons: string[];
+  decidedAt: string | null;
+};
+
+export type RecordDecisionInput = {
+  decisionId: string;
+  sessionId: string;
+  status?: DecisionStatus;
+  reasons?: Iterable<string>;
+  now?: string;
+};
+
+export const initialDecisionResultState: Readonly<DecisionResultState> = Object.freeze({
   decisionId: null,
   sessionId: null,
   status: "needs-revision",
@@ -8,12 +25,12 @@ export const initialDecisionResultState = Object.freeze({
   decidedAt: null
 });
 
-export function createDecisionResultStore(initialState = initialDecisionResultState) {
-  const store = createStore(initialState);
+export function createDecisionResultStore(initialState: DecisionResultState = initialDecisionResultState) {
+  const store = createStore<DecisionResultState>(initialState);
 
   return Object.freeze({
     ...store,
-    recordDecision({ decisionId, sessionId, status = "needs-revision", reasons = [], now = new Date().toISOString() }) {
+    recordDecision({ decisionId, sessionId, status = "needs-revision", reasons = [], now = new Date().toISOString() }: RecordDecisionInput) {
       return store.setState({
         decisionId,
         sessionId,
