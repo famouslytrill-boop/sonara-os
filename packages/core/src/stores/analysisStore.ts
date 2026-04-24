@@ -35,7 +35,15 @@ export function createAnalysisStore(initialState: AnalysisState = initialAnalysi
 
   return Object.freeze({
     ...store,
-    completeAnalysis({ analysisId, sessionId, bpm, key, styleTags = [], confidence = 0, now = new Date().toISOString() }: CompleteAnalysisInput) {
+    completeAnalysis({
+      analysisId,
+      sessionId,
+      bpm,
+      key,
+      styleTags = [],
+      confidence = 0,
+      now = new Date().toISOString()
+    }: CompleteAnalysisInput) {
       return store.setState({
         analysisId,
         sessionId,

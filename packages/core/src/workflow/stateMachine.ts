@@ -28,7 +28,9 @@ export type WorkflowHistoryEntry = Readonly<{
   at: string;
 }>;
 
-type WorkflowTransitionMap = Readonly<Record<WorkflowState, Readonly<Partial<Record<WorkflowEventName, WorkflowState>>>>>;
+type WorkflowTransitionMap = Readonly<
+  Record<WorkflowState, Readonly<Partial<Record<WorkflowEventName, WorkflowState>>>>
+>;
 
 export const WorkflowTransitions: WorkflowTransitionMap = Object.freeze({
   idle: Object.freeze({

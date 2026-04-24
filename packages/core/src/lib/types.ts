@@ -57,11 +57,7 @@ export type WorkflowState =
   | "export-ready"
   | "archived";
 
-export const DecisionStatuses = Object.freeze([
-  "accepted",
-  "rejected",
-  "needs-revision"
-]);
+export const DecisionStatuses = Object.freeze(["accepted", "rejected", "needs-revision"]);
 
 export type DecisionStatus = "accepted" | "rejected" | "needs-revision";
 
@@ -73,12 +69,7 @@ export const ExportBundleFileKinds = Object.freeze([
   "provenance"
 ]);
 
-export type ExportBundleFileKind =
-  | "audio"
-  | "midi"
-  | "stems"
-  | "metadata"
-  | "provenance";
+export type ExportBundleFileKind = "audio" | "midi" | "stems" | "metadata" | "provenance";
 
 /**
  * Shared runtime contract notes:

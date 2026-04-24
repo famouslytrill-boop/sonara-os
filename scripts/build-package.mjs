@@ -19,7 +19,10 @@ if (!fs.existsSync(srcDir)) {
 fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
 
-for (const sourceFile of walkFiles(srcDir, (filePath) => filePath.endsWith(".ts"))) {
+for (const sourceFile of walkFiles(
+  srcDir,
+  (filePath) => filePath.endsWith(".ts") && !filePath.endsWith(".test.ts")
+)) {
   const relativeSource = path.relative(srcDir, sourceFile);
   const relativeOutput = relativeSource.replace(/\.ts$/, ".mjs");
   const outputFile = path.join(distDir, relativeOutput);

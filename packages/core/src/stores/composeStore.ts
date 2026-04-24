@@ -32,7 +32,14 @@ export function createComposeStore(initialState: ComposeState = initialComposeSt
 
   return Object.freeze({
     ...store,
-    updateComposition({ compositionId, sessionId, prompt = "", musicStyle = null, sections = [], now = new Date().toISOString() }: UpdateCompositionInput) {
+    updateComposition({
+      compositionId,
+      sessionId,
+      prompt = "",
+      musicStyle = null,
+      sections = [],
+      now = new Date().toISOString()
+    }: UpdateCompositionInput) {
       return store.setState({
         compositionId,
         sessionId,

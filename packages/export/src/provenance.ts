@@ -25,7 +25,13 @@ export type ExportBundle = Readonly<{
   createdAt: string;
 }>;
 
-export function createProvenanceFiles({ session, analysis, compose, decisionResult, generatedAt = new Date().toISOString() }: ProvenanceInput = {}): readonly ExportBundleFile[] {
+export function createProvenanceFiles({
+  session,
+  analysis,
+  compose,
+  decisionResult,
+  generatedAt = new Date().toISOString()
+}: ProvenanceInput = {}): readonly ExportBundleFile[] {
   return Object.freeze([
     createJsonFile("provenance/session.json", {
       kind: "session",
@@ -71,16 +77,23 @@ export function attachProvenanceFiles<TBundle extends ExportBundleInput>(
   }) as Readonly<TBundle & { files: readonly ExportBundleFile[] }>;
 }
 
-export function createExportBundle({ bundleId, files = [], provenance }: ExportBundleInput & { bundleId: string; provenance?: ProvenanceInput }): ExportBundle {
+export function createExportBundle({
+  bundleId,
+  files = [],
+  provenance
+}: ExportBundleInput & { bundleId: string; provenance?: ProvenanceInput }): ExportBundle {
   if (!bundleId) {
     throw new Error("Export bundle requires bundleId.");
   }
 
-  return attachProvenanceFiles({
-    bundleId,
-    files: Object.freeze(Array.from(files)),
-    createdAt: new Date().toISOString()
-  }, provenance ?? {});
+  return attachProvenanceFiles(
+    {
+      bundleId,
+      files: Object.freeze(Array.from(files)),
+      createdAt: new Date().toISOString()
+    },
+    provenance ?? {}
+  );
 }
 
 function createJsonFile(path: string, value: unknown): ExportBundleFile {

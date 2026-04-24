@@ -40,19 +40,23 @@ runPackageTypechecks();
 console.log("Typecheck gate passed.");
 
 function assertNoLegacyDawName() {
-  const offenders = walkFiles(repoRoot, (filePath) => /\.(ts|mjs|json|md)$/.test(filePath))
-    .filter((filePath) => fs.readFileSync(filePath, "utf8").includes(legacyDawName));
+  const offenders = walkFiles(repoRoot, (filePath) => /\.(ts|mjs|json|md)$/.test(filePath)).filter(
+    (filePath) => fs.readFileSync(filePath, "utf8").includes(legacyDawName)
+  );
   if (offenders.length > 0) {
     throw new Error(`Legacy DAW name casing remains in: ${offenders.join(", ")}`);
   }
 }
 
 function assertNoRetiredTierNames() {
-  const offenders = walkFiles(repoRoot, (filePath) => /\.(ts|mjs|json|md)$/.test(filePath))
-    .filter((filePath) => {
+  const offenders = walkFiles(repoRoot, (filePath) => /\.(ts|mjs|json|md)$/.test(filePath)).filter(
+    (filePath) => {
       const source = fs.readFileSync(filePath, "utf8");
-      return retiredTierNames.some((tierName) => source.includes(`"${tierName}"`) || source.includes(`\`${tierName}\``));
-    });
+      return retiredTierNames.some(
+        (tierName) => source.includes(`"${tierName}"`) || source.includes(`\`${tierName}\``)
+      );
+    }
+  );
   if (offenders.length > 0) {
     throw new Error(`Retired tier names remain in: ${offenders.join(", ")}`);
   }
@@ -67,7 +71,9 @@ function assertCoreTypes() {
   }
   const tiers = Array.from(tierMatch[1].matchAll(/"([^"]+)"/g), (match) => match[1]);
   if (JSON.stringify(tiers) !== JSON.stringify(finalExportTiers)) {
-    throw new Error(`ExportTiers mismatch. Expected ${finalExportTiers.join(", ")}, got ${tiers.join(", ")}`);
+    throw new Error(
+      `ExportTiers mismatch. Expected ${finalExportTiers.join(", ")}, got ${tiers.join(", ")}`
+    );
   }
   if (!source.includes("DawNames")) {
     throw new Error("DawNames must be declared with canonical casing.");
@@ -105,7 +111,15 @@ function assertRuntimeEventBus() {
 function assertWorkflowStateMachine() {
   const workflowPath = path.join(repoRoot, "packages/core/src/workflow/stateMachine.ts");
   const source = fs.readFileSync(workflowPath, "utf8");
-  for (const state of ["idle", "session-started", "analysis-ready", "compose-ready", "decision-ready", "export-ready", "archived"]) {
+  for (const state of [
+    "idle",
+    "session-started",
+    "analysis-ready",
+    "compose-ready",
+    "decision-ready",
+    "export-ready",
+    "archived"
+  ]) {
     if (!source.includes(state)) {
       throw new Error(`Workflow state machine missing state: ${state}`);
     }
@@ -124,14 +138,22 @@ function assertProviderGatewaySafety() {
     throw new Error("Provider Gateway must enforce music-style safety before provider calls.");
   }
   if (!safety.includes("AllowedMusicStyles") || !safety.includes("disallowedStylePatterns")) {
-    throw new Error("Music-style safety must define allowed styles and blocked imitation patterns.");
+    throw new Error(
+      "Music-style safety must define allowed styles and blocked imitation patterns."
+    );
   }
 }
 
 function assertExportProvenance() {
   const provenancePath = path.join(repoRoot, "packages/export/src/provenance.ts");
   const source = fs.readFileSync(provenancePath, "utf8");
-  for (const fileName of ["provenance/session.json", "provenance/analysis.json", "provenance/compose.json", "provenance/decision-result.json", "provenance/manifest.json"]) {
+  for (const fileName of [
+    "provenance/session.json",
+    "provenance/analysis.json",
+    "provenance/compose.json",
+    "provenance/decision-result.json",
+    "provenance/manifest.json"
+  ]) {
     if (!source.includes(fileName)) {
       throw new Error(`Export provenance missing ${fileName}`);
     }

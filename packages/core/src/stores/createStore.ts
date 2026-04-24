@@ -1,7 +1,5 @@
 export type StoreListener<TState> = (state: Readonly<TState>) => void;
-export type StoreUpdater<TState> =
-  | TState
-  | ((state: TState) => TState);
+export type StoreUpdater<TState> = TState | ((state: TState) => TState);
 
 export type Store<TState> = Readonly<{
   getState(): Readonly<TState>;

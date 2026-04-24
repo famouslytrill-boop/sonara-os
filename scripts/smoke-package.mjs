@@ -37,23 +37,28 @@ async function runSmoke(name, mod) {
       smokeRoutes(mod);
       return;
     default:
-      throw new Error(`No smoke test registered for ${name} at ${path.relative(repoRoot, packageDir)}`);
+      throw new Error(
+        `No smoke test registered for ${name} at ${path.relative(repoRoot, packageDir)}`
+      );
   }
 }
 
 function smokeCore(mod) {
-  assertArrayEqual(mod.ExportTiers, [
-    "prompt_bundle",
-    "production_bundle",
-    "daw_bundle",
-    "release_bundle",
-    "elite_mutation_bundle"
-  ], "ExportTiers");
+  assertArrayEqual(
+    mod.ExportTiers,
+    ["prompt_bundle", "production_bundle", "daw_bundle", "release_bundle", "elite_mutation_bundle"],
+    "ExportTiers"
+  );
   if (!mod.DawNames.includes("ableton-live")) {
     throw new Error("DawNames missing ableton-live.");
   }
   const sessionStore = mod.createSessionStore();
-  sessionStore.startSession({ sessionId: "s1", userId: "u1", exportTier: "daw_bundle", dawName: "reaper" });
+  sessionStore.startSession({
+    sessionId: "s1",
+    userId: "u1",
+    exportTier: "daw_bundle",
+    dawName: "reaper"
+  });
   if (sessionStore.getState().dawName !== "reaper") {
     throw new Error("Session store did not persist dawName.");
   }
@@ -76,12 +81,16 @@ function smokeRuntime(mod) {
   adapter.start();
   adapter.reportHealth();
   adapter.stop();
-  assertArrayEqual(seen, [
-    "runtime.adapter.created",
-    "runtime.adapter.started",
-    "runtime.adapter.health",
-    "runtime.adapter.stopped"
-  ], "runtime events");
+  assertArrayEqual(
+    seen,
+    [
+      "runtime.adapter.created",
+      "runtime.adapter.started",
+      "runtime.adapter.health",
+      "runtime.adapter.stopped"
+    ],
+    "runtime events"
+  );
 }
 
 async function smokeProviderGateway(mod) {
@@ -96,7 +105,10 @@ async function smokeProviderGateway(mod) {
   if (!accepted.ok || accepted.blocked) {
     throw new Error("Provider Gateway blocked a safe request.");
   }
-  const blocked = await gateway.complete({ prompt: "Make it exactly like a named artist", musicStyle: "ambient" });
+  const blocked = await gateway.complete({
+    prompt: "Make it exactly like a named artist",
+    musicStyle: "ambient"
+  });
   if (!blocked.blocked) {
     throw new Error("Provider Gateway allowed an imitation request.");
   }
@@ -114,7 +126,13 @@ function smokeExport(mod) {
     }
   });
   const paths = bundle.files.map((file) => file.path);
-  for (const expected of ["provenance/session.json", "provenance/analysis.json", "provenance/compose.json", "provenance/decision-result.json", "provenance/manifest.json"]) {
+  for (const expected of [
+    "provenance/session.json",
+    "provenance/analysis.json",
+    "provenance/compose.json",
+    "provenance/decision-result.json",
+    "provenance/manifest.json"
+  ]) {
     if (!paths.includes(expected)) {
       throw new Error(`Export bundle missing ${expected}`);
     }

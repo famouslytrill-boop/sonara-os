@@ -32,7 +32,13 @@ export function createSessionStore(initialState: SessionState = initialSessionSt
 
   return Object.freeze({
     ...store,
-    startSession({ sessionId, userId, exportTier = "prompt_bundle", dawName = null, now = new Date().toISOString() }: StartSessionInput) {
+    startSession({
+      sessionId,
+      userId,
+      exportTier = "prompt_bundle",
+      dawName = null,
+      now = new Date().toISOString()
+    }: StartSessionInput) {
       return store.setState({
         sessionId,
         userId,

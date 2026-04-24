@@ -21,7 +21,11 @@ type RuntimeAdapterVariantOptions = {
   eventBus?: EventBus;
 };
 
-export function createRuntimeAdapter({ adapterName, capabilities = {}, eventBus = createEventBus() }: RuntimeAdapterOptions): RuntimeAdapter {
+export function createRuntimeAdapter({
+  adapterName,
+  capabilities = {},
+  eventBus = createEventBus()
+}: RuntimeAdapterOptions): RuntimeAdapter {
   if (!adapterName) {
     throw new Error("Runtime adapter requires adapterName.");
   }

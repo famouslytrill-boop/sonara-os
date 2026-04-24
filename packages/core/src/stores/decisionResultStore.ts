@@ -25,12 +25,20 @@ export const initialDecisionResultState: Readonly<DecisionResultState> = Object.
   decidedAt: null
 });
 
-export function createDecisionResultStore(initialState: DecisionResultState = initialDecisionResultState) {
+export function createDecisionResultStore(
+  initialState: DecisionResultState = initialDecisionResultState
+) {
   const store = createStore<DecisionResultState>(initialState);
 
   return Object.freeze({
     ...store,
-    recordDecision({ decisionId, sessionId, status = "needs-revision", reasons = [], now = new Date().toISOString() }: RecordDecisionInput) {
+    recordDecision({
+      decisionId,
+      sessionId,
+      status = "needs-revision",
+      reasons = [],
+      now = new Date().toISOString()
+    }: RecordDecisionInput) {
       return store.setState({
         decisionId,
         sessionId,
