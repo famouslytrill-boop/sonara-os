@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "check": "npm run lint && npm run format && npm test && npm run typecheck && npm run build && npm run smoke",
     "typecheck": "node scripts/typecheck.mjs && tsc --noEmit",
     "build": "node scripts/build.mjs",
     "smoke": "node scripts/smoke.mjs",
