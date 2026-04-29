@@ -2,6 +2,16 @@
 
 SONARA OS is a music identity and release-readiness workspace for creators. It turns song context into a practical launch blueprint: fingerprint, mood, hook direction, sonic palette, readiness score, next checks, and exportable release assets.
 
+## Creator Business OS
+
+SONARA also frames the workflow as a Creator Business OS:
+
+- A&R Intelligence evaluates song identity, hook strength, audience signal, genre fit, and release-readiness evidence.
+- Decision Engine turns creative context into the next practical move: go, improve, hold, or export.
+- Revenue Pathway Engine maps realistic creator business routes such as releases, services, sound assets, bundles, licensing prep, and studio offers.
+
+Revenue pathways are planning tools only. SONARA does not guarantee income, placements, hit records, approvals, or market outcomes.
+
 ## Current Launch Mode
 
 SONARA is configured to launch in deterministic local-rules mode:
@@ -94,4 +104,3 @@ Production domain:
 ```text
 https://sonaraindustries.com
 ```
-

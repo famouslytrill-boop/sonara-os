@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, Compass, Gauge, ShieldCheck } from "lucide-react";
 import { sonaraBusinessPrinciplesLayer, sonaraProductDoors } from "../../config/sonara/businessPrinciples";
+import { sonaraCreatorBusinessModules } from "../../config/sonara/productArchitecture";
 import { sonaraSystemVisibility } from "../../config/sonara/systemVisibility";
 import { runSonaraFinalCompanyAudit } from "../../lib/sonara/businessPrinciples";
 
 const iconByIndex = [Compass, BadgeCheck, Gauge, ShieldCheck] as const;
+const businessModuleIcons = [BadgeCheck, Gauge, CircleDollarSign] as const;
 
 export function BusinessPrinciplesDashboard() {
   const audit = runSonaraFinalCompanyAudit();
@@ -44,6 +46,24 @@ export function BusinessPrinciplesDashboard() {
             </Link>
           );
         })}
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Creator Business OS</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">A&R, decisions, and revenue pathways in one operating layer.</h2>
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          {sonaraCreatorBusinessModules.map((module, index) => {
+            const Icon = businessModuleIcons[index] ?? Compass;
+            return (
+              <div key={module.name} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
+                <Icon className="text-[#22D3EE]" size={24} />
+                <p className="mt-3 text-sm font-black text-[#F8FAFC]">{module.name}</p>
+                <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{module.purpose}</p>
+                <p className="mt-3 text-xs font-bold leading-5 text-[#71717A]">{module.output}</p>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">

@@ -59,5 +59,5 @@
 - [ ] No demo text is prefilled in user-facing forms.
 - [ ] No private keys appear in repo files.
 - [ ] No profit, hit, placement, legal, tax, or medical guarantees appear in product copy.
+- [ ] A&R Intelligence, Decision Engine, and Revenue Pathway Engine are framed as planning and readiness tools.
 - [ ] User can understand the next practical move after generating a blueprint.
-

@@ -14,6 +14,13 @@ export const sonaraWebsiteSections = [
       "SONARA™ connects songs, release assets, sound systems, broadcast materials, proof points, and export packages into one creator workflow.",
   },
   {
+    id: "creator-business-os",
+    label: "Creator Business OS",
+    title: "SONARA Creator Business OS connects creative work to business decisions.",
+    description:
+      "A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine help creators evaluate songs, choose the next move, and map realistic monetization paths without promising outcomes.",
+  },
+  {
     id: "product-promise",
     label: "Product Promise",
     title: "Every song gets a fingerprint. Every release gets a plan.",
@@ -47,6 +54,24 @@ export const sonaraWebsiteSections = [
     title: "SONARA Industries™",
     description:
       "A focused music technology company building creator infrastructure, release tools, artist systems, sound workflows, and digital assets.",
+  },
+] as const;
+
+export const sonaraCreatorBusinessModules = [
+  {
+    name: "A&R Intelligence",
+    purpose: "Evaluates song identity, hook strength, audience signal, genre fit, and release-readiness evidence.",
+    output: "Creator-facing notes for what to improve, what to keep, and what makes the record easier to position.",
+  },
+  {
+    name: "Decision Engine",
+    purpose: "Turns creative and business context into the next practical move for the song, release, artist system, or studio workflow.",
+    output: "Clear go, improve, hold, or export guidance with blockers and next checks.",
+  },
+  {
+    name: "Revenue Pathway Engine",
+    purpose: "Maps plausible creator business routes such as releases, services, sound assets, bundles, licensing prep, and studio offers.",
+    output: "Planning paths and readiness checks only. It never guarantees income, placements, or market results.",
   },
 ] as const;
 

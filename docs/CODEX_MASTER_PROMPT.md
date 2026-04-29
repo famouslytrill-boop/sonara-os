@@ -6,6 +6,12 @@ You are working inside the SONARA OS codebase.
 
 SONARA OS is an artist-first music identity and release-readiness system. It is not a generic music generator, distributor, streaming platform, video editor, analytics clone, or cluttered creative dashboard.
 
+SONARA should also be understood as a Creator Business OS with three operating modules:
+
+- A&R Intelligence: evaluates song identity, hook strength, audience signal, genre fit, and readiness evidence.
+- Decision Engine: converts creative and business context into the next practical move.
+- Revenue Pathway Engine: maps plausible creator business paths without guaranteeing income, placements, or outcomes.
+
 The visible promise is simple:
 
 - Every song gets a fingerprint.
@@ -70,6 +76,9 @@ SONARA Core should produce practical release artifacts:
 - song fingerprint
 - readiness score
 - launch state
+- A&R intelligence notes
+- next-move decision guidance
+- revenue pathway options
 - blockers
 - next checks
 - release plan
@@ -95,4 +104,3 @@ supabase/migrations/004_sonara_final_launch.sql
 ```
 
 Use `.env.example` as the launch-safe environment template.
-
