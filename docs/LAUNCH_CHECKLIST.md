@@ -1,22 +1,31 @@
 # Launch Checklist
 
+Last checklist run: 2026-04-29
+
+Production deployment verified:
+
+```text
+dpl_4qFV9Dkzxe3Uhrvds8aigoJteMJ3
+https://sonaraindustries.com
+```
+
 ## Code
 
-- [ ] `npm run build` passes.
-- [ ] `npm audit --audit-level=moderate` reports no moderate-or-higher vulnerabilities.
-- [ ] `npm run validate:infrastructure` passes.
-- [ ] `.env.local` is not committed.
-- [ ] `.vercel`, `.next`, `node_modules`, logs, and build output are ignored.
-- [ ] GitHub `main` contains the corrected frontend project root.
+- [x] `npm run build` passes.
+- [x] `npm audit --audit-level=moderate` reports no moderate-or-higher vulnerabilities.
+- [x] `npm run validate:infrastructure` passes.
+- [x] `.env.local` is not committed.
+- [x] `.vercel`, `.next`, `node_modules`, logs, and build output are ignored.
+- [x] GitHub `main` contains the corrected frontend project root.
 
 ## Environment
 
-- [ ] `SONARA_AI_PROVIDER=local_rules`
-- [ ] `SONARA_PROVIDER_TIMEOUT_MS=6000`
-- [ ] `NEXT_PUBLIC_APP_URL=https://sonaraindustries.com`
-- [ ] `OPENAI_API_KEY` is blank or absent unless BYOK mode is intentionally enabled.
-- [ ] Stripe keys are blank until live products and prices are ready.
-- [ ] Supabase keys are blank until the Supabase project is configured.
+- [x] `SONARA_AI_PROVIDER=local_rules`
+- [x] `SONARA_PROVIDER_TIMEOUT_MS=6000`
+- [x] `NEXT_PUBLIC_APP_URL=https://sonaraindustries.com`
+- [x] `OPENAI_API_KEY` is blank or absent unless BYOK mode is intentionally enabled.
+- [x] Stripe keys are blank until live products and prices are ready.
+- [x] Supabase keys are blank until the Supabase project is configured.
 
 ## Supabase
 
@@ -43,21 +52,21 @@
 - [ ] Add `STRIPE_SECRET_KEY`.
 - [ ] Add `STRIPE_WEBHOOK_SECRET` after webhook endpoint setup.
 - [ ] Test checkout in Stripe test mode.
-- [ ] Confirm failed/missing Stripe config returns a safe disabled state.
+- [x] Confirm failed/missing Stripe config returns a safe disabled state.
 
 ## Production
 
-- [ ] Deploy Vercel production from the frontend root.
-- [ ] Confirm `https://sonaraindustries.com/create` returns `200`.
-- [ ] Confirm `/api/sonara/analyze` returns `local_rules_complete`.
-- [ ] Confirm export ZIP generation works.
-- [ ] Confirm HTTPS is active for `sonaraindustries.com` and `www.sonaraindustries.com`.
+- [x] Deploy Vercel production from the frontend root.
+- [x] Confirm `https://sonaraindustries.com/create` returns `200`.
+- [x] Confirm `/api/sonara/analyze` returns `local_rules_complete`.
+- [x] Confirm export ZIP generation works.
+- [x] Confirm HTTPS is active for `sonaraindustries.com` and `www.sonaraindustries.com`.
 - [ ] Review mobile layout on a phone viewport.
 
 ## Final Human Review
 
-- [ ] No demo text is prefilled in user-facing forms.
-- [ ] No private keys appear in repo files.
-- [ ] No profit, hit, placement, legal, tax, or medical guarantees appear in product copy.
-- [ ] A&R Intelligence, Decision Engine, and Revenue Pathway Engine are framed as planning and readiness tools.
-- [ ] User can understand the next practical move after generating a blueprint.
+- [x] No demo text is prefilled in user-facing forms.
+- [x] No private keys appear in repo files.
+- [x] No profit, hit, placement, legal, tax, or medical guarantees appear in product copy.
+- [x] A&R Intelligence, Decision Engine, and Revenue Pathway Engine are framed as planning and readiness tools.
+- [x] User can understand the next practical move after generating a blueprint.
