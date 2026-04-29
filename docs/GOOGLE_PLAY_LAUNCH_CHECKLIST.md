@@ -1,0 +1,21 @@
+# Google Play Launch Checklist
+
+- Google Play Console account.
+- Developer identity verification completed.
+- App name: SONARA OS™.
+- App icon 512x512.
+- Feature graphic 1024x500.
+- Phone screenshots.
+- Tablet screenshots if targeting tablets.
+- Support email.
+- Privacy policy URL.
+- Terms URL.
+- Data Safety form.
+- Closed testing checklist.
+- 12 testers / 14 days if required by the active Play policy for the account.
+- Android target SDK API 35+.
+- Android App Bundle `.aab` output.
+- No required paid OpenAI key.
+- No fake streaming tools or engagement manipulation.
+- No unlicensed sound redistribution.
+- Confirm SONARA OS™ does not claim guaranteed income, hits, placements, or market outcomes.

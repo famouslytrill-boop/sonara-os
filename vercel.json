@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/sound-discovery/sync",
+      "schedule": "0 10 * * 1"
+    }
+  ]
+}

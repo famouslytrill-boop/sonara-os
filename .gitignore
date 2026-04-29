@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+
+backend/.venv/
+backend/.pytest_cache/
+backend/**/__pycache__/
+
+frontend/.next/
+frontend/node_modules/
+frontend/sonara-dev.*.log
+frontend/tsconfig.tsbuildinfo
+dist/
+*.log
