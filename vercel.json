@@ -1,7 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/sound-discovery/sync",
+      "path": "/api/cron/sonara-maintenance",
       "schedule": "0 10 * * 1"
     }
   ]
