@@ -1,0 +1,53 @@
+{
+  "name": "SONARA OS™",
+  "short_name": "SONARA",
+  "description": "The creator infrastructure for modern music.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07070A",
+  "theme_color": "#07070A",
+  "categories": ["music", "productivity", "business", "entertainment"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Create Song",
+      "short_name": "Create",
+      "description": "Create a new song fingerprint.",
+      "url": "/create?type=song",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Build Sound Pack",
+      "short_name": "Vault",
+      "description": "Build a rights-safe sound pack.",
+      "url": "/create?type=sound-pack",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Prepare Release",
+      "short_name": "Release",
+      "description": "Prepare streaming, visuals, and export bundles.",
+      "url": "/export",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
