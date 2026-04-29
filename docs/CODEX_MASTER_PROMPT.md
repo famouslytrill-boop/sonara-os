@@ -12,6 +12,14 @@ SONARA should also be understood as a Creator Business OS with three operating m
 - Decision Engine: converts creative and business context into the next practical move.
 - Revenue Pathway Engine: maps plausible creator business paths without guaranteeing income, placements, or outcomes.
 
+Active tools:
+
+- Prompt Vault
+- Artist OS
+- Content Studio
+- Visual Builder
+- Local Business Kits
+
 The visible promise is simple:
 
 - Every song gets a fingerprint.
@@ -79,6 +87,11 @@ SONARA Core should produce practical release artifacts:
 - A&R intelligence notes
 - next-move decision guidance
 - revenue pathway options
+- prompt vault assets
+- artist OS notes
+- content studio angles
+- visual builder direction
+- local business kit options
 - blockers
 - next checks
 - release plan

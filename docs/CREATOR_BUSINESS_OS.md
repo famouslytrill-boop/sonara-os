@@ -2,6 +2,24 @@
 
 SONARA Creator Business OS connects creative work to business decisions. It keeps the artist-facing workflow practical: build the song, evaluate the release, decide the next move, and map realistic business paths.
 
+## Core Product
+
+SONARA Creator Business OS is the core product.
+
+## Intelligence Layer
+
+- A&R Intelligence
+- Decision Engine
+- Revenue Pathway Engine
+
+## Active Tools
+
+- Prompt Vault
+- Artist OS
+- Content Studio
+- Visual Builder
+- Local Business Kits
+
 ## A&R Intelligence
 
 A&R Intelligence evaluates:

@@ -69,4 +69,5 @@ https://sonaraindustries.com
 - [x] No private keys appear in repo files.
 - [x] No profit, hit, placement, legal, tax, or medical guarantees appear in product copy.
 - [x] A&R Intelligence, Decision Engine, and Revenue Pathway Engine are framed as planning and readiness tools.
+- [x] Prompt Vault, Artist OS, Content Studio, Visual Builder, and Local Business Kits are framed as active creator planning tools.
 - [x] User can understand the next practical move after generating a blueprint.

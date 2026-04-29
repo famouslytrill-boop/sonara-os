@@ -21,6 +21,13 @@ export const sonaraWebsiteSections = [
       "A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine help creators evaluate songs, choose the next move, and map realistic monetization paths without promising outcomes.",
   },
   {
+    id: "active-tools",
+    label: "Active Tools",
+    title: "Five active tools turn strategy into daily creator work.",
+    description:
+      "Prompt Vault, Artist OS, Content Studio, Visual Builder, and Local Business Kits organize the practical work around the Creator Business OS.",
+  },
+  {
     id: "product-promise",
     label: "Product Promise",
     title: "Every song gets a fingerprint. Every release gets a plan.",
@@ -72,6 +79,39 @@ export const sonaraCreatorBusinessModules = [
     name: "Revenue Pathway Engine",
     purpose: "Maps plausible creator business routes such as releases, services, sound assets, bundles, licensing prep, and studio offers.",
     output: "Planning paths and readiness checks only. It never guarantees income, placements, or market results.",
+  },
+] as const;
+
+export const sonaraActiveTools = [
+  {
+    name: "Prompt Vault",
+    route: "/create",
+    purpose: "Stores and shapes reusable song, release, content, and visual prompts.",
+    output: "Copy-ready prompt systems for consistent creator execution.",
+  },
+  {
+    name: "Artist OS",
+    route: "/library",
+    purpose: "Organizes artist identity, catalog direction, positioning, release history, and saved projects.",
+    output: "A cleaner artist system that can grow across songs, releases, and business moves.",
+  },
+  {
+    name: "Content Studio",
+    route: "/dashboard",
+    purpose: "Turns song and release strategy into content angles, rollout notes, and creator-facing campaign tasks.",
+    output: "Practical content direction that supports the release without becoming a social-media clutter engine.",
+  },
+  {
+    name: "Visual Builder",
+    route: "/export",
+    purpose: "Frames cover direction, visual references, brand consistency, and release asset needs.",
+    output: "Visual planning notes and export-ready creative direction.",
+  },
+  {
+    name: "Local Business Kits",
+    route: "/settings",
+    purpose: "Packages realistic local creator offers, studio workflows, service menus, and operational checklists.",
+    output: "Business kit planning only. No guaranteed income, placements, or client outcomes.",
   },
 ] as const;
 

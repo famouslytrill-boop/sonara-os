@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, Compass, Gauge, ShieldCheck } from "lucide-react";
 import { sonaraBusinessPrinciplesLayer, sonaraProductDoors } from "../../config/sonara/businessPrinciples";
-import { sonaraCreatorBusinessModules } from "../../config/sonara/productArchitecture";
+import { sonaraActiveTools, sonaraCreatorBusinessModules } from "../../config/sonara/productArchitecture";
 import { sonaraSystemVisibility } from "../../config/sonara/systemVisibility";
 import { runSonaraFinalCompanyAudit } from "../../lib/sonara/businessPrinciples";
 
 const iconByIndex = [Compass, BadgeCheck, Gauge, ShieldCheck] as const;
 const businessModuleIcons = [BadgeCheck, Gauge, CircleDollarSign] as const;
+const activeToolIcons = [Compass, BadgeCheck, Gauge, ShieldCheck, CircleDollarSign] as const;
 
 export function BusinessPrinciplesDashboard() {
   const audit = runSonaraFinalCompanyAudit();
@@ -61,6 +62,24 @@ export function BusinessPrinciplesDashboard() {
                 <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{module.purpose}</p>
                 <p className="mt-3 text-xs font-bold leading-5 text-[#71717A]">{module.output}</p>
               </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Active Tools</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">Prompt, artist, content, visual, and local business systems.</h2>
+        <div className="mt-5 grid gap-3 lg:grid-cols-5">
+          {sonaraActiveTools.map((tool, index) => {
+            const Icon = activeToolIcons[index] ?? Compass;
+            return (
+              <Link key={tool.name} href={tool.route} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4 transition hover:border-[#22D3EE]">
+                <Icon className="text-[#22D3EE]" size={22} />
+                <p className="mt-3 text-sm font-black text-[#F8FAFC]">{tool.name}</p>
+                <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{tool.purpose}</p>
+                <p className="mt-3 text-xs font-bold leading-5 text-[#71717A]">{tool.output}</p>
+              </Link>
             );
           })}
         </div>

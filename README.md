@@ -12,6 +12,16 @@ SONARA also frames the workflow as a Creator Business OS:
 
 Revenue pathways are planning tools only. SONARA does not guarantee income, placements, hit records, approvals, or market outcomes.
 
+## Active Tools
+
+- Prompt Vault
+- Artist OS
+- Content Studio
+- Visual Builder
+- Local Business Kits
+
+These tools sit on top of the intelligence layer and turn strategy into daily creator work: prompts, artist systems, content plans, visual direction, and local offer kits.
+
 ## Current Launch Mode
 
 SONARA is configured to launch in deterministic local-rules mode:
