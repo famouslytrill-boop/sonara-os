@@ -13,9 +13,21 @@ const tierIds = new Set<SonaraBillingTierId>(sonaraBillingTiers.map((tier) => ti
 const kitIds = new Set<SonaraKitId>(sonaraStripeKits.map((kit) => kit.id));
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const tierId = body.tierId as SonaraBillingTierId | undefined;
-  const kitId = body.kitId as SonaraKitId | undefined;
+  let parsedBody: unknown;
+
+  try {
+    parsedBody = await request.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
+  }
+
+  if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
+    return NextResponse.json({ error: "invalid_checkout_item" }, { status: 400 });
+  }
+
+  const body = parsedBody as Partial<{ tierId: SonaraBillingTierId; kitId: SonaraKitId }>;
+  const tierId = body.tierId;
+  const kitId = body.kitId;
   let checkoutType: "subscription" | "kit";
   let checkoutId: SonaraBillingTierId | SonaraKitId;
   let priceEnvName: string;
