@@ -44,14 +44,25 @@ https://sonaraindustries.com
 
 ## Stripe
 
-- [ ] Create Starter, Creator, and Studio subscription products.
+- [ ] Create Starter, Pro Artist, and Studio monthly subscription products.
 - [ ] Add price IDs to Vercel:
-  - `STRIPE_PRICE_STARTER`
-  - `STRIPE_PRICE_CREATOR`
-  - `STRIPE_PRICE_STUDIO`
+  - `STRIPE_PRICE_STARTER_MONTHLY`
+  - `STRIPE_PRICE_PRO_ARTIST_MONTHLY`
+  - `STRIPE_PRICE_STUDIO_MONTHLY`
+- [ ] Create one-time kit products and add price IDs to Vercel:
+  - `STRIPE_PRICE_STARTER_PROMPT_PACK`
+  - `STRIPE_PRICE_VISUAL_IDENTITY_PROMPT_PACK`
+  - `STRIPE_PRICE_AR_MARKET_AUDIT_KIT`
+  - `STRIPE_PRICE_RELEASE_PLANNER_KIT`
+  - `STRIPE_PRICE_ARTIST_OS_PRO_KIT`
+  - `STRIPE_PRICE_ALBUM_BUILDER_SYSTEM`
+  - `STRIPE_PRICE_LOCAL_BUSINESS_MARKETING_KIT`
+  - `STRIPE_PRICE_REVENUE_PATHWAY_BLUEPRINT`
 - [ ] Add `STRIPE_SECRET_KEY`.
+- [ ] Add `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 - [ ] Add `STRIPE_WEBHOOK_SECRET` after webhook endpoint setup.
-- [ ] Test checkout in Stripe test mode.
+- [ ] Test monthly subscription checkout in Stripe test mode.
+- [ ] Test one-time kit checkout in Stripe test mode.
 - [x] Confirm failed/missing Stripe config returns a safe disabled state.
 
 ## Production
