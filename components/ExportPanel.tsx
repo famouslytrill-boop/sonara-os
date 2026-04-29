@@ -11,9 +11,9 @@ import { SliderRecommendationCard } from "./sonara/SliderRecommendationCard";
 import { Button } from "./ui/Button";
 
 const sampleAnalysis = fallbackReleaseAnalysis({
-  songTitle: "Launch Seed",
-  creatorName: "SONARA",
-  notes: "Demo release with audience, mix, master, cover, and snippet ready.",
+  songTitle: "SONARA Demo Release",
+  creatorName: "Demo Artist",
+  notes: "Sample project with audience, mix, master, cover, and snippet ready.",
 });
 
 export function ExportPanel() {

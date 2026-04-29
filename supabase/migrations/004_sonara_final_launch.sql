@@ -188,3 +188,24 @@ create index if not exists sonara_sound_assets_export_status_idx
 create index if not exists sonara_sound_assets_redistribution_category_idx
   on public.sonara_sound_assets (redistribution_category);
 
+alter table public.sonara_sound_sources enable row level security;
+alter table public.sonara_sound_assets enable row level security;
+alter table public.sonara_sound_sync_runs enable row level security;
+
+drop policy if exists "Public can read enabled SONARA sound sources" on public.sonara_sound_sources;
+create policy "Public can read enabled SONARA sound sources"
+  on public.sonara_sound_sources
+  for select
+  using (enabled = true);
+
+drop policy if exists "Authenticated users can read SONARA sound assets" on public.sonara_sound_assets;
+create policy "Authenticated users can read SONARA sound assets"
+  on public.sonara_sound_assets
+  for select
+  using (auth.role() = 'authenticated');
+
+drop policy if exists "Authenticated users can read SONARA sound sync runs" on public.sonara_sound_sync_runs;
+create policy "Authenticated users can read SONARA sound sync runs"
+  on public.sonara_sound_sync_runs
+  for select
+  using (auth.role() = 'authenticated');

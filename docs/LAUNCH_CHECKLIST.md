@@ -17,6 +17,8 @@ https://sonaraindustries.com
 - [x] `.env.local` is not committed.
 - [x] `.vercel`, `.next`, `node_modules`, logs, and build output are ignored.
 - [x] GitHub `main` contains the corrected frontend project root.
+- [x] Active app root is the frontend folder containing `package.json`, `app`, `components`, `public`, and `supabase`.
+- [ ] Remove or archive the stray `C:\Users\AXPAY\.git` folder after confirming nothing important depends on it.
 
 ## Environment
 
@@ -30,11 +32,13 @@ https://sonaraindustries.com
 ## Supabase
 
 - [ ] Create or open the Supabase project.
-- [ ] Run `supabase/migrations/004_sonara_final_launch.sql`.
+- [ ] Verify saved SQL query results for `sonara_projects` and `sonara_sound_assets`.
+- [ ] Run `supabase/migrations/004_sonara_final_launch.sql` once if required tables or columns are missing.
 - [ ] Add Vercel env vars:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
   - `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=sonara-releases`
+- [x] Launch migration is idempotent and includes RLS policies for projects, release plans, billing reads, storage, and sound metadata reads.
 - [ ] Configure Auth redirect URLs:
   - `https://sonaraindustries.com/dashboard`
   - `https://sonaraindustries.com/library`
@@ -73,6 +77,8 @@ https://sonaraindustries.com
 - [x] Confirm export ZIP generation works.
 - [x] Confirm HTTPS is active for `sonaraindustries.com` and `www.sonaraindustries.com`.
 - [ ] Review mobile layout on a phone viewport.
+- [ ] Complete `docs/MOBILE_QA_CHECKLIST.md`.
+- [ ] Complete `docs/GOOGLE_PLAY_LAUNCH_CHECKLIST.md` before Android store submission.
 
 ## Final Human Review
 

@@ -78,7 +78,7 @@ export function CreateWorkbench() {
               value={songTitle}
               onChange={(event) => setSongTitle(event.target.value)}
               className={inputClass}
-              placeholder="Pressure Makes Diamonds"
+              placeholder="Example Song"
             />
           </label>
           <label className="grid min-w-0 gap-2 text-sm font-bold text-[#F8FAFC]">
