@@ -4,13 +4,15 @@ You are working inside the SONARA OS codebase.
 
 ## Product Identity
 
-SONARA OS is an artist-first music identity and release-readiness system. It is not a generic music generator, distributor, streaming platform, video editor, analytics clone, or cluttered creative dashboard.
+SONARA is an AI-powered creator business operating system for artists, creators, local businesses, and digital product builders. It helps users build brands, generate content, analyze ideas, find practical revenue paths, and launch with focused AI workflows.
+
+SONARA is not a generic music generator, distributor, streaming platform, video editor, analytics clone, or cluttered creative dashboard.
 
 SONARA should also be understood as a Creator Business OS with three operating modules:
 
-- A&R Intelligence: evaluates song identity, hook strength, audience signal, genre fit, and readiness evidence.
+- A&R Intelligence: evaluates song identity, content ideas, offer clarity, audience signal, category fit, and readiness evidence.
 - Decision Engine: converts creative and business context into the next practical move.
-- Revenue Pathway Engine: maps plausible creator business paths without guaranteeing income, placements, or outcomes.
+- Revenue Pathway Engine: maps practical creator, local business, and digital product paths without guaranteeing income, placements, clients, or outcomes.
 
 Active tools:
 

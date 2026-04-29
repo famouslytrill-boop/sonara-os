@@ -1,6 +1,6 @@
 # Active Tools
 
-SONARA Creator Business OS ships with five active tools. These are practical work surfaces that sit on top of A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine.
+SONARA Creator Business OS ships with five active tools for artists, creators, local businesses, and digital product builders. These are practical work surfaces that sit on top of A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine.
 
 ## Prompt Vault
 
@@ -11,6 +11,7 @@ Stores and shapes reusable prompt systems for:
 - content angles
 - visual direction
 - local offer kits
+- digital product ideas
 
 ## Artist OS
 

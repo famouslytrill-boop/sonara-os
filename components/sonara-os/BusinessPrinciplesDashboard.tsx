@@ -19,10 +19,10 @@ export function BusinessPrinciplesDashboard() {
         <div className="mt-2 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#F8FAFC] sm:text-5xl">
-              Run a Studio Workflow
+              SONARA Creator Business OS
             </h1>
             <p className="mt-4 max-w-2xl leading-7 text-[#A1A1AA]">
-              A focused operating layer for artists building real music businesses through songs, releases, artist systems, and studio workflow.
+              AI-powered workflows for artists, creators, local businesses, and digital product builders building brands, content, ideas, revenue paths, and launch systems.
             </p>
           </div>
           <div className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">

@@ -4,7 +4,7 @@ export const sonaraWebsiteSections = [
     label: "Hero",
     title: "SONARA™ is the operating system artists use to build a real music business.",
     description:
-      "Build songs, prepare releases, organize artist systems, and run studio workflows without burying artists in extra systems.",
+      "Artists, creators, local businesses, and digital product builders can build brands, generate content, analyze ideas, map revenue paths, and launch with focused AI workflows.",
   },
   {
     id: "ecosystem",
@@ -16,9 +16,9 @@ export const sonaraWebsiteSections = [
   {
     id: "creator-business-os",
     label: "Creator Business OS",
-    title: "SONARA Creator Business OS connects creative work to business decisions.",
+    title: "SONARA Creator Business OS connects ideas, content, brands, and business decisions.",
     description:
-      "A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine help creators evaluate songs, choose the next move, and map realistic monetization paths without promising outcomes.",
+      "A&R Intelligence, the Decision Engine, and the Revenue Pathway Engine help users evaluate ideas, choose the next move, and map realistic revenue paths without promising outcomes.",
   },
   {
     id: "active-tools",

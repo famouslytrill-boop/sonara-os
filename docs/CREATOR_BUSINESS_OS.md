@@ -1,6 +1,6 @@
 # Creator Business OS
 
-SONARA Creator Business OS connects creative work to business decisions. It keeps the artist-facing workflow practical: build the song, evaluate the release, decide the next move, and map realistic business paths.
+SONARA Creator Business OS connects creative work to business decisions for artists, creators, local businesses, and digital product builders. It keeps the workflow practical: build the brand, generate content, analyze ideas, decide the next move, map realistic revenue paths, and launch with focused AI workflows.
 
 ## Core Product
 
@@ -25,6 +25,9 @@ SONARA Creator Business OS is the core product.
 A&R Intelligence evaluates:
 
 - song identity
+- brand clarity
+- content ideas
+- offer direction
 - hook strength
 - emotional clarity
 - genre fit
@@ -57,6 +60,8 @@ The Revenue Pathway Engine maps realistic creator business routes:
 - studio workflow
 - catalog organization
 - artist-system upgrade
+- local business kit
+- digital product launch
 
 It is a planning tool only. It must not promise income, placements, hits, approvals, or market outcomes.
 

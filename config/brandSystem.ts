@@ -4,7 +4,7 @@ export const brandSystem = {
     shortName: "SONARA",
     type: "Music Technology Company",
     slogan: "Build the sound. Own the system.",
-    premiumSlogan: "The creator infrastructure for modern music.",
+    premiumSlogan: "The AI-powered creator business operating system.",
     streetSlogan: "From sound to system. From idea to release.",
     description:
       "SONARA Industries™ is a music technology company building the future of creator infrastructure through records, software, sound libraries, artist systems, and release tools.",
@@ -63,9 +63,9 @@ export const brandSystem = {
   },
   publicCopy: {
     homepageHeroTitle: "SONARA Industries™",
-    homepageHeroSubtitle: "The creator infrastructure for modern music.",
+    homepageHeroSubtitle: "The AI-powered creator business operating system.",
     homepageHeroBody:
-      "Build songs, release music, design sounds, organize artist systems, and power your creative business from one platform.",
+      "Build your brand, generate content, analyze ideas, map your best revenue path, and launch with focused AI workflows for artists, creators, local businesses, and digital product builders.",
     appStoreShort:
       "SONARA OS™ helps creators build songs, sounds, prompts, release plans, and music brands from one organized workspace.",
     appStoreLong:

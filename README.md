@@ -1,10 +1,10 @@
 # SONARA OS
 
-SONARA OS is a music identity and release-readiness workspace for creators. It turns song context into a practical launch blueprint: fingerprint, mood, hook direction, sonic palette, readiness score, next checks, and exportable release assets.
+SONARA is an AI-powered creator business operating system for artists, creators, local businesses, and digital product builders. Build your brand, generate content, analyze your ideas, find your best revenue path, and launch with focused AI workflows.
 
 ## Creator Business OS
 
-SONARA also frames the workflow as a Creator Business OS:
+SONARA frames the workflow as a Creator Business OS:
 
 - A&R Intelligence evaluates song identity, hook strength, audience signal, genre fit, and release-readiness evidence.
 - Decision Engine turns creative context into the next practical move: go, improve, hold, or export.
