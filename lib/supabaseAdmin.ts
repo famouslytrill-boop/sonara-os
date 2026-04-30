@@ -51,11 +51,22 @@ type SonaraDatabase = {
 
 let adminClient: SupabaseClient<SonaraDatabase> | null = null;
 
+function isValidHttpUrl(value: string | undefined) {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function getSupabaseAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !serviceRoleKey) {
+  if (!isValidHttpUrl(url) || !serviceRoleKey) {
     return null;
   }
 

@@ -23,6 +23,7 @@ const { calculateRuntimeThreshold, formatRuntime } = await loadModule("../lib/so
 const { buildSoundPack } = await loadModule("../lib/sonara/sound/packBuilder.ts");
 const { canRedistributeRawSample, normalizeSoundAsset } = await loadModule("../lib/sonara/sound/licenseRules.ts");
 const { fallbackReleaseAnalysis } = await loadModule("../lib/sonara-core.ts");
+const { getSupabasePublicConfig, isSupabaseConfigured } = await loadModule("../lib/supabase.ts");
 const { prepareBrandedExport } = await loadModule("../utils/prepareBrandedExport.ts");
 const { replaceRestrictedTrademarkSymbols, validateTrademarkUsage } = await loadModule("../utils/validateTrademarkUsage.ts");
 const { POST: createCheckout } = await loadModule("../app/api/stripe/checkout/route.ts");
@@ -200,6 +201,28 @@ test("billing entitlements match SONARA OS tiers", async () => {
   );
   assert.equal(response.status, 400);
   assert.equal((await response.json()).error, "invalid_tier");
+});
+
+test("malformed Supabase placeholders do not count as configured", () => {
+  const previousUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const previousAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  process.env.NEXT_PUBLIC_SUPABASE_URL = "pending";
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "placeholder";
+  assert.equal(isSupabaseConfigured(), false);
+  assert.equal(getSupabasePublicConfig(), null);
+
+  if (previousUrl === undefined) {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+  } else {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = previousUrl;
+  }
+
+  if (previousAnon === undefined) {
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  } else {
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = previousAnon;
+  }
 });
 
 test("generated local-rules analysis includes launch output systems", () => {

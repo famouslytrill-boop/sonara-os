@@ -3,31 +3,51 @@ import { createBrowserClient } from "@supabase/ssr";
 
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
-export function isSupabaseConfigured() {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+export function isValidHttpUrl(value: string | undefined) {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
-export function getSupabaseClient() {
+export function getSupabasePublicConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!url || !anonKey) {
+  if (!isValidHttpUrl(url) || !anonKey) {
     return null;
   }
 
-  return createClient(url, anonKey);
+  return { url: url as string, anonKey };
+}
+
+export function isSupabaseConfigured() {
+  return Boolean(getSupabasePublicConfig());
+}
+
+export function getSupabaseClient() {
+  const config = getSupabasePublicConfig();
+
+  if (!config) {
+    return null;
+  }
+
+  return createClient(config.url, config.anonKey);
 }
 
 export function getSupabaseBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const config = getSupabasePublicConfig();
 
-  if (!url || !anonKey) {
+  if (!config) {
     return null;
   }
 
   if (!browserClient) {
-    browserClient = createBrowserClient(url, anonKey);
+    browserClient = createBrowserClient(config.url, config.anonKey);
   }
 
   return browserClient;
