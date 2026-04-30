@@ -1,56 +1,50 @@
 # SONARA OS
 
-SONARA is an AI-powered creator business operating system for artists, creators, local businesses, and digital product builders. Build your brand, generate content, analyze your ideas, find your best revenue path, and launch with focused AI workflows.
+SONARA Industries™ is building creator infrastructure for modern music: songs, releases, sound systems, artist workflows, rights-aware exports, and creator business operations.
 
-## Creator Business OS
+## SONARA Core™
 
-SONARA frames the workflow as a Creator Business OS:
+Built for every genre. Structured for every release.
 
-- A&R Intelligence evaluates song identity, hook strength, audience signal, genre fit, and release-readiness evidence.
-- Decision Engine turns creative context into the next practical move: go, improve, hold, or export.
-- Revenue Pathway Engine maps realistic creator business routes such as releases, services, sound assets, bundles, licensing prep, and studio offers.
+SONARA Core™ reads genre, rhythm, harmony, drums, vocals, sound identity, runtime, lyrics, explicitness mode, and release goals into a clear operating system for music creators.
 
-Revenue pathways are planning tools only. SONARA does not guarantee income, placements, hit records, approvals, or market outcomes.
+## Launch Mode
 
-## Active Tools
-
-- Prompt Vault
-- Artist OS
-- Content Studio
-- Visual Builder
-- Local Business Kits
-
-These tools sit on top of the intelligence layer and turn strategy into daily creator work: prompts, artist systems, content plans, visual direction, and local offer kits.
-
-## Current Launch Mode
-
-SONARA is configured to launch in deterministic local-rules mode:
+The default launch provider is deterministic local rules:
 
 ```env
 SONARA_AI_PROVIDER=local_rules
 SONARA_PROVIDER_TIMEOUT_MS=6000
 ```
 
-No paid AI key is required for the public launch baseline. Optional OpenAI BYOK, Ollama, LM Studio, Supabase, and Stripe settings are documented in `.env.example`.
-
-## App Stack
-
-- Next.js App Router
-- TypeScript
-- Tailwind CSS
-- Supabase-ready auth and saved projects
-- Stripe checkout scaffold
-- JSZip export bundles
-- Vercel deployment
+OpenAI BYOK, Ollama, LM Studio, Supabase, Stripe, vector memory, and sound discovery are optional integrations. The app must build and run without `OPENAI_API_KEY`.
 
 ## Main Routes
 
-- `/` - SONARA public entry
-- `/create` - song builder and release-readiness blueprint
-- `/dashboard` - protected workspace shell
-- `/library` - saved projects when Supabase is connected
-- `/export` - export bundle workflow
-- `/settings` - launch service status
+- `/` public company site
+- `/store` store/products
+- `/pricing` subscriptions
+- `/tutorial` OS tutorial
+- `/login` login
+- `/dashboard` SONARA OS™ workspace
+- `/create` SONARA Core™ create flow
+- `/library` saved projects
+- `/export` export bundles
+- `/settings` launch configuration status
+- `/trust` trust and safety
+- `/support` support
+- `/founder` founder command center placeholder
+
+## Stack
+
+- Next.js App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- Supabase-ready Postgres/Auth/Storage/pgvector
+- Stripe Checkout/Webhook scaffold
+- JSZip export bundles
+- Vercel deployment and cron
 
 ## Setup
 
@@ -61,59 +55,15 @@ npm run build
 npm run dev
 ```
 
-Open:
-
-```text
-http://localhost:3000/create
-```
-
 ## Validation
 
-Run from this folder:
-
 ```bash
+npm run typecheck
+npm run lint
+npm run test
 npm run build
-npm audit --audit-level=moderate
-npm run validate:infrastructure
 ```
 
-Backend Python tests, if using the optional Python service, run from the parent `backend/` folder or the `services/sonara-python` service described in `services/sonara-python/README.md`.
+## Production Honesty
 
-## Supabase
-
-Apply:
-
-```text
-supabase/migrations/004_sonara_final_launch.sql
-```
-
-Then set these in Vercel:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=sonara-releases
-```
-
-## Stripe
-
-Stripe checkout remains disabled until these are set in Vercel:
-
-```env
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
-STRIPE_CREATOR_MONTHLY_PRICE_ID=
-STRIPE_PRO_MONTHLY_PRICE_ID=
-STRIPE_LABEL_MONTHLY_PRICE_ID=
-NEXT_PUBLIC_APP_URL=https://sonaraindustries.com
-```
-
-## Production
-
-Production domain:
-
-```text
-https://sonaraindustries.com
-```
+This repo can reach 10/10 architecture readiness. Do not call it a 10/10 operating business until the live website, Vercel env vars, Supabase migrations/RLS, Stripe checkout/webhook, domain/HTTPS, PWA install, support email, store products, and mobile QA are verified.

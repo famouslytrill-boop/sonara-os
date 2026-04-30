@@ -37,3 +37,24 @@ Web Stripe subscriptions are for the website and PWA. Native Android digital sub
 - SONARA OS is a planning and workflow app.
 - AI provider mode defaults to deterministic local rules.
 - OpenAI BYOK and paid providers are optional.
+# 2026 Google Play Billing Note
+
+- Web Stripe subscriptions are for website/PWA.
+- Native Android digital subscriptions may require Google Play Billing.
+- Native iOS digital subscriptions may require Apple IAP.
+- Do not route around app store billing rules inside native apps.
+- PWA/web first, native billing later.
+- Android target API 35+.
+- No paid OpenAI key is required for baseline app behavior.
+- No fake streaming tools.
+- No unlicensed sound redistribution.
+
+Store assets required:
+
+- 512x512 icon
+- 1024x500 feature graphic
+- screenshots
+- privacy URL
+- support email
+- Data Safety form
+- closed testing plan if required

@@ -9,7 +9,7 @@
     "lint": "tsc --noEmit",
     "test": "tsx --test tests/*.test.mjs",
     "typecheck": "tsc --noEmit",
-    "validate:infrastructure": "node ../scripts/validate-sonara-full-infrastructure.mjs"
+    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

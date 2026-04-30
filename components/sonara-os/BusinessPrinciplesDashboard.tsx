@@ -4,6 +4,27 @@ import { sonaraBusinessPrinciplesLayer, sonaraProductDoors } from "../../config/
 import { sonaraActiveTools, sonaraCreatorBusinessModules } from "../../config/sonara/productArchitecture";
 import { sonaraSystemVisibility } from "../../config/sonara/systemVisibility";
 import { runSonaraFinalCompanyAudit } from "../../lib/sonara/businessPrinciples";
+import { ActivationChecklistCard } from "../sonara/ActivationChecklistCard";
+import { ArrangementCoreCard } from "../sonara/ArrangementCoreCard";
+import { AutonomyStatusCard } from "../sonara/AutonomyStatusCard";
+import { BroadcastingCard } from "../sonara/BroadcastingCard";
+import { DesignAuditCard } from "../sonara/DesignAuditCard";
+import { EmergingCreatorCard } from "../sonara/EmergingCreatorCard";
+import { GenreMarketplaceCard } from "../sonara/GenreMarketplaceCard";
+import { GenreUniverseCard } from "../sonara/GenreUniverseCard";
+import { LaunchCampaignCard } from "../sonara/LaunchCampaignCard";
+import { MetadataReadinessCard } from "../sonara/MetadataReadinessCard";
+import { PasskeyReadinessCard } from "../sonara/PasskeyReadinessCard";
+import { PositioningCard } from "../sonara/PositioningCard";
+import { ReleaseStrategyCard } from "../sonara/ReleaseStrategyCard";
+import { RetentionInsightCard } from "../sonara/RetentionInsightCard";
+import { ReviewRoomCard } from "../sonara/ReviewRoomCard";
+import { SoundDiscoveryCard } from "../sonara/SoundDiscoveryCard";
+import { SoundIdentityCard } from "../sonara/SoundIdentityCard";
+import { StoreProductReadinessCard } from "../sonara/StoreProductReadinessCard";
+import { UpgradeNudgeCard } from "../sonara/UpgradeNudgeCard";
+import { VaultStackCard } from "../sonara/VaultStackCard";
+import { buildBroadcastKit } from "../../lib/sonara/broadcast/broadcastKit";
 
 const iconByIndex = [Compass, BadgeCheck, Gauge, ShieldCheck] as const;
 const businessModuleIcons = [BadgeCheck, Gauge, CircleDollarSign] as const;
@@ -19,6 +40,7 @@ const workspaceActions = [
 
 export function BusinessPrinciplesDashboard() {
   const audit = runSonaraFinalCompanyAudit();
+  const broadcastKit = buildBroadcastKit({ projectTitle: "SONARA Demo Release", creatorName: "Demo Artist" });
 
   return (
     <div className="grid gap-6">
@@ -68,6 +90,43 @@ export function BusinessPrinciplesDashboard() {
             </Link>
           );
         })}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <ActivationChecklistCard />
+        <UpgradeNudgeCard currentTier="free" feature="full_bundle_exports" />
+        <RetentionInsightCard />
+      </section>
+
+      <AutonomyStatusCard />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <GenreUniverseCard />
+        <ArrangementCoreCard />
+        <SoundIdentityCard />
+        <MetadataReadinessCard />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <SoundDiscoveryCard />
+        <VaultStackCard />
+        <GenreMarketplaceCard />
+        <ReviewRoomCard />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <DesignAuditCard />
+        <PositioningCard />
+        <LaunchCampaignCard />
+        <StoreProductReadinessCard />
+      </section>
+
+      <BroadcastingCard kit={broadcastKit} />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ReleaseStrategyCard />
+        <EmergingCreatorCard />
+        <PasskeyReadinessCard />
       </section>
 
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">

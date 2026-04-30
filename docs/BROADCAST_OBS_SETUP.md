@@ -29,3 +29,28 @@ The Broadcast Kit generates:
 - overlay package export
 - lower-third templates
 - stream deck shortcuts
+# 2026 OBS Broadcast Update
+
+SONARA provides an OBS-ready broadcast kit export. It does not directly control OBS.
+
+Export includes:
+
+- stream title
+- scene list
+- OBS scene recommendations
+- audio routing notes
+- release listening session outline
+- live premiere checklist
+- visual overlay suggestions
+- performance arrangement
+- intro/outro cue notes
+- transition notes
+- talking points
+- live vocal/breath notes
+
+Future optional:
+
+- OBS WebSocket integration
+- overlay package export
+- lower-third templates
+- stream deck shortcuts

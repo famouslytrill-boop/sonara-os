@@ -7,7 +7,7 @@ export const brandSystem = {
     premiumSlogan: "The creator infrastructure for modern music.",
     streetSlogan: "From sound to system. From idea to release.",
     description:
-      "SONARA Industries™ is a music technology company building the future of creator infrastructure through records, software, sound libraries, artist systems, and release tools.",
+      "SONARA Industries™ is a music technology company building creator infrastructure through records, software, sound systems, artist workflows, and release tools.",
   },
   divisions: {
     records: {
@@ -22,14 +22,21 @@ export const brandSystem = {
       route: "/dashboard",
       type: "Creator Operating System",
       description:
-      "SONARA OS™ is a creator operating system for building songs, prompts, sounds, visuals, release plans, and music brand workflows from one organized platform.",
+        "SONARA OS™ is a creator operating system for building songs, prompts, sounds, visuals, release plans, and music brand workflows from one organized platform.",
+    },
+    core: {
+      name: "SONARA Core™",
+      route: "/create",
+      type: "All-Genre Music Operating Base",
+      description:
+        "SONARA Core™ reads genre, rhythm, harmony, drums, vocals, sound identity, runtime, and release goals into a clear system for modern music creators.",
     },
     vault: {
       name: "SONARA Vault™",
       route: "/vault",
       type: "Sound Library and Asset System",
       description:
-        "SONARA Vault™ is the sound and asset library for royalty-free loops, drums, MIDI, presets, templates, and creator-ready production tools.",
+        "SONARA Vault™ organizes, classifies, verifies, packages, and exports user-owned or rights-cleared sounds, MIDI, presets, templates, and production assets.",
     },
     engine: {
       name: "SONARA Engine™",
@@ -41,9 +48,9 @@ export const brandSystem = {
     exchange: {
       name: "SONARA Exchange™",
       route: "/exchange",
-      type: "Marketplace and Licensing Platform",
+      type: "Future Marketplace and Licensing Platform",
       description:
-        "SONARA Exchange™ is the marketplace for creator assets, sound packs, presets, templates, licensing tools, and music-production resources.",
+        "SONARA Exchange™ is delayed for launch and requires seller onboarding, rights verification, payout compliance, moderation, marketplace terms, and support policy before public kit sales.",
     },
     labs: {
       name: "SONARA Labs™",
@@ -55,7 +62,7 @@ export const brandSystem = {
   },
   legal: {
     footer:
-      "SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA Labs™ are trademarks of SONARA Industries. All rights reserved.",
+      "SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Core™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA Labs™ are trademarks of SONARA Industries. All rights reserved.",
     trademarkNotice:
       "All SONARA brand names marked with ™ are claimed trademarks of SONARA Industries. Do not use the registered trademark symbol unless the mark has been officially registered.",
     allowedSymbol: "™",
@@ -69,7 +76,7 @@ export const brandSystem = {
     appStoreShort:
       "SONARA OS™ helps creators build songs, sounds, prompts, release plans, and music brands from one organized workspace.",
     appStoreLong:
-      "SONARA OS™ is the creator operating system from SONARA Industries™, built for artists, producers, labels, and music entrepreneurs. Create songs, design sound packs, organize artist systems, build release plans, manage creative assets, and develop music brands inside one streamlined platform.",
+      "SONARA OS™ is the creator operating system from SONARA Industries™, built for artists, producers, labels, and music entrepreneurs. Create songs, organize rights-aware Vault assets, structure lyrics, build release plans, manage creative assets, and develop music brands inside one streamlined platform.",
   },
   productTiers: [
     {
@@ -78,15 +85,15 @@ export const brandSystem = {
     },
     {
       name: "SONARA OS™ Creator",
-      features: ["Advanced song prompt system", "SONARA Engine™ analysis", "Genre and emotion mapping", "Album planning", "Export tools", "Sound pack organizer"],
+      features: ["Advanced song prompt system", "SONARA Engine™ analysis", "Genre and emotion mapping", "Album planning", "Export tools", "Vault organizer"],
     },
     {
       name: "SONARA OS™ Pro",
-      features: ["Full SONARA Engine™ access", "SONARA Vault™ management", "Marketplace publishing tools", "Artist ecosystem builder", "Release campaign planner", "PDF and metadata exports", "Commercial creator workflows"],
+      features: ["Full SONARA Engine™ access", "SONARA Vault™ management", "Store readiness tools", "Artist ecosystem builder", "Release campaign planner", "PDF and metadata exports", "Commercial creator workflows"],
     },
     {
       name: "SONARA OS™ Label",
-      features: ["Multi-artist management", "Catalog planning", "Release pipeline", "Brand governance", "Team workspace", "Advanced analytics", "SONARA Exchange™ publishing"],
+      features: ["Multi-artist management", "Catalog planning", "Release pipeline", "Brand governance", "Team workspace", "Advanced analytics", "SONARA Exchange™ planning"],
     },
   ],
 } as const;
@@ -94,9 +101,10 @@ export const brandSystem = {
 export const ecosystemNavItems = [
   { label: "SONARA OS™", route: "/dashboard", description: "Main creator operating system" },
   { label: "SONARA Records™", route: "/records", description: "Artist releases, albums, singles, catalog planning" },
-  { label: "SONARA Vault™", route: "/vault", description: "Sounds, loops, MIDI, presets, drum kits" },
+  { label: "SONARA Core™", route: "/create", description: "All-genre idea-to-arrangement operating base" },
+  { label: "SONARA Vault™", route: "/vault", description: "Organize, classify, verify, package, and export rights-cleared assets" },
   { label: "SONARA Engine™", route: "/engine", description: "Prompt generation, music analysis, automation" },
-  { label: "SONARA Exchange™", route: "/exchange", description: "Marketplace, licensing, digital products" },
+  { label: "SONARA Exchange™", route: "/exchange", description: "Future marketplace and licensing platform after rights/payout readiness" },
   { label: "SONARA Labs™", route: "/labs", description: "Research, experiments, testing, product innovation" },
   { label: "Brand System™", route: "/brand-system", description: "Trademark, legal, and brand identity control" },
 ] as const;

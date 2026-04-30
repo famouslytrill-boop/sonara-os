@@ -1,10 +1,18 @@
 # SONARA Agent Rules
 
+## Product Structure
+
+- Public website explains, sells, builds trust, and drives conversion.
+- SONARA OS™ is the creator operating system workspace.
+- Public nav: Home, Store, Pricing, Tutorial, Login.
+- App nav: Home, Create, Library, Export, Settings.
+- Keep store/pricing separate from the OS workspace.
+
 ## Brand Governance
 
-- Use SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA Labs™.
-- Do not use SONARA registered marks unless the mark is officially registered.
-- Public copy should avoid overusing "AI"; prefer music technology, creator infrastructure, sound systems, release tools, artist ecosystems, creator workflows, digital assets, music brands.
+- Use SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Core™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA Labs™.
+- Do not use registered marks unless officially registered.
+- Public copy should avoid overusing "AI"; prefer music technology, creator infrastructure, sound systems, release tools, artist ecosystems, creator workflows, digital assets, and music brands.
 - Exports must use `prepareBrandedExport()` and include the legal footer once.
 - Brand editing is limited to owner/admin roles.
 
@@ -18,34 +26,76 @@
 - OpenAI is optional.
 - Default provider is `local_rules`.
 - The app must build and run without `OPENAI_API_KEY`.
-- Core numeric, runtime, prompt mode, entitlement, and rights logic must remain deterministic local rules.
+- Core numeric, runtime, prompt mode, genre, arrangement, lyric, entitlement, and rights logic must remain deterministic local rules.
 
-## SONARA Engines
+## Free/Open-Source-First Policy
 
-- Runtime Target Threshold Engine outputs deterministic runtime targets and must appear in generated project output and exports.
-- Prompt Length Engine chooses the shortest prompt that controls the result and must appear in generated output and exports.
-- External Generator Slider Guidance should use platform-flexible language such as "External Generator Settings" and "Suno-style where supported." Do not imply guaranteed results.
-- Sound Rights Redistribution Rules must block unsafe raw sample-pack exports, including `unknown_blocked` and `music_use_only`.
+- Use Next.js, TypeScript, Tailwind, Supabase, Vercel, Stripe web checkout, JSZip, local rules, and Supabase pgvector first.
+- Keep Qdrant, Chroma, Milvus, Weaviate, Faiss, ClickHouse, Neo4j, Ollama, LM Studio, Essentia.js, FFmpeg, librosa, Flowise, Continue.dev, and Capacitor as optional/future unless directly used.
+- Do not install heavy packages without a launch need.
 
-## Monetization Safety
+## SONARA Core™ And Engines
 
-- Use Stripe web checkout for website/PWA subscriptions.
+- SONARA Core™ must read as an all-genre idea-to-arrangement base system.
+- Genre Universe supports hip-hop, R&B, pop, country, rock, electronic, Latin, Afrobeats, gospel, cinematic, ambient, experimental, spoken, global fusion, and custom.
+- Arrangement Core must turn idea context into intro, verse, hook, bridge, outro, transitions, energy, vocals, drums, risks, and authenticity notes.
+- Runtime Target Threshold Engine must remain deterministic and appear in generated output and exports.
+- Prompt Length Engine must choose the shortest prompt that still controls the result.
+- External Generator Slider Guidance must use platform-flexible language and never imply guaranteed results.
+- Authentic Writer Engine™ asks for concrete details and does not fabricate biography.
+- Lyric Structure Engine™ structures user-written lyrics without copying copyrighted lyrics or imitating living artists.
+- Explicit Language Control defaults to `radio_safe` and exports explicitness metadata.
+- Generation History/Restore must preserve previous generations instead of overwriting them.
+
+## Sound Rights And Sound Discovery
+
+- Redistribution categories: redistributable, music_use_only, attribution_required, non_commercial_only, research_education_only, user_owned, commercial_license_required, unknown_blocked.
+- `music_use_only`, `unknown_blocked`, research-only, non-commercial, and unproven commercial-license assets are blocked from raw sample-pack export.
+- Attribution-required assets need an attribution sheet.
+- Sound discovery is metadata-first; no automatic downloads for resale.
+- Human approval is required before downloading, storing, publishing, or selling sound files.
+- No public kit marketplace at launch.
+- SONARA Vault™ may organize, classify, verify, package, and export personal rights-cleared Vault kits.
+- SONARA Exchange™ is delayed until seller onboarding, rights verification, payout compliance, moderation, marketplace terms, and support policy are ready.
+
+## Store, Pricing, And Payments
+
 - Do not fake payments or fake active subscriptions.
-- Paid checkout must stay disabled until real Stripe env vars are configured.
+- Stripe web checkout is for website/PWA subscriptions.
+- Paid checkout must stay disabled or gracefully error until real Stripe env vars are configured.
 - Google Play Billing and Apple IAP are later native-app work.
+- Store Product Readiness must block products missing price, files, license terms, refund/support notes, export bundle, rights classification, Stripe price ID, or safe rights status.
 
-## Deployment Safety
+## Autonomy And Safety
+
+- Use supervised autonomy by default.
+- Safe checks may run automatically; risky actions create recommendations.
+- Payment, legal/trademark, env var, deletion, public store publication, and sound download actions require human approval.
+- Do not use literal autonomy-overclaim language or unverified outcome promises.
+- Use adaptive, feedback-driven, context-aware, creator-guided, supervised autonomy, and IPO-readiness roadmap language.
+- Do not build uncontrolled self-modifying code.
+
+## Passkey/WebAuthn And Biometrics
+
+- Do not store biometric data.
+- Do not store fingerprints, face scans, voiceprints, or biometric templates.
+- Do not create a server-side biometric store.
+- Passkey planning must use WebAuthn/platform authenticators where biometrics stay on the user's device.
+
+## Deployment And Data Safety
 
 - Do not commit secrets.
 - Do not put env vars in `vercel.json`.
 - `SUPABASE_SERVICE_ROLE_KEY` must be server-only.
 - Stripe secret and webhook keys must be server-only.
 - Public routes should render without Supabase, Stripe, or OpenAI secrets.
+- Run migrations before production and verify RLS policies.
+- Parent `.git` folders can confuse pushes; push only from the app root.
 
-## Product Structure
+## Launch Systems
 
-- The public website sells and explains.
-- SONARA OS™ is the operating system workspace.
-- Store and pricing are separate from the OS app.
-- OBS work is an OBS-ready broadcast kit export unless direct integration is implemented.
-- R&D should separate launch-ready systems from later integrations.
+- Support and Trust systems must be honest placeholders unless email/ticketing is configured.
+- Activation, Conversion, Retention, Founder Command Center, Analytics/KPIs, Wide Moat, and IPO-grade discipline are planning/operating systems, not fake operating results.
+- OBS work is an OBS-ready broadcast kit export unless direct OBS integration is implemented.
+- R&D docs must separate launch-ready systems from later integrations.
+- Final audit language must distinguish 10/10 architecture readiness from a verified 10/10 operating business.

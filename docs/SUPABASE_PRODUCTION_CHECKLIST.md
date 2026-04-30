@@ -54,3 +54,23 @@ Run database changes before launch and verify schema in the Supabase SQL editor.
 - Confirm listing projects only returns the signed-in user's rows.
 - Confirm deleting a project cannot delete another user's row.
 - Confirm subscription webhook updates only run from the server.
+# 2026 Supabase Production Update
+
+Required/available migrations:
+
+- `003_sonara_subscriptions.sql`
+- `004_sonara_final_launch.sql`
+- `004_sonara_vector_memory.sql`
+- `005_sonara_sound_discovery.sql`
+- `006_sonara_generation_history.sql`
+
+Checklist:
+
+- Enable RLS.
+- Confirm policies.
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to the client.
+- Rotate service role key if ever committed.
+- Run migrations before production launch.
+- Enable pgvector if using vector memory.
+- If vector dimension/model is undecided, do not block public app routes.
+- Persistent generation history is optional until auth/RLS are verified.

@@ -1,4 +1,5 @@
 import type { SliderProfile } from "../generation/sliderRecommendations";
+import type { AuthenticWriterGuidance } from "../writing/authenticWriterTypes";
 import type { RuntimeThreshold } from "../runtime/runtimeTypes";
 import { formatRuntime } from "../runtime/runtimeThresholdEngine";
 import type { PromptDetailLevel } from "./promptLengthTypes";
@@ -16,6 +17,7 @@ export type LongPromptBuilderInput = {
   vocalMode: string;
   runtimeTarget?: RuntimeThreshold;
   sliderRecommendations?: SliderProfile;
+  authenticWriter?: AuthenticWriterGuidance;
   soundRightsMode?: string;
   arrangementNotes?: string[];
   mixNotes?: string[];
@@ -75,6 +77,18 @@ export function buildLongPrompt(input: LongPromptBuilderInput) {
   if (input.arrangementNotes?.length) {
     sections.push(
       ["ARRANGEMENT NOTES:", ...input.arrangementNotes.map((note) => `- ${note}`)].join("\n"),
+    );
+  }
+
+  if (input.authenticWriter) {
+    sections.push(
+      [
+        "AUTHENTIC WRITER GUIDANCE:",
+        `- Authenticity Score: ${input.authenticWriter.authenticityScore}/100`,
+        ...input.authenticWriter.requiredDetails.slice(0, 6).map((detail) => `- Add: ${detail}`),
+        ...input.authenticWriter.craftGuidance.slice(0, 3).map((note) => `- Craft: ${note}`),
+        ...input.authenticWriter.vocalGuidance.slice(0, 3).map((note) => `- Vocal: ${note}`),
+      ].join("\n"),
     );
   }
 

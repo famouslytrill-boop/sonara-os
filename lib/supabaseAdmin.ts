@@ -41,6 +41,153 @@ type SonaraDatabase = {
         };
         Relationships: [];
       };
+      sonara_memory_records: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          kind: string;
+          title: string;
+          content: string;
+          metadata: Record<string, unknown>;
+          embedding: number[] | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          kind: string;
+          title: string;
+          content: string;
+          metadata?: Record<string, unknown>;
+          embedding?: number[] | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string | null;
+          kind?: string;
+          title?: string;
+          content?: string;
+          metadata?: Record<string, unknown>;
+          embedding?: number[] | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      sonara_generation_history: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          parent_id: string | null;
+          project_id: string | null;
+          engine_name: string;
+          engine_version: string;
+          input_hash: string;
+          input_data: Record<string, unknown>;
+          settings_snapshot: Record<string, unknown>;
+          output_data: Record<string, unknown>;
+          label: string | null;
+          is_selected: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id?: string | null;
+          parent_id?: string | null;
+          project_id?: string | null;
+          engine_name: string;
+          engine_version: string;
+          input_hash: string;
+          input_data?: Record<string, unknown>;
+          settings_snapshot?: Record<string, unknown>;
+          output_data?: Record<string, unknown>;
+          label?: string | null;
+          is_selected?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          parent_id?: string | null;
+          project_id?: string | null;
+          output_data?: Record<string, unknown>;
+          label?: string | null;
+          is_selected?: boolean;
+        };
+        Relationships: [];
+      };
+      sonara_sound_sources: {
+        Row: {
+          id: string;
+          name: string;
+          url: string | null;
+          source_type: string | null;
+          commercial_use_risk: string | null;
+          redistribution_risk: string | null;
+          requires_api_key: boolean | null;
+          launch_status: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          url?: string | null;
+          source_type?: string | null;
+          commercial_use_risk?: string | null;
+          redistribution_risk?: string | null;
+          requires_api_key?: boolean | null;
+          launch_status?: string | null;
+        };
+        Update: {
+          name?: string;
+          url?: string | null;
+          source_type?: string | null;
+          commercial_use_risk?: string | null;
+          redistribution_risk?: string | null;
+          requires_api_key?: boolean | null;
+          launch_status?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      sonara_sound_assets: {
+        Row: {
+          id: string;
+          name: string;
+          asset_type: string | null;
+          license: string | null;
+          redistribution_category: string | null;
+          commercial_use_allowed: boolean | null;
+          redistribution_allowed: boolean | null;
+          attribution_required: boolean | null;
+          export_status: string | null;
+          metadata: Record<string, unknown> | null;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          asset_type?: string | null;
+          license?: string | null;
+          redistribution_category?: string | null;
+          commercial_use_allowed?: boolean | null;
+          redistribution_allowed?: boolean | null;
+          attribution_required?: boolean | null;
+          export_status?: string | null;
+          metadata?: Record<string, unknown> | null;
+        };
+        Update: {
+          name?: string;
+          asset_type?: string | null;
+          license?: string | null;
+          redistribution_category?: string | null;
+          commercial_use_allowed?: boolean | null;
+          redistribution_allowed?: boolean | null;
+          attribution_required?: boolean | null;
+          export_status?: string | null;
+          metadata?: Record<string, unknown> | null;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

@@ -3,10 +3,14 @@ export type PricingTierId = "free" | "creator" | "pro" | "label";
 export type StoreProductId =
   | "prompt_pack_export"
   | "release_readiness_bundle"
-  | "sound_pack_license_export"
+  | "metadata_rights_sheet_export"
   | "full_project_bundle"
-  | "vault_demo_kit"
-  | "creator_brand_kit";
+  | "creator_brand_kit"
+  | "obs_broadcast_kit_export"
+  | "personal_vault_kit_export"
+  | "marketplace_listing_builder"
+  | "genre_pack_metadata_bundle"
+  | "vault_stack_export";
 
 export type PricingTier = {
   id: PricingTierId;
@@ -26,13 +30,20 @@ export type StoreProduct = {
   status: "coming_soon" | "checkout_ready";
 };
 
+export type FuturePricingTier = {
+  name: string;
+  priceLabel: string;
+  description: string;
+  status: "contact_us" | "future";
+};
+
 export const pricingTiers: PricingTier[] = [
   {
     id: "free",
     name: "SONARA OS™ Free",
     monthlyPrice: 0,
     description: "Start projects, build basic prompts, and explore local-rules release planning.",
-    features: ["Basic prompt builder", "Song fingerprint starter", "Release-readiness preview", "Local Rules provider"],
+    features: ["Basic prompt builder", "Tutorial", "Limited exports", "Local Rules provider"],
   },
   {
     id: "creator",
@@ -40,7 +51,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 9.99,
     yearlyPrice: 99,
     description: "For creators who want stronger song systems and repeatable release workflows.",
-    features: ["Advanced prompt builder", "Runtime Target Engine", "External Generator Settings", "Saved project workflow"],
+    features: ["Advanced prompt system", "Runtime Target Engine", "External Generator Settings", "Authentic Writer Engine", "Sound Identity"],
     stripePriceIdEnvMonthly: "STRIPE_CREATOR_MONTHLY_PRICE_ID",
   },
   {
@@ -49,7 +60,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 19.99,
     yearlyPrice: 199,
     description: "For artists and producers exporting full release bundles and rights-aware packs.",
-    features: ["Full bundle exports", "Sound rights exports", "Release pack builder", "Vault workflow tools"],
+    features: ["Full bundle exports", "Metadata + rights sheets", "Sound rights exports", "Release packs", "OBS Broadcast Kit", "Vault Stack"],
     stripePriceIdEnvMonthly: "STRIPE_PRO_MONTHLY_PRICE_ID",
   },
   {
@@ -58,7 +69,7 @@ export const pricingTiers: PricingTier[] = [
     monthlyPrice: 49.99,
     yearlyPrice: 499,
     description: "For labels, studios, and teams managing multiple creator systems.",
-    features: ["Label workspace", "Brand governance", "Multi-project planning", "Store product workflow"],
+    features: ["Multi-project workspace", "Brand governance", "Review Room", "Label tools", "Store product workflow"],
     stripePriceIdEnvMonthly: "STRIPE_LABEL_MONTHLY_PRICE_ID",
   },
 ];
@@ -77,9 +88,9 @@ export const storeProducts: StoreProduct[] = [
     status: "coming_soon",
   },
   {
-    id: "sound_pack_license_export",
-    name: "Sound Pack License Sheet + Export",
-    description: "Rights-aware sound pack documentation and license-sheet export.",
+    id: "metadata_rights_sheet_export",
+    name: "Metadata + Rights Sheet Export",
+    description: "Release metadata, explicitness label, attribution requirements, and rights notes.",
     status: "coming_soon",
   },
   {
@@ -89,16 +100,55 @@ export const storeProducts: StoreProduct[] = [
     status: "coming_soon",
   },
   {
-    id: "vault_demo_kit",
-    name: "Vault Demo Kit",
-    description: "A neutral demo kit for testing store, vault, and export workflows.",
-    status: "coming_soon",
-  },
-  {
     id: "creator_brand_kit",
     name: "Creator Brand Kit",
     description: "A brand-planning kit for artist identity, content direction, and launch assets.",
     status: "coming_soon",
+  },
+  {
+    id: "obs_broadcast_kit_export",
+    name: "OBS Broadcast Kit Export",
+    description: "OBS-ready broadcast plan, scenes, routing notes, overlays, and premiere checklist.",
+    status: "coming_soon",
+  },
+  {
+    id: "personal_vault_kit_export",
+    name: "Personal Vault Kit Export",
+    description: "Organize, classify, verify, and export user-owned or rights-cleared Vault assets.",
+    status: "coming_soon",
+  },
+  {
+    id: "marketplace_listing_builder",
+    name: "Marketplace Listing Builder",
+    description: "Structured listing copy and readiness checks for creator digital assets. Public marketplace launch is delayed.",
+    status: "coming_soon",
+  },
+  {
+    id: "genre_pack_metadata_bundle",
+    name: "Genre Pack Metadata Bundle",
+    description: "All-genre metadata templates and rights-safe packaging notes without third-party file resale.",
+    status: "coming_soon",
+  },
+  {
+    id: "vault_stack_export",
+    name: "Vault Stack Export",
+    description: "A personal Vault stack manifest with rights classifications, included files, and support notes.",
+    status: "coming_soon",
+  },
+];
+
+export const futurePricingTiers: FuturePricingTier[] = [
+  {
+    name: "SONARA OS™ Studio",
+    priceLabel: "$99/mo future",
+    description: "Future team seats, deeper marketplace tools, and advanced supervised automation.",
+    status: "future",
+  },
+  {
+    name: "SONARA OS™ Enterprise",
+    priceLabel: "Contact us",
+    description: "Future custom workspace, compliance, onboarding, and private infrastructure planning.",
+    status: "contact_us",
   },
 ];
 

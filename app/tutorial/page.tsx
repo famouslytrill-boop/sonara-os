@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { PublicShell } from "../../components/PublicShell";
+import { OSTutorialVideo } from "../../components/sonara/OSTutorialVideo";
 
 const tutorialSteps = [
   {
@@ -8,8 +9,20 @@ const tutorialSteps = [
     detail: "Add the song title, creator name, mood, audience, assets, timeline, and release context.",
   },
   {
-    title: "Create a Song Fingerprint",
-    detail: "SONARA maps unique key, rhythmic feel, harmonic identity, drum language, and vocal mode.",
+    title: "Use SONARA Core™",
+    detail: "Review all-genre guidance across rhythm, harmony, drums, vocals, sound identity, and release goal.",
+  },
+  {
+    title: "Review Genre and Arrangement",
+    detail: "SONARA maps unique key, rhythmic feel, harmonic identity, drum language, vocal mode, and arrangement strategy.",
+  },
+  {
+    title: "Paste or Draft Lyrics",
+    detail: "Add lyrics you already wrote, choose explicitness mode, and keep the language label export-ready.",
+  },
+  {
+    title: "Use Lyric Structure Engine™",
+    detail: "Find hook candidates, missing sections, breath markers, cadence notes, and performance guidance.",
   },
   {
     title: "Check Differentiation",
@@ -21,7 +34,11 @@ const tutorialSteps = [
   },
   {
     title: "Prepare Release Assets",
-    detail: "Build streaming metadata, release plan, visual direction, broadcast kit, sound pack manifest, and license sheet.",
+    detail: "Build streaming metadata, release plan, visual direction, broadcast kit, personal Vault manifest, and license sheet.",
+  },
+  {
+    title: "Add Authentic Writer Details",
+    detail: "Use concrete objects, places, reporting questions, and vocal phrasing to avoid generic writing.",
   },
   {
     title: "Export and Launch",
@@ -38,6 +55,10 @@ export default function TutorialPage() {
         <p className="mt-3 max-w-3xl leading-7 text-[#A1A1AA]">
           A simple workflow for turning creative ideas into organized song fingerprints, release plans, rights-aware exports, and launch-ready bundles.
         </p>
+      </section>
+
+      <section className="mt-6">
+        <OSTutorialVideo />
       </section>
 
       <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">

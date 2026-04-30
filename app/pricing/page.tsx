@@ -1,6 +1,6 @@
 import { PricingTiers } from "../../components/PricingTiers";
 import { PublicShell } from "../../components/PublicShell";
-import { areStripeSubscriptionsConfigured } from "../../config/pricing";
+import { areStripeSubscriptionsConfigured, futurePricingTiers } from "../../config/pricing";
 
 export default function PricingPage() {
   const paymentsConfigured = areStripeSubscriptionsConfigured();
@@ -22,6 +22,19 @@ export default function PricingPage() {
 
       <section className="mt-6">
         <PricingTiers paymentsConfigured={paymentsConfigured} />
+      </section>
+
+      <section className="mt-6 grid gap-3 md:grid-cols-2">
+        {futurePricingTiers.map((tier) => (
+          <article key={tier.name} className="rounded-lg border border-[#332A40] bg-[#191522] p-4 text-[#F9FAFB]">
+            <p className="text-sm font-black">{tier.name}</p>
+            <p className="mt-2 text-2xl font-black text-[#FFB454]">{tier.priceLabel}</p>
+            <p className="mt-2 text-sm leading-6 text-[#C4BFD0]">{tier.description}</p>
+            <span className="mt-4 inline-flex min-h-10 items-center rounded-lg border border-[#332A40] bg-[#121018] px-3 text-xs font-black uppercase text-[#C4BFD0]">
+              {tier.status === "contact_us" ? "Contact us later" : "Future tier"}
+            </span>
+          </article>
+        ))}
       </section>
     </PublicShell>
   );

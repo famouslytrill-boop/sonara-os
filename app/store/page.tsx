@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Package, ShoppingBag } from "lucide-react";
 import { PublicShell } from "../../components/PublicShell";
 import { PricingTiers } from "../../components/PricingTiers";
+import { StoreProductReadinessCard } from "../../components/sonara/StoreProductReadinessCard";
 import { areStripeSubscriptionsConfigured, storeProducts } from "../../config/pricing";
 
 export default function StorePage() {
@@ -49,6 +50,10 @@ export default function StorePage() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="mt-6">
+        <StoreProductReadinessCard />
       </section>
     </PublicShell>
   );

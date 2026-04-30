@@ -4,6 +4,8 @@ import {
   type SliderGenreFamily,
   type SliderUseCase,
 } from "./sonara/generation/sliderRecommendations";
+import { buildArrangementCore } from "./sonara/arrangement/arrangementCoreEngine";
+import { getGenreUniverseGuidance } from "./sonara/genre/genreUniverseEngine";
 import { buildLongPrompt } from "./sonara/prompts/longPromptBuilder";
 import { getPromptDetailLevel } from "./sonara/prompts/promptLengthEngine";
 import type {
@@ -12,6 +14,10 @@ import type {
   PromptSituation,
 } from "./sonara/prompts/promptLengthTypes";
 import { calculateRuntimeThreshold } from "./sonara/runtime/runtimeThresholdEngine";
+import { buildSoundIdentity } from "./sonara/soundIdentity/soundIdentityEngine";
+import { analyzeAuthenticWriting } from "./sonara/writing/authenticWriterEngine";
+import { defaultExplicitnessMode } from "./sonara/writing/explicitLanguagePolicy";
+import { analyzeLyricStructure } from "./sonara/writing/lyricStructureEngine";
 import type {
   RuntimeCommercialLane,
   RuntimeComplexity,
@@ -119,6 +125,84 @@ export const promptLengthSchema = z.object({
   notes: z.array(z.string()),
 });
 
+const defaultAuthenticWriterGuidance = analyzeAuthenticWriting({ text: "", context: "SONARA Demo Release" });
+const defaultGenreUniverseGuidance = getGenreUniverseGuidance();
+const defaultArrangementCoreGuidance = buildArrangementCore();
+const defaultLyricStructureGuidance = analyzeLyricStructure({ rawLyrics: "" });
+const defaultSoundIdentityGuidance = buildSoundIdentity("");
+
+export const authenticWriterSchema = z.object({
+  authenticityScore: z.number().min(0).max(100),
+  requiredDetails: z.array(z.string()),
+  craftGuidance: z.array(z.string()),
+  reportingQuestions: z.array(z.string()),
+  vocalGuidance: z.array(z.string()),
+  socialContextNotes: z.array(z.string()),
+  avoidList: z.array(z.string()),
+  revisionChecklist: z.array(z.string()),
+});
+
+export const genreUniverseSchema = z.object({
+  genreFamily: z.string(),
+  label: z.string(),
+  arrangementPriorities: z.array(z.string()),
+  rhythmLanguage: z.array(z.string()),
+  harmonicLanguage: z.array(z.string()),
+  drumLanguage: z.array(z.string()),
+  vocalModes: z.array(z.string()),
+  soundPalette: z.array(z.string()),
+  runtimeBehavior: z.array(z.string()),
+  exportNeeds: z.array(z.string()),
+  avoidList: z.array(z.string()),
+});
+
+export const arrangementCoreSchema = z.object({
+  introStrategy: z.string(),
+  verseStrategy: z.string(),
+  hookStrategy: z.string(),
+  bridgeStrategy: z.string(),
+  outroStrategy: z.string(),
+  transitionNotes: z.array(z.string()),
+  energyCurve: z.array(z.string()),
+  vocalPlacement: z.array(z.string()),
+  drumMovement: z.array(z.string()),
+  arrangementRisks: z.array(z.string()),
+  genreAuthenticityNotes: z.array(z.string()),
+});
+
+export const lyricStructureSchema = z.object({
+  suggestedTitle: z.string().optional(),
+  explicitnessMode: z.enum(["clean", "radio_safe", "mature", "explicit"]),
+  suggestedStructure: z.string(),
+  structureReason: z.string(),
+  hookCandidates: z.array(z.string()),
+  sectionPlan: z.array(
+    z.object({
+      sectionType: z.string(),
+      label: z.string(),
+      lines: z.array(z.string()),
+      purpose: z.string(),
+      energyLevel: z.string(),
+      breathNotes: z.array(z.string()),
+      performanceNotes: z.array(z.string()),
+    }),
+  ),
+  missingPieces: z.array(z.string()),
+  repetitionMap: z.array(z.string()),
+  rhymeNotes: z.array(z.string()),
+  cadenceNotes: z.array(z.string()),
+  breathMarkers: z.array(z.string()),
+  emotionalArc: z.array(z.string()),
+  revisionChecklist: z.array(z.string()),
+  warnings: z.array(z.string()),
+});
+
+export const soundIdentitySchema = z.object({
+  signatureElements: z.array(z.string()),
+  differentiationChecks: z.array(z.string()),
+  avoidList: z.array(z.string()),
+});
+
 export const externalGeneratorSettingsSchema = z.object({
   primaryGenre: z.string(),
   subgenre: z.string(),
@@ -165,6 +249,12 @@ export const releaseAnalysisSchema = z.object({
   sliderRecommendations: sliderRecommendationSchema,
   runtimeTarget: runtimeTargetSchema,
   promptLength: promptLengthSchema,
+  authenticWriter: authenticWriterSchema.default(defaultAuthenticWriterGuidance),
+  explicitnessMode: z.enum(["clean", "radio_safe", "mature", "explicit"]).default(defaultExplicitnessMode),
+  genreUniverse: genreUniverseSchema.default(defaultGenreUniverseGuidance),
+  arrangementCore: arrangementCoreSchema.default(defaultArrangementCoreGuidance),
+  lyricStructure: lyricStructureSchema.default(defaultLyricStructureGuidance),
+  soundIdentity: soundIdentitySchema.default(defaultSoundIdentityGuidance),
   longPrompt: z.string(),
 });
 
@@ -174,7 +264,22 @@ export type ReleaseAnalysis = z.infer<typeof releaseAnalysisSchema>;
 export const releaseAnalysisJsonSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["fingerprint", "readiness", "releasePlan", "externalGeneratorSettings", "sliderRecommendations", "runtimeTarget", "promptLength", "longPrompt"],
+  required: [
+    "fingerprint",
+    "readiness",
+    "releasePlan",
+    "externalGeneratorSettings",
+    "sliderRecommendations",
+    "runtimeTarget",
+    "promptLength",
+    "authenticWriter",
+    "explicitnessMode",
+    "genreUniverse",
+    "arrangementCore",
+    "lyricStructure",
+    "soundIdentity",
+    "longPrompt",
+  ],
   properties: {
     fingerprint: {
       type: "object",
@@ -333,6 +438,35 @@ export const releaseAnalysisJsonSchema = {
         notes: { type: "array", items: { type: "string" } },
       },
     },
+    authenticWriter: {
+      type: "object",
+      additionalProperties: false,
+      required: [
+        "authenticityScore",
+        "requiredDetails",
+        "craftGuidance",
+        "reportingQuestions",
+        "vocalGuidance",
+        "socialContextNotes",
+        "avoidList",
+        "revisionChecklist",
+      ],
+      properties: {
+        authenticityScore: { type: "number" },
+        requiredDetails: { type: "array", items: { type: "string" } },
+        craftGuidance: { type: "array", items: { type: "string" } },
+        reportingQuestions: { type: "array", items: { type: "string" } },
+        vocalGuidance: { type: "array", items: { type: "string" } },
+        socialContextNotes: { type: "array", items: { type: "string" } },
+        avoidList: { type: "array", items: { type: "string" } },
+        revisionChecklist: { type: "array", items: { type: "string" } },
+      },
+    },
+    explicitnessMode: { type: "string", enum: ["clean", "radio_safe", "mature", "explicit"] },
+    genreUniverse: { type: "object" },
+    arrangementCore: { type: "object" },
+    lyricStructure: { type: "object" },
+    soundIdentity: { type: "object" },
     longPrompt: { type: "string" },
   },
 } as const;
@@ -355,6 +489,11 @@ export function getCoreExportAssets() {
     { name: "external-generator-settings.md", purpose: "Suno-style and similar external generator slider suggestions." },
     { name: "runtime-target-threshold.md", purpose: "Deterministic runtime target guidance for the project format and platform." },
     { name: "prompt-length-mode.md", purpose: "Deterministic prompt detail level, allowed sections, and prompt constraints." },
+    { name: "genre-universe.md", purpose: "All-genre guidance for rhythm, harmony, drums, vocals, palette, and export needs." },
+    { name: "arrangement-core.md", purpose: "Idea-to-arrangement structure, energy curve, transitions, and risks." },
+    { name: "lyric-structure.md", purpose: "User lyric section mapping, hook candidates, explicitness mode, and breath notes." },
+    { name: "authentic-writer-guidance.md", purpose: "Concrete writing, reporting, vocal, and social-context guidance." },
+    { name: "sound-identity.md", purpose: "Signature elements, differentiation checks, and safe sound identity notes." },
     { name: "long-prompt.md", purpose: "Full local-rules long prompt with runtime target and external generator settings." },
     { name: "release-plan.md", purpose: "Human-readable launch plan and rollout steps." },
     { name: "checklist.txt", purpose: "Final launch checks and unresolved release blockers." },
@@ -390,6 +529,7 @@ export function buildReleasePrompt(input: SongInput) {
     "Include external generator settings as suggestions only: primary genre, prompt, and sliderRecommendations for Suno-style and similar tools.",
     "Include runtimeTarget from deterministic local rules; OpenAI may explain it but must not define the numeric threshold.",
     "Include promptLength and longPrompt from deterministic local prompt-length rules; OpenAI may rewrite but must not choose the mode.",
+    "Include genreUniverse, arrangementCore, lyricStructure, explicitnessMode, and soundIdentity as local-rule compatible sections.",
     `Song title: ${input.songTitle}`,
     input.creatorName ? `Creator: ${input.creatorName}` : "",
     `Song notes: ${input.notes}`,
@@ -409,7 +549,29 @@ export function ruleBasedReleaseAnalysis(input: SongInput): ReleaseAnalysis {
   const externalGeneratorSettings = buildExternalGeneratorSettings(input, notes);
   const runtimeTarget = buildRuntimeTarget(input, notes);
   const promptLength = buildPromptLength(input, notes);
-  const longPrompt = buildSONARALongPrompt(input, externalGeneratorSettings, runtimeTarget, promptLength, notes);
+  const explicitnessMode = inferExplicitnessMode(notes);
+  const genreUniverse = getGenreUniverseGuidance({ genreFamily: externalGeneratorSettings.primaryGenre, mood: notes });
+  const arrangementCore = buildArrangementCore({
+    genreFamily: externalGeneratorSettings.primaryGenre,
+    mood: inferMood(notes),
+    runtimeTargetSeconds: runtimeTarget.idealSeconds,
+    vocalMode: externalGeneratorSettings.vocalMode,
+    drumLanguage: externalGeneratorSettings.drumLanguage,
+    harmonicIdentity: externalGeneratorSettings.harmonicIdentity,
+  });
+  const lyricStructure = analyzeLyricStructure({
+    rawLyrics: extractLyricsFromNotes(input.notes),
+    genreFamily: externalGeneratorSettings.primaryGenre,
+    explicitnessMode,
+    targetRuntimeSeconds: runtimeTarget.idealSeconds,
+  });
+  const soundIdentity = buildSoundIdentity(input.notes);
+  const authenticWriter = analyzeAuthenticWriting({
+    text: input.notes,
+    audience: hasAudience ? "defined in project notes" : undefined,
+    context: input.songTitle,
+  });
+  const longPrompt = buildSONARALongPrompt(input, externalGeneratorSettings, runtimeTarget, promptLength, notes, authenticWriter);
 
   return ensureCoreExportAssets({
     fingerprint: {
@@ -456,6 +618,12 @@ export function ruleBasedReleaseAnalysis(input: SongInput): ReleaseAnalysis {
     sliderRecommendations: externalGeneratorSettings.sliderRecommendations,
     runtimeTarget,
     promptLength,
+    authenticWriter,
+    explicitnessMode,
+    genreUniverse,
+    arrangementCore,
+    lyricStructure,
+    soundIdentity,
     longPrompt,
   });
 }
@@ -548,6 +716,7 @@ export function buildSONARALongPrompt(
   runtimeTarget: ReturnType<typeof buildRuntimeTarget>,
   promptLength: PromptDetailLevel,
   normalizedNotes = input.notes.toLowerCase(),
+  authenticWriter = analyzeAuthenticWriting({ text: input.notes, context: input.songTitle }),
 ) {
   return buildLongPrompt({
     title: input.songTitle,
@@ -562,6 +731,7 @@ export function buildSONARALongPrompt(
     vocalMode: externalGeneratorSettings.vocalMode,
     runtimeTarget,
     sliderRecommendations: externalGeneratorSettings.sliderRecommendations,
+    authenticWriter,
     soundRightsMode: "Original composition and rights-safe influence language. Verify third-party sounds before export.",
     arrangementNotes: [
       ...runtimeTarget.arrangementGuidance,
@@ -585,7 +755,25 @@ export function applyLocalDeterministicSystems(input: SongInput, analysis: Relea
   const externalGeneratorSettings = buildExternalGeneratorSettings(input, normalizedNotes);
   const runtimeTarget = buildRuntimeTarget(input, normalizedNotes);
   const promptLength = buildPromptLength(input, normalizedNotes);
-  const longPrompt = buildSONARALongPrompt(input, externalGeneratorSettings, runtimeTarget, promptLength, normalizedNotes);
+  const explicitnessMode = inferExplicitnessMode(normalizedNotes);
+  const genreUniverse = getGenreUniverseGuidance({ genreFamily: externalGeneratorSettings.primaryGenre, mood: normalizedNotes });
+  const arrangementCore = buildArrangementCore({
+    genreFamily: externalGeneratorSettings.primaryGenre,
+    mood: inferMood(normalizedNotes),
+    runtimeTargetSeconds: runtimeTarget.idealSeconds,
+    vocalMode: externalGeneratorSettings.vocalMode,
+    drumLanguage: externalGeneratorSettings.drumLanguage,
+    harmonicIdentity: externalGeneratorSettings.harmonicIdentity,
+  });
+  const lyricStructure = analyzeLyricStructure({
+    rawLyrics: extractLyricsFromNotes(input.notes),
+    genreFamily: externalGeneratorSettings.primaryGenre,
+    explicitnessMode,
+    targetRuntimeSeconds: runtimeTarget.idealSeconds,
+  });
+  const soundIdentity = buildSoundIdentity(input.notes);
+  const authenticWriter = analyzeAuthenticWriting({ text: input.notes, context: input.songTitle });
+  const longPrompt = buildSONARALongPrompt(input, externalGeneratorSettings, runtimeTarget, promptLength, normalizedNotes, authenticWriter);
 
   return ensureCoreExportAssets({
     ...analysis,
@@ -593,6 +781,12 @@ export function applyLocalDeterministicSystems(input: SongInput, analysis: Relea
     sliderRecommendations: externalGeneratorSettings.sliderRecommendations,
     runtimeTarget,
     promptLength,
+    authenticWriter,
+    explicitnessMode,
+    genreUniverse,
+    arrangementCore,
+    lyricStructure,
+    soundIdentity,
     longPrompt,
   });
 }
@@ -611,6 +805,22 @@ function inferMood(notes: string) {
   if (notes.includes("love") || notes.includes("heart")) return "intimate, melodic, vulnerable";
   if (notes.includes("club") || notes.includes("dance")) return "kinetic, bright, high-motion";
   return "clear, focused, emerging";
+}
+
+function inferExplicitnessMode(notes: string) {
+  if (notes.includes("explicitness mode: explicit")) return "explicit";
+  if (notes.includes("explicitness mode: mature")) return "mature";
+  if (notes.includes("explicitness mode: clean")) return "clean";
+  return defaultExplicitnessMode;
+}
+
+function extractLyricsFromNotes(notes: string) {
+  const marker = "User-written lyrics:";
+  const markerIndex = notes.indexOf(marker);
+  if (markerIndex === -1) return "";
+  const afterMarker = notes.slice(markerIndex + marker.length);
+  const nextSection = afterMarker.indexOf("\n\n");
+  return (nextSection === -1 ? afterMarker : afterMarker.slice(0, nextSection)).trim();
 }
 
 function inferPalette(notes: string) {

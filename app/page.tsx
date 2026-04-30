@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Building2, CheckCircle2, Compass, Disc3, Fingerprint, Package, ShieldCheck } from "lucide-react";
 import { PublicShell } from "../components/PublicShell";
+import { TrustBadges } from "../components/sonara/TrustBadges";
 import { brandSystem } from "../config/brandSystem";
 
 const promises = [
@@ -11,6 +12,7 @@ const promises = [
 
 const divisions = [
   brandSystem.divisions.os,
+  brandSystem.divisions.core,
   brandSystem.divisions.records,
   brandSystem.divisions.vault,
   brandSystem.divisions.engine,
@@ -18,7 +20,7 @@ const divisions = [
   brandSystem.divisions.labs,
 ];
 
-const divisionIcons = [Compass, Disc3, Package, Fingerprint, Building2, ShieldCheck] as const;
+const divisionIcons = [Compass, Fingerprint, Disc3, Package, Building2, ShieldCheck, Compass] as const;
 
 export default function HomePage() {
   return (
@@ -66,6 +68,44 @@ export default function HomePage() {
           SONARA Industries™ builds music technology, creator infrastructure, sound systems, and release tools that help artists,
           producers, labels, and music entrepreneurs turn ideas into organized, release-ready creative systems.
         </p>
+      </section>
+
+      <section className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-[#332A40] bg-[#191522] p-5">
+          <p className="text-xs font-black uppercase text-[#FFB454]">Who it is for</p>
+          <p className="mt-3 leading-7 text-[#C4BFD0]">
+            Artists, producers, creators, local businesses, labels, and digital product builders who need cleaner project systems, rights-aware exports, and launch discipline.
+          </p>
+        </div>
+        <div className="rounded-lg border border-[#332A40] bg-[#191522] p-5">
+          <p className="text-xs font-black uppercase text-[#FFB454]">What the OS does</p>
+          <p className="mt-3 leading-7 text-[#C4BFD0]">
+            SONARA OS™ creates song fingerprints, runtime targets, prompt-length guidance, authentic writing checks, broadcast kits, and export bundles from one creator workspace.
+          </p>
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <TrustBadges />
+      </section>
+
+      <section className="mt-6 rounded-lg border border-[#332A40] bg-[#191522] p-5">
+        <p className="text-xs font-black uppercase text-[#FFB454]">SONARA Coreâ„¢</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F9FAFB]">Built for every genre. Structured for every release.</h2>
+        <p className="mt-3 max-w-4xl leading-7 text-[#C4BFD0]">
+          SONARA Coreâ„¢ reads the creative path from idea to arrangement across hip-hop, R&B, pop, country, rock, electronic, Latin,
+          Afrobeats, gospel, cinematic, ambient, experimental, spoken word, and hybrid genres.
+        </p>
+        <p className="mt-3 max-w-4xl leading-7 text-[#C4BFD0]">
+          It turns genre, rhythm, harmony, drums, vocals, sound identity, runtime, and release goals into a clear operating system for modern music creators.
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {["Genre Intelligence", "Arrangement Core", "Sound Identity", "Runtime Target", "Rights-Aware Vault", "Release-Ready Exports"].map((item) => (
+            <div key={item} className="rounded-lg border border-[#332A40] bg-[#121018] p-3 text-sm font-black text-[#F9FAFB]">
+              {item}
+            </div>
+          ))}
+        </div>
       </section>
 
       <section className="mt-6">

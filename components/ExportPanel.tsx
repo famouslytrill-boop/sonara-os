@@ -5,11 +5,21 @@ import { useState } from "react";
 import { sonaraProjectWorkflow } from "../config/sonara/productArchitecture";
 import { exportReleasePackage } from "../lib/api";
 import { fallbackReleaseAnalysis } from "../lib/sonara-core";
+import { buildArrangementCore } from "../lib/sonara/arrangement/arrangementCoreEngine";
 import { buildBroadcastKit } from "../lib/sonara/broadcast/broadcastKit";
+import { getGenreUniverseGuidance } from "../lib/sonara/genre/genreUniverseEngine";
+import { buildSoundIdentity } from "../lib/sonara/soundIdentity/soundIdentityEngine";
+import { analyzeLyricStructure } from "../lib/sonara/writing/lyricStructureEngine";
+import { ArrangementCoreCard } from "./sonara/ArrangementCoreCard";
 import { BroadcastingCard } from "./sonara/BroadcastingCard";
+import { GenreUniverseCard } from "./sonara/GenreUniverseCard";
+import { LyricStructureCard } from "./sonara/LyricStructureCard";
 import { PromptLengthCard } from "./sonara/PromptLengthCard";
+import { RegenerationControls } from "./sonara/RegenerationControls";
 import { RuntimeThresholdCard } from "./sonara/RuntimeThresholdCard";
 import { SliderRecommendationCard } from "./sonara/SliderRecommendationCard";
+import { SoundDiscoveryCard } from "./sonara/SoundDiscoveryCard";
+import { SoundIdentityCard } from "./sonara/SoundIdentityCard";
 import { Button } from "./ui/Button";
 
 const sampleAnalysis = fallbackReleaseAnalysis({
@@ -23,6 +33,13 @@ const sampleBroadcastKit = buildBroadcastKit({
   releaseMoment: "release listening session",
   mood: sampleAnalysis.fingerprint.mood,
 });
+const sampleGenre = getGenreUniverseGuidance({ genreFamily: sampleAnalysis.externalGeneratorSettings.primaryGenre });
+const sampleArrangement = buildArrangementCore({
+  genreFamily: sampleAnalysis.externalGeneratorSettings.primaryGenre,
+  runtimeTargetSeconds: sampleAnalysis.runtimeTarget.idealSeconds,
+});
+const sampleLyrics = analyzeLyricStructure({ rawLyrics: "I kept the light on\nStill walked out in the rain\nThis hook needs a home", explicitnessMode: "radio_safe" });
+const sampleSoundIdentity = buildSoundIdentity(sampleAnalysis.longPrompt);
 
 export function ExportPanel() {
   const [status, setStatus] = useState("");
@@ -73,7 +90,13 @@ export function ExportPanel() {
         <PromptLengthCard detailLevel={sampleAnalysis.promptLength} />
         <RuntimeThresholdCard threshold={sampleAnalysis.runtimeTarget} />
         <SliderRecommendationCard profile={sampleAnalysis.sliderRecommendations} />
+        <GenreUniverseCard guidance={sampleGenre} />
+        <ArrangementCoreCard guidance={sampleArrangement} />
+        <LyricStructureCard result={sampleLyrics} />
+        <SoundIdentityCard identity={sampleSoundIdentity} />
+        <SoundDiscoveryCard />
         <BroadcastingCard kit={sampleBroadcastKit} />
+        <RegenerationControls />
       </div>
 
       {status ? <p className="mt-4 text-sm font-bold text-[#22C55E]">{status}</p> : null}
