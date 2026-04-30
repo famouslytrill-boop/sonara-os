@@ -36,7 +36,7 @@ export default function SettingsPage() {
           <StatusPanel
             icon={<CreditCard size={22} />}
             label="Stripe"
-            value={process.env.STRIPE_SECRET_KEY ? "Server key configured" : "Add Stripe keys, monthly prices, and kit price IDs before checkout goes live"}
+            value={process.env.STRIPE_SECRET_KEY ? "Server key configured" : "Add Stripe keys, monthly price IDs, and webhook secret before checkout goes live"}
           />
         </div>
 

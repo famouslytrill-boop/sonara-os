@@ -8,7 +8,7 @@ import { cn } from "../lib/utils";
 import { AuthStatus } from "./AuthStatus";
 
 const hrefByItem = {
-  Home: "/",
+  Home: "/dashboard",
   Create: "/create",
   Library: "/library",
   Export: "/export",
@@ -29,7 +29,7 @@ export function ProductNav() {
   return (
     <nav className="sticky top-0 z-40 border-b border-[#2A2A35] bg-[#07070A]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="font-black tracking-wide text-[#F8FAFC]">
+        <Link href="/dashboard" className="font-black tracking-wide text-[#F8FAFC]">
           SONARA OS™
         </Link>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
@@ -37,7 +37,7 @@ export function ProductNav() {
             {visibleNavigation.map((item) => {
               const href = hrefByItem[item];
               const Icon = iconByItem[item];
-              const active = href === "/" ? pathname === href : pathname.startsWith(href);
+              const active = pathname.startsWith(href);
 
               return (
                 <Link

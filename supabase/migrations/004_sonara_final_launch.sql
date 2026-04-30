@@ -48,7 +48,11 @@ create policy "Users can manage their own release plans"
 create table if not exists public.sonara_projects (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
   title text not null,
+  project_type text not null default 'song',
+  genre text,
+  subgenre text,
   creator_name text,
   notes text not null,
   fingerprint_id text not null,
@@ -62,14 +66,27 @@ create table if not exists public.sonara_projects (
 create index if not exists sonara_projects_owner_updated_idx
   on public.sonara_projects (owner_id, updated_at desc);
 
+create index if not exists sonara_projects_user_updated_idx
+  on public.sonara_projects (user_id, updated_at desc);
+
+alter table public.sonara_projects
+  add column if not exists user_id uuid references auth.users(id) on delete cascade,
+  add column if not exists project_type text not null default 'song',
+  add column if not exists genre text,
+  add column if not exists subgenre text;
+
+update public.sonara_projects
+set user_id = owner_id
+where user_id is null;
+
 alter table public.sonara_projects enable row level security;
 
 drop policy if exists "Users can manage their own SONARA projects" on public.sonara_projects;
 create policy "Users can manage their own SONARA projects"
   on public.sonara_projects
   for all
-  using (auth.uid() = owner_id)
-  with check (auth.uid() = owner_id);
+  using (auth.uid() = owner_id or auth.uid() = user_id)
+  with check (auth.uid() = owner_id or auth.uid() = user_id);
 
 create table if not exists public.sonara_billing_customers (
   id uuid primary key default gen_random_uuid(),
@@ -90,8 +107,34 @@ create table if not exists public.sonara_subscriptions (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.sonara_user_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  tier_id text not null check (tier_id in ('free', 'creator', 'pro', 'label')),
+  status text not null,
+  stripe_customer_id text,
+  stripe_subscription_id text unique,
+  current_period_end timestamptz,
+  cancel_at_period_end boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists sonara_user_subscriptions_user_idx
+  on public.sonara_user_subscriptions (user_id);
+
+create index if not exists sonara_user_subscriptions_customer_idx
+  on public.sonara_user_subscriptions (stripe_customer_id);
+
+create index if not exists sonara_user_subscriptions_subscription_idx
+  on public.sonara_user_subscriptions (stripe_subscription_id);
+
+create index if not exists sonara_user_subscriptions_status_idx
+  on public.sonara_user_subscriptions (status);
+
 alter table public.sonara_billing_customers enable row level security;
 alter table public.sonara_subscriptions enable row level security;
+alter table public.sonara_user_subscriptions enable row level security;
 
 drop policy if exists "Users can view their own billing customer" on public.sonara_billing_customers;
 create policy "Users can view their own billing customer"
@@ -104,6 +147,19 @@ create policy "Users can view their own subscriptions"
   on public.sonara_subscriptions
   for select
   using (auth.uid() = owner_id);
+
+drop policy if exists "Users can view their own SONARA OS subscriptions" on public.sonara_user_subscriptions;
+create policy "Users can view their own SONARA OS subscriptions"
+  on public.sonara_user_subscriptions
+  for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Service role can manage SONARA OS subscriptions" on public.sonara_user_subscriptions;
+create policy "Service role can manage SONARA OS subscriptions"
+  on public.sonara_user_subscriptions
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
 
 insert into storage.buckets (id, name, public)
 values ('sonara-releases', 'sonara-releases', false)
@@ -161,6 +217,7 @@ create table if not exists public.sonara_sound_sources (
 create table if not exists public.sonara_sound_assets (
   id text primary key,
   source_id text references public.sonara_sound_sources(id) on delete set null,
+  source_name text,
   title text not null,
   license text not null,
   redistribution_category text not null,
@@ -173,6 +230,9 @@ create table if not exists public.sonara_sound_assets (
   proof_url text,
   created_at timestamptz not null default now()
 );
+
+alter table public.sonara_sound_assets
+  add column if not exists source_name text;
 
 create table if not exists public.sonara_sound_sync_runs (
   id uuid primary key default gen_random_uuid(),

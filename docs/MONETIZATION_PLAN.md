@@ -1,46 +1,42 @@
 # Monetization Plan
 
-SONARA OS monetization should remain disabled until real Stripe products, prices, and webhooks are configured.
+SONARA OS™ monetization stays web-first and Stripe-first. Checkout must stay disabled until real products, prices, webhooks, and Supabase subscription storage are configured.
 
-## Product Tiers
+## Subscription Tiers
 
-- SONARA OS™ Free
-- SONARA OS™ Creator
-- SONARA OS™ Pro
-- SONARA OS™ Label
+- SONARA OS™ Free: $0/month
+- SONARA OS™ Creator: $9.99/month
+- SONARA OS™ Pro: $19.99/month
+- SONARA OS™ Label: $49.99/month
 
-## Current State
+## Entitlement Rules
 
-- Stripe SDK is installed.
-- Checkout route exists and returns a safe disabled response when keys or price IDs are missing.
-- No fake payment success state should be shown.
-- Subscription and kit price IDs must be configured in Vercel before checkout is promoted.
+- Free: basic prompt builder and starter project planning.
+- Creator: advanced prompt builder, Runtime Target Engine, and External Generator Settings.
+- Pro: full bundle exports, sound rights exports, release packs, and Vault workflow tools.
+- Label: brand governance, label workspace, and store product workflow.
 
-## Required Stripe Environment Variables
+## Stripe Environment Variables
 
 ```env
 STRIPE_SECRET_KEY=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_STARTER_MONTHLY=
-STRIPE_PRICE_PRO_ARTIST_MONTHLY=
-STRIPE_PRICE_STUDIO_MONTHLY=
-STRIPE_PRICE_STARTER_PROMPT_PACK=
-STRIPE_PRICE_VISUAL_IDENTITY_PROMPT_PACK=
-STRIPE_PRICE_AR_MARKET_AUDIT_KIT=
-STRIPE_PRICE_RELEASE_PLANNER_KIT=
-STRIPE_PRICE_ARTIST_OS_PRO_KIT=
-STRIPE_PRICE_ALBUM_BUILDER_SYSTEM=
-STRIPE_PRICE_LOCAL_BUSINESS_MARKETING_KIT=
-STRIPE_PRICE_REVENUE_PATHWAY_BLUEPRINT=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+STRIPE_CREATOR_MONTHLY_PRICE_ID=
+STRIPE_PRO_MONTHLY_PRICE_ID=
+STRIPE_LABEL_MONTHLY_PRICE_ID=
+NEXT_PUBLIC_APP_URL=https://sonaraindustries.com
 ```
 
-## Before Launching Paid Checkout
+## Launch Requirements
 
-- [ ] Create products and prices in Stripe test mode.
-- [ ] Add Vercel environment variables.
-- [ ] Add webhook endpoint and set `STRIPE_WEBHOOK_SECRET`.
-- [ ] Test checkout success and cancellation.
-- [ ] Test webhook signature verification.
-- [ ] Test subscription state persistence after Supabase billing tables are connected.
-- [ ] Repeat in live mode only after test mode passes.
+- Create Stripe subscription products and recurring monthly prices.
+- Add environment variables in Vercel, not in `vercel.json`.
+- Configure the webhook endpoint at `https://sonaraindustries.com/api/stripe/webhook`.
+- Subscribe the webhook to `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `customer.subscription.deleted`.
+- Run the Supabase subscription migration before enabling paid checkout.
+- Test checkout, cancel, webhook update, and billing-page states in Stripe test mode.
+
+## Later Native Billing
+
+Web Stripe subscriptions are for the website and PWA. Native Android digital subscriptions may require Google Play Billing, and native iOS digital subscriptions may require Apple IAP. Do not route around app store billing rules inside native apps.

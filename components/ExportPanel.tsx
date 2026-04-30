@@ -5,6 +5,8 @@ import { useState } from "react";
 import { sonaraProjectWorkflow } from "../config/sonara/productArchitecture";
 import { exportReleasePackage } from "../lib/api";
 import { fallbackReleaseAnalysis } from "../lib/sonara-core";
+import { buildBroadcastKit } from "../lib/sonara/broadcast/broadcastKit";
+import { BroadcastingCard } from "./sonara/BroadcastingCard";
 import { PromptLengthCard } from "./sonara/PromptLengthCard";
 import { RuntimeThresholdCard } from "./sonara/RuntimeThresholdCard";
 import { SliderRecommendationCard } from "./sonara/SliderRecommendationCard";
@@ -14,6 +16,12 @@ const sampleAnalysis = fallbackReleaseAnalysis({
   songTitle: "SONARA Demo Release",
   creatorName: "Demo Artist",
   notes: "Sample project with audience, mix, master, cover, and snippet ready.",
+});
+const sampleBroadcastKit = buildBroadcastKit({
+  projectTitle: sampleAnalysis.fingerprint.id,
+  creatorName: "Demo Artist",
+  releaseMoment: "release listening session",
+  mood: sampleAnalysis.fingerprint.mood,
 });
 
 export function ExportPanel() {
@@ -65,6 +73,7 @@ export function ExportPanel() {
         <PromptLengthCard detailLevel={sampleAnalysis.promptLength} />
         <RuntimeThresholdCard threshold={sampleAnalysis.runtimeTarget} />
         <SliderRecommendationCard profile={sampleAnalysis.sliderRecommendations} />
+        <BroadcastingCard kit={sampleBroadcastKit} />
       </div>
 
       {status ? <p className="mt-4 text-sm font-bold text-[#22C55E]">{status}</p> : null}

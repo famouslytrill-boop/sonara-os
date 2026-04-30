@@ -48,25 +48,23 @@ https://sonaraindustries.com
 
 ## Stripe
 
-- [ ] Create Starter, Pro Artist, and Studio monthly subscription products.
+- [ ] Create SONARA OS™ Creator, Pro, and Label monthly subscription products.
 - [ ] Add price IDs to Vercel:
-  - `STRIPE_PRICE_STARTER_MONTHLY`
-  - `STRIPE_PRICE_PRO_ARTIST_MONTHLY`
-  - `STRIPE_PRICE_STUDIO_MONTHLY`
-- [ ] Create one-time kit products and add price IDs to Vercel:
-  - `STRIPE_PRICE_STARTER_PROMPT_PACK`
-  - `STRIPE_PRICE_VISUAL_IDENTITY_PROMPT_PACK`
-  - `STRIPE_PRICE_AR_MARKET_AUDIT_KIT`
-  - `STRIPE_PRICE_RELEASE_PLANNER_KIT`
-  - `STRIPE_PRICE_ARTIST_OS_PRO_KIT`
-  - `STRIPE_PRICE_ALBUM_BUILDER_SYSTEM`
-  - `STRIPE_PRICE_LOCAL_BUSINESS_MARKETING_KIT`
-  - `STRIPE_PRICE_REVENUE_PATHWAY_BLUEPRINT`
+  - `STRIPE_CREATOR_MONTHLY_PRICE_ID`
+  - `STRIPE_PRO_MONTHLY_PRICE_ID`
+  - `STRIPE_LABEL_MONTHLY_PRICE_ID`
 - [ ] Add `STRIPE_SECRET_KEY`.
 - [ ] Add `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 - [ ] Add `STRIPE_WEBHOOK_SECRET` after webhook endpoint setup.
+- [ ] Configure webhook endpoint `https://sonaraindustries.com/api/stripe/webhook`.
+- [ ] Subscribe webhook events:
+  - `checkout.session.completed`
+  - `customer.subscription.created`
+  - `customer.subscription.updated`
+  - `customer.subscription.deleted`
 - [ ] Test monthly subscription checkout in Stripe test mode.
-- [ ] Test one-time kit checkout in Stripe test mode.
+- [ ] Test subscription webhook persistence in Supabase.
+- [ ] Keep one-time kit products marked coming soon until real prices and fulfillment exist.
 - [x] Confirm failed/missing Stripe config returns a safe disabled state.
 
 ## Production

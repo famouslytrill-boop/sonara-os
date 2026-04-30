@@ -3,7 +3,11 @@ import { getSupabaseBrowserClient } from "../../supabase";
 
 export type SavedSonaraProject = {
   id: string;
+  user_id: string | null;
   title: string;
+  project_type: string | null;
+  genre: string | null;
+  subgenre: string | null;
   creator_name: string | null;
   notes: string;
   fingerprint_id: string;
@@ -36,8 +40,12 @@ export async function saveSonaraProject(input: {
   const { data, error } = await supabase
     .from("sonara_projects")
     .insert({
+      user_id: user.id,
       owner_id: user.id,
       title: input.title,
+      project_type: "song",
+      genre: input.analysis.externalGeneratorSettings.primaryGenre,
+      subgenre: input.analysis.externalGeneratorSettings.subgenre,
       creator_name: input.creatorName ?? null,
       notes: input.notes,
       fingerprint_id: input.analysis.fingerprint.id,

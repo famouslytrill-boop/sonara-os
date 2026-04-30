@@ -13,15 +13,19 @@ async function loadModule(modulePath) {
 }
 
 const { hasBrandPermission } = await loadModule("../config/brandPermissions.ts");
+const { brandSystem } = await loadModule("../config/brandSystem.ts");
+const { getPricingTier } = await loadModule("../config/pricing.ts");
 const { getAIProvider } = await loadModule("../lib/sonara/ai/providerConfig.ts");
+const { hasEntitlement } = await loadModule("../lib/sonara/billing/entitlements.ts");
 const { getSliderRecommendation } = await loadModule("../lib/sonara/generation/sliderRecommendations.ts");
 const { getPromptDetailLevel } = await loadModule("../lib/sonara/prompts/promptLengthEngine.ts");
-const { calculateRuntimeThreshold } = await loadModule("../lib/sonara/runtime/runtimeThresholdEngine.ts");
+const { calculateRuntimeThreshold, formatRuntime } = await loadModule("../lib/sonara/runtime/runtimeThresholdEngine.ts");
 const { buildSoundPack } = await loadModule("../lib/sonara/sound/packBuilder.ts");
 const { canRedistributeRawSample, normalizeSoundAsset } = await loadModule("../lib/sonara/sound/licenseRules.ts");
 const { fallbackReleaseAnalysis } = await loadModule("../lib/sonara-core.ts");
 const { prepareBrandedExport } = await loadModule("../utils/prepareBrandedExport.ts");
 const { replaceRestrictedTrademarkSymbols, validateTrademarkUsage } = await loadModule("../utils/validateTrademarkUsage.ts");
+const { POST: createCheckout } = await loadModule("../app/api/stripe/checkout/route.ts");
 
 function sourceFiles(dir) {
   const ignored = new Set([".git", ".next", "node_modules"]);
@@ -62,15 +66,25 @@ test("trademark validator blocks registered SONARA marks and export helper clean
   const restricted = `SONARA OS${registeredSymbol}`;
 
   assert.equal(validateTrademarkUsage(restricted).isValid, false);
+  assert.equal(validateTrademarkUsage("SONARA OS™").isValid, true);
   assert.equal(validateTrademarkUsage(replaceRestrictedTrademarkSymbols(restricted)).isValid, true);
 
   const exportResult = prepareBrandedExport(`Launch notes for ${restricted}`);
   assert.equal(exportResult.validation.isValid, true);
   assert.equal(exportResult.content.includes(registeredSymbol), false);
   assert.match(exportResult.content, /SONARA Industries/);
+
+  const footerOnce = prepareBrandedExport(`Ready\n\n${brandSystem.legal.footer}`);
+  assert.equal(footerOnce.content.split(brandSystem.legal.footer).length - 1, 1);
+
+  const footerAppended = prepareBrandedExport("Ready");
+  assert.equal(footerAppended.content.split(brandSystem.legal.footer).length - 1, 1);
 });
 
-test("brand permissions keep trademark edits owner-only", () => {
+test("brand permissions keep governance edits role-bound", () => {
+  assert.equal(hasBrandPermission("canEditBrandSystem", "owner"), true);
+  assert.equal(hasBrandPermission("canEditBrandSystem", "admin"), true);
+  assert.equal(hasBrandPermission("canEditBrandSystem", "viewer"), false);
   assert.equal(hasBrandPermission("canChangeTrademarkLanguage", "owner"), true);
   assert.equal(hasBrandPermission("canChangeTrademarkLanguage", "admin"), false);
   assert.equal(hasBrandPermission("canExportBrandAssets", "creator"), true);
@@ -127,6 +141,67 @@ test("runtime, prompt length, and slider engines run without OpenAI", () => {
   assert.ok(sliders.notes.length > 0);
 });
 
+test("runtime threshold engine keeps deterministic timing rules", () => {
+  assert.equal(formatRuntime(165), "2:45");
+
+  const socialClip = calculateRuntimeThreshold({
+    projectType: "social_clip",
+    platformGoal: "social_short",
+    commercialLane: "social_first",
+    genreFamily: "pop",
+  });
+  assert.ok(socialClip.maxSeconds <= 60);
+
+  const standard = calculateRuntimeThreshold({
+    projectType: "single",
+    platformGoal: "streaming",
+    commercialLane: "mainstream",
+    genreFamily: "pop",
+    complexity: "standard",
+  });
+  const cinematic = calculateRuntimeThreshold({
+    projectType: "single",
+    platformGoal: "streaming",
+    commercialLane: "cinematic",
+    genreFamily: "cinematic",
+    complexity: "cinematic",
+  });
+  assert.ok(cinematic.idealSeconds > standard.idealSeconds);
+});
+
+test("prompt length engine chooses launch-appropriate prompt modes", () => {
+  assert.equal(getPromptDetailLevel({ situation: "suno_style" }).mode, "long");
+  assert.equal(getPromptDetailLevel({ situation: "video_prompt" }).mode, "ultra");
+  assert.equal(getPromptDetailLevel({ situation: "social_clip" }).mode, "standard");
+  assert.equal(getPromptDetailLevel({ situation: "social_clip", userRequestedMode: "short" }).mode, "short");
+
+  const detailed = getPromptDetailLevel({
+    situation: "streaming_metadata",
+    needsRuntimeTarget: true,
+    needsSliderSettings: true,
+  });
+  assert.ok(detailed.allowedSections.includes("runtime target"));
+  assert.ok(detailed.allowedSections.includes("external generator settings"));
+});
+
+test("billing entitlements match SONARA OS tiers", async () => {
+  assert.equal(hasEntitlement("free", "full_bundle_exports"), false);
+  assert.equal(hasEntitlement("creator", "runtime_target_engine"), true);
+  assert.equal(hasEntitlement("pro", "full_bundle_exports"), true);
+  assert.equal(hasEntitlement("label", "brand_governance"), true);
+  assert.equal(getPricingTier("invalid-tier"), undefined);
+
+  const response = await createCheckout(
+    new Request("http://localhost/api/stripe/checkout", {
+      method: "POST",
+      body: JSON.stringify({ tierId: "invalid-tier" }),
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  assert.equal(response.status, 400);
+  assert.equal((await response.json()).error, "invalid_tier");
+});
+
 test("generated local-rules analysis includes launch output systems", () => {
   const analysis = fallbackReleaseAnalysis({
     songTitle: "Example Song",
@@ -161,4 +236,15 @@ test("public source and docs avoid blocked private names and registered SONARA m
       assert.doesNotMatch(content, registeredSonara, `${file} contains a registered SONARA mark`);
     }
   }
+});
+
+test("deployment config is valid and cron route exists", () => {
+  const vercelConfig = JSON.parse(readFileSync(join(root, "vercel.json"), "utf8"));
+  assert.deepEqual(vercelConfig.crons, [
+    {
+      path: "/api/cron/sonara-maintenance",
+      schedule: "0 10 * * 1",
+    },
+  ]);
+  assert.ok(statSync(join(root, "app", "api", "cron", "sonara-maintenance", "route.ts")).isFile());
 });

@@ -1,0 +1,56 @@
+# Supabase Production Checklist
+
+Run database changes before launch and verify schema in the Supabase SQL editor.
+
+## Required Tables
+
+- `sonara_projects`
+- `sonara_sound_assets`
+- `sonara_sound_sources` if sound discovery sync is used
+- `sonara_sound_sync_runs` if sound discovery sync is used
+- `sonara_user_subscriptions`
+
+## Required `sonara_projects` Columns
+
+- `id`
+- `user_id`
+- `owner_id`
+- `title`
+- `project_type`
+- `genre`
+- `subgenre`
+- `readiness_score`
+- `launch_state`
+- `analysis`
+- `created_at`
+- `updated_at`
+
+## Required `sonara_sound_assets` Columns
+
+- `license`
+- `redistribution_category`
+- `commercial_use_allowed`
+- `redistribution_allowed`
+- `attribution_required`
+- `export_status`
+- `source_id`
+- `source_name`
+- `source_url`
+- `creator`
+
+## Security
+
+- Enable RLS on production tables.
+- Add policies before production data is stored.
+- Never expose `SUPABASE_SERVICE_ROLE_KEY` to the client.
+- Use the service role key only from server routes and trusted backend jobs.
+- Rotate the service role key immediately if it is ever committed.
+- Run migrations before launch and avoid duplicating tables.
+
+## Verification
+
+- Confirm login works with Supabase Auth.
+- Confirm saving a project writes to `sonara_projects`.
+- Confirm listing projects only returns the signed-in user's rows.
+- Confirm deleting a project cannot delete another user's row.
+- Confirm subscription webhook updates only run from the server.

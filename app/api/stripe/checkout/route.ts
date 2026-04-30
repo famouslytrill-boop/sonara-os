@@ -1,75 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  sonaraBillingTiers,
-  sonaraStripeKits,
-  stripePriceEnvByKit,
-  stripePriceEnvByTier,
-  type SonaraBillingTierId,
-  type SonaraKitId,
-} from "../../../../config/sonara/paymentTiers";
+import { getPricingTier, getStripeMonthlyPriceEnv, isPaidTier, type PricingTierId } from "../../../../config/pricing";
 import { getAppUrl, getStripeClient } from "../../../../lib/stripe";
 
-const tierIds = new Set<SonaraBillingTierId>(sonaraBillingTiers.map((tier) => tier.id));
-const kitIds = new Set<SonaraKitId>(sonaraStripeKits.map((kit) => kit.id));
+type CheckoutRequest = {
+  tierId?: PricingTierId;
+  userId?: string;
+  email?: string;
+};
 
 export async function POST(request: NextRequest) {
-  let parsedBody: unknown;
+  let body: CheckoutRequest;
 
   try {
-    parsedBody = await request.json();
+    const parsed = await request.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return NextResponse.json({ error: "invalid_checkout_payload" }, { status: 400 });
+    }
+    body = parsed as CheckoutRequest;
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  if (!parsedBody || typeof parsedBody !== "object" || Array.isArray(parsedBody)) {
-    return NextResponse.json({ error: "invalid_checkout_item" }, { status: 400 });
+  const tier = body.tierId ? getPricingTier(body.tierId) : undefined;
+
+  if (!tier) {
+    return NextResponse.json({ error: "invalid_tier" }, { status: 400 });
   }
 
-  const body = parsedBody as Partial<{ tierId: SonaraBillingTierId; kitId: SonaraKitId }>;
-  const tierId = body.tierId;
-  const kitId = body.kitId;
-  let checkoutType: "subscription" | "kit";
-  let checkoutId: SonaraBillingTierId | SonaraKitId;
-  let priceEnvName: string;
-
-  if (tierId && tierIds.has(tierId)) {
-    checkoutType = "subscription";
-    checkoutId = tierId;
-    priceEnvName = stripePriceEnvByTier[tierId];
-  } else if (kitId && kitIds.has(kitId)) {
-    checkoutType = "kit";
-    checkoutId = kitId;
-    priceEnvName = stripePriceEnvByKit[kitId];
-  } else {
-    return NextResponse.json({ error: "invalid_checkout_item" }, { status: 400 });
+  if (!isPaidTier(tier)) {
+    return NextResponse.json({ error: "free_tier_checkout_not_allowed" }, { status: 400 });
   }
 
   const stripe = getStripeClient();
-  const priceId = process.env[priceEnvName];
+  const priceEnvName = getStripeMonthlyPriceEnv(tier);
+  const priceId = priceEnvName ? process.env[priceEnvName] : undefined;
 
-  if (!stripe || !priceId) {
+  if (!stripe || !priceId || !priceEnvName) {
     return NextResponse.json(
       {
         error: "stripe_not_configured",
-        message: `Add STRIPE_SECRET_KEY and ${priceEnvName} in Vercel before enabling checkout.`,
+        message: `Add STRIPE_SECRET_KEY and ${priceEnvName ?? "the Stripe price ID"} in Vercel before enabling checkout.`,
       },
       { status: 503 },
     );
   }
 
   const appUrl = getAppUrl().replace(/\/$/, "");
+  const metadata = {
+    product: "sonara_os",
+    tier_id: tier.id,
+    user_id: body.userId ?? "",
+  };
   const session = await stripe.checkout.sessions.create({
-    mode: checkoutType === "subscription" ? "subscription" : "payment",
+    mode: "subscription",
+    customer_email: body.email,
+    client_reference_id: body.userId,
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${appUrl}/dashboard?checkout=success`,
-    cancel_url: `${appUrl}/?checkout=cancelled`,
-    metadata: {
-      product: "sonara_os",
-      checkout_type: checkoutType,
-      checkout_id: checkoutId,
-      tier: checkoutType === "subscription" ? checkoutId : "",
-      kit: checkoutType === "kit" ? checkoutId : "",
-    },
+    success_url: `${appUrl}/account/billing?checkout=success`,
+    cancel_url: `${appUrl}/pricing?checkout=cancelled`,
+    metadata,
+    subscription_data: { metadata },
   });
 
   return NextResponse.json({ url: session.url });

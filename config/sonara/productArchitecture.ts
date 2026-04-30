@@ -160,15 +160,19 @@ export const sonaraProjectWorkflow = [
 
 export const sonaraPricingTiers = [
   {
-    name: "Starter",
-    description: "Build songs and releases with Local Rules, fingerprints, release plans, and export bundles.",
+    name: "SONARA OS™ Free",
+    description: "Start projects, build basic prompts, and explore local-rules release planning.",
   },
   {
-    name: "Creator",
-    description: "Add deeper artist-system organization, reusable sound-pack structure, and expanded release workflows.",
+    name: "SONARA OS™ Creator",
+    description: "Add runtime targets, external generator settings, and stronger creator workflows.",
   },
   {
-    name: "Studio",
-    description: "Run studio workflows, quality gates, team review, and internal operating discipline.",
+    name: "SONARA OS™ Pro",
+    description: "Export full release bundles and sound-rights documentation for serious launches.",
+  },
+  {
+    name: "SONARA OS™ Label",
+    description: "Run brand governance, label workspace planning, and store product workflow.",
   },
 ] as const;

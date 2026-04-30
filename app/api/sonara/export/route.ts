@@ -4,6 +4,7 @@ import { sonaraBusinessPrinciplesLayer } from "../../../../config/sonara/busines
 import { sonaraProjectWorkflow } from "../../../../config/sonara/productArchitecture";
 import { runSonaraFinalCompanyAudit } from "../../../../lib/sonara/businessPrinciples";
 import { appendSonaraOperatingNotice } from "../../../../lib/sonara/infrastructure/exportGovernance";
+import { buildBroadcastKit } from "../../../../lib/sonara/broadcast/broadcastKit";
 import { formatRuntime } from "../../../../lib/sonara/runtime/runtimeThresholdEngine";
 import { ensureCoreExportAssets, releaseAnalysisSchema, sonaraCoreSystems } from "../../../../lib/sonara-core";
 import { prepareBrandedExport } from "../../../../utils/prepareBrandedExport";
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
   }
 
   const analysis = ensureCoreExportAssets(parsed.data);
+  const broadcastKit = buildBroadcastKit({
+    projectTitle: analysis.fingerprint.id,
+    creatorName: body.creatorName,
+    releaseMoment: "release listening session",
+    mood: analysis.fingerprint.mood,
+  });
   const finalCompanyAudit = runSonaraFinalCompanyAudit();
   const zip = new JSZip();
   const manifest = {
@@ -44,6 +51,7 @@ export async function POST(request: NextRequest) {
       externalGeneratorSettings: analysis.externalGeneratorSettings,
       runtimeTarget: analysis.runtimeTarget,
       promptLength: analysis.promptLength,
+      broadcastKit,
       notice: sonaraBusinessPrinciplesLayer.exportNotice,
     },
   };
@@ -232,10 +240,33 @@ export async function POST(request: NextRequest) {
     prepareExportText([
       `# ${analysis.fingerprint.id} Broadcast Kit`,
       "",
+      "This is an OBS-ready broadcast kit export. It does not control OBS directly.",
+      "",
       "## Talking Points",
       `- Identity: ${analysis.fingerprint.identity}`,
       `- Hook: ${analysis.releasePlan.hook}`,
       `- Listener moment: ${analysis.fingerprint.audienceSignal}`,
+      "",
+      "## Stream Title",
+      broadcastKit.streamTitle,
+      "",
+      "## Scenes",
+      ...broadcastKit.sceneList.map((scene) => `- ${scene}`),
+      "",
+      "## OBS Scene Recommendations",
+      ...broadcastKit.obsSceneRecommendations.map((note) => `- ${note}`),
+      "",
+      "## Audio Routing Notes",
+      ...broadcastKit.audioRoutingNotes.map((note) => `- ${note}`),
+      "",
+      "## Listening Session Outline",
+      ...broadcastKit.releaseListeningSessionOutline.map((note) => `- ${note}`),
+      "",
+      "## Premiere Checklist",
+      ...broadcastKit.livePremiereChecklist.map((item) => `- ${item}`),
+      "",
+      "## Overlay Suggestions",
+      ...broadcastKit.visualOverlaySuggestions.map((item) => `- ${item}`),
     ].join("\n")),
   );
   zip.file(

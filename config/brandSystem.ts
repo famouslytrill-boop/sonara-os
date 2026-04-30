@@ -4,7 +4,7 @@ export const brandSystem = {
     shortName: "SONARA",
     type: "Music Technology Company",
     slogan: "Build the sound. Own the system.",
-    premiumSlogan: "The AI-powered creator business operating system.",
+    premiumSlogan: "The creator infrastructure for modern music.",
     streetSlogan: "From sound to system. From idea to release.",
     description:
       "SONARA Industries™ is a music technology company building the future of creator infrastructure through records, software, sound libraries, artist systems, and release tools.",
@@ -22,7 +22,7 @@ export const brandSystem = {
       route: "/dashboard",
       type: "Creator Operating System",
       description:
-        "SONARA OS™ is a creator operating system for building songs, prompts, sounds, visuals, release plans, and full artist ecosystems from one organized platform.",
+      "SONARA OS™ is a creator operating system for building songs, prompts, sounds, visuals, release plans, and music brand workflows from one organized platform.",
     },
     vault: {
       name: "SONARA Vault™",
@@ -63,13 +63,13 @@ export const brandSystem = {
   },
   publicCopy: {
     homepageHeroTitle: "SONARA Industries™",
-    homepageHeroSubtitle: "The AI-powered creator business operating system.",
+    homepageHeroSubtitle: "The creator infrastructure for modern music.",
     homepageHeroBody:
-      "Build your brand, generate content, analyze ideas, map your best revenue path, and launch with focused AI workflows for artists, creators, local businesses, and digital product builders.",
+      "Build songs, release music, design sounds, organize artist systems, and power your creative business from one platform.",
     appStoreShort:
       "SONARA OS™ helps creators build songs, sounds, prompts, release plans, and music brands from one organized workspace.",
     appStoreLong:
-      "SONARA OS™ is the creator operating system from SONARA Industries™, built for artists, producers, labels, and music entrepreneurs. Create songs, design sound packs, organize artist ecosystems, generate release plans, build prompts, manage creative assets, and develop full music brands inside one streamlined platform.",
+      "SONARA OS™ is the creator operating system from SONARA Industries™, built for artists, producers, labels, and music entrepreneurs. Create songs, design sound packs, organize artist systems, build release plans, manage creative assets, and develop music brands inside one streamlined platform.",
   },
   productTiers: [
     {

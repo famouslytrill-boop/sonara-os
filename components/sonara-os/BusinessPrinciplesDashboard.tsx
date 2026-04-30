@@ -8,6 +8,14 @@ import { runSonaraFinalCompanyAudit } from "../../lib/sonara/businessPrinciples"
 const iconByIndex = [Compass, BadgeCheck, Gauge, ShieldCheck] as const;
 const businessModuleIcons = [BadgeCheck, Gauge, CircleDollarSign] as const;
 const activeToolIcons = [Compass, BadgeCheck, Gauge, ShieldCheck, CircleDollarSign] as const;
+const workspaceActions = [
+  { title: "Create Song", href: "/create", description: "Build a song fingerprint and release-readiness plan." },
+  { title: "Create Album", href: "/create", description: "Start a project with album-level sequencing and prompt planning." },
+  { title: "Build Sound Pack", href: "/vault", description: "Plan a rights-aware sound pack and license-sheet workflow." },
+  { title: "Prepare Release", href: "/export", description: "Export a branded release pack with runtime and prompt guidance." },
+  { title: "View Tutorial", href: "/tutorial", description: "Review the clean SONARA OS workflow from project to export." },
+  { title: "Open Store / Upgrade", href: "/store", description: "Review subscriptions and coming creator product bundles." },
+] as const;
 
 export function BusinessPrinciplesDashboard() {
   const audit = runSonaraFinalCompanyAudit();
@@ -22,7 +30,7 @@ export function BusinessPrinciplesDashboard() {
               SONARA Creator Business OS
             </h1>
             <p className="mt-4 max-w-2xl leading-7 text-[#A1A1AA]">
-              AI-powered workflows for artists, creators, local businesses, and digital product builders building brands, content, ideas, revenue paths, and launch systems.
+              Focused workflows for artists, creators, local businesses, and digital product builders building brands, content, ideas, revenue paths, and launch systems.
             </p>
           </div>
           <div className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
@@ -30,6 +38,19 @@ export function BusinessPrinciplesDashboard() {
             <p className="mt-2 text-4xl font-black text-[#F8FAFC]">{audit.oneOfOneCompanyScore}/100</p>
             <p className="mt-1 text-sm font-bold capitalize text-[#A1A1AA]">{audit.status}</p>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Next move</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">Choose a clean workspace action.</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {workspaceActions.map((action) => (
+            <Link key={action.title} href={action.href} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4 transition hover:border-[#22D3EE]">
+              <p className="text-sm font-black text-[#F8FAFC]">{action.title}</p>
+              <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{action.description}</p>
+            </Link>
+          ))}
         </div>
       </section>
 
