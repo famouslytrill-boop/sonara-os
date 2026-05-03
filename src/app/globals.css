@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+:root {
+  --sonara-background-light: #f6f0e8;
+  --sonara-background-dark: #09070d;
+  --sonara-surface-light: #fff9f0;
+  --sonara-surface-dark: #15111f;
+  --sonara-ink: #17131f;
+  --sonara-soft: #6e657a;
+  --sonara-muted: #9a8fa8;
+  --sonara-plum: #2b153f;
+  --sonara-violet: #8b5cf6;
+  --sonara-gold: #f5b84b;
+  --sonara-cyan: #29d3c2;
+  --sonara-coral: #ff6b6b;
+  --sonara-border-light: #e6d8c8;
+  --sonara-border-dark: #342a46;
+  --background: var(--sonara-background-light);
+  --foreground: var(--sonara-ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+a {
+  text-underline-offset: 4px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.sonara-page {
+  min-height: 100vh;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.sonara-card {
+  border: 1px solid var(--sonara-border-dark);
+  border-radius: 1.5rem;
+  background: rgba(21, 17, 31, 0.94);
+  color: #f9fafb;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.38);
+  padding: 1.25rem;
+}
+
+.sonara-bento {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 1rem;
+}
+
+.sonara-button-primary,
+.sonara-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  border-radius: 999px;
+  padding: 0.75rem 1.1rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.sonara-button-primary {
+  border: 0;
+  color: #f9fafb;
+  background: linear-gradient(135deg, #8b5cf6 0%, #ff6b6b 48%, #f5b84b 100%);
+}
+
+.sonara-button-secondary {
+  border: 1px solid var(--sonara-border-dark);
+  color: #f9fafb;
+  background: var(--sonara-surface-dark);
+}
+
+.sonara-kicker {
+  color: var(--sonara-violet);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sonara-gradient-text {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ff6b6b 48%, #f5b84b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sonara-input {
+  width: 100%;
+  border: 1px solid var(--sonara-border-dark);
+  border-radius: 1rem;
+  background: #fff9f0;
+  color: var(--sonara-ink);
+  padding: 0.9rem 1rem;
+  outline: none;
+}
+
+.sonara-help {
+  color: var(--sonara-soft);
+  line-height: 1.55;
+}
