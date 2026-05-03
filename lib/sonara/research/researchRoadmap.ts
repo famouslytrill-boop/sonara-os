@@ -1,0 +1,52 @@
+export type ResearchRoadmap = {
+  now: string[];
+  later: string[];
+};
+
+export const sonaraResearchRoadmap: ResearchRoadmap = {
+  now: [
+    "Local rules engine",
+    "Runtime target engine",
+    "Prompt length engine",
+    "External generator slider recommendations",
+    "Authentic Writer Engine",
+    "Vector memory basic table/provider",
+    "Sound rights system",
+    "Branded exports",
+    "Stripe web monetization",
+    "PWA install support",
+    "OBS-ready broadcast kit",
+    "Safe autonomy checks",
+    "Activation engine",
+    "Conversion engine",
+    "Trust/support layer",
+    "Founder command center",
+  ],
+  later: [
+    "Qdrant scale vector search",
+    "Chroma local prototype",
+    "Milvus large-scale vector search",
+    "Weaviate hybrid semantic/graph",
+    "Faiss local similarity",
+    "ClickHouse analytics",
+    "Neo4j relationship graph",
+    "Local LLM provider",
+    "Ollama and LM Studio integration",
+    "Flowise private/internal workflow only if updated and secured",
+    "Continue.dev PR checks",
+    "Essentia.js deeper audio analysis",
+    "librosa microservice",
+    "FFmpeg metadata extraction",
+    "Web Audio API browser preview analysis",
+    "OBS WebSocket integration",
+    "Capacitor Android wrapper",
+    "Google Play Billing",
+    "Apple IAP",
+    "Advanced marketplace",
+    "Team collaboration",
+    "Real-time co-writing rooms",
+    "Deeper analytics",
+    "Recommendation engine",
+    "Referral payouts",
+  ],
+};
