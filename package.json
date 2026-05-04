@@ -19,10 +19,16 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
-    "stripe": "^17.5.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.14.0",
     "next": "16.2.4",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "recharts": "^3.8.1",
+    "stripe": "^17.5.0",
+    "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
     "@types/node": "^24",
