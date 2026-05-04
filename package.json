@@ -1,70 +1,40 @@
 {
-<<<<<<< HEAD
   "name": "signal-os",
   "version": "0.1.0",
-=======
-  "name": "sonara-frontend-v27",
-  "version": "27.0.0",
->>>>>>> 7176af92909d4c152a7097a15c8ad57645d8b9ca
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-<<<<<<< HEAD
     "lint": "eslint",
     "verify:launch": "node scripts/verify-local-launch.mjs",
+    "verify:security": "node scripts/verify-security.mjs",
+    "scan:secrets": "powershell -ExecutionPolicy Bypass -File scripts/scan-secrets-local.ps1",
     "check:software": "node scripts/check-software.mjs",
     "bootstrap:local": "node scripts/bootstrap-local.mjs",
     "audit:deps": "node scripts/dependency-audit.mjs",
-    "scan:secrets": "powershell -ExecutionPolicy Bypass -File scripts/scan-secrets-local.ps1",
-    "verify:security": "node scripts/verify-security.mjs",
-    "launch:local-check": "npm run check:software && npm run verify:launch && npm run verify:security && npm run lint && npm run build"
+    "test": "tsx tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.4",
+    "stripe": "^17.5.0",
     "next": "16.2.4",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "stripe": "^22.1.0"
+    "react": "^19",
+    "react-dom": "^19"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "typescript": "^5"
-=======
-    "lint": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.mjs",
-    "typecheck": "tsc --noEmit",
-    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.105.0",
-    "@tanstack/react-query": "^5.100.5",
-    "jszip": "^3.10.1",
-    "lucide-react": "^1.11.0",
-    "motion": "^12.38.0",
-    "next": "^16.2.4",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "stripe": "^22.1.0",
-    "tailwindcss": "^4.2.4",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4.2.4",
-    "@types/node": "^25.6.0",
-    "@types/react": "^19.2.14",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5"
   },
   "overrides": {
     "postcss": "8.5.12"
->>>>>>> 7176af92909d4c152a7097a15c8ad57645d8b9ca
   }
 }
