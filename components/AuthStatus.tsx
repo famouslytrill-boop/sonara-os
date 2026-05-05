@@ -7,10 +7,9 @@ import { getSupabaseBrowserClient, isSupabaseConfigured } from "../lib/supabase"
 
 export function AuthStatus() {
   const [email, setEmail] = useState<string | null>(null);
-  const [configured, setConfigured] = useState(false);
+  const [configured] = useState(() => isSupabaseConfigured());
 
   useEffect(() => {
-    setConfigured(isSupabaseConfigured());
     const supabase = getSupabaseBrowserClient();
 
     if (!supabase) {

@@ -11,14 +11,12 @@ const inputClass =
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [redirectPath, setRedirectPath] = useState("/dashboard");
   const [mode, setMode] = useState<"magic" | "password" | "signup">("magic");
   const [message, setMessage] = useState("");
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setRedirectPath(params.get("redirect") || "/dashboard");
 
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
@@ -29,6 +27,10 @@ export function LoginForm() {
       }
     });
   }, []);
+
+  function getRedirectPath() {
+    return new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +43,7 @@ export function LoginForm() {
     }
 
     if (mode === "magic") {
+      const redirectPath = getRedirectPath();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
@@ -52,6 +55,7 @@ export function LoginForm() {
     }
 
     if (mode === "signup") {
+      const redirectPath = getRedirectPath();
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -68,7 +72,7 @@ export function LoginForm() {
       setMessage(error.message);
       return;
     }
-    window.location.href = redirectPath;
+    window.location.href = getRedirectPath();
   }
 
   if (!configured) {

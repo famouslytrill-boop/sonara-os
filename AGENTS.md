@@ -1,7 +1,6 @@
-<<<<<<< HEAD
 # SONARA OS™ Agent Rules
 
-## Music as a Whole Rule
+## Music As A Whole Rule
 
 SONARA OS™ must be positioned as a creator operating system for music as a whole.
 
@@ -20,46 +19,7 @@ It supports:
 - content creators
 - music entrepreneurs
 
-Do not present SONARA as only an AI music generator. Do not overuse AI language in public copy. Use “music creator operating system,” “creator infrastructure,” “release-readiness,” “sound systems,” “writing tools,” “arrangement tools,” and “rights-aware exports.”
-
-## Cloud-First Rule
-
-Normal users should access SONARA OS™ from the browser/PWA without downloads. Founder/developer setup may still use Vercel, Supabase, Stripe, GitHub, and local development tools.
-
-## Security Rules
-
-- Never commit secrets.
-- Never put Stripe/Supabase/OpenAI keys in source code.
-- Never put env vars in `vercel.json`.
-- Use Vercel environment variables for production secrets.
-- Service role keys are server-only.
-- Stripe webhooks must verify signatures.
-- Sensitive API routes should have rate limiting.
-- RLS must be enabled for user/private tables.
-- Do not log full secrets.
-- Do not claim guaranteed profit, streams, IPO, or impossible security.
-- Do not store biometric data.
-- Use passkeys/WebAuthn only if biometric-ready login is implemented later.
-
-## Product Uniqueness Rules
-
-SONARA must remain more than a generic prompt builder. It must connect:
-
-- idea
-- lyrics
-- word intelligence
-- arrangement
-- runtime
-- production prompt
-- sound identity
-- rights
-- metadata
-- export bundle
-- release-readiness
-
-No public kit marketplace is available at launch.
-=======
-# SONARA Agent Rules
+Do not present SONARA as only an AI music generator. Do not overuse AI language in public copy. Use "music creator operating system," "creator infrastructure," "release-readiness," "sound systems," "writing tools," "arrangement tools," and "rights-aware exports."
 
 ## Product Structure
 
@@ -82,6 +42,10 @@ No public kit marketplace is available at launch.
 - Do not seed or publish private artist ecosystem names.
 - Use neutral demo names: Demo Artist, Creator Project, Sample Project, SONARA Demo Release, Untitled Artist, Example Song, Project Alpha, Vault Demo Kit.
 
+## Cloud-First Rule
+
+Normal users should access SONARA OS™ from the browser/PWA without downloads. Founder/developer setup may still use Vercel, Supabase, Stripe, GitHub, and local development tools.
+
 ## Provider Rules
 
 - OpenAI is optional.
@@ -98,8 +62,6 @@ No public kit marketplace is available at launch.
 ## SONARA Core™ And Engines
 
 - SONARA Core™ must read as an all-genre idea-to-arrangement base system.
-- Genre Universe supports hip-hop, R&B, pop, country, rock, electronic, Latin, Afrobeats, gospel, cinematic, ambient, experimental, spoken, global fusion, and custom.
-- Arrangement Core must turn idea context into intro, verse, hook, bridge, outro, transitions, energy, vocals, drums, risks, and authenticity notes.
 - Runtime Target Threshold Engine must remain deterministic and appear in generated output and exports.
 - Prompt Length Engine must choose the shortest prompt that still controls the result.
 - External Generator Slider Guidance must use platform-flexible language and never imply guaranteed results.
@@ -127,6 +89,21 @@ No public kit marketplace is available at launch.
 - Google Play Billing and Apple IAP are later native-app work.
 - Store Product Readiness must block products missing price, files, license terms, refund/support notes, export bundle, rights classification, Stripe price ID, or safe rights status.
 
+## Security Rules
+
+- Never commit secrets.
+- Never put Stripe/Supabase/OpenAI keys in source code.
+- Never put env vars in `vercel.json`.
+- Use Vercel environment variables for production secrets.
+- Service role keys are server-only.
+- Stripe webhooks must verify signatures.
+- Sensitive API routes should have rate limiting.
+- RLS must be enabled for user/private tables.
+- Do not log full secrets.
+- Do not claim guaranteed profit, streams, IPO, or impossible security.
+- Do not store biometric data.
+- Use passkeys/WebAuthn only if biometric-ready login is implemented later.
+
 ## Autonomy And Safety
 
 - Use supervised autonomy by default.
@@ -136,23 +113,6 @@ No public kit marketplace is available at launch.
 - Use adaptive, feedback-driven, context-aware, creator-guided, supervised autonomy, and IPO-readiness roadmap language.
 - Do not build uncontrolled self-modifying code.
 
-## Passkey/WebAuthn And Biometrics
-
-- Do not store biometric data.
-- Do not store fingerprints, face scans, voiceprints, or biometric templates.
-- Do not create a server-side biometric store.
-- Passkey planning must use WebAuthn/platform authenticators where biometrics stay on the user's device.
-
-## Deployment And Data Safety
-
-- Do not commit secrets.
-- Do not put env vars in `vercel.json`.
-- `SUPABASE_SERVICE_ROLE_KEY` must be server-only.
-- Stripe secret and webhook keys must be server-only.
-- Public routes should render without Supabase, Stripe, or OpenAI secrets.
-- Run migrations before production and verify RLS policies.
-- Parent `.git` folders can confuse pushes; push only from the app root.
-
 ## Launch Systems
 
 - Support and Trust systems must be honest placeholders unless email/ticketing is configured.
@@ -160,4 +120,3 @@ No public kit marketplace is available at launch.
 - OBS work is an OBS-ready broadcast kit export unless direct OBS integration is implemented.
 - R&D docs must separate launch-ready systems from later integrations.
 - Final audit language must distinguish 10/10 architecture readiness from a verified 10/10 operating business.
->>>>>>> 7176af92909d4c152a7097a15c8ad57645d8b9ca

@@ -33,6 +33,9 @@ export default function HomePage() {
           </h1>
           <p className="mt-4 text-xl font-black text-[#F8FAFC]">{brandSystem.publicCopy.homepageHeroSubtitle}</p>
           <p className="mt-4 max-w-2xl text-base leading-7 text-[#A1A1AA]">{brandSystem.publicCopy.homepageHeroBody}</p>
+          <p className="mt-3 max-w-2xl text-sm font-bold text-[#22D3EE]">
+            SONARA OS™ is built for music as a whole: traditional, AI-assisted, and hybrid workflows.
+          </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Link className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/dashboard">
               Launch SONARA OS™ <ArrowRight size={16} />

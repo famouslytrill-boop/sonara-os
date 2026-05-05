@@ -12,7 +12,27 @@ import { getAIProvider } from "../../../../lib/sonara/ai/providerConfig";
 
 const responsesUrl = "https://api.openai.com/v1/responses";
 
-function extractStructuredJson(data: Record<string, any>) {
+type ProviderContent = {
+  type?: unknown;
+  text?: unknown;
+};
+
+type ProviderOutputItem = {
+  content?: ProviderContent[];
+};
+
+type StructuredProviderResponse = {
+  id?: string;
+  output_text?: unknown;
+  output?: ProviderOutputItem[];
+  choices?: Array<{
+    message?: {
+      content?: unknown;
+    };
+  }>;
+};
+
+function extractStructuredJson(data: StructuredProviderResponse) {
   if (typeof data.output_text === "string") {
     return JSON.parse(data.output_text);
   }

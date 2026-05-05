@@ -11,17 +11,24 @@ function isStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
+function isIosSafari() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const isIos = /iphone|ipad|ipod/.test(userAgent);
+  const isSafari = userAgent.includes("safari") && !userAgent.includes("crios") && !userAgent.includes("fxios");
+
+  return isIos && isSafari;
+}
+
 export function PWAInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [showIosHint] = useState(() => isIosSafari());
 
   useEffect(() => {
     if (isStandalone()) return;
-
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const isIos = /iphone|ipad|ipod/.test(userAgent);
-    const isSafari = userAgent.includes("safari") && !userAgent.includes("crios") && !userAgent.includes("fxios");
-    setShowIosHint(isIos && isSafari);
 
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault();

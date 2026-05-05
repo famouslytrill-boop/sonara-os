@@ -31,7 +31,11 @@ export function ProjectLibrary() {
   }
 
   useEffect(() => {
-    loadProjects();
+    const timeout = window.setTimeout(() => {
+      void loadProjects();
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   async function downloadProject(project: SavedSonaraProject) {
