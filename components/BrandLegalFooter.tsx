@@ -1,17 +1,20 @@
-import { brandSystem } from "../config/brandSystem";
 import Link from "next/link";
 
 export function BrandLegalFooter() {
   return (
     <footer className="mx-auto max-w-6xl px-4 pb-6 text-xs leading-5 text-[#C4BFD0]">
       <div className="mb-3 flex flex-wrap gap-3">
-        <Link href="/trust" className="font-bold text-[#2DD4BF]">Trust</Link>
-        <Link href="/support" className="font-bold text-[#2DD4BF]">Support</Link>
-        <Link href="/privacy" className="font-bold text-[#2DD4BF]">Privacy</Link>
-        <Link href="/terms" className="font-bold text-[#2DD4BF]">Terms</Link>
-        <Link href="/contact" className="font-bold text-[#2DD4BF]">Contact</Link>
+        <Link href="/brand" className="font-bold text-[#00E5FF]">Brand</Link>
+        <Link href="/trust" className="font-bold text-[#00E5FF]">Trust</Link>
+        <Link href="/support" className="font-bold text-[#00E5FF]">Support</Link>
+        <Link href="/privacy" className="font-bold text-[#00E5FF]">Privacy</Link>
+        <Link href="/terms" className="font-bold text-[#00E5FF]">Terms</Link>
+        <Link href="/contact" className="font-bold text-[#00E5FF]">Contact</Link>
       </div>
-      <p>{brandSystem.legal.footer}</p>
+      <p>
+        Umbrella Technologies is a working brand direction for SONARA Industries infrastructure. Working names,
+        marks, and logos require legal review before final trademark use. Do not use the registered mark symbol unless registration exists.
+      </p>
     </footer>
   );
 }

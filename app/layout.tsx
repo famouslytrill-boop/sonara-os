@@ -4,16 +4,17 @@ import { RegisterServiceWorker } from "../components/RegisterServiceWorker";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SONARA Industries™",
-  description: "Creator infrastructure for modern music.",
+  title: "Umbrella Technologies",
+  description: "Connected systems for creators, businesses, and communities.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "SONARA OS™",
+    title: "Umbrella Technologies",
     statusBarStyle: "black-translucent",
   },
   icons: {
     apple: "/icons/apple-touch-icon.png",
+    icon: "/icon.svg",
   },
 };
 
@@ -21,7 +22,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#08070B",
+  themeColor: "#0B0F14",
   colorScheme: "dark",
 };
 

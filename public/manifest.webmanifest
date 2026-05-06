@@ -1,53 +1,41 @@
 {
-  "name": "SONARA OS™",
-  "short_name": "SONARA",
-  "description": "A cloud-first music creator operating system for songs, lyrics, sound assets, releases, rights checks, and export-ready bundles.",
+  "name": "Umbrella Technologies",
+  "short_name": "Umbrella",
+  "description": "Connected systems for creators, businesses, and communities.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#F6F0E8",
-  "theme_color": "#2B153F",
-  "categories": ["music", "productivity", "business", "entertainment"],
+  "background_color": "#0B0F14",
+  "theme_color": "#00E5FF",
+  "categories": ["productivity", "business", "utilities"],
   "icons": [
     {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     },
     {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/maskable-icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "src": "/brand/icons/parent-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
     {
-      "name": "Create Project",
-      "short_name": "Create",
-      "description": "Create a new SONARA OS™ project.",
-      "url": "/create",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "name": "Open Entities",
+      "short_name": "Entities",
+      "description": "Open entity operations.",
+      "url": "/dashboard/entities",
+      "icons": [{ "src": "/brand/icons/parent-icon.svg", "sizes": "any" }]
     },
     {
-      "name": "Open Vault",
-      "short_name": "Vault",
-      "description": "Organize rights-aware project assets.",
-      "url": "/vault",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Prepare Export",
-      "short_name": "Export",
-      "description": "Prepare export-ready creative bundles.",
-      "url": "/export",
-      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+      "name": "Brand Ecosystem",
+      "short_name": "Brand",
+      "description": "Review the working brand ecosystem.",
+      "url": "/brand",
+      "icons": [{ "src": "/brand/icons/parent-icon.svg", "sizes": "any" }]
     }
   ]
 }

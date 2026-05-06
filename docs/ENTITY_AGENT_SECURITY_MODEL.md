@@ -14,6 +14,14 @@ Entity infrastructure is scoped by membership and approval boundaries.
 - Destructive, billing, database-write, role-change, mass-notification, public alert, and deployment actions require human approval.
 - The Community/Public Information company must not claim official government authority unless verified by a real public partner.
 
+## Brand And Public-Information Guardrails
+
+- Brand configuration and SVG assets are public-safe and must not contain secrets.
+- Entity dashboard pages may show public labels, taglines, colors, setup-required states, and high-level heartbeat summaries only.
+- Community/Public Information surfaces must say they organize public and organization-submitted information and do not imply official government partnership unless separately verified.
+- Launchpad language must not imply guaranteed deployment success.
+- Unsupported external tools, desktop control, MCP connectors, and background agents remain `setup_required` until real runtime, credentials, and approval policies are configured.
+
 ## Verification
 
 Run:

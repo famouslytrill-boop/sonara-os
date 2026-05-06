@@ -11,6 +11,7 @@ npm run verify:security
 npm run verify:db
 npm run verify:heartbeat
 npm run verify:entity-security
+npm run verify:brand
 npm run verify:env
 npm run verify:stripe
 npm run verify:all

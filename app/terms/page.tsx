@@ -3,25 +3,25 @@ import { ProductShell } from "../../components/ProductShell";
 export default function TermsPage() {
   return (
     <ProductShell>
-      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
-        <p className="text-xs font-black uppercase text-[#22D3EE]">Legal</p>
-        <h1 className="mt-2 text-3xl font-black">Terms of Service</h1>
-        <div className="mt-3 grid max-w-3xl gap-4 leading-7 text-[#A1A1AA]">
+      <section className="rounded-3xl border border-[#2A2A35] bg-[#171720] p-6">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#22D3EE]">Legal template</p>
+        <h1 className="mt-3 text-3xl font-black">Terms of Service Template</h1>
+        <div className="mt-4 grid max-w-3xl gap-4 leading-7 text-[#A1A1AA]">
           <p>
-            SONARA OS™ provides music identity, release-readiness, workflow, and export tools. It does not guarantee income,
-            placements, hits, legal outcomes, tax outcomes, streaming approval, copyright clearance, or distribution results.
+            The platform provides separate operating surfaces for creator technology, business operations, community/public
+            information, and parent governance. These systems should not be blended into one customer dashboard.
           </p>
           <p>
-            Users are responsible for rights clearance, credits, samples, likeness permissions, metadata accuracy, and
-            compliance with the rules of any distributor, marketplace, platform, venue, or collaborator.
+            The software does not guarantee income, legal outcomes, tax outcomes, deployment approval, emergency delivery,
+            official public authority status, copyright clearance, or distribution results.
           </p>
           <p>
-            SONARA does not provide fake streaming, bot activity, engagement manipulation, or unlicensed sound redistribution
-            tools.
+            Users are responsible for rights clearance, uploaded content, organization permissions, source review, and human
+            approval of high-risk actions.
           </p>
           <p>
-            SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA
-            Labs™ are claimed trademarks of SONARA Industries.
+            Working brand names, marks, and logos require trademark/domain review and qualified legal review before production
+            launch.
           </p>
         </div>
       </section>

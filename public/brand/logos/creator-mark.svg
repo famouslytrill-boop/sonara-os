@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Creator Music Technology mark">
+  <rect width="128" height="128" rx="28" fill="#0B0F14"/>
+  <path d="M64 10 110 37v54l-46 27-46-27V37Z" fill="#D100FF" opacity=".18"/>
+  <path d="M64 16 104 40v48l-40 24-40-24V40Z" fill="none" stroke="#D100FF" stroke-width="6"/>
+  <path d="M36 64V48M50 74V38M64 68V44M78 58V52" stroke="#00E5FF" stroke-width="5" stroke-linecap="round"/>
+</svg>

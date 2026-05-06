@@ -10,7 +10,16 @@
     "lint": "pnpm --filter @sonara-industries/web lint",
     "typecheck": "pnpm --filter @sonara-industries/web typecheck",
     "test": "pnpm --filter @sonara-industries/web test",
-    "stripe:seed": "node scripts/seed-stripe-products.mjs"
+    "stripe:seed": "node scripts/seed-stripe-products.mjs",
+    "scan:secrets": "cd .. && npm run scan:secrets",
+    "verify:db": "cd .. && npm run verify:db",
+    "verify:security": "cd .. && npm run verify:security",
+    "verify:entity-security": "cd .. && npm run verify:entity-security",
+    "verify:brand": "cd .. && npm run verify:brand",
+    "heartbeat": "cd .. && npm run heartbeat",
+    "verify:all": "cd .. && npm run verify:all",
+    "verify:postdeploy": "cd .. && npm run verify:postdeploy",
+    "test:smoke": "cd .. && npm run test:smoke"
   },
   "devDependencies": {}
 }

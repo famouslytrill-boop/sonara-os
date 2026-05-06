@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Umbrella Technologies mark">
+  <rect width="128" height="128" rx="28" fill="#0B0F14"/>
+  <path d="M64 10 110 37v54l-46 27-46-27V37Z" fill="#00E5FF" opacity=".18"/>
+  <path d="M64 16 104 40v48l-40 24-40-24V40Z" fill="none" stroke="#00E5FF" stroke-width="6"/>
+  <path d="M42 48 64 35l22 13v26L64 87 42 74Z" fill="none" stroke="#FFB020" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 64h18M77 64h18" stroke="#FFB020" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="8" fill="#FFB020"/>
+</svg>

@@ -16,6 +16,7 @@ export function EntityOverview({ entity }: { entity: EntityConfig }) {
           automation queue, connectors, logs, approvals, and safety boundaries. External integrations stay
           setup_required until credentials and runtimes are configured by a human operator.
         </p>
+        <div className="mt-4 h-1.5 rounded-full" style={{ background: `linear-gradient(90deg, ${entity.theme.accent}, transparent)` }} />
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {[
             ["Audience", entity.audience],

@@ -2,6 +2,23 @@
 
 :root {
   color-scheme: dark;
+  --brand-dark: #0b0f14;
+  --brand-light: #ffffff;
+  --brand-parent-primary: #00e5ff;
+  --brand-parent-secondary: #008fa3;
+  --brand-parent-accent: #ffb020;
+  --brand-creator-primary: #d100ff;
+  --brand-creator-secondary: #8a2bff;
+  --brand-creator-accent: #00e5ff;
+  --brand-business-primary: #00b48a;
+  --brand-business-secondary: #00d1b2;
+  --brand-business-accent: #667085;
+  --brand-community-primary: #007bff;
+  --brand-community-secondary: #00b4c8;
+  --brand-community-accent: #f1f3f6;
+  --brand-launchpad-primary: #ffb020;
+  --brand-launchpad-secondary: #00e5ff;
+  --brand-launchpad-accent: #6b7280;
   --sonara-background: #08070b;
   --sonara-surface: #121018;
   --sonara-card: #191522;
@@ -15,6 +32,20 @@
   --sonara-muted-text: #c4bfd0;
   --sonara-success: #22c55e;
   --sonara-error: #ef4444;
+}
+
+@theme {
+  --color-brand-parent: #00e5ff;
+  --color-brand-parent-secondary: #008fa3;
+  --color-brand-creator: #d100ff;
+  --color-brand-creator-secondary: #8a2bff;
+  --color-brand-business: #00b48a;
+  --color-brand-business-secondary: #00d1b2;
+  --color-brand-community: #007bff;
+  --color-brand-community-secondary: #00b4c8;
+  --color-brand-launchpad: #ffb020;
+  --color-brand-dark: #0b0f14;
+  --color-brand-light: #ffffff;
 }
 
 * {
@@ -35,4 +66,48 @@ body {
 
 button {
   font: inherit;
+}
+
+.brand-shell {
+  background:
+    radial-gradient(circle at 18% 8%, rgb(0 229 255 / 0.18), transparent 30%),
+    radial-gradient(circle at 78% 16%, rgb(138 43 255 / 0.14), transparent 28%),
+    linear-gradient(180deg, #0b0f14 0%, #08070b 100%);
+  color: var(--brand-light);
+}
+
+.brand-card {
+  border: 1px solid rgb(255 255 255 / 0.12);
+  background: rgb(18 16 24 / 0.88);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 0.28);
+}
+
+.brand-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.16);
+  font-weight: 800;
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.brand-button:focus-visible {
+  box-shadow: 0 0 0 3px rgb(0 229 255 / 0.35);
+}
+
+.brand-button:hover {
+  transform: translateY(-1px);
+}
+
+.brand-kicker {
+  color: var(--brand-parent-primary);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }

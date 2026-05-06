@@ -3,23 +3,23 @@ import { ProductShell } from "../../components/ProductShell";
 export default function PrivacyPage() {
   return (
     <ProductShell>
-      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
-        <p className="text-xs font-black uppercase text-[#22D3EE]">Legal</p>
-        <h1 className="mt-2 text-3xl font-black">Privacy Policy</h1>
-        <div className="mt-3 grid max-w-3xl gap-4 leading-7 text-[#A1A1AA]">
+      <section className="rounded-3xl border border-[#2A2A35] bg-[#171720] p-6">
+        <p className="text-xs font-black uppercase tracking-[0.22em] text-[#22D3EE]">Legal template</p>
+        <h1 className="mt-3 text-3xl font-black">Privacy Policy Template</h1>
+        <div className="mt-4 grid max-w-3xl gap-4 leading-7 text-[#A1A1AA]">
           <p>
-            SONARA Industries™ stores only the creator workflow data needed to operate song fingerprints, release plans,
-            private export packages, account services, and launch-readiness tools.
+            Umbrella Technologies is a working parent brand direction for separate systems serving creator technology, business
+            operations, and community/public information workflows.
           </p>
           <p>
-            Project data may include account details, project notes, export files, release metadata, sound upload metadata,
-            attribution notes, license proof references, and workspace settings.
+            Product data may include account details, organization membership, project notes, uploaded asset metadata, billing
+            status, audit events, connector settings, and setup-required integration state.
           </p>
           <p>
-            Optional provider keys are user-controlled. SONARA OS™ must run in Local Rules mode without a paid provider key,
-            and bring-your-own-key provider use should be enabled only by the workspace owner.
+            Server-only credentials must remain in hosting secret storage. Public frontend configuration may only use framework-safe
+            public environment variables.
           </p>
-          <p>Support contact placeholder: support@sonaraindustries.com.</p>
+          <p>This template must be reviewed by a qualified attorney before production launch.</p>
         </div>
       </section>
     </ProductShell>

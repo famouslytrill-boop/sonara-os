@@ -336,19 +336,25 @@ $$;
 create or replace function public.audit_row_change()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
+  row_data jsonb;
   target_org_id uuid;
   target_company_key text;
   target_id uuid;
 begin
   if tg_op = 'DELETE' then
-    target_org_id := old.org_id;
-    target_company_key := coalesce(old.company_key, 'parent_admin');
-    target_id := old.id;
+    row_data := to_jsonb(old);
   else
-    target_org_id := new.org_id;
-    target_company_key := coalesce(new.company_key, 'parent_admin');
-    target_id := new.id;
+    row_data := to_jsonb(new);
   end if;
+
+  target_id := nullif(row_data->>'id', '')::uuid;
+  target_org_id := nullif(row_data->>'org_id', '')::uuid;
+
+  if target_org_id is null and tg_table_name = 'organizations' then
+    target_org_id := target_id;
+  end if;
+
+  target_company_key := coalesce(nullif(row_data->>'company_key', ''), 'parent_admin');
 
   insert into public.audit_logs(org_id, company_key, user_id, action, target_table, target_id, metadata)
   values (target_org_id, target_company_key, auth.uid(), tg_op, tg_table_name, target_id, jsonb_build_object('source', 'trigger'));
@@ -404,8 +410,9 @@ do $$
 declare
   table_name text;
 begin
+  -- Tables with both org_id and company_key can use full tenant + app access checks.
   foreach table_name in array array[
-    'approval_queue','external_links','uploaded_assets','media_jobs','notifications','security_events','entitlements','billing_customers','billing_subscriptions','connector_sources','connector_runs','backup_runs',
+    'approval_queue','external_links','uploaded_assets','media_jobs','notifications','security_events','entitlements','billing_subscriptions','connector_sources','connector_runs','backup_runs',
     'artists','artist_dna_profiles','songs','projects','releases','audio_analysis','transcription_jobs','anti_repetition_checks','soundos_readiness_scores',
     'restaurants','restaurant_locations','employees','job_titles','staff_profiles','staff_chat_threads','staff_chat_messages','schedules','shifts','labor_cost_snapshots','menu_items','recipes','recipe_ingredients','vendors','vendor_links','repairs','service_records','permits','certifications','inspections','raises','promotions','transfers','holidays','qr_links',
     'alert_sources','imported_feed_items','public_alerts','public_events','transit_updates','weather_alerts','organization_broadcasts','alert_subscriptions','alert_delivery_attempts','alertos_trust_scores'
@@ -415,6 +422,16 @@ begin
     execute format('create policy tenant_members_select on public.%I for select using (public.is_org_member(org_id) and public.has_company_access(org_id, company_key))', table_name);
     execute format('drop policy if exists tenant_members_modify on public.%I', table_name);
     execute format('create policy tenant_members_modify on public.%I for all using (public.has_company_access(org_id, company_key)) with check (public.has_company_access(org_id, company_key))', table_name);
+  end loop;
+
+  -- Tables with org_id only must not reference company_key.
+  foreach table_name in array array[
+    'billing_customers'
+  ]
+  loop
+    execute format('drop policy if exists tenant_members_select on public.%I', table_name);
+    execute format('create policy tenant_members_select on public.%I for select using (public.is_org_member(org_id))', table_name);
+    execute format('drop policy if exists tenant_members_modify on public.%I', table_name);
   end loop;
 end $$;
 

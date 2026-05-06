@@ -6,7 +6,7 @@ const defaults = [
 ];
 
 console.log("Entity default seed preview");
-console.log("===========================");
+console.log("---------------------------");
 console.log("This script is idempotent by design but does not connect to production without explicit database setup.");
 console.log("Apply supabase/migrations/008_entity_agent_operations.sql first, then seed through a trusted server/service-role workflow.");
 console.log("\nDefault entity slugs:");

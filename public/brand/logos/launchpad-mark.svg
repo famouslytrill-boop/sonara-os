@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Launchpad by Umbrella mark">
+  <rect width="128" height="128" rx="28" fill="#0B0F14"/>
+  <path d="M64 10 110 37v54l-46 27-46-27V37Z" fill="#FFB020" opacity=".2"/>
+  <path d="M64 16 104 40v48l-40 24-40-24V40Z" fill="none" stroke="#FFB020" stroke-width="6"/>
+  <path d="M44 76 76 44M52 44h24v24M42 86h28" fill="none" stroke="#00E5FF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

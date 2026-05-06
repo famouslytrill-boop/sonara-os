@@ -44,7 +44,10 @@ Review pending migrations, especially:
 ```text
 007_platform_infrastructure_ops.sql
 008_entity_agent_operations.sql
+010_sonara_industries_v3_rls.sql
 ```
+
+`010_sonara_industries_v3_rls.sql` must be reviewed for column-specific RLS policies before retrying live push. It should use `extensions.gen_random_bytes(...)` and must not apply `company_key` policies to tables that do not have that column.
 
 ## 6. Apply Pending Migrations Safely
 

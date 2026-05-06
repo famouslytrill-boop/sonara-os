@@ -22,6 +22,12 @@ const requiredDocs = [
   "docs/BACKGROUND_AUTOMATIONS.md",
   "docs/CONNECTORS_AND_MCP.md",
   "docs/ENTITY_AGENT_SECURITY_MODEL.md",
+  "docs/MASSIVE_UPDATE_AUDIT.md",
+  "docs/BRAND_IDENTITY_SYSTEM.md",
+  "docs/LOGO_USAGE_GUIDE.md",
+  "docs/BRAND_IMPLEMENTATION_REPORT.md",
+  "docs/BRAND_LEGAL_REVIEW_WARNING.md",
+  "docs/MASSIVE_UPDATE_COMPLETION_REPORT.md",
 ];
 
 let failed = false;

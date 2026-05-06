@@ -18,6 +18,7 @@ export type EntityConfig = {
   shortName: string;
   entityType: EntityType;
   description: string;
+  tagline: string;
   audience: string;
   theme: {
     accent: string;
@@ -47,15 +48,15 @@ export type EntityConfig = {
 export const entityConfigs: EntityConfig[] = [
   {
     slug: "parent-company",
-    name: "Parent Company",
+    name: "Umbrella Technologies",
     shortName: "Parent",
     entityType: "parent_company",
-    description:
-      "Parent governance for security, billing, infrastructure, audit logs, deployment readiness, and cross-entity policy.",
+    tagline: "Connect. Build. Grow.",
+    description: "Connected systems for creators, businesses, and communities.",
     audience: "Parent administrators and trusted operators",
     theme: {
-      accent: "#22D3EE",
-      accentSoft: "rgba(34, 211, 238, 0.16)",
+      accent: "#00E5FF",
+      accentSoft: "rgba(0, 229, 255, 0.16)",
       gradient: "from-cyan-400 via-violet-500 to-slate-200",
     },
     heartbeatTypes: ["system", "database", "auth", "security", "workers", "connectors"],
@@ -77,15 +78,15 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "creator-music-technology",
-    name: "Creator/Music Technology Company",
+    name: "Creator Music Technology",
     shortName: "Creator/Music",
     entityType: "creator_music_technology",
-    description:
-      "Creator infrastructure for music projects, asset workflows, release readiness, catalog operations, and creator tooling.",
+    tagline: "Create. Connect. Amplify.",
+    description: "Tools for artists and creators to build the world around their work.",
     audience: "Artists, producers, studios, labels, and creator teams",
     theme: {
-      accent: "#A855F7",
-      accentSoft: "rgba(168, 85, 247, 0.16)",
+      accent: "#D100FF",
+      accentSoft: "rgba(209, 0, 255, 0.16)",
       gradient: "from-violet-400 via-fuchsia-500 to-cyan-300",
     },
     heartbeatTypes: ["creator_tools", "storage", "browser", "workers", "security"],
@@ -108,15 +109,15 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "business-operations",
-    name: "Business Operations Company",
+    name: "Business Operations",
     shortName: "Business Ops",
     entityType: "business_operations",
-    description:
-      "Operations infrastructure for restaurants and small businesses, including staff workflows, QR/order checks, vendor links, and daily systems.",
+    tagline: "Systems. Execute. Excel.",
+    description: "Cleaner daily operations for restaurants and small businesses.",
     audience: "Restaurants, small businesses, managers, staff, and operations teams",
     theme: {
-      accent: "#F59E0B",
-      accentSoft: "rgba(245, 158, 11, 0.16)",
+      accent: "#00B48A",
+      accentSoft: "rgba(0, 180, 138, 0.16)",
       gradient: "from-amber-300 via-orange-500 to-rose-400",
     },
     heartbeatTypes: ["business_ops", "database", "auth", "storage", "stripe", "workers"],
@@ -139,15 +140,15 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "community-public-information",
-    name: "Community/Public Information Company",
+    name: "Umbrella Community Info",
     shortName: "Community Info",
     entityType: "community_public_information",
-    description:
-      "Public information aggregation and approval-gated communication workflows for source-linked community notices.",
+    tagline: "Inform. Connect. Empower.",
+    description: "Useful local information organized in one place.",
     audience: "Residents, local organizations, libraries, nonprofits, and public-facing teams",
     theme: {
-      accent: "#10B981",
-      accentSoft: "rgba(16, 185, 129, 0.16)",
+      accent: "#007BFF",
+      accentSoft: "rgba(0, 123, 255, 0.16)",
       gradient: "from-emerald-300 via-sky-400 to-blue-500",
     },
     heartbeatTypes: ["community_info", "public_feed", "browser", "connectors", "security"],

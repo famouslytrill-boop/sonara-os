@@ -15,6 +15,7 @@ const requiredFiles = [
   "python/sonara_ops/healthcheck.py",
   "docs/DATABASE_INFRASTRUCTURE.md",
   "docs/PYTHON_OPS_LAYER.md",
+  "sonara-industries/supabase/migrations/010_sonara_industries_v3_rls.sql",
 ];
 
 const requiredScripts = ["db:types", "db:diff", "db:push", "db:reset", "python:health", "verify:db"];
@@ -41,18 +42,32 @@ for (const file of requiredFiles) {
   }
 }
 
-const migrationDir = join(root, "supabase", "migrations");
-if (!existsSync(migrationDir)) {
-  logWarn("missing supabase/migrations");
-} else {
-  const migrations = readdirSync(migrationDir).filter((file) => file.endsWith(".sql"));
-  logOk(`found ${migrations.length} SQL migration(s)`);
+const migrationDirs = [
+  join(root, "supabase", "migrations"),
+  join(root, "sonara-industries", "supabase", "migrations"),
+];
 
-  for (const migration of migrations) {
-    const content = readFileSync(join(migrationDir, migration), "utf8");
+for (const migrationDir of migrationDirs) {
+  if (!existsSync(migrationDir)) {
+    logWarn(`missing ${migrationDir}`);
+  } else {
+    const migrations = readdirSync(migrationDir).filter((file) => file.endsWith(".sql"));
+    logOk(`found ${migrations.length} SQL migration(s) in ${migrationDir}`);
+
+    for (const migration of migrations) {
+      const content = readFileSync(join(migrationDir, migration), "utf8");
     for (const pattern of secretPatterns) {
       if (pattern.test(content)) {
         logWarn(`possible secret-shaped value in ${migration}`);
+      }
+    }
+
+      if (/(?<!extensions\.)gen_random_bytes\s*\(/.test(content)) {
+        logWarn(`unqualified gen_random_bytes call in ${migration}`);
+      }
+
+      if (/USING\s*\(\s*true\s*\)|WITH CHECK\s*\(\s*true\s*\)/i.test(content)) {
+        logWarn(`broad true RLS policy found in ${migration}`);
       }
     }
   }

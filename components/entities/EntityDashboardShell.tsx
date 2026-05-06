@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
+import { EntityLogo } from "../brand/EntityLogo";
 import { entityDashboardSections, type EntityConfig } from "../../lib/entities/config";
 
 export function EntityDashboardShell({
@@ -21,10 +22,18 @@ export function EntityDashboardShell({
             <Link href="/dashboard/entities" className="text-sm font-bold text-[#2DD4BF] hover:text-white">
               Entities
             </Link>
-            <h1 className={`mt-3 bg-gradient-to-r ${entity.theme.gradient} bg-clip-text text-3xl font-black text-transparent sm:text-4xl`}>
-              {entity.name}
-            </h1>
+            <div className="mt-4">
+              <EntityLogo entitySlug={entity.slug} size="lg" />
+            </div>
+            <p className="mt-3 text-lg font-black" style={{ color: entity.theme.accent }}>
+              {entity.tagline}
+            </p>
             <p className="mt-3 text-base leading-7 text-[#C4BFD0]">{entity.description}</p>
+            {entity.slug === "community-public-information" ? (
+              <p className="mt-3 rounded-xl border border-[#007BFF]/40 bg-[#007BFF]/10 p-3 text-sm font-bold text-white">
+                This product organizes public and organization-submitted information. It does not imply official government partnership unless separately verified.
+              </p>
+            ) : null}
           </div>
           <div className="rounded-2xl border border-[#332A40] bg-[#08070B] px-4 py-3">
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#8F879C]">Session Scope</p>
