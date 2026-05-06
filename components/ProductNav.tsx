@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Library, Package, Settings, Wand2 } from "lucide-react";
+import { Building2, Home, Library, Package, Settings, Wand2 } from "lucide-react";
 import { visibleNavigation } from "../lib/sonara-core";
 import { cn } from "../lib/utils";
 import { AuthStatus } from "./AuthStatus";
@@ -33,11 +33,11 @@ export function ProductNav() {
           SONARA OS™
         </Link>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
-          <div className="grid w-full min-w-0 grid-cols-5 gap-1 rounded-lg border border-[#332A40] bg-[#121018] p-1 sm:w-auto">
+          <div className="grid w-full min-w-0 grid-cols-6 gap-1 rounded-lg border border-[#332A40] bg-[#121018] p-1 sm:w-auto">
             {visibleNavigation.map((item) => {
               const href = hrefByItem[item];
               const Icon = iconByItem[item];
-              const active = pathname.startsWith(href);
+              const active = item === "Home" ? pathname === href : pathname.startsWith(href);
 
               return (
                 <Link
@@ -55,6 +55,20 @@ export function ProductNav() {
                 </Link>
               );
             })}
+            <Link
+              href="/dashboard/entities"
+              aria-label="Entities"
+              title="Entities"
+              className={cn(
+                "inline-flex min-h-10 min-w-0 items-center justify-center gap-1 rounded-md px-2 text-xs font-bold transition sm:px-3",
+                pathname.startsWith("/dashboard/entities")
+                  ? "bg-[#9B5CFF] text-white"
+                  : "text-[#C4BFD0] hover:text-[#F9FAFB]",
+              )}
+            >
+              <Building2 size={15} />
+              <span className="hidden sm:inline">Entities</span>
+            </Link>
           </div>
           <AuthStatus />
         </div>

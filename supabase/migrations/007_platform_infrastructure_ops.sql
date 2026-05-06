@@ -142,28 +142,8 @@ create policy "Users can read own audit events"
   using (actor_id = auth.uid());
 
 drop policy if exists "Service role can manage audit events" on public.system_audit_events;
-create policy "Service role can manage audit events"
-  on public.system_audit_events
-  for all
-  to service_role
-  using (true)
-  with check (true);
-
 drop policy if exists "Service role can manage platform jobs" on public.platform_jobs;
-create policy "Service role can manage platform jobs"
-  on public.platform_jobs
-  for all
-  to service_role
-  using (true)
-  with check (true);
-
 drop policy if exists "Service role can manage db health snapshots" on public.db_health_snapshots;
-create policy "Service role can manage db health snapshots"
-  on public.db_health_snapshots
-  for all
-  to service_role
-  using (true)
-  with check (true);
 
 drop policy if exists "Users can read own creator activity" on public.creator_activity_events;
 create policy "Users can read own creator activity"
@@ -173,12 +153,7 @@ create policy "Users can read own creator activity"
   using (user_id = auth.uid());
 
 drop policy if exists "Service role can manage creator activity" on public.creator_activity_events;
-create policy "Service role can manage creator activity"
-  on public.creator_activity_events
-  for all
-  to service_role
-  using (true)
-  with check (true);
 
 -- No anonymous policies are intentionally defined for these tables.
--- The Supabase service role must remain server-only and should be used only by trusted API routes, local ops scripts, and CI.
+-- The Supabase service role bypasses RLS by design and must remain server-only.
+-- Do not add broad public policies to these private operations tables.

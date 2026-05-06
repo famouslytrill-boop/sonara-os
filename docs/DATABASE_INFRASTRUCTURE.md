@@ -17,6 +17,7 @@ The platform operations migration is:
 
 ```text
 supabase/migrations/007_platform_infrastructure_ops.sql
+supabase/migrations/008_entity_agent_operations.sql
 ```
 
 It adds:
@@ -25,8 +26,9 @@ It adds:
 - `public.platform_jobs`
 - `public.db_health_snapshots`
 - `public.creator_activity_events`
+- entity membership, browser workspace, heartbeat, proactive action, agent, automation, connector, approval, and run-log tables
 
-The migration is additive. It does not drop existing Stripe, Supabase, subscription, or RLS tables.
+The migrations are additive. They do not drop existing Stripe, Supabase, subscription, or RLS tables.
 
 ## RLS Rules
 

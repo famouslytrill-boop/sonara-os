@@ -4,6 +4,7 @@ import { join } from "node:path";
 const root = process.cwd();
 const requiredFiles = [
   "supabase/migrations/007_platform_infrastructure_ops.sql",
+  "supabase/migrations/008_entity_agent_operations.sql",
   "lib/db/audit.ts",
   "lib/db/jobs.ts",
   "lib/db/health.ts",
