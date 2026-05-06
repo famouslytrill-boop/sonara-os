@@ -4,6 +4,8 @@ import { RecipePanel } from "./RecipePanel";
 import { CostingPanel } from "./CostingPanel";
 import { PrepPanel } from "./PrepPanel";
 import { TrainingPanel } from "./TrainingPanel";
+import { StaffOperationsPanel } from "./StaffOperationsPanel";
+import { ExternalLinksPanel } from "./ExternalLinksPanel";
 
 export function TableOpsDashboard() {
   return (
@@ -19,6 +21,8 @@ export function TableOpsDashboard() {
         <CostingPanel />
         <PrepPanel />
         <TrainingPanel />
+        <StaffOperationsPanel />
+        <ExternalLinksPanel />
       </div>
     </TableOpsShell>
   );

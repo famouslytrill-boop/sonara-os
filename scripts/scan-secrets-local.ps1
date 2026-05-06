@@ -2,7 +2,7 @@ $ErrorActionPreference = "Stop"
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$excludedDirPatterns = @("\\node_modules\\", "\\.next\\", "\\.git\\")
+$excludedDirPatterns = @("\\node_modules\\", "\\.next\\", "\\.git\\", "\\.venv\\", "\\__pycache__\\")
 $binaryExtensions = @(
   ".ico",
   ".png",

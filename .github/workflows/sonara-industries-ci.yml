@@ -1,0 +1,36 @@
+name: SONARA Industries CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  sonara-industries:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sonara-industries
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: sonara-industries/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sonara-industries/web lint
+      - run: pnpm --filter @sonara-industries/web typecheck
+      - run: pnpm --filter @sonara-industries/web test
+      - run: pnpm --filter @sonara-industries/web build
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e apps/api
+      - run: pytest
+        working-directory: sonara-industries/apps/api
+      - run: python -m compileall app
+        working-directory: sonara-industries/apps/api

@@ -13,16 +13,16 @@ const docs = {
   "docs/ARCHITECTURE.md": `
 # SONARA Industries Architecture
 
-SONARA Industries owns three separate operating companies: SONARA One, TableOps Systems, and CivicSignal Network.
+SONARA Industries owns three separate operating companies: SoundOS, TableOS, and AlertOS.
 
 The shared spines are security, billing, infrastructure, audit logging, deployment, and parent governance. Product surfaces, dashboards, onboarding, themes, customer data, and workflows remain separated by app scope.
 
 ## Subdomain Strategy
 
 - sonaraindustries.com -> parent company website
-- music.sonaraindustries.com -> SONARA One
-- tableops.sonaraindustries.com -> TableOps Systems
-- civic.sonaraindustries.com -> CivicSignal Network
+- music.sonaraindustries.com -> SoundOS
+- tableops.sonaraindustries.com -> TableOS
+- civic.sonaraindustries.com -> AlertOS
 - admin.sonaraindustries.com -> parent admin console
 - api.sonaraindustries.com -> shared API gateway
 - docs.sonaraindustries.com -> help/docs
@@ -78,9 +78,9 @@ Cloud services can have free tiers, but production hosting is not assumed to be 
 
 Stripe Billing is the shared provider. Product groups must stay separated by app_code:
 
-- sonara_one
+- soundos
 - tableops
-- civic_signal
+- alertos
 
 Stripe Connect-ready architecture is planned, but marketplace payouts are not implemented at launch.
 
@@ -98,7 +98,7 @@ Use indexes for app scope, organization scope, and recent activity. Enable RLS i
   "docs/APP_SEPARATION.md": `
 # App Separation
 
-SONARA One, TableOps Systems, and CivicSignal Network are separate operating systems.
+SoundOS, TableOS, and AlertOS are separate operating systems.
 
 Shared:
 
@@ -123,7 +123,7 @@ Not shared:
   "docs/CIVIC_DATA_POLICY.md": `
 # Civic Data Policy
 
-CivicSignal Network aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.
+AlertOS aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.
 
 Public information should include source links, timestamps, confidence labels, and correction/takedown paths.
 
@@ -163,9 +163,9 @@ A production-ready starter monorepo for SONARA Industries, the parent company fo
 
 ## Operating Companies
 
-- SONARA One: music identity, artist development, creative catalog, prompt export, and release-readiness.
-- TableOps Systems: restaurant operations, recipe R&D, costing, prep, training, QR menu, SOP, and inventory signals.
-- CivicSignal Network: public access, local information, RSS, transit feeds, civic announcements, community broadcast, alerts, and public documents.
+- SoundOS: music identity, artist development, creative catalog, prompt export, and release-readiness.
+- TableOS: restaurant operations, recipe R&D, costing, prep, training, QR menu, SOP, and inventory signals.
+- AlertOS: public access, local information, RSS, transit feeds, civic announcements, community broadcast, alerts, and public documents.
 
 The apps are deliberately separate. Customer data, dashboards, analytics, onboarding, pricing, permissions, and workflows stay separated unless explicitly authorized by the user and parent admin policy.
 
@@ -403,7 +403,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 const libFiles = {
   "apps/web/lib/divisions.ts": `
-export type AppCode = "parent_admin" | "sonara_one" | "tableops" | "civic_signal";
+export type AppCode = "parent_admin" | "soundos" | "tableops" | "alertos";
 
 export const divisions = {
   parent: {
@@ -415,17 +415,17 @@ export const divisions = {
     accent: "#38bdf8"
   },
   music: {
-    name: "SONARA One",
+    name: "SoundOS",
     short: "Music OS",
     route: "/music",
-    appCode: "sonara_one" as AppCode,
+    appCode: "soundos" as AppCode,
     gradient: "from-violet-950 via-fuchsia-950 to-cyan-950",
     accent: "#a78bfa",
     audience: "artists, producers, songwriters, labels, managers, creators",
     purpose: "Music identity, artist development, creative catalog, prompt export, and release-readiness."
   },
   tableops: {
-    name: "TableOps Systems",
+    name: "TableOS",
     short: "Kitchen OS",
     route: "/tableops",
     appCode: "tableops" as AppCode,
@@ -435,10 +435,10 @@ export const divisions = {
     purpose: "Restaurant operations, recipe R&D, costing, prep, training, QR menu, SOP, and inventory signals."
   },
   civic: {
-    name: "CivicSignal Network",
+    name: "AlertOS",
     short: "Public Info OS",
     route: "/civic",
-    appCode: "civic_signal" as AppCode,
+    appCode: "alertos" as AppCode,
     gradient: "from-slate-950 via-emerald-950 to-sky-950",
     accent: "#34d399",
     audience: "residents, local organizations, libraries, nonprofits, transit riders, public access teams, civic partners",
@@ -448,7 +448,7 @@ export const divisions = {
 `,
   "apps/web/lib/pricing.ts": `
 export const pricing = {
-  sonara_one: [
+  soundos: [
     { name: "Free", price: "$0", features: ["3 projects", "Basic prompt builder", "Basic catalog vault", "Limited exports"] },
     { name: "Creator", price: "$19/month", features: ["More projects", "Audio/video transcription", "Export bundles", "Release-readiness checklist"] },
     { name: "Pro", price: "$49/month", features: ["Larger catalog", "Advanced Artist Genome", "Anti-Repetition Engine", "DAW export prep"] },
@@ -462,7 +462,7 @@ export const pricing = {
     { name: "Multi-location", price: "$299/month", features: ["Multi-location dashboards", "Team permissions", "Inventory signals"] },
     { name: "Enterprise", price: "Custom", features: ["Franchise controls", "Custom integrations", "Procurement support"] }
   ],
-  civic_signal: [
+  alertos: [
     { name: "Public", price: "$0", features: ["Local public feed", "Public search", "Source links"] },
     { name: "Community", price: "$19/month", features: ["Organization profile", "Announcements", "Public links"] },
     { name: "Nonprofit/Library", price: "$99/month", features: ["Document imports", "Event feeds", "Broadcast posts"] },
@@ -520,7 +520,7 @@ export const parentCopy = {
   separation: "Each operating company serves its own market. Customer data, dashboards, analytics, and workflows stay separated unless explicitly authorized.",
   security: "Every protected action is checked against identity, organization membership, app access, role permission, plan entitlement, and audit history.",
   openSource: "Built free/open-source first where practical, with production-aware upgrade paths when scale and revenue justify them.",
-  civicDisclaimer: "CivicSignal Network aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status."
+  civicDisclaimer: "AlertOS aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status."
 } as const;
 `,
   "apps/web/lib/theme.ts": `
@@ -617,7 +617,7 @@ const layout = {
   "apps/web/components/layout/MarketingNav.tsx": `
 import Link from "next/link";
 
-const links = [["SONARA One", "/music"], ["TableOps", "/tableops"], ["CivicSignal", "/civic"], ["Docs", "/docs"], ["Trust", "/trust"]];
+const links = [["SoundOS", "/music"], ["TableOps", "/tableops"], ["CivicSignal", "/civic"], ["Docs", "/docs"], ["Trust", "/trust"]];
 
 export function MarketingNav() {
   return <nav className="container flex flex-wrap items-center justify-between gap-3 py-5"><Link href="/" className="text-lg font-black">SONARA Industries</Link><div className="flex flex-wrap gap-3 text-sm text-slate-300">{links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div></nav>;
@@ -670,7 +670,7 @@ import { parentCopy } from "@/lib/constants";
 import { ButtonLink } from "@/components/ui/Button";
 
 export function ParentHero() {
-  return <section className="py-16"><p className="text-sm font-black uppercase text-cyan-300">SONARA Industries</p><h1 className="mt-4 max-w-4xl text-5xl font-black leading-tight md:text-7xl">{parentCopy.headline}</h1><p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">{parentCopy.governance}</p><div className="mt-8 flex flex-wrap gap-3"><ButtonLink href="/music">Open SONARA One</ButtonLink><ButtonLink href="/tableops">Open TableOps</ButtonLink><ButtonLink href="/civic">Open CivicSignal</ButtonLink></div></section>;
+  return <section className="py-16"><p className="text-sm font-black uppercase text-cyan-300">SONARA Industries</p><h1 className="mt-4 max-w-4xl text-5xl font-black leading-tight md:text-7xl">{parentCopy.headline}</h1><p className="mt-6 max-w-3xl text-lg leading-8 text-slate-300">{parentCopy.governance}</p><div className="mt-8 flex flex-wrap gap-3"><ButtonLink href="/music">Open SoundOS</ButtonLink><ButtonLink href="/tableops">Open TableOps</ButtonLink><ButtonLink href="/civic">Open CivicSignal</ButtonLink></div></section>;
 }
 `,
   "apps/web/components/sonara/DivisionTabs.tsx": `
@@ -747,7 +747,7 @@ import { PromptExportPanel } from "./PromptExportPanel";
 import { CatalogVaultPanel } from "./CatalogVaultPanel";
 
 export function MusicDashboard() {
-  return <DashboardShell app="SONARA One"><div className="grid-auto"><StatCard label="Active Projects" value="12" /><StatCard label="Release Readiness" value="84%" /><StatCard label="Prompt Exports" value="37" /><StatCard label="Catalog Assets" value="124" /></div><div className="mt-5 grid-auto"><ArtistGenomePanel /><ReleaseReadinessPanel /><PromptExportPanel /><CatalogVaultPanel /></div></DashboardShell>;
+  return <DashboardShell app="SoundOS"><div className="grid-auto"><StatCard label="Active Projects" value="12" /><StatCard label="Release Readiness" value="84%" /><StatCard label="Prompt Exports" value="37" /><StatCard label="Catalog Assets" value="124" /></div><div className="mt-5 grid-auto"><ArtistGenomePanel /><ReleaseReadinessPanel /><PromptExportPanel /><CatalogVaultPanel /></div></DashboardShell>;
 }
 `;
 files["apps/web/components/tableops/TableOpsDashboard.tsx"] = `
@@ -759,7 +759,7 @@ import { PrepLists } from "./PrepListPanel";
 import { TrainingVault } from "./TrainingVaultPanel";
 
 export function TableOpsDashboard() {
-  return <DashboardShell app="TableOps Systems"><div className="grid-auto"><StatCard label="Active Recipes" value="42" /><StatCard label="Food Cost %" value="28%" /><StatCard label="Prep Lists" value="9" /><StatCard label="Training Items" value="18" /></div><div className="mt-5 grid-auto"><RecipeRDLab /><FoodCostEngine /><PrepLists /><TrainingVault /></div></DashboardShell>;
+  return <DashboardShell app="TableOS"><div className="grid-auto"><StatCard label="Active Recipes" value="42" /><StatCard label="Food Cost %" value="28%" /><StatCard label="Prep Lists" value="9" /><StatCard label="Training Items" value="18" /></div><div className="mt-5 grid-auto"><RecipeRDLab /><FoodCostEngine /><PrepLists /><TrainingVault /></div></DashboardShell>;
 }
 `;
 files["apps/web/components/civic/CivicDashboard.tsx"] = `
@@ -771,7 +771,7 @@ import { OrganizationProfiles } from "./OrganizationProfilePanel";
 import { CommunityBroadcast } from "./BroadcastPanel";
 
 export function CivicDashboard() {
-  return <DashboardShell app="CivicSignal Network"><div className="grid-auto"><StatCard label="Local Feed" value="86" /><StatCard label="Transit Notices" value="7" /><StatCard label="Public Meetings" value="14" /><StatCard label="Organization Posts" value="33" /></div><div className="mt-5 grid-auto"><LocalPublicFeed /><TransitFeed /><OrganizationProfiles /><CommunityBroadcast /></div></DashboardShell>;
+  return <DashboardShell app="AlertOS"><div className="grid-auto"><StatCard label="Local Feed" value="86" /><StatCard label="Transit Notices" value="7" /><StatCard label="Public Meetings" value="14" /><StatCard label="Organization Posts" value="33" /></div><div className="mt-5 grid-auto"><LocalPublicFeed /><TransitFeed /><OrganizationProfiles /><CommunityBroadcast /></div></DashboardShell>;
 }
 `;
 
@@ -802,9 +802,9 @@ export default function Page() {
 `;
 }
 
-page("music/page.tsx", divisionLanding("music", "SONARA One", "Music identity and release-readiness operating system."));
-page("tableops/page.tsx", divisionLanding("tableops", "TableOps Systems", "Kitchen command and restaurant operations operating system."));
-page("civic/page.tsx", divisionLanding("civic", "CivicSignal Network", "Source-linked public information and community broadcast operating system."));
+page("music/page.tsx", divisionLanding("music", "SoundOS", "Music identity and release-readiness operating system."));
+page("tableops/page.tsx", divisionLanding("tableops", "TableOS", "Kitchen command and restaurant operations operating system."));
+page("civic/page.tsx", divisionLanding("civic", "AlertOS", "Source-linked public information and community broadcast operating system."));
 
 function simplePage(route, title, body) {
   page(`${route}/page.tsx`, `
@@ -848,9 +848,9 @@ export default function Page() {
 }
 `);
 }
-pricingPage("music", "sonara_one");
+pricingPage("music", "soundos");
 pricingPage("tableops", "tableops");
-pricingPage("civic", "civic_signal");
+pricingPage("civic", "alertos");
 
 const py = {};
 py["apps/api/pyproject.toml"] = `
@@ -1028,9 +1028,9 @@ from app.db.base import Base
 
 class AppCode(str, enum.Enum):
     parent_admin = "parent_admin"
-    sonara_one = "sonara_one"
+    soundos = "soundos"
     tableops = "tableops"
-    civic_signal = "civic_signal"
+    alertos = "alertos"
 
 class User(Base):
     __tablename__ = "users"
@@ -1137,7 +1137,7 @@ class IngestionJob(Base):
 class PublicFeedItem(Base):
     __tablename__ = "public_feed_items"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.civic_signal)
+    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.alertos)
     city: Mapped[str | None] = mapped_column(String(120))
     state: Mapped[str | None] = mapped_column(String(120))
     source_name: Mapped[str | None] = mapped_column(String(255))
@@ -1158,7 +1158,7 @@ class MusicProject(Base):
     __tablename__ = "music_projects"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
-    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.sonara_one)
+    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.soundos)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     artist_name: Mapped[str | None] = mapped_column(String(255))
     project_type: Mapped[str | None] = mapped_column(String(80))
@@ -1264,9 +1264,9 @@ BASE_ROLE_PERMISSIONS = {
 }
 
 APP_PERMISSIONS = {
-    "sonara_one": {"music:project:create", "music:project:read", "music:project:update", "music:project:delete", "music:export:create", "music:genome:update", "music:readiness:run"},
+    "soundos": {"music:project:create", "music:project:read", "music:project:update", "music:project:delete", "music:export:create", "music:genome:update", "music:readiness:run"},
     "tableops": {"tableops:recipe:create", "tableops:recipe:read", "tableops:recipe:update", "tableops:recipe:delete", "tableops:cost:run", "tableops:prep:create", "tableops:training:update"},
-    "civic_signal": {"civic:feed:create", "civic:feed:read", "civic:feed:update", "civic:feed:delete", "civic:broadcast:create", "civic:organization:update", "civic:transit:read"},
+    "alertos": {"civic:feed:create", "civic:feed:read", "civic:feed:update", "civic:feed:delete", "civic:broadcast:create", "civic:organization:update", "civic:transit:read"},
     "parent_admin": {"admin:read", "admin:update", "security:read", "audit:read", "billing:read"},
 }
 
@@ -1417,7 +1417,7 @@ def transcribe_audio(asset_id: str, language: str = "en") -> dict:
     return {"asset_id": asset_id, "language": language, "transcript_text": "Development transcript placeholder.", "segments": [], "model_name": "dev-placeholder", "confidence_score": None}
 `;
 py["apps/api/app/services/billing_service.py"] = `
-PRODUCT_GROUPS = {"sonara_one": [], "tableops": [], "civic_signal": []}
+PRODUCT_GROUPS = {"soundos": [], "tableops": [], "alertos": []}
 
 def create_checkout_session_placeholder(app: str, plan_code: str) -> dict:
     return {"app": app, "plan_code": plan_code, "checkout_url": None, "status": "stripe_setup_required"}
@@ -1521,11 +1521,11 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 @router.get("/plans")
 def plans():
-    return {"product_groups": ["sonara_one", "tableops", "civic_signal"]}
+    return {"product_groups": ["soundos", "tableops", "alertos"]}
 
 @router.post("/create-checkout-session")
 def create_checkout_session(payload: dict):
-    return create_checkout_session_placeholder(payload.get("app", "sonara_one"), payload.get("plan_code", "free"))
+    return create_checkout_session_placeholder(payload.get("app", "soundos"), payload.get("plan_code", "free"))
 
 @router.post("/create-portal-session")
 def create_portal_session():
@@ -1864,14 +1864,14 @@ py["apps/api/app/tests/test_permissions.py"] = `
 from app.services.permission_service import has_role_permission
 
 def test_permission_guard_denies_invalid_app():
-    assert has_role_permission("civic_signal", "viewer", "music:project:create") is False
+    assert has_role_permission("alertos", "viewer", "music:project:create") is False
 
 def test_permission_guard_allows_valid_app():
-    assert has_role_permission("sonara_one", "manager", "music:project:create") is True
+    assert has_role_permission("soundos", "manager", "music:project:create") is True
 `;
 py["apps/api/app/tests/test_app_isolation.py"] = `
 def test_app_isolation_prevents_cross_app_access():
-    music_scope = "sonara_one"
+    music_scope = "soundos"
     table_scope = "tableops"
     assert music_scope != table_scope
 `;

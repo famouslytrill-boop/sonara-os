@@ -20,7 +20,7 @@ export function ParentHero() {
         </p>
         <CTAButtons
           primaryHref="/music"
-          primaryLabel="Explore SONARA One"
+          primaryLabel="Explore SoundOS"
           secondaryHref="/about"
           secondaryLabel="How the company is structured"
         />

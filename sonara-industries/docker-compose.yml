@@ -13,6 +13,14 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+  worker:
+    build:
+      context: ./apps/api
+    command: python -m app.workers.worker
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
   api:
     build:
       context: ./apps/api
@@ -33,4 +41,3 @@ services:
       - "3000:3000"
 volumes:
   postgres_data:
-

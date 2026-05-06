@@ -1,11 +1,11 @@
-export type AppCode = "parent_admin" | "sonara_one" | "tableops" | "civic_signal";
+export type AppCode = "parent_admin" | "soundos" | "tableos" | "alertos";
 export type DivisionKey = "music" | "tableops" | "civic";
 
 export const appSessionCookies: Record<AppCode, string> = {
   parent_admin: "sonara_admin_session",
-  sonara_one: "sonara_music_session",
-  tableops: "sonara_tableops_session",
-  civic_signal: "sonara_civic_session",
+  soundos: "soundos_session",
+  tableos: "tableos_session",
+  alertos: "alertos_session",
 };
 
 export const divisions = {
@@ -17,16 +17,16 @@ export const divisions = {
     accent: "#22d3ee",
   },
   music: {
-    name: "SONARA One",
-    short: "Music OS",
+    name: "SoundOS",
+    short: "Music Operating System",
     route: "/music",
-    appCode: "sonara_one" as AppCode,
+    appCode: "soundos" as AppCode,
     gradient: "from-[#16091f] via-[#1f1035] to-[#042f3a]",
     accent: "#a78bfa",
     buttonVariant: "music" as const,
-    sessionCookie: appSessionCookies.sonara_one,
-    audience: "artists, producers, songwriters, labels, managers, creators",
-    purpose: "SONARA One is a dedicated music identity and release-readiness system.",
+    sessionCookie: appSessionCookies.soundos,
+    audience: "artists, producers, labels, studios, creators",
+    purpose: "SoundOS is a dedicated music identity, media intake, catalog, transcription, and release-readiness system.",
     nav: [
       ["Dashboard", "/music/dashboard"],
       ["Artist Genome", "/music/artist-genome"],
@@ -39,16 +39,16 @@ export const divisions = {
     ],
   },
   tableops: {
-    name: "TableOps Systems",
-    short: "Kitchen OS",
+    name: "TableOS",
+    short: "Hospitality Operating System",
     route: "/tableops",
-    appCode: "tableops" as AppCode,
+    appCode: "tableos" as AppCode,
     gradient: "from-[#1f1305] via-[#3a1f0a] to-[#3a1018]",
     accent: "#f59e0b",
     buttonVariant: "tableops" as const,
-    sessionCookie: appSessionCookies.tableops,
+    sessionCookie: appSessionCookies.tableos,
     audience: "restaurants, chefs, kitchens, food trucks, pop-ups, franchises, hospitality teams",
-    purpose: "TableOps Systems is a dedicated restaurant operations and training system.",
+    purpose: "TableOS is a dedicated restaurant operations, labor, scheduling, training, vendor, document, and menu system.",
     nav: [
       ["Dashboard", "/tableops/dashboard"],
       ["Recipes", "/tableops/recipes"],
@@ -61,16 +61,16 @@ export const divisions = {
     ],
   },
   civic: {
-    name: "CivicSignal Network",
-    short: "Public Info OS",
+    name: "AlertOS",
+    short: "Public Information Operating System",
     route: "/civic",
-    appCode: "civic_signal" as AppCode,
+    appCode: "alertos" as AppCode,
     gradient: "from-[#06151f] via-[#073328] to-[#082f49]",
     accent: "#34d399",
     buttonVariant: "civic" as const,
-    sessionCookie: appSessionCookies.civic_signal,
+    sessionCookie: appSessionCookies.alertos,
     audience: "residents, local organizations, libraries, nonprofits, transit riders, public access teams, civic partners",
-    purpose: "CivicSignal Network is a dedicated public information and local-access system.",
+    purpose: "AlertOS is a dedicated public feed, alert, notice, transit, weather, and approval-gated broadcast system.",
     nav: [
       ["Dashboard", "/civic/dashboard"],
       ["Feed", "/civic/feed"],

@@ -7,9 +7,9 @@ from app.db.base import Base
 
 class AppCode(str, enum.Enum):
     parent_admin = "parent_admin"
-    sonara_one = "sonara_one"
-    tableops = "tableops"
-    civic_signal = "civic_signal"
+    soundos = "soundos"
+    tableos = "tableos"
+    alertos = "alertos"
 
 class User(Base):
     __tablename__ = "users"
@@ -116,7 +116,7 @@ class IngestionJob(Base):
 class PublicFeedItem(Base):
     __tablename__ = "public_feed_items"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.civic_signal)
+    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.alertos)
     city: Mapped[str | None] = mapped_column(String(120))
     state: Mapped[str | None] = mapped_column(String(120))
     source_name: Mapped[str | None] = mapped_column(String(255))
@@ -137,7 +137,7 @@ class MusicProject(Base):
     __tablename__ = "music_projects"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
-    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.sonara_one)
+    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.soundos)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     artist_name: Mapped[str | None] = mapped_column(String(255))
     project_type: Mapped[str | None] = mapped_column(String(80))
@@ -164,7 +164,7 @@ class RestaurantRecipe(Base):
     __tablename__ = "restaurant_recipes"
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
-    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.tableops)
+    app: Mapped[AppCode] = mapped_column(Enum(AppCode), default=AppCode.tableos)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str | None] = mapped_column(String(120))
     yield_amount: Mapped[float | None] = mapped_column(Numeric)
@@ -229,4 +229,3 @@ class SystemHealthEvent(Base):
     message: Mapped[str | None] = mapped_column(Text)
     metadata_json: Mapped[dict] = mapped_column("metadata", JSONB, default=dict)
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-

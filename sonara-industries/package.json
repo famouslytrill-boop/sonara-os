@@ -9,8 +9,8 @@
     "build": "pnpm --filter @sonara-industries/web build",
     "lint": "pnpm --filter @sonara-industries/web lint",
     "typecheck": "pnpm --filter @sonara-industries/web typecheck",
-    "test": "pnpm --filter @sonara-industries/web test"
+    "test": "pnpm --filter @sonara-industries/web test",
+    "stripe:seed": "node scripts/seed-stripe-products.mjs"
   },
   "devDependencies": {}
 }
-

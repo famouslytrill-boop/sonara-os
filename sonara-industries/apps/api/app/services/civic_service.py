@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.formulas import alert_severity
 
 CONFIDENCE_LABELS = {"official_source", "verified_partner", "public_web_source", "community_submitted", "needs_review"}
 
@@ -28,3 +29,12 @@ def ingest_public_feed(payload: dict) -> list[dict]:
 def create_organization_profile(payload: dict) -> dict:
     return {"profile": payload, "status": "draft"}
 
+
+def calculate_alert_severity(payload: dict) -> dict:
+    score = alert_severity(
+        float(payload.get("hazard", 0)),
+        float(payload.get("proximity", 0)),
+        float(payload.get("urgency", 0)),
+        float(payload.get("source_trust", 50)),
+    )
+    return {"score": score, "requires_approval": score >= 65}

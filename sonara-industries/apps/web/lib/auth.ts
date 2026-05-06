@@ -18,23 +18,23 @@ export const appAuthScopes: Record<AppCode, AppAuthScope> = {
     onboardingRoute: "/admin/dashboard",
     dashboardRoute: "/admin/dashboard",
   },
-  sonara_one: {
-    currentApp: "sonara_one",
-    sessionCookie: appSessionCookies.sonara_one,
+  soundos: {
+    currentApp: "soundos",
+    sessionCookie: appSessionCookies.soundos,
     loginRoute: "/music/login",
     onboardingRoute: "/music/onboarding",
     dashboardRoute: "/music/dashboard",
   },
-  tableops: {
-    currentApp: "tableops",
-    sessionCookie: appSessionCookies.tableops,
+  tableos: {
+    currentApp: "tableos",
+    sessionCookie: appSessionCookies.tableos,
     loginRoute: "/tableops/login",
     onboardingRoute: "/tableops/onboarding",
     dashboardRoute: "/tableops/dashboard",
   },
-  civic_signal: {
-    currentApp: "civic_signal",
-    sessionCookie: appSessionCookies.civic_signal,
+  alertos: {
+    currentApp: "alertos",
+    sessionCookie: appSessionCookies.alertos,
     loginRoute: "/civic/login",
     onboardingRoute: "/civic/onboarding",
     dashboardRoute: "/civic/dashboard",

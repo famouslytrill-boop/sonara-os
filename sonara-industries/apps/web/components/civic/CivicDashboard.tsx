@@ -5,6 +5,7 @@ import { TransitPanel } from "./TransitPanel";
 import { AlertsPanel } from "./AlertsPanel";
 import { OrganizationProfiles } from "./OrganizationProfilePanel";
 import { BroadcastPanel } from "./BroadcastPanel";
+import { ApprovalQueuePanel } from "./ApprovalQueuePanel";
 
 export function CivicDashboard() {
   return (
@@ -21,6 +22,7 @@ export function CivicDashboard() {
         <AlertsPanel />
         <OrganizationProfiles />
         <BroadcastPanel />
+        <ApprovalQueuePanel />
       </div>
     </CivicShell>
   );

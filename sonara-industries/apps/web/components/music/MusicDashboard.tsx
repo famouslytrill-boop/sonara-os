@@ -5,6 +5,7 @@ import { ReleaseReadinessPanel } from "./ReleaseReadinessPanel";
 import { PromptExportPanel } from "./PromptExportPanel";
 import { CatalogPanel } from "./CatalogPanel";
 import { ProjectsPanel } from "./ProjectsPanel";
+import { MediaIntakePanel } from "./MediaIntakePanel";
 
 export function MusicDashboard() {
   return (
@@ -17,6 +18,7 @@ export function MusicDashboard() {
       </div>
       <div className="mt-5 grid-auto">
         <ProjectsPanel />
+        <MediaIntakePanel />
         <ArtistGenomePanel />
         <ReleaseReadinessPanel />
         <PromptExportPanel />

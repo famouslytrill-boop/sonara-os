@@ -1,0 +1,28 @@
+[project]
+name = "sonara-ops"
+version = "0.1.0"
+description = "Local and CI operations tooling for SONARA OS database, analytics, audits, and migration verification."
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  "asyncpg>=0.30.0",
+  "psycopg[binary]>=3.2.0",
+  "sqlalchemy>=2.0.0",
+  "alembic>=1.13.0",
+  "pydantic>=2.8.0",
+  "pydantic-settings>=2.4.0",
+  "python-dotenv>=1.0.0",
+  "typer>=0.12.0",
+  "rich>=13.7.0",
+  "polars>=1.0.0",
+  "httpx>=0.27.0"
+]
+
+[project.scripts]
+sonara-ops = "sonara_ops.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sonara_ops"]

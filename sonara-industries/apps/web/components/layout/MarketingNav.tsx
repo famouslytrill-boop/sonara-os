@@ -2,11 +2,12 @@ import Link from "next/link";
 
 const links = [
   ["About", "/about"],
-  ["SONARA One", "/music"],
-  ["TableOps", "/tableops"],
-  ["CivicSignal", "/civic"],
+  ["SoundOS", "/music"],
+  ["TableOS", "/tableops"],
+  ["AlertOS", "/civic"],
   ["Docs", "/docs"],
   ["Trust", "/trust"],
+  ["Legal", "/legal"],
 ] as const;
 
 export function MarketingNav() {

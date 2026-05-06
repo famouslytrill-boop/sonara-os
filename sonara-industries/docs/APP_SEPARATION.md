@@ -1,6 +1,6 @@
 # App Separation
 
-SONARA One, TableOps Systems, and CivicSignal Network are separate operating systems.
+SoundOS, TableOS, and AlertOS are separate operating systems owned by SONARA Industries.
 
 Shared:
 
@@ -21,4 +21,3 @@ Not shared:
 - onboarding
 - pricing
 - permissions beyond parent admin governance
-

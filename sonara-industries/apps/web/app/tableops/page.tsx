@@ -6,7 +6,7 @@ import { divisions } from "@/lib/divisions";
 export default function Page() {
   return (
     <DivisionShell division="tableops">
-      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">TableOps Systems</p>
+      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">TableOS</p>
       <h1 className="app-heading mt-4 max-w-3xl font-black text-white">
         Dedicated restaurant operations and training system.
       </h1>

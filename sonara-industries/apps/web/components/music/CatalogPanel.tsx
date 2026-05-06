@@ -4,7 +4,7 @@ export function CatalogPanel() {
   return (
     <Card title="Catalog">
       <p className="text-sm leading-6 text-slate-300">
-        Catalog records, assets, transcripts, and exports are isolated to SONARA One organizations.
+        Catalog records, assets, transcripts, and exports are isolated to SoundOS organizations.
       </p>
     </Card>
   );

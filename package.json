@@ -13,9 +13,15 @@
     "check:software": "node scripts/check-software.mjs",
     "bootstrap:local": "node scripts/bootstrap-local.mjs",
     "audit:deps": "node scripts/dependency-audit.mjs",
-    "test": "tsx tests/*.test.mjs",
+    "test": "tsx tests/monorepo-smoke.test.mjs",
     "typecheck": "tsc --noEmit",
-    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs"
+    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs",
+    "db:types": "npx supabase gen types typescript --local > types/supabase.ts",
+    "db:diff": "npx supabase db diff --schema public",
+    "db:push": "npx supabase db push",
+    "db:reset": "npx supabase db reset",
+    "python:health": "cd python && python -m sonara_ops.main health",
+    "verify:db": "node scripts/verify-db-infrastructure.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

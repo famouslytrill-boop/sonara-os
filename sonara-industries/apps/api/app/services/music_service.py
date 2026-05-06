@@ -1,15 +1,16 @@
+from app.formulas import readiness_score
+
+
 def calculate_release_readiness(project: dict) -> dict:
     checks = {
-        "title": bool(project.get("title")),
-        "artist_name": bool(project.get("artist_name")),
-        "genre": bool(project.get("genre")),
-        "bpm_key": bool(project.get("bpm") and project.get("key_signature")),
-        "metadata": bool(project.get("metadata")),
-        "export_bundle": bool(project.get("export_bundle")),
-        "transcript_reference": bool(project.get("transcript_reference")),
-        "anti_repetition": project.get("anti_repetition_status") != "blocked",
+        "metadata": 100 if project.get("metadata") or (project.get("title") and project.get("artist_name")) else 35,
+        "rights": 100 if project.get("rights_status") == "cleared" else 60,
+        "assets": 100 if project.get("transcript_reference") or project.get("upload_count") else 55,
+        "strategy": 100 if project.get("genre") and project.get("release_goal") else 65,
+        "quality": 100 if project.get("bpm") and project.get("key_signature") else 60,
+        "approval": 0 if project.get("anti_repetition_status") == "blocked" else 85,
     }
-    score = round(sum(checks.values()) / len(checks) * 100)
+    score = round(readiness_score(checks))
     return {"score": score, "checks": checks}
 
 def anti_repetition_check(projects: list[dict]) -> dict:
@@ -27,4 +28,3 @@ def generate_artist_genome_summary(payload: dict) -> dict:
 
 def create_music_export(project_id: str, export_type: str) -> dict:
     return {"project_id": project_id, "export_type": export_type, "payload": {"status": "placeholder"}}
-
