@@ -1,0 +1,1 @@
+import { DivisionShell } from "@/components/layout/DivisionShell"; import { CivicDashboard } from "@/components/civic/CivicDashboard"; export default function Page(){ return <DivisionShell division="civic"><CivicDashboard /></DivisionShell>; }

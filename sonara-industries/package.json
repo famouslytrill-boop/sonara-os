@@ -1,0 +1,16 @@
+{
+  "name": "sonara-industries-operating-systems",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @sonara-industries/web dev",
+    "dev:web": "pnpm --filter @sonara-industries/web dev",
+    "build": "pnpm --filter @sonara-industries/web build",
+    "lint": "pnpm --filter @sonara-industries/web lint",
+    "typecheck": "pnpm --filter @sonara-industries/web typecheck",
+    "test": "pnpm --filter @sonara-industries/web test"
+  },
+  "devDependencies": {}
+}
+

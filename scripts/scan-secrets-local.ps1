@@ -25,7 +25,7 @@ $patterns = @(
 
 $findings = @()
 
-$files = Get-ChildItem -LiteralPath $root -Recurse -File -Force | Where-Object {
+$files = Get-ChildItem -LiteralPath $root -Recurse -File -Force -ErrorAction SilentlyContinue | Where-Object {
   $path = $_.FullName
   $isExcludedDir = $false
 
