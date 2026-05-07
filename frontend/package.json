@@ -1,0 +1,38 @@
+{
+  "name": "sonara-frontend-v27",
+  "version": "27.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "validate:infrastructure": "node scripts/validate-sonara-full-infrastructure.mjs"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.105.0",
+    "@tanstack/react-query": "^5.100.5",
+    "jszip": "^3.10.1",
+    "lucide-react": "^1.11.0",
+    "motion": "^12.38.0",
+    "next": "^16.2.4",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "stripe": "^22.1.0",
+    "tailwindcss": "^4.2.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  },
+  "overrides": {
+    "postcss": "8.5.12"
+  }
+}

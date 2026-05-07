@@ -1,0 +1,53 @@
+{
+  "name": "SONARA Industries",
+  "short_name": "SONARA",
+  "description": "Independent systems. Shared infrastructure. Stronger markets.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07070A",
+  "theme_color": "#07070A",
+  "categories": ["business", "productivity", "music", "food", "news"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Open TrackFoundry",
+      "short_name": "TrackFoundry",
+      "description": "Open the TrackFoundry app shell.",
+      "url": "/trackfoundry/app",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Open LineReady",
+      "short_name": "LineReady",
+      "description": "Open the LineReady app shell.",
+      "url": "/lineready/app",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Open NoticeGrid",
+      "short_name": "NoticeGrid",
+      "description": "Open the NoticeGrid app shell.",
+      "url": "/noticegrid/app",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

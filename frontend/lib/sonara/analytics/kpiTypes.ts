@@ -1,0 +1,41 @@
+export type FounderKpiInput = {
+  visitors?: number;
+  signups?: number;
+  activatedUsers?: number;
+  projectsCreated?: number;
+  exportsCreated?: number;
+  storeVisits?: number;
+  checkoutStarts?: number;
+  paidConversions?: number;
+  churnRisk?: number;
+  failedBuilds?: number;
+  soundAssetsDiscovered?: number;
+  assetsApproved?: number;
+  assetsBlocked?: number;
+  generationSnapshotsCreated?: number;
+  openBlockers?: number;
+};
+
+export type FounderKpiSummary = {
+  launchReadinessScore: number;
+  productReadinessScore: number;
+  companyReadinessScore: number;
+  marketingReadinessScore: number;
+  profitReadinessScore: number;
+  monetizationReadinessScore: number;
+  storeReadinessScore: number;
+  pwaReadinessScore: number;
+  stripeReadiness: "configured" | "needs_manual_setup";
+  supabaseReadiness: "configured" | "needs_manual_setup";
+  vercelReadiness: "configured";
+  googlePlayReadiness: "future";
+  passkeyReadiness: "planned" | "configured";
+  safeAutonomyReadiness: number;
+  moatStrength: number;
+  openSourceStackReadiness: number;
+  vectorMemoryReadiness: "optional_ready" | "not_configured";
+  soundDiscoveryReadiness: "metadata_only" | "not_configured";
+  writingEngineReadiness: number;
+  openBlockers: string[];
+  nextActions: string[];
+};

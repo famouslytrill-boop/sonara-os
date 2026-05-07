@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --sonara-background: #08070b;
+  --sonara-surface: #121018;
+  --sonara-card: #191522;
+  --sonara-soft-card: #211b2d;
+  --sonara-border: #332a40;
+  --sonara-primary-violet: #9b5cff;
+  --sonara-signal-cyan: #2dd4bf;
+  --sonara-warm-accent: #ffb454;
+  --sonara-pink-accent: #f472b6;
+  --sonara-text: #f9fafb;
+  --sonara-muted-text: #c4bfd0;
+  --sonara-success: #22c55e;
+  --sonara-error: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #08070b;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+button {
+  font: inherit;
+}
