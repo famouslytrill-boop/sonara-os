@@ -1,0 +1,22 @@
+export const sonaraDesignSystem = {
+  colors: {
+    background: "#08070B",
+    surface: "#121018",
+    card: "#191522",
+    softCard: "#211B2D",
+    border: "#332A40",
+    text: "#F9FAFB",
+    secondaryText: "#C4BFD0",
+    mutedText: "#8F879C",
+    primaryAccent: "#9B5CFF",
+    warmAccent: "#FFB454",
+    cyanAccent: "#2DD4BF",
+    pinkAccent: "#F472B6",
+    success: "#22C55E",
+    warning: "#F59E0B",
+    error: "#EF4444",
+  },
+  gradient: "linear-gradient(135deg, #9B5CFF 0%, #F472B6 52%, #FFB454 100%)",
+  goals: ["warm", "premium", "music-tech", "welcoming", "mobile-first", "conversion-focused", "readable", "simple"],
+  avoid: ["neon clutter", "corporate gray prison", "white cards in dark workspace", "fake luxury", "casino-looking design", "overloaded dashboards"],
+} as const;

@@ -5,9 +5,9 @@ import { pricing } from "@/lib/pricing";
 export default function Page() {
   return (
     <DivisionShell division="civic">
-      <h1 className="text-4xl font-black text-white">AlertOS Pricing</h1>
+      <h1 className="text-4xl font-black text-white">NoticeGrid Pricing</h1>
       <p className="mt-3 max-w-2xl text-white/70">
-        Separate product group: alertos. Billing is scoped to public information,
+        Separate product group: NoticeGrid. Billing is scoped to public information,
         source-linked feeds, organization profiles, transit notices, and broadcast workflows.
       </p>
       <div className="mt-6 grid-auto">{pricing.alertos.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>

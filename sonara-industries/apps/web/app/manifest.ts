@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "SONARA Industries Operating Systems",
     short_name: "SONARA",
-    description: "Parent platform for SoundOS, TableOS, and AlertOS.",
+    description: "Parent platform for TrackFoundry, LineReady, and NoticeGrid.",
     start_url: "/",
     display: "standalone",
     background_color: "#070913",

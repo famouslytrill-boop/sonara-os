@@ -15,21 +15,21 @@ export function DivisionCards() {
         <ProductCard
           title={divisions.music.name}
           body={divisions.music.purpose}
-          href="/music"
+          href={divisions.music.route}
           accent={divisions.music.accent}
           meta="Music identity, media, and release readiness"
         />
         <ProductCard
           title={divisions.tableops.name}
           body={divisions.tableops.purpose}
-          href="/tableops"
+          href={divisions.tableops.route}
           accent={divisions.tableops.accent}
           meta="Restaurant operations, labor, and training"
         />
         <ProductCard
           title={divisions.civic.name}
           body={divisions.civic.purpose}
-          href="/civic"
+          href={divisions.civic.route}
           accent={divisions.civic.accent}
           meta="Public feeds, alerts, and approval workflows"
         />

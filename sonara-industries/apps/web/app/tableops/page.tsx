@@ -6,7 +6,7 @@ import { divisions } from "@/lib/divisions";
 export default function Page() {
   return (
     <DivisionShell division="tableops">
-      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">TableOS</p>
+      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">LineReady</p>
       <h1 className="app-heading mt-4 max-w-3xl font-black text-white">
         Dedicated restaurant operations and training system.
       </h1>
@@ -15,8 +15,8 @@ export default function Page() {
         restaurants, and hospitality teams without blending music or civic dashboards.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <ButtonLink href="/tableops/onboarding" variant="tableops">Start onboarding</ButtonLink>
-        <ButtonLink href="/tableops/pricing" variant="secondary">View pricing</ButtonLink>
+        <ButtonLink href={divisions.tableops.route + "/onboarding"} variant="tableops">Start onboarding</ButtonLink>
+        <ButtonLink href={divisions.tableops.route + "/pricing"} variant="secondary">View pricing</ButtonLink>
       </div>
       <section className="mt-10">
         <FeatureGrid features={["Recipes", "Costing", "Prep", "Training", "Inventory", "Menus"]} />

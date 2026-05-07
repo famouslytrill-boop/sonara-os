@@ -12,7 +12,7 @@ export function LegalPage({ title, children }: { title: string; children: React.
             <p>This page is a production-readiness placeholder and is not legal advice.</p>
             {children}
             <p>
-              SONARA Industries™ owns the parent platform. SoundOS, TableOS, and AlertOS are
+              SONARA Industries owns the parent platform. TrackFoundry, LineReady, and NoticeGrid are
               separate product systems with separate customer workflows and data boundaries.
             </p>
           </div>

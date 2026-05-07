@@ -4,8 +4,8 @@ export default function Page() {
   return (
     <AppModulePage
       division="music"
-      title="SoundOS Settings"
-      description="Workspace settings for SoundOS app access, project defaults, catalog preferences, and team permissions."
+      title="TrackFoundry Settings"
+      description="Workspace settings for TrackFoundry app access, project defaults, catalog preferences, and team permissions."
       features={["Workspace settings", "App permissions", "Export defaults"]}
     />
   );

@@ -6,7 +6,7 @@ import { divisions } from "@/lib/divisions";
 export default function Page() {
   return (
     <DivisionShell division="music">
-      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">SoundOS</p>
+      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">TrackFoundry</p>
       <h1 className="app-heading mt-4 max-w-3xl font-black text-white">
         Dedicated music identity and release-readiness system.
       </h1>
@@ -15,8 +15,8 @@ export default function Page() {
         managers, and creators without blending restaurant or civic workflows into the product.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <ButtonLink href="/music/onboarding" variant="music">Start onboarding</ButtonLink>
-        <ButtonLink href="/music/pricing" variant="secondary">View pricing</ButtonLink>
+        <ButtonLink href={divisions.music.route + "/onboarding"} variant="music">Start onboarding</ButtonLink>
+        <ButtonLink href={divisions.music.route + "/pricing"} variant="secondary">View pricing</ButtonLink>
       </div>
       <section className="mt-10">
         <FeatureGrid features={["Artist Genome", "Projects", "Catalog Vault", "Transcripts", "Exports", "Release Readiness"]} />

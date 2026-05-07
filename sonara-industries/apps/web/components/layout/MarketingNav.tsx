@@ -2,9 +2,9 @@ import Link from "next/link";
 
 const links = [
   ["About", "/about"],
-  ["SoundOS", "/music"],
-  ["TableOS", "/tableops"],
-  ["AlertOS", "/civic"],
+  ["TrackFoundry", "/trackfoundry"],
+  ["LineReady", "/lineready"],
+  ["NoticeGrid", "/noticegrid"],
   ["Docs", "/docs"],
   ["Trust", "/trust"],
   ["Legal", "/legal"],

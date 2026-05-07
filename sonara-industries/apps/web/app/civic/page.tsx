@@ -6,7 +6,7 @@ import { divisions } from "@/lib/divisions";
 export default function Page() {
   return (
     <DivisionShell division="civic">
-      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">AlertOS</p>
+      <p className="text-sm font-black uppercase tracking-[0.22em] text-white/65">NoticeGrid</p>
       <h1 className="app-heading mt-4 max-w-3xl font-black text-white">
         Dedicated public information and local-access system.
       </h1>
@@ -15,8 +15,8 @@ export default function Page() {
         is not an official government authority unless a verified public partner grants that status.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <ButtonLink href="/civic/onboarding" variant="civic">Start onboarding</ButtonLink>
-        <ButtonLink href="/civic/pricing" variant="secondary">View pricing</ButtonLink>
+        <ButtonLink href={divisions.civic.route + "/onboarding"} variant="civic">Start onboarding</ButtonLink>
+        <ButtonLink href={divisions.civic.route + "/pricing"} variant="secondary">View pricing</ButtonLink>
       </div>
       <section className="mt-10">
         <FeatureGrid features={["Public Feed", "Transit", "Alerts", "Organizations", "Broadcast", "Documents"]} />

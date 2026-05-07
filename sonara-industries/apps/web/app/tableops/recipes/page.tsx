@@ -5,7 +5,7 @@ export default function Page() {
     <AppModulePage
       division="tableops"
       title="Recipes"
-      description="A TableOps recipe workspace for R&D, yield notes, instructions, costing context, and SOP readiness."
+      description="A LineReady recipe workspace for R&D, yield notes, instructions, costing context, and SOP readiness."
       features={["Recipe vault", "Yield notes", "SOP readiness"]}
     />
   );

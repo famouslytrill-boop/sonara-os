@@ -8,7 +8,7 @@ export default function Page() {
       <Card title="Create a SONARA Industries account" accent="#a78bfa">
         <p className="text-sm leading-6 text-slate-300">
           Signup starts with shared authentication. After that, each organization receives explicit
-          product access for SoundOS, TableOS, or AlertOS.
+          product access for TrackFoundry, LineReady, or NoticeGrid.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <ButtonLink href="/login?next=/organizations/new">Start with magic link</ButtonLink>

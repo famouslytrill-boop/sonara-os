@@ -19,8 +19,8 @@ export function ParentHero() {
           layer only.
         </p>
         <CTAButtons
-          primaryHref="/music"
-          primaryLabel="Explore SoundOS"
+          primaryHref="/trackfoundry"
+          primaryLabel="Explore TrackFoundry"
           secondaryHref="/about"
           secondaryLabel="How the company is structured"
         />

@@ -21,7 +21,7 @@ export function AdminDashboard() {
         <section className="mt-6">
           <SecurityNotice>
             Parent admin can govern access, but customer workflows and data stay separated inside
-            SoundOS, TableOS, and AlertOS unless explicitly authorized.
+            TrackFoundry, LineReady, and NoticeGrid unless explicitly authorized.
           </SecurityNotice>
         </section>
       </AdminShell>

@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 const protectedPrefixes = [
-  "/music/dashboard",
-  "/music/projects",
-  "/tableops/dashboard",
-  "/tableops/recipes",
-  "/civic/dashboard",
-  "/civic/feed",
+  "/trackfoundry/dashboard",
+  "/trackfoundry/projects",
+  "/lineready/dashboard",
+  "/lineready/recipes",
+  "/noticegrid/dashboard",
+  "/noticegrid/feed",
   "/admin/dashboard",
 ];
 
@@ -30,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/music/:path*", "/tableops/:path*", "/civic/:path*", "/admin/:path*"],
+  matcher: ["/trackfoundry/:path*", "/lineready/:path*", "/noticegrid/:path*", "/admin/:path*"],
 };

@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -15,6 +16,7 @@ __pycache__/
 
 # next.js
 /.next/
+**/.next/
 /out/
 
 # production
@@ -39,6 +41,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+**/.vercel/
 
 # typescript
 *.tsbuildinfo

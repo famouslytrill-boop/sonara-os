@@ -9,5 +9,5 @@ export const parentCopy = {
   openSource:
     "Built free/open-source first where practical, with production-aware upgrade paths when scale and revenue justify them.",
   civicDisclaimer:
-    "AlertOS aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.",
+    "NoticeGrid aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.",
 } as const;
