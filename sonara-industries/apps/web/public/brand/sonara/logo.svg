@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 220" role="img" aria-label="SONARA Industries logo">
+  <rect width="980" height="220" rx="44" fill="#080A12"/>
+  <g transform="translate(34 34)">
+    <rect width="152" height="152" rx="36" fill="#111827" stroke="#22D3EE" stroke-opacity="0.38"/>
+    <path d="M36 98c11 15 28 24 47 24 21 0 39-10 46-26 6-14 1-28-14-36-10-6-23-7-35-9-12-1-22-3-28-8-5-5-4-12 3-16 13-8 34-3 49 11l19-19C101-2 60-3 36 15 18 29 19 53 37 66c12 8 26 10 41 12 11 1 22 3 28 7 5 5 4 12-3 16-14 8-35 3-49-15L36 98Z" fill="#A78BFA"/>
+    <path d="M37 129h78" stroke="#E0F2FE" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <text x="222" y="96" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="54" font-weight="900" letter-spacing="-2">SONARA</text>
+  <text x="224" y="145" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="4">INDUSTRIES</text>
+  <text x="224" y="178" fill="#67E8F9" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Creator, operations, and public information infrastructure</text>
+</svg>
