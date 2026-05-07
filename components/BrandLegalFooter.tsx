@@ -12,8 +12,8 @@ export function BrandLegalFooter() {
         <Link href="/contact" className="font-bold text-[#00E5FF]">Contact</Link>
       </div>
       <p>
-        Umbrella Technologies is a working brand direction for SONARA Industries infrastructure. Working names,
-        marks, and logos require legal review before final trademark use. Do not use the registered mark symbol unless registration exists.
+        SONARA Industries owns independent software companies with shared infrastructure, security standards,
+        billing discipline, and product boundaries. Working names, marks, and logos require legal review before final trademark use.
       </p>
     </footer>
   );

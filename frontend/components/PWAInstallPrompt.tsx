@@ -7,11 +7,17 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+function canUseDom() {
+  return typeof window !== "undefined";
+}
+
 function isStandalone() {
+  if (!canUseDom()) return false;
   return window.matchMedia("(display-mode: standalone)").matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 }
 
 function isIosSafari() {
+  if (!canUseDom()) return false;
   const userAgent = window.navigator.userAgent.toLowerCase();
   const isIos = /iphone|ipad|ipod/.test(userAgent);
   const isSafari = userAgent.includes("safari") && !userAgent.includes("crios") && !userAgent.includes("fxios");
@@ -20,11 +26,10 @@ function isIosSafari() {
 
 export function PWAInstallPrompt() {
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [showIosHint] = useState(() => !isStandalone() && isIosSafari());
 
   useEffect(() => {
     if (isStandalone()) return;
-    setShowIosHint(isIosSafari());
 
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault();

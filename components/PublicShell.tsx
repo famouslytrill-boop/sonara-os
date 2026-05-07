@@ -5,10 +5,11 @@ import { BrandLegalFooter } from "./BrandLegalFooter";
 
 const publicNavItems = [
   { label: "Home", href: "/" },
-  { label: "Brand", href: "/brand" },
+  { label: "TrackFoundry", href: "/trackfoundry" },
+  { label: "LineReady", href: "/lineready" },
+  { label: "NoticeGrid", href: "/noticegrid" },
   { label: "Pricing", href: "/pricing" },
   { label: "Trust", href: "/trust" },
-  { label: "Login", href: "/login" },
 ] as const;
 
 export function PublicShell({ children }: { children: ReactNode }) {
@@ -19,7 +20,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
           <Link href="/" className="text-[#F9FAFB]">
             <BrandLogo entitySlug="parent-company" size="sm" />
           </Link>
-          <div className="grid grid-cols-5 gap-1 rounded-xl border border-[#1F2937] bg-[#111827] p-1 text-xs font-bold sm:flex">
+          <div className="grid grid-cols-3 gap-1 rounded-xl border border-[#1F2937] bg-[#111827] p-1 text-xs font-bold sm:flex">
             {publicNavItems.map((item) => (
               <Link
                 key={item.href}
