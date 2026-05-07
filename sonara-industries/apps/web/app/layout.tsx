@@ -4,8 +4,8 @@ import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
 
 export const metadata: Metadata = {
-  title: "SONARA Industries Operating Systems",
-  description: "Separate operating systems with shared security, billing, and infrastructure discipline."
+  title: "SONARA Industries | TrackFoundry, LineReady, NoticeGrid",
+  description: "SONARA Industries owns independent software companies with shared security, billing, and infrastructure discipline."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

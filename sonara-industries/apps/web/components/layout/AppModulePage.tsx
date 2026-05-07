@@ -1,6 +1,6 @@
 import { CivicShell } from "@/components/civic/CivicShell";
 import { MusicShell } from "@/components/music/MusicShell";
-import { TableOpsShell } from "@/components/tableops/TableOpsShell";
+import { LineReadyShell } from "@/components/tableops/LineReadyShell";
 import { DivisionShell } from "@/components/layout/DivisionShell";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -51,7 +51,7 @@ export function AppModulePage(props: ModulePageProps) {
     props.division === "music" ? (
       <MusicShell>{content}</MusicShell>
     ) : props.division === "tableops" ? (
-      <TableOpsShell>{content}</TableOpsShell>
+      <LineReadyShell>{content}</LineReadyShell>
     ) : (
       <CivicShell>{content}</CivicShell>
     );

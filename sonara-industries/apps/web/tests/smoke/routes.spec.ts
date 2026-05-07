@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
-const routes = ["/", "/music", "/tableops", "/civic", "/legal", "/legal/privacy", "/music/pricing"];
+const routes = ["/", "/trackfoundry", "/lineready", "/noticegrid", "/legal", "/legal/privacy", "/trackfoundry/pricing"];
 
 for (const route of routes) {
   test(`${route} loads`, async ({ page }) => {
     await page.goto(route);
-    await expect(page.locator("body")).toContainText(/SONARA|SoundOS|TableOS|AlertOS|Legal/);
+    await expect(page.locator("body")).toContainText(/SONARA|TrackFoundry|LineReady|NoticeGrid|Legal/);
   });
 }

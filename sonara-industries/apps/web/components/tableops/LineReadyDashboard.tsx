@@ -1,4 +1,4 @@
-import { TableOpsShell } from "@/components/tableops/TableOpsShell";
+import { LineReadyShell } from "@/components/tableops/LineReadyShell";
 import { StatCard } from "@/components/ui/StatCard";
 import { RecipePanel } from "./RecipePanel";
 import { CostingPanel } from "./CostingPanel";
@@ -7,9 +7,9 @@ import { TrainingPanel } from "./TrainingPanel";
 import { StaffOperationsPanel } from "./StaffOperationsPanel";
 import { ExternalLinksPanel } from "./ExternalLinksPanel";
 
-export function TableOpsDashboard() {
+export function LineReadyDashboard() {
   return (
-    <TableOpsShell>
+    <LineReadyShell>
       <div className="grid-auto">
         <StatCard label="Active Recipes" value="42" />
         <StatCard label="Food Cost %" value="28%" />
@@ -24,6 +24,6 @@ export function TableOpsDashboard() {
         <StaffOperationsPanel />
         <ExternalLinksPanel />
       </div>
-    </TableOpsShell>
+    </LineReadyShell>
   );
 }

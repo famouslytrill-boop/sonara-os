@@ -21,24 +21,31 @@ export const appAuthScopes: Record<AppCode, AppAuthScope> = {
   soundos: {
     currentApp: "soundos",
     sessionCookie: appSessionCookies.soundos,
-    loginRoute: "/music/login",
-    onboardingRoute: "/music/onboarding",
-    dashboardRoute: "/music/dashboard",
+    loginRoute: "/trackfoundry/login",
+    onboardingRoute: "/trackfoundry/onboarding",
+    dashboardRoute: "/trackfoundry/dashboard",
   },
   tableos: {
     currentApp: "tableos",
     sessionCookie: appSessionCookies.tableos,
-    loginRoute: "/tableops/login",
-    onboardingRoute: "/tableops/onboarding",
-    dashboardRoute: "/tableops/dashboard",
+    loginRoute: "/lineready/login",
+    onboardingRoute: "/lineready/onboarding",
+    dashboardRoute: "/lineready/dashboard",
   },
   alertos: {
     currentApp: "alertos",
     sessionCookie: appSessionCookies.alertos,
-    loginRoute: "/civic/login",
-    onboardingRoute: "/civic/onboarding",
-    dashboardRoute: "/civic/dashboard",
+    loginRoute: "/noticegrid/login",
+    onboardingRoute: "/noticegrid/onboarding",
+    dashboardRoute: "/noticegrid/dashboard",
   },
+};
+
+const appDisplayNames: Record<AppCode, string> = {
+  parent_admin: "SONARA Industries",
+  soundos: "TrackFoundry",
+  tableos: "LineReady",
+  alertos: "NoticeGrid",
 };
 
 export function getMockSession(): SessionUser | null {
@@ -50,6 +57,5 @@ export function getAuthScope(app: AppCode) {
 }
 
 export function getAuthGuardCopy(app: AppCode) {
-  const scope = getAuthScope(app);
-  return `Protected ${app} routes use the ${scope.sessionCookie} session namespace and must verify app access, workspace membership, role permission, and plan entitlement before loading private data.`;
+  return `Protected ${appDisplayNames[app]} routes must verify product access, workspace membership, role permission, and plan entitlement before loading private data.`;
 }

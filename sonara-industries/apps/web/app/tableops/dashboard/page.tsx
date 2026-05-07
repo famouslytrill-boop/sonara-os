@@ -1,1 +1,1 @@
-import { DivisionShell } from "@/components/layout/DivisionShell"; import { TableOpsDashboard } from "@/components/tableops/TableOpsDashboard"; export default function Page(){ return <DivisionShell division="tableops"><TableOpsDashboard /></DivisionShell>; }
+import { DivisionShell } from "@/components/layout/DivisionShell"; import { LineReadyDashboard } from "@/components/tableops/LineReadyDashboard"; export default function Page(){ return <DivisionShell division="tableops"><LineReadyDashboard /></DivisionShell>; }

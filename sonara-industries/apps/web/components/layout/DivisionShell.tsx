@@ -36,8 +36,8 @@ export function DivisionShell({ division, children }: { division: DivisionKey; c
           </div>
         </nav>
         <div className="mt-5 flex flex-wrap gap-2">
-          <Badge>{item.appCode}</Badge>
-          <Badge>{item.sessionCookie}</Badge>
+          <Badge>{item.short}</Badge>
+          <Badge>Organization-scoped access</Badge>
           <Badge>Separate workspace</Badge>
         </div>
         <div className="py-10">{children}</div>

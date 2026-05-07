@@ -5,9 +5,9 @@ import { pricing } from "../lib/pricing";
 
 describe("company route and pricing config", () => {
   it("keeps product apps separated", () => {
-    expect(divisions.music.name).toBe("SoundOS");
-    expect(divisions.tableops.name).toBe("TableOS");
-    expect(divisions.civic.name).toBe("AlertOS");
+    expect(divisions.music.name).toBe("TrackFoundry");
+    expect(divisions.tableops.name).toBe("LineReady");
+    expect(divisions.civic.name).toBe("NoticeGrid");
     expect(getAuthScope("soundos").sessionCookie).toBe("soundos_session");
     expect(getAuthScope("tableos").sessionCookie).toBe("tableos_session");
     expect(getAuthScope("alertos").sessionCookie).toBe("alertos_session");
