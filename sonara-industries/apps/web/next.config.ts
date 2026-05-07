@@ -26,22 +26,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: "/trackfoundry/:path*",
-        destination: "/music/:path*",
-      },
-      {
-        source: "/lineready/:path*",
-        destination: "/tableops/:path*",
-      },
-      {
-        source: "/noticegrid/:path*",
-        destination: "/civic/:path*",
-      },
-    ];
-  },
 };
 
 export default nextConfig;
