@@ -1,0 +1,53 @@
+approved_foss_stack:
+  coding:
+    continue:
+      license: Apache-2.0
+      use: IDE AI coding assistant workflow
+    aider:
+      license: Apache-2.0
+      use: terminal pair programmer compatible workflow
+    ollama:
+      license: MIT
+      use: local model runtime
+  database_and_search:
+    postgresql:
+      license: PostgreSQL License
+      use: primary relational database
+    pgvector:
+      license: PostgreSQL-style permissive
+      use: vector extension inside Postgres
+    qdrant:
+      license: Apache-2.0
+      use: vector search and RAG memory
+  mlops:
+    mlflow:
+      license: Apache-2.0
+      use: model, prompt, and evaluation tracking
+    dvc:
+      license: Apache-2.0
+      use: dataset and model versioning
+    vllm:
+      license: Apache-2.0
+      use: optional production model serving
+  audio:
+    librosa:
+      license: ISC
+      use: default commercial-safe audio analysis
+  deployment:
+    coolify:
+      license: Apache-2.0
+      use: optional self-hosted deployment platform
+
+restricted_or_optional:
+  essentia:
+    status: commercial-review-required
+    warning: AGPL/commercial terms require review before production use
+  llama_models:
+    status: optional
+    warning: custom license; not strict open source
+  noncommercial_music_generation_weights:
+    status: prohibited_in_core_production
+    warning: do not use noncommercial weights for paid production features
+  paid_apis:
+    status: optional_only
+    warning: OpenAI, Claude, Gemini, Perplexity, and similar providers must remain disabled by default
