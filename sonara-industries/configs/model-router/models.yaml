@@ -1,0 +1,34 @@
+default_provider: ollama
+
+providers:
+  ollama:
+    base_url: http://localhost:11434
+    type: local
+
+models:
+  coding:
+    preferred:
+      - qwen2.5-coder:7b
+      - qwen2.5-coder:14b
+      - qwen2.5-coder:32b
+    fallback:
+      - deepseek-coder
+      - gpt-oss:20b
+  reasoning:
+    preferred:
+      - gpt-oss:20b
+      - deepseek-r1
+    fallback:
+      - qwen2.5-coder:14b
+  artist_memory:
+    embedding_model: nomic-embed-text
+    vector_db: qdrant
+  audio_intelligence:
+    engine: librosa
+    optional:
+      - essentia
+
+restricted_optional:
+  - llama models
+  - noncommercial music generation weights
+  - paid providers disabled by default
