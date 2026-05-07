@@ -7,6 +7,26 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/music",
+        destination: "/trackfoundry",
+        permanent: true,
+      },
+      {
+        source: "/tableops",
+        destination: "/lineready",
+        permanent: true,
+      },
+      {
+        source: "/alertos",
+        destination: "/noticegrid",
+        permanent: true,
+      },
+      {
+        source: "/civicsignal",
+        destination: "/noticegrid",
+        permanent: true,
+      },
+      {
         source: "/:path*",
         has: [
           {

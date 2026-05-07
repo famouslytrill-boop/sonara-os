@@ -4,6 +4,7 @@ import { sonaraBusinessPrinciplesLayer } from "../../../../config/sonara/busines
 import { sonaraProjectWorkflow } from "../../../../config/sonara/productArchitecture";
 import { runSonaraFinalCompanyAudit } from "../../../../lib/sonara/businessPrinciples";
 import { appendSonaraOperatingNotice } from "../../../../lib/sonara/infrastructure/exportGovernance";
+import { buildBroadcastKit } from "../../../../lib/sonara/broadcast/broadcastKit";
 import { formatRuntime } from "../../../../lib/sonara/runtime/runtimeThresholdEngine";
 import { ensureCoreExportAssets, releaseAnalysisSchema, sonaraCoreSystems } from "../../../../lib/sonara-core";
 import { prepareBrandedExport } from "../../../../utils/prepareBrandedExport";
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
   }
 
   const analysis = ensureCoreExportAssets(parsed.data);
+  const broadcastKit = buildBroadcastKit({
+    projectTitle: analysis.fingerprint.id,
+    creatorName: body.creatorName,
+    releaseMoment: "release listening session",
+    mood: analysis.fingerprint.mood,
+  });
   const finalCompanyAudit = runSonaraFinalCompanyAudit();
   const zip = new JSZip();
   const manifest = {
@@ -44,6 +51,13 @@ export async function POST(request: NextRequest) {
       externalGeneratorSettings: analysis.externalGeneratorSettings,
       runtimeTarget: analysis.runtimeTarget,
       promptLength: analysis.promptLength,
+      explicitnessMode: analysis.explicitnessMode,
+      genreUniverse: analysis.genreUniverse,
+      arrangementCore: analysis.arrangementCore,
+      lyricStructure: analysis.lyricStructure,
+      soundIdentity: analysis.soundIdentity,
+      authenticWriter: analysis.authenticWriter,
+      broadcastKit,
       notice: sonaraBusinessPrinciplesLayer.exportNotice,
     },
   };
@@ -95,6 +109,10 @@ export async function POST(request: NextRequest) {
       "",
       "Warnings / Notes:",
       ...analysis.promptLength.notes.map((note) => `- ${note}`),
+      "",
+      "## EXPLICITNESS MODE",
+      `Mode: ${analysis.explicitnessMode}`,
+      "Explicit language may affect radio, playlist, distribution, and brand suitability.",
       "",
       "## External Generator Settings",
       `- Weirdness: ${analysis.sliderRecommendations.weirdness}%`,
@@ -194,6 +212,115 @@ export async function POST(request: NextRequest) {
     ].join("\n")),
   );
   zip.file(
+    "genre-universe.md",
+    prepareExportText([
+      `# ${analysis.fingerprint.id} Genre Universe`,
+      "",
+      `Genre family: ${analysis.genreUniverse.label}`,
+      "",
+      "## Arrangement Priorities",
+      ...analysis.genreUniverse.arrangementPriorities.map((item) => `- ${item}`),
+      "",
+      "## Rhythm Language",
+      ...analysis.genreUniverse.rhythmLanguage.map((item) => `- ${item}`),
+      "",
+      "## Harmonic Language",
+      ...analysis.genreUniverse.harmonicLanguage.map((item) => `- ${item}`),
+      "",
+      "## Drum Language",
+      ...analysis.genreUniverse.drumLanguage.map((item) => `- ${item}`),
+      "",
+      "## Vocal Modes",
+      ...analysis.genreUniverse.vocalModes.map((item) => `- ${item}`),
+      "",
+      "## Export Needs",
+      ...analysis.genreUniverse.exportNeeds.map((item) => `- ${item}`),
+    ].join("\n")),
+  );
+  zip.file(
+    "arrangement-core.md",
+    prepareExportText([
+      `# ${analysis.fingerprint.id} Arrangement Core`,
+      "",
+      `Intro: ${analysis.arrangementCore.introStrategy}`,
+      `Verse: ${analysis.arrangementCore.verseStrategy}`,
+      `Hook: ${analysis.arrangementCore.hookStrategy}`,
+      `Bridge: ${analysis.arrangementCore.bridgeStrategy}`,
+      `Outro: ${analysis.arrangementCore.outroStrategy}`,
+      "",
+      "## Energy Curve",
+      ...analysis.arrangementCore.energyCurve.map((item) => `- ${item}`),
+      "",
+      "## Arrangement Risks",
+      ...analysis.arrangementCore.arrangementRisks.map((item) => `- ${item}`),
+    ].join("\n")),
+  );
+  zip.file(
+    "lyric-structure.md",
+    prepareExportText([
+      `# ${analysis.fingerprint.id} Lyric Structure`,
+      "",
+      `Explicitness mode: ${analysis.lyricStructure.explicitnessMode}`,
+      `Suggested structure: ${analysis.lyricStructure.suggestedStructure}`,
+      analysis.lyricStructure.structureReason,
+      "",
+      "## Hook Candidates",
+      ...analysis.lyricStructure.hookCandidates.map((item) => `- ${item}`),
+      "",
+      "## Missing Pieces",
+      ...analysis.lyricStructure.missingPieces.map((item) => `- ${item}`),
+      "",
+      "## Breath Markers",
+      ...analysis.lyricStructure.breathMarkers.map((item) => `- ${item}`),
+      "",
+      "## Warnings",
+      ...analysis.lyricStructure.warnings.map((item) => `- ${item}`),
+      "",
+      "SONARA does not generate copyrighted lyric copies or guarantee copyright ownership.",
+    ].join("\n")),
+  );
+  zip.file(
+    "authentic-writer-guidance.md",
+    prepareExportText([
+      `# ${analysis.fingerprint.id} Authentic Writer Guidance`,
+      "",
+      `Authenticity Score: ${analysis.authenticWriter.authenticityScore}/100`,
+      "",
+      "## Required Details",
+      ...analysis.authenticWriter.requiredDetails.map((detail) => `- ${detail}`),
+      "",
+      "## Craft Guidance",
+      ...analysis.authenticWriter.craftGuidance.map((note) => `- ${note}`),
+      "",
+      "## Reporting Questions",
+      ...analysis.authenticWriter.reportingQuestions.map((question) => `- ${question}`),
+      "",
+      "## Vocal Guidance",
+      ...analysis.authenticWriter.vocalGuidance.map((note) => `- ${note}`),
+      "",
+      "## Avoid",
+      ...analysis.authenticWriter.avoidList.map((item) => `- ${item}`),
+      "",
+      "## Revision Checklist",
+      ...analysis.authenticWriter.revisionChecklist.map((item) => `- ${item}`),
+    ].join("\n")),
+  );
+  zip.file(
+    "sound-identity.md",
+    prepareExportText([
+      `# ${analysis.fingerprint.id} Sound Identity`,
+      "",
+      "## Signature Elements",
+      ...analysis.soundIdentity.signatureElements.map((item) => `- ${item}`),
+      "",
+      "## Differentiation Checks",
+      ...analysis.soundIdentity.differentiationChecks.map((item) => `- ${item}`),
+      "",
+      "## Avoid",
+      ...analysis.soundIdentity.avoidList.map((item) => `- ${item}`),
+    ].join("\n")),
+  );
+  zip.file(
     "long-prompt.md",
     prepareExportText([
       `# ${analysis.fingerprint.id} Long Prompt Mode`,
@@ -232,10 +359,33 @@ export async function POST(request: NextRequest) {
     prepareExportText([
       `# ${analysis.fingerprint.id} Broadcast Kit`,
       "",
+      "This is an OBS-ready broadcast kit export. It does not control OBS directly.",
+      "",
       "## Talking Points",
       `- Identity: ${analysis.fingerprint.identity}`,
       `- Hook: ${analysis.releasePlan.hook}`,
       `- Listener moment: ${analysis.fingerprint.audienceSignal}`,
+      "",
+      "## Stream Title",
+      broadcastKit.streamTitle,
+      "",
+      "## Scenes",
+      ...broadcastKit.sceneList.map((scene) => `- ${scene}`),
+      "",
+      "## OBS Scene Recommendations",
+      ...broadcastKit.obsSceneRecommendations.map((note) => `- ${note}`),
+      "",
+      "## Audio Routing Notes",
+      ...broadcastKit.audioRoutingNotes.map((note) => `- ${note}`),
+      "",
+      "## Listening Session Outline",
+      ...broadcastKit.releaseListeningSessionOutline.map((note) => `- ${note}`),
+      "",
+      "## Premiere Checklist",
+      ...broadcastKit.livePremiereChecklist.map((item) => `- ${item}`),
+      "",
+      "## Overlay Suggestions",
+      ...broadcastKit.visualOverlaySuggestions.map((item) => `- ${item}`),
     ].join("\n")),
   );
   zip.file(

@@ -4,12 +4,12 @@ import { RegisterServiceWorker } from "../components/RegisterServiceWorker";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SONARA Industries™",
-  description: "Creator infrastructure for modern music.",
+  title: "SONARA Industries",
+  description: "Independent systems. Shared infrastructure. Stronger markets.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "SONARA OS™",
+    title: "SONARA Industries",
     statusBarStyle: "black-translucent",
   },
   icons: {

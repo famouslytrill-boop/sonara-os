@@ -2,15 +2,17 @@
 
 :root {
   color-scheme: dark;
-  --sonara-background: #07070a;
-  --sonara-surface: #111118;
-  --sonara-card: #171720;
-  --sonara-border: #2a2a35;
-  --sonara-primary-violet: #8b5cf6;
-  --sonara-signal-cyan: #22d3ee;
-  --sonara-amber-gold: #f59e0b;
-  --sonara-text: #f8fafc;
-  --sonara-muted-text: #a1a1aa;
+  --sonara-background: #08070b;
+  --sonara-surface: #121018;
+  --sonara-card: #191522;
+  --sonara-soft-card: #211b2d;
+  --sonara-border: #332a40;
+  --sonara-primary-violet: #9b5cff;
+  --sonara-signal-cyan: #2dd4bf;
+  --sonara-warm-accent: #ffb454;
+  --sonara-pink-accent: #f472b6;
+  --sonara-text: #f9fafb;
+  --sonara-muted-text: #c4bfd0;
   --sonara-success: #22c55e;
   --sonara-error: #ef4444;
 }
@@ -23,7 +25,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #07070a;
+  background: #08070b;
 }
 
 body {

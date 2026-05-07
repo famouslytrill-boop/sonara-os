@@ -1,14 +1,14 @@
 {
-  "name": "SONARA OS™",
+  "name": "SONARA Industries",
   "short_name": "SONARA",
-  "description": "The creator infrastructure for modern music.",
-  "start_url": "/dashboard",
+  "description": "Independent systems. Shared infrastructure. Stronger markets.",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#07070A",
   "theme_color": "#07070A",
-  "categories": ["music", "productivity", "business", "entertainment"],
+  "categories": ["business", "productivity", "music", "food", "news"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -29,24 +29,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Create Song",
-      "short_name": "Create",
-      "description": "Create a new song fingerprint.",
-      "url": "/create?type=song",
+      "name": "Open TrackFoundry",
+      "short_name": "TrackFoundry",
+      "description": "Open the TrackFoundry app shell.",
+      "url": "/trackfoundry/app",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Build Sound Pack",
-      "short_name": "Vault",
-      "description": "Build a rights-safe sound pack.",
-      "url": "/create?type=sound-pack",
+      "name": "Open LineReady",
+      "short_name": "LineReady",
+      "description": "Open the LineReady app shell.",
+      "url": "/lineready/app",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Prepare Release",
-      "short_name": "Release",
-      "description": "Prepare streaming, visuals, and export bundles.",
-      "url": "/export",
+      "name": "Open NoticeGrid",
+      "short_name": "NoticeGrid",
+      "description": "Open the NoticeGrid app shell.",
+      "url": "/noticegrid/app",
       "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]

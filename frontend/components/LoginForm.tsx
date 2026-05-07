@@ -75,9 +75,9 @@ export function LoginForm() {
     return (
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
         <p className="text-xs font-black uppercase text-[#22D3EE]">Account setup</p>
-        <h1 className="mt-2 text-3xl font-black">Supabase is not connected yet.</h1>
+        <h1 className="mt-2 text-3xl font-black">SONARA OS™ login.</h1>
         <p className="mt-3 leading-7 text-[#A1A1AA]">
-          The app runs in Local Rules mode, but login and saved projects require a Supabase project with the launch schema applied.
+          Log in to access your creator operating system. Supabase Auth must be configured before accounts and saved projects go live.
         </p>
         <Link className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/settings">
           View setup status
@@ -89,9 +89,9 @@ export function LoginForm() {
   return (
     <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
       <p className="text-xs font-black uppercase text-[#22D3EE]">Secure workspace</p>
-      <h1 className="mt-2 text-3xl font-black">Sign in to SONARA OS.</h1>
+      <h1 className="mt-2 text-3xl font-black">SONARA OS™ login.</h1>
       <p className="mt-3 leading-7 text-[#A1A1AA]">
-        Protect saved fingerprints, release plans, and private creator workflow data.
+        Log in to access your creator operating system.
       </p>
 
       <div className="mt-5 grid grid-cols-3 gap-2 rounded-lg border border-[#2A2A35] bg-[#111118] p-1 text-xs font-bold">

@@ -1,6 +1,17 @@
-const CACHE_NAME = "sonara-os-v1";
+const CACHE_NAME = "sonara-industries-v1";
 const OFFLINE_URL = "/offline";
-const CORE_ASSETS = ["/", "/dashboard", "/create", "/library", "/export", "/settings", OFFLINE_URL, "/manifest.webmanifest"];
+const CORE_ASSETS = [
+  "/",
+  "/websites",
+  "/pricing",
+  "/security",
+  "/research",
+  "/trackfoundry/app",
+  "/lineready/app",
+  "/noticegrid/app",
+  OFFLINE_URL,
+  "/manifest.webmanifest",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(CORE_ASSETS)));

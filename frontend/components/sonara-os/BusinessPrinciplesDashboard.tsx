@@ -1,13 +1,46 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, BadgeCheck, CircleDollarSign, Compass, Gauge, ShieldCheck } from "lucide-react";
 import { sonaraBusinessPrinciplesLayer, sonaraProductDoors } from "../../config/sonara/businessPrinciples";
+import { sonaraActiveTools, sonaraCreatorBusinessModules } from "../../config/sonara/productArchitecture";
 import { sonaraSystemVisibility } from "../../config/sonara/systemVisibility";
 import { runSonaraFinalCompanyAudit } from "../../lib/sonara/businessPrinciples";
+import { ActivationChecklistCard } from "../sonara/ActivationChecklistCard";
+import { ArrangementCoreCard } from "../sonara/ArrangementCoreCard";
+import { AutonomyStatusCard } from "../sonara/AutonomyStatusCard";
+import { BroadcastingCard } from "../sonara/BroadcastingCard";
+import { DesignAuditCard } from "../sonara/DesignAuditCard";
+import { EmergingCreatorCard } from "../sonara/EmergingCreatorCard";
+import { GenreMarketplaceCard } from "../sonara/GenreMarketplaceCard";
+import { GenreUniverseCard } from "../sonara/GenreUniverseCard";
+import { LaunchCampaignCard } from "../sonara/LaunchCampaignCard";
+import { MetadataReadinessCard } from "../sonara/MetadataReadinessCard";
+import { PasskeyReadinessCard } from "../sonara/PasskeyReadinessCard";
+import { PositioningCard } from "../sonara/PositioningCard";
+import { ReleaseStrategyCard } from "../sonara/ReleaseStrategyCard";
+import { RetentionInsightCard } from "../sonara/RetentionInsightCard";
+import { ReviewRoomCard } from "../sonara/ReviewRoomCard";
+import { SoundDiscoveryCard } from "../sonara/SoundDiscoveryCard";
+import { SoundIdentityCard } from "../sonara/SoundIdentityCard";
+import { StoreProductReadinessCard } from "../sonara/StoreProductReadinessCard";
+import { UpgradeNudgeCard } from "../sonara/UpgradeNudgeCard";
+import { VaultStackCard } from "../sonara/VaultStackCard";
+import { buildBroadcastKit } from "../../lib/sonara/broadcast/broadcastKit";
 
 const iconByIndex = [Compass, BadgeCheck, Gauge, ShieldCheck] as const;
+const businessModuleIcons = [BadgeCheck, Gauge, CircleDollarSign] as const;
+const activeToolIcons = [Compass, BadgeCheck, Gauge, ShieldCheck, CircleDollarSign] as const;
+const workspaceActions = [
+  { title: "Create Song", href: "/create", description: "Build a song fingerprint and release-readiness plan." },
+  { title: "Create Album", href: "/create", description: "Start a project with album-level sequencing and prompt planning." },
+  { title: "Build Sound Pack", href: "/vault", description: "Plan a rights-aware sound pack and license-sheet workflow." },
+  { title: "Prepare Release", href: "/export", description: "Export a branded release pack with runtime and prompt guidance." },
+  { title: "View Tutorial", href: "/tutorial", description: "Review the clean SONARA OS workflow from project to export." },
+  { title: "Open Store / Upgrade", href: "/store", description: "Review subscriptions and coming creator product bundles." },
+] as const;
 
 export function BusinessPrinciplesDashboard() {
   const audit = runSonaraFinalCompanyAudit();
+  const broadcastKit = buildBroadcastKit({ projectTitle: "SONARA Demo Release", creatorName: "Demo Artist" });
 
   return (
     <div className="grid gap-6">
@@ -16,10 +49,10 @@ export function BusinessPrinciplesDashboard() {
         <div className="mt-2 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#F8FAFC] sm:text-5xl">
-              Run a Studio Workflow
+              SONARA Creator Business OS
             </h1>
             <p className="mt-4 max-w-2xl leading-7 text-[#A1A1AA]">
-              A focused operating layer for artists building real music businesses through songs, releases, artist systems, and studio workflow.
+              Focused workflows for artists, creators, local businesses, and digital product builders building brands, content, ideas, revenue paths, and launch systems.
             </p>
           </div>
           <div className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
@@ -27,6 +60,19 @@ export function BusinessPrinciplesDashboard() {
             <p className="mt-2 text-4xl font-black text-[#F8FAFC]">{audit.oneOfOneCompanyScore}/100</p>
             <p className="mt-1 text-sm font-bold capitalize text-[#A1A1AA]">{audit.status}</p>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Next move</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">Choose a clean workspace action.</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {workspaceActions.map((action) => (
+            <Link key={action.title} href={action.href} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4 transition hover:border-[#22D3EE]">
+              <p className="text-sm font-black text-[#F8FAFC]">{action.title}</p>
+              <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{action.description}</p>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -44,6 +90,79 @@ export function BusinessPrinciplesDashboard() {
             </Link>
           );
         })}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <ActivationChecklistCard />
+        <UpgradeNudgeCard currentTier="free" feature="full_bundle_exports" />
+        <RetentionInsightCard />
+      </section>
+
+      <AutonomyStatusCard />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <GenreUniverseCard />
+        <ArrangementCoreCard />
+        <SoundIdentityCard />
+        <MetadataReadinessCard />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <SoundDiscoveryCard />
+        <VaultStackCard />
+        <GenreMarketplaceCard />
+        <ReviewRoomCard />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <DesignAuditCard />
+        <PositioningCard />
+        <LaunchCampaignCard />
+        <StoreProductReadinessCard />
+      </section>
+
+      <BroadcastingCard kit={broadcastKit} />
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <ReleaseStrategyCard />
+        <EmergingCreatorCard />
+        <PasskeyReadinessCard />
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Creator Business OS</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">A&R, decisions, and revenue pathways in one operating layer.</h2>
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          {sonaraCreatorBusinessModules.map((module, index) => {
+            const Icon = businessModuleIcons[index] ?? Compass;
+            return (
+              <div key={module.name} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
+                <Icon className="text-[#22D3EE]" size={24} />
+                <p className="mt-3 text-sm font-black text-[#F8FAFC]">{module.name}</p>
+                <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{module.purpose}</p>
+                <p className="mt-3 text-xs font-bold leading-5 text-[#71717A]">{module.output}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
+        <p className="text-xs font-black uppercase text-[#22D3EE]">Active Tools</p>
+        <h2 className="mt-2 text-2xl font-black text-[#F8FAFC]">Prompt, artist, content, visual, and local business systems.</h2>
+        <div className="mt-5 grid gap-3 lg:grid-cols-5">
+          {sonaraActiveTools.map((tool, index) => {
+            const Icon = activeToolIcons[index] ?? Compass;
+            return (
+              <Link key={tool.name} href={tool.route} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4 transition hover:border-[#22D3EE]">
+                <Icon className="text-[#22D3EE]" size={22} />
+                <p className="mt-3 text-sm font-black text-[#F8FAFC]">{tool.name}</p>
+                <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{tool.purpose}</p>
+                <p className="mt-3 text-xs font-bold leading-5 text-[#71717A]">{tool.output}</p>
+              </Link>
+            );
+          })}
+        </div>
       </section>
 
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5">
