@@ -3,19 +3,24 @@ import type { Metadata, Viewport } from "next";
 import { PWAInstallPrompt } from "@/components/pwa/PWAInstallPrompt";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
 
+const siteUrl = "https://sonaraindustries.com";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sonaraindustries.com"),
+  metadataBase: new URL(siteUrl),
   applicationName: "SONARA Industries",
   title: {
-    default: "SONARA Industries | Independent Systems",
+    default: "SONARA Industries | Creator, Operations, and Public Information Infrastructure",
     template: "%s | SONARA Industries",
   },
   description:
-    "SONARA Industries owns independent software companies with shared security, billing, and infrastructure discipline.",
+    "SONARA Industries builds focused software brands for music creation, restaurant operations, and verified local information systems.",
   manifest: "/manifest.webmanifest",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/apple-touch-icon.png",
+    icon: "/brand/sonara/mark.svg",
+    apple: "/brand/sonara/mark.svg",
   },
   appleWebApp: {
     capable: true,
@@ -24,11 +29,26 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "https://sonaraindustries.com",
+    url: siteUrl,
     siteName: "SONARA Industries",
-    title: "SONARA Industries | Independent Systems",
+    title: "SONARA Industries | Creator, Operations, and Public Information Infrastructure",
     description:
-      "Independent systems. Shared infrastructure. Stronger markets.",
+      "Focused software brands for music creation, restaurant operations, and verified local information systems.",
+    images: [
+      {
+        url: "/brand/sonara/og-image.svg",
+        width: 1200,
+        height: 630,
+        alt: "SONARA Industries brand preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SONARA Industries | Creator, Operations, and Public Information Infrastructure",
+    description:
+      "Focused software brands for music creation, restaurant operations, and verified local information systems.",
+    images: ["/brand/sonara/og-image.svg"],
   },
 };
 
@@ -36,7 +56,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#070913",
+  themeColor: "#7C3AED",
   colorScheme: "dark",
 };
 
