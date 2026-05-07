@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SONARA Industries mark">
+  <defs>
+    <linearGradient id="g" x1="32" x2="224" y1="32" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.52" stop-color="#A78BFA"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#080A12"/>
+  <path d="M54 162c18 24 45 38 75 38 34 0 61-16 73-42 9-21 1-43-22-55-17-9-36-11-55-13-18-2-34-4-43-12-8-7-6-18 4-24 20-13 55-5 78 18l31-31C159 5 94 3 57 31 28 53 30 91 59 110c18 12 41 15 64 18 17 2 34 4 42 11 9 7 7 19-4 25-22 13-55 5-76-24l-31 22Z" fill="url(#g)"/>
+  <path d="M55 206h146" stroke="#E0F2FE" stroke-width="10" stroke-linecap="round" opacity="0.82"/>
+</svg>
