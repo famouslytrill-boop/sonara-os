@@ -1,13 +1,13 @@
 # Monetization Plan
 
-SONARA OS™ monetization stays web-first and Stripe-first. Checkout must stay disabled until real products, prices, webhooks, and Supabase subscription storage are configured.
+SONARA OSâ„¢ monetization stays web-first and Stripe-first. Checkout must stay disabled until real products, prices, webhooks, and Supabase subscription storage are configured.
 
 ## Subscription Tiers
 
-- SONARA OS™ Free: $0/month
-- SONARA OS™ Creator: $9.99/month
-- SONARA OS™ Pro: $19.99/month
-- SONARA OS™ Label: $49.99/month
+- SONARA OSâ„¢ Free: $0/month
+- SONARA OSâ„¢ Creator: $9.99/month
+- SONARA OSâ„¢ Pro: $19.99/month
+- SONARA OSâ„¢ Label: $49.99/month
 
 ## Entitlement Rules
 
@@ -36,14 +36,14 @@ Web Stripe subscriptions are for the website and PWA. Native Android digital sub
 
 Subscriptions:
 
-- SONARA OS™ Free: $0
-- SONARA OS™ Creator: $9.99/mo
-- SONARA OS™ Pro: $19.99/mo
-- SONARA OS™ Label: $49.99/mo
+- SONARA OSâ„¢ Free: $0
+- SONARA OSâ„¢ Creator: $9.99/mo
+- SONARA OSâ„¢ Pro: $19.99/mo
+- SONARA OSâ„¢ Label: $49.99/mo
 
 Future optional:
 
-- SONARA OS™ Studio: $99/mo future
+- SONARA OSâ„¢ Studio: $99/mo future
 - Enterprise: custom/contact us
 
 Store products:

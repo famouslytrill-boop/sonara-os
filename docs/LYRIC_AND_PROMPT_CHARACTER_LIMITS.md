@@ -1,6 +1,6 @@
 # Lyric and Prompt Character Limits
 
-SONARA OS™ keeps lyrics and production direction separate.
+SONARA OSâ„¢ keeps lyrics and production direction separate.
 
 ## Lyrics Section
 
@@ -28,4 +28,4 @@ Export format:
 Character count: X / 1000
 ```
 
-Do not call the main style field an AI Prompt in public UI. Use “Style / Production Prompt.”
+Do not call the main style field an AI Prompt in public UI. Use â€œStyle / Production Prompt.â€

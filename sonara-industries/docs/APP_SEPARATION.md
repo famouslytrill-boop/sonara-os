@@ -1,6 +1,6 @@
 # App Separation
 
-SoundOS, TableOS, and AlertOS are separate operating systems owned by SONARA Industries.
+TrackFoundry, LineReady, and NoticeGrid are separate operating systems owned by SONARA Industries.
 
 Shared:
 

@@ -2,9 +2,9 @@
 
 Buckets:
 - `profile-images`
-- `soundos-media`
-- `tableos-documents`
-- `alertos-imports`
+- `trackfoundry-media`
+- `lineready-documents`
+- `noticegrid-imports`
 - `public-assets`
 
 Upload route:

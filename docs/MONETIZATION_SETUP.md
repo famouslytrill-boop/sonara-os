@@ -1,14 +1,14 @@
 # Monetization Setup
 
-SONARA OS™ uses real Stripe products only. Do not wire fake payments or fake active subscriptions.
+SONARA OSâ„¢ uses real Stripe products only. Do not wire fake payments or fake active subscriptions.
 
 ## Stripe Setup
 
 1. Rotate any exposed Stripe live key before production redeploy.
 2. Create monthly subscription products:
-   - SONARA OS™ Creator
-   - SONARA OS™ Pro
-   - SONARA OS™ Label
+   - SONARA OSâ„¢ Creator
+   - SONARA OSâ„¢ Pro
+   - SONARA OSâ„¢ Label
 3. Copy the monthly recurring Price IDs.
 4. Add the required environment variable names in Vercel:
    - `STRIPE_SECRET_KEY`

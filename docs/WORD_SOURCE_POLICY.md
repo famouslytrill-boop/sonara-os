@@ -1,6 +1,6 @@
 # Word Source Policy
 
-Local SONARA OS™ word suggestions do not require attribution.
+Local SONARA OSâ„¢ word suggestions do not require attribution.
 
 External sources require review:
 

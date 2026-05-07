@@ -1,8 +1,8 @@
-import { ProductShell } from "../../components/ProductShell";
+import { PublicShell } from "../../components/PublicShell";
 
 export default function TermsPage() {
   return (
-    <ProductShell>
+    <PublicShell>
       <section className="rounded-3xl border border-[#2A2A35] bg-[#171720] p-6">
         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#22D3EE]">Legal template</p>
         <h1 className="mt-3 text-3xl font-black">Terms of Service Template</h1>
@@ -25,6 +25,6 @@ export default function TermsPage() {
           </p>
         </div>
       </section>
-    </ProductShell>
+    </PublicShell>
   );
 }

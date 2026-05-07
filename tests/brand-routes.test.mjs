@@ -16,7 +16,7 @@ for (const file of routeFiles) {
 }
 
 const homepage = readFileSync(join(root, "app/page.tsx"), "utf8");
-assert.match(homepage, /Connected systems for creators, businesses, and communities/);
+assert.match(homepage, /Independent systems\. Shared infrastructure\. Stronger markets/);
 assert.doesNotMatch(homepage, /official government partner/i);
 assert.doesNotMatch(homepage, /guaranteed success/i);
 

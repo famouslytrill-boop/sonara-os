@@ -1,8 +1,8 @@
 # IP and Copycat Protection
 
-SONARA OS™ protects product distinctiveness through:
+SONARA OSâ„¢ protects product distinctiveness through:
 
-- SONARA Industries™ brand governance
+- SONARA Industriesâ„¢ brand governance
 - branded export formats
 - product DNA documentation
 - workflow-specific systems

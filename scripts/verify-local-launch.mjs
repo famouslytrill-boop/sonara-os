@@ -148,7 +148,7 @@ if (/normal users.*(node|npm)|install node|install npm/.test(tutorial)) {
 }
 
 if (/ai music generator only|only ai|just ai/.test(`${homepage}\n${docs}`)) {
-  warnings.push("Public copy may over-narrow SONARA OS™ to AI generation.");
+  warnings.push("Public copy may over-narrow SONARA OSâ„¢ to AI generation.");
 }
 
 const combinedCopy = `${homepage}\n${docs}`;

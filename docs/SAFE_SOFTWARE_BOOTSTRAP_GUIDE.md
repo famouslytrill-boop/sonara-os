@@ -1,6 +1,6 @@
 # Safe Software Bootstrap Guide
 
-The request was to find and download all software needed to run SONARA OS™ efficiently and make money. The safe version is:
+The request was to find and download all software needed to run SONARA OSâ„¢ efficiently and make money. The safe version is:
 
 - install only required project dependencies from the lockfile
 - check optional tools without downloading them
@@ -38,4 +38,4 @@ It does not:
 
 ## Profit Readiness
 
-Software can make SONARA OS™ payment-ready, not profit-guaranteed. Revenue still depends on product-market fit, pricing, traffic, support, legal readiness, checkout reliability, and customer trust.
+Software can make SONARA OSâ„¢ payment-ready, not profit-guaranteed. Revenue still depends on product-market fit, pricing, traffic, support, legal readiness, checkout reliability, and customer trust.

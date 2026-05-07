@@ -2,8 +2,8 @@
 
 The SONARA writing family includes:
 
-- Authentic Writer Engine™
-- Lyric Structure Engine™
+- Authentic Writer Engineâ„¢
+- Lyric Structure Engineâ„¢
 - Explicit Language Control
 - Lyric Annotation Layer
 - Release Story Builder

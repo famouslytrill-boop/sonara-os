@@ -8,11 +8,11 @@ The ecosystem uses adaptive identity, geometric simplicity, digital-first scalab
 
 ## Brand Hierarchy
 
-- Parent Company: Umbrella Technologies
+- Parent Company: SONARA Industries
 - Creator / Music Technology: Creator Music Technology
 - Business Operations: Business Operations
-- Community / Public Information: Umbrella Community Info
-- Standalone Product: Launchpad by Umbrella
+- Community / Public Information: NoticeGrid
+- Standalone Product: SONARA launchpad workspace
 
 ## Entity Colors
 

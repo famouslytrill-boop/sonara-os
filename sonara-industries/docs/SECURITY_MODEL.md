@@ -18,12 +18,12 @@ Roles:
 - security_admin
 
 Scopes:
-- `soundos.read`
-- `soundos.write`
-- `tableos.read`
-- `tableos.write`
-- `alertos.read`
-- `alertos.write`
+- `trackfoundry.read`
+- `trackfoundry.write`
+- `lineready.read`
+- `lineready.write`
+- `noticegrid.read`
+- `noticegrid.write`
 - `billing.manage`
 - `security.manage`
 - `admin.all`

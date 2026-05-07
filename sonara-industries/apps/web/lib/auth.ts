@@ -18,23 +18,23 @@ export const appAuthScopes: Record<AppCode, AppAuthScope> = {
     onboardingRoute: "/admin/dashboard",
     dashboardRoute: "/admin/dashboard",
   },
-  soundos: {
-    currentApp: "soundos",
-    sessionCookie: appSessionCookies.soundos,
+  trackfoundry: {
+    currentApp: "trackfoundry",
+    sessionCookie: appSessionCookies.trackfoundry,
     loginRoute: "/trackfoundry/login",
     onboardingRoute: "/trackfoundry/onboarding",
     dashboardRoute: "/trackfoundry/dashboard",
   },
-  tableos: {
-    currentApp: "tableos",
-    sessionCookie: appSessionCookies.tableos,
+  lineready: {
+    currentApp: "lineready",
+    sessionCookie: appSessionCookies.lineready,
     loginRoute: "/lineready/login",
     onboardingRoute: "/lineready/onboarding",
     dashboardRoute: "/lineready/dashboard",
   },
-  alertos: {
-    currentApp: "alertos",
-    sessionCookie: appSessionCookies.alertos,
+  noticegrid: {
+    currentApp: "noticegrid",
+    sessionCookie: appSessionCookies.noticegrid,
     loginRoute: "/noticegrid/login",
     onboardingRoute: "/noticegrid/onboarding",
     dashboardRoute: "/noticegrid/dashboard",
@@ -43,9 +43,9 @@ export const appAuthScopes: Record<AppCode, AppAuthScope> = {
 
 const appDisplayNames: Record<AppCode, string> = {
   parent_admin: "SONARA Industries",
-  soundos: "TrackFoundry",
-  tableos: "LineReady",
-  alertos: "NoticeGrid",
+  trackfoundry: "TrackFoundry",
+  lineready: "LineReady",
+  noticegrid: "NoticeGrid",
 };
 
 export function getMockSession(): SessionUser | null {

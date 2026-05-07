@@ -10,7 +10,7 @@ export default function Page() {
         Separate product group: TrackFoundry. Billing is scoped to music identity,
         release-readiness, catalog, transcript, and export workflows.
       </p>
-      <div className="mt-6 grid-auto">{pricing.soundos.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
+      <div className="mt-6 grid-auto">{pricing.trackfoundry.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
     </DivisionShell>
   );
 }

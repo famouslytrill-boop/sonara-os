@@ -16,4 +16,3 @@ Security patterns:
 - least privilege service design
 
 Do not expose Postgres to the public internet. Do not commit secrets. Service credentials belong in environment variables or managed secret stores.
-

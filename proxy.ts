@@ -13,10 +13,21 @@ function isValidHttpUrl(value: string | undefined) {
 }
 
 export async function proxy(request: NextRequest) {
+  const protectedPrefixes = ["/dashboard", "/admin", "/account"];
+  const isProtectedRoute = protectedPrefixes.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix)
+  );
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!isValidHttpUrl(supabaseUrl) || !supabaseAnonKey) {
+    if (isProtectedRoute) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      redirectUrl.searchParams.set("setup", "supabase_required");
+      return NextResponse.redirect(redirectUrl);
+    }
     return NextResponse.next();
   }
 
@@ -43,7 +54,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith("/dashboard")) {
+  if (!user && isProtectedRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
@@ -54,5 +65,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/account/:path*"],
 };

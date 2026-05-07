@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PublicShell } from "../../components/PublicShell";
 
 const trustNotes = [
-  "Umbrella Technologies is a working parent brand direction for connected systems serving creators, businesses, and communities.",
+  "SONARA Industries is the parent company behind independent systems serving creators, restaurants, and communities.",
   "Each company surface keeps its own onboarding, dashboards, permissions, and operational boundaries.",
   "Stripe handles payment collection when billing is configured; this app does not store payment card data.",
   "Private workspace data must remain protected by Supabase authentication, RLS policies, and server-side entitlement checks.",

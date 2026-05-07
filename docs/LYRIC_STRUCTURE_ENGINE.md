@@ -1,6 +1,6 @@
-# Lyric Structure Engine™
+# Lyric Structure Engineâ„¢
 
-The Lyric Structure Engine™ takes lyrics the user already wrote and maps them into a workable music structure.
+The Lyric Structure Engineâ„¢ takes lyrics the user already wrote and maps them into a workable music structure.
 
 It returns:
 

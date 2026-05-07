@@ -1,4 +1,4 @@
-# SONARA OS™ Manual Dashboard Setup
+# SONARA OSâ„¢ Manual Dashboard Setup
 
 This checklist is for dashboard setup only. Do not paste real secret values into source code, docs, screenshots, GitHub, Codex, or chat.
 
@@ -62,7 +62,7 @@ Events:
 If preview or production shows 403:
 
 - Check Vercel Deployment Protection.
-- Check Project → Settings → Domains.
+- Check Project â†’ Settings â†’ Domains.
 - Confirm the custom domain points to this project.
 - Check middleware/auth rules.
 

@@ -1,10 +1,10 @@
-# SONARA Industries™ Operating Systems
+# SONARA Industries Operating Systems
 
-SONARA Industries™ is the parent company for three separate product systems:
+SONARA Industries is the parent company for three independent software companies:
 
-- **SoundOS**: music identity, audio/video intake, transcription, catalog management, artist DNA, release readiness, anti-repetition checks, and media preparation.
-- **TableOS**: restaurant operations, recipe costing, labor calculator, scheduling, staff chat, employee profiles, vendors, repairs, permits, certifications, menus, QR links, and external operating links.
-- **AlertOS**: public feeds, alerts, notices, weather/transit placeholders, imported public information, organization announcements, and approval-gated broadcasting.
+- **TrackFoundry**: music creation and release-readiness software for artist identity, catalog vaults, release desk workflows, transcript studio, prompt exports, and market pulse notes.
+- **LineReady**: restaurant operations and labor-control software for labor control, schedule grids, recipe costing, crew chat, vendor links, and compliance workflows.
+- **NoticeGrid**: verified local information and public-notice software for verified feeds, notice builders, local grids, organization pages, weather/transit links, and quiet alerting.
 
 The products are separated by customer, organization, data, permissions, onboarding, dashboard, pricing, and app surface. They share only parent ownership, authentication, billing, security, infrastructure, audit logging, and admin governance.
 
@@ -72,9 +72,9 @@ Then create Stripe products/prices manually or extend the seed script after revi
 
 Buckets:
 - `profile-images`
-- `soundos-media`
-- `tableos-documents`
-- `alertos-imports`
+- `trackfoundry-media`
+- `lineready-documents`
+- `noticegrid-imports`
 - `public-assets`
 
 Storage backups are separate from database backups.

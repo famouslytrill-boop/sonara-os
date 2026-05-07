@@ -65,7 +65,7 @@ npx supabase db push
 
 ## Legal / Trademark Warning
 
-Umbrella Technologies and related entity marks are working brand directions only. They are not trademark clearance.
+SONARA Industries and related entity marks are working brand directions only. They are not trademark clearance.
 
 ## Final Readiness Score
 

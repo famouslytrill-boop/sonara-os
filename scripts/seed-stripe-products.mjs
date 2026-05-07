@@ -1,10 +1,15 @@
 const productPlan = [
-  { product: "SONARA OS Creator", price: "$9.99/month", env: "STRIPE_CREATOR_MONTHLY_PRICE_ID", lookupKey: "sonara_os_creator_monthly" },
-  { product: "SONARA OS Pro", price: "$19.99/month", env: "STRIPE_PRO_MONTHLY_PRICE_ID", lookupKey: "sonara_os_pro_monthly" },
-  { product: "SONARA OS Label", price: "$49.99/month", env: "STRIPE_LABEL_MONTHLY_PRICE_ID", lookupKey: "sonara_os_label_monthly" },
+  { product: "TrackFoundry Starter", price: "$19/month", env: "STRIPE_TRACKFOUNDRY_STARTER_PRICE_ID", lookupKey: "trackfoundry_starter_monthly" },
+  { product: "TrackFoundry Studio", price: "$49/month", env: "STRIPE_TRACKFOUNDRY_STUDIO_PRICE_ID", lookupKey: "trackfoundry_studio_monthly" },
+  { product: "TrackFoundry Label", price: "$149/month", env: "STRIPE_TRACKFOUNDRY_LABEL_PRICE_ID", lookupKey: "trackfoundry_label_monthly" },
+  { product: "LineReady Single Store", price: "$39/month", env: "STRIPE_LINEREADY_SINGLE_STORE_PRICE_ID", lookupKey: "lineready_single_store_monthly" },
+  { product: "LineReady Operator", price: "$89/month", env: "STRIPE_LINEREADY_OPERATOR_PRICE_ID", lookupKey: "lineready_operator_monthly" },
+  { product: "LineReady Group", price: "$199/month", env: "STRIPE_LINEREADY_GROUP_PRICE_ID", lookupKey: "lineready_group_monthly" },
+  { product: "NoticeGrid Organization", price: "$29/month", env: "STRIPE_NOTICEGRID_ORGANIZATION_PRICE_ID", lookupKey: "noticegrid_organization_monthly" },
+  { product: "NoticeGrid Municipal", price: "$149/month", env: "STRIPE_NOTICEGRID_MUNICIPAL_PRICE_ID", lookupKey: "noticegrid_municipal_monthly" },
 ];
 
-console.log("SONARA OS Stripe product seed plan");
+console.log("SONARA Industries house-of-brands Stripe product seed plan");
 console.log("This script is dry-run only by default and never prints secrets.");
 
 for (const item of productPlan) {

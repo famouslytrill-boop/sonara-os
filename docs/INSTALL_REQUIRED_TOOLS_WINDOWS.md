@@ -1,6 +1,6 @@
 # Install Required Tools on Windows
 
-Normal SONARA OS™ users do not need to install developer tools. They should use the browser or PWA.
+Normal SONARA OSâ„¢ users do not need to install developer tools. They should use the browser or PWA.
 
 Founder/developer tools:
 

@@ -18,7 +18,7 @@ SONARA studies durable business principles as strategic inspiration only. There 
 12. Low-cost access
 13. Premium brand feel
 14. Background autonomy checks
-15. Authentic Writer Engine™
+15. Authentic Writer Engineâ„¢
 16. Prompt/runtime/slider intelligence
 17. Conversion/activation system
 18. Store product readiness

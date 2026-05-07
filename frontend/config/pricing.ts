@@ -1,4 +1,4 @@
-export type PricingTierId = "free" | "creator" | "pro" | "label";
+export type PricingTierId = string;
 
 export type StoreProductId =
   | "prompt_pack_export"
@@ -14,6 +14,7 @@ export type StoreProductId =
 
 export type PricingTier = {
   id: PricingTierId;
+  productName: "TrackFoundry" | "LineReady" | "NoticeGrid";
   name: string;
   monthlyPrice: number;
   yearlyPrice?: number;
@@ -39,38 +40,84 @@ export type FuturePricingTier = {
 
 export const pricingTiers: PricingTier[] = [
   {
-    id: "free",
-    name: "SONARA OS™ Free",
+    id: "trackfoundry_starter",
+    productName: "TrackFoundry",
+    name: "Starter",
+    monthlyPrice: 19,
+    description: "For independent creators building repeatable song, prompt, and release-readiness workflows.",
+    features: ["Artist DNA starter", "Catalog Vault basics", "Release Desk checklist", "Prompt Foundry exports"],
+    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_STARTER_PRICE_ID",
+  },
+  {
+    id: "trackfoundry_studio",
+    productName: "TrackFoundry",
+    name: "Studio",
+    monthlyPrice: 49,
+    description: "For studios, managers, and teams organizing releases, assets, transcripts, and market notes.",
+    features: ["Artist DNA", "Catalog Vault", "Transcript Studio", "Market Pulse", "Team workflow"],
+    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_STUDIO_PRICE_ID",
+  },
+  {
+    id: "trackfoundry_label",
+    productName: "TrackFoundry",
+    name: "Label",
+    monthlyPrice: 149,
+    description: "For labels and release teams managing multiple artists, campaign assets, and approval checkpoints.",
+    features: ["Multi-artist release desk", "Campaign assets", "Rights placeholders", "Review workflow", "Approval queue"],
+    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_LABEL_PRICE_ID",
+  },
+  {
+    id: "lineready_single_store",
+    productName: "LineReady",
+    name: "Single Store",
+    monthlyPrice: 39,
+    description: "For one restaurant, truck, or hospitality team that needs shift and cost clarity.",
+    features: ["Labor Control", "Schedule Grid", "Recipe Costing", "Vendor Links", "Compliance Board"],
+    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_SINGLE_STORE_PRICE_ID",
+  },
+  {
+    id: "lineready_operator",
+    productName: "LineReady",
+    name: "Operator",
+    monthlyPrice: 89,
+    description: "For hands-on operators coordinating schedules, menus, margins, vendors, and crew notes.",
+    features: ["Shift placement", "Menu margin", "Crew Chat", "Repairs and servicing", "Forecast notes"],
+    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_OPERATOR_PRICE_ID",
+  },
+  {
+    id: "lineready_group",
+    productName: "LineReady",
+    name: "Group",
+    monthlyPrice: 199,
+    description: "For growing restaurant groups that need shared standards across locations.",
+    features: ["Multi-location workflow", "Role-based operations", "Transfer tracking", "Permit and certification tracking"],
+    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_GROUP_PRICE_ID",
+  },
+  {
+    id: "noticegrid_community",
+    productName: "NoticeGrid",
+    name: "Community",
     monthlyPrice: 0,
-    description: "Start projects, build basic prompts, and explore local-rules release planning.",
-    features: ["Basic prompt builder", "Tutorial", "Limited exports", "Local Rules provider"],
+    description: "For residents and small community pages following verified public information without the noise.",
+    features: ["Verified Feeds", "Quiet Alerting", "Public information basics", "Source trust notes"],
   },
   {
-    id: "creator",
-    name: "SONARA OS™ Creator",
-    monthlyPrice: 9.99,
-    yearlyPrice: 99,
-    description: "For creators who want stronger song systems and repeatable release workflows.",
-    features: ["Advanced prompt system", "Runtime Target Engine", "External Generator Settings", "Authentic Writer Engine", "Sound Identity"],
-    stripePriceIdEnvMonthly: "STRIPE_CREATOR_MONTHLY_PRICE_ID",
+    id: "noticegrid_organization",
+    productName: "NoticeGrid",
+    name: "Organization",
+    monthlyPrice: 29,
+    description: "For libraries, nonprofits, local businesses, schools, and organizations publishing approved notices.",
+    features: ["Notice Builder", "Organization Pages", "Approval queue", "QR-ready public links"],
+    stripePriceIdEnvMonthly: "STRIPE_NOTICEGRID_ORGANIZATION_PRICE_ID",
   },
   {
-    id: "pro",
-    name: "SONARA OS™ Pro",
-    monthlyPrice: 19.99,
-    yearlyPrice: 199,
-    description: "For artists and producers exporting full release bundles and rights-aware packs.",
-    features: ["Full bundle exports", "Metadata + rights sheets", "Sound rights exports", "Release packs", "OBS Broadcast Kit", "Vault Stack"],
-    stripePriceIdEnvMonthly: "STRIPE_PRO_MONTHLY_PRICE_ID",
-  },
-  {
-    id: "label",
-    name: "SONARA OS™ Label",
-    monthlyPrice: 49.99,
-    yearlyPrice: 499,
-    description: "For labels, studios, and teams managing multiple creator systems.",
-    features: ["Multi-project workspace", "Brand governance", "Review Room", "Label tools", "Store product workflow"],
-    stripePriceIdEnvMonthly: "STRIPE_LABEL_MONTHLY_PRICE_ID",
+    id: "noticegrid_municipal",
+    productName: "NoticeGrid",
+    name: "Municipal",
+    monthlyPrice: 149,
+    description: "For civic-style teams that need source checks, digest workflows, and human-approved public notices.",
+    features: ["Local Grid", "Source checks", "Digest preferences", "Weather + transit links", "Human approval gates"],
+    stripePriceIdEnvMonthly: "STRIPE_NOTICEGRID_MUNICIPAL_PRICE_ID",
   },
 ];
 
@@ -139,15 +186,15 @@ export const storeProducts: StoreProduct[] = [
 
 export const futurePricingTiers: FuturePricingTier[] = [
   {
-    name: "SONARA OS™ Studio",
-    priceLabel: "$99/mo future",
-    description: "Future team seats, deeper marketplace tools, and advanced supervised automation.",
+    name: "Shared Infrastructure Add-ons",
+    priceLabel: "Future",
+    description: "Future cross-product support for managed onboarding, observability, storage, and custom operating workflows.",
     status: "future",
   },
   {
-    name: "SONARA OS™ Enterprise",
+    name: "Enterprise Standards Review",
     priceLabel: "Contact us",
-    description: "Future custom workspace, compliance, onboarding, and private infrastructure planning.",
+    description: "Future security, compliance, deployment, and data-boundary planning for larger organizations.",
     status: "contact_us",
   },
 ];
@@ -165,10 +212,13 @@ export function isPaidTier(tier: PricingTier) {
 }
 
 export function areStripeSubscriptionsConfigured() {
+  const paidPriceEnvNames = pricingTiers
+    .filter(isPaidTier)
+    .map((tier) => tier.stripePriceIdEnvMonthly)
+    .filter(Boolean);
+
   return Boolean(
     process.env.STRIPE_SECRET_KEY &&
-      process.env.STRIPE_CREATOR_MONTHLY_PRICE_ID &&
-      process.env.STRIPE_PRO_MONTHLY_PRICE_ID &&
-      process.env.STRIPE_LABEL_MONTHLY_PRICE_ID,
+      paidPriceEnvNames.every((envName) => (envName ? Boolean(process.env[envName]) : false)),
   );
 }

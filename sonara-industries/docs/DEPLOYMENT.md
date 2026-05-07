@@ -19,4 +19,3 @@ Production options:
 - API on a container host or serverless container platform.
 
 Cloud services can have free tiers, but production hosting is not assumed to be free forever.
-

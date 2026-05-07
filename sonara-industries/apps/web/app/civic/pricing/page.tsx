@@ -10,7 +10,7 @@ export default function Page() {
         Separate product group: NoticeGrid. Billing is scoped to public information,
         source-linked feeds, organization profiles, transit notices, and broadcast workflows.
       </p>
-      <div className="mt-6 grid-auto">{pricing.alertos.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
+      <div className="mt-6 grid-auto">{pricing.noticegrid.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
     </DivisionShell>
   );
 }

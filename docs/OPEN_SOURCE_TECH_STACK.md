@@ -1,6 +1,6 @@
 # Open Source Technology Stack
 
-SONARA OS™ should stay lightweight enough to deploy, audit, and contribute to.
+SONARA OSâ„¢ should stay lightweight enough to deploy, audit, and contribute to.
 
 ## Current Stack
 

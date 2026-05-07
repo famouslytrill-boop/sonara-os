@@ -1,6 +1,6 @@
 # Dependency Audit and Launch Tooling
 
-SONARA OS™ uses lightweight local scripts for launch checks.
+SONARA OSâ„¢ uses lightweight local scripts for launch checks.
 
 ## Scripts
 

@@ -1,4 +1,4 @@
-# SONARA Industries™ Production Checklist
+# SONARA Industriesâ„¢ Production Checklist
 
 This MVP scaffold is production-oriented, but it is not live-production complete until real credentials, dashboard setup, migrations, and smoke tests are complete.
 
@@ -11,10 +11,10 @@ Required before launch:
 - Confirm Sentry and log drains.
 - Confirm PWA install on iOS/Android/desktop.
 - Review legal pages with counsel.
-- Complete one real customer workflow for SoundOS, TableOS, and AlertOS.
+- Complete one real customer workflow for TrackFoundry, LineReady, and NoticeGrid.
 
 Blocked until verified:
-- Public AlertOS broadcast delivery.
+- Public NoticeGrid broadcast delivery.
 - Role changes by automation.
 - Billing changes by automation.
 - Destructive actions without approval.

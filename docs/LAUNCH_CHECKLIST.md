@@ -48,7 +48,7 @@ https://sonaraindustries.com
 
 ## Stripe
 
-- [ ] Create SONARA OS™ Creator, Pro, and Label monthly subscription products.
+- [ ] Create SONARA OSâ„¢ Creator, Pro, and Label monthly subscription products.
 - [ ] Add price IDs to Vercel:
   - `STRIPE_CREATOR_MONTHLY_PRICE_ID`
   - `STRIPE_PRO_MONTHLY_PRICE_ID`

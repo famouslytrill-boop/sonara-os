@@ -49,4 +49,3 @@ Do not require OpenAI, Supabase, or Stripe keys for basic test success.
 - Host Python separately only when it has a clear job.
 - Do not expose internal scoring, private system prompts, or admin-only operations as public endpoints.
 - Keep the Python addon stateless unless a real persistence layer is configured.
-

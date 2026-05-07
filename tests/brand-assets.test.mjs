@@ -22,7 +22,7 @@ for (const asset of assets) {
 
 const manifestPath = join(root, "public/manifest.webmanifest");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-assert.equal(manifest.name, "Umbrella Technologies");
+assert.equal(manifest.name, "SONARA Industries");
 
 for (const icon of manifest.icons ?? []) {
   const iconPath = join(root, "public", icon.src.replace(/^\//, ""));

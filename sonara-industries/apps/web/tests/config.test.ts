@@ -8,14 +8,14 @@ describe("company route and pricing config", () => {
     expect(divisions.music.name).toBe("TrackFoundry");
     expect(divisions.tableops.name).toBe("LineReady");
     expect(divisions.civic.name).toBe("NoticeGrid");
-    expect(getAuthScope("soundos").sessionCookie).toBe("soundos_session");
-    expect(getAuthScope("tableos").sessionCookie).toBe("tableos_session");
-    expect(getAuthScope("alertos").sessionCookie).toBe("alertos_session");
+    expect(getAuthScope("trackfoundry").sessionCookie).toBe("trackfoundry_session");
+    expect(getAuthScope("lineready").sessionCookie).toBe("lineready_session");
+    expect(getAuthScope("noticegrid").sessionCookie).toBe("noticegrid_session");
   });
 
   it("has distinct pricing groups", () => {
-    expect(pricing.soundos.length).toBeGreaterThan(0);
-    expect(pricing.tableos.length).toBeGreaterThan(0);
-    expect(pricing.alertos.length).toBeGreaterThan(0);
+    expect(pricing.trackfoundry.length).toBeGreaterThan(0);
+    expect(pricing.lineready.length).toBeGreaterThan(0);
+    expect(pricing.noticegrid.length).toBeGreaterThan(0);
   });
 });

@@ -17,6 +17,6 @@ Sample jobs:
 - RSS import
 - Data.gov metadata import
 - GTFS-Realtime placeholder
-- TableOS labor recalculation
-- SoundOS readiness recalculation
-- AlertOS delivery placeholder
+- LineReady labor recalculation
+- TrackFoundry readiness recalculation
+- NoticeGrid delivery placeholder

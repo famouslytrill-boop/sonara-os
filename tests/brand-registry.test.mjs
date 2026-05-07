@@ -19,6 +19,6 @@ for (const entity of brand.BRAND_ENTITIES) {
 }
 
 assert.equal(brand.getEntityBrand("missing").slug, "parent-company");
-assert.equal(brand.DEFAULT_PARENT_BRAND.displayName, "Umbrella Technologies");
+assert.equal(brand.DEFAULT_PARENT_BRAND.displayName, "SONARA Industries");
 
 console.log("Brand registry test passed.");

@@ -1,6 +1,6 @@
 # Cloud-First Architecture
 
-SONARA OS™ runs from the cloud. Normal users can use the browser or PWA and should not need to download software for the core workflow.
+SONARA OSâ„¢ runs from the cloud. Normal users can use the browser or PWA and should not need to download software for the core workflow.
 
 Core launch stack:
 

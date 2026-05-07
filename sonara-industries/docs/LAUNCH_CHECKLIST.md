@@ -14,4 +14,3 @@
 - Trademark search completed.
 - Test users completed onboarding.
 - At least one real customer workflow completed per app.
-

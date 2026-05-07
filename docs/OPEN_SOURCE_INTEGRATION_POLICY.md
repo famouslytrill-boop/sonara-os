@@ -1,6 +1,6 @@
 # Open Source Integration Policy
 
-SONARA OS™ prefers free and open-source software where practical, while staying honest about hosted services and API costs.
+SONARA OSâ„¢ prefers free and open-source software where practical, while staying honest about hosted services and API costs.
 
 ## Safe To Use Now
 

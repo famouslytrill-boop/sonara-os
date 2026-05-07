@@ -1,7 +1,7 @@
 import type { PricingTierId } from "../../../config/pricing";
 import type { ConversionFeature, UpgradeNudge } from "./conversionTypes";
 
-export const featureTierMap: Record<ConversionFeature, PricingTierId> = {
+export const featureTierMap: Record<ConversionFeature, UpgradeNudge["recommendedTier"]> = {
   basic_prompt_builder: "free",
   advanced_prompt_builder: "creator",
   runtime_target_engine: "creator",
@@ -19,11 +19,12 @@ export const featureTierMap: Record<ConversionFeature, PricingTierId> = {
   marketplace_tools: "label",
 };
 
-const tierRank: Record<PricingTierId, number> = { free: 0, creator: 1, pro: 2, label: 3 };
+const tierRank: Record<UpgradeNudge["recommendedTier"], number> = { free: 0, creator: 1, pro: 2, label: 3 };
 
 export function getUpgradeNudge(currentTier: PricingTierId, feature: ConversionFeature): UpgradeNudge {
   const recommendedTier = featureTierMap[feature];
-  const allowed = tierRank[currentTier] >= tierRank[recommendedTier];
+  const currentRank = tierRank[currentTier as UpgradeNudge["recommendedTier"]] ?? -1;
+  const allowed = currentRank >= tierRank[recommendedTier];
 
   return {
     feature,
@@ -31,6 +32,6 @@ export function getUpgradeNudge(currentTier: PricingTierId, feature: ConversionF
     allowed,
     message: allowed
       ? "Your current plan can use this workflow."
-      : `Upgrade to SONARA OS™ ${recommendedTier} when you are ready for this workflow.`,
+      : `Upgrade when you are ready for this workflow: ${recommendedTier}.`,
   };
 }

@@ -41,8 +41,8 @@ Now:
 - runtime target engine
 - prompt length engine
 - external generator sliders
-- Authentic Writer Engine™
-- Lyric Structure Engine™
+- Authentic Writer Engineâ„¢
+- Lyric Structure Engineâ„¢
 - Explicit Language Control
 - Generation History/Restore
 - vector memory basic table/provider

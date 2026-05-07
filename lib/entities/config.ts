@@ -48,11 +48,11 @@ export type EntityConfig = {
 export const entityConfigs: EntityConfig[] = [
   {
     slug: "parent-company",
-    name: "Umbrella Technologies",
+    name: "SONARA Industries",
     shortName: "Parent",
     entityType: "parent_company",
-    tagline: "Connect. Build. Grow.",
-    description: "Connected systems for creators, businesses, and communities.",
+    tagline: "Independent systems. Shared infrastructure. Stronger markets.",
+    description: "A technology holding company that owns independent software companies.",
     audience: "Parent administrators and trusted operators",
     theme: {
       accent: "#00E5FF",
@@ -78,11 +78,11 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "creator-music-technology",
-    name: "Creator Music Technology",
-    shortName: "Creator/Music",
+    name: "TrackFoundry",
+    shortName: "TrackFoundry",
     entityType: "creator_music_technology",
-    tagline: "Create. Connect. Amplify.",
-    description: "Tools for artists and creators to build the world around their work.",
+    tagline: "Build the artist. Shape the release.",
+    description: "Music creation and release-readiness software.",
     audience: "Artists, producers, studios, labels, and creator teams",
     theme: {
       accent: "#D100FF",
@@ -109,11 +109,11 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "business-operations",
-    name: "Business Operations",
-    shortName: "Business Ops",
+    name: "LineReady",
+    shortName: "LineReady",
     entityType: "business_operations",
-    tagline: "Systems. Execute. Excel.",
-    description: "Cleaner daily operations for restaurants and small businesses.",
+    tagline: "Every shift ready.",
+    description: "Restaurant operations and labor-control software.",
     audience: "Restaurants, small businesses, managers, staff, and operations teams",
     theme: {
       accent: "#00B48A",
@@ -140,11 +140,11 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "community-public-information",
-    name: "Umbrella Community Info",
-    shortName: "Community Info",
+    name: "NoticeGrid",
+    shortName: "NoticeGrid",
     entityType: "community_public_information",
-    tagline: "Inform. Connect. Empower.",
-    description: "Useful local information organized in one place.",
+    tagline: "Local updates without the noise.",
+    description: "Verified local information and public-notice software.",
     audience: "Residents, local organizations, libraries, nonprofits, and public-facing teams",
     theme: {
       accent: "#007BFF",

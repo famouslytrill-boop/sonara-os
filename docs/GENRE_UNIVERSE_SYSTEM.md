@@ -1,6 +1,6 @@
 # Genre Universe System
 
-SONARA Core™ is built for every genre and structured for every release.
+SONARA Coreâ„¢ is built for every genre and structured for every release.
 
 Supported genre families:
 

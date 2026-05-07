@@ -10,7 +10,7 @@ export default function Page() {
         Separate product group: LineReady. Billing is scoped to restaurant operations,
         recipe R&D, costing, prep, training, inventory, and menu workflows.
       </p>
-      <div className="mt-6 grid-auto">{pricing.tableos.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
+      <div className="mt-6 grid-auto">{pricing.lineready.map((plan) => <PricingCard key={plan.name} plan={plan} />)}</div>
     </DivisionShell>
   );
 }

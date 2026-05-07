@@ -18,4 +18,4 @@ For cloud production:
 - Stripe
 - GitHub
 
-Software can make SONARA OS™ payment-ready, but it does not guarantee profit.
+Software can make SONARA OSâ„¢ payment-ready, but it does not guarantee profit.

@@ -1,6 +1,6 @@
 # PWA Cloud-First Plan
 
-SONARA OS™ is browser-first and PWA-ready.
+SONARA OSâ„¢ is browser-first and PWA-ready.
 
 Implemented:
 

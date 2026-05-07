@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
 const products = [
-  { company: "soundos", name: "SoundOS Starter", lookupKey: "soundos_starter_monthly", env: "STRIPE_PRICE_SOUNDOS_STARTER" },
-  { company: "soundos", name: "SoundOS Pro", lookupKey: "soundos_pro_monthly", env: "STRIPE_PRICE_SOUNDOS_PRO" },
-  { company: "soundos", name: "SoundOS Studio", lookupKey: "soundos_studio_monthly", env: "STRIPE_PRICE_SOUNDOS_STUDIO" },
-  { company: "tableos", name: "TableOS Starter", lookupKey: "tableos_starter_monthly", env: "STRIPE_PRICE_TABLEOS_STARTER" },
-  { company: "tableos", name: "TableOS Pro", lookupKey: "tableos_pro_monthly", env: "STRIPE_PRICE_TABLEOS_PRO" },
-  { company: "tableos", name: "TableOS Multi-Location", lookupKey: "tableos_multi_location_monthly", env: "STRIPE_PRICE_TABLEOS_MULTI_LOCATION" },
-  { company: "alertos", name: "AlertOS Starter", lookupKey: "alertos_starter_monthly", env: "STRIPE_PRICE_ALERTOS_STARTER" },
-  { company: "alertos", name: "AlertOS Org", lookupKey: "alertos_org_monthly", env: "STRIPE_PRICE_ALERTOS_ORG" },
-  { company: "alertos", name: "AlertOS City", lookupKey: "alertos_city_monthly", env: "STRIPE_PRICE_ALERTOS_CITY" },
+  { company: "trackfoundry", name: "TrackFoundry Starter", lookupKey: "trackfoundry_starter_monthly", env: "STRIPE_TRACKFOUNDRY_STARTER_PRICE_ID" },
+  { company: "trackfoundry", name: "TrackFoundry Studio", lookupKey: "trackfoundry_studio_monthly", env: "STRIPE_TRACKFOUNDRY_STUDIO_PRICE_ID" },
+  { company: "trackfoundry", name: "TrackFoundry Label", lookupKey: "trackfoundry_label_monthly", env: "STRIPE_TRACKFOUNDRY_LABEL_PRICE_ID" },
+  { company: "lineready", name: "LineReady Single Store", lookupKey: "lineready_single_store_monthly", env: "STRIPE_LINEREADY_SINGLE_STORE_PRICE_ID" },
+  { company: "lineready", name: "LineReady Operator", lookupKey: "lineready_operator_monthly", env: "STRIPE_LINEREADY_OPERATOR_PRICE_ID" },
+  { company: "lineready", name: "LineReady Group", lookupKey: "lineready_group_monthly", env: "STRIPE_LINEREADY_GROUP_PRICE_ID" },
+  { company: "noticegrid", name: "NoticeGrid Community", lookupKey: "noticegrid_community_monthly", env: "STRIPE_NOTICEGRID_COMMUNITY_PRICE_ID" },
+  { company: "noticegrid", name: "NoticeGrid Organization", lookupKey: "noticegrid_organization_monthly", env: "STRIPE_NOTICEGRID_ORGANIZATION_PRICE_ID" },
+  { company: "noticegrid", name: "NoticeGrid Municipal", lookupKey: "noticegrid_municipal_monthly", env: "STRIPE_NOTICEGRID_MUNICIPAL_PRICE_ID" },
 ];
 
 if (!process.env.STRIPE_SECRET_KEY) {

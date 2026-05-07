@@ -6,7 +6,7 @@ The visual system should feel premium, warm, human, music-focused, creator-frien
 
 Why this is more marketable:
 
-- It separates SONARA OS™ from cold generic dashboards.
+- It separates SONARA OSâ„¢ from cold generic dashboards.
 - It speaks to artists and teams, not only technical users.
 - It supports a public website that sells and explains before users enter the OS.
 - It keeps advanced workflows approachable on mobile.

@@ -1,6 +1,6 @@
 # Civic Data Policy
 
-AlertOS aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.
+NoticeGrid aggregates public information from source-linked feeds and public websites. It is not an official government authority unless a verified public partner grants that status.
 
 Public information should include source links, timestamps, confidence labels, and correction/takedown paths.
 

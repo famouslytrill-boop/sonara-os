@@ -1,6 +1,6 @@
 # Moat and Uniqueness Roadmap
 
-SONARA OS™ should not become a generic prompt builder.
+SONARA OSâ„¢ should not become a generic prompt builder.
 
 Moat pillars:
 

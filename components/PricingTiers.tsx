@@ -34,12 +34,13 @@ export function PricingTiers({ paymentsConfigured = false }: { paymentsConfigure
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {pricingTiers.map((tier) => {
-        const isFree = tier.id === "free";
+        const isFree = tier.monthlyPrice === 0;
         const canCheckout = paymentsConfigured && !isFree;
 
         return (
           <div key={tier.id} className="rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
-            <p className="text-sm font-black text-[#F8FAFC]">{tier.name}</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#22D3EE]">{tier.productName}</p>
+            <p className="mt-2 text-sm font-black text-[#F8FAFC]">{tier.name}</p>
             <p className="mt-2 text-3xl font-black text-[#22D3EE]">
               {tier.monthlyPrice === 0 ? "$0" : `$${tier.monthlyPrice.toFixed(2)}`}
               <span className="text-sm text-[#A1A1AA]">/mo</span>
@@ -60,7 +61,13 @@ export function PricingTiers({ paymentsConfigured = false }: { paymentsConfigure
               disabled={!canCheckout || loadingTier !== null}
               onClick={() => startCheckout(tier.id)}
             >
-              {isFree ? "Included" : canCheckout ? (loadingTier === tier.id ? "Opening checkout" : "Subscribe") : "Payment setup required"}
+              {isFree
+                ? "Included"
+                : canCheckout
+                  ? loadingTier === tier.id
+                    ? "Opening checkout"
+                    : `Start ${tier.productName}`
+                  : "Payment setup required"}
             </Button>
           </div>
         );

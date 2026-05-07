@@ -16,4 +16,4 @@ Delayed until later:
 - marketplace commission
 - resale of third-party downloaded sounds
 
-SONARA Exchange™ requires rights verification, payout compliance, moderation, refunds/support, marketplace terms, and seller onboarding before public commerce.
+SONARA Exchangeâ„¢ requires rights verification, payout compliance, moderation, refunds/support, marketplace terms, and seller onboarding before public commerce.

@@ -2,9 +2,9 @@
 
 Stripe Billing is the shared provider. Product groups must stay separated by app_code:
 
-- soundos
-- tableos
-- alertos
+- trackfoundry
+- lineready
+- noticegrid
 
 Stripe Connect-ready architecture is planned, but marketplace payouts are not implemented at launch.
 

@@ -1,6 +1,6 @@
-# Authentic Writer Engine™
+# Authentic Writer Engineâ„¢
 
-The Authentic Writer Engine™ helps creators write with more specificity, context, and vocal truth.
+The Authentic Writer Engineâ„¢ helps creators write with more specificity, context, and vocal truth.
 
 ## Uses
 

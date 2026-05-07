@@ -25,11 +25,12 @@ export default function BillingPage() {
       <section className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {pricingTiers.map((tier) => (
           <article key={tier.id} className="rounded-lg border border-[#2A2A35] bg-[#171720] p-4">
-            <p className="text-sm font-black text-[#F8FAFC]">{tier.name}</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#22D3EE]">{tier.productName}</p>
+            <p className="mt-2 text-sm font-black text-[#F8FAFC]">{tier.name}</p>
             <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">{tier.description}</p>
             <p className="mt-4 text-xs font-black uppercase text-[#22D3EE]">Entitlements</p>
             <ul className="mt-2 grid gap-1 text-sm leading-6 text-[#A1A1AA]">
-              {entitlementsByTier[tier.id].map((entitlement) => (
+              {(entitlementsByTier[tier.id] ?? tier.features).map((entitlement) => (
                 <li key={entitlement}>{entitlement.replaceAll("_", " ")}</li>
               ))}
             </ul>

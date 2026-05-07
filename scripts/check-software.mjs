@@ -69,7 +69,7 @@ const tools = [
 
 let missingRequired = 0;
 
-console.log("SONARA OS™ software check");
+console.log("SONARA OSâ„¢ software check");
 console.log("No software will be installed by this script.\n");
 
 for (const tool of tools) {
@@ -84,12 +84,12 @@ for (const tool of tools) {
     .split(/\r?\n/)[0];
 
   if (result.status === 0) {
-    console.log(`✅ ${tool.name}: ${output || "found"} — ${tool.purpose}`);
+    console.log(`âœ… ${tool.name}: ${output || "found"} â€” ${tool.purpose}`);
   } else if (tool.required) {
     missingRequired += 1;
-    console.log(`⚠️ ${tool.name}: missing required tool — ${tool.purpose}`);
+    console.log(`âš ï¸ ${tool.name}: missing required tool â€” ${tool.purpose}`);
   } else {
-    console.log(`⚠️ ${tool.name}: optional tool not found — ${tool.purpose}`);
+    console.log(`âš ï¸ ${tool.name}: optional tool not found â€” ${tool.purpose}`);
   }
 }
 
@@ -123,12 +123,12 @@ const projectChecks = [
 console.log("Project root checks");
 for (const check of projectChecks) {
   if (check.ok) {
-    console.log(`✅ ${check.label}: found — ${check.detail}`);
+    console.log(`âœ… ${check.label}: found â€” ${check.detail}`);
   } else if (check.required) {
     missingRequired += 1;
-    console.log(`⚠️ ${check.label}: missing required file — ${check.detail}`);
+    console.log(`âš ï¸ ${check.label}: missing required file â€” ${check.detail}`);
   } else {
-    console.log(`⚠️ ${check.label}: not found — ${check.detail}`);
+    console.log(`âš ï¸ ${check.label}: not found â€” ${check.detail}`);
   }
 }
 

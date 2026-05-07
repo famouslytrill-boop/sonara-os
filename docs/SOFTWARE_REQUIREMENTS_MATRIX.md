@@ -1,8 +1,8 @@
-# SONARA OS™ Software Requirements Matrix
+# SONARA OSâ„¢ Software Requirements Matrix
 
-SONARA OS™ should stay lightweight, launchable, and honest. This matrix separates what is required now from cloud setup, optional future tools, and software that should not be installed for launch.
+SONARA OSâ„¢ should stay lightweight, launchable, and honest. This matrix separates what is required now from cloud setup, optional future tools, and software that should not be installed for launch.
 
-Normal users should not need to download developer software. They use SONARA OS™ from the browser or PWA. Required-now tools are for founder/developer setup, local testing, deployment, and maintenance.
+Normal users should not need to download developer software. They use SONARA OSâ„¢ from the browser or PWA. Required-now tools are for founder/developer setup, local testing, deployment, and maintenance.
 
 ## A. Required Now
 

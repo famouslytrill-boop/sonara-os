@@ -6,20 +6,20 @@ Connector policy:
 - Store source trust score and last successful import.
 - Never auto-publish high-risk imported public alerts without approval.
 
-AlertOS connectors:
+NoticeGrid connectors:
 - RSS/Atom
 - Data.gov CKAN metadata
 - GTFS-Realtime placeholder
 - National Weather Service placeholder
 - CSV/JSON upload import
 
-SoundOS connectors:
+TrackFoundry connectors:
 - file upload intake
 - audio/video metadata placeholder
 - transcription queue placeholder
 - optional bring-your-own provider keys later
 
-TableOS connectors:
+LineReady connectors:
 - external link registry for POS, payroll, vendors, health insurance, menus, delivery, repairs
 - CSV imports for employees, schedules, vendors, and recipes
 - QR link route scaffold

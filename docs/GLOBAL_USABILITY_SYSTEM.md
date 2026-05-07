@@ -1,6 +1,6 @@
 # Global Usability System
 
-SONARA OS™ must be:
+SONARA OSâ„¢ must be:
 
 - clear enough for beginners
 - powerful enough for professionals

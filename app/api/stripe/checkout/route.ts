@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
   const appUrl = getAppUrl().replace(/\/$/, "");
   const metadata = {
-    product: "sonara_os",
+    product: tier.productName.toLowerCase(),
     tier_id: tier.id,
     user_id: body.userId ?? "",
   };

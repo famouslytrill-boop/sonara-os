@@ -9,5 +9,5 @@ SONARA is creator infrastructure with clear boundaries.
 - OpenAI is optional.
 - Private user projects are not public demos.
 - Web payments are handled through Stripe when configured.
-- SONARA marks use ™.
+- SONARA marks use â„¢.
 - No fake streaming or bot-growth tools.

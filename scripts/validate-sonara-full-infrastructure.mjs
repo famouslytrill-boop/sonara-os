@@ -82,7 +82,7 @@ const blockedPrivateNameFiles = textFiles.filter((file) => blockedPrivateNames.s
 
 const manifest = JSON.parse(readFileSync(join(root, "public/manifest.webmanifest"), "utf8"));
 const pwaValid =
-  manifest.name === "SONARA OS™" &&
+  manifest.name === "SONARA OSâ„¢" &&
   manifest.short_name === "SONARA" &&
   manifest.start_url === "/dashboard" &&
   manifest.display === "standalone" &&

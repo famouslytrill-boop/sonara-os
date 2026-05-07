@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process";
 
-console.log("SONARA OS™ dependency audit");
+console.log("SONARA OSâ„¢ dependency audit");
 console.log("This script reports audit findings and does not run automatic fixes.\n");
 
 const audit = spawnSync("npm audit --audit-level=moderate", {

@@ -11,16 +11,22 @@ const protectedPrefixes = [
 ];
 
 export function proxy(request: NextRequest) {
-  if (process.env.PUBLIC_DEMO_MODE !== "false") {
+  const path = request.nextUrl.pathname;
+  const isAdminLogin = path === "/admin/login";
+  const isAdminRoute = path.startsWith("/admin");
+  const isProtected = protectedPrefixes.some((prefix) => path.startsWith(prefix));
+  if (isAdminLogin) return NextResponse.next();
+
+  const publicDemoMode = process.env.PUBLIC_DEMO_MODE === "true";
+  if (publicDemoMode && !isAdminRoute) {
     return NextResponse.next();
   }
-  const path = request.nextUrl.pathname;
-  const isProtected = protectedPrefixes.some((prefix) => path.startsWith(prefix));
+
   if (!isProtected) return NextResponse.next();
   const hasAnySession =
-    request.cookies.has("soundos_session") ||
-    request.cookies.has("tableos_session") ||
-    request.cookies.has("alertos_session") ||
+    request.cookies.has("trackfoundry_session") ||
+    request.cookies.has("lineready_session") ||
+    request.cookies.has("noticegrid_session") ||
     request.cookies.has("sonara_admin_session");
   if (hasAnySession) return NextResponse.next();
   const url = request.nextUrl.clone();
