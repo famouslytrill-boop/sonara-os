@@ -13,7 +13,7 @@
     "check:software": "node scripts/check-software.mjs",
     "bootstrap:local": "node scripts/bootstrap-local.mjs",
     "audit:deps": "node scripts/dependency-audit.mjs",
-    "test": "tsx tests/monorepo-smoke.test.mjs && tsx tests/platform-prep.test.mjs && tsx tests/entity-security-smoke.test.mjs",
+    "test": "npm run validate:infrastructure && npm run lint && npm run build",
     "test:smoke": "tsx tests/monorepo-smoke.test.mjs && tsx tests/entity-security-smoke.test.mjs",
     "test:brand": "tsx tests/brand-registry.test.mjs && node tests/brand-assets.test.mjs && node tests/brand-routes.test.mjs",
     "test:security": "npm run scan:secrets && npm run verify:security",
