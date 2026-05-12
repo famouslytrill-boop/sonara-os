@@ -39,7 +39,8 @@
     "agent:worktree:create": "bash scripts/create-agent-worktree.sh",
     "agent:worktree:remove": "bash scripts/remove-agent-worktree.sh",
     "verify:all": "node scripts/verify-all.mjs",
-    "verify:postdeploy": "node scripts/verify-postdeploy.mjs"
+    "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
+    "format": "prettier . --check"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -64,6 +65,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "prettier": "^3.8.3",
     "supabase": "^2.98.2",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
