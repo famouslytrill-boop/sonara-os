@@ -118,15 +118,28 @@ Redirects:
 
 ## Local Setup And Validation
 
-Run local checks from the repository root. The root Next.js app owns `proxy.ts`, root
-dependencies, and the Vercel `.next` output.
+Run setup and validation from the repository root. The root Next.js app owns `proxy.ts`,
+root dependencies, and the Vercel `.next` output.
+
+Setup:
 
 ```powershell
 npm ci
+```
+
+Validation:
+
+```powershell
 npm audit --audit-level=moderate
 npm run validate:infrastructure
 npm run typecheck
 npm run build
+```
+
+Shortcut:
+
+```powershell
+npm run check:local
 ```
 
 After `npm run build`, Vercel output should exist at `.next/routes-manifest.json`.
