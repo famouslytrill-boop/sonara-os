@@ -1,73 +1,12 @@
+﻿import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: __dirname,
-  },
-  async redirects() {
-    return [
-      {
-        source: "/music",
-        destination: "/trackfoundry",
-        permanent: true,
-      },
-      {
-        source: "/tableops",
-        destination: "/lineready",
-        permanent: true,
-      },
-      {
-        source: "/alertos",
-        destination: "/noticegrid",
-        permanent: true,
-      },
-      {
-        source: "/civicsignal",
-        destination: "/noticegrid",
-        permanent: true,
-      },
-      {
-        source: "/:path*",
-        has: [
-          {
-            type: "header",
-            key: "x-forwarded-proto",
-            value: "http",
-          },
-        ],
-        destination: "https://sonaraindustries.com/:path*",
-        permanent: true,
-      },
-    ];
-  },
-  async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "strict-origin-when-cross-origin",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-        ],
-      },
-    ];
+    root: path.resolve(dirname, ".."),
   },
 };
 
