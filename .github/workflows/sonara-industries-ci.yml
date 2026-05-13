@@ -6,6 +6,8 @@ on:
     branches: [main]
 
 jobs:
+  # Separate pnpm workspace checks for sonara-industries/*.
+  # The root Next/Vercel build is covered by dependency-scan.yml.
   sonara-industries:
     runs-on: ubuntu-latest
     defaults:

@@ -7,6 +7,8 @@ on:
     branches: ["main"]
 
 jobs:
+  # Optional Docker check. The production deployment path is Vercel, so this
+  # workflow must not require Docker unless a root Dockerfile is intentionally added.
   build:
     runs-on: ubuntu-latest
 
