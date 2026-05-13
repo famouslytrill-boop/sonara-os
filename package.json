@@ -44,7 +44,7 @@
     "check:local": "npm run validate:infrastructure && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.2",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.45.4",
     "@tailwindcss/postcss": "^4.2.4",
     "class-variance-authority": "^0.7.1",
