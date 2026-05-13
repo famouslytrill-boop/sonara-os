@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm --prefix frontend run build",
+    "build": "next build",
     "start": "next start",
     "lint": "npm --prefix frontend run lint",
     "verify:launch": "node scripts/verify-local-launch.mjs",
@@ -18,7 +18,7 @@
     "test:brand": "tsx tests/brand-registry.test.mjs && node tests/brand-assets.test.mjs && node tests/brand-routes.test.mjs",
     "test:security": "npm run scan:secrets && npm run verify:security",
     "test:docs": "node scripts/check-doc-links.mjs",
-    "typecheck": "npm --prefix frontend run typecheck",
+    "typecheck": "tsc --noEmit",
     "validate:infrastructure": "node scripts/validate-infrastructure.mjs",
     "db:types": "npx supabase gen types typescript --local > types/supabase.ts",
     "db:diff": "npx supabase db diff --schema public",
