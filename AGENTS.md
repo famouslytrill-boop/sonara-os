@@ -125,6 +125,8 @@ Normal users should access SONARA OS™ from the browser/PWA without downloads. 
 
 - Do not move `proxy.ts` without checking current Next.js proxy conventions and root package dependency resolution.
 - Do not change Vercel or build-root behavior without verifying that `npm run build` creates root `.next` output, including `.next/routes-manifest.json`.
-- Do not run `npm audit fix --force` without review.
+- Do not add fake Dockerfiles just to satisfy CI.
+- Do not run `npm audit fix --force` unless explicitly approved.
 - Keep CI fixes minimal and separate from product features.
+- Separate infrastructure fixes from product features.
 - Prefer small PRs with clear validation notes.
