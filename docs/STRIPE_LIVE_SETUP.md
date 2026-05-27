@@ -4,9 +4,9 @@ Use environment variable names only. Do not paste real keys into source code, do
 
 1. Rotate the exposed old live secret key.
 2. Create live Stripe products:
-   - SONARA OS Creator
-   - SONARA OS Pro
-   - SONARA OS Label
+   - SONARA One Creator
+   - SONARA One Pro
+   - SONARA One Label
 3. Create monthly recurring prices:
    - $9.99/month
    - $19.99/month

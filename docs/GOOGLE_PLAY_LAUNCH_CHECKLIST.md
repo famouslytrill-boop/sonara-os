@@ -1,12 +1,12 @@
 # Google Play Launch Checklist
 
-SONARA OS is currently a responsive PWA. Use this checklist before wrapping it for Google Play.
+SONARA One is currently a responsive PWA. Use this checklist before wrapping it for Google Play.
 
 Web Stripe subscriptions are for the website and PWA. Native Android digital subscriptions may require Google Play Billing, and native iOS digital subscriptions may require Apple IAP. Do not route around app store billing rules inside native apps.
 
 ## Store Readiness
 
-- [ ] Final app name: `SONARA OS`.
+- [ ] Final app name: `SONARA One`.
 - [ ] Final short description approved.
 - [ ] Full description uses SONARA Industries trademark language.
 - [ ] Screenshots captured at phone and tablet sizes.
@@ -34,7 +34,7 @@ Web Stripe subscriptions are for the website and PWA. Native Android digital sub
 
 ## Review Notes
 
-- SONARA OS is a planning and workflow app.
+- SONARA One is a planning and workflow app.
 - AI provider mode defaults to deterministic local rules.
 - OpenAI BYOK and paid providers are optional.
 # 2026 Google Play Billing Note

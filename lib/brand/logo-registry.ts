@@ -10,33 +10,27 @@ export type LogoAsset = {
 export const LOGO_REGISTRY: Record<BrandSlug, LogoAsset> = {
   "parent-company": {
     slug: "parent-company",
-    markPath: "/brand/logos/parent-mark.svg",
-    iconPath: "/brand/icons/parent-icon.svg",
-    concept: "Interlocking hex/connectivity mark",
+    markPath: "/brand/sonara-logo.svg",
+    iconPath: "/brand/sonara-mark.svg",
+    concept: "Shared SONARA infrastructure mark",
   },
-  "creator-music-technology": {
-    slug: "creator-music-technology",
-    markPath: "/brand/logos/creator-mark.svg",
-    iconPath: "/brand/icons/creator-icon.svg",
-    concept: "Waveform bars inside shared geometry",
+  "business-builder": {
+    slug: "business-builder",
+    markPath: "/brand/business-builder-icon.svg",
+    iconPath: "/brand/business-builder-icon.svg",
+    concept: "Operations, proof, payment, and records mark",
   },
-  "business-operations": {
-    slug: "business-operations",
-    markPath: "/brand/logos/business-mark.svg",
-    iconPath: "/brand/icons/business-icon.svg",
-    concept: "Cube/workflow center inside shared geometry",
+  "creator-studio": {
+    slug: "creator-studio",
+    markPath: "/brand/creator-studio-icon.svg",
+    iconPath: "/brand/creator-studio-icon.svg",
+    concept: "Creative asset, release, and rights mark",
   },
-  "community-public-information": {
-    slug: "community-public-information",
-    markPath: "/brand/logos/community-mark.svg",
-    iconPath: "/brand/icons/community-icon.svg",
-    concept: "Beacon/signal center inside shared geometry",
-  },
-  launchpad: {
-    slug: "launchpad",
-    markPath: "/brand/logos/launchpad-mark.svg",
-    iconPath: "/brand/icons/launchpad-icon.svg",
-    concept: "Launch chevron inside shared geometry",
+  "growth-studio": {
+    slug: "growth-studio",
+    markPath: "/brand/growth-studio-icon.svg",
+    iconPath: "/brand/growth-studio-icon.svg",
+    concept: "Campaign, review, referral, and follow-up mark",
   },
 };
 

@@ -17,7 +17,7 @@ export type ConversionFeature =
 
 export type UpgradeNudge = {
   feature: ConversionFeature;
-  recommendedTier: "free" | "creator" | "pro" | "label";
+  recommendedTier: "free" | "starter" | "core" | "growth" | "pro" | "agency";
   message: string;
   allowed: boolean;
 };

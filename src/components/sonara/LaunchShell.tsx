@@ -344,7 +344,7 @@ export function ModulePlaceholder({
   return (
     <PageShell
       nav="app"
-      eyebrow="SONARA OS™"
+      eyebrow="SONARA One™"
       title={title}
       subtitle={description}
       actions={

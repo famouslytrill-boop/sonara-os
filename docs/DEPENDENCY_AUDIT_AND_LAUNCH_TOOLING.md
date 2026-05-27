@@ -1,6 +1,6 @@
 # Dependency Audit and Launch Tooling
 
-SONARA OSâ„¢ uses lightweight local scripts for launch checks.
+SONARA Oneâ„¢ uses lightweight local scripts for launch checks.
 
 ## Scripts
 

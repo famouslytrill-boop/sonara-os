@@ -1,6 +1,6 @@
 # Lyric and Prompt Character Limits
 
-SONARA OSâ„¢ keeps lyrics and production direction separate.
+SONARA Oneâ„¢ keeps lyrics and production direction separate.
 
 ## Lyrics Section
 

@@ -9,7 +9,7 @@ import {
 } from "@/components/sonara/LaunchShell";
 
 const tutorialSteps = [
-  "Welcome to SONARA OS™",
+  "Welcome to SONARA One™",
   "Create your first music project",
   "Use SONARA Core™ for music as a whole",
   "Review Genre / Arrangement guidance",
@@ -30,7 +30,7 @@ export default function TutorialPage() {
   return (
     <PageShell
       eyebrow="Tutorial"
-      title="Learn the browser-first SONARA OS™ workflow."
+      title="Learn the browser-first SONARA One™ workflow."
       subtitle="A simple path from first idea to structured lyrics, arrangement notes, rights-aware assets, and export-ready creative bundles."
       actions={
         <>
@@ -42,7 +42,7 @@ export default function TutorialPage() {
       }
     >
       <Notice>
-        Use SONARA OS™ from your browser. No desktop install required for the
+        Use SONARA One™ from your browser. No desktop install required for the
         core workflow. Founder/developer tools are separate from normal user
         access.
       </Notice>
@@ -55,7 +55,7 @@ export default function TutorialPage() {
             style={{ width: "100%", borderRadius: "18px" }}
           />
         ) : (
-          "SONARA OS™ video walkthrough coming soon."
+          "SONARA One™ video walkthrough coming soon."
         )}
       </Notice>
 

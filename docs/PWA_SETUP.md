@@ -1,6 +1,6 @@
 # PWA Setup
 
-SONARA OS includes install-prep assets and a manifest.
+SONARA One includes install-prep assets and a manifest.
 
 ## Files
 

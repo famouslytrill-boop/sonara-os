@@ -2,11 +2,11 @@ import { SiteHeader } from "../../components/site-header";
 
 export default function TermsPage() {
   const terms = [
-    "SONARA Industries owns shared standards and infrastructure; TrackFoundry, LineReady, and NoticeGrid remain independent products.",
+    "SONARA Industries owns shared standards and infrastructure; Creator Studio, Business Builder, and Growth Studio remain independent products.",
     "The software provides workflow intelligence, drafts, scoring, and operating guidance. It does not guarantee legal, copyright, financial, labor, civic, or business outcomes.",
-    "TrackFoundry users remain responsible for rights clearance, splits, releases, and avoiding copyrighted imitation.",
-    "LineReady is not a payroll provider, POS processor, bank, insurer, or regulated payment processor.",
-    "NoticeGrid is not a government authority, voting system, emergency dispatch system, medical alert system, or law-enforcement platform.",
+    "Creator Studio users remain responsible for rights clearance, splits, releases, and avoiding copyrighted imitation.",
+    "Business Builder is not a payroll provider, POS processor, bank, insurer, or regulated payment processor.",
+    "Growth Studio is not a government authority, voting system, emergency dispatch system, medical alert system, or law-enforcement platform.",
     "Risky actions such as public notices, public links, mass notifications, billing changes, role escalation, user deletion, and public-facing generated claims require approval.",
   ];
 
@@ -18,7 +18,7 @@ export default function TermsPage() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Terms</p>
           <h1 className="mt-3 text-4xl font-black">Use the system with human judgment.</h1>
           <p className="mt-3 leading-7 text-slate-300">
-            These launch terms are placeholders for review by counsel before paid customers or public NoticeGrid workflows go live.
+            These launch terms are placeholders for review by counsel before paid customers or public Growth Studio workflows go live.
           </p>
         </section>
         <section className="grid gap-3">

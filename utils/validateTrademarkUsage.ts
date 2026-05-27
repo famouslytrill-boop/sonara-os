@@ -3,7 +3,7 @@ const registeredSymbol = String.fromCharCode(174);
 const restrictedRegisteredMarks = [
   `SONARA Industries${registeredSymbol}`,
   `SONARA Records${registeredSymbol}`,
-  `SONARA OS${registeredSymbol}`,
+  `SONARA One${registeredSymbol}`,
   `SONARA Vault${registeredSymbol}`,
   `SONARA Engine${registeredSymbol}`,
   `SONARA Exchange${registeredSymbol}`,
@@ -27,7 +27,7 @@ export function replaceRestrictedTrademarkSymbols(text: string) {
   return text
     .replaceAll(`SONARA Industries${registeredSymbol}`, "SONARA Industries™")
     .replaceAll(`SONARA Records${registeredSymbol}`, "SONARA Records™")
-    .replaceAll(`SONARA OS${registeredSymbol}`, "SONARA OS™")
+    .replaceAll(`SONARA One${registeredSymbol}`, "SONARA One™")
     .replaceAll(`SONARA Vault${registeredSymbol}`, "SONARA Vault™")
     .replaceAll(`SONARA Engine${registeredSymbol}`, "SONARA Engine™")
     .replaceAll(`SONARA Exchange${registeredSymbol}`, "SONARA Exchange™")

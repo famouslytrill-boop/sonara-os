@@ -1,6 +1,6 @@
 # CODEX MASTER PROMPT
 
-You are working inside the SONARA OS codebase.
+You are working inside the SONARA One codebase.
 
 ## Product Identity
 

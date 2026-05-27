@@ -42,7 +42,7 @@ export function WebsitesPage() {
       <BrandHero
         eyebrow="House of brands"
         title="Independent products with shared infrastructure."
-        description="TrackFoundry, LineReady, and NoticeGrid each serve a different market, with security, billing, research, and operating standards owned by SONARA Industries."
+        description="Business Builder, Creator Studio, and Growth Studio each serve a focused operating workflow, with security, billing, research, and governance standards owned by SONARA Industries."
       />
       <section className="grid gap-4 lg:grid-cols-3">
         {brandList.map((brand) => (

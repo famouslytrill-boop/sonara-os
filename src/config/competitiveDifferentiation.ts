@@ -13,7 +13,7 @@ export const competitiveDifferentiation = {
   ],
 
   corePromise:
-    "SONARA OS™ helps creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready creative bundles.",
+    "SONARA One™ helps creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready creative bundles.",
 
   uniqueWorkflow: [
     "idea",

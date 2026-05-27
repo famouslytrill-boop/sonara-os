@@ -83,12 +83,12 @@ export function getSessionCookieName(entitySlug: string) {
   switch (entitySlug) {
     case "parent-company":
       return "sonara_admin_session";
-    case "creator-music-technology":
-      return "sonara_trackfoundry_session";
-    case "business-operations":
-      return "sonara_lineready_session";
-    case "community-public-information":
-      return "sonara_noticegrid_session";
+    case "business-builder":
+      return "sonara_business_builder_session";
+    case "creator-studio":
+      return "sonara_creator_studio_session";
+    case "growth-studio":
+      return "sonara_growth_studio_session";
     default:
       return "sonara_entity_session";
   }

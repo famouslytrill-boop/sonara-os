@@ -115,12 +115,12 @@ export async function POST(request: Request) {
       cancel_url: `${config.appUrl}/pricing?checkout=cancelled`,
       metadata: {
         tier: body.tier,
-        product: "SONARA OS",
+        product: "SONARA One",
       },
       subscription_data: {
         metadata: {
           tier: body.tier,
-          product: "SONARA OS",
+          product: "SONARA One",
         },
       },
       allow_promotion_codes: false,

@@ -1,6 +1,6 @@
 # Database Infrastructure
 
-SONARA OS uses Supabase-managed PostgreSQL as the production database. The app should not introduce a second primary database for production persistence.
+SONARA One uses Supabase-managed PostgreSQL as the production database. The app should not introduce a second primary database for production persistence.
 
 ## Production Shape
 

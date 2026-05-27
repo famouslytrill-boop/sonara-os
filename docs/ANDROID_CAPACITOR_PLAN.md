@@ -1,6 +1,6 @@
 # Android Capacitor Plan
 
-SONARA OS should ship as a PWA first. Add Capacitor only after the web launch is stable.
+SONARA One should ship as a PWA first. Add Capacitor only after the web launch is stable.
 
 ## Recommended Sequence
 

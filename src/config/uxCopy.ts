@@ -23,12 +23,12 @@ export const uxCopy = {
     setupRequired: "Setup is required before this feature can go live.",
     comingSoon: "This module is wired into the app but still under development.",
     noGuarantees:
-      "SONARA OS™ helps organize and prepare creative work. It does not guarantee streams, royalties, chart placement, or distribution approval.",
+      "SONARA One™ helps organize and prepare creative work. It does not guarantee streams, royalties, chart placement, or distribution approval.",
   },
 
   globalHelp: {
     whatIsSonara:
-      "SONARA OS™ is a creator operating system for songs, lyrics, sound assets, release planning, rights checks, and export-ready creative bundles.",
+      "SONARA One™ is a creator operating system for songs, lyrics, sound assets, release planning, rights checks, and export-ready creative bundles.",
     whatIsCreate:
       "Create helps you turn an idea into structured lyrics, style prompts, arrangement notes, and export-ready project files.",
     whatIsVault:

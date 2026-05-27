@@ -1,34 +1,14 @@
-export type PricingTierId = string;
-
-export type StoreProductId =
-  | "prompt_pack_export"
-  | "release_readiness_bundle"
-  | "metadata_rights_sheet_export"
-  | "full_project_bundle"
-  | "creator_brand_kit"
-  | "obs_broadcast_kit_export"
-  | "personal_vault_kit_export"
-  | "marketplace_listing_builder"
-  | "genre_pack_metadata_bundle"
-  | "vault_stack_export";
+export type PricingTierId = "free" | "starter" | "core" | "growth" | "pro" | "agency";
 
 export type PricingTier = {
   id: PricingTierId;
-  productName: "TrackFoundry" | "LineReady" | "NoticeGrid";
+  productName: "SONARA One";
   name: string;
-  monthlyPrice: number;
-  yearlyPrice?: number;
+  monthlyPrice: number | null;
+  priceLabel: string;
   description: string;
   features: string[];
   stripePriceIdEnvMonthly?: string;
-  stripePriceIdEnvYearly?: string;
-};
-
-export type StoreProduct = {
-  id: StoreProductId;
-  name: string;
-  description: string;
-  status: "coming_soon" | "checkout_ready";
 };
 
 export type FuturePricingTier = {
@@ -38,164 +18,122 @@ export type FuturePricingTier = {
   status: "contact_us" | "future";
 };
 
+export type StoreProductId = "profile_setup" | "business_launch_setup" | "premium_setup" | "launch_documents";
+
+export type StoreProduct = {
+  id: StoreProductId;
+  name: string;
+  description: string;
+  status: "checkout_ready" | "setup_required" | "coming_soon";
+};
+
 export const pricingTiers: PricingTier[] = [
   {
-    id: "trackfoundry_starter",
-    productName: "TrackFoundry",
-    name: "Starter",
-    monthlyPrice: 19,
-    description: "For independent creators building repeatable song, prompt, and release-readiness workflows.",
-    features: ["Artist DNA starter", "Catalog Vault basics", "Release Desk checklist", "Prompt Foundry exports"],
-    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_STARTER_PRICE_ID",
-  },
-  {
-    id: "trackfoundry_studio",
-    productName: "TrackFoundry",
-    name: "Studio",
-    monthlyPrice: 49,
-    description: "For studios, managers, and teams organizing releases, assets, transcripts, and market notes.",
-    features: ["Artist DNA", "Catalog Vault", "Transcript Studio", "Market Pulse", "Team workflow"],
-    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_STUDIO_PRICE_ID",
-  },
-  {
-    id: "trackfoundry_label",
-    productName: "TrackFoundry",
-    name: "Label",
-    monthlyPrice: 149,
-    description: "For labels and release teams managing multiple artists, campaign assets, and approval checkpoints.",
-    features: ["Multi-artist release desk", "Campaign assets", "Rights placeholders", "Review workflow", "Approval queue"],
-    stripePriceIdEnvMonthly: "STRIPE_TRACKFOUNDRY_LABEL_PRICE_ID",
-  },
-  {
-    id: "lineready_single_store",
-    productName: "LineReady",
-    name: "Single Store",
-    monthlyPrice: 39,
-    description: "For one restaurant, truck, or hospitality team that needs shift and cost clarity.",
-    features: ["Labor Control", "Schedule Grid", "Recipe Costing", "Vendor Links", "Compliance Board"],
-    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_SINGLE_STORE_PRICE_ID",
-  },
-  {
-    id: "lineready_operator",
-    productName: "LineReady",
-    name: "Operator",
-    monthlyPrice: 89,
-    description: "For hands-on operators coordinating schedules, menus, margins, vendors, and crew notes.",
-    features: ["Shift placement", "Menu margin", "Crew Chat", "Repairs and servicing", "Forecast notes"],
-    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_OPERATOR_PRICE_ID",
-  },
-  {
-    id: "lineready_group",
-    productName: "LineReady",
-    name: "Group",
-    monthlyPrice: 199,
-    description: "For growing restaurant groups that need shared standards across locations.",
-    features: ["Multi-location workflow", "Role-based operations", "Transfer tracking", "Permit and certification tracking"],
-    stripePriceIdEnvMonthly: "STRIPE_LINEREADY_GROUP_PRICE_ID",
-  },
-  {
-    id: "noticegrid_community",
-    productName: "NoticeGrid",
-    name: "Community",
+    id: "free",
+    productName: "SONARA One",
+    name: "Free",
     monthlyPrice: 0,
-    description: "For residents and small community pages following verified public information without the noise.",
-    features: ["Verified Feeds", "Quiet Alerting", "Public information basics", "Source trust notes"],
+    priceLabel: "$0",
+    description: "For early setup, product exploration, and basic launch planning.",
+    features: ["Product path selection", "Setup checklist", "Public page previews", "Setup-required billing state"],
   },
   {
-    id: "noticegrid_organization",
-    productName: "NoticeGrid",
-    name: "Organization",
+    id: "starter",
+    productName: "SONARA One",
+    name: "Starter",
+    monthlyPrice: 15,
+    priceLabel: "$9-$15/mo",
+    description: "For one operator getting a clean profile, offers, records, and basic proof online.",
+    features: ["Business or creator profile", "Payment and booking link records", "Basic customer records", "Trust checklist"],
+    stripePriceIdEnvMonthly: "STRIPE_PRICE_STARTER",
+  },
+  {
+    id: "core",
+    productName: "SONARA One",
+    name: "Core",
     monthlyPrice: 29,
-    description: "For libraries, nonprofits, local businesses, schools, and organizations publishing approved notices.",
-    features: ["Notice Builder", "Organization Pages", "Approval queue", "QR-ready public links"],
-    stripePriceIdEnvMonthly: "STRIPE_NOTICEGRID_ORGANIZATION_PRICE_ID",
+    priceLabel: "Around $29/mo",
+    description: "For a working small business or creator workspace with daily operating records.",
+    features: ["Files & Records", "Offer builder", "Review request drafts", "Launch readiness warnings"],
+    stripePriceIdEnvMonthly: "STRIPE_PRICE_CORE",
   },
   {
-    id: "noticegrid_municipal",
-    productName: "NoticeGrid",
-    name: "Municipal",
-    monthlyPrice: 149,
-    description: "For civic-style teams that need source checks, digest workflows, and human-approved public notices.",
-    features: ["Local Grid", "Source checks", "Digest preferences", "Weather + transit links", "Human approval gates"],
-    stripePriceIdEnvMonthly: "STRIPE_NOTICEGRID_MUNICIPAL_PRICE_ID",
+    id: "growth",
+    productName: "SONARA One",
+    name: "Growth",
+    monthlyPrice: 59,
+    priceLabel: "$49-$59/mo",
+    description: "For campaign planning, customer follow-up, reviews, referrals, and growth systems.",
+    features: ["Growth Studio access", "Campaign drafts", "Referral builder", "Recommendation transparency"],
+    stripePriceIdEnvMonthly: "STRIPE_PRICE_GROWTH",
+  },
+  {
+    id: "pro",
+    productName: "SONARA One",
+    name: "Pro",
+    monthlyPrice: 99,
+    priceLabel: "$79-$99/mo",
+    description: "For teams that need stronger admin, approval, security, and operating controls.",
+    features: ["Owner approval queue", "Audit-ready workflows", "Advanced setup checks", "Priority support path"],
+    stripePriceIdEnvMonthly: "STRIPE_PRICE_PRO",
+  },
+  {
+    id: "agency",
+    productName: "SONARA One",
+    name: "Agency/Scale",
+    monthlyPrice: 199,
+    priceLabel: "$149-$199/mo or custom",
+    description: "For agencies and operators managing multiple workspaces after review.",
+    features: ["Multi-workspace planning", "Admin controls", "Client setup workflows", "Custom onboarding review"],
+    stripePriceIdEnvMonthly: "STRIPE_PRICE_AGENCY",
   },
 ];
 
+export const setupServices = [
+  { name: "Profile Setup", price: "$99", env: "STRIPE_PRICE_SETUP_99" },
+  { name: "Business Launch Setup", price: "$299", env: "STRIPE_PRICE_SETUP_299" },
+  { name: "Premium Setup", price: "$499+", env: "STRIPE_PRICE_SETUP_499" },
+] as const;
+
 export const storeProducts: StoreProduct[] = [
   {
-    id: "prompt_pack_export",
-    name: "Prompt Pack Export",
-    description: "A structured prompt pack export for repeatable creator workflows.",
-    status: "coming_soon",
+    id: "profile_setup",
+    name: "Profile Setup",
+    description: "One-time setup help for a clean Business Builder, Creator Studio, or Growth Studio profile.",
+    status: "setup_required",
   },
   {
-    id: "release_readiness_bundle",
-    name: "Release Readiness Bundle",
-    description: "A launch-prep bundle with readiness notes, release plan, and checklist.",
-    status: "coming_soon",
+    id: "business_launch_setup",
+    name: "Business Launch Setup",
+    description: "A guided setup bundle for profile, payment link, booking link, offer, and review readiness.",
+    status: "setup_required",
   },
   {
-    id: "metadata_rights_sheet_export",
-    name: "Metadata + Rights Sheet Export",
-    description: "Release metadata, explicitness label, attribution requirements, and rights notes.",
-    status: "coming_soon",
+    id: "premium_setup",
+    name: "Premium Setup",
+    description: "Higher-touch setup for operators who need launch structure, trust checks, and handoff notes.",
+    status: "setup_required",
   },
   {
-    id: "full_project_bundle",
-    name: "Full Project Bundle",
-    description: "Fingerprint, release plan, runtime target, prompts, and export manifest.",
-    status: "coming_soon",
-  },
-  {
-    id: "creator_brand_kit",
-    name: "Creator Brand Kit",
-    description: "A brand-planning kit for artist identity, content direction, and launch assets.",
-    status: "coming_soon",
-  },
-  {
-    id: "obs_broadcast_kit_export",
-    name: "OBS Broadcast Kit Export",
-    description: "OBS-ready broadcast plan, scenes, routing notes, overlays, and premiere checklist.",
-    status: "coming_soon",
-  },
-  {
-    id: "personal_vault_kit_export",
-    name: "Personal Vault Kit Export",
-    description: "Organize, classify, verify, and export user-owned or rights-cleared Vault assets.",
-    status: "coming_soon",
-  },
-  {
-    id: "marketplace_listing_builder",
-    name: "Marketplace Listing Builder",
-    description: "Structured listing copy and readiness checks for creator digital assets. Public marketplace launch is delayed.",
-    status: "coming_soon",
-  },
-  {
-    id: "genre_pack_metadata_bundle",
-    name: "Genre Pack Metadata Bundle",
-    description: "All-genre metadata templates and rights-safe packaging notes without third-party file resale.",
-    status: "coming_soon",
-  },
-  {
-    id: "vault_stack_export",
-    name: "Vault Stack Export",
-    description: "A personal Vault stack manifest with rights classifications, included files, and support notes.",
+    id: "launch_documents",
+    name: "Launch Documents",
+    description: "Template-based operational documents and checklists prepared for owner review.",
     status: "coming_soon",
   },
 ];
 
 export const futurePricingTiers: FuturePricingTier[] = [
   {
-    name: "Shared Infrastructure Add-ons",
+    name: "Agency Mode",
     priceLabel: "Future",
-    description: "Future cross-product support for managed onboarding, observability, storage, and custom operating workflows.",
+    description: "Expanded agency dashboards and client workspaces after billing, legal, and support review.",
     status: "future",
   },
   {
-    name: "Enterprise Standards Review",
-    priceLabel: "Contact us",
-    description: "Future security, compliance, deployment, and data-boundary planning for larger organizations.",
-    status: "contact_us",
+    name: "Provider Pass-through",
+    priceLabel: "Usage-based if enabled",
+    description: "SMS, email, AI, storage, or provider costs may be passed through only when clearly disclosed.",
+    status: "future",
   },
 ];
 
@@ -208,7 +146,7 @@ export function getStripeMonthlyPriceEnv(tier: PricingTier) {
 }
 
 export function isPaidTier(tier: PricingTier) {
-  return tier.monthlyPrice > 0;
+  return (tier.monthlyPrice ?? 0) > 0;
 }
 
 export function areStripeSubscriptionsConfigured() {

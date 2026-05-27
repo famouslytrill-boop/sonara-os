@@ -1,5 +1,5 @@
 export const securityConfig = {
-  appName: "SONARA OS™",
+  appName: "SONARA One™",
 
   protectedServerOnlyFeatures: [
     "stripe_checkout",

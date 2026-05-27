@@ -1,6 +1,6 @@
 # PWA Cloud-First Plan
 
-SONARA OSâ„¢ is browser-first and PWA-ready.
+SONARA Oneâ„¢ is browser-first and PWA-ready.
 
 Implemented:
 

@@ -3,9 +3,9 @@ import { SiteHeader } from "../../components/site-header";
 export default function PrivacyPage() {
   const items = [
     "Account, organization, membership, and product-scope data may be stored when auth is connected.",
-    "TrackFoundry can store artist profiles, tracks, transcripts, release notes, prompt exports, rights placeholders, and media metadata.",
-    "LineReady can store employee scheduling, job titles, recipe costs, vendor links, compliance records, and operational notes.",
-    "NoticeGrid can store organization pages, feed sources, notices, events, digest preferences, source checks, and suggestion-box items.",
+    "Creator Studio can store artist profiles, tracks, transcripts, release notes, prompt exports, rights placeholders, and media metadata.",
+    "Business Builder can store employee scheduling, job titles, recipe costs, vendor links, compliance records, and operational notes.",
+    "Growth Studio can store organization pages, feed sources, notices, events, digest preferences, source checks, and suggestion-box items.",
     "Optional provider keys are controlled by the organization and must stay server-side.",
     "Public content should be reviewed before publication; generated drafts remain drafts until approved.",
   ];

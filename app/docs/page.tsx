@@ -21,7 +21,7 @@ const docs = [
   },
   {
     title: "Product Overview",
-    body: "TrackFoundry, LineReady, and NoticeGrid each stand independently under SONARA Industries.",
+    body: "Business Builder, Creator Studio, and Growth Studio share infrastructure under SONARA Industries.",
     href: "/",
   },
 ];

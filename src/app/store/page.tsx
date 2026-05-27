@@ -24,12 +24,12 @@ export default function StorePage() {
     <PageShell
       eyebrow="Store"
       title="SONARA Store"
-      subtitle="Subscriptions, export tools, and future marketplace boundaries for music creators using SONARA OS™."
+      subtitle="Subscriptions, export tools, and future marketplace boundaries for music creators using SONARA One™."
       actions={
         <>
           <ButtonLink href="/pricing">View Pricing</ButtonLink>
           <ButtonLink href="/dashboard" variant="secondary">
-            Open SONARA OS™
+            Open SONARA One™
           </ButtonLink>
         </>
       }

@@ -1,6 +1,6 @@
 # Mobile PWA Integration
 
-SONARA OSâ„¢ ships web/PWA first.
+SONARA Oneâ„¢ ships web/PWA first.
 
 Required files:
 
@@ -23,7 +23,7 @@ Required files:
 
 Manifest requirements:
 
-- name: SONARA OSâ„¢
+- name: SONARA Oneâ„¢
 - short_name: SONARA
 - display: standalone
 - start_url: `/dashboard`

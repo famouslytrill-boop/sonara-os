@@ -1,8 +1,8 @@
-# SONARA OSâ„¢ Software Requirements Matrix
+# SONARA Oneâ„¢ Software Requirements Matrix
 
-SONARA OSâ„¢ should stay lightweight, launchable, and honest. This matrix separates what is required now from cloud setup, optional future tools, and software that should not be installed for launch.
+SONARA Oneâ„¢ should stay lightweight, launchable, and honest. This matrix separates what is required now from cloud setup, optional future tools, and software that should not be installed for launch.
 
-Normal users should not need to download developer software. They use SONARA OSâ„¢ from the browser or PWA. Required-now tools are for founder/developer setup, local testing, deployment, and maintenance.
+Normal users should not need to download developer software. They use SONARA Oneâ„¢ from the browser or PWA. Required-now tools are for founder/developer setup, local testing, deployment, and maintenance.
 
 ## A. Required Now
 
@@ -16,7 +16,7 @@ These tools are needed to run, build, deploy, or test the current Next.js app.
 | Vercel CLI | Links and deploys the project, manages Vercel environments if needed. | Optional local CLI; cloud dashboard can also be used. | Yes for CLI deploy flow, no for dashboard deploy flow. | Medium because it can alter deployments/envs. | Login and link project manually. | `npm install -g vercel` |
 | Stripe CLI | Tests Stripe webhooks locally and forwards events. | Optional local CLI. | Yes for local webhook testing, no for static build. | Medium because wrong account/mode can cause confusion. | Login to Stripe CLI; use test mode first. | [stripe.com/docs/stripe-cli](https://stripe.com/docs/stripe-cli) |
 | Supabase CLI | Runs local migrations and database checks when Supabase is used. | Optional local CLI. | Yes if applying migrations locally. | Medium because migrations alter schemas. | Login/link project and review migrations before apply. | [supabase.com/docs/guides/cli](https://supabase.com/docs/guides/cli) |
-| Git | Connects local folder to `famouslytrill-boop/sonara-os`. | Not currently initialized in this folder. | Yes for source control/push flow. | Medium if initialized in the wrong directory. | Initialize only inside `C:\SignalOS\signal-os` if needed. | `git --version` |
+| Git | Connects local folder to `famouslytrill-boop/sonara-os`. | Not currently initialized in this folder. | Yes for source control/push flow. | Medium if initialized in the wrong directory. | Initialize only inside `C:\SignalOS\sonara-one` if needed. | `git --version` |
 | VS Code or equivalent editor | Safe code review, search, and manual launch edits. | User choice. | No, but recommended. | Low. | Install preferred editor. | [code.visualstudio.com](https://code.visualstudio.com/) |
 
 ## B. Required Cloud Services

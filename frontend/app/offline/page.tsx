@@ -9,7 +9,7 @@ export default function OfflinePage() {
           <p className="text-xs font-black uppercase tracking-[0.2em] text-cyan-300">Offline</p>
           <h1 className="mt-3 text-4xl font-black">SONARA Industries is offline.</h1>
           <p className="mt-3 max-w-3xl leading-7 text-slate-300">
-            Reconnect to open TrackFoundry, LineReady, NoticeGrid, pricing, security, and research pages.
+            Reconnect to open Creator Studio, Business Builder, Growth Studio, pricing, security, and research pages.
           </p>
         </section>
       </main>

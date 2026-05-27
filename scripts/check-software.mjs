@@ -69,7 +69,7 @@ const tools = [
 
 let missingRequired = 0;
 
-console.log("SONARA OS software check");
+console.log("SONARA One software check");
 console.log("No software will be installed by this script.\n");
 
 for (const tool of tools) {

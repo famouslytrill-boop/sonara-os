@@ -30,7 +30,7 @@ export function ProductNav() {
     <nav className="sticky top-0 z-40 border-b border-[#332A40] bg-[#08070B]/95 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/dashboard" className="font-black tracking-wide text-[#F9FAFB]">
-          SONARA OS™
+          SONARA One™
         </Link>
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
           <div className="grid w-full min-w-0 grid-cols-5 gap-1 rounded-lg border border-[#332A40] bg-[#121018] p-1 sm:w-auto">

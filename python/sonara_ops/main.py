@@ -9,14 +9,14 @@ from sonara_ops.healthcheck import run_health_checks
 from sonara_ops.migrations import schema_report
 from sonara_ops.stripe_audit import stripe_audit_summary
 
-app = typer.Typer(help="SONARA OS local and CI operations tooling.")
+app = typer.Typer(help="SONARA One local and CI operations tooling.")
 console = Console()
 
 
 @app.command()
 def health() -> None:
     """Run database and migration health checks without printing secrets."""
-    table = Table(title="SONARA OS Database Health")
+    table = Table(title="SONARA One Database Health")
     table.add_column("Check")
     table.add_column("Status")
     table.add_column("Message")

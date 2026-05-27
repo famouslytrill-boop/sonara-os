@@ -2,67 +2,60 @@ export const brandSystem = {
   parentCompany: {
     name: "SONARA Industries™",
     shortName: "SONARA",
-    type: "Music Technology Company",
-    slogan: "Build the sound. Own the system.",
-    premiumSlogan: "The creator infrastructure for modern music.",
-    streetSlogan: "From sound to system. From idea to release.",
+    type: "Technology Holding Company",
+    slogan: "Build. Create. Grow.",
+    premiumSlogan: "Independent systems. Shared infrastructure. Stronger markets.",
+    streetSlogan: "Build. Prove. Get paid. Grow.",
     description:
-      "SONARA Industries™ is a music technology company building creator infrastructure through records, software, sound systems, artist workflows, and release tools.",
+      "SONARA Industries™ owns the shared infrastructure behind Business Builder, Creator Studio, and Growth Studio.",
   },
   divisions: {
     records: {
-      name: "SONARA Records™",
-      route: "/records",
-      type: "Record Label Division",
-      description:
-        "SONARA Records™ is the music division of SONARA Industries™, focused on original releases, artist development, cinematic branding, and modern sound design.",
+      name: "Files & Records™",
+      route: "/app/files",
+      type: "Shared Infrastructure",
+      description: "Files & Records organizes operational documents, asset records, customer records, and launch materials.",
     },
     os: {
-      name: "SONARA OS™",
-      route: "/dashboard",
-      type: "Creator Operating System",
-      description:
-        "SONARA OS™ is a creator operating system for building songs, prompts, sounds, visuals, release plans, and music brand workflows from one organized platform.",
+      name: "SONARA One™",
+      route: "/app",
+      type: "Shared App Platform",
+      description: "SONARA One™ connects Business Builder, Creator Studio, and Growth Studio through shared infrastructure.",
     },
     core: {
-      name: "SONARA Core™",
-      route: "/create",
-      type: "All-Genre Music Operating Base",
-      description:
-        "SONARA Core™ reads genre, rhythm, harmony, drums, vocals, sound identity, runtime, and release goals into a clear system for modern music creators.",
+      name: "Business Builder™",
+      route: "/business-builder",
+      type: "Business Operations Product",
+      description: "Business Builder™ helps users create, launch, run, and manage a business with guided systems.",
     },
     vault: {
-      name: "SONARA Vault™",
-      route: "/vault",
-      type: "Sound Library and Asset System",
-      description:
-        "SONARA Vault™ organizes, classifies, verifies, packages, and exports user-owned or rights-cleared sounds, MIDI, presets, templates, and production assets.",
+      name: "Creator Studio™",
+      route: "/creator-studio",
+      type: "Creator Operations Product",
+      description: "Creator Studio™ helps users organize, protect, publish, monetize, and grow creative work.",
     },
     engine: {
-      name: "SONARA Engine™",
-      route: "/engine",
-      type: "Creative Intelligence and Automation System",
-      description:
-        "SONARA Engine™ powers the creative intelligence behind SONARA OS™, analyzing rhythm, harmony, emotion, genre, vocals, sound design, and release strategy.",
+      name: "Growth Studio™",
+      route: "/growth-studio",
+      type: "Growth Systems Product",
+      description: "Growth Studio™ helps users prepare campaigns, follow-up, offers, reviews, referrals, and recommendations.",
     },
     exchange: {
-      name: "SONARA Exchange™",
-      route: "/exchange",
-      type: "Future Marketplace and Licensing Platform",
-      description:
-        "SONARA Exchange™ is delayed for launch and requires seller onboarding, rights verification, payout compliance, moderation, marketplace terms, and support policy before public kit sales.",
+      name: "Proof-to-Payment™",
+      route: "/trust",
+      type: "Shared Trust Infrastructure",
+      description: "Proof-to-Payment™ keeps payment paths, proof, reviews, and claims visible without taking custody of funds.",
     },
     labs: {
-      name: "SONARA Labs™",
-      route: "/labs",
-      type: "Research and Development Division",
-      description:
-        "SONARA Labs™ is the research and development division of SONARA Industries™, focused on music technology, creator automation, sonic tools, and future-facing product systems.",
+      name: "Research Lab™",
+      route: "/trust",
+      type: "Shared Research Infrastructure",
+      description: "Research Lab™ supports explainable recommendations, market notes, and launch-readiness review.",
     },
   },
   legal: {
     footer:
-      "SONARA Industries™, SONARA Records™, SONARA OS™, SONARA Core™, SONARA Vault™, SONARA Engine™, SONARA Exchange™, and SONARA Labs™ are trademarks of SONARA Industries. All rights reserved.",
+      "SONARA Industries™, SONARA One™, Business Builder™, Creator Studio™, Growth Studio™, Trust Shield™, Proof-to-Payment™, and Research Lab™ are claimed trademarks of SONARA Industries. All rights reserved.",
     trademarkNotice:
       "All SONARA brand names marked with ™ are claimed trademarks of SONARA Industries. Do not use the registered trademark symbol unless the mark has been officially registered.",
     allowedSymbol: "™",
@@ -70,41 +63,39 @@ export const brandSystem = {
   },
   publicCopy: {
     homepageHeroTitle: "SONARA Industries™",
-    homepageHeroSubtitle: "The creator infrastructure for modern music.",
+    homepageHeroSubtitle: "Independent systems. Shared infrastructure. Stronger markets.",
     homepageHeroBody:
-      "Build songs, release music, design sounds, organize artist systems, and power your creative business from one platform.",
+      "SONARA Industries powers Business Builder, Creator Studio, and Growth Studio through shared infrastructure engineered for trust, speed, and scale.",
     appStoreShort:
-      "SONARA OS™ helps creators build songs, sounds, prompts, release plans, and music brands from one organized workspace.",
+      "SONARA One™ connects business, creator, and growth workflows from one shared app platform.",
     appStoreLong:
-      "SONARA OS™ is the creator operating system from SONARA Industries™, built for artists, producers, labels, and music entrepreneurs. Create songs, organize rights-aware Vault assets, structure lyrics, build release plans, manage creative assets, and develop music brands inside one streamlined platform.",
+      "SONARA One™ is the app platform from SONARA Industries™, built for Business Builder, Creator Studio, and Growth Studio workflows with shared infrastructure, approval gates, and launch-readiness systems.",
   },
   productTiers: [
     {
-      name: "SONARA OS™ Free",
-      features: ["Basic song prompt builder", "Basic lyric workspace", "Artist profile starter", "Limited release planner", "Basic brand kit"],
+      name: "Free",
+      features: ["Product path selection", "Setup checklist", "Public page previews", "Setup-required billing state"],
     },
     {
-      name: "SONARA OS™ Creator",
-      features: ["Advanced song prompt system", "SONARA Engine™ analysis", "Genre and emotion mapping", "Album planning", "Export tools", "Vault organizer"],
+      name: "Starter",
+      features: ["Business or creator profile", "Payment and booking link records", "Basic customer records", "Trust checklist"],
     },
     {
-      name: "SONARA OS™ Pro",
-      features: ["Full SONARA Engine™ access", "SONARA Vault™ management", "Store readiness tools", "Artist ecosystem builder", "Release campaign planner", "PDF and metadata exports", "Commercial creator workflows"],
+      name: "Core",
+      features: ["Files & Records", "Offer builder", "Review request drafts", "Launch readiness warnings"],
     },
     {
-      name: "SONARA OS™ Label",
-      features: ["Multi-artist management", "Catalog planning", "Release pipeline", "Brand governance", "Team workspace", "Advanced analytics", "SONARA Exchange™ planning"],
+      name: "Growth",
+      features: ["Growth Studio access", "Campaign drafts", "Referral builder", "Recommendation transparency"],
     },
   ],
 } as const;
 
 export const ecosystemNavItems = [
-  { label: "SONARA OS™", route: "/dashboard", description: "Main creator operating system" },
-  { label: "SONARA Records™", route: "/records", description: "Artist releases, albums, singles, catalog planning" },
-  { label: "SONARA Core™", route: "/create", description: "All-genre idea-to-arrangement operating base" },
-  { label: "SONARA Vault™", route: "/vault", description: "Organize, classify, verify, package, and export rights-cleared assets" },
-  { label: "SONARA Engine™", route: "/engine", description: "Prompt generation, music analysis, automation" },
-  { label: "SONARA Exchange™", route: "/exchange", description: "Future marketplace and licensing platform after rights/payout readiness" },
-  { label: "SONARA Labs™", route: "/labs", description: "Research, experiments, testing, product innovation" },
-  { label: "Brand System™", route: "/brand-system", description: "Trademark, legal, and brand identity control" },
+  { label: "SONARA One™", route: "/app", description: "Shared app platform" },
+  { label: "Business Builder™", route: "/business-builder", description: "Business setup and operations" },
+  { label: "Creator Studio™", route: "/creator-studio", description: "Creator assets, rights, launches, and offers" },
+  { label: "Growth Studio™", route: "/growth-studio", description: "Campaigns, reviews, referrals, and next best actions" },
+  { label: "Trust Shield™", route: "/trust", description: "Security, safety, and approval posture" },
+  { label: "Pricing", route: "/pricing", description: "Plans and setup services" },
 ] as const;

@@ -1,6 +1,6 @@
 # Python Ops Layer
 
-The `python/` folder contains local and CI operations tooling for SONARA OS.
+The `python/` folder contains local and CI operations tooling for SONARA One.
 
 Python is not embedded as a long-running server inside the Vercel Next.js app. Production runtime remains:
 

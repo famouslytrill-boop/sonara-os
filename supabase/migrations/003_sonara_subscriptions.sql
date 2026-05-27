@@ -52,7 +52,7 @@ create index if not exists sonara_user_subscriptions_tier_idx
 alter table public.sonara_user_subscriptions enable row level security;
 
 comment on table public.sonara_user_subscriptions is
-  'Stores Stripe subscription state for SONARA OS. Updates should be performed from server-only code using Supabase service role after Stripe webhook verification. Apply this manually in the Supabase SQL Editor if the Supabase CLI is not connected.';
+  'Stores Stripe subscription state for SONARA One. Updates should be performed from server-only code using Supabase service role after Stripe webhook verification. Apply this manually in the Supabase SQL Editor if the Supabase CLI is not connected.';
 
 comment on column public.sonara_user_subscriptions.stripe_subscription_id is
   'Stable Stripe subscription key used for idempotent webhook upserts.';

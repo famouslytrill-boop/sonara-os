@@ -13,19 +13,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   applicationName: "SONARA Industries",
   title: {
-    default: "SONARA Industries | Independent Systems",
+    default: "SONARA Industries",
     template: "%s | SONARA Industries",
   },
-  description:
-    "SONARA Industries owns independent software companies with shared security, billing, and infrastructure discipline.",
+  description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
   manifest: "/manifest.webmanifest",
   keywords: [
     "SONARA Industries",
-    "TrackFoundry",
-    "LineReady",
-    "NoticeGrid",
-    "software holding company",
-    "shared infrastructure",
+    "Business Builder",
+    "Creator Studio",
+    "Growth Studio",
+    "SONARA One",
+    "business software",
+    "creator software",
+    "growth software",
   ],
   alternates: {
     canonical: "/",
@@ -34,15 +35,15 @@ export const metadata: Metadata = {
     type: "website",
     url: siteUrl,
     siteName: "SONARA Industries",
-    title: "SONARA Industries | Independent Systems",
-    description:
-      "Independent systems. Shared infrastructure. Stronger markets.",
+    title: "SONARA Industries",
+    description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
+    images: ["/brand/sonara-og.svg"],
   },
   twitter: {
     card: "summary",
-    title: "SONARA Industries | Independent Systems",
-    description:
-      "Independent systems. Shared infrastructure. Stronger markets.",
+    title: "SONARA Industries",
+    description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
+    images: ["/brand/sonara-og.svg"],
   },
   appleWebApp: {
     capable: true,
@@ -50,8 +51,8 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    apple: "/icons/apple-touch-icon.png",
-    icon: "/icon.svg",
+    apple: "/brand/sonara-mark.svg",
+    icon: "/brand/sonara-mark.svg",
   },
 };
 

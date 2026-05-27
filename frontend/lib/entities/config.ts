@@ -78,8 +78,8 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "creator-music-technology",
-    name: "TrackFoundry",
-    shortName: "TrackFoundry",
+    name: "Creator Studio",
+    shortName: "Creator Studio",
     entityType: "creator_music_technology",
     tagline: "Build the artist. Shape the release.",
     description: "Music creation and release-readiness software.",
@@ -109,8 +109,8 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "business-operations",
-    name: "LineReady",
-    shortName: "LineReady",
+    name: "Business Builder",
+    shortName: "Business Builder",
     entityType: "business_operations",
     tagline: "Every shift ready.",
     description: "Restaurant operations and labor-control software.",
@@ -140,8 +140,8 @@ export const entityConfigs: EntityConfig[] = [
   },
   {
     slug: "community-public-information",
-    name: "NoticeGrid",
-    shortName: "NoticeGrid",
+    name: "Growth Studio",
+    shortName: "Growth Studio",
     entityType: "community_public_information",
     tagline: "Local updates without the noise.",
     description: "Verified local information and public-notice software.",

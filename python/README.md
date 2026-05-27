@@ -1,6 +1,6 @@
 # SONARA Ops Python Layer
 
-This package is for local, CI, and trusted operations workflows around the SONARA OS database and platform infrastructure.
+This package is for local, CI, and trusted operations workflows around the SONARA One database and platform infrastructure.
 
 It is not a long-running Python server inside the Vercel Next.js app. Production runtime remains Next.js + Vercel + Stripe + Supabase/PostgreSQL.
 

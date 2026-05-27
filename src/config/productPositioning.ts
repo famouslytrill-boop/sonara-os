@@ -2,12 +2,12 @@ export const productPositioning = {
   category: "Music creator operating system",
 
   primaryPositioning:
-    "SONARA OS™ is a creator operating system for music as a whole, built to help artists, songwriters, producers, bands, labels, engineers, managers, content creators, and music entrepreneurs organize songs, structure lyrics, shape arrangements, manage sound assets, prepare releases, and export project-ready creative bundles.",
+    "SONARA One™ is a creator operating system for music as a whole, built to help artists, songwriters, producers, bands, labels, engineers, managers, content creators, and music entrepreneurs organize songs, structure lyrics, shape arrangements, manage sound assets, prepare releases, and export project-ready creative bundles.",
 
   shortPositioning: "A creator operating system for music as a whole.",
 
   notJustAI:
-    "SONARA OS™ supports traditional music creators, AI-assisted creators, and hybrid workflows. It is not limited to AI music generation.",
+    "SONARA One™ supports traditional music creators, AI-assisted creators, and hybrid workflows. It is not limited to AI music generation.",
 
   whoItIsFor: [
     "songwriters",

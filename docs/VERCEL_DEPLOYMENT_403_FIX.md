@@ -14,4 +14,4 @@ If Vercel preview or production shows a 403 response, treat it as a deployment o
 6. Check middleware/auth logic if pages are still blocked after Deployment Protection is off.
 7. Redeploy after environment variable changes, preferably without build cache after payment env changes.
 
-SONARA OSâ„¢ public routes should stay public. Auth-protected creator workspace routes can be gated later after Supabase Auth is fully configured.
+SONARA Oneâ„¢ public routes should stay public. Auth-protected creator workspace routes can be gated later after Supabase Auth is fully configured.

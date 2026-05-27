@@ -1,13 +1,8 @@
 import type { CSSProperties } from "react";
 
-export type BrandSlug =
-  | "parent-company"
-  | "creator-music-technology"
-  | "business-operations"
-  | "community-public-information"
-  | "launchpad";
+export type BrandSlug = "parent-company" | "business-builder" | "creator-studio" | "growth-studio";
 
-export type BrandCategory = "parent" | "entity" | "standalone_product";
+export type BrandCategory = "parent" | "company_product";
 
 export type BrandEntity = {
   id: string;
@@ -30,106 +25,89 @@ export type BrandEntity = {
 };
 
 const legalNameWarning =
-  "SONARA Industries and its child-brand marks must be legally reviewed before final trademark use.";
+  "SONARA Industries and product marks must be legally reviewed before final trademark use.";
 
 export const DEFAULT_PARENT_BRAND: BrandEntity = {
   id: "brand_parent_sonara",
   slug: "parent-company",
   displayName: "SONARA Industries",
   legalNameWarning,
-  tagline: "Independent systems. Shared infrastructure. Stronger markets.",
-  description: "A technology holding company that owns independent software companies.",
+  tagline: "Build. Create. Grow.",
+  description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
   category: "parent",
-  primaryColor: "#00E5FF",
-  secondaryColor: "#008FA3",
-  accentColor: "#FFB020",
-  darkColor: "#0B0F14",
+  primaryColor: "#2DD4BF",
+  secondaryColor: "#4F46E5",
+  accentColor: "#FFB454",
+  darkColor: "#08111F",
   lightColor: "#FFFFFF",
-  iconConcept: "Shared infrastructure mark for independent software companies.",
-  positioning: "Parent holding company for shared infrastructure, governance, billing, and security.",
-  keywords: ["holding company", "shared infrastructure", "governance", "security"],
-  dashboardLabel: "Parent Company",
+  iconConcept: "Shared infrastructure mark for the SONARA One platform.",
+  positioning: "Parent company for shared trust, billing, launch, access, and data infrastructure.",
+  keywords: ["business software", "creator software", "growth software", "shared infrastructure"],
+  dashboardLabel: "SONARA One",
   publicLabel: "SONARA Industries",
 };
 
 export const BRAND_ENTITIES: BrandEntity[] = [
   DEFAULT_PARENT_BRAND,
   {
-    id: "brand_creator_music_technology",
-    slug: "creator-music-technology",
-    displayName: "TrackFoundry",
+    id: "brand_business_builder",
+    slug: "business-builder",
+    displayName: "Business Builder",
     legalNameWarning,
-    tagline: "Build the artist. Shape the release.",
-    description: "Music creation and release-readiness software.",
-    category: "entity",
-    primaryColor: "#D100FF",
-    secondaryColor: "#8A2BFF",
-    accentColor: "#00E5FF",
-    darkColor: "#0B0F14",
+    tagline: "Build. Prove. Get paid. Run clean.",
+    description:
+      "Create, launch, run, and manage a business with guided systems, payments, bookings, records, and operational intelligence.",
+    category: "company_product",
+    primaryColor: "#2DD4BF",
+    secondaryColor: "#0F766E",
+    accentColor: "#A7F3D0",
+    darkColor: "#071B18",
     lightColor: "#FFFFFF",
-    iconConcept: "Shared geometric shape with waveform bars.",
-    positioning: "Creator and music infrastructure for projects, assets, release readiness, and creator operations.",
-    keywords: ["creator tools", "music workflow", "release readiness", "asset systems"],
-    dashboardLabel: "TrackFoundry",
-    publicLabel: "TrackFoundry",
+    iconConcept: "Structured operations mark with proof and payment paths.",
+    positioning: "Guided operating system for service businesses, local teams, and solo operators.",
+    keywords: ["business setup", "customers", "bookings", "payments", "records"],
+    dashboardLabel: "Business Builder",
+    publicLabel: "Business Builder",
   },
   {
-    id: "brand_business_operations",
-    slug: "business-operations",
-    displayName: "LineReady",
+    id: "brand_creator_studio",
+    slug: "creator-studio",
+    displayName: "Creator Studio",
     legalNameWarning,
-    tagline: "Every shift ready.",
-    description: "Restaurant operations and labor-control software.",
-    category: "entity",
-    primaryColor: "#00B48A",
-    secondaryColor: "#00D1B2",
-    accentColor: "#667085",
-    darkColor: "#0B0F14",
+    tagline: "Organize, protect, publish, and monetize.",
+    description:
+      "Organize, protect, publish, monetize, and grow creative work, digital products, media, and creator operations.",
+    category: "company_product",
+    primaryColor: "#818CF8",
+    secondaryColor: "#4F46E5",
+    accentColor: "#C4B5FD",
+    darkColor: "#121326",
     lightColor: "#FFFFFF",
-    iconConcept: "Shared geometric shape with cube/workflow center.",
-    positioning: "Operational systems for restaurants, teams, vendors, documents, and daily execution.",
-    keywords: ["operations", "restaurants", "workflows", "small business"],
-    dashboardLabel: "LineReady",
-    publicLabel: "LineReady",
+    iconConcept: "Creative asset vault mark with rights and release paths.",
+    positioning: "Creator workspace for assets, releases, offers, proof, and monetization readiness.",
+    keywords: ["creator", "asset vault", "publishing", "digital products", "rights"],
+    dashboardLabel: "Creator Studio",
+    publicLabel: "Creator Studio",
   },
   {
-    id: "brand_community_public_information",
-    slug: "community-public-information",
-    displayName: "NoticeGrid",
+    id: "brand_growth_studio",
+    slug: "growth-studio",
+    displayName: "Growth Studio",
     legalNameWarning,
-    tagline: "Local updates without the noise.",
-    description: "Verified local information and public-notice software.",
-    category: "entity",
-    primaryColor: "#007BFF",
-    secondaryColor: "#00B4C8",
-    accentColor: "#F1F3F6",
-    darkColor: "#0B0F14",
+    tagline: "Turn attention into follow-up and revenue.",
+    description:
+      "Attract customers, leads, fans, referrals, reviews, and revenue through campaigns, follow-up, offers, and growth systems.",
+    category: "company_product",
+    primaryColor: "#38BDF8",
+    secondaryColor: "#0369A1",
+    accentColor: "#FDE68A",
+    darkColor: "#081827",
     lightColor: "#FFFFFF",
-    iconConcept: "Shared geometric shape with beacon/signal center.",
-    positioning:
-      "Public and organization-submitted information workflows with source links, review, and approval boundaries.",
-    keywords: ["public information", "community", "source-linked", "notices"],
-    dashboardLabel: "NoticeGrid",
-    publicLabel: "NoticeGrid",
-  },
-  {
-    id: "brand_launchpad",
-    slug: "launchpad",
-    displayName: "Launchpad",
-    legalNameWarning,
-    tagline: "Ideate. Build. Launch.",
-    description: "The fastest path from idea to launch-ready infrastructure.",
-    category: "standalone_product",
-    primaryColor: "#FFB020",
-    secondaryColor: "#00E5FF",
-    accentColor: "#6B7280",
-    darkColor: "#0B0F14",
-    lightColor: "#FFFFFF",
-    iconConcept: "Shared geometric shape with arrow/launch chevron.",
-    positioning: "Standalone launch-prep infrastructure product. It does not guarantee deployment success.",
-    keywords: ["launch-ready", "infrastructure", "build", "systems"],
-    dashboardLabel: "Launchpad",
-    publicLabel: "Launchpad",
+    iconConcept: "Momentum and signal mark for campaigns, reviews, and follow-up.",
+    positioning: "Growth system for offers, referrals, reviews, campaigns, and customer follow-up.",
+    keywords: ["growth", "campaigns", "reviews", "referrals", "offers"],
+    dashboardLabel: "Growth Studio",
+    publicLabel: "Growth Studio",
   },
 ];
 

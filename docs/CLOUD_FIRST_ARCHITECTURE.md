@@ -1,6 +1,6 @@
 # Cloud-First Architecture
 
-SONARA OSâ„¢ runs from the cloud. Normal users can use the browser or PWA and should not need to download software for the core workflow.
+SONARA Oneâ„¢ runs from the cloud. Normal users can use the browser or PWA and should not need to download software for the core workflow.
 
 Core launch stack:
 

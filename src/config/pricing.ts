@@ -12,7 +12,7 @@ export type PricingTier = {
 export const pricingTiers: PricingTier[] = [
   {
     id: "free",
-    name: "SONARA OS™ Free",
+    name: "SONARA One™ Free",
     price: 0,
     interval: "month",
     features: [
@@ -23,7 +23,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     id: "creator",
-    name: "SONARA OS™ Creator",
+    name: "SONARA One™ Creator",
     price: 9.99,
     interval: "month",
     stripePriceEnv: "STRIPE_CREATOR_MONTHLY_PRICE_ID",
@@ -39,7 +39,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     id: "pro",
-    name: "SONARA OS™ Pro",
+    name: "SONARA One™ Pro",
     price: 19.99,
     interval: "month",
     stripePriceEnv: "STRIPE_PRO_MONTHLY_PRICE_ID",
@@ -53,7 +53,7 @@ export const pricingTiers: PricingTier[] = [
   },
   {
     id: "label",
-    name: "SONARA OS™ Label",
+    name: "SONARA One™ Label",
     price: 49.99,
     interval: "month",
     stripePriceEnv: "STRIPE_LABEL_MONTHLY_PRICE_ID",

@@ -11,7 +11,7 @@ The ecosystem uses adaptive identity, geometric simplicity, digital-first scalab
 - Parent Company: SONARA Industries
 - Creator / Music Technology: Creator Music Technology
 - Business Operations: Business Operations
-- Community / Public Information: NoticeGrid
+- Community / Public Information: Growth Studio
 - Standalone Product: SONARA launchpad workspace
 
 ## Entity Colors

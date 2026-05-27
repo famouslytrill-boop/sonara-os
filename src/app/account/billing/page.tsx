@@ -29,7 +29,7 @@ export default async function BillingPage({
       nav="app"
       eyebrow="Billing"
       title="Billing status."
-      subtitle="Stripe web checkout and subscription webhooks power SONARA OS™ subscriptions once Vercel environment variables are configured."
+      subtitle="Stripe web checkout and subscription webhooks power SONARA One™ subscriptions once Vercel environment variables are configured."
       actions={
         <>
           <ButtonLink href="/pricing">View Pricing</ButtonLink>

@@ -5,9 +5,9 @@ Do not paste Stripe secrets into code, docs, screenshots, chat, or GitHub.
 ## Steps
 
 1. Create products:
-   - SONARA OS Creator
-   - SONARA OS Pro
-   - SONARA OS Label
+   - SONARA One Creator
+   - SONARA One Pro
+   - SONARA One Label
 2. Create recurring monthly prices.
 3. Copy Price IDs, not Product IDs.
 4. Configure webhook endpoint:

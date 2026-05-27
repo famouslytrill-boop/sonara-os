@@ -1,7 +1,7 @@
 [project]
 name = "sonara-ops"
 version = "0.1.0"
-description = "Local and CI operations tooling for SONARA OS database, analytics, audits, and migration verification."
+description = "Local and CI operations tooling for SONARA One database, analytics, audits, and migration verification."
 requires-python = ">=3.13,<3.15"
 dependencies = [
   "asyncpg>=0.30.0",

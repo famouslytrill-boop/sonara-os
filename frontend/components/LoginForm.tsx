@@ -79,7 +79,7 @@ export function LoginForm() {
     return (
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
         <p className="text-xs font-black uppercase text-[#22D3EE]">Account setup</p>
-        <h1 className="mt-2 text-3xl font-black">SONARA OS™ login.</h1>
+        <h1 className="mt-2 text-3xl font-black">SONARA One™ login.</h1>
         <p className="mt-3 leading-7 text-[#A1A1AA]">
           Log in to access your creator operating system. Supabase Auth must be configured before accounts and saved projects go live.
         </p>
@@ -93,7 +93,7 @@ export function LoginForm() {
   return (
     <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
       <p className="text-xs font-black uppercase text-[#22D3EE]">Secure workspace</p>
-      <h1 className="mt-2 text-3xl font-black">SONARA OS™ login.</h1>
+      <h1 className="mt-2 text-3xl font-black">SONARA One™ login.</h1>
       <p className="mt-3 leading-7 text-[#A1A1AA]">
         Log in to access your creator operating system.
       </p>

@@ -4,13 +4,11 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const assets = [
-  "public/brand/logos/parent-mark.svg",
-  "public/brand/logos/creator-mark.svg",
-  "public/brand/logos/business-mark.svg",
-  "public/brand/logos/community-mark.svg",
-  "public/brand/logos/launchpad-mark.svg",
-  "public/brand/icons/parent-icon.svg",
-  "public/favicon.svg",
+  "public/brand/sonara-logo.svg",
+  "public/brand/sonara-mark.svg",
+  "public/brand/business-builder-icon.svg",
+  "public/brand/creator-studio-icon.svg",
+  "public/brand/growth-studio-icon.svg",
   "public/icon.svg",
 ];
 

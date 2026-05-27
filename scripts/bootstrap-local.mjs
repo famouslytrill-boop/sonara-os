@@ -1,11 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 
-console.log("SONARA OS safe local bootstrap");
+console.log("SONARA One safe local bootstrap");
 console.log("This script installs only project dependencies from pnpm-lock.yaml.\n");
 
 if (!existsSync("package.json")) {
-  console.error("Missing package.json. Run this from the SONARA OS project root.");
+  console.error("Missing package.json. Run this from the SONARA One project root.");
   process.exit(1);
 }
 

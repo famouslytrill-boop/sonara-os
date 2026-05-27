@@ -82,10 +82,10 @@ function soundAsset(overrides = {}) {
 }
 
 test("brand governance validates trademark usage and permissions", () => {
-  const restricted = `SONARA OS${registeredSymbol}`;
+  const restricted = `SONARA One${registeredSymbol}`;
 
   assert.equal(validateTrademarkUsage(restricted).isValid, false);
-  assert.equal(validateTrademarkUsage(`SONARA OS${trademarkSymbol}`).isValid, true);
+  assert.equal(validateTrademarkUsage(`SONARA One${trademarkSymbol}`).isValid, true);
   assert.equal(validateTrademarkUsage(replaceRestrictedTrademarkSymbols(restricted)).isValid, true);
 
   const exportResult = prepareBrandedExport(`Launch notes for ${restricted}`);
@@ -280,7 +280,7 @@ test("autonomy, activation, conversion, retention, founder, store, and billing r
 
   const nudge = getUpgradeNudge("free", "full_bundle_exports");
   assert.equal(nudge.allowed, false);
-  assert.equal(nudge.recommendedTier, "pro");
+  assert.equal(nudge.recommendedTier, "growth");
 
   const retention = getRetentionInsight(["created_project_no_export"]);
   assert.ok(retention.riskScore > 0);
@@ -299,9 +299,9 @@ test("autonomy, activation, conversion, retention, founder, store, and billing r
   assert.equal(blockedProduct.canPublish, false);
 
   assert.equal(hasEntitlement("free", "full_bundle_exports"), false);
-  assert.equal(hasEntitlement("creator", "runtime_target_engine"), true);
-  assert.equal(hasEntitlement("pro", "full_bundle_exports"), true);
-  assert.equal(hasEntitlement("label", "brand_governance"), true);
+  assert.equal(hasEntitlement("starter", "runtime_target_engine"), true);
+  assert.equal(hasEntitlement("growth", "full_bundle_exports"), true);
+  assert.equal(hasEntitlement("agency", "brand_governance"), true);
   assert.equal(getPricingTier("invalid-tier"), undefined);
 
   const response = await createCheckout(

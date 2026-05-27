@@ -51,7 +51,7 @@ export default function TutorialPage() {
     <PublicShell>
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
         <p className="text-xs font-black uppercase text-[#22D3EE]">Tutorial</p>
-        <h1 className="mt-2 text-3xl font-black">How SONARA OS™ works.</h1>
+        <h1 className="mt-2 text-3xl font-black">How SONARA One™ works.</h1>
         <p className="mt-3 max-w-3xl leading-7 text-[#A1A1AA]">
           A simple workflow for turning creative ideas into organized song fingerprints, release plans, rights-aware exports, and launch-ready bundles.
         </p>

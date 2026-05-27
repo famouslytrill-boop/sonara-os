@@ -13,7 +13,7 @@ const sizeByName: Record<LogoSize, number> = {
 
 function InnerGlyph({ slug, color }: { slug: BrandSlug; color: string }) {
   switch (slug) {
-    case "creator-music-technology":
+    case "creator-studio":
       return (
         <g stroke={color} strokeLinecap="round" strokeWidth="5">
           <path d="M36 64V48" />
@@ -22,7 +22,7 @@ function InnerGlyph({ slug, color }: { slug: BrandSlug; color: string }) {
           <path d="M78 58V52" />
         </g>
       );
-    case "business-operations":
+    case "business-builder":
       return (
         <g fill="none" stroke={color} strokeLinejoin="round" strokeWidth="4">
           <path d="M44 48 64 37l20 11v25L64 84 44 73Z" />
@@ -30,21 +30,13 @@ function InnerGlyph({ slug, color }: { slug: BrandSlug; color: string }) {
           <path d="M64 60v24" />
         </g>
       );
-    case "community-public-information":
+    case "growth-studio":
       return (
         <g fill="none" stroke={color} strokeLinecap="round" strokeWidth="4">
-          <path d="M64 78V52" />
-          <circle cx="64" cy="45" r="6" fill={color} stroke="none" />
-          <path d="M48 58a22 22 0 0 1 32 0" />
-          <path d="M39 46a36 36 0 0 1 50 0" />
-        </g>
-      );
-    case "launchpad":
-      return (
-        <g fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="5">
-          <path d="M44 76 76 44" />
-          <path d="M52 44h24v24" />
-          <path d="M42 86h28" />
+          <path d="M40 78c10-20 27-30 51-30" />
+          <path d="M72 48h19v19" />
+          <path d="M40 88h48" />
+          <circle cx="48" cy="72" r="5" fill={color} stroke="none" />
         </g>
       );
     default:

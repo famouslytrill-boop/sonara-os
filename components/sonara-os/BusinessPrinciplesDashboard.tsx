@@ -34,7 +34,7 @@ const workspaceActions = [
   { title: "Create Album", href: "/create", description: "Start a project with album-level sequencing and prompt planning." },
   { title: "Build Sound Pack", href: "/vault", description: "Plan a rights-aware sound pack and license-sheet workflow." },
   { title: "Prepare Release", href: "/export", description: "Export a branded release pack with runtime and prompt guidance." },
-  { title: "View Tutorial", href: "/tutorial", description: "Review the clean SONARA OS workflow from project to export." },
+  { title: "View Tutorial", href: "/tutorial", description: "Review the clean SONARA One workflow from project to export." },
   { title: "Open Store / Upgrade", href: "/store", description: "Review subscriptions and coming creator product bundles." },
 ] as const;
 
@@ -45,7 +45,7 @@ export function BusinessPrinciplesDashboard() {
   return (
     <div className="grid gap-6">
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
-        <p className="text-xs font-black uppercase text-[#22D3EE]">SONARA OS</p>
+        <p className="text-xs font-black uppercase text-[#22D3EE]">SONARA One</p>
         <div className="mt-2 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h1 className="max-w-3xl text-3xl font-black leading-tight text-[#F8FAFC] sm:text-5xl">
