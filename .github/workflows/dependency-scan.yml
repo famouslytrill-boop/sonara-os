@@ -5,7 +5,6 @@ on:
   pull_request:
 
 jobs:
-  
   frontend-dependencies:
     runs-on: ubuntu-latest
     defaults:
@@ -35,7 +34,6 @@ jobs:
 
       - name: Build root app
         run: pnpm run build
-
   backend-dependencies:
     runs-on: ubuntu-latest
     defaults:

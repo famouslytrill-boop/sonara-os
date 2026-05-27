@@ -6,6 +6,8 @@ on:
   pull_request:
 
 jobs:
+  # Optional Docker check. The production deployment path is Vercel, so this
+  # workflow must not require Docker unless a root Dockerfile is intentionally added.
   build:
     runs-on: ubuntu-latest
 
@@ -25,4 +27,27 @@ jobs:
 
       - name: Build the Docker image
         if: steps.dockerfile.outputs.exists == 'true'
-        run: docker build . --file Dockerfile --tag sonara-os:${{ github.sha }}
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - main
+      - cleanup/local-dev-ci-alignment
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t sonara-os:ci .
