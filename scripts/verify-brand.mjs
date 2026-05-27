@@ -56,8 +56,8 @@ for (const icon of manifest.icons ?? []) {
 if (!failed) {
   const result =
     process.platform === "win32"
-      ? spawnSync("cmd.exe", ["/d", "/s", "/c", "npm run test:brand"], { cwd: root, stdio: "inherit" })
-      : spawnSync("npm", ["run", "test:brand"], { cwd: root, stdio: "inherit" });
+      ? spawnSync("cmd.exe", ["/d", "/s", "/c", "pnpm run test:brand"], { cwd: root, stdio: "inherit" })
+      : spawnSync("pnpm", ["run", "test:brand"], { cwd: root, stdio: "inherit" });
   if (result.status !== 0) {
     failed = true;
   }

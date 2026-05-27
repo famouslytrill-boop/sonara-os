@@ -5,26 +5,35 @@ on:
   pull_request:
 
 jobs:
-  # Job id retained for check continuity. Commands intentionally run at repo root
-  # because root owns proxy.ts, @supabase/ssr, and Vercel .next output.
   frontend-dependencies:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Install root dependencies
-        run: npm ci
-      - name: Audit root dependencies
-        run: npm audit --audit-level=moderate
-      - name: Typecheck root app
-        run: npm run typecheck
-      - name: Build root app
-        run: npm run build
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit root dependencies
+        run: pnpm audit --audit-level moderate
+
+      - name: Typecheck root app
+        run: pnpm run typecheck
+
+      - name: Build root app
+        run: pnpm run build
   backend-dependencies:
     runs-on: ubuntu-latest
     defaults:

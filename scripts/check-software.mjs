@@ -10,11 +10,11 @@ const tools = [
     purpose: "Runs Next.js and local launch scripts.",
   },
   {
-    name: "npm",
-    command: "npm",
+    name: "pnpm",
+    command: "pnpm",
     args: ["--version"],
     required: true,
-    purpose: "Installs dependencies and runs package scripts.",
+    purpose: "Installs dependencies from pnpm-lock.yaml and runs package scripts.",
   },
   {
     name: "Git",
@@ -69,14 +69,13 @@ const tools = [
 
 let missingRequired = 0;
 
-console.log("SONARA OSâ„¢ software check");
+console.log("SONARA OS software check");
 console.log("No software will be installed by this script.\n");
 
 for (const tool of tools) {
-  const commandLine = [tool.command, ...tool.args].join(" ");
-  const result = spawnSync(commandLine, {
+  const result = spawnSync(tool.command, tool.args, {
     encoding: "utf8",
-    shell: true,
+    shell: process.platform === "win32",
   });
 
   const output = `${result.stdout ?? ""}${result.stderr ?? ""}`
@@ -84,12 +83,12 @@ for (const tool of tools) {
     .split(/\r?\n/)[0];
 
   if (result.status === 0) {
-    console.log(`âœ… ${tool.name}: ${output || "found"} â€” ${tool.purpose}`);
+    console.log(`[OK] ${tool.name}: ${output || "found"} - ${tool.purpose}`);
   } else if (tool.required) {
     missingRequired += 1;
-    console.log(`âš ï¸ ${tool.name}: missing required tool â€” ${tool.purpose}`);
+    console.log(`[MISSING] ${tool.name}: required - ${tool.purpose}`);
   } else {
-    console.log(`âš ï¸ ${tool.name}: optional tool not found â€” ${tool.purpose}`);
+    console.log(`[OPTIONAL] ${tool.name}: not found - ${tool.purpose}`);
   }
 }
 
@@ -98,37 +97,33 @@ console.log("");
 const projectChecks = [
   {
     label: "package.json",
-    path: "package.json",
     required: true,
     ok: existsSync("package.json"),
     detail: "Project manifest is required.",
   },
   {
-    label: "package-lock.json",
-    path: "package-lock.json",
+    label: "pnpm-lock.yaml",
     required: true,
-    ok: existsSync("package-lock.json"),
-    detail: "Lockfile is required for safe npm ci installs.",
+    ok: existsSync("pnpm-lock.yaml"),
+    detail: "Lockfile is required for safe pnpm installs.",
   },
   {
     label: ".git",
-    path: ".git",
     required: false,
     ok: existsSync(".git"),
-    detail:
-      "Local repo connection is needed before pushing to famouslytrill-boop/sonara-os.",
+    detail: "Local repo connection is needed before pushing to famouslytrill-boop/sonara-os.",
   },
 ];
 
 console.log("Project root checks");
 for (const check of projectChecks) {
   if (check.ok) {
-    console.log(`âœ… ${check.label}: found â€” ${check.detail}`);
+    console.log(`[OK] ${check.label}: found - ${check.detail}`);
   } else if (check.required) {
     missingRequired += 1;
-    console.log(`âš ï¸ ${check.label}: missing required file â€” ${check.detail}`);
+    console.log(`[MISSING] ${check.label}: required - ${check.detail}`);
   } else {
-    console.log(`âš ï¸ ${check.label}: not found â€” ${check.detail}`);
+    console.log(`[OPTIONAL] ${check.label}: not found - ${check.detail}`);
   }
 }
 
@@ -136,7 +131,7 @@ console.log("");
 
 if (missingRequired > 0) {
   console.log(
-    `Software check failed: ${missingRequired} required tool(s) missing. See docs/SOFTWARE_REQUIREMENTS_MATRIX.md.`
+    `Software check failed: ${missingRequired} required tool(s) or file(s) missing. See docs/SOFTWARE_REQUIREMENTS_MATRIX.md.`
   );
   process.exitCode = 1;
 } else {

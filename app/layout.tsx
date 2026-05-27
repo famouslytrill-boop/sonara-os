@@ -3,8 +3,14 @@ import { PWAInstallPrompt } from "../components/PWAInstallPrompt";
 import { RegisterServiceWorker } from "../components/RegisterServiceWorker";
 import "./globals.css";
 
+const siteUrl = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  "https://sonaraindustries.com"
+).replace(/\/$/, "");
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://sonaraindustries.com"),
+  metadataBase: new URL(siteUrl),
   applicationName: "SONARA Industries",
   title: {
     default: "SONARA Industries | Independent Systems",
@@ -26,7 +32,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    url: "https://sonaraindustries.com",
+    url: siteUrl,
     siteName: "SONARA Industries",
     title: "SONARA Industries | Independent Systems",
     description:
