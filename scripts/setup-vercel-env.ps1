@@ -42,7 +42,7 @@ foreach ($name in $variables) {
     continue
   }
 
-  $value | npx vercel env add $name $Environment
+  $value | pnpm dlx vercel env add $name $Environment
 }
 
 Write-Host "Done. Redeploy without build cache after changing production environment variables." -ForegroundColor Green

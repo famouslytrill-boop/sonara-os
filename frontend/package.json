@@ -2,6 +2,7 @@
   "name": "sonara-frontend-v27",
   "version": "27.0.0",
   "private": true,
+  "packageManager": "pnpm@11.1.1",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -32,7 +33,12 @@
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   },
-  "overrides": {
-    "postcss": "8.5.12"
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.15",
+      "next>postcss": "8.5.15",
+      "next@16.2.6>postcss": "8.5.15",
+      "postcss@<8.5.15": "8.5.15"
+    }
   }
 }

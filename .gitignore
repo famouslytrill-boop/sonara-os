@@ -36,11 +36,14 @@ yarn-error.log*
 
 # env files
 .env
+.env.local
 .env.*
+.env.*.local
 !.env.example
 
 # vercel
 .vercel
+.vercel/output
 **/.vercel/
 
 # typescript

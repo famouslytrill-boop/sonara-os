@@ -2,9 +2,8 @@ name: Docker Image CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "cleanup/local-dev-ci-alignment"]
   pull_request:
-    branches: ["main"]
 
 jobs:
   build:
@@ -12,6 +11,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Check for Dockerfile
         id: dockerfile
         shell: bash
@@ -22,20 +22,7 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "No Dockerfile found. Skipping Docker image build."
           fi
+
       - name: Build the Docker image
         if: steps.dockerfile.outputs.exists == 'true'
-        run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
+        run: docker build . --file Dockerfile --tag sonara-os:${{ github.sha }}
