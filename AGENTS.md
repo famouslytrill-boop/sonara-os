@@ -120,3 +120,13 @@ Normal users should access SONARA OS™ from the browser/PWA without downloads. 
 - OBS work is an OBS-ready broadcast kit export unless direct OBS integration is implemented.
 - R&D docs must separate launch-ready systems from later integrations.
 - Final audit language must distinguish 10/10 architecture readiness from a verified 10/10 operating business.
+
+## Build And CI Guardrails
+
+- Do not move `proxy.ts` without checking current Next.js proxy conventions and root package dependency resolution.
+- Do not change Vercel or build-root behavior without verifying that `npm run build` creates root `.next` output, including `.next/routes-manifest.json`.
+- Do not add fake Dockerfiles just to satisfy CI.
+- Do not run `npm audit fix --force` unless explicitly approved.
+- Keep CI fixes minimal and separate from product features.
+- Separate infrastructure fixes from product features.
+- Prefer small PRs with clear validation notes.

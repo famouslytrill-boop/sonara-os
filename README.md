@@ -116,7 +116,39 @@ Redirects:
 - `/alertos` to `/noticegrid`
 - `/civicsignal` to `/noticegrid`
 
-## Local Verification
+## Local Setup And Validation
+
+Run setup and validation from the repository root. The root Next.js app owns `proxy.ts`,
+root dependencies, and the Vercel `.next` output.
+
+Setup:
+
+```powershell
+npm ci
+```
+
+Validation:
+
+```powershell
+npm audit --audit-level=moderate
+npm run validate:infrastructure
+npm run typecheck
+npm run build
+```
+
+Shortcut:
+
+```powershell
+npm run check:local
+```
+
+After `npm run build`, Vercel output should exist at `.next/routes-manifest.json`.
+The root package must resolve `@supabase/ssr` because root `proxy.ts` imports it.
+
+Do not run `npm audit fix --force` without review. It can make broad dependency
+changes that should be separated from CI or documentation-only stabilization work.
+
+## Legacy Frontend Verification
 
 PowerShell:
 
