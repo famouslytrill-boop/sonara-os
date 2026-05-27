@@ -5,19 +5,36 @@ on:
   pull_request:
 
 jobs:
+  
   frontend-dependencies:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
-      - run: npm audit --audit-level=moderate
-      - run: npm run typecheck
-      - run: npm run build
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install root dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit root dependencies
+        run: pnpm audit --audit-level moderate
+
+      - name: Typecheck root app
+        run: pnpm run typecheck
+
+      - name: Build root app
+        run: pnpm run build
 
   backend-dependencies:
     runs-on: ubuntu-latest
