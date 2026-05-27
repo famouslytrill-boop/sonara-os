@@ -1,81 +1,51 @@
 # Environment Variables
 
-Use `.env.example` as a placeholder contract only. Real values belong in Vercel, Supabase, CI secrets, local `.env`, or a password manager.
+Use `.env.example` as the placeholder contract. Real values belong in Vercel, Supabase, Stripe, GitHub secrets, local `.env`, or a password manager. Do not commit real secrets.
 
-## Public Frontend Variables
+## Public Browser-Safe Variables
 
+- `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_MARKETING_URL`
+- `NEXT_PUBLIC_SUPPORT_EMAIL`
+- `NEXT_PUBLIC_COMPANY_NAME`
+- `NEXT_PUBLIC_PLATFORM_NAME`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
 
-Only `NEXT_PUBLIC_*` variables are safe for browser exposure.
+Only `NEXT_PUBLIC_*` variables are browser-exposed. Never put service-role keys, webhook secrets, database URLs, Stripe secret keys, AI provider keys, tokens, or payout details in `NEXT_PUBLIC_*` variables.
 
 ## Server-Only Variables
 
 - `SONARA_CRON_SECRET`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_PROJECT_ID`
+- `SUPABASE_DB_PASSWORD`
+- `DATABASE_URL`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_CREATOR_MONTHLY_PRICE_ID`
-- `STRIPE_PRO_MONTHLY_PRICE_ID`
-- `STRIPE_LABEL_MONTHLY_PRICE_ID`
-
-## Supabase Variables
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_DB_URL`
-
-`SUPABASE_DB_URL` is for Python ops/local/CI only. Do not expose it to frontend code.
-
-## Stripe Variables
-
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- Stripe price IDs
-
-## Storage Variables
-
-- `PUBLIC_ASSETS_BUCKET`
-- `PRIVATE_ASSETS_BUCKET`
-- `ORGANIZATION_ASSETS_BUCKET`
-
-## Worker Variables
-
-- `REDIS_URL`
-- `WORKER_CONCURRENCY`
-
-## Python Ops Variables
-
-- `SUPABASE_DB_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- optional `STRIPE_SECRET_KEY`
-
-## Monitoring Variables
-
-- `SENTRY_DSN`
-- `OTEL_EXPORTER_OTLP_ENDPOINT`
-
-## Optional Provider Variables
-
-- `OPENAI_API_KEY`
-- `FREESOUND_API_KEY`
-- `OPENVERSE_CLIENT_ID`
-- `OPENVERSE_CLIENT_SECRET`
-- `DATA_GOV_API_KEY`
-- `NWS_USER_AGENT`
+- `STRIPE_PRICE_STARTER`
+- `STRIPE_PRICE_CORE`
+- `STRIPE_PRICE_GROWTH`
+- `STRIPE_PRICE_PRO`
+- `STRIPE_PRICE_AGENCY`
+- `STRIPE_PRICE_SETUP_99`
+- `STRIPE_PRICE_SETUP_299`
+- `STRIPE_PRICE_SETUP_499`
 
 ## Validation
 
 Run:
 
 ```bash
-npm run verify:env
+pnpm run verify:env
+pnpm run verify:stripe
+pnpm audit --audit-level moderate
+pnpm run typecheck
+pnpm run build
 ```
 
-This checks for placeholder coverage and avoids printing secret values.
+Validation scripts must report configured/not configured states without printing raw secret values.

@@ -3,23 +3,23 @@ import type { ConversionFeature, UpgradeNudge } from "./conversionTypes";
 
 export const featureTierMap: Record<ConversionFeature, UpgradeNudge["recommendedTier"]> = {
   basic_prompt_builder: "free",
-  advanced_prompt_builder: "creator",
-  runtime_target_engine: "creator",
-  slider_recommendations: "creator",
-  authentic_writer_engine: "creator",
-  sound_identity: "creator",
-  sound_rights_exports: "pro",
-  metadata_rights_sheets: "pro",
-  full_bundle_exports: "pro",
+  advanced_prompt_builder: "starter",
+  runtime_target_engine: "starter",
+  slider_recommendations: "starter",
+  authentic_writer_engine: "starter",
+  sound_identity: "starter",
+  sound_rights_exports: "core",
+  metadata_rights_sheets: "core",
+  full_bundle_exports: "growth",
   obs_broadcast_kit: "pro",
   vault_stack: "pro",
-  brand_governance: "label",
-  review_room: "label",
-  label_workspace: "label",
-  marketplace_tools: "label",
+  brand_governance: "agency",
+  review_room: "pro",
+  label_workspace: "agency",
+  marketplace_tools: "agency",
 };
 
-const tierRank: Record<UpgradeNudge["recommendedTier"], number> = { free: 0, creator: 1, pro: 2, label: 3 };
+const tierRank: Record<UpgradeNudge["recommendedTier"], number> = { free: 0, starter: 1, core: 2, growth: 3, pro: 4, agency: 5 };
 
 export function getUpgradeNudge(currentTier: PricingTierId, feature: ConversionFeature): UpgradeNudge {
   const recommendedTier = featureTierMap[feature];

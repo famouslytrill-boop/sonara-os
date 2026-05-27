@@ -1,4 +1,4 @@
-# SONARA OSâ„¢ Manual Dashboard Setup
+# SONARA Oneâ„¢ Manual Dashboard Setup
 
 This checklist is for dashboard setup only. Do not paste real secret values into source code, docs, screenshots, GitHub, Codex, or chat.
 

@@ -1,6 +1,6 @@
 # Workers
 
-SONARA OS should keep the Vercel Next.js app as the production web runtime. Workers are optional local/CI/background systems for jobs that should not block web requests.
+SONARA One should keep the Vercel Next.js app as the production web runtime. Workers are optional local/CI/background systems for jobs that should not block web requests.
 
 ## Current Worker Surfaces
 

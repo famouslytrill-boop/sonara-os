@@ -1,6 +1,6 @@
 export const cloudArchitecture = {
   principle:
-    "SONARA OS™ is cloud-first, browser-first, and PWA-ready. Normal users should not need to download software to use the core product.",
+    "SONARA One™ is cloud-first, browser-first, and PWA-ready. Normal users should not need to download software to use the core product.",
 
   userRuntime: {
     website: "Vercel",

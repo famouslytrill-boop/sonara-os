@@ -30,7 +30,7 @@ const dashboardCards = [
   {
     title: "View Tutorial",
     href: "/tutorial",
-    text: "Walk through the SONARA OS™ workflow from idea to export.",
+    text: "Walk through the SONARA One™ workflow from idea to export.",
   },
   {
     title: "Open Store / Upgrade",
@@ -44,7 +44,7 @@ export default function DashboardPage() {
     <PageShell
       nav="app"
       eyebrow="Dashboard"
-      title="SONARA OS™ workspace."
+      title="SONARA One™ workspace."
       subtitle="A clean operating system for songs, lyrics, sounds, releases, rights checks, and export-ready creator work."
       actions={
         <>

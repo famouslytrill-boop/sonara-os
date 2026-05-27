@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SONARA Industries™ | SONARA OS™",
+  title: "SONARA Industries™ | SONARA One™",
   description:
-    "Creator infrastructure for modern music, release planning, rights-aware exports, and SONARA OS™ workflows.",
+    "Creator infrastructure for modern music, release planning, rights-aware exports, and SONARA One™ workflows.",
   manifest: "/manifest.webmanifest",
 };
 

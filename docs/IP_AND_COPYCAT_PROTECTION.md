@@ -1,6 +1,6 @@
 # IP and Copycat Protection
 
-SONARA OSâ„¢ protects product distinctiveness through:
+SONARA Oneâ„¢ protects product distinctiveness through:
 
 - SONARA Industriesâ„¢ brand governance
 - branded export formats

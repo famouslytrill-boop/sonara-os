@@ -1,6 +1,6 @@
 # SONARA Python Service
 
-This folder reserves the optional Python service surface for SONARA OS.
+This folder reserves the optional Python service surface for SONARA One.
 
 The public launch does not require this service. The Next.js app runs in local-rules mode and can build, export, and deploy without Python. Use this service only when a clear backend job exists, such as background processing, internal audits, or future Linux-hosted workers.
 

@@ -16,8 +16,8 @@ export function BrandLegalFooter() {
       </div>
       <p>
         SONARA Industries owns independent software companies with shared infrastructure, security standards,
-        billing discipline, and product boundaries. TrackFoundry, LineReady, and NoticeGrid each stand as independent
-        child brands. Marks, logos, and public claims require legal review before final trademark use.
+        billing discipline, and product boundaries. Business Builder, Creator Studio, and Growth Studio each serve
+        a focused product workflow. Marks, logos, and public claims require legal review before final trademark use.
       </p>
     </footer>
   );

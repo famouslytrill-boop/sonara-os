@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Growth Studio icon">
+  <rect width="128" height="128" rx="28" fill="#081827"/>
+  <path d="M32 86c12-28 32-42 64-42" fill="none" stroke="#38BDF8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M74 42h24v24" fill="none" stroke="#FDE68A" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="42" cy="78" r="7" fill="#38BDF8"/>
+</svg>

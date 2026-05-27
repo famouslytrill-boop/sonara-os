@@ -13,22 +13,92 @@ const nextConfig = {
     return [
       {
         source: "/music",
-        destination: "/trackfoundry",
+        destination: "/creator-studio",
         permanent: true,
       },
       {
         source: "/tableops",
-        destination: "/lineready",
+        destination: "/business-builder",
         permanent: true,
       },
       {
         source: "/alertos",
-        destination: "/noticegrid",
+        destination: "/growth-studio",
         permanent: true,
       },
       {
         source: "/civicsignal",
-        destination: "/noticegrid",
+        destination: "/growth-studio",
+        permanent: true,
+      },
+      {
+        source: "/trackfoundry/:path*",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/lineready/:path*",
+        destination: "/business-builder",
+        permanent: true,
+      },
+      {
+        source: "/noticegrid/:path*",
+        destination: "/growth-studio",
+        permanent: true,
+      },
+      {
+        source: "/signal-os/:path*",
+        destination: "/app",
+        permanent: true,
+      },
+      {
+        source: "/create",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/library",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/export",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/vault",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/records",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/engine",
+        destination: "/creator-studio",
+        permanent: true,
+      },
+      {
+        source: "/exchange",
+        destination: "/growth-studio",
+        permanent: true,
+      },
+      {
+        source: "/labs",
+        destination: "/trust",
+        permanent: true,
+      },
+      {
+        source: "/tutorial",
+        destination: "/onboarding",
+        permanent: true,
+      },
+      {
+        source: "/store",
+        destination: "/pricing",
         permanent: true,
       },
     ];

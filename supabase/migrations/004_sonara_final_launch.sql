@@ -148,14 +148,14 @@ create policy "Users can view their own subscriptions"
   for select
   using (auth.uid() = owner_id);
 
-drop policy if exists "Users can view their own SONARA OS subscriptions" on public.sonara_user_subscriptions;
-create policy "Users can view their own SONARA OS subscriptions"
+drop policy if exists "Users can view their own SONARA One subscriptions" on public.sonara_user_subscriptions;
+create policy "Users can view their own SONARA One subscriptions"
   on public.sonara_user_subscriptions
   for select
   using (auth.uid() = user_id);
 
-drop policy if exists "Service role can manage SONARA OS subscriptions" on public.sonara_user_subscriptions;
-create policy "Service role can manage SONARA OS subscriptions"
+drop policy if exists "Service role can manage SONARA One subscriptions" on public.sonara_user_subscriptions;
+create policy "Service role can manage SONARA One subscriptions"
   on public.sonara_user_subscriptions
   for all
   using (auth.role() = 'service_role')

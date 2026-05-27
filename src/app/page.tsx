@@ -28,7 +28,7 @@ export default function HomePage() {
       subtitle="A creator operating system for music as a whole."
       actions={
         <>
-          <ButtonLink href="/dashboard">Launch SONARA OS™</ButtonLink>
+          <ButtonLink href="/dashboard">Launch SONARA One™</ButtonLink>
           <ButtonLink href="/pricing" variant="secondary">
             View Pricing
           </ButtonLink>
@@ -36,10 +36,10 @@ export default function HomePage() {
       }
     >
       <Notice>
-        SONARA OS™ helps artists, songwriters, producers, bands, labels,
+        SONARA One™ helps artists, songwriters, producers, bands, labels,
         engineers, managers, content creators, and music entrepreneurs turn ideas
         into structured songs, release-ready assets, and export-ready creative
-        bundles. Use SONARA OS™ from your browser. No desktop install required
+        bundles. Use SONARA One™ from your browser. No desktop install required
         for the core workflow.
       </Notice>
 
@@ -57,7 +57,7 @@ export default function HomePage() {
         {bentoCards.map((title) => (
           <Card key={title} title={title}>
             <p>
-              A focused part of the SONARA OS™ workflow that connects writing,
+              A focused part of the SONARA One™ workflow that connects writing,
               arrangement, sound direction, rights, metadata, and release
               readiness.
             </p>
@@ -71,7 +71,7 @@ export default function HomePage() {
           {competitiveDifferentiation.notThis.map((item) => (
             <Card key={item} title={item}>
               <p>
-                SONARA OS™ stays focused on creator infrastructure, rights-aware
+                SONARA One™ stays focused on creator infrastructure, rights-aware
                 exports, and music business workflow.
               </p>
             </Card>

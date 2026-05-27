@@ -1,6 +1,6 @@
 export const productDNA = {
   positioning:
-    "SONARA OS™ is a creator operating system for music as a whole, built to help creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready project bundles.",
+    "SONARA One™ is a creator operating system for music as a whole, built to help creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready project bundles.",
 
   uniquePillars: [
     "Traditional + AI-Assisted + Hybrid Music Workflows",

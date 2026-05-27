@@ -1,6 +1,6 @@
 # Global Usability System
 
-SONARA OSâ„¢ must be:
+SONARA Oneâ„¢ must be:
 
 - clear enough for beginners
 - powerful enough for professionals

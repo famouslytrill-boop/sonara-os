@@ -29,9 +29,9 @@ export function EntityDashboardShell({
               {entity.tagline}
             </p>
             <p className="mt-3 text-base leading-7 text-[#C4BFD0]">{entity.description}</p>
-            {entity.slug === "community-public-information" ? (
+            {entity.slug === "growth-studio" ? (
               <p className="mt-3 rounded-xl border border-[#007BFF]/40 bg-[#007BFF]/10 p-3 text-sm font-bold text-white">
-                This product organizes public and organization-submitted information. It does not imply official government partnership unless separately verified.
+                Growth Studio organizes campaigns, public-facing claims, and customer communication drafts. It does not send or publish risky actions without owner review.
               </p>
             ) : null}
           </div>

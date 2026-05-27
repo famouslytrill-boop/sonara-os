@@ -29,7 +29,7 @@ export function BrandArchitecture() {
               {brand.tagline}
             </p>
             <p className="mt-3 text-sm leading-6 text-[#C4BFD0]">{brand.description}</p>
-            <Link href={brand.slug === "launchpad" ? "/brand" : `/dashboard/entities/${brand.slug}`} className="mt-4 inline-flex text-sm font-black text-[#00E5FF]">
+            <Link href={brand.slug === "parent-company" ? "/brand" : `/dashboard/entities/${brand.slug}`} className="mt-4 inline-flex text-sm font-black text-[#00E5FF]">
               View surface
             </Link>
           </article>

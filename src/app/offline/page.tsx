@@ -4,7 +4,7 @@ export default function OfflinePage() {
   return (
     <PageShell
       eyebrow="Offline"
-      title="SONARA OS™ offline fallback."
+      title="SONARA One™ offline fallback."
       subtitle="This page is available for future PWA fallback routing."
       actions={
         <>

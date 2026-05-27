@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 160" role="img" aria-label="SONARA Industries logo">
+  <rect width="640" height="160" rx="28" fill="#07111F"/>
+  <path d="M82 28 132 58v44l-50 30-50-30V58Z" fill="#2DD4BF" opacity=".18"/>
+  <path d="M82 36 124 61v38l-42 25-42-25V61Z" fill="none" stroke="#2DD4BF" stroke-width="7"/>
+  <circle cx="82" cy="80" r="11" fill="#FFB454"/>
+  <path d="M50 80h20m24 0h20" stroke="#FFB454" stroke-width="5" stroke-linecap="round"/>
+  <text x="164" y="78" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="900">SONARA</text>
+  <text x="166" y="112" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">Industries</text>
+</svg>

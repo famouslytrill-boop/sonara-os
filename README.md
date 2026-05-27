@@ -4,192 +4,110 @@ SONARA Industries is a technology holding company that owns independent software
 
 Tagline: Independent systems. Shared infrastructure. Stronger markets.
 
-## House Of Brands
+Public message: Build. Create. Grow.
 
-SONARA Industries owns the standards, security model, research layer, approval architecture, billing posture, and operating infrastructure. The child companies stand independently:
+## Product Architecture
 
-- TrackFoundry: music creation and release-readiness software. Build the artist. Shape the release.
-- LineReady: restaurant operations and labor-control software. Every shift ready.
-- NoticeGrid: verified local information and public-notice software. Local updates without the noise.
+- Business Builder: create, launch, run, and manage a business with guided systems, payments, bookings, records, and operational intelligence.
+- Creator Studio: organize, protect, publish, monetize, and grow creative work, digital products, media, and creator operations.
+- Growth Studio: attract customers, leads, fans, referrals, reviews, and revenue through campaigns, follow-up, offers, and growth systems.
 
-The parent company should not make every product look like SONARA. Each product has its own audience, interface tone, pricing, modules, app shell, and resources.
+SONARA One is the shared app platform for the three product workspaces.
 
-## Shared Operating Intelligence Layer
+## Shared Infrastructure
 
-The MVP foundation includes typed placeholders and schema support for:
-
-- organization scope and brand scope
-- approval queues for risky actions
-- audit logs
-- secure external link handling
-- content quality, page quality, and SEO usefulness scoring
-- workflow bottleneck and forecast confidence scoring
-- role-safe recommendations
-- human approval checkpoints
-- observability readiness
-
-AI-provider keys are optional. The system must run without OpenAI, Anthropic, or Gemini keys.
+- Trust Shield
+- Proof-to-Payment
+- Business Memory Graph
+- Smart Setup Wizard
+- Research Lab
+- Graph Builder
+- Files & Records
+- Access Control
+- Billing & Entitlements
+- Alerts & Signals
+- AI Governance
+- Customer Success
+- Launch Readiness
 
 ## Safety Rules
 
-AI can draft, summarize, classify, recommend, score, and prepare.
-
-AI cannot auto-publish public notices, send mass notifications, delete users, change billing, escalate roles, activate public QR codes, approve public-facing claims, or execute other risky actions without human approval.
-
-Do not launch paid customers until real auth, RLS, Stripe price IDs, Stripe webhooks, production environment variables, upload boundaries, and mobile/desktop QA are verified.
-
-NoticeGrid is not a government authority, voting system, emergency dispatch system, medical alert system, or law-enforcement system.
-
-LineReady is not a payroll provider, POS processor, bank, insurer, or regulated payment processor.
-
-TrackFoundry supports influence DNA only. Do not copy real artists or imitate copyrighted material.
+- No raw card data or CVV storage.
+- Service-role keys stay server-side.
+- Stripe webhooks verify signatures.
+- Paid checkout stays disabled or safely errors until real Stripe env vars are configured.
+- Risky actions require owner approval.
+- No guaranteed legal, financial, cybersecurity, uptime, customer, or revenue claims.
+- Legal pages are review-ready drafts, not legal advice.
 
 ## Stack
 
 - Next.js App Router
 - React
 - TypeScript
-- Tailwind CSS v4
-- FastAPI
-- Pydantic
-- PostgreSQL-ready schema
+- Tailwind CSS
 - Supabase-ready auth/RLS structure
-- Stripe placeholders
+- Stripe Checkout and webhook scaffolding
 - PWA manifest/service worker
 - GitHub Actions dependency/security workflow
 
-Optional open-source-first infrastructure:
-
-- Supabase or self-hosted Postgres
-- MinIO or S3-compatible object storage
-- Coolify deployment option
-- Dokku deployment option
-- Docker Compose local infrastructure later
-- OpenTelemetry-ready logs, metrics, and traces
-- Vercel deployment option
-
-## Routes
-
-Parent routes:
+## Public Routes
 
 - `/`
-- `/websites`
+- `/business-builder`
+- `/creator-studio`
+- `/growth-studio`
 - `/pricing`
-- `/security`
-- `/research`
 - `/trust`
-- `/support`
-- `/tutorial`
-- `/store`
-- `/founder`
-- `/privacy`
-- `/terms`
+- `/about`
+- `/contact`
+- `/legal`
+- `/legal/terms`
+- `/legal/privacy`
+- `/legal/refund-policy`
+- `/legal/acceptable-use`
 
-Product routes:
+## App Routes
 
-- `/trackfoundry`
-- `/trackfoundry/features`
-- `/trackfoundry/how-it-works`
-- `/trackfoundry/app`
-- `/trackfoundry/pricing`
-- `/trackfoundry/security`
-- `/trackfoundry/resources`
-- `/lineready`
-- `/lineready/features`
-- `/lineready/how-it-works`
-- `/lineready/app`
-- `/lineready/pricing`
-- `/lineready/security`
-- `/lineready/resources`
-- `/noticegrid`
-- `/noticegrid/features`
-- `/noticegrid/how-it-works`
-- `/noticegrid/app`
-- `/noticegrid/pricing`
-- `/noticegrid/security`
-- `/noticegrid/resources`
-
-Redirects:
-
-- `/music` to `/trackfoundry`
-- `/tableops` to `/lineready`
-- `/alertos` to `/noticegrid`
-- `/civicsignal` to `/noticegrid`
+- `/app`
+- `/app/dashboard`
+- `/app/business-builder`
+- `/app/creator-studio`
+- `/app/growth-studio`
+- `/app/settings`
+- `/admin`
 
 ## Local Setup And Validation
 
-Run setup and validation from the repository root. The root Next.js app owns `proxy.ts`,
-root dependencies, and the Vercel `.next` output.
-
-Setup:
+Use pnpm only.
 
 ```powershell
-npm ci
+pnpm install --frozen-lockfile
+pnpm audit --audit-level moderate
+pnpm run typecheck
+pnpm run lint
+pnpm test
+pnpm run build
+pnpm run verify:legacy-copy
 ```
 
-Validation:
-
-```powershell
-npm audit --audit-level=moderate
-npm run validate:infrastructure
-npm run typecheck
-npm run build
-```
-
-Shortcut:
-
-```powershell
-npm run check:local
-```
-
-After `npm run build`, Vercel output should exist at `.next/routes-manifest.json`.
-The root package must resolve `@supabase/ssr` because root `proxy.ts` imports it.
-
-Do not run `npm audit fix --force` without review. It can make broad dependency
-changes that should be separated from CI or documentation-only stabilization work.
-
-## Legacy Frontend Verification
-
-PowerShell:
-
-```powershell
-cd frontend
-npm install
-npm run typecheck
-npm run lint
-npm run build
-cd ..
-python -m py_compile backend/main.py
-```
-
-Bash, when available:
-
-```bash
-bash scripts/verify.sh
-```
-
-On Windows with Git Bash:
-
-```powershell
-& "C:\Program Files\Git\bin\bash.exe" scripts/verify.sh
-```
+Do not use npm, `npm audit fix`, or `package-lock.json`.
 
 ## Environment
 
-Use `.env.example` as the source of truth. Keep secret keys server-side. Do not commit `.env.local`.
+Use `.env.example` as the source of truth. Keep secret values in local `.env`, Vercel, Supabase, Stripe, GitHub secrets, or a password manager.
 
-Important optional services:
+Required setup docs:
 
-- Supabase/Postgres for auth, schema, storage, and RLS
-- Stripe for paid tiers after price IDs and webhooks are verified
-- S3-compatible storage or MinIO for uploads
-- OpenTelemetry endpoint for observability
-- Coolify or Dokku for open-source self-hosting experiments
+- `docs/ENVIRONMENT_VARIABLES.md`
+- `docs/DEPLOYMENT_RUNBOOK.md`
+- `docs/SUPABASE_SETUP.md`
+- `docs/STRIPE_SETUP.md`
+- `docs/BILLING_RUNBOOK.md`
+- `docs/PRODUCTION_CHECKLIST.md`
 
 ## Database
 
-Schema lives in `infra/db/sonara_house_of_brands.sql`.
+Supabase migration scaffolding lives in `supabase/migrations/010_sonara_platform_current_schema.sql`.
 
-The schema prepares shared platform tables, TrackFoundry tables, LineReady tables, NoticeGrid tables, dynamic page publishing, approval queues, audit logs, uploaded assets, operating metrics, integration placeholders, and recommendation records.
-
-RLS policy comments are included, but production RLS is not complete until applied and tested in Supabase/Postgres.
+RLS-ready table structure is included, but production RLS is not complete until applied and tested in Supabase.

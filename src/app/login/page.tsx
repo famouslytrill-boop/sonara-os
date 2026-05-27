@@ -10,7 +10,7 @@ export default function LoginPage() {
   return (
     <PageShell
       eyebrow="Login"
-      title="SONARA OS™"
+      title="SONARA One™"
       subtitle="Log in to access your creator operating system."
       actions={
         <>

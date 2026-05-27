@@ -1,6 +1,6 @@
 # Open Source Technology Stack
 
-SONARA OSâ„¢ should stay lightweight enough to deploy, audit, and contribute to.
+SONARA Oneâ„¢ should stay lightweight enough to deploy, audit, and contribute to.
 
 ## Current Stack
 

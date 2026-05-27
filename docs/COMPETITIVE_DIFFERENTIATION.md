@@ -1,6 +1,6 @@
 # Competitive Differentiation
 
-SONARA OSâ„¢ is a music creator operating system.
+SONARA Oneâ„¢ is a music creator operating system.
 
 It is not:
 
@@ -14,7 +14,7 @@ It is not:
 
 Core promise:
 
-SONARA OSâ„¢ helps creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready creative bundles.
+SONARA Oneâ„¢ helps creators turn ideas into structured lyrics, arrangement notes, sound direction, rights-aware assets, metadata, release plans, and export-ready creative bundles.
 
 Signature workflow:
 

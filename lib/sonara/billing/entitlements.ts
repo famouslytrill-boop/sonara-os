@@ -21,7 +21,29 @@ export type Entitlement =
 
 export const entitlementsByTier: Record<PricingTierId, Entitlement[]> = {
   free: ["basic_prompt_builder"],
-  creator: ["basic_prompt_builder", "advanced_prompt_builder", "runtime_target_engine", "slider_recommendations", "authentic_writer_engine", "sound_identity"],
+  starter: ["basic_prompt_builder", "advanced_prompt_builder", "runtime_target_engine", "slider_recommendations", "authentic_writer_engine", "sound_identity"],
+  core: [
+    "basic_prompt_builder",
+    "advanced_prompt_builder",
+    "runtime_target_engine",
+    "slider_recommendations",
+    "authentic_writer_engine",
+    "sound_identity",
+    "sound_rights_exports",
+    "metadata_rights_sheets",
+  ],
+  growth: [
+    "basic_prompt_builder",
+    "advanced_prompt_builder",
+    "runtime_target_engine",
+    "slider_recommendations",
+    "authentic_writer_engine",
+    "sound_identity",
+    "sound_rights_exports",
+    "metadata_rights_sheets",
+    "full_bundle_exports",
+    "store_products",
+  ],
   pro: [
     "basic_prompt_builder",
     "advanced_prompt_builder",
@@ -33,8 +55,11 @@ export const entitlementsByTier: Record<PricingTierId, Entitlement[]> = {
     "obs_broadcast_kit",
     "vault_tools",
     "vault_stack",
+    "review_room",
+    "brand_governance",
+    "store_products",
   ],
-  label: [
+  agency: [
     "basic_prompt_builder",
     "advanced_prompt_builder",
     "runtime_target_engine",

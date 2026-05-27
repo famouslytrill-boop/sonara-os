@@ -5,7 +5,7 @@ export default function TermsPage() {
     <PageShell
       eyebrow="Terms"
       title="Terms of service placeholder."
-      subtitle="Basic launch terms for SONARA Industries™ and SONARA OS™ workflows."
+      subtitle="Basic launch terms for SONARA Industries™ and SONARA One™ workflows."
     >
       <Notice>
         These terms are a placeholder and should be reviewed before production.

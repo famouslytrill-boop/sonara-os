@@ -14,7 +14,7 @@ export default function StorePage() {
         <p className="text-xs font-black uppercase text-[#22D3EE]">Store</p>
         <h1 className="mt-2 text-3xl font-black">SONARA Store.</h1>
         <p className="mt-3 max-w-3xl leading-7 text-[#A1A1AA]">
-          Subscribe to SONARA OS™ or prepare for future export bundles, prompt packs, sound-pack license sheets, and creator brand kits.
+          Subscribe to SONARA One™ or prepare for future export bundles, prompt packs, sound-pack license sheets, and creator brand kits.
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <Link className="inline-flex min-h-11 items-center rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/pricing">

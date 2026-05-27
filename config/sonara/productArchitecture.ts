@@ -160,19 +160,19 @@ export const sonaraProjectWorkflow = [
 
 export const sonaraPricingTiers = [
   {
-    name: "SONARA OS™ Free",
+    name: "SONARA One™ Free",
     description: "Start projects, build basic prompts, and explore local-rules release planning.",
   },
   {
-    name: "SONARA OS™ Creator",
+    name: "SONARA One™ Creator",
     description: "Add runtime targets, external generator settings, and stronger creator workflows.",
   },
   {
-    name: "SONARA OS™ Pro",
+    name: "SONARA One™ Pro",
     description: "Export full release bundles and sound-rights documentation for serious launches.",
   },
   {
-    name: "SONARA OS™ Label",
+    name: "SONARA One™ Label",
     description: "Run brand governance, label workspace planning, and store product workflow.",
   },
 ] as const;

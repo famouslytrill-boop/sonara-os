@@ -15,7 +15,7 @@ export default function SupportPage() {
   return (
     <PageShell
       eyebrow="Support"
-      title="Support for SONARA OS™."
+      title="Support for SONARA One™."
       subtitle="Use this page for launch support routing until a ticketing or email integration is configured."
     >
       <Notice>

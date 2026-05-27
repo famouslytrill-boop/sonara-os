@@ -20,16 +20,16 @@ app.add_middleware(
 )
 
 Status = Literal["excellent", "strong", "watch", "weak", "risky", "needs_review", "queued", "approved", "rejected"]
-BrandScope = Literal["trackfoundry", "lineready", "noticegrid"]
+BrandScope = Literal["business-builder", "creator-studio", "growth-studio"]
 
 RISKY_ACTIONS = {
-    "public_notice_publishing",
+    "public_campaign_publishing",
     "mass_notifications",
     "billing_changes",
     "user_deletion",
     "role_escalation",
     "public_external_links",
-    "public_civic_notices",
+    "public_growth_claims",
     "ai_generated_public_alerts",
     "payout_accounting_changes",
     "organization_data_export",
@@ -42,28 +42,28 @@ APPROVAL_QUEUE: dict[str, dict] = {}
 
 BRANDS = [
     {
-        "key": "trackfoundry",
-        "name": "TrackFoundry",
-        "category": "Music creation and release-readiness software.",
-        "tagline": "Build the artist. Shape the release.",
-        "modules": ["Artist DNA", "Catalog Vault", "Release Desk", "Transcript Studio", "Prompt Foundry", "Market Pulse"],
-        "warnings": ["Influence DNA only.", "No copying real artists.", "Commercial release still requires rights review."],
+        "key": "creator-studio",
+        "name": "Creator Studio",
+        "category": "Creator operations software.",
+        "tagline": "Organize, protect, publish, and monetize creative work.",
+        "modules": ["Creator Passport", "Asset Vault", "Release Planner", "Offer Builder", "Prompt Playbook", "Content Calendar"],
+        "warnings": ["Rights notes required.", "No impersonation.", "Publishing requires owner review."],
     },
     {
-        "key": "lineready",
-        "name": "LineReady",
-        "category": "Restaurant operations and labor-control software.",
-        "tagline": "Every shift ready.",
-        "modules": ["Labor Control", "Schedule Grid", "Recipe Costing", "Crew Chat", "Vendor Links", "Compliance Board"],
-        "warnings": ["External POS, payroll, and payment integrations are placeholders only.", "LineReady is not a payroll provider or payment processor."],
+        "key": "business-builder",
+        "name": "Business Builder",
+        "category": "Business operations software.",
+        "tagline": "Create, launch, run, and manage a business.",
+        "modules": ["Smart Setup Wizard", "Business Passport", "Customer Records", "Payment Options", "Bookings", "Reviews"],
+        "warnings": ["External payment links only.", "No raw card data.", "Public-facing changes require owner review."],
     },
     {
-        "key": "noticegrid",
-        "name": "NoticeGrid",
-        "category": "Verified local information and public-notice software.",
-        "tagline": "Local updates without the noise.",
-        "modules": ["Verified Feeds", "Notice Builder", "Local Grid", "Organization Pages", "Weather + Transit Links", "Quiet Alerting"],
-        "warnings": ["Not a government authority.", "Not voting, emergency dispatch, medical alert, or law-enforcement software."],
+        "key": "growth-studio",
+        "name": "Growth Studio",
+        "category": "Growth systems software.",
+        "tagline": "Attract customers, leads, fans, referrals, reviews, and revenue.",
+        "modules": ["Campaign Builder", "Lead Inbox", "Customer Follow-up", "Review Engine", "Referral Engine", "Growth Dashboard"],
+        "warnings": ["No auto-sent campaigns.", "No fake reviews.", "Customer-facing sends require owner review."],
     },
 ]
 
@@ -92,7 +92,7 @@ class BreakEvenInput(BaseModel):
     variable_cost: float = Field(ge=0)
 
 
-class TrackFoundryReadinessInput(BaseModel):
+class CreatorStudioReadinessInput(BaseModel):
     identity_score: float = Field(ge=0, le=100)
     catalog_score: float = Field(ge=0, le=100)
     rights_placeholder_score: float = Field(ge=0, le=100)
@@ -273,40 +273,40 @@ async def business_break_even(input_data: BreakEvenInput):
     return formula(units, None, "strong", "Break-even units equal fixed costs divided by contribution margin per unit.", input_data, "Validate whether the market can support this volume.")
 
 
-@app.post("/trackfoundry/release-readiness", response_model=FormulaResponse)
-async def trackfoundry_release_readiness(input_data: TrackFoundryReadinessInput):
+@app.post("/creator-studio/release-readiness", response_model=FormulaResponse)
+async def creator_studio_release_readiness(input_data: CreatorStudioReadinessInput):
     score = clamp(weighted_score([(input_data.identity_score, 0.25), (input_data.catalog_score, 0.25), (input_data.rights_placeholder_score, 0.25), (input_data.release_plan_score, 0.25)]) - input_data.approval_blockers * 12)
-    return formula(score, score, "needs_review" if input_data.approval_blockers else status_for_score(score), "TrackFoundry readiness checks artist identity, catalog, rights placeholders, release plan, and approval blockers.", input_data, "Review rights, splits, and campaign assets before release export.", input_data.approval_blockers > 0)
+    return formula(score, score, "needs_review" if input_data.approval_blockers else status_for_score(score), "Creator Studio readiness checks profile identity, asset catalog, rights placeholders, release plan, and approval blockers.", input_data, "Review rights, claims, and campaign assets before release export.", input_data.approval_blockers > 0)
 
 
-@app.post("/lineready/labor-cost", response_model=FormulaResponse)
-async def lineready_labor_cost(input_data: LaborCostInput):
+@app.post("/business-builder/labor-cost", response_model=FormulaResponse)
+async def business_builder_labor_cost(input_data: LaborCostInput):
     percentage = (input_data.labor_cost / input_data.net_sales) * 100
     score = clamp(100 - max(0, percentage - 25) * 4)
     return formula(percentage, score, "strong" if percentage <= 30 else "watch" if percentage <= 36 else "risky", "Labor cost percentage is labor cost divided by net sales. Targets vary by restaurant model.", input_data, "Review staffing levels, projected sales, and overtime before publishing the schedule.")
 
 
-@app.post("/lineready/menu-margin", response_model=FormulaResponse)
-async def lineready_menu_margin(input_data: MenuMarginInput):
+@app.post("/business-builder/menu-margin", response_model=FormulaResponse)
+async def business_builder_menu_margin(input_data: MenuMarginInput):
     total_cost = input_data.food_cost + input_data.packaging_cost
     margin_percentage = ((input_data.menu_price - total_cost) / input_data.menu_price) * 100
     return formula(margin_percentage, clamp(margin_percentage), status_for_score(margin_percentage), "Menu margin is menu price minus food and packaging cost, expressed as a percentage of menu price.", input_data, "Reprice or adjust recipe cost when margin falls below target.")
 
 
-@app.post("/lineready/shift-placement", response_model=FormulaResponse)
-async def lineready_shift_placement(input_data: ShiftPlacementInput):
+@app.post("/business-builder/shift-placement", response_model=FormulaResponse)
+async def business_builder_shift_placement(input_data: ShiftPlacementInput):
     score = clamp(weighted_score([(input_data.skill_match, 0.30), (input_data.availability_match, 0.25), (100 - input_data.overtime_risk, 0.20), (input_data.certification_match, 0.15), (input_data.fairness_balance, 0.10)]))
     return formula(score, score, status_for_score(score), "Shift placement balances skill, availability, overtime risk, certification fit, and fairness.", input_data, "Manager should review placements with low certification fit or high overtime risk.")
 
 
-@app.post("/noticegrid/alert-risk", response_model=FormulaResponse)
-async def noticegrid_alert_risk(input_data: AlertRiskInput):
+@app.post("/growth-studio/alert-risk", response_model=FormulaResponse)
+async def growth_studio_alert_risk(input_data: AlertRiskInput):
     risk = clamp(weighted_score([(100 - input_data.source_trust, 0.30), (input_data.public_impact, 0.25), (input_data.urgency, 0.15), (input_data.ambiguity, 0.20), (input_data.approval_missing, 0.10)]))
     return formula(risk, risk, status_for_risk(risk), "Alert risk rises when trust is low, public impact is high, language is ambiguous, urgency is high, or approval is missing.", input_data, "Queue public notices and alerts for approval before publishing.", risk >= 40)
 
 
-@app.post("/noticegrid/source-trust", response_model=FormulaResponse)
-async def noticegrid_source_trust(input_data: SourceTrustInput):
+@app.post("/growth-studio/source-trust", response_model=FormulaResponse)
+async def growth_studio_source_trust(input_data: SourceTrustInput):
     score = clamp(weighted_score([(input_data.verification_score, 0.35), (input_data.history_score, 0.25), (100 - input_data.correction_rate, 0.20), (input_data.source_transparency, 0.20)]))
     return formula(score, score, status_for_score(score), "Source trust blends verification, source history, correction rate, and transparency.", input_data, "Re-check sources below strong confidence before public notices rely on them.")
 

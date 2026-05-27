@@ -23,7 +23,7 @@ export default function PricingPage() {
     <PageShell
       eyebrow="Pricing"
       title="Plans for music creators, teams, and labels."
-      subtitle="SONARA OS™ is a creator operating system for music as a whole. Start free, then upgrade when exports, rights sheets, broadcast kits, or catalog workflow become part of the job."
+      subtitle="SONARA One™ is a creator operating system for music as a whole. Start free, then upgrade when exports, rights sheets, broadcast kits, or catalog workflow become part of the job."
       actions={
         <>
           <ButtonLink href="/store">Open Store</ButtonLink>
@@ -54,7 +54,7 @@ export default function PricingPage() {
               </ButtonLink>
             ) : (
               <CheckoutButton tier={tier.id as StripeTierWithPrice}>
-                Subscribe to {tier.name.replace("SONARA OS™ ", "")}
+                Subscribe to {tier.name.replace("SONARA One™ ", "")}
               </CheckoutButton>
             )}
           </Card>

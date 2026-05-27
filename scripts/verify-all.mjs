@@ -11,6 +11,7 @@ const commands = [
   ["pnpm", ["run", "verify:brand"]],
   ["pnpm", ["run", "verify:env"]],
   ["pnpm", ["run", "verify:stripe"]],
+  ["pnpm", ["run", "verify:legacy-copy"]],
   ["pnpm", ["run", "workers:smoke"]],
   ["pnpm", ["run", "test:smoke"]],
   ["pnpm", ["run", "test:docs"]],

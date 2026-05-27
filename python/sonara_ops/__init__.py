@@ -1,4 +1,4 @@
-"""SONARA OS local and CI operations tooling."""
+"""SONARA One local and CI operations tooling."""
 
 __all__ = ["__version__"]
 

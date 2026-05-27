@@ -1,5 +1,5 @@
 {
-  "name": "signal-os",
+  "name": "sonara-industries-platform",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.1.1",
@@ -37,6 +37,7 @@
     "seed:entities": "node scripts/seed-entity-defaults.mjs",
     "verify:entity-security": "node scripts/verify-entity-security.mjs",
     "verify:brand": "node scripts/verify-brand.mjs",
+    "verify:legacy-copy": "node scripts/check-no-legacy-public-copy.mjs",
     "agent:worktree:create": "bash scripts/create-agent-worktree.sh",
     "agent:worktree:remove": "bash scripts/remove-agent-worktree.sh",
     "verify:all": "node scripts/verify-all.mjs",

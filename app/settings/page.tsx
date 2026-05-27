@@ -54,9 +54,9 @@ export default function SettingsPage() {
         </div>
 
         <div className="mt-6 rounded-lg border border-[#2A2A35] bg-[#111118] p-4">
-          <p className="text-sm font-black text-[#F8FAFC]">Welcome to SONARA OS™</p>
+          <p className="text-sm font-black text-[#F8FAFC]">Welcome to SONARA One™</p>
           <p className="mt-2 text-sm leading-6 text-[#A1A1AA]">
-            SONARA OS™ is the creator operating system from SONARA Industries™, built to help artists, producers, labels, and music entrepreneurs organize songs, sounds, prompts, release plans, and full artist ecosystems.
+            SONARA One™ is the creator operating system from SONARA Industries™, built to help artists, producers, labels, and music entrepreneurs organize songs, sounds, prompts, release plans, and full artist ecosystems.
           </p>
         </div>
 

@@ -42,8 +42,8 @@ export function PricingTiers({ paymentsConfigured = false }: { paymentsConfigure
             <p className="text-xs font-black uppercase tracking-[0.18em] text-[#22D3EE]">{tier.productName}</p>
             <p className="mt-2 text-sm font-black text-[#F8FAFC]">{tier.name}</p>
             <p className="mt-2 text-3xl font-black text-[#22D3EE]">
-              {tier.monthlyPrice === 0 ? "$0" : `$${tier.monthlyPrice.toFixed(2)}`}
-              <span className="text-sm text-[#A1A1AA]">/mo</span>
+              {tier.priceLabel}
+              {tier.monthlyPrice ? <span className="text-sm text-[#A1A1AA]"> monthly</span> : null}
             </p>
             <p className="mt-3 min-h-20 text-sm leading-6 text-[#A1A1AA]">{tier.description}</p>
             <ul className="mt-4 grid gap-2 text-sm leading-6 text-[#A1A1AA]">
@@ -66,7 +66,7 @@ export function PricingTiers({ paymentsConfigured = false }: { paymentsConfigure
                 : canCheckout
                   ? loadingTier === tier.id
                     ? "Opening checkout"
-                    : `Start ${tier.productName}`
+                    : `Start ${tier.name}`
                   : "Payment setup required"}
             </Button>
           </div>

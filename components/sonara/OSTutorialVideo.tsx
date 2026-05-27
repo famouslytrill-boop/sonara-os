@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 
 const tutorialScript = [
-  "Welcome to SONARA OS™.",
+  "Welcome to SONARA One™.",
   "Create your first project.",
   "Use SONARA Core™.",
   "Review Genre and Arrangement guidance.",
@@ -27,7 +27,7 @@ export function OSTutorialVideo() {
         <PlayCircle className="text-[#FFB454]" size={26} />
         <div>
           <p className="text-xs font-black uppercase text-[#FFB454]">Video walkthrough</p>
-          <h2 className="text-2xl font-black">SONARA OS™ video walkthrough coming soon.</h2>
+          <h2 className="text-2xl font-black">SONARA One™ video walkthrough coming soon.</h2>
         </div>
       </div>
       {hasVideo ? (

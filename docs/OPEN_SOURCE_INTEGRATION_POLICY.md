@@ -1,6 +1,6 @@
 # Open Source Integration Policy
 
-SONARA OSâ„¢ prefers free and open-source software where practical, while staying honest about hosted services and API costs.
+SONARA Oneâ„¢ prefers free and open-source software where practical, while staying honest about hosted services and API costs.
 
 ## Safe To Use Now
 

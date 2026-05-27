@@ -15,7 +15,7 @@ async function upsertSubscription(subscription: Stripe.Subscription, fallbackUse
 
   const metadata = subscription.metadata ?? {};
   const userId = metadata.user_id || fallbackUserId;
-  const tierId = metadata.tier_id && getPricingTier(metadata.tier_id) ? metadata.tier_id : "creator";
+  const tierId = metadata.tier_id && getPricingTier(metadata.tier_id) ? metadata.tier_id : "starter";
   const subscriptionWithPeriod = subscription as Stripe.Subscription & {
     current_period_end?: number | null;
   };

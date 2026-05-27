@@ -1,14 +1,14 @@
 export type EntitySlug =
   | "parent-company"
-  | "creator-music-technology"
-  | "business-operations"
-  | "community-public-information";
+  | "business-builder"
+  | "creator-studio"
+  | "growth-studio";
 
 export type EntityType =
   | "parent_company"
-  | "creator_music_technology"
-  | "business_operations"
-  | "community_public_information";
+  | "business_builder"
+  | "creator_studio"
+  | "growth_studio";
 
 export type EntityRole = "owner" | "admin" | "operator" | "viewer";
 
@@ -51,8 +51,8 @@ export const entityConfigs: EntityConfig[] = [
     name: "SONARA Industries",
     shortName: "Parent",
     entityType: "parent_company",
-    tagline: "Independent systems. Shared infrastructure. Stronger markets.",
-    description: "A technology holding company that owns independent software companies.",
+    tagline: "Build. Create. Grow.",
+    description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
     audience: "Parent administrators and trusted operators",
     theme: {
       accent: "#00E5FF",
@@ -77,13 +77,13 @@ export const entityConfigs: EntityConfig[] = [
     ],
   },
   {
-    slug: "creator-music-technology",
-    name: "TrackFoundry",
-    shortName: "TrackFoundry",
-    entityType: "creator_music_technology",
-    tagline: "Build the artist. Shape the release.",
-    description: "Music creation and release-readiness software.",
-    audience: "Artists, producers, studios, labels, and creator teams",
+    slug: "business-builder",
+    name: "Business Builder",
+    shortName: "Business Builder",
+    entityType: "business_builder",
+    tagline: "Create, launch, run, and manage a business.",
+    description: "Guided systems for proof, payments, bookings, records, and operations.",
+    audience: "Business owners, service operators, local teams, and solo founders",
     theme: {
       accent: "#D100FF",
       accentSoft: "rgba(209, 0, 255, 0.16)",
@@ -108,13 +108,13 @@ export const entityConfigs: EntityConfig[] = [
     ],
   },
   {
-    slug: "business-operations",
-    name: "LineReady",
-    shortName: "LineReady",
-    entityType: "business_operations",
-    tagline: "Every shift ready.",
-    description: "Restaurant operations and labor-control software.",
-    audience: "Restaurants, small businesses, managers, staff, and operations teams",
+    slug: "creator-studio",
+    name: "Creator Studio",
+    shortName: "Creator Studio",
+    entityType: "creator_studio",
+    tagline: "Organize, protect, publish, and monetize.",
+    description: "Creative workspace for assets, releases, offers, proof, and rights notes.",
+    audience: "Creators, studios, media teams, educators, and digital product sellers",
     theme: {
       accent: "#00B48A",
       accentSoft: "rgba(0, 180, 138, 0.16)",
@@ -139,13 +139,13 @@ export const entityConfigs: EntityConfig[] = [
     ],
   },
   {
-    slug: "community-public-information",
-    name: "NoticeGrid",
-    shortName: "NoticeGrid",
-    entityType: "community_public_information",
-    tagline: "Local updates without the noise.",
-    description: "Verified local information and public-notice software.",
-    audience: "Residents, local organizations, libraries, nonprofits, and public-facing teams",
+    slug: "growth-studio",
+    name: "Growth Studio",
+    shortName: "Growth Studio",
+    entityType: "growth_studio",
+    tagline: "Attract customers, leads, fans, referrals, reviews, and revenue.",
+    description: "Growth systems for campaigns, follow-up, offers, reviews, referrals, and research.",
+    audience: "Business owners, creators, agencies, and growth operators",
     theme: {
       accent: "#007BFF",
       accentSoft: "rgba(0, 123, 255, 0.16)",

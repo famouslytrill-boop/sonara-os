@@ -53,10 +53,10 @@ export function PWAInstallPrompt() {
               setInstallPrompt(null);
             }}
           >
-            Install SONARA OS™
+            Install SONARA One™
           </button>
         ) : (
-          <span>Add SONARA OS™ to your Home Screen from the iOS share menu.</span>
+          <span>Add SONARA One™ to your Home Screen from the iOS share menu.</span>
         )}
       </div>
     </div>
