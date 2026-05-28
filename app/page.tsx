@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { BrandLogo } from "../components/brand/BrandLogo";
 import { PublicShell } from "../components/PublicShell";
+import { JsonLd } from "../components/seo/JsonLd";
 import { products, sharedInfrastructure } from "../lib/houseBrands";
 
 const whoFor = [
@@ -52,8 +53,21 @@ const operatingPreviews = [
 ] as const;
 
 export default function HomePage() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "SONARA Industries",
+    url: "https://sonaraindustries.com",
+    brand: products.map((product) => ({
+      "@type": "Brand",
+      name: product.name,
+      url: `https://sonaraindustries.com${product.route}`,
+    })),
+  };
+
   return (
     <PublicShell>
+      <JsonLd data={organizationSchema} />
       <section className="grid gap-10 py-4 lg:grid-cols-[1fr_0.82fr] lg:items-center">
         <div>
           <BrandLogo entitySlug="parent-company" showTagline size="md" />
