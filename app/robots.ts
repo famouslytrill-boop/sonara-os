@@ -19,6 +19,7 @@ export default function robots(): MetadataRoute.Robots {
         "/contact",
         "/help",
         "/feedback",
+        "/research-lab",
         "/open-source",
       ],
       disallow: ["/api/", "/admin/", "/dashboard/", "/account/", "/app/"],
