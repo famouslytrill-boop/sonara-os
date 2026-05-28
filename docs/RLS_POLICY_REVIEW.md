@@ -6,6 +6,7 @@ This project is RLS-ready, not production-verified. Review every policy in Supab
 
 - Users can read and update their own profile.
 - Organization members can read organization-scoped records.
+- Organization-scoped Research Lab policies must depend on `organization_memberships` and require active membership.
 - Admin-only operations require a role check through `organization_memberships`.
 - Owner-only operations must be enforced in server code and database policy where possible.
 - Service-role keys are server-only and bypass RLS by design.
@@ -31,6 +32,7 @@ This project is RLS-ready, not production-verified. Review every policy in Supab
 
 - Broad `using (true)` policies on private tables.
 - Public read access for customer, payment, file, legal, or audit data.
+- Public read access for private `research_sources`, `open_source_tools`, or `tool_reviews`.
 - Client-side use of `SUPABASE_SERVICE_ROLE_KEY`.
 - Admin actions that rely only on frontend route hiding.
 

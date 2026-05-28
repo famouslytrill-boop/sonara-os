@@ -22,6 +22,8 @@ Run database changes before launch and verify schema in the Supabase SQL Editor.
 - Rotate the service role key immediately if it is ever committed.
 - Run migrations before launch and avoid duplicating tables.
 - Keep Stripe webhook writes server-only after Stripe signature verification.
+- Confirm `organizations` and `organization_memberships` exist before organization-scoped Research Lab policies are applied.
+- Confirm research intake policies require active organization membership and do not expose private records publicly.
 
 ## Verification
 
@@ -42,10 +44,16 @@ Run database changes before launch and verify schema in the Supabase SQL Editor.
 - `008_entity_agent_operations.sql`
 - `010_sonara_platform_current_schema.sql`
 - `20260528071000_sonara_vector_memory_schema.sql`
+- `20260528071400_fix_organization_memberships_dependency.sql`
 - `20260528071500_sonara_platform_redesign_schema.sql`
 - `20260528093000_support_contact_paths.sql`
+- `20260528100000_fix_research_intake_membership_policies.sql`
 
 Public pages must render without Supabase environment variables. Persistent generation history, vector memory, Research Lab storage, and support/contact storage are optional until auth/RLS are verified.
+
+## Organization Membership Dependency
+
+`20260528071400_fix_organization_memberships_dependency.sql` is a prerequisite repair migration for branch previews where `organization_memberships` is missing before Research Lab policies compile. It remains append-only and does not manually alter Supabase migration history.
 
 ## Support And Contact Tables
 

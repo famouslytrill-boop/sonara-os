@@ -38,6 +38,12 @@ SONARA uses Supabase/PostgreSQL scaffolding for organization-scoped records. The
 - `integrations`
 - `webhook_events`
 
+## Organization Membership Foundation
+
+`organization_memberships` is the required RLS dependency for organization-scoped records. The branch includes an append-only prerequisite repair migration so Research Lab policies cannot compile before the membership relation exists.
+
+Membership reads are scoped to the signed-in user's active memberships. Organization reads require active membership. Writes and administrative changes remain server/service-role operations until production role policies are reviewed.
+
 ## Production Notes
 
 - Service-role access must remain server-side.
