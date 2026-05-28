@@ -51,7 +51,7 @@ export const entityConfigs: EntityConfig[] = [
     name: "SONARA Industries",
     shortName: "Parent",
     entityType: "parent_company",
-    tagline: "Independent systems. Shared infrastructure. Stronger markets.",
+    tagline: "Build. Create. Grow.",
     description: "A technology holding company that owns independent software companies.",
     audience: "Parent administrators and trusted operators",
     theme: {

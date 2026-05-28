@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "SONARA Industries",
-  description: "Independent systems. Shared infrastructure. Stronger markets.",
+  description: "Technology infrastructure for Business Builder, Creator Studio, and Growth Studio.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,

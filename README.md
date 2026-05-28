@@ -2,7 +2,7 @@
 
 SONARA Industries is a technology holding company that owns independent software companies.
 
-Tagline: Independent systems. Shared infrastructure. Stronger markets.
+Tagline: Build. Create. Grow.
 
 Public message: Build. Create. Grow.
 

@@ -4,7 +4,7 @@ export const brandSystem = {
     shortName: "SONARA",
     type: "Technology Holding Company",
     slogan: "Build. Create. Grow.",
-    premiumSlogan: "Independent systems. Shared infrastructure. Stronger markets.",
+    premiumSlogan: "Build. Create. Grow.",
     streetSlogan: "Build. Prove. Get paid. Grow.",
     description:
       "SONARA Industries™ owns the shared infrastructure behind Business Builder, Creator Studio, and Growth Studio.",
@@ -63,7 +63,7 @@ export const brandSystem = {
   },
   publicCopy: {
     homepageHeroTitle: "SONARA Industries™",
-    homepageHeroSubtitle: "Independent systems. Shared infrastructure. Stronger markets.",
+    homepageHeroSubtitle: "Build. Create. Grow.",
     homepageHeroBody:
       "SONARA Industries powers Business Builder, Creator Studio, and Growth Studio through shared infrastructure engineered for trust, speed, and scale.",
     appStoreShort:

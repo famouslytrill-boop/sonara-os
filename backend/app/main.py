@@ -239,7 +239,7 @@ async def health():
     return {
         "status": "strong",
         "owner": "SONARA Industries",
-        "tagline": "Independent systems. Shared infrastructure. Stronger markets.",
+        "tagline": "Build. Create. Grow.",
         "brands": [brand["key"] for brand in BRANDS],
         "ai_required": False,
         "request_ids_ready": True,

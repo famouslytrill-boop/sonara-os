@@ -52,7 +52,7 @@ export type BrandDefinition = {
 export const parentCompany = {
   name: "SONARA Industries",
   positioning: "A technology holding company that owns independent software companies.",
-  tagline: "Independent systems. Shared infrastructure. Stronger markets.",
+  tagline: "Build. Create. Grow.",
   operatingModel:
     "SONARA Industries owns the shared infrastructure, security posture, research layer, and operating discipline behind Business Builder, Creator Studio, and Growth Studio.",
 } as const;
