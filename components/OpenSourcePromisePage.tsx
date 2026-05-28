@@ -16,6 +16,15 @@ export function OpenSourcePromisePage({
         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#2DD4BF]">Open-source philosophy</p>
         <h1 className="mt-3 max-w-4xl text-4xl font-black text-white">{title}</h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-[#CBD5E1]">{description}</p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {["Free to Start", "Open-Source Friendly", "Reference Only", "Review Required", "Restricted", "Blocked"].map(
+            (badge) => (
+              <span key={badge} className="rounded-full border border-white/15 bg-[#081827] px-3 py-1 text-xs font-black text-[#E2E8F0]">
+                {badge}
+              </span>
+            ),
+          )}
+        </div>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2DD4BF] px-4 text-sm font-black text-[#07111F]" href="/research-lab/open-source">
             Open watchlist
