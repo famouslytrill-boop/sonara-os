@@ -23,6 +23,7 @@ const publicRoutes = [
   "/research-lab/growth-intelligence",
   "/research-lab/multimodal",
   "/research-lab/safety-review",
+  "/research-lab/crawling",
   "/pricing",
   "/trust",
   "/legal",
