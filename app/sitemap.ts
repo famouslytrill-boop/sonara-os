@@ -14,6 +14,7 @@ const publicRoutes = [
   "/legal/privacy",
   "/legal/refund-policy",
   "/legal/acceptable-use",
+  "/legal/open-source-policy",
   "/legal/security",
   "/privacy",
   "/terms",
