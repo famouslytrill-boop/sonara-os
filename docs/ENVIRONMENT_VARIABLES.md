@@ -7,7 +7,7 @@ Use `.env.example` as the placeholder contract. Real values belong in Vercel, Su
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_MARKETING_URL`
-- `NEXT_PUBLIC_SUPPORT_EMAIL`
+- `NEXT_PUBLIC_SUPPORT_CONTACT_LABEL`
 - `NEXT_PUBLIC_COMPANY_NAME`
 - `NEXT_PUBLIC_PLATFORM_NAME`
 - `NEXT_PUBLIC_SUPABASE_URL`
@@ -35,6 +35,14 @@ Only `NEXT_PUBLIC_*` variables are browser-exposed. Never put service-role keys,
 - `STRIPE_PRICE_SETUP_99`
 - `STRIPE_PRICE_SETUP_299`
 - `STRIPE_PRICE_SETUP_499`
+- `SUPPORT_EMAIL`
+- `CONTACT_EMAIL`
+- `RESEND_API_KEY`
+- `SENDGRID_API_KEY`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
 
 ## Validation
 
