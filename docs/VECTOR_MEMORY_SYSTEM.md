@@ -28,7 +28,7 @@ If embeddings are not configured, records can still store text and metadata and 
 
 ## Migration
 
-Run `supabase/migrations/004_sonara_vector_memory.sql`. The migration attempts to enable `vector`, creates `sonara_memory_records`, and uses a 1536-dimension placeholder when pgvector is available. Final dimension must match the chosen model.
+Run `supabase/migrations/20260528071000_sonara_vector_memory_schema.sql`. The migration attempts to enable `vector`, creates `sonara_memory_records`, and uses a 1536-dimension placeholder when pgvector is available. Final dimension must match the chosen model.
 # 2026 Vector Memory Update
 
 Default provider: `supabase_pgvector`.
