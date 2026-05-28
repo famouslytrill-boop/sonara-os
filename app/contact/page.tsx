@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { ContactForm } from "../../components/support/ContactForm";
 import { PublicShell } from "../../components/PublicShell";
 import { contactCategories } from "../../lib/support/contact-schema";
@@ -7,6 +8,15 @@ export const metadata: Metadata = {
   title: "Contact",
   description: "Contact SONARA Industries for general, billing, technical, security, legal, privacy, and partnership requests.",
 };
+
+const contactResources = [
+  { label: "Support Center", href: "/support", description: "Find product, account, billing, and security support paths." },
+  { label: "Help", href: "/help", description: "Browse the public help index and launch-readiness links." },
+  { label: "Feedback", href: "/feedback", description: "Send beta feedback, bug reports, and accessibility notes." },
+  { label: "Legal", href: "/legal", description: "Review policy templates, terms, privacy, and billing pages." },
+  { label: "Privacy", href: "/legal/privacy", description: "Read the privacy policy draft and data request process." },
+  { label: "Refund Policy", href: "/legal/refund-policy", description: "Review cancellation, refund, and billing-dispute notes." },
+] as const;
 
 export default function ContactPage() {
   const contactLabel = process.env.NEXT_PUBLIC_SUPPORT_CONTACT_LABEL || "your account or project settings";
@@ -32,6 +42,19 @@ export default function ContactPage() {
           <div key={category.value} className="rounded-2xl border border-white/10 bg-[#081827] p-4 text-sm font-black text-white">
             {category.label}
           </div>
+        ))}
+      </section>
+
+      <section className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {contactResources.map((resource) => (
+          <Link
+            key={resource.href}
+            href={resource.href}
+            className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 transition hover:border-[#2DD4BF]/70 focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
+          >
+            <h2 className="text-sm font-black text-white">{resource.label}</h2>
+            <p className="mt-2 text-sm leading-6 text-[#CBD5E1]">{resource.description}</p>
+          </Link>
         ))}
       </section>
 

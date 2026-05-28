@@ -15,6 +15,7 @@ const helpLinks = [
   { label: "Privacy", href: "/legal/privacy", description: "Data handling, provider, support, and deletion-request draft language." },
   { label: "Refund Policy", href: "/legal/refund-policy", description: "Subscription, setup-service, refund, and dispute handling draft." },
   { label: "Trust", href: "/trust", description: "Security, approval, billing, and reliability posture." },
+  { label: "Research Lab", href: "/research-lab", description: "Open-source intelligence, creator tooling, model comparison, and safety review." },
   { label: "Open Source", href: "/open-source", description: "Open-source promise, license review posture, and third-party notices." },
 ];
 

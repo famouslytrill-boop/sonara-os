@@ -60,8 +60,10 @@ const footerGroups = [
   {
     title: "Platform",
     links: [
+      { label: "Research Lab", href: "/research-lab" },
+      { label: "Open Source", href: "/open-source" },
       { label: "API/Webhooks", href: "/docs" },
-      { label: "Integrations", href: "/app/settings" },
+      { label: "Integrations", href: "/docs" },
       { label: "Docs", href: "/docs" },
       { label: "Changelog", href: "/docs" },
     ],
