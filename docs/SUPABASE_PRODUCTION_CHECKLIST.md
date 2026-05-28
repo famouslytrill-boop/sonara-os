@@ -36,8 +36,19 @@ Run database changes before launch and verify schema in the Supabase SQL Editor.
 
 - `003_sonara_subscriptions.sql`
 - `004_sonara_final_launch.sql`
-- `20260528071000_sonara_vector_memory_schema.sql`
 - `005_sonara_sound_discovery.sql`
 - `006_sonara_generation_history.sql`
+- `007_platform_infrastructure_ops.sql`
+- `008_entity_agent_operations.sql`
+- `010_sonara_platform_current_schema.sql`
+- `20260528071000_sonara_vector_memory_schema.sql`
+- `20260528071500_sonara_platform_redesign_schema.sql`
+- `20260528093000_support_contact_paths.sql`
 
-Public pages must render without Supabase environment variables. Persistent generation history and vector memory are optional until auth/RLS are verified.
+Public pages must render without Supabase environment variables. Persistent generation history, vector memory, Research Lab storage, and support/contact storage are optional until auth/RLS are verified.
+
+## Support And Contact Tables
+
+- `support_requests` allows public inserts only; reads and management stay authenticated/server-side.
+- `feedback_reports` allows public inserts only; reads and management stay authenticated/server-side.
+- Email delivery is optional and must not be claimed active unless a reviewed provider adapter and real provider env vars are configured.

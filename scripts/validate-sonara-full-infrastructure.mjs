@@ -15,6 +15,8 @@ const requiredFiles = [
   "app/tutorial/page.tsx",
   "app/trust/page.tsx",
   "app/support/page.tsx",
+  "app/help/page.tsx",
+  "app/feedback/page.tsx",
   "app/founder/page.tsx",
   "app/api/cron/sonara-maintenance/route.ts",
   "app/api/stripe/checkout/route.ts",

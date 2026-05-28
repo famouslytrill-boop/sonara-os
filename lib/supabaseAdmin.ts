@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type SonaraDatabase = {
+export type SonaraDatabase = {
   public: {
     Tables: {
       sonara_user_subscriptions: {
@@ -215,6 +215,76 @@ type SonaraDatabase = {
           event_id?: string;
           event_type?: string;
           processed_at?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      support_requests: {
+        Row: {
+          id: string;
+          created_at: string;
+          updated_at: string;
+          name: string;
+          email: string;
+          organization_name: string | null;
+          category: string;
+          subject: string;
+          message: string;
+          urgency: string;
+          status: string;
+          source_path: string | null;
+          user_id: string | null;
+          organization_id: string | null;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+          name: string;
+          email: string;
+          organization_name?: string | null;
+          category: string;
+          subject: string;
+          message: string;
+          urgency?: string;
+          status?: string;
+          source_path?: string | null;
+          user_id?: string | null;
+          organization_id?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
+          updated_at?: string;
+          status?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      feedback_reports: {
+        Row: {
+          id: string;
+          created_at: string;
+          feedback_type: string;
+          page_path: string | null;
+          rating: number | null;
+          message: string;
+          email: string | null;
+          user_id: string | null;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          created_at?: string;
+          feedback_type: string;
+          page_path?: string | null;
+          rating?: number | null;
+          message: string;
+          email?: string | null;
+          user_id?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
           metadata?: Record<string, unknown>;
         };
         Relationships: [];

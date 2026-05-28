@@ -12,10 +12,11 @@ jobs:
       run:
         working-directory: .
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: pnpm/action-setup@v4
 
+      - uses: actions/setup-node@v5
       - uses: actions/setup-node@v4
       - uses: pnpm/action-setup@v4      - uses: actions/setup-node@v4
         with:
@@ -38,7 +39,7 @@ jobs:
   supabase-preview:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check Supabase preview secrets
         id: supabase-secrets
@@ -60,7 +61,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         if: steps.supabase-secrets.outputs.configured == 'true'
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         if: steps.supabase-secrets.outputs.configured == 'true'
         with:
           node-version: "22"

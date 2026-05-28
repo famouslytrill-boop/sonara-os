@@ -35,6 +35,10 @@ The branch-added Research Lab intake migration was also moved to a timestamped m
 - From: `supabase/migrations/011_sonara_research_intake_tables.sql`
 - To: `supabase/migrations/20260528071500_sonara_platform_redesign_schema.sql`
 
+The support/contact sprint adds a new append-only migration:
+
+- `supabase/migrations/20260528093000_support_contact_paths.sql`
+
 No rows were manually inserted, deleted, or updated in `supabase_migrations.schema_migrations`.
 
 ## Append-Only Rule
@@ -64,6 +68,10 @@ Supabase Preview still requires these GitHub secrets when preview validation is 
 
 If these are missing, the workflow should skip Supabase Preview with a clear message rather than failing unrelated CI.
 
+## Rerun Supabase Preview
+
+Push the branch and let GitHub Actions rerun the Supabase Preview job. It should now apply unique migration versions. If preview secrets are missing, the workflow should print the configured skip message instead of failing unrelated CI.
+
 ## Local Validation
 
 Passed:
@@ -75,6 +83,8 @@ pnpm run typecheck
 pnpm run build
 pnpm run validate:infrastructure
 pnpm run verify:db
+pnpm run smoke:routes
+pnpm run verify:all
 pnpm exec supabase --version
 ```
 
@@ -89,4 +99,17 @@ pnpm exec supabase migration list
 pnpm exec supabase db reset
 ```
 
-`supabase migration list` requires a linked Supabase project. `supabase db reset` requires Docker Desktop/local Supabase services, which were not available in this local environment.
+`supabase migration list` requires a linked Supabase project. `supabase db reset` requires `supabase start` and the local Supabase stack to be running. Those local Supabase requirements were not available in this environment.
+
+## Current Migration Files
+
+- `003_sonara_subscriptions.sql`
+- `004_sonara_final_launch.sql`
+- `005_sonara_sound_discovery.sql`
+- `006_sonara_generation_history.sql`
+- `007_platform_infrastructure_ops.sql`
+- `008_entity_agent_operations.sql`
+- `010_sonara_platform_current_schema.sql`
+- `20260528071000_sonara_vector_memory_schema.sql`
+- `20260528071500_sonara_platform_redesign_schema.sql`
+- `20260528093000_support_contact_paths.sql`

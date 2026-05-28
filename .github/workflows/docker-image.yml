@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check for Dockerfile
         id: dockerfile
@@ -25,4 +25,4 @@ jobs:
 
       - name: Build the Docker image
         if: steps.dockerfile.outputs.exists == 'true'
-        run: docker build . --file Dockerfile --tag sonara-industries-platform:${{ github.sha }}
+        run: docker build -t sonara-os:ci .

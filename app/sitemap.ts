@@ -41,6 +41,8 @@ const publicRoutes = [
   "/terms",
   "/support",
   "/contact",
+  "/help",
+  "/feedback",
   "/offline",
 ] as const;
 
