@@ -19,6 +19,10 @@ const sections = [
     body: "Asset Vault and rights notes help creators keep ownership, license, source, and usage context visible before publishing or selling creative work.",
   },
   {
+    title: "Creator tool library",
+    body: "External creative tools and open-source workflow references are tracked as research or setup notes first. SONARA does not imply native hosting, ownership, or endorsement without review.",
+  },
+  {
     title: "Launch planning",
     body: "Release planning, content calendars, offer builder, and proof cards create a repeatable launch workflow with human approval on public-facing outputs.",
   },
@@ -29,6 +33,10 @@ const sections = [
   {
     title: "Collaboration",
     body: "Project rooms and review-ready records are designed for teams while keeping private files and customer data protected.",
+  },
+  {
+    title: "Brand kit and proof vault",
+    body: "Creator proof cards, brand notes, media records, and launch assets stay draft-first until the owner approves any public-facing claim or generated creative output.",
   },
   {
     title: "Rights and licensing warnings",

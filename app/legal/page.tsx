@@ -19,6 +19,7 @@ const legalLinks = [
   ["Subprocessors", "/legal/subprocessors"],
   ["AI Usage", "/legal/ai-usage"],
   ["Billing Terms", "/legal/billing-terms"],
+  ["Open Source Policy", "/legal/open-source-policy"],
   ["Service Levels", "/legal/service-levels"],
 ] as const;
 

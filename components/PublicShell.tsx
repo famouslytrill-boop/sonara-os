@@ -7,6 +7,7 @@ const publicNavItems = [
   { label: "Business Builder", href: "/business-builder" },
   { label: "Creator Studio", href: "/creator-studio" },
   { label: "Growth Studio", href: "/growth-studio" },
+  { label: "Research Lab", href: "/research-lab" },
   { label: "Pricing", href: "/pricing" },
   { label: "Trust", href: "/trust" },
   { label: "Login", href: "/login" },
@@ -20,7 +21,7 @@ const footerGroups = [
       { label: "Trust", href: "/trust" },
       { label: "Pricing", href: "/pricing" },
       { label: "Contact", href: "/contact" },
-      { label: "Status", href: "/app/system-health" },
+      { label: "Status", href: "/trust" },
     ],
   },
   {
@@ -48,7 +49,7 @@ const footerGroups = [
     title: "Platform",
     links: [
       { label: "API/Webhooks", href: "/docs" },
-      { label: "Integrations", href: "/app/integrations" },
+      { label: "Integrations", href: "/app/settings" },
       { label: "Docs", href: "/docs" },
       { label: "Changelog", href: "/docs" },
     ],

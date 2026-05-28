@@ -31,8 +31,9 @@ export default function PricingPage() {
         <p className="text-xs font-black uppercase tracking-[0.22em] text-[#2DD4BF]">Pricing</p>
         <h1 className="mt-3 max-w-3xl text-4xl font-black">Clear plans for building, proving, getting paid, and growing.</h1>
         <p className="mt-3 max-w-3xl leading-7 text-[#CBD5E1]">
-          Start free, then add paid systems and setup services when the business is ready. Checkout stays disabled until
-          Stripe products, prices, environment variables, and webhook handling are configured.
+          Start free without required payment setup. Paid plans unlock hosted infrastructure, higher limits,
+          collaboration, automation, support, and business-grade controls when the business is ready. Checkout stays
+          disabled until Stripe products, prices, environment variables, and webhook handling are configured.
         </p>
         {!paymentsConfigured ? (
           <p className="mt-4 rounded-xl border border-[#FFB454]/40 bg-[#FFB454]/10 p-3 text-sm font-bold text-white">

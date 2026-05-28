@@ -27,6 +27,10 @@ const sections = [
     body: "Research Lab and Trend Radar are planning surfaces. They do not guarantee growth, customers, ranking, revenue, or market demand.",
   },
   {
+    title: "Public content intelligence",
+    body: "Growth intelligence uses explainable, permission-aware planning notes. It must not create spam, engagement bait, fake scarcity, or platform manipulation workflows.",
+  },
+  {
     title: "Analytics",
     body: "Dashboards show setup and operational readiness first. Revenue totals only appear after real payment data is configured and available.",
   },

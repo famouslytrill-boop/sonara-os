@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, ShieldCheck, Sparkles } from "lucide-react";
 import { BrandLogo } from "../components/brand/BrandLogo";
 import { PublicShell } from "../components/PublicShell";
+import { JsonLd } from "../components/seo/JsonLd";
 import { products, sharedInfrastructure } from "../lib/houseBrands";
 
 const whoFor = [
@@ -17,9 +18,56 @@ const howItWorks = [
   "Keep risky actions gated behind human approval.",
 ] as const;
 
+const previewSections = [
+  {
+    title: "Research Lab",
+    eyebrow: "Governed research",
+    body: "Track useful open-source tools, AI systems, creative software, and infrastructure patterns before anything is copied, installed, vendored, or exposed to users.",
+    href: "/research-lab",
+  },
+  {
+    title: "Proof-to-Payment",
+    eyebrow: "Payment readiness",
+    body: "Connect proof, offers, booking paths, and payment links without storing raw card data, taking custody of funds, or making fake revenue promises.",
+    href: "/trust",
+  },
+  {
+    title: "Trust Shield",
+    eyebrow: "Approval boundaries",
+    body: "Customer messages, public claims, payment changes, legal text, security settings, and destructive actions stay review-gated.",
+    href: "/trust",
+  },
+] as const;
+
+const operatingPreviews = [
+  {
+    title: "Creator tooling preview",
+    body: "Asset records, release planning, rights notes, creator offers, prompt playbooks, and tool-library references stay organized without claiming automatic rights clearance.",
+    href: "/creator-studio",
+  },
+  {
+    title: "Growth intelligence preview",
+    body: "Campaigns, reviews, referrals, follow-up, and recommendations are explainable planning surfaces. No spam automation, fake urgency, or deceptive ranking.",
+    href: "/growth-studio",
+  },
+] as const;
+
 export default function HomePage() {
+  const organizationSchema = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "SONARA Industries",
+    url: "https://sonaraindustries.com",
+    brand: products.map((product) => ({
+      "@type": "Brand",
+      name: product.name,
+      url: `https://sonaraindustries.com${product.route}`,
+    })),
+  };
+
   return (
     <PublicShell>
+      <JsonLd data={organizationSchema} />
       <section className="grid gap-10 py-4 lg:grid-cols-[1fr_0.82fr] lg:items-center">
         <div>
           <BrandLogo entitySlug="parent-company" showTagline size="md" />
@@ -47,6 +95,9 @@ export default function HomePage() {
         </div>
 
         <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-4 shadow-[0_24px_100px_rgba(0,0,0,0.38)]">
+          <p className="px-2 pb-3 text-xs font-black uppercase tracking-[0.18em] text-[#99F6E4]">
+            Three companies. One trusted foundation.
+          </p>
           <div className="grid gap-3">
             {products.map((product) => (
               <Link
@@ -81,6 +132,22 @@ export default function HomePage() {
         ))}
       </section>
 
+      <section className="mt-10 grid gap-4 lg:grid-cols-3">
+        {previewSections.map((section) => (
+          <article key={section.title} className="rounded-3xl border border-white/10 bg-[#081827] p-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#99F6E4]">{section.eyebrow}</p>
+            <h2 className="mt-3 text-2xl font-black text-white">{section.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-[#CBD5E1]">{section.body}</p>
+            <Link
+              href={section.href}
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-black text-white hover:border-[#2DD4BF] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
+            >
+              Review details <ArrowRight size={16} />
+            </Link>
+          </article>
+        ))}
+      </section>
+
       <section className="mt-10 rounded-3xl border border-white/10 bg-[#081827] p-6">
         <div className="flex items-start gap-3">
           <Sparkles className="mt-1 shrink-0 text-[#2DD4BF]" size={22} />
@@ -99,6 +166,21 @@ export default function HomePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mt-10 grid gap-5 lg:grid-cols-2">
+        {operatingPreviews.map((preview) => (
+          <article key={preview.title} className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+            <h2 className="text-2xl font-black text-white">{preview.title}</h2>
+            <p className="mt-3 text-sm leading-6 text-[#CBD5E1]">{preview.body}</p>
+            <Link
+              href={preview.href}
+              className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-black text-white hover:border-[#2DD4BF] focus:outline-none focus:ring-2 focus:ring-[#2DD4BF]"
+            >
+              Open workspace <ArrowRight size={16} />
+            </Link>
+          </article>
+        ))}
       </section>
 
       <section className="mt-10 grid gap-5 lg:grid-cols-2">

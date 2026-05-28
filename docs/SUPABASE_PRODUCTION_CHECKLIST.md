@@ -36,7 +36,7 @@ Run database changes before launch and verify schema in the Supabase SQL Editor.
 
 - `003_sonara_subscriptions.sql`
 - `004_sonara_final_launch.sql`
-- `004_sonara_vector_memory.sql`
+- `20260528071000_sonara_vector_memory_schema.sql`
 - `005_sonara_sound_discovery.sql`
 - `006_sonara_generation_history.sql`
 

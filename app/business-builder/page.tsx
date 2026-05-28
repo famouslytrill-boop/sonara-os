@@ -27,6 +27,14 @@ const sections = [
     body: "Keep customer records, files, quotes, bookings, payment options, reviews, training notes, and SOPs organization-scoped and private by default.",
   },
   {
+    title: "Bookings and customers",
+    body: "Organize booking links, customer records, source notes, tags, contact preferences, and follow-up drafts without sending customer-facing messages automatically.",
+  },
+  {
+    title: "Staff and access",
+    body: "Access Control keeps owner, admin, member, and viewer permissions explicit. Role changes and security-sensitive controls require review before they affect the workspace.",
+  },
+  {
     title: "Payments and quotes",
     body: "Use Stripe-hosted checkout, payment links, and external payment URLs. The app does not store raw card data or take custody of funds.",
   },

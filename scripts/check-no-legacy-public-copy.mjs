@@ -2,7 +2,16 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const roots = ["app", "components", "lib", "config", "public", "tests", "frontend", "src", "backend", "python", "services", "supabase", "utils"];
-const blocked = [/TrackFoundry/g, /LineReady/g, /NoticeGrid/g, /Signal OS/g, /signal-os/g, /SONARA OS/g];
+const rootFiles = ["README.md"];
+const blocked = [
+  /TrackFoundry/g,
+  /LineReady/g,
+  /NoticeGrid/g,
+  /Signal OS/g,
+  /signal-os/g,
+  /SONARA OS/g,
+  /Independent systems\. Shared infrastructure\. Stronger markets\./g,
+];
 const ignore = new Set(["node_modules", ".next", ".git"]);
 const failures = [];
 
@@ -39,6 +48,17 @@ function walk(dir) {
 
 for (const root of roots) {
   walk(join(process.cwd(), root));
+}
+
+for (const file of rootFiles) {
+  const path = join(process.cwd(), file);
+  const text = readFileSync(path, "utf8");
+  for (const pattern of blocked) {
+    if (pattern.test(text)) {
+      failures.push(`${file} contains ${pattern.source}`);
+    }
+    pattern.lastIndex = 0;
+  }
 }
 
 if (failures.length) {
