@@ -39,6 +39,38 @@ The support/contact sprint adds a new append-only migration:
 
 - `supabase/migrations/20260528093000_support_contact_paths.sql`
 
+## Organization Membership Dependency Fix
+
+Supabase Preview later failed with:
+
+```text
+ERROR: relation "public.organization_memberships" does not exist
+SQLSTATE 42P01
+```
+
+The failing SQL was an RLS policy on `public.research_sources` in:
+
+- `supabase/migrations/20260528071500_sonara_platform_redesign_schema.sql`
+
+That policy references `public.organization_memberships`. The table is defined in:
+
+- `supabase/migrations/010_sonara_platform_current_schema.sql`
+
+However, the preview database reached the Research Lab policy without that relation present. To keep migration history append-only, no `schema_migrations` rows were manually changed and the existing research migration was not deleted.
+
+Two append-only migrations were added:
+
+- `supabase/migrations/20260528071400_fix_organization_memberships_dependency.sql`
+- `supabase/migrations/20260528100000_fix_research_intake_membership_policies.sql`
+
+`20260528071400_fix_organization_memberships_dependency.sql` is intentionally ordered before `20260528071500_sonara_platform_redesign_schema.sql` so the dependency exists before the Research Lab RLS policies compile. It safely creates or repairs `public.organizations` and `public.organization_memberships`, enables RLS, adds required indexes, adds an active-membership `status` column if needed, and keeps writes restricted to server/service-role access.
+
+`20260528100000_fix_research_intake_membership_policies.sql` recreates the Research Lab intake read policies after the research tables exist. The policies now require active organization membership for:
+
+- `public.research_sources`
+- `public.open_source_tools`
+- `public.tool_reviews`
+
 No rows were manually inserted, deleted, or updated in `supabase_migrations.schema_migrations`.
 
 ## Append-Only Rule
@@ -111,5 +143,7 @@ pnpm exec supabase db reset
 - `008_entity_agent_operations.sql`
 - `010_sonara_platform_current_schema.sql`
 - `20260528071000_sonara_vector_memory_schema.sql`
+- `20260528071400_fix_organization_memberships_dependency.sql`
 - `20260528071500_sonara_platform_redesign_schema.sql`
 - `20260528093000_support_contact_paths.sql`
+- `20260528100000_fix_research_intake_membership_policies.sql`
