@@ -43,6 +43,7 @@
     "agent:worktree:remove": "bash scripts/remove-agent-worktree.sh",
     "verify:all": "node scripts/verify-all.mjs",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
+    "smoke:routes": "node scripts/production-smoke-test.mjs",
     "format": "prettier . --check",
     "check:local": "pnpm run validate:infrastructure && pnpm run typecheck && pnpm run test && pnpm run build"
   },

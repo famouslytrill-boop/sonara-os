@@ -12,6 +12,8 @@ const requiredFiles = [
   "app/login/page.tsx",
   "app/trust/page.tsx",
   "app/support/page.tsx",
+  "app/help/page.tsx",
+  "app/feedback/page.tsx",
   "app/privacy/page.tsx",
   "app/terms/page.tsx",
   "app/contact/page.tsx",

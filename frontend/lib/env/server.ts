@@ -31,6 +31,14 @@ export const envVarDefinitions: EnvVarDefinition[] = [
   { name: "FREESOUND_API_KEY", scope: "optional", requiredFor: "optional" },
   { name: "OPENVERSE_CLIENT_ID", scope: "optional", requiredFor: "optional" },
   { name: "OPENVERSE_CLIENT_SECRET", scope: "optional", requiredFor: "optional" },
+  { name: "SUPPORT_EMAIL", scope: "optional", requiredFor: "optional" },
+  { name: "CONTACT_EMAIL", scope: "optional", requiredFor: "optional" },
+  { name: "RESEND_API_KEY", scope: "optional", requiredFor: "optional" },
+  { name: "SENDGRID_API_KEY", scope: "optional", requiredFor: "optional" },
+  { name: "SMTP_HOST", scope: "optional", requiredFor: "optional" },
+  { name: "SMTP_PORT", scope: "optional", requiredFor: "optional" },
+  { name: "SMTP_USER", scope: "optional", requiredFor: "optional" },
+  { name: "SMTP_PASSWORD", scope: "optional", requiredFor: "optional" },
 ];
 
 export function getMissingEnvVars(requiredFor: EnvVarDefinition["requiredFor"]) {

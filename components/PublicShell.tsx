@@ -33,6 +33,18 @@ const footerGroups = [
     ],
   },
   {
+    title: "Support",
+    links: [
+      { label: "Contact", href: "/contact" },
+      { label: "Support Center", href: "/support" },
+      { label: "Help", href: "/help" },
+      { label: "Feedback", href: "/feedback" },
+      { label: "Refund Policy", href: "/legal/refund-policy" },
+      { label: "Security", href: "/legal/security" },
+      { label: "Privacy", href: "/legal/privacy" },
+    ],
+  },
+  {
     title: "Legal",
     links: [
       { label: "Terms", href: "/legal/terms" },
@@ -87,7 +99,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
               Public pages are informational and do not guarantee revenue, compliance, funding, uptime, or growth.
             </p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {footerGroups.map((group) => (
               <div key={group.title}>
                 <p className="text-sm font-black text-white">{group.title}</p>
