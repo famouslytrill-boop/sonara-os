@@ -188,6 +188,37 @@ type SonaraDatabase = {
         };
         Relationships: [];
       };
+      webhook_events: {
+        Row: {
+          id: string;
+          organization_id: string | null;
+          provider: string;
+          event_id: string;
+          event_type: string;
+          processed_at: string | null;
+          created_at: string;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          organization_id?: string | null;
+          provider: string;
+          event_id: string;
+          event_type: string;
+          processed_at?: string | null;
+          created_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
+          organization_id?: string | null;
+          provider?: string;
+          event_id?: string;
+          event_type?: string;
+          processed_at?: string | null;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

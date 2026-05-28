@@ -49,6 +49,35 @@ async function upsertSubscription(subscription: Stripe.Subscription, fallbackUse
   return { updated: true };
 }
 
+async function recordWebhookEvent(event: Stripe.Event) {
+  const supabase = getSupabaseAdminClient();
+
+  if (!supabase) {
+    return { skipped: "supabase_not_configured" };
+  }
+
+  const { error } = await supabase.from("webhook_events").upsert(
+    {
+      provider: "stripe",
+      event_id: event.id,
+      event_type: event.type,
+      processed_at: new Date().toISOString(),
+      metadata: {
+        api_version: event.api_version,
+        created: event.created,
+        livemode: event.livemode,
+      },
+    },
+    { onConflict: "provider,event_id" },
+  );
+
+  if (error) {
+    throw error;
+  }
+
+  return { recorded: true };
+}
+
 export async function POST(request: Request) {
   const stripe = getStripeClient();
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -71,6 +100,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
+  await recordWebhookEvent(event);
+
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     if (typeof session.subscription === "string") {
@@ -85,6 +116,15 @@ export async function POST(request: Request) {
     event.type === "customer.subscription.deleted"
   ) {
     await upsertSubscription(event.data.object as Stripe.Subscription);
+  }
+
+  if (
+    event.type === "invoice.paid" ||
+    event.type === "invoice.payment_succeeded" ||
+    event.type === "invoice.payment_failed" ||
+    event.type === "charge.refunded"
+  ) {
+    return NextResponse.json({ received: true, recorded: true });
   }
 
   return NextResponse.json({ received: true });

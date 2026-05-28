@@ -24,6 +24,7 @@ pnpm run verify:stripe
 ```
 
 The webhook route verifies Stripe signatures before processing events. Do not fulfill subscriptions or entitlements from the success URL alone.
+Webhook events are recorded to `webhook_events` when Supabase admin configuration is available. If Supabase is not configured, signature verification still runs and processing is safely limited to the current route behavior.
 
 ## Supported Events
 
