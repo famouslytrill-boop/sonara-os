@@ -40,10 +40,10 @@ export default function ResearchLabPage() {
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
-              href="/trust"
+              href="/research-lab/open-source"
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#2DD4BF] px-5 text-sm font-black text-[#07111F] focus:outline-none focus:ring-2 focus:ring-[#A7F3D0]"
             >
-              Review safety model <ArrowRight size={16} />
+              Open watchlist <ArrowRight size={16} />
             </Link>
             <Link
               href="/pricing"

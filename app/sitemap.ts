@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { openSourceTools } from "../data/open-source-tools";
 
 const publicRoutes = [
   "",
@@ -7,6 +8,7 @@ const publicRoutes = [
   "/creator-studio",
   "/growth-studio",
   "/research-lab",
+  "/research-lab/open-source",
   "/pricing",
   "/trust",
   "/legal",
@@ -25,11 +27,20 @@ const publicRoutes = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const lastModified = new Date();
-
-  return publicRoutes.map((route) => ({
+  const staticRoutes = publicRoutes.map((route) => ({
     url: `https://sonaraindustries.com${route}`,
     lastModified,
-    changeFrequency: route === "" ? "weekly" : "monthly",
+    changeFrequency: route === "" ? ("weekly" as const) : ("monthly" as const),
     priority: route === "" ? 1 : 0.8,
   }));
+
+  return [
+    ...staticRoutes,
+    ...openSourceTools.map((tool) => ({
+      url: `https://sonaraindustries.com/research-lab/open-source/${tool.slug}`,
+      lastModified,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+  ];
 }

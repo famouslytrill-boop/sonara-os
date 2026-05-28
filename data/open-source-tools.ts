@@ -1,0 +1,329 @@
+export type OpenSourceLicenseRisk = "low" | "medium" | "high" | "critical" | "unknown";
+export type OpenSourceCommercialUseStatus = "allowed_after_review" | "needs_review" | "blocked_until_review";
+export type OpenSourceIntegrationStatus =
+  | "reference_only"
+  | "optional_adapter_after_review"
+  | "research_only"
+  | "blocked"
+  | "needs_license_review"
+  | "needs_security_review";
+
+export type OpenSourceToolRecord = {
+  name: string;
+  slug: string;
+  category: string[];
+  useCase: string[];
+  productFit: string[];
+  license: string;
+  licenseRisk: OpenSourceLicenseRisk;
+  commercialUseStatus: OpenSourceCommercialUseStatus;
+  integrationStatus: OpenSourceIntegrationStatus;
+  recommendedAction: string[];
+  officialUrl: string;
+  repoUrl: string;
+  notes: string;
+  safetyBoundaries: string[];
+};
+
+export const openSourceTools: OpenSourceToolRecord[] = [
+  {
+    name: "X/Twitter Recommendation Algorithm",
+    slug: "x-twitter-recommendation-algorithm",
+    category: [
+      "recommendation systems",
+      "ranking transparency",
+      "growth intelligence research",
+      "creator/content discovery research",
+    ],
+    useCase: [
+      "learn ranking architecture patterns",
+      "study transparent recommendation design",
+      "build ethical Growth Studio research notes",
+      "create non-manipulative content insights",
+    ],
+    productFit: ["Growth Studio", "Research Lab", "Creator Studio analytics", "Graph Builder"],
+    license: "Public repository license requires review before production use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "reference only",
+      "do not copy production algorithm wholesale",
+      "do not build spam or gaming recommendations",
+      "do not build engagement manipulation tools",
+      "do not create fake trend boosting",
+    ],
+    officialUrl: "https://github.com/twitter/the-algorithm",
+    repoUrl: "https://github.com/twitter/the-algorithm",
+    notes: "Use only as public architecture research for transparent, explainable recommendation design.",
+    safetyBoundaries: [
+      "no platform-rule bypass",
+      "no botting",
+      "no scraping private data",
+      "no manipulation engine",
+      "no misinformation amplification",
+    ],
+  },
+  {
+    name: "Crawl4AI",
+    slug: "crawl4ai",
+    category: ["LLM-friendly web crawling", "research extraction", "RAG data preparation", "market intelligence"],
+    useCase: [
+      "Research Lab source collection",
+      "public website analysis",
+      "open-source tool research",
+      "market trend intake",
+      "documentation summarization",
+    ],
+    productFit: ["Research Lab", "Growth Studio", "Smart Search", "Files & Records", "Business Memory Graph"],
+    license: "Review repository license and provider terms before adapter work.",
+    licenseRisk: "medium",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "optional adapter after review",
+      "self-hosted or local mode preferred",
+      "obey robots.txt and provider terms",
+      "rate limit all collection",
+      "public pages only unless user owns or authorizes the source",
+    ],
+    officialUrl: "https://github.com/unclecode/crawl4ai",
+    repoUrl: "https://github.com/unclecode/crawl4ai",
+    notes: "Candidate for future public-source research intake. No live crawling is implemented in this sprint.",
+    safetyBoundaries: [
+      "no paywall bypass",
+      "no credentialed scraping without permission",
+      "no private data scraping",
+      "no platform-rule bypass",
+      "no spam harvesting",
+      "no hidden crawling",
+    ],
+  },
+  {
+    name: "NVlabs Eagle / Embodied",
+    slug: "nvlabs-eagle-embodied",
+    category: ["multimodal AI research", "long video/image/document understanding", "embodied benchmark research"],
+    useCase: ["long-context media research", "benchmark review", "multimodal architecture notes"],
+    productFit: [
+      "Research Lab",
+      "Developer Formula Studio",
+      "Creator Studio media analysis research",
+      "Growth Studio content intelligence research",
+    ],
+    license: "Model/code licenses require review before commercial use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "research/reference adapter only",
+      "do not ship model weights commercially without license review",
+    ],
+    officialUrl: "https://github.com/NVlabs",
+    repoUrl: "https://github.com/NVlabs",
+    notes: "Keep as a research note until exact repository, license, and model terms are verified.",
+    safetyBoundaries: [
+      "no robotics control outputs",
+      "no surveillance or tactical analysis",
+      "no high-stakes automated decisions",
+      "no non-commercial model weights in paid product without legal approval",
+    ],
+  },
+  {
+    name: "NVlabs LongLive / LongLive 2.0",
+    slug: "nvlabs-longlive",
+    category: ["long-video generation infrastructure", "video inference/training research", "creator media research"],
+    useCase: ["understand long-video workflows", "performance planning", "render cost research"],
+    productFit: ["Creator Studio", "Research Lab", "Performance Planner", "Render & Speed Tools"],
+    license: "Model/code licenses require review before commercial use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "research-only reference",
+      "no production video generation integration without compute, cost, and license review",
+      "use for understanding long-video workflows and performance planning",
+    ],
+    officialUrl: "https://github.com/NVlabs",
+    repoUrl: "https://github.com/NVlabs",
+    notes: "No video generation dependency or model weight is bundled.",
+    safetyBoundaries: [
+      "no deepfake tooling",
+      "no impersonation",
+      "no deceptive media generation",
+      "no non-consensual likeness generation",
+      "no unsafe commercial use of restricted weights",
+    ],
+  },
+  {
+    name: "G0DM0D3 / Godmode-style multi-model interface",
+    slug: "godmode-style-multi-model-interface",
+    category: ["multi-model evaluation", "prompt testing", "red-team research", "AI comparison workflows"],
+    useCase: ["safe model comparison concepts", "prompt test reporting", "internal evaluation workflow ideas"],
+    productFit: ["Research Lab", "Prompt Playbook Center", "AI Safety Review", "Developer Formula Studio"],
+    license: "License must be reviewed before any implementation or adaptation.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_security_review",
+    recommendedAction: [
+      "build internal Model Comparison Lab inspired by safe workflow concepts",
+      "do not copy AGPL/GPL code without review",
+      "do not expose jailbreak or red-team presets to normal users",
+    ],
+    officialUrl: "https://github.com",
+    repoUrl: "https://github.com",
+    notes: "This is an intake category for safe comparison workflows, not a production integration.",
+    safetyBoundaries: [
+      "no harmful prompt marketplace",
+      "no jailbreak automation",
+      "no model abuse",
+      "no unsafe content evasion",
+      "no hidden telemetry",
+    ],
+  },
+  {
+    name: "OpenToonz",
+    slug: "opentoonz",
+    category: ["2D animation", "creator workflow", "open-source creative tooling"],
+    useCase: ["external animation workflow reference", "creator setup notes", "project planning templates"],
+    productFit: ["Creator Studio", "Asset Vault", "Creator Tool Library", "Project Launch Checklist"],
+    license: "BSD-style project license must be verified before recommendations are finalized.",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "external creator workflow reference",
+      "setup notes",
+      "project planning templates",
+      "do not bundle desktop software into the web app",
+    ],
+    officialUrl: "https://opentoonz.github.io/e/",
+    repoUrl: "https://github.com/opentoonz/opentoonz",
+    notes: "Use as a Creator Studio workflow reference only.",
+    safetyBoundaries: [
+      "respect third-party licenses",
+      "no redistribution of assets without review",
+      "no false native integration claims",
+    ],
+  },
+  {
+    name: "Miro AI / agent resources",
+    slug: "miro-ai-agent-resources",
+    category: ["collaboration", "visual workspace", "agent workflow research", "planning boards"],
+    useCase: ["collaboration pattern review", "planning-board research", "workspace UX notes"],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Research Lab"],
+    license: "Terms and API permissions require review.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "reference collaboration UX patterns",
+      "do not copy Miro UI",
+      "optional integration only after API and legal review",
+    ],
+    officialUrl: "https://miro.com/",
+    repoUrl: "https://miro.com/",
+    notes: "Public pattern research only. No partnership or integration is claimed.",
+    safetyBoundaries: ["no copying Miro UI", "no private-board scraping", "no false native integration claims"],
+  },
+  {
+    name: "Rust programming references",
+    slug: "rust-programming-references",
+    category: ["high-performance systems", "backend tooling", "security-sensitive utilities"],
+    useCase: ["language/tooling fit research", "performance-critical service planning", "secure utility research"],
+    productFit: ["Performance Planner", "Secure Compute Layer", "Developer Formula Studio"],
+    license: "Reference material licenses vary and require source-level review.",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "research language and tooling fit",
+      "no rewrite unless justified",
+      "use Rust only for performance-critical services later",
+    ],
+    officialUrl: "https://www.rust-lang.org/",
+    repoUrl: "https://github.com/rust-lang/rust",
+    notes: "Research category, not a commitment to a rewrite.",
+    safetyBoundaries: ["no premature rewrite", "no unsafe native extension without review", "no hidden build tooling"],
+  },
+  {
+    name: "Claude Code / Codex / AI builder tool lists",
+    slug: "ai-builder-tool-lists",
+    category: ["developer agents", "AI coding workflows", "automation", "internal productivity"],
+    useCase: ["curated developer tool registry", "safe agent policy", "internal productivity research"],
+    productFit: ["AI Code Assistant", "Developer Formula Studio", "Research Lab", "Workflow Brain"],
+    license: "Each tool and list requires independent terms review.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "maintain curated tool registry",
+      "do not require paid tools for core user experience",
+      "support free and open alternatives first",
+    ],
+    officialUrl: "https://openai.com/",
+    repoUrl: "https://github.com/",
+    notes: "Governance reference for tool intake, not a vendor lock-in plan.",
+    safetyBoundaries: ["no production deploy by agent without owner approval", "no secret sharing", "no auto-install"],
+  },
+  {
+    name: "LightRAG-style reference",
+    slug: "lightrag-style-reference",
+    category: ["retrieval augmented generation", "knowledge graph/search"],
+    useCase: ["knowledge graph search research", "document retrieval architecture", "Business Memory Graph notes"],
+    productFit: ["Research Lab", "Files & Records", "Graph Builder", "Smart Search"],
+    license: "License must be verified before use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: ["research only until license verified"],
+    officialUrl: "https://github.com/",
+    repoUrl: "https://github.com/",
+    notes: "No RAG dependency is installed from this reference.",
+    safetyBoundaries: ["no private data indexing without consent", "no hidden memory", "no license assumptions"],
+  },
+  {
+    name: "Obsidian Skills-style reference",
+    slug: "obsidian-skills-style-reference",
+    category: ["knowledge management", "creator/business memory"],
+    useCase: ["knowledge organization patterns", "skills and vault workflow notes", "business memory UX research"],
+    productFit: ["Business Memory Graph", "Creator Knowledge Vault", "Research Lab"],
+    license: "License and plugin terms must be verified before use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: ["research only until license verified"],
+    officialUrl: "https://obsidian.md/",
+    repoUrl: "https://github.com/",
+    notes: "Reference category only. No plugin code is copied.",
+    safetyBoundaries: ["no private vault scraping", "no hidden sensitive memory", "no license assumptions"],
+  },
+  {
+    name: "Superpowers-style Claude Code tooling",
+    slug: "superpowers-style-claude-code-tooling",
+    category: ["developer workflow", "agent skills", "AI code assistant"],
+    useCase: ["agent skill architecture research", "developer workflow notes", "prompt playbook concepts"],
+    productFit: ["Developer Formula Studio", "AI Code Assistant", "Prompt Playbook Center"],
+    license: "License must be verified before use.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: ["research only until license verified"],
+    officialUrl: "https://github.com/",
+    repoUrl: "https://github.com/",
+    notes: "Research-only concept intake. No external agent skill code is copied.",
+    safetyBoundaries: ["no auto-install", "no secret access", "no production write access without owner approval"],
+  },
+];
+
+export function getOpenSourceTool(slug: string) {
+  return openSourceTools.find((tool) => tool.slug === slug);
+}
+
+export const openSourceToolStatuses = {
+  reference_only: "Reference only",
+  optional_adapter_after_review: "Optional adapter after review",
+  research_only: "Research only",
+  blocked: "Blocked",
+  needs_license_review: "Needs license review",
+  needs_security_review: "Needs security review",
+} satisfies Record<OpenSourceIntegrationStatus, string>;
