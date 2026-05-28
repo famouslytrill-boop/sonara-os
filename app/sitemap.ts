@@ -6,6 +6,7 @@ const publicRoutes = [
   "/business-builder",
   "/creator-studio",
   "/growth-studio",
+  "/research-lab",
   "/pricing",
   "/trust",
   "/legal",
