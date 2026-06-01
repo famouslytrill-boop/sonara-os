@@ -1,4 +1,4 @@
-export type CreatorToolCategory = "animation" | "open-source" | "video" | "design" | "ai-agents";
+export type CreatorToolCategory = "animation" | "open-source" | "video" | "voice" | "design" | "maps" | "ai-agents";
 export type CreatorToolStatus = "external_reference" | "research_only" | "needs_license_review" | "blocked_until_review";
 
 export type CreatorToolRecord = {
@@ -52,6 +52,26 @@ export const creatorTools: CreatorToolRecord[] = [
     productFit: ["Creator Studio", "Prompt Playbook", "Research Lab"],
     notes: "Curated reference category only. Unknown tools default to review-required.",
     safety: ["no auto-install", "no production write access", "no secret sharing", "owner approval for expensive runs"],
+  },
+  {
+    name: "Voicebox-style voice synthesis references",
+    slug: "voicebox-style-voice-synthesis",
+    category: "voice",
+    status: "research_only",
+    useCase: "Voice workflow research, consent-gated narration planning, and accessibility notes.",
+    productFit: ["Creator Studio", "Voice Safety Review", "Prompt Playbook"],
+    notes: "Research only. SONARA does not clone voices or publish synthetic voice output without consent and review.",
+    safety: ["no impersonation", "no public figure cloning", "no non-consensual likeness", "owner approval required before public output"],
+  },
+  {
+    name: "Remotion / MapLibre-style visual references",
+    slug: "remotion-maplibre-visual-references",
+    category: "maps",
+    status: "needs_license_review",
+    useCase: "Campaign visuals, map animation drafts, service-area previews, and creator explainers.",
+    productFit: ["Creator Studio", "Growth Studio", "Research Lab"],
+    notes: "Reference category only until exact libraries, licenses, and implementation plans are reviewed.",
+    safety: ["no real-time tracking", "no stalking", "no emergency routing claims", "no unsafe navigation claims"],
   },
   {
     name: "Open-source creator workflow references",

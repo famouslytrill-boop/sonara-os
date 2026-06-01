@@ -51,6 +51,12 @@ Run database changes before launch and verify schema in the Supabase SQL Editor.
 
 Public pages must render without Supabase environment variables. Persistent generation history, vector memory, Research Lab storage, and support/contact storage are optional until auth/RLS are verified.
 
+## Master Sprint Addendum
+
+- Apply append-only migrations only after review.
+- Confirm provider registry, feature flags, observability events, workflow runs, agent action logs, and GitHub Radar tables in preview before production.
+- Do not manually edit rows in `supabase_migrations.schema_migrations`.
+
 ## Organization Membership Dependency
 
 `20260528071400_fix_organization_memberships_dependency.sql` is a prerequisite repair migration for branch previews where `organization_memberships` is missing before Research Lab policies compile. It remains append-only and does not manually alter Supabase migration history.

@@ -51,8 +51,13 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    apple: "/brand/sonara-mark.svg",
-    icon: "/brand/sonara-mark.svg",
+    apple: "/apple-icon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/icons/sonara-icon-16.svg", sizes: "16x16", type: "image/svg+xml" },
+      { url: "/icons/sonara-icon-32.svg", sizes: "32x32", type: "image/svg+xml" },
+      { url: "/icons/sonara-icon-48.svg", sizes: "48x48", type: "image/svg+xml" },
+    ],
   },
 };
 

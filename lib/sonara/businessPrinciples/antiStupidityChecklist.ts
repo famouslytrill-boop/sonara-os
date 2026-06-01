@@ -4,7 +4,7 @@ import { clampScore, statusFromScore, weightedScore } from "./scoring";
 const checklist = [
   "Does this preserve beginner clarity?",
   "Does this avoid income, hit, placement, or market dominance claims?",
-  "Does this avoid legal, tax, medical, and investment advice?",
+  "Does this avoid legal, tax, medical, and investment guidance?",
   "Can SONARA™ deliver this without damaging support quality?",
   "Is the workflow inside music technology, creator infrastructure, sound systems, release tools, artist ecosystems, creator workflows, or digital assets?",
 ] as const;
