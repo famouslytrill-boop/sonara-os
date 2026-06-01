@@ -10,7 +10,7 @@ export function renderCreatePage(onRoute: (path: string) => void) {
   const title = createElement("h1", { textContent: "Signal Initialization" });
   const summary = createElement("p", {
     className: "screen-copy",
-    textContent: "Decode the source file into the active Signal OS session."
+    textContent: "Decode the source file into the active Creator Studio workflow."
   });
   const input = createElement("input", { className: "file-input", type: "file" });
   const button = createElement("button", {

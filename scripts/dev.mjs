@@ -61,5 +61,5 @@ const server = http.createServer((request, response) => {
 });
 
 server.listen(port, () => {
-  console.log(`Signal OS dev server running at http://localhost:${port}`);
+  console.log(`SONARA dev server running at http://localhost:${port}`);
 });

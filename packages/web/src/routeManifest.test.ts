@@ -246,6 +246,19 @@ describe("route manifest", () => {
     expect(getAllRouteDefinitions().length).toBeGreaterThan(20);
   });
 
+  it("does not expose legacy product routes as active routes", () => {
+    const routes = getAllRouteDefinitions().map((definition) => definition.route);
+    expect(routes).not.toContain("/trackfoundry");
+    expect(routes).not.toContain("/trackfoundry/app");
+    expect(routes).not.toContain("/trackfoundry/features");
+    expect(routes).not.toContain("/trackfoundry/how-it-works");
+    expect(routes).not.toContain("/trackfoundry/pricing");
+    expect(routes).not.toContain("/trackfoundry/resources");
+    expect(routes).not.toContain("/trackfoundry/security");
+    expect(routes).not.toContain("/trackfoundry/signup");
+    expect(isKnownRoute("/trackfoundry")).toBe(false);
+  });
+
   it("stores route metadata for auth, workflow, and launch status", () => {
     expect(getRouteDefinition("/downloads")).toMatchObject({
       auth: "auth-ready",

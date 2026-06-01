@@ -391,12 +391,36 @@ export type AppRoute =
   | "/readiness-package";
 
 const publicMarketingRouteSet = new Set<string>(publicMarketingRoutes);
+const legacyRouteRedirects = new Map<string, AppRoute>([
+  ["/trackfoundry", "/creator-studio"],
+  ["/trackfoundry/app", "/app/creator-studio"],
+  ["/trackfoundry/features", "/creator-studio"],
+  ["/trackfoundry/how-it-works", "/creator-studio"],
+  ["/trackfoundry/pricing", "/pricing"],
+  ["/trackfoundry/resources", "/help/creator-studio"],
+  ["/trackfoundry/security", "/security"],
+  ["/trackfoundry/signup", "/signup"],
+  ["/lineready", "/business-builder"],
+  ["/line-ready", "/business-builder"],
+  ["/noticegrid", "/growth-studio"],
+  ["/notice-grid", "/growth-studio"],
+  ["/signal-os", "/app"],
+  ["/os", "/app"]
+]);
 
 function isPublicMarketingRoute(route: AppRoute): route is PublicMarketingRoute {
   return publicMarketingRouteSet.has(route);
 }
 
+export function getLegacyRouteRedirect(pathname: string): AppRoute | null {
+  return legacyRouteRedirects.get(normalizeRedirectPath(pathname)) ?? null;
+}
+
 export function normalizeRoute(pathname: string): AppRoute {
+  const legacyRedirect = getLegacyRouteRedirect(pathname);
+  if (legacyRedirect) {
+    return legacyRedirect;
+  }
   if (isKnownRoute(pathname)) {
     return pathname as AppRoute;
   }
@@ -408,14 +432,20 @@ export function createApp(root: HTMLElement) {
   installGlobalErrorBoundary();
 
   function routeTo(path: string) {
-    window.history.pushState({}, "", path);
+    const targetPath = getLegacyRouteRedirect(path) ?? path;
+    window.history.pushState({}, "", targetPath);
     SignalSound.play("state_change");
-    renderLoadingRoute(normalizeRoute(path));
+    renderLoadingRoute(normalizeRoute(targetPath));
     Promise.resolve().then(render);
   }
 
   function render() {
-    const requestedPath = window.location.pathname;
+    let requestedPath = window.location.pathname;
+    const legacyRedirect = getLegacyRouteRedirect(requestedPath);
+    if (legacyRedirect) {
+      window.history.replaceState({}, "", legacyRedirect);
+      requestedPath = legacyRedirect;
+    }
     const route = normalizeRoute(requestedPath);
     applyDeploymentMetadata(route);
     clearElement(root);
@@ -1322,7 +1352,7 @@ function createNavigation(
   nav.append(
     createNavGroup("Products", productRoutes, activeRoute),
     createNavGroup("Admin", adminRoutes, activeRoute),
-    createNavGroup("Signal OS", signalRoutes, activeRoute)
+    createNavGroup("Creative Workflow", signalRoutes, activeRoute)
   );
   const utilityGroup = createElement("div", {
     className: "app-nav__group app-nav__group--utility"
@@ -1380,6 +1410,12 @@ function createNavGroup(
     group.append(createNavLink(route.route, route.label, activeRoute));
   }
   return group;
+}
+
+function normalizeRedirectPath(pathname: string) {
+  const basePath = pathname.split("?")[0]?.split("#")[0] ?? pathname;
+  const normalized = basePath.replace(/\/+$/, "") || "/";
+  return normalized.toLowerCase();
 }
 
 function createNavLink(route: string, label: string, activeRoute: AppRoute) {

@@ -50,7 +50,7 @@ export function createMockExportBundle(state: SessionState): MockExportBundle {
   return Object.freeze({
     json: JSON.stringify(payload, null, 2),
     text: [
-      "Signal OS Export Forge Bundle",
+      "Creator Studio Export Forge Bundle",
       `Source: ${state.uploadedFileName ?? "missing"}`,
       `Locked Mutation: ${state.selectedVariant ?? "missing"}`,
       `Prompt: ${state.masterPrompt ?? "missing"}`,

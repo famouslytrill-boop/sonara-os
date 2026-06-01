@@ -1603,7 +1603,7 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
   }),
   Object.freeze({
     route: "/marketing",
-    label: "Signal OS",
+    label: "Creator Studio",
     surface: "launch",
     nav: false,
     launchRequired: true,

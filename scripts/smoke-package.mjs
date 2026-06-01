@@ -657,7 +657,7 @@ async function smokeWeb(mod) {
   const bundle = mod.createMockExportBundle(context.getState());
   if (
     !bundle.json.includes("Radio Variant") ||
-    !bundle.text.includes("Signal OS Export Forge Bundle")
+    !bundle.text.includes("Creator Studio Export Forge Bundle")
   ) {
     throw new Error("Web Export Forge bundle did not include JSON and TXT payloads.");
   }
@@ -668,8 +668,21 @@ async function smokeWeb(mod) {
   if (!mod.mutationVariants.some((variant) => variant.name === "Short-Form Hook Variant")) {
     throw new Error("Web mutation variants missing Short-Form Hook Variant.");
   }
-  if (mod.createSignalOrbModel().title !== "Signal OS") {
+  if (mod.createSignalOrbModel().title !== "Creator Studio") {
     throw new Error("Web Signal Orb model missing premium hero state.");
+  }
+  for (const [legacyRoute, expectedRoute] of [
+    ["/trackfoundry", "/creator-studio"],
+    ["/trackfoundry/app", "/app/creator-studio"],
+    ["/trackfoundry/pricing", "/pricing"],
+    ["/trackfoundry/resources", "/help/creator-studio"],
+    ["/trackfoundry/security", "/security"],
+    ["/trackfoundry/signup", "/signup"],
+    ["/os", "/app"]
+  ]) {
+    if (mod.normalizeRoute(legacyRoute) !== expectedRoute) {
+      throw new Error(`Web legacy route ${legacyRoute} did not redirect to ${expectedRoute}.`);
+    }
   }
   if (mod.normalizeRoute("/mutation") !== "/mutation") {
     throw new Error("Web route normalization did not preserve /mutation.");

@@ -8,8 +8,8 @@ export type SignalOrbModel = Readonly<{
 
 export function createSignalOrbModel(): SignalOrbModel {
   return Object.freeze({
-    title: "Signal OS",
-    status: "Creative operating system active",
+    title: "Creator Studio",
+    status: "Creative workflow active",
     bands: Object.freeze(["Create", "Optimize", "Release", "Scale"])
   });
 }

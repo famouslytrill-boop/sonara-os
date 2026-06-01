@@ -10,7 +10,7 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("[Signal OS route error]", error);
+    console.error("[SONARA route error]", error);
   }, [error]);
 
   return (

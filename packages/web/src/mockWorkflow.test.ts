@@ -41,6 +41,6 @@ describe("mock MVP workflow generators", () => {
     });
 
     expect(bundle.json).toContain("Radio Variant");
-    expect(bundle.text).toContain("Signal OS Export Forge Bundle");
+    expect(bundle.text).toContain("Creator Studio Export Forge Bundle");
   });
 });

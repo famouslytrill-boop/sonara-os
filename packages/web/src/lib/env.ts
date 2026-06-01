@@ -26,7 +26,7 @@ function readEnv(key: string): string | undefined {
 
 export function getSignalEnv(): SignalEnv {
   return {
-    appName: readEnv("NEXT_PUBLIC_APP_NAME") ?? "Signal OS",
+    appName: readEnv("NEXT_PUBLIC_APP_NAME") ?? "SONARA Industries",
     supabaseUrl: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
     supabaseAnonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     enableSound: bool(readEnv("NEXT_PUBLIC_ENABLE_SOUND"), true),

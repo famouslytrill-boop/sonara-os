@@ -16,7 +16,7 @@ The SONARA brand system centralizes product identity, logo references, theme acc
 - Parent company: SONARA Industries
 - Platform: SONARA One
 - Platform display mark: SONARA One™
-- Tagline: Independent systems. Shared infrastructure. Stronger markets.
+- Tagline: Build. Create. Grow.
 - Customer promise: Build. Prove. Get paid. Grow.
 
 ## Products

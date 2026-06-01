@@ -5,16 +5,16 @@ export function renderMarketingPage() {
   const page = createElement("section", { className: "work-screen overview-screen" });
   page.append(
     renderSignalOrb(),
-    createElement("h1", { textContent: "Signal OS" }),
+    createElement("h1", { textContent: "Creator Studio" }),
     createElement("p", {
       className: "screen-copy",
       textContent:
-        "A premium creative operating system for music creation, optimization, release, and catalog scaling."
+        "A governed creative workflow for music creation, optimization, release, and catalog scaling."
     }),
     createElement("a", {
       className: "primary-action",
       href: "/create",
-      textContent: "Enter Signal"
+      textContent: "Start creating"
     })
   );
   return page;

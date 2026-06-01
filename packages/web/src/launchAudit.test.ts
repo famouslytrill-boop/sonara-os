@@ -20,7 +20,7 @@ describe("launch audit hardening", () => {
   it("warns on partial Supabase public config", () => {
     expect(
       validateSignalEnv({
-        appName: "Signal OS",
+        appName: "SONARA Industries",
         supabaseUrl: "https://example.supabase.co",
         enableSound: true,
         enableVideo: true,

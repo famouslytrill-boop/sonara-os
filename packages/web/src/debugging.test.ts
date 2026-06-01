@@ -105,4 +105,14 @@ describe("debugging helpers", () => {
     });
     expect(normalizeRoute("/missing-route")).toBe("/not-found");
   });
+
+  it("redirects legacy public product routes to current SONARA routes", () => {
+    expect(normalizeRoute("/trackfoundry")).toBe("/creator-studio");
+    expect(normalizeRoute("/trackfoundry/app")).toBe("/app/creator-studio");
+    expect(normalizeRoute("/trackfoundry/pricing")).toBe("/pricing");
+    expect(normalizeRoute("/trackfoundry/resources")).toBe("/help/creator-studio");
+    expect(normalizeRoute("/trackfoundry/security")).toBe("/security");
+    expect(normalizeRoute("/trackfoundry/signup")).toBe("/signup");
+    expect(normalizeRoute("/os")).toBe("/app");
+  });
 });

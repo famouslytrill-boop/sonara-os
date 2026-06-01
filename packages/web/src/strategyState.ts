@@ -141,7 +141,7 @@ export const strategyPages: readonly StrategyPage[] = Object.freeze([
   Object.freeze({
     route: "/agent-routing",
     title: "Creative Agent Routing",
-    summary: "Task router UI for assigning work to Signal OS subsystems.",
+    summary: "Task router UI for assigning work to Creator Studio subsystems.",
     cards: Object.freeze([
       Object.freeze({
         title: "Signal Initialization",
@@ -274,7 +274,7 @@ export const strategyPages: readonly StrategyPage[] = Object.freeze([
   Object.freeze({
     route: "/orchestration",
     title: "Agent Orchestration",
-    summary: "Visual orchestration UI for Signal OS subsystems.",
+    summary: "Visual orchestration UI for Creator Studio subsystems.",
     cards: Object.freeze([
       Object.freeze({
         title: "Subsystem Chain",

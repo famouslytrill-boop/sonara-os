@@ -12,7 +12,7 @@ import { getMissingRequirement, getRecoveryRoute } from "./workflows/workflow-gu
 describe("launch foundation", () => {
   it("reads stable environment defaults", () => {
     expect(getSignalEnv()).toMatchObject({
-      appName: "Signal OS",
+      appName: "SONARA Industries",
       enableSound: true,
       enableVideo: true,
       enableMic: true
