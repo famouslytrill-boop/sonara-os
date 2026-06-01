@@ -1,0 +1,7 @@
+export function DocumentSafetyNotice() {
+  return (
+    <p className="rounded-xl border border-amber-300/30 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100">
+      Do not upload documents without rights. SONARA does not provide legal, tax, financial, or medical conclusions from extracted text.
+    </p>
+  );
+}

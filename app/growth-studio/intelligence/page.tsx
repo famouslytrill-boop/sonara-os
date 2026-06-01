@@ -16,7 +16,7 @@ export default function GrowthIntelligencePage() {
         <h1 className="mt-3 max-w-4xl text-4xl font-black text-white">Plan growth without manipulation.</h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-[#CBD5E1]">
           Growth Studio turns signals into explainable planning notes for offers, reviews, referrals, follow-up, and
-          campaigns. It does not auto-send campaigns or guarantee growth.
+          campaigns. It does not send campaigns automatically or promise growth.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
           <Link className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2DD4BF] px-4 text-sm font-black text-[#07111F]" href="/growth-studio/content-signals">

@@ -21,7 +21,7 @@ const footerGroups = [
       { label: "Trust", href: "/trust" },
       { label: "Pricing", href: "/pricing" },
       { label: "Contact", href: "/contact" },
-      { label: "Status", href: "/trust" },
+      { label: "Status", href: "/status" },
     ],
   },
   {
@@ -59,13 +59,14 @@ const footerGroups = [
   },
   {
     title: "Platform",
-    links: [
-      { label: "Research Lab", href: "/research-lab" },
-      { label: "Open Source", href: "/open-source" },
-      { label: "API/Webhooks", href: "/docs" },
-      { label: "Integrations", href: "/docs" },
+      links: [
+        { label: "Research Lab", href: "/research-lab" },
+        { label: "GitHub Radar", href: "/research-lab/github-radar" },
+        { label: "Open Source", href: "/open-source" },
+      { label: "API/Webhooks", href: "/api-webhooks" },
+      { label: "Integrations", href: "/integrations" },
       { label: "Docs", href: "/docs" },
-      { label: "Changelog", href: "/docs" },
+      { label: "Changelog", href: "/changelog" },
     ],
   },
 ] as const;

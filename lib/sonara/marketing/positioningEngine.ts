@@ -12,7 +12,7 @@ export function getSonaraPositioning(): PositioningProfile {
       "supervised autonomy checks",
     ],
     avoidClaims: [
-      "guaranteed revenue",
+      "revenue guarantees",
       "fake testimonials",
       "fake user numbers",
       "celebrity cloning",
