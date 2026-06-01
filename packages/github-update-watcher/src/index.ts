@@ -28,7 +28,12 @@ export const watchedGitHubRepositories: readonly WatchedGitHubRepository[] = Obj
   repo("firecrawl", "firecrawl", "research_only", true, true),
   repo("chatwoot", "chatwoot", "internal_admin_tool", true, true),
   repo("frappe", "erpnext", "reference_only", true, true),
-  repo("nextcloud", "server", "reference_only", true, true)
+  repo("nextcloud", "server", "reference_only", true, true),
+  repo("open-jarvis", "OpenJarvis", "research_only", true, true),
+  repo("microsoft", "SkillOpt", "research_only", false, true),
+  repo("NVlabs", "LongLive", "research_only", true, true),
+  repo("GH05TCREW", "pentestagent", "research_only", true, true),
+  repo("nasa-gibs", "worldview", "reference_only", true, true)
 ]);
 
 export function createGitHubUpdateWatchReport(

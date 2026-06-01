@@ -460,6 +460,182 @@ export const openSourceProjectRegistry: readonly OpenSourceProjectRecord[] = Obj
     securityNotes: "Voice output requires consent, disclosure, and approval gates."
   }),
   project({
+    repoOwner: "open-jarvis",
+    repoName: "OpenJarvis",
+    category: "local_first_ai_agent",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "reference_only_high_value_candidate",
+    productFit: [
+      "Shared Infrastructure",
+      "Local Edge Mode",
+      "Owner Command Center",
+      "AI Agent Shell",
+      "Business Builder assistant",
+      "Creator Studio assistant",
+      "Growth Studio assistant"
+    ],
+    rules: [
+      "Reference only; do not install or copy code.",
+      "No automatic shell access in production.",
+      "No private file access without consent.",
+      "No hidden scheduled tasks.",
+      "No autonomous production actions.",
+      "No customer data processing without permission."
+    ],
+    licenseNotes: "Apache-2.0; review license required before adapter or bundled use.",
+    securityNotes:
+      "Local-first agents require consent, shell/file-action approvals, audit logs, and scheduled-task review.",
+    metadata: {
+      recommendedAction: "high_value_candidate",
+      githubRadarScore: 84,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["openjarvis_review_enabled", "local_first_agent_shell_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "microsoft",
+    repoName: "SkillOpt",
+    category: "agent_skill_optimization",
+    useMode: "concept_adapter",
+    ownerProvidedUseMode: "reference_only_priority_candidate",
+    productFit: [
+      "Codex Sprint Generator",
+      "AI Agent Quality Layer",
+      "Developer Formula Studio",
+      "GitHub Opportunity Radar",
+      "Owner Command Center",
+      "Research Lab"
+    ],
+    rules: [
+      "Reference only; do not install or copy code.",
+      "No self-modifying production agents.",
+      "No unsafe autonomous deployment.",
+      "No hidden prompt changes.",
+      "No high-risk workflow changes without validation."
+    ],
+    licenseNotes: "MIT; allowed with attribution review before any adaptation.",
+    securityNotes:
+      "Skill optimization must require validation, audit logs, and owner review before production prompt changes.",
+    metadata: {
+      recommendedAction: "priority_candidate",
+      githubRadarScore: 88,
+      licenseRiskLabel: "allowed_with_review",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: [
+        "skillopt_review_enabled",
+        "agent_skill_optimizer_enabled",
+        "codex_skill_generator_enabled"
+      ]
+    }
+  }),
+  project({
+    repoOwner: "NVlabs",
+    repoName: "LongLive",
+    category: "long_video_generation",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "research_only_research_prototype_candidate",
+    productFit: [
+      "Creator Studio",
+      "Creative Model Hub",
+      "Research Lab",
+      "Video Commercial Generator",
+      "Campaign Builder"
+    ],
+    rules: [
+      "Research only; do not install or copy code.",
+      "No bundled model weights without license review.",
+      "No production claims of real-time generation until tested.",
+      "No copyrighted style or character imitation.",
+      "No fake endorsements.",
+      "No non-consensual likeness generation."
+    ],
+    licenseNotes:
+      "Apache-2.0 for repo code; review license required for model weights, dependencies, and commercial use.",
+    securityNotes:
+      "Long-video generation requires rights review, likeness consent, compute review, and human approval.",
+    metadata: {
+      recommendedAction: "research_prototype_candidate",
+      githubRadarScore: 76,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "model_and_dependency_review_required",
+      integrationStatusLabel: "research_only",
+      featureFlags: ["longlive_review_enabled", "creator_long_video_research_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "GH05TCREW",
+    repoName: "pentestagent",
+    category: "defensive_security_testing",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "restricted_reference_only_defensive_security_reference_only",
+    productFit: [
+      "Security Command Center",
+      "Launch Security Gate",
+      "Internal Security Review",
+      "Research Lab"
+    ],
+    rules: [
+      "Restricted internal reference only; do not install or copy code.",
+      "No public pentest automation.",
+      "No unauthorized scanning.",
+      "No exploit automation.",
+      "No bug bounty automation without explicit written authorization.",
+      "No customer-facing hacking tools.",
+      "No tactical or offensive security workflows."
+    ],
+    licenseNotes: "MIT; security and legal review required before any internal testing workflow.",
+    securityNotes:
+      "Defensive testing references must remain internal, authorization-gated, and audit-logged.",
+    metadata: {
+      recommendedAction: "defensive_security_reference_only",
+      githubRadarScore: 62,
+      licenseRiskLabel: "restricted_security_review_required",
+      commercialUseStatus: "internal_review_required",
+      integrationStatusLabel: "restricted_reference_only",
+      publicRecommendationAllowed: false,
+      featureFlags: [
+        "pentestagent_research_only_enabled",
+        "defensive_security_agent_review_enabled"
+      ]
+    }
+  }),
+  project({
+    repoOwner: "nasa-gibs",
+    repoName: "worldview",
+    category: "satellite_mapping",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "reference_only_mapping_reference_candidate",
+    productFit: [
+      "Growth Studio",
+      "Business Builder service area planning",
+      "Venue and event planning",
+      "Research Lab",
+      "Mapping and Location Tools"
+    ],
+    rules: [
+      "Reference only; do not install or copy code.",
+      "No copying NASA UI/code without license review.",
+      "No NASA partnership, endorsement, or affiliation claims.",
+      "No surveillance.",
+      "No people tracking.",
+      "No emergency routing claims."
+    ],
+    licenseNotes: "NASA-1.3; review license required before code reuse or hosted map adaptation.",
+    securityNotes:
+      "Mapping research must avoid surveillance, people tracking, and emergency routing claims.",
+    metadata: {
+      recommendedAction: "mapping_reference_candidate",
+      githubRadarScore: 73,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["nasa_worldview_review_enabled", "mapping_research_layer_enabled"]
+    }
+  }),
+  project({
     repoOwner: "dmtrKovalenko",
     repoName: "fff",
     category: "unknown",

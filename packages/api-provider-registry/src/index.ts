@@ -4,7 +4,17 @@ export type ApiProviderRisk = "low" | "medium" | "high" | "critical";
 export type ApiProviderRecord = Readonly<{
   providerId: string;
   label: string;
-  category: "payments" | "auth" | "database" | "maps" | "messaging" | "scraping" | "support";
+  category:
+    | "payments"
+    | "auth"
+    | "database"
+    | "maps"
+    | "messaging"
+    | "scraping"
+    | "support"
+    | "developer"
+    | "ai"
+    | "security";
   status: ApiProviderStatus;
   risk: ApiProviderRisk;
   frontendSecretsAllowed: false;
@@ -43,7 +53,39 @@ export const apiProviderRegistry: readonly ApiProviderRecord[] = Object.freeze([
   provider("direct_google_scraping", "Direct Google scraping", "scraping", "blocked", "critical", [
     "Blocked for production.",
     "Use official APIs, OpenStreetMap, public datasets, or customer-provided data."
-  ])
+  ]),
+  provider("github", "GitHub", "developer", "needs_terms_review", "high", [
+    "Tokens must stay server-side.",
+    "Repository metadata sync must respect rate limits.",
+    "Do not auto-install, copy, or merge third-party repositories."
+  ]),
+  provider("openjarvis_reference", "OpenJarvis reference", "ai", "needs_terms_review", "high", [
+    "Reference only; no automatic shell access.",
+    "Private file access requires explicit consent and audit logs."
+  ]),
+  provider("skillopt_reference", "SkillOpt reference", "ai", "needs_terms_review", "medium", [
+    "Reference only; no hidden production prompt changes.",
+    "Prompt or skill changes require validation and audit logging."
+  ]),
+  provider("longlive_reference", "LongLive reference", "ai", "needs_terms_review", "high", [
+    "Research only; no bundled model weights without license review.",
+    "No production video generation claims until provider, hardware, and rights review pass."
+  ]),
+  provider("pentestagent_reference", "PentestAgent reference", "security", "blocked", "critical", [
+    "No public pentest automation.",
+    "Authorized defensive security reference only."
+  ]),
+  provider(
+    "nasa_worldview_reference",
+    "NASA Worldview reference",
+    "maps",
+    "needs_terms_review",
+    "high",
+    [
+      "No NASA endorsement or partnership claims.",
+      "No surveillance, people tracking, or emergency routing claims."
+    ]
+  )
 ]);
 
 export function evaluateApiProvider(providerId: string): ApiProviderRecord {

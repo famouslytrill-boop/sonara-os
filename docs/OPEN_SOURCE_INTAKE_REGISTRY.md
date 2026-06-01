@@ -5,6 +5,8 @@ Status: admin-gated registry and review plan.
 The Open-Source Intake Registry tracks external GitHub/open-source projects before any code is
 copied, installed, vendored, self-hosted, or exposed to users.
 
+Fast Sprint 29 added OpenJarvis, Microsoft SkillOpt, NVlabs LongLive, PentestAgent, and NASA Worldview as registry/watchlist entries only. They require license, security, privacy, commercial-use, and owner review before any adapter or production work.
+
 ## What Exists
 
 - Package: `packages/open-source-intake`

@@ -14,7 +14,7 @@ import {
 describe("open source intake registry", () => {
   it("lists every owner-provided intake candidate without marking integrations live", () => {
     const projects = getOpenSourceProjectRegistry();
-    expect(projects).toHaveLength(35);
+    expect(projects).toHaveLength(40);
     expect(projects.every((project) => project.metadata.externalCodeCopied === false)).toBe(true);
     expect(projects.every((project) => project.metadata.integrationConfigured === false)).toBe(
       true
@@ -69,6 +69,29 @@ describe("open source intake registry", () => {
     );
   });
 
+  it("adds recent GitHub Radar candidates without marking them integrated", () => {
+    const openJarvis = findOpenSourceProject("open-jarvis", "OpenJarvis");
+    const skillOpt = findOpenSourceProject("microsoft", "SkillOpt");
+    const longLive = findOpenSourceProject("NVlabs", "LongLive");
+    const pentestAgent = findOpenSourceProject("GH05TCREW", "pentestagent");
+    const worldview = findOpenSourceProject("nasa-gibs", "worldview");
+
+    expect(openJarvis?.metadata.githubRadarScore).toBe(84);
+    expect(skillOpt?.metadata.recommendedAction).toBe("priority_candidate");
+    expect(longLive?.metadata.integrationStatusLabel).toBe("research_only");
+    expect(pentestAgent?.metadata.publicRecommendationAllowed).toBe(false);
+    expect(worldview?.rules.join(" ")).toContain("No NASA partnership");
+    expect(
+      [openJarvis, skillOpt, longLive, pentestAgent, worldview].every(
+        (project) =>
+          project !== null &&
+          project.metadata.externalCodeCopied === false &&
+          project.metadata.productionDependencyInstalled === false &&
+          project.metadata.integrationConfigured === false
+      )
+    ).toBe(true);
+  });
+
   it("builds recommendations that do not install blocked or unreviewed projects", () => {
     const scraper = findOpenSourceProject("zohaibbashir", "Google-Maps-Scrapper");
     const recommendation = buildExternalProjectRecommendation(scraper!);
@@ -76,7 +99,7 @@ describe("open source intake registry", () => {
     expect(recommendation.requiredReviews).toContain("owner");
     expect(recommendation.reasons.join(" ")).toContain("blocked");
     expect(getOpenSourceIntakeSummary()).toMatchObject({
-      total: 35,
+      total: 40,
       blocked: 2,
       betaGated: 3
     });

@@ -379,8 +379,8 @@ function smokeOwnerConfirmationLock(mod) {
 
 function smokeOpenSourceIntake(mod) {
   const registry = mod.getOpenSourceProjectRegistry();
-  if (registry.length !== 35) {
-    throw new Error("Open-source intake registry must include all 35 owner-provided projects.");
+  if (registry.length !== 40) {
+    throw new Error("Open-source intake registry must include all 40 owner-provided projects.");
   }
   if (
     mod.normalizeExternalProjectUrl(
@@ -407,6 +407,14 @@ function smokeOpenSourceIntake(mod) {
   const unknown = mod.findOpenSourceProject("dograh-hq", "dograh");
   if (!unknown || unknown.integrationStatus !== "not_reviewed") {
     throw new Error("Unknown projects must remain not_reviewed.");
+  }
+  const pentestAgent = mod.findOpenSourceProject("GH05TCREW", "pentestagent");
+  if (!pentestAgent || pentestAgent.metadata.publicRecommendationAllowed !== false) {
+    throw new Error("PentestAgent must remain restricted from public recommendations.");
+  }
+  const openJarvis = mod.findOpenSourceProject("open-jarvis", "OpenJarvis");
+  if (!openJarvis || openJarvis.metadata.productionDependencyInstalled !== false) {
+    throw new Error("OpenJarvis must remain registry-only without installed dependencies.");
   }
 }
 
@@ -444,7 +452,7 @@ function smokeRecommendationTransparency(mod) {
 
 function smokeGitHubUpdateWatcher(mod) {
   const report = mod.createGitHubUpdateWatchReport("2026-05-26T00:00:00.000Z");
-  if (report.repositories.length !== 8) {
+  if (report.repositories.length !== 13) {
     throw new Error("GitHub Update Watcher must include the research repo watchlist.");
   }
   if (report.policy.autoInstallExternalRepos || report.policy.autoMergeUpdates) {

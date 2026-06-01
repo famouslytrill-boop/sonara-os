@@ -12,6 +12,11 @@ The GitHub Update Watcher is report-only. It tracks selected external repositori
 - `chatwoot/chatwoot`
 - `frappe/erpnext`
 - `nextcloud/server`
+- `open-jarvis/OpenJarvis`
+- `microsoft/SkillOpt`
+- `NVlabs/LongLive`
+- `GH05TCREW/pentestagent`
+- `nasa-gibs/worldview`
 
 ## Rules
 
@@ -20,3 +25,5 @@ The GitHub Update Watcher is report-only. It tracks selected external repositori
 - Do not auto-merge updates.
 - Create reports only.
 - Owner approval is required before adoption.
+- Restricted security references such as PentestAgent must not be public product features.
+- Research-only repositories must not be described as integrated.

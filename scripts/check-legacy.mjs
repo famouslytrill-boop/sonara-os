@@ -31,7 +31,10 @@ const issues = [];
 for (const filePath of activeFiles) {
   for (const term of legacyTerms) {
     for (const hit of linesWith(filePath, term)) {
-      if (!isAllowedSafetyContext(hit.line) && !isAllowedLegacyRedirectReference(filePath, hit.line)) {
+      if (
+        !isAllowedSafetyContext(hit.line) &&
+        !isAllowedLegacyRedirectReference(filePath, hit.line)
+      ) {
         issues.push(
           `${relative(filePath)}:${hit.lineNumber} contains legacy public copy: ${hit.line.trim()}`
         );

@@ -29,7 +29,12 @@ export type OpenSourceProjectCategory =
   | "whatsapp_automation"
   | "command_center"
   | "api_testing"
-  | "voice_audio";
+  | "voice_audio"
+  | "local_first_ai_agent"
+  | "agent_skill_optimization"
+  | "long_video_generation"
+  | "defensive_security_testing"
+  | "satellite_mapping";
 
 export type OpenSourceLicenseRisk = "low" | "medium" | "high" | "critical" | "unknown";
 export type OpenSourceSecurityRisk = "low" | "medium" | "high" | "critical" | "unknown";

@@ -290,6 +290,20 @@ export {
   createMockExportBundle,
   createMockMutationVariants
 } from "./mockWorkflow.ts";
+export {
+  createCodexRequirementsGatePrompt,
+  createFeatureIntakeSubmission,
+  createFeatureSpecCard,
+  featureIntakeRequiredQuestions,
+  getFeatureIntakeRequiredQuestions,
+  validateFeatureIntake
+} from "./lib/requirements/index.ts";
+export type {
+  FeatureIntakeCategory,
+  FeatureIntakeSubmission,
+  FeatureIntakeValidationResult,
+  FeatureSpecCard
+} from "./lib/requirements/index.ts";
 export { mutationVariants } from "./mutationVariants.ts";
 export { routeProviderRequest } from "./providers/provider-gateway.ts";
 export {
