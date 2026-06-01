@@ -4,9 +4,10 @@
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
+    "jsx": "preserve",
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["packages/*/src/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"]
 }

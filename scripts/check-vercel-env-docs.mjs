@@ -1,0 +1,53 @@
+import fs from "node:fs";
+import { exists, failIfIssues, read } from "./check-utils.mjs";
+
+const requiredVariables = [
+  "NEXT_PUBLIC_SITE_URL",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SUPABASE_ACCESS_TOKEN",
+  "SUPABASE_PROJECT_ID",
+  "SUPABASE_DB_PASSWORD",
+  "SUPPORT_EMAIL",
+  "CONTACT_EMAIL",
+  "HELP_EMAIL",
+  "BILLING_EMAIL",
+  "SECURITY_EMAIL",
+  "PRIVACY_EMAIL",
+  "LEGAL_EMAIL",
+  "RESEND_API_KEY",
+  "RESEND_FROM_EMAIL",
+  "GITHUB_TOKEN",
+  "STRIPE_SECRET_KEY",
+  "STRIPE_WEBHOOK_SECRET",
+  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+];
+
+const issues = [];
+const docsPath = "docs/deployment/VERCEL_ENVIRONMENT_VARIABLES.md";
+
+if (!exists(docsPath)) {
+  issues.push(`Missing ${docsPath}.`);
+} else {
+  const source = read(docsPath);
+  for (const variable of requiredVariables) {
+    if (!source.includes(variable)) {
+      issues.push(`${docsPath} missing ${variable}.`);
+    }
+  }
+  if (!/optional/i.test(source) || !/server-only/i.test(source)) {
+    issues.push(`${docsPath} must distinguish optional and server-only variables.`);
+  }
+}
+
+if (exists(".env.example")) {
+  const envExample = fs.readFileSync(".env.example", "utf8");
+  for (const variable of requiredVariables.slice(0, 15)) {
+    if (!envExample.includes(`${variable}=`)) {
+      issues.push(`.env.example missing ${variable}.`);
+    }
+  }
+}
+
+failIfIssues("Vercel environment documentation check", issues);

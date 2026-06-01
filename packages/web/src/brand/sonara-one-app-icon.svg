@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SONARA One app icon">
+  <rect width="512" height="512" rx="96" fill="#070912"/>
+  <circle cx="256" cy="256" r="168" fill="#0B1020" stroke="#6F8CFF" stroke-width="28"/>
+  <path d="M146 304c67-126 155-126 222 0" fill="none" stroke="#74D9B0" stroke-width="30" stroke-linecap="round"/>
+  <circle cx="256" cy="224" r="42" fill="#EEF4FF"/>
+  <path d="M156 364h200" stroke="#B79CFF" stroke-width="18" stroke-linecap="round"/>
+</svg>

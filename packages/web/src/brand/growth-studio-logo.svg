@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="Growth Studio logo placeholder">
+  <rect width="320" height="80" rx="16" fill="#0B1020"/>
+  <path d="M25 51l13-15 11 9 14-19" fill="none" stroke="#F4C76B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="76" y="47" fill="#EEF4FF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Growth Studio</text>
+</svg>

@@ -10,7 +10,7 @@ describe("mutation variants", () => {
     ]);
     for (const variant of mutationVariants) {
       expect(variant.replayScore).toBeGreaterThan(0);
-      expect(variant.audienceFit).toBeTruthy();
+      expect(variant.marketScore).toBeTruthy();
       expect(variant.risk).toBeTruthy();
       expect(variant.recommendation).toBeTruthy();
     }

@@ -3,12 +3,12 @@ import tseslint from "typescript-eslint";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**"]
+    ignores: ["dist/**", "**/dist/**", "node_modules/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,mjs,ts}"],
+    files: ["**/*.{js,mjs,ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
@@ -16,6 +16,7 @@ export default [
         console: "readonly",
         document: "readonly",
         HTMLElement: "readonly",
+        localStorage: "readonly",
         process: "readonly",
         window: "readonly"
       }

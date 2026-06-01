@@ -21,9 +21,21 @@ export function createUploadSimulationSnapshots(
 export function completeUploadSimulation(fileName: string): {
   uploadedFileName: string;
   currentStep: WorkflowStep;
+  analysis: null;
+  composerSheet: null;
+  masterPrompt: null;
+  variants: readonly [];
+  selectedVariant: null;
+  exportResult: null;
 } {
   return {
     uploadedFileName: fileName,
-    currentStep: "analyze"
+    currentStep: "analyze",
+    analysis: null,
+    composerSheet: null,
+    masterPrompt: null,
+    variants: Object.freeze([]),
+    selectedVariant: null,
+    exportResult: null
   };
 }

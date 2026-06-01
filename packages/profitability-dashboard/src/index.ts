@@ -1,0 +1,45 @@
+export type RevenueModelItem = Readonly<{
+  id: string;
+  label: string;
+  monthlyPriceRange: string;
+  status: "setup_mode" | "needs_review" | "ready_for_checkout_mapping";
+  rules: readonly string[];
+}>;
+
+export const profitabilityRules = Object.freeze([
+  "Do not claim guaranteed income, customers, or growth.",
+  "Do not show revenue totals until real Stripe records exist.",
+  "Marketplace fees require future legal and payment review.",
+  "Provider pass-through costs must be documented before charging."
+]);
+
+export const revenueModelItems: readonly RevenueModelItem[] = Object.freeze([
+  item("no_cost_plan", "Free tier", "$0", "needs_review"),
+  item("starter_plan", "Starter", "$9-$15/mo", "ready_for_checkout_mapping"),
+  item("core_plan", "Core", "$29/mo", "ready_for_checkout_mapping"),
+  item("growth_plan", "Growth", "$49-$59/mo", "ready_for_checkout_mapping"),
+  item("business_plan", "Pro / Business", "$79-$99/mo", "ready_for_checkout_mapping"),
+  item("scale_plan", "Agency / Scale", "$149-$199/mo or custom", "needs_review"),
+  item("setup_99", "Profile setup", "$99", "ready_for_checkout_mapping"),
+  item("setup_299", "Business launch setup", "$299", "ready_for_checkout_mapping"),
+  item("setup_499", "Premium setup", "$499+", "ready_for_checkout_mapping")
+]);
+
+export function summarizeRevenueModel(): Readonly<{ items: number; noGuarantees: true }> {
+  return Object.freeze({ items: revenueModelItems.length, noGuarantees: true });
+}
+
+function item(
+  id: string,
+  label: string,
+  monthlyPriceRange: string,
+  status: RevenueModelItem["status"]
+): RevenueModelItem {
+  return Object.freeze({
+    id,
+    label,
+    monthlyPriceRange,
+    status,
+    rules: profitabilityRules
+  });
+}

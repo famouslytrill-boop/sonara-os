@@ -1,0 +1,20 @@
+{
+  "name": "@signal-os/prompt-playbook-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "typecheck": "node ../../scripts/typecheck-package.mjs .",
+    "build": "node ../../scripts/build-package.mjs .",
+    "smoke": "node ../../scripts/smoke-package.mjs ."
+  }
+}

@@ -10,7 +10,7 @@ if (!packageArg) {
 const packageDir = path.resolve(process.cwd(), packageArg);
 const srcDir = path.join(packageDir, "src");
 const name = packageName(packageDir);
-const sourceFiles = walkFiles(srcDir, (filePath) => filePath.endsWith(".ts"));
+const sourceFiles = walkFiles(srcDir, (filePath) => /\.(ts|tsx)$/.test(filePath));
 const legacyDawName = ["D", "A", "w", "Name"].join("");
 
 if (sourceFiles.length === 0) {

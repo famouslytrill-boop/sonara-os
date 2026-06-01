@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="SONARA One Open Graph preview">
+  <rect width="1200" height="630" fill="#070912"/>
+  <rect x="64" y="64" width="1072" height="502" rx="36" fill="#0B1020" stroke="#263657" stroke-width="2"/>
+  <circle cx="170" cy="178" r="48" fill="none" stroke="#6F8CFF" stroke-width="9"/>
+  <path d="M139 190c19-36 43-36 62 0" fill="none" stroke="#74D9B0" stroke-width="8" stroke-linecap="round"/>
+  <text x="250" y="188" fill="#EEF4FF" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="850">SONARA One</text>
+  <text x="250" y="260" fill="#B9C5DC" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="600">Build. Create. Grow.</text>
+  <text x="250" y="386" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="850">Build. Prove. Get paid. Grow.</text>
+  <text x="250" y="462" fill="#8FA0BD" font-family="Inter, Arial, sans-serif" font-size="28">Business Builder  |  Creator Studio  |  Growth Studio</text>
+</svg>

@@ -1,0 +1,65 @@
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { URL } from "node:url";
+import { repoRoot } from "./workspace.mjs";
+import { securityHeaderRecord } from "./security-headers.mjs";
+
+const webPackageDir = path.join(repoRoot, "packages", "web");
+const webDistDir = path.join(webPackageDir, "dist");
+const port = Number(process.env.PORT ?? 4173);
+
+const buildResult = spawnSync(process.execPath, ["scripts/build-package.mjs", webPackageDir], {
+  cwd: repoRoot,
+  stdio: "inherit"
+});
+
+if (buildResult.status !== 0) {
+  process.exit(buildResult.status ?? 1);
+}
+
+const contentTypes = new Map([
+  [".css", "text/css; charset=utf-8"],
+  [".html", "text/html; charset=utf-8"],
+  [".json", "application/json; charset=utf-8"],
+  [".js", "text/javascript; charset=utf-8"],
+  [".mjs", "text/javascript; charset=utf-8"],
+  [".svg", "image/svg+xml"],
+  [".txt", "text/plain; charset=utf-8"],
+  [".webmanifest", "application/manifest+json; charset=utf-8"],
+  [".xml", "application/xml; charset=utf-8"]
+]);
+
+const server = http.createServer((request, response) => {
+  const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
+  const requestedPath = requestUrl.pathname === "/" ? "/index.html" : requestUrl.pathname;
+  const candidatePath = path.normalize(path.join(webDistDir, decodeURIComponent(requestedPath)));
+  const candidateIsFile =
+    candidatePath.startsWith(webDistDir) &&
+    fs.existsSync(candidatePath) &&
+    fs.statSync(candidatePath).isFile();
+  const filePath =
+    candidatePath.startsWith(webDistDir) && candidateIsFile
+      ? candidatePath
+      : path.join(webDistDir, "index.html");
+
+  if (!filePath.startsWith(webDistDir) || !fs.existsSync(filePath)) {
+    response.writeHead(404, {
+      "content-type": "text/plain; charset=utf-8",
+      ...securityHeaderRecord
+    });
+    response.end("Not found");
+    return;
+  }
+
+  const contentType = requestUrl.pathname.startsWith("/api/")
+    ? "application/json; charset=utf-8"
+    : (contentTypes.get(path.extname(filePath)) ?? "application/octet-stream");
+  response.writeHead(200, { "content-type": contentType, ...securityHeaderRecord });
+  fs.createReadStream(filePath).pipe(response);
+});
+
+server.listen(port, () => {
+  console.log(`Signal OS dev server running at http://localhost:${port}`);
+});

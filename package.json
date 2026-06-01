@@ -3,19 +3,48 @@
   "version": "0.1.0",
   "private": true,
   "description": "Clean Signal OS workspace scaffolded from the phased gate.",
+  "packageManager": "pnpm@11.1.1",
   "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "check": "npm run lint && npm run format && npm test && npm run typecheck && npm run build && npm run smoke",
+    "dev": "node scripts/dev.mjs",
+    "check": "pnpm run lint && pnpm run format && pnpm run validate:migrations && pnpm test && pnpm run typecheck && pnpm run build && pnpm run smoke",
     "typecheck": "node scripts/typecheck.mjs && tsc --noEmit",
     "build": "node scripts/build.mjs",
+    "audit:workspace": "node scripts/workspace-audit.mjs",
+    "validate:migrations": "node scripts/validate-migrations.mjs",
     "smoke": "node scripts/smoke.mjs",
+    "smoke:routes": "node scripts/smoke.mjs",
+    "smoke:launch-foundation": "node scripts/launch-foundation-smoke.mjs",
     "test": "vitest run --pool=threads --no-isolate",
     "lint": "eslint .",
     "format": "prettier --check .",
-    "format:write": "prettier --write ."
+    "format:write": "prettier --write .",
+    "check:legacy": "node scripts/check-legacy.mjs",
+    "check:public-claims": "node scripts/check-public-claims.mjs",
+    "check:risky-features": "node scripts/check-risky-features.mjs",
+    "check:env-safety": "node scripts/check-env-safety.mjs",
+    "check-license-risk": "node scripts/check-license-risk.mjs",
+    "check-provider-registry": "node scripts/check-provider-registry.mjs",
+    "check-technology-registry": "node scripts/check-technology-registry.mjs",
+    "check:github-radar": "node scripts/check-github-radar.mjs",
+    "check:github-radar-risk": "node scripts/check-github-radar-risk.mjs",
+    "check:github-radar-secrets": "node scripts/check-github-radar-secrets.mjs",
+    "check:auto-install-disabled": "node scripts/check-auto-install-disabled.mjs",
+    "check:vercel-env-docs": "node scripts/check-vercel-env-docs.mjs",
+    "check:live-readiness": "node scripts/check-live-readiness.mjs",
+    "verify:db": "node scripts/validate-migrations.mjs",
+    "verify:all": "node scripts/verify-all.mjs",
+    "validate:infrastructure": "node scripts/validate-infrastructure.mjs",
+    "security:scan-artifacts": "node scripts/security-scan-artifacts.mjs",
+    "dev:utilities:test": "vitest run --pool=threads --no-isolate --run packages/web/src/developerUtilities.test.ts packages/web/src/sourceLeakPrevention.test.ts",
+    "deployment:check": "tsx packages/deployment-sync/src/index.ts",
+    "env:check": "tsx packages/deployment-sync/src/env-validator.ts",
+    "security:sync-check": "tsx packages/deployment-sync/src/security-sync-check.ts",
+    "paywall:check": "tsx packages/deployment-sync/src/paywall-sync-check.ts",
+    "github:update-watch": "tsx packages/github-update-watcher/src/index.ts"
   },
   "engines": {
     "node": ">=20"
@@ -24,8 +53,28 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.2.1",
     "prettier": "^3.8.3",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.0",
     "vitest": "^4.1.5"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.104.1",
+    "jszip": "^3.10.1",
+    "motion": "^12.38.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "tailwindcss": "^4.2.4",
+    "three": "^0.184.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
   }
 }
