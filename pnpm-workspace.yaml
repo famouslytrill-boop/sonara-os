@@ -13,4 +13,5 @@ overrides:
 allowBuilds:
   esbuild: true
   sharp: true
+  supabase: set this to true or false
   unrs-resolver: true
