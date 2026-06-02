@@ -2,7 +2,7 @@
 
 Date: 2026-05-19
 
-Scope: SONARA One / Signal OS static web shell in this repository.
+Scope: SONARA Industries static web shell in this repository.
 
 Status: locked for beta/public release review. This is not a production launch approval.
 The MVP route set is stable, advanced systems are gated, source leak scanning passes, and

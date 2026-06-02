@@ -379,8 +379,8 @@ function smokeOwnerConfirmationLock(mod) {
 
 function smokeOpenSourceIntake(mod) {
   const registry = mod.getOpenSourceProjectRegistry();
-  if (registry.length !== 40) {
-    throw new Error("Open-source intake registry must include all 40 owner-provided projects.");
+  if (registry.length !== 52) {
+    throw new Error("Open-source intake registry must include all 52 owner-provided projects.");
   }
   if (
     mod.normalizeExternalProjectUrl(
@@ -452,8 +452,11 @@ function smokeRecommendationTransparency(mod) {
 
 function smokeGitHubUpdateWatcher(mod) {
   const report = mod.createGitHubUpdateWatchReport("2026-05-26T00:00:00.000Z");
-  if (report.repositories.length !== 13) {
+  if (report.repositories.length !== 25) {
     throw new Error("GitHub Update Watcher must include the research repo watchlist.");
+  }
+  if (!report.repositories.some((repository) => repository.repoName === "hyperframes")) {
+    throw new Error("GitHub Update Watcher must include the HyperFrames watch record.");
   }
   if (report.policy.autoInstallExternalRepos || report.policy.autoMergeUpdates) {
     throw new Error("GitHub Update Watcher must remain report-only.");

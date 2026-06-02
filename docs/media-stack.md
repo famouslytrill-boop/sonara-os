@@ -1,12 +1,12 @@
-# Signal OS Media Stack
+# SONARA Media Stack
 
 ## Browser capture
 
-Signal OS uses browser-native MediaDevices APIs for microphone and camera readiness checks.
+SONARA uses browser-native MediaDevices APIs for microphone and camera readiness checks.
 
 ## Browser audio
 
-Signal OS uses Web Audio API for subtle UI sounds.
+SONARA uses Web Audio API for subtle UI sounds.
 
 Rules:
 

@@ -47,7 +47,7 @@ The route manifest currently registers 119 routes across:
 - Product surfaces: `/business-builder`, `/creator-studio`, `/growth-studio`, and their MVP child routes.
 - Onboarding/setup: `/onboarding`, product setup routes, and launch checklist routes.
 - Admin/security: `/security-center`, owner review, diagnostics, go-live checklist, AI providers, reliability, developer utilities, dev tunnel tools, operations, and automation rules.
-- Signal OS workflow routes: `/create`, `/analyze`, `/compose`, `/mutation`, `/export`.
+- Creator workflow routes: `/create`, `/analyze`, `/compose`, `/mutation`, `/export`.
 - Legacy/expanded strategy and catalog routes remain registered and should be kept gated or accurately labeled until they are launch-ready.
 
 ## Database And Migration Status

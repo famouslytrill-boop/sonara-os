@@ -1,6 +1,6 @@
-# Signal OS Product Roadmap
+# SONARA Creator Studio Product Roadmap
 
-Signal OS is a premium creative operating system for music creation, optimization, release, and catalog scaling. This roadmap keeps product work aligned to Create, Optimize, Release, and Scale.
+Creator Studio is the SONARA Industries product surface for creation, optimization, release, and catalog scaling. This roadmap keeps product work aligned to Create, Optimize, Release, and Scale.
 
 ## Product Principles
 

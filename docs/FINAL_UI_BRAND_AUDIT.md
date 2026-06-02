@@ -62,7 +62,7 @@ No payment, auth, database, or product behavior was changed.
 | Backgrounds        | Ready for beta  | Dark-first backgrounds and restrained product accent washes are centralized in CSS and brand tokens.                                          |
 | Dashboard cards    | Ready for beta  | Cards use shared `.planning-card`, `.shell-card`, status badges, and product theme classes.                                                   |
 | Navigation         | Ready for beta  | Public nav, app nav, admin nav, and mobile bottom nav exist.                                                                                  |
-| Sidebar            | Ready for beta  | Desktop sidebar is sticky and grouped by Products, Admin, Signal OS, and support utilities.                                                   |
+| Sidebar            | Ready for beta  | Desktop sidebar is sticky and grouped by Products, Admin, creative workflow, and support utilities.                                           |
 | Mobile layout      | Needs device QA | CSS switches to single-column layout, larger touch targets, sticky form actions, and bottom nav under 760px. Real-device QA remains required. |
 | Pricing page       | Ready for beta  | Plans and setup services are readable and include no hidden-fee or guaranteed-outcome claims.                                                 |
 | Onboarding         | Ready for beta  | Product path selection, setup forms, local save behavior, warnings, and launch checklist render.                                              |

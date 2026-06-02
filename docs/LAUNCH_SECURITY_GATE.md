@@ -2,7 +2,7 @@
 
 Date: 2026-06-01
 
-Scope: current Signal OS / SONARA One static web shell, typed safety modules, package scripts, and Supabase migration files in this repository.
+Scope: current SONARA Industries static web shell, typed safety modules, package scripts, and Supabase migration files in this repository.
 
 Overall status: conditional pass for repository artifacts. Production launch remains blocked until migrations are applied to the target Supabase project, admin/session enforcement is verified against real auth, and hosting environment secrets are reviewed.
 

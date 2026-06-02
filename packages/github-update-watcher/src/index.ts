@@ -33,7 +33,19 @@ export const watchedGitHubRepositories: readonly WatchedGitHubRepository[] = Obj
   repo("microsoft", "SkillOpt", "research_only", false, true),
   repo("NVlabs", "LongLive", "research_only", true, true),
   repo("GH05TCREW", "pentestagent", "research_only", true, true),
-  repo("nasa-gibs", "worldview", "reference_only", true, true)
+  repo("nasa-gibs", "worldview", "reference_only", true, true),
+  repo("foundation", "foundation-emails", "reference_only", true, false),
+  repo("jeremykenedy", "laravel-auth", "reference_only", true, true),
+  repo("dword-design", "nuxt-mail", "reference_only", true, false),
+  repo("tbxark", "mail2telegram", "research_only", true, true),
+  repo("qdrant", "qdrant", "reference_only", true, true),
+  repo("milvus-io", "milvus", "reference_only", true, true),
+  repo("surrealdb", "surrealdb", "research_only", true, true),
+  repo("cockroachdb", "cockroach", "reference_only", true, true),
+  repo("taosdata", "TDengine", "research_only", true, true),
+  repo("MiCode", "Xiaomi_Kernel_OpenSource", "blocked", true, true),
+  repo("BelledonneCommunications", "linphone-iphone", "reference_only", true, true),
+  repo("heygen-com", "hyperframes", "reference_only", true, true)
 ]);
 
 export function createGitHubUpdateWatchReport(

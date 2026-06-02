@@ -1,6 +1,6 @@
-# Signal OS Technical Roadmap
+# SONARA Technical Roadmap
 
-This roadmap tracks the technical foundation required to move Signal OS from mock MVP to launch-ready system without forcing heavy services into local builds.
+This roadmap tracks the technical foundation required to move SONARA Industries from mock MVP to launch-ready system without forcing heavy services into local builds.
 
 ## Technical Principles
 

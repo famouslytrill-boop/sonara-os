@@ -636,6 +636,320 @@ export const openSourceProjectRegistry: readonly OpenSourceProjectRecord[] = Obj
     }
   }),
   project({
+    repoOwner: "foundation",
+    repoName: "foundation-emails",
+    category: "email_templates",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "reference_only_email_template_candidate",
+    productFit: ["Support Center", "Transactional email templates", "Customer Success"],
+    rules: [
+      "Reference only; do not install or copy templates without license and accessibility review.",
+      "Outbound email still requires a configured provider.",
+      "Do not claim support email delivery is live until tested."
+    ],
+    licenseNotes:
+      "MIT; attribution, accessibility, and deliverability review required before adaptation.",
+    securityNotes:
+      "Email templates must avoid secrets, private customer data, and misleading delivery claims.",
+    metadata: {
+      recommendedAction: "email_template_reference_candidate",
+      githubRadarScore: 71,
+      licenseRiskLabel: "allowed_with_review",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["foundation_emails_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "jeremykenedy",
+    repoName: "laravel-auth",
+    category: "auth_pattern",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "auth_pattern_reference_only",
+    productFit: ["Auth readiness", "Owner bootstrap docs", "Admin security review"],
+    rules: [
+      "Reference only; do not copy framework code into the TypeScript workspace.",
+      "Supabase Auth remains the launch auth direction.",
+      "Use only as comparison material for login, account recovery, and admin controls."
+    ],
+    licenseNotes: "Review license required before copying any implementation pattern.",
+    securityNotes: "Auth patterns require session, MFA, password, and account recovery review.",
+    metadata: {
+      recommendedAction: "auth_pattern_reference",
+      githubRadarScore: 55,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only"
+    }
+  }),
+  project({
+    repoOwner: "dword-design",
+    repoName: "nuxt-mail",
+    category: "mail_route",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "mail_route_reference_only",
+    productFit: ["Support email readiness", "Outbound email adapter planning"],
+    rules: [
+      "Reference only; do not add Nuxt dependencies to this workspace.",
+      "Outbound email requires configured provider credentials.",
+      "Do not send real emails from local checks."
+    ],
+    licenseNotes: "Review license required before adapting route patterns.",
+    securityNotes: "Mail routes must redact secrets and avoid stack traces in user-facing errors.",
+    metadata: {
+      recommendedAction: "mail_route_reference",
+      githubRadarScore: 54,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only"
+    }
+  }),
+  project({
+    repoOwner: "tbxark",
+    repoName: "mail2telegram",
+    category: "internal_alerting",
+    useMode: "needs_security_review",
+    ownerProvidedUseMode: "optional_internal_alert_adapter_review",
+    productFit: ["Admin alerts", "Support operations", "Incident response"],
+    rules: [
+      "Internal alert adapter review only; do not expose to customers.",
+      "Do not forward customer data, support messages, tokens, or secrets to chat tools.",
+      "Use redaction and audit logs before any notification bridge."
+    ],
+    licenseNotes: "License review required before any adapter or self-hosted use.",
+    securityNotes:
+      "Alert bridges require token redaction, destination ownership, and privacy review.",
+    metadata: {
+      recommendedAction: "internal_alert_adapter_review",
+      githubRadarScore: 58,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "internal_review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["mail2telegram_internal_alert_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "qdrant",
+    repoName: "qdrant",
+    category: "vector_database",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "high_value_candidate_reference_only",
+    productFit: ["Smart Document Reader", "Research Lab", "Business Memory Graph"],
+    rules: [
+      "Reference only until privacy, deletion, backup, and cost review pass.",
+      "Do not sync private tenant records to an external vector store without approval.",
+      "Vector indexes must inherit source document permissions."
+    ],
+    licenseNotes: "Apache-2.0; allowed with attribution and privacy/security review.",
+    securityNotes: "External vector stores require deletion, retention, and data residency review.",
+    metadata: {
+      recommendedAction: "high_value_candidate",
+      githubRadarScore: 86,
+      licenseRiskLabel: "allowed_with_review",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["qdrant_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "milvus-io",
+    repoName: "milvus",
+    category: "vector_database",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "future_enterprise_candidate_reference_only",
+    productFit: ["Vector search", "Research Lab", "Enterprise knowledge retrieval"],
+    rules: [
+      "Reference only; no production sync until operations and cost review pass.",
+      "Do not expose private embeddings across organizations.",
+      "Keep Supabase-first launch architecture unless migration is approved."
+    ],
+    licenseNotes: "Apache-2.0; review required before service adoption.",
+    securityNotes:
+      "Large vector infrastructure requires privacy, backups, and tenant isolation review.",
+    metadata: {
+      recommendedAction: "future_enterprise_candidate",
+      githubRadarScore: 78,
+      licenseRiskLabel: "allowed_with_review",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["milvus_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "surrealdb",
+    repoName: "surrealdb",
+    category: "database_technology",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "research_only",
+    productFit: ["Database technology review", "Local Edge Mode", "Research Lab"],
+    rules: [
+      "Research only; Supabase remains the source of truth.",
+      "Do not migrate tenant records without architecture, license, and operational review.",
+      "Do not promise arbitrary user-created databases."
+    ],
+    licenseNotes: "BSL/source-available; review license required before product use.",
+    securityNotes:
+      "Database replacement candidates require migration, backup, and tenant isolation review.",
+    metadata: {
+      recommendedAction: "research_only",
+      githubRadarScore: 64,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["surrealdb_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "cockroachdb",
+    repoName: "cockroach",
+    category: "database_technology",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "future_scale_reference",
+    productFit: ["Database scaling plan", "Future enterprise architecture", "Research Lab"],
+    rules: [
+      "Future scale reference only; Supabase remains the launch database.",
+      "Review license, cost, migration, and operational complexity before adoption.",
+      "Do not claim distributed SQL is part of the product until implemented and tested."
+    ],
+    licenseNotes: "BSL/source-available and commercial terms require legal review.",
+    securityNotes:
+      "Distributed database adoption requires backup, failover, and access control review.",
+    metadata: {
+      recommendedAction: "future_scale_reference",
+      githubRadarScore: 67,
+      licenseRiskLabel: "review_required",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: ["cockroachdb_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "taosdata",
+    repoName: "TDengine",
+    category: "database_technology",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "restricted_reference_only",
+    productFit: ["Research Lab", "Time-series database review"],
+    rules: [
+      "Restricted reference only; do not bundle or integrate into closed-source product code.",
+      "AGPL-3.0 legal review required before any use beyond research notes.",
+      "Supabase remains the launch database."
+    ],
+    licenseNotes:
+      "AGPL-3.0; legal review required and closed-source product integration is blocked.",
+    securityNotes: "Time-series telemetry tools require retention and privacy review.",
+    metadata: {
+      recommendedAction: "restricted_reference_only",
+      githubRadarScore: 49,
+      licenseRiskLabel: "restricted",
+      commercialUseStatus: "blocked_without_legal_review",
+      integrationStatusLabel: "restricted_reference_only",
+      featureFlags: ["tdengine_restricted_review_enabled"]
+    }
+  }),
+  project({
+    repoOwner: "MiCode",
+    repoName: "Xiaomi_Kernel_OpenSource",
+    category: "kernel_source_reference",
+    useMode: "blocked",
+    ownerProvidedUseMode: "blocked_from_product_integration",
+    productFit: ["Research Lab only"],
+    rules: [
+      "Blocked from product integration.",
+      "Do not copy kernel source into app code or packages.",
+      "Do not use as a dependency, device-control layer, or mobile release path."
+    ],
+    licenseNotes:
+      "Kernel source licensing and device-specific terms require review; product integration blocked.",
+    securityNotes:
+      "Kernel source is outside SONARA app scope and must not become device-control code.",
+    metadata: {
+      recommendedAction: "blocked_from_product_integration",
+      githubRadarScore: 10,
+      licenseRiskLabel: "blocked",
+      commercialUseStatus: "blocked",
+      integrationStatusLabel: "blocked",
+      publicRecommendationAllowed: false,
+      featureFlags: ["xiaomi_kernel_product_integration_blocked"]
+    }
+  }),
+  project({
+    repoOwner: "BelledonneCommunications",
+    repoName: "linphone-iphone",
+    category: "sip_voip",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "restricted_sip_voip_reference_only",
+    productFit: [
+      "Business Builder",
+      "Growth Studio",
+      "Support Center",
+      "Voice Agent Builder",
+      "Phone/Communication Center",
+      "Admin Command Center"
+    ],
+    rules: [
+      "Restricted SIP/VoIP architecture reference only.",
+      "Do not copy GPL source or bundle it into closed-source product code without legal review.",
+      "No robocalling, covert recording, hidden call logging, or emergency dispatch claims.",
+      "No SIP credential exposure or automatic customer calls without approval."
+    ],
+    licenseNotes:
+      "GPL-3.0 / proprietary dual license; proprietary license and legal review required for closed-source use.",
+    securityNotes:
+      "VoIP requires consent, call recording, telecom, credential, and human handoff review.",
+    metadata: {
+      recommendedAction: "sip_voip_architecture_reference_only",
+      githubRadarScore: 57,
+      licenseRiskLabel: "restricted",
+      commercialUseStatus: "proprietary_license_required_for_closed_source",
+      integrationStatusLabel: "reference_only",
+      featureFlags: [
+        "linphone_sip_voip_reference_enabled",
+        "sip_phone_system_review_enabled",
+        "voice_agent_sip_handoff_review_enabled"
+      ]
+    }
+  }),
+  project({
+    repoOwner: "heygen-com",
+    repoName: "hyperframes",
+    category: "html_to_video",
+    useMode: "reference_only",
+    ownerProvidedUseMode: "high_value_html_to_video_candidate_reference_only",
+    productFit: [
+      "Creator Studio",
+      "Growth Studio",
+      "Business Builder",
+      "Creative Model Hub",
+      "Campaign Builder",
+      "Social Video Generator",
+      "Product Demo Generator",
+      "Codex Sprint Generator",
+      "GitHub Opportunity Radar"
+    ],
+    rules: [
+      "Reference only; do not install or copy source code.",
+      "No production rendering without queues, storage, auth, quotas, tests, and rights gates.",
+      "No copyrighted asset misuse, fake endorsements, non-consensual likeness, or implied HeyGen partnership.",
+      "No unbounded CPU/GPU/FFmpeg jobs or unlimited rendering claims."
+    ],
+    licenseNotes: "Apache-2.0; allowed with review before adapter work.",
+    securityNotes:
+      "Video rendering requires queue, quota, storage, rights, and compute safety review.",
+    metadata: {
+      recommendedAction: "high_value_candidate",
+      githubRadarScore: 82,
+      licenseRiskLabel: "allowed_with_review",
+      commercialUseStatus: "review_required",
+      integrationStatusLabel: "reference_only",
+      featureFlags: [
+        "hyperframes_video_rendering_review_enabled",
+        "html_to_video_templates_enabled",
+        "video_render_queue_planned"
+      ]
+    }
+  }),
+  project({
     repoOwner: "dmtrKovalenko",
     repoName: "fff",
     category: "unknown",

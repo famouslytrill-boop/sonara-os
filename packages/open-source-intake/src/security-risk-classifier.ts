@@ -20,7 +20,10 @@ export function classifySecurityRisk(input: {
     input.category === "remote_desktop_or_android_desktop" ||
     input.category === "browser_agent" ||
     input.category === "local_first_ai_agent" ||
-    input.category === "defensive_security_testing"
+    input.category === "defensive_security_testing" ||
+    input.category === "internal_alerting" ||
+    input.category === "kernel_source_reference" ||
+    input.category === "sip_voip"
   ) {
     return "high";
   }
@@ -29,7 +32,8 @@ export function classifySecurityRisk(input: {
     input.category === "voice_audio" ||
     input.category === "image_generation" ||
     input.category === "music_audio_ui" ||
-    input.category === "long_video_generation"
+    input.category === "long_video_generation" ||
+    input.category === "html_to_video"
   ) {
     return "high";
   }

@@ -1,4 +1,4 @@
-# Signal OS Launch Foundation
+# SONARA Launch Foundation
 
 This layer keeps launch readiness focused on stability rather than new product surface area.
 

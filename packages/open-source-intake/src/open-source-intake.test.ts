@@ -14,7 +14,7 @@ import {
 describe("open source intake registry", () => {
   it("lists every owner-provided intake candidate without marking integrations live", () => {
     const projects = getOpenSourceProjectRegistry();
-    expect(projects).toHaveLength(40);
+    expect(projects).toHaveLength(52);
     expect(projects.every((project) => project.metadata.externalCodeCopied === false)).toBe(true);
     expect(projects.every((project) => project.metadata.integrationConfigured === false)).toBe(
       true
@@ -49,6 +49,7 @@ describe("open source intake registry", () => {
     const blocked = getBlockedOpenSourceProjects().map((project) => project.repoName);
     expect(blocked).toContain("Google-Maps-Scrapper");
     expect(blocked).toContain("OpenWA");
+    expect(blocked).toContain("Xiaomi_Kernel_OpenSource");
     expect(openSourceIntakeFeatureFlags.RISKY_SCRAPING_TOOLS_ENABLED).toBe(false);
     expect(openSourceIntakeFeatureFlags.UNOFFICIAL_MESSAGING_AUTOMATION_ENABLED).toBe(false);
   });
@@ -92,6 +93,52 @@ describe("open source intake registry", () => {
     ).toBe(true);
   });
 
+  it("adds database, email, VoIP, and video research candidates without enabling them", () => {
+    const foundationEmails = findOpenSourceProject("foundation", "foundation-emails");
+    const mail2Telegram = findOpenSourceProject("tbxark", "mail2telegram");
+    const qdrant = findOpenSourceProject("qdrant", "qdrant");
+    const milvus = findOpenSourceProject("milvus-io", "milvus");
+    const surreal = findOpenSourceProject("surrealdb", "surrealdb");
+    const cockroach = findOpenSourceProject("cockroachdb", "cockroach");
+    const tdengine = findOpenSourceProject("taosdata", "TDengine");
+    const xiaomiKernel = findOpenSourceProject("MiCode", "Xiaomi_Kernel_OpenSource");
+    const linphone = findOpenSourceProject("BelledonneCommunications", "linphone-iphone");
+    const hyperframes = findOpenSourceProject("heygen-com", "hyperframes");
+
+    expect(foundationEmails?.metadata.integrationStatusLabel).toBe("reference_only");
+    expect(mail2Telegram?.useMode).toBe("needs_security_review");
+    expect(qdrant?.metadata.recommendedAction).toBe("high_value_candidate");
+    expect(milvus?.metadata.recommendedAction).toBe("future_enterprise_candidate");
+    expect(surreal?.rules.join(" ")).toContain("Supabase remains the source of truth");
+    expect(cockroach?.metadata.integrationStatusLabel).toBe("reference_only");
+    expect(tdengine?.metadata.licenseRiskLabel).toBe("restricted");
+    expect(xiaomiKernel?.integrationStatus).toBe("blocked");
+    expect(linphone?.metadata.commercialUseStatus).toBe(
+      "proprietary_license_required_for_closed_source"
+    );
+    expect(hyperframes?.metadata.githubRadarScore).toBe(82);
+    expect(
+      [
+        foundationEmails,
+        mail2Telegram,
+        qdrant,
+        milvus,
+        surreal,
+        cockroach,
+        tdengine,
+        xiaomiKernel,
+        linphone,
+        hyperframes
+      ].every(
+        (project) =>
+          project !== null &&
+          project.metadata.externalCodeCopied === false &&
+          project.metadata.productionDependencyInstalled === false &&
+          project.metadata.integrationConfigured === false
+      )
+    ).toBe(true);
+  });
+
   it("builds recommendations that do not install blocked or unreviewed projects", () => {
     const scraper = findOpenSourceProject("zohaibbashir", "Google-Maps-Scrapper");
     const recommendation = buildExternalProjectRecommendation(scraper!);
@@ -99,8 +146,8 @@ describe("open source intake registry", () => {
     expect(recommendation.requiredReviews).toContain("owner");
     expect(recommendation.reasons.join(" ")).toContain("blocked");
     expect(getOpenSourceIntakeSummary()).toMatchObject({
-      total: 40,
-      blocked: 2,
+      total: 52,
+      blocked: 3,
       betaGated: 3
     });
   });

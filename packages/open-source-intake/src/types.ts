@@ -34,7 +34,16 @@ export type OpenSourceProjectCategory =
   | "agent_skill_optimization"
   | "long_video_generation"
   | "defensive_security_testing"
-  | "satellite_mapping";
+  | "satellite_mapping"
+  | "email_templates"
+  | "auth_pattern"
+  | "mail_route"
+  | "internal_alerting"
+  | "vector_database"
+  | "database_technology"
+  | "kernel_source_reference"
+  | "sip_voip"
+  | "html_to_video";
 
 export type OpenSourceLicenseRisk = "low" | "medium" | "high" | "critical" | "unknown";
 export type OpenSourceSecurityRisk = "low" | "medium" | "high" | "critical" | "unknown";

@@ -14,7 +14,13 @@ export type ApiProviderRecord = Readonly<{
     | "support"
     | "developer"
     | "ai"
-    | "security";
+    | "security"
+    | "email"
+    | "alerting"
+    | "vector_database"
+    | "communications"
+    | "video"
+    | "database_reference";
   status: ApiProviderStatus;
   risk: ApiProviderRisk;
   frontendSecretsAllowed: false;
@@ -84,6 +90,110 @@ export const apiProviderRegistry: readonly ApiProviderRecord[] = Object.freeze([
     [
       "No NASA endorsement or partnership claims.",
       "No surveillance, people tracking, or emergency routing claims."
+    ]
+  ),
+  provider(
+    "foundation_emails_reference",
+    "Foundation Emails reference",
+    "email",
+    "needs_terms_review",
+    "medium",
+    [
+      "Reference only; no outbound provider is configured by this record.",
+      "Email templates require accessibility, deliverability, and license review."
+    ]
+  ),
+  provider(
+    "mail2telegram_reference",
+    "mail2telegram reference",
+    "alerting",
+    "needs_terms_review",
+    "high",
+    [
+      "Internal alert adapter review only.",
+      "Do not forward customer data, support messages, tokens, or secrets to chat channels."
+    ]
+  ),
+  provider(
+    "qdrant_reference",
+    "Qdrant reference",
+    "vector_database",
+    "needs_terms_review",
+    "medium",
+    [
+      "Reference only until privacy, deletion, cost, and operations review pass.",
+      "Vector indexes must inherit source document permissions."
+    ]
+  ),
+  provider(
+    "milvus_reference",
+    "Milvus reference",
+    "vector_database",
+    "needs_terms_review",
+    "medium",
+    ["Future enterprise candidate only.", "No production sync without privacy and cost review."]
+  ),
+  provider(
+    "surrealdb_reference",
+    "SurrealDB reference",
+    "database_reference",
+    "needs_terms_review",
+    "high",
+    [
+      "Research only; Supabase remains the source of truth.",
+      "Source-available/BSL terms require legal review."
+    ]
+  ),
+  provider(
+    "cockroachdb_reference",
+    "CockroachDB reference",
+    "database_reference",
+    "needs_terms_review",
+    "high",
+    [
+      "Future scale reference only; Supabase remains the source of truth.",
+      "License, cost, and migration review required."
+    ]
+  ),
+  provider(
+    "tdengine_reference",
+    "TDengine reference",
+    "database_reference",
+    "blocked",
+    "critical",
+    [
+      "AGPL-3.0 risk; restricted reference only.",
+      "Do not bundle or integrate into closed-source product without legal review."
+    ]
+  ),
+  provider(
+    "xiaomi_kernel_reference",
+    "Xiaomi Kernel Open Source",
+    "security",
+    "blocked",
+    "critical",
+    ["Blocked from product integration.", "Do not copy kernel source or use as an app dependency."]
+  ),
+  provider(
+    "linphone_iphone_reference",
+    "Linphone iPhone reference",
+    "communications",
+    "blocked",
+    "critical",
+    [
+      "GPL-3.0/proprietary dual-license risk.",
+      "Reference only; no SIP credentials client-side, robocalling, covert recording, or emergency calling claims."
+    ]
+  ),
+  provider(
+    "hyperframes_reference",
+    "HyperFrames reference",
+    "video",
+    "needs_terms_review",
+    "high",
+    [
+      "Reference only; no production rendering without queues, quotas, storage, auth, and rights review.",
+      "No HeyGen partnership claims, fake endorsements, non-consensual likeness, or unlimited rendering."
     ]
   )
 ]);

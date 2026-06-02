@@ -1,6 +1,6 @@
-# Signal OS Completion Roadmap: Next 150 Steps
+# SONARA Creative Workflow Completion Roadmap: Next 150 Steps
 
-This roadmap defines the remaining finish-line work for Signal OS. Execute in batches of five, then run `pnpm run typecheck` and `pnpm run build` before continuing.
+This roadmap defines the remaining finish-line work for SONARA Industries creative workflow surfaces. Execute in batches of five, then run `pnpm run typecheck` and `pnpm run build` before continuing.
 
 ## Batch 1: Repository Stabilization
 
@@ -31,7 +31,7 @@ This roadmap defines the remaining finish-line work for Signal OS. Execute in ba
 16. Add a session schema version to persisted state.
 17. Add migration helpers for older localStorage session keys.
 18. Validate persisted session values before hydrating the app.
-19. Add a session reset path that clears only Signal OS local keys.
+19. Add a session reset path that clears only SONARA local workflow keys.
 20. Run typecheck and build, then fix only surfaced errors.
 
 ## Batch 5: Export Forge Stability

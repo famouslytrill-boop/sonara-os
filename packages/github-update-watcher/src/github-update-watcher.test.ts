@@ -8,12 +8,17 @@ import {
 describe("GitHub Update Watcher", () => {
   it("reports watched repositories without auto-updating", () => {
     const report = createGitHubUpdateWatchReport("2026-05-26T00:00:00.000Z");
-    expect(report.repositories).toHaveLength(13);
+    expect(report.repositories).toHaveLength(25);
     expect(report.policy.autoInstallExternalRepos).toBe(false);
     expect(report.policy.autoMergeUpdates).toBe(false);
     expect(report.findings.some((finding) => finding.repo === "frappe/erpnext")).toBe(true);
     expect(report.findings.some((finding) => finding.repo === "microsoft/SkillOpt")).toBe(true);
     expect(report.findings.some((finding) => finding.repo === "GH05TCREW/pentestagent")).toBe(true);
+    expect(report.findings.some((finding) => finding.repo === "qdrant/qdrant")).toBe(true);
+    expect(
+      report.findings.some((finding) => finding.repo === "BelledonneCommunications/linphone-iphone")
+    ).toBe(true);
+    expect(report.findings.some((finding) => finding.repo === "heygen-com/hyperframes")).toBe(true);
   });
 
   it("requires owner approval for risky adoption", () => {

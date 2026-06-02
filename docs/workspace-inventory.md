@@ -1,4 +1,4 @@
-# Signal OS Workspace Inventory
+# SONARA Workspace Inventory
 
 This inventory records the launch-foundation source areas that must stay coherent as the app moves toward release.
 

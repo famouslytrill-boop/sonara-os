@@ -1,6 +1,6 @@
 # Spec-Driven Build System
 
-Internal package for keeping major SONARA One and Signal OS feature work spec-first.
+Internal package for keeping major SONARA Industries feature work spec-first.
 
 Every major feature should have:
 

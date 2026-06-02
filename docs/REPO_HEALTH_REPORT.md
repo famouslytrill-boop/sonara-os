@@ -2,7 +2,7 @@
 
 ## Scope
 
-This report is a truth check for the current SONARA One / Signal OS workspace before additional feature work. It records the current repository shape, validation results, route render verification, and unresolved items found during this pass.
+This report is a truth check for the current SONARA Industries workspace before additional feature work. It records the current repository shape, validation results, route render verification, and unresolved items found during this pass.
 
 No product features were added in this sprint.
 
