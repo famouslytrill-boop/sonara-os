@@ -67,7 +67,7 @@ export async function proxy(request: NextRequest) {
   if (user && isAuthPage) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/auth/callback";
-    redirectUrl.searchParams.set("next", "/app/dashboard");
+    redirectUrl.searchParams.set("next", "/os");
     return NextResponse.redirect(redirectUrl);
   }
 

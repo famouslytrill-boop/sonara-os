@@ -89,6 +89,37 @@ export type SonaraDatabase = {
         };
         Relationships: [];
       };
+      user_preferences: {
+        Row: {
+          user_id: string;
+          organization_id: string | null;
+          language: string;
+          unit_system: string;
+          timezone: string | null;
+          created_at: string;
+          updated_at: string;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          user_id: string;
+          organization_id?: string | null;
+          language?: string;
+          unit_system?: string;
+          timezone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
+          organization_id?: string | null;
+          language?: string;
+          unit_system?: string;
+          timezone?: string | null;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
       sonara_user_subscriptions: {
         Row: {
           id: string;

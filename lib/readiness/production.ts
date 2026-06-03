@@ -82,5 +82,21 @@ export function buildProductionReadinessCards(workspace: WorkspaceBootstrapResul
         : "Configure RESEND_API_KEY and RESEND_FROM_EMAIL after domain verification.",
       href: "/support",
     },
+    {
+      title: "Language preference",
+      status: workspaceReady ? "ready" : "action_required",
+      body: workspaceReady
+        ? "Language preference is stored in user_preferences after the latest migration is applied."
+        : "Sign in and complete workspace bootstrap before account-level preferences persist.",
+      href: "/app/settings",
+    },
+    {
+      title: "Unit system",
+      status: workspaceReady ? "ready" : "action_required",
+      body: workspaceReady
+        ? "Metric or imperial unit preference is stored per user, not only in browser storage."
+        : "Guest fallback may use localStorage, but signed-in preferences require Supabase.",
+      href: "/app/settings",
+    },
   ];
 }

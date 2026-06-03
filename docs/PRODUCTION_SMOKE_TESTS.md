@@ -18,18 +18,23 @@ Run these manually after deploying.
 14. Visit `/os`.
 15. Visit `/app/dashboard`.
 16. Visit `/app/customers`, `/app/bookings`, `/app/payments`, `/app/files`, `/app/reviews`, `/app/campaigns`, and `/app/research`.
-17. Create a test customer when the write UI is enabled.
-18. Confirm RLS prevents another test user from seeing that customer.
-19. Start Stripe test checkout from a paid tier.
-20. Confirm webhook received in Stripe.
-21. Confirm `webhook_events` contains the Stripe event ID.
-22. Confirm duplicate webhook delivery does not duplicate fulfillment.
-23. Test customer portal if a subscription exists.
-24. Submit a support/contact form.
-25. Test Resend email only after sender domain verification.
-26. Test mobile layout.
-27. Scan public pages for unwanted legacy public copy.
-28. Check browser console for errors.
-29. Check Vercel runtime logs.
+17. Test Google login after Supabase Google provider setup.
+18. Test phone login after Supabase Phone/SMS setup.
+19. Visit `/app/settings`.
+20. Change language and refresh; confirm it persists.
+21. Change unit system and refresh; confirm it persists.
+22. Create a test customer when the write UI is enabled.
+23. Confirm RLS prevents another test user from seeing that customer.
+24. Start Stripe test checkout from a paid tier.
+25. Confirm webhook received in Stripe.
+26. Confirm `webhook_events` contains the Stripe event ID.
+27. Confirm duplicate webhook delivery does not duplicate fulfillment.
+28. Test customer portal if a subscription exists.
+29. Submit a support/contact form.
+30. Test Resend email only after sender domain verification.
+31. Test mobile layout.
+32. Scan public pages for unwanted legacy public copy.
+33. Check browser console for errors.
+34. Check Vercel runtime logs.
 
-No-go if auth, RLS, checkout, webhook, or support intake fails.
+No-go if auth, RLS, preferences, checkout, webhook, or support intake fails.

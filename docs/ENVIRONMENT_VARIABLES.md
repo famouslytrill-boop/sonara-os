@@ -44,6 +44,10 @@ Configure these only in server-side hosting environment variables:
 - Resend sender: `RESEND_FROM_EMAIL`
 - SMTP fallback: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`
 
+Google OAuth client credentials are configured in Supabase provider settings, not in this repository. Phone OTP requires Supabase Phone provider and SMS provider setup.
+
+Language and unit-system preferences do not require provider env vars; signed-in users persist them in the `user_preferences` table.
+
 ## Vercel Setup
 
 Set production and preview variables in the Vercel project dashboard. After changing auth, Supabase, Stripe, or email variables, redeploy with build cache disabled if the previous deployment used stale configuration.

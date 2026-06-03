@@ -10,6 +10,11 @@
 - No `package-lock.json`.
 - No dead public routes.
 - No dead sidebar links.
+- Password visibility works on password fields.
+- Google login is wired and documented.
+- Phone OTP login is wired and documented.
+- Language preference saves for signed-in users.
+- Metric/imperial unit preference saves for signed-in users.
 
 ## B. Vercel Readiness
 
@@ -25,10 +30,14 @@
 
 - Auth Site URL configured.
 - Redirect URLs configured.
+- Email auth enabled.
+- Google provider configured if used.
+- Phone provider and SMS provider configured if used.
 - Migrations applied.
 - RLS enabled.
 - First user signup tested.
 - Profile/org/membership created.
+- User preferences persisted.
 - Admin bootstrap verified.
 
 ## D. Stripe Readiness
@@ -49,6 +58,6 @@
 
 ## F. Go/No-Go
 
-GO only if auth, RLS, payments, email, and dashboard routes pass.
+GO only if auth, RLS, preferences, payments, email, and dashboard routes pass.
 
 NO-GO if private data leaks, webhook verification fails, support intake fails silently, service-role keys appear client-side, or public pages show unsafe claims.

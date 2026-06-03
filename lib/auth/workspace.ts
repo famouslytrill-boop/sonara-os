@@ -6,6 +6,7 @@ import type { User } from "@supabase/supabase-js";
 import { getOperationalEnvReadiness } from "../env";
 import { getSupabaseAdminClient } from "../supabase/admin";
 import { createSupabaseServerClient } from "../supabase/server";
+import { defaultUserPreferences } from "../preferences/user-preferences";
 
 export type WorkspaceBootstrapResult =
   | { status: "signed_out"; user: null; organizationId: null; role: null; adminEmailConfigured: boolean }
@@ -41,6 +42,31 @@ function getWorkspaceName(user: User) {
 
 function getWorkspaceSlug(user: User) {
   return `sonara-${user.id.slice(0, 8)}`;
+}
+
+async function ensureDefaultUserPreferences(userId: string, organizationId: string | null) {
+  const admin = getSupabaseAdminClient();
+  if (!admin) return;
+
+  const { data, error } = await admin.from("user_preferences").select("user_id").eq("user_id", userId).maybeSingle();
+
+  if (error) {
+    // The app must not block login if the append-only preferences migration has not been applied yet.
+    if (error.code === "42P01" || error.code === "PGRST205" || /user_preferences/i.test(error.message)) return;
+    return;
+  }
+
+  if (data?.user_id) return;
+
+  await admin.from("user_preferences").insert({
+    user_id: userId,
+    organization_id: organizationId,
+    language: defaultUserPreferences.language,
+    unit_system: defaultUserPreferences.unitSystem,
+    metadata: {
+      bootstrap: "first_login",
+    },
+  });
 }
 
 export async function getAuthenticatedUser() {
@@ -112,6 +138,8 @@ export async function ensureUserWorkspace(): Promise<WorkspaceBootstrapResult> {
       await admin.from("organization_memberships").update({ role: "owner", updated_at: new Date().toISOString() }).eq("id", firstMembership.id);
     }
 
+    await ensureDefaultUserPreferences(user.id, firstMembership.organization_id);
+
     return {
       status: "ready",
       user,
@@ -153,11 +181,13 @@ export async function ensureUserWorkspace(): Promise<WorkspaceBootstrapResult> {
     return { status: "error", user, organizationId: null, role: null, adminEmailConfigured, message: "membership_create_failed" };
   }
 
+  await ensureDefaultUserPreferences(user.id, organization.id);
+
   return { status: "ready", user, organizationId: organization.id, role, adminEmailConfigured };
 }
 
 export function isOwnerOrAdminRole(role: string | null) {
-  return role === "owner" || role === "admin";
+  return role === "owner" || role === "admin" || role === "founder";
 }
 
 export async function requireOwnerOrAdmin() {

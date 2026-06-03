@@ -4,7 +4,7 @@ import { ensureUserWorkspace } from "../../../lib/auth/workspace";
 import { createSupabaseServerClient } from "../../../lib/supabase/server";
 
 function safeNextPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/app/dashboard";
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/os";
   return value;
 }
 
