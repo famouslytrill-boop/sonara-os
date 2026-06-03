@@ -38,6 +38,7 @@ const gates = [
   ["pnpm", ["run", "check-alert-redaction-policy"]],
   ["pnpm", ["run", "check:vercel-env-docs"]],
   ["pnpm", ["run", "check:live-readiness"]],
+  ["pnpm", ["run", "check:controlled-architecture"]],
   ["pnpm", ["run", "verify:supabase"]],
   ["pnpm", ["run", "verify:supabase-integrations"]],
   ["pnpm", ["run", "verify:db"]],

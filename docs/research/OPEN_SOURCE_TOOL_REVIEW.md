@@ -10,7 +10,7 @@ SONARA tracks external tools as research candidates before adoption. Research re
 - PentestAgent: restricted defensive security research only. Block public pentest automation, exploit workflows, unauthorized scanning, and customer-facing hacking tools.
 - NASA Worldview: satellite/mapping UI reference. Block NASA endorsement claims, surveillance, people tracking, and emergency routing claims.
 - Foundation Emails: email-template reference only. Outbound support email still requires provider setup.
-- mail2telegram: internal alert reference only. Block private customer data, support content, token, or secret forwarding.
+- mail2telegram: internal alert reference only. Block private customer data, support content, credential, or secret forwarding.
 - Qdrant and Milvus: vector database references only. Block production sync until privacy, deletion, retention, and cost review pass.
 - SurrealDB and CockroachDB: database technology references only. Supabase remains the source of truth.
 - TDengine: AGPL-3.0 restricted reference only.

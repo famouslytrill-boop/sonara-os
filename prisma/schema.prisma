@@ -1,0 +1,247 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserProfile {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  email          String
+  role           String
+}
+
+model CustomerRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  name           String
+  email          String?
+}
+
+model LeadRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  customerId     String?
+  stage          String
+}
+
+model QuoteRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  customerId     String?
+  amountCents    Int
+  status         String
+}
+
+model PaymentLinkRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  customerId     String?
+  provider       String
+  status         String
+}
+
+model BookingRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  customerId     String?
+  startsAt       DateTime
+  status         String
+}
+
+model ReviewRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  customerId     String?
+  status         String
+}
+
+model FileRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  bucket         String
+  fileType       String?
+  sizeBytes      Int?
+}
+
+model SearchIndexRecord {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  category       String
+  sourceId       String
+}
+
+model AuditLog {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  actorId        String
+  action         String
+  targetType     String
+  targetId       String?
+}
+
+model FeatureFlag {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  key            String
+  enabled        Boolean   @default(false)
+}
+
+model CreatorAsset {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  creatorId      String
+  projectId      String
+  title          String
+}
+
+model SongAsset {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  title          String
+  bpm            Int?
+  musicalKey     String?
+}
+
+model AlbumProject {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  title          String
+  releaseStatus  String
+}
+
+model LaunchChecklist {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  section        String
+  status         String
+}
+
+model ProviderHealthStatus {
+  id             String    @id @default(uuid())
+  organizationId String
+  createdBy      String
+  updatedBy      String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+  privacyLabel   String?
+  auditStatus    String?
+  provider       String
+  status         String
+}

@@ -62,7 +62,7 @@ Fast Sprint 29 added the first five recent research candidates. The combined go-
 - PentestAgent: no public pentest automation, unauthorized scanning, exploit automation, customer-facing hacking tools, or offensive workflows.
 - NASA Worldview: no NASA partnership claims, copying UI/code without review, surveillance, people tracking, or emergency routing claims.
 - Foundation Emails, laravel-auth, and nuxt-mail: no framework imports or live email claims without provider setup and review.
-- mail2telegram: no forwarding private customer/support data, tokens, or secrets to chat channels.
+- mail2telegram: no forwarding private customer/support data, credentials, or secrets to chat channels.
 - Qdrant and Milvus: no production sync of private tenant records without privacy, deletion, and cost review.
 - SurrealDB and CockroachDB: no database replacement; Supabase remains source of truth.
 - TDengine: no closed-source product integration without AGPL/legal review.

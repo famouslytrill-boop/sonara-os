@@ -713,12 +713,12 @@ export const openSourceProjectRegistry: readonly OpenSourceProjectRecord[] = Obj
     productFit: ["Admin alerts", "Support operations", "Incident response"],
     rules: [
       "Internal alert adapter review only; do not expose to customers.",
-      "Do not forward customer data, support messages, tokens, or secrets to chat tools.",
+      "Do not forward customer data, support messages, credentials, or secrets to chat tools.",
       "Use redaction and audit logs before any notification bridge."
     ],
     licenseNotes: "License review required before any adapter or self-hosted use.",
     securityNotes:
-      "Alert bridges require token redaction, destination ownership, and privacy review.",
+      "Alert bridges require credential redaction, destination ownership, and privacy review.",
     metadata: {
       recommendedAction: "internal_alert_adapter_review",
       githubRadarScore: 58,

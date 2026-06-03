@@ -66,7 +66,8 @@
     "env:check": "tsx packages/deployment-sync/src/env-validator.ts",
     "security:sync-check": "tsx packages/deployment-sync/src/security-sync-check.ts",
     "paywall:check": "tsx packages/deployment-sync/src/paywall-sync-check.ts",
-    "github:update-watch": "tsx packages/github-update-watcher/src/index.ts"
+    "github:update-watch": "tsx packages/github-update-watcher/src/index.ts",
+    "check:controlled-architecture": "node scripts/check-controlled-architecture.mjs"
   },
   "engines": {
     "node": ">=20"

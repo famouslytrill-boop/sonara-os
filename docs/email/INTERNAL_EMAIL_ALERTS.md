@@ -1,6 +1,6 @@
 # Internal Email and Alert Bridges
 
-mail2telegram is an internal alerting reference only. It must not forward support content, tokens, secrets, customer data, payment references, phone numbers, or private files to chat destinations.
+mail2telegram is an internal alerting reference only. It must not forward support content, credentials, secrets, customer data, payment references, phone numbers, or private files to chat destinations.
 
 Any internal alert adapter requires:
 
