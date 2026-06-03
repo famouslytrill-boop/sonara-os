@@ -7,7 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "pnpm --dir frontend run lint",
+    "lint": "node scripts/run-frontend-lint.mjs",
     "verify:launch": "node scripts/verify-local-launch.mjs",
     "verify:security": "node scripts/verify-security.mjs",
     "scan:secrets": "powershell -ExecutionPolicy Bypass -File scripts/scan-secrets-local.ps1",
