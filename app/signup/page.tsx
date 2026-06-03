@@ -1,11 +1,11 @@
 import { LoginForm } from "../../components/LoginForm";
 import { PublicShell } from "../../components/PublicShell";
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <PublicShell>
       <div className="mx-auto max-w-xl">
-        <LoginForm />
+        <LoginForm initialMode="signup" />
       </div>
     </PublicShell>
   );

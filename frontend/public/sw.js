@@ -2,13 +2,12 @@ const CACHE_NAME = "sonara-industries-v1";
 const OFFLINE_URL = "/offline";
 const CORE_ASSETS = [
   "/",
-  "/websites",
   "/pricing",
-  "/security",
-  "/research",
-  "/trackfoundry/app",
-  "/lineready/app",
-  "/noticegrid/app",
+  "/trust",
+  "/research-lab",
+  "/business-builder",
+  "/creator-studio",
+  "/growth-studio",
   OFFLINE_URL,
   "/manifest.webmanifest",
 ];

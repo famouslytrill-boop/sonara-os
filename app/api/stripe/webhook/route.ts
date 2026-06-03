@@ -56,8 +56,11 @@ async function recordWebhookEvent(event: Stripe.Event) {
     return { skipped: "supabase_not_configured" };
   }
 
-  const { error } = await supabase.from("webhook_events").upsert(
+  const { error } = await supabase.from("webhook_events").insert(
     {
+      organization_id: typeof event.data.object === "object" && "metadata" in event.data.object
+        ? ((event.data.object.metadata as Record<string, string> | null | undefined)?.organization_id ?? null)
+        : null,
       provider: "stripe",
       event_id: event.id,
       event_type: event.type,
@@ -68,10 +71,12 @@ async function recordWebhookEvent(event: Stripe.Event) {
         livemode: event.livemode,
       },
     },
-    { onConflict: "provider,event_id" },
   );
 
   if (error) {
+    if (error.code === "23505") {
+      return { duplicate: true };
+    }
     throw error;
   }
 
@@ -100,7 +105,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
-  await recordWebhookEvent(event);
+  const record = await recordWebhookEvent(event);
+  if ("duplicate" in record) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;

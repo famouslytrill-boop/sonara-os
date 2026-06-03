@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPricingTier, getStripeMonthlyPriceEnv, isPaidTier, type PricingTierId } from "../../../../config/pricing";
+import { ensureUserWorkspace } from "../../../../lib/auth/workspace";
 import { getAppUrl, getStripeClient } from "../../../../lib/stripe";
 
 type CheckoutRequest = {
   tierId?: PricingTierId;
-  userId?: string;
-  email?: string;
 };
 
 export async function POST(request: NextRequest) {
@@ -31,6 +30,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "free_tier_checkout_not_allowed" }, { status: 400 });
   }
 
+  const workspace = await ensureUserWorkspace();
+  if (workspace.status === "signed_out") {
+    return NextResponse.json({ error: "authentication_required" }, { status: 401 });
+  }
+
+  if (workspace.status !== "ready") {
+    return NextResponse.json({ error: "workspace_not_ready", status: workspace.status }, { status: 503 });
+  }
+
   const stripe = getStripeClient();
   const priceEnvName = getStripeMonthlyPriceEnv(tier);
   const priceId = priceEnvName ? process.env[priceEnvName] : undefined;
@@ -49,12 +57,13 @@ export async function POST(request: NextRequest) {
   const metadata = {
     product: tier.productName.toLowerCase(),
     tier_id: tier.id,
-    user_id: body.userId ?? "",
+    user_id: workspace.user.id,
+    organization_id: workspace.organizationId,
   };
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
-    customer_email: body.email,
-    client_reference_id: body.userId,
+    customer_email: workspace.user.email ?? undefined,
+    client_reference_id: workspace.user.id,
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${appUrl}/account/billing?checkout=success`,
     cancel_url: `${appUrl}/pricing?checkout=cancelled`,

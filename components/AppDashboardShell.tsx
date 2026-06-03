@@ -40,8 +40,8 @@ export function AppDashboardShell({ children, title = "SONARA One" }: { children
             <p className="text-xs font-black uppercase tracking-[0.2em] text-[#2DD4BF]">Protected app shell</p>
             <h1 className="mt-2 text-3xl font-black">{title}</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#CBD5E1]">
-              This shell is ready for auth integration. Private data remains setup-gated until Supabase auth,
-              organization memberships, RLS, and role checks are configured.
+              Private app routes require Supabase Auth. Records, billing, support, and admin actions unlock only when
+              workspace membership, RLS, provider keys, and server-side role checks are configured.
             </p>
           </header>
           <main className="p-4 sm:p-6">{children}</main>

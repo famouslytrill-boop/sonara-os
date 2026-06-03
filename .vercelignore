@@ -1,9 +1,66 @@
+# Package managers and dependencies
+node_modules/
+**/node_modules/
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
+bun.lock
+bun.lockb
+
+# VCS and local Vercel state
+.git/
+.vercel/
+**/.vercel/
+
+# Generated build output and caches
+.next/
+**/.next/
+out/
+**/out/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+.turbo/
+**/.turbo/
+.cache/
+**/.cache/
+**/.temp/
+tmp/
+temp/
+**/tmp/
+**/temp/
+*.tsbuildinfo
+
+# Logs and diagnostics
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+playwright-report/
+test-results/
+screenshots/
+**/screenshots/
+
+# Local-only files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.local
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Secrets and local environment
 .env
 .env.*
 !.env.example
 
-.next
-node_modules
-dist
-*.zip
-*.log
+# Historical or audit-only documentation not needed at runtime
+docs/archive/
+docs/audits/

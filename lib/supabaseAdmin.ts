@@ -4,6 +4,91 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export type SonaraDatabase = {
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string;
+          email: string | null;
+          full_name: string | null;
+          display_name: string | null;
+          avatar_url: string | null;
+          created_at: string;
+          updated_at: string;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          id: string;
+          email?: string | null;
+          full_name?: string | null;
+          display_name?: string | null;
+          avatar_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
+          email?: string | null;
+          full_name?: string | null;
+          display_name?: string | null;
+          avatar_url?: string | null;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      organizations: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string | null;
+          owner_id: string | null;
+          created_at: string;
+          updated_at: string;
+          metadata: Record<string, unknown>;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          slug?: string | null;
+          owner_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Update: {
+          name?: string;
+          slug?: string | null;
+          owner_id?: string | null;
+          updated_at?: string;
+          metadata?: Record<string, unknown>;
+        };
+        Relationships: [];
+      };
+      organization_memberships: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          role: string;
+          status: string;
+          created_at: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          role?: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          role?: string;
+          status?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       sonara_user_subscriptions: {
         Row: {
           id: string;

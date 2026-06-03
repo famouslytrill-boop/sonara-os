@@ -25,6 +25,7 @@ export const envVarDefinitions: EnvVarDefinition[] = [
   { name: "STRIPE_PRICE_SETUP_299", scope: "server", requiredFor: "checkout" },
   { name: "STRIPE_PRICE_SETUP_499", scope: "server", requiredFor: "checkout" },
   { name: "SONARA_CRON_SECRET", scope: "server", requiredFor: "optional" },
+  { name: "SONARA_ADMIN_EMAILS", scope: "server", requiredFor: "optional" },
   { name: "SENTRY_DSN", scope: "server", requiredFor: "monitoring" },
   { name: "OTEL_EXPORTER_OTLP_ENDPOINT", scope: "server", requiredFor: "monitoring" },
   { name: "OPENAI_API_KEY", scope: "optional", requiredFor: "optional" },

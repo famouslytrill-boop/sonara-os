@@ -8,28 +8,33 @@ import { Button } from "./ui/Button";
 const inputClass =
   "min-h-11 w-full rounded-lg border border-[#2A2A35] bg-[#111118] px-3 text-[#F8FAFC] outline-none placeholder:text-[#71717A] focus:border-[#22D3EE]";
 
-export function LoginForm() {
+export function LoginForm({ initialMode = "magic" }: { initialMode?: "magic" | "password" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<"magic" | "password" | "signup">("magic");
+  const [mode, setMode] = useState<"magic" | "password" | "signup">(initialMode);
   const [message, setMessage] = useState("");
   const configured = isSupabaseConfigured();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
     const supabase = getSupabaseBrowserClient();
     if (!supabase) return;
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        window.location.href = params.get("redirect") || "/dashboard";
+        const nextPath = params.get("next") || params.get("redirect") || "/app/dashboard";
+        window.location.href = `/auth/callback?next=${encodeURIComponent(nextPath)}`;
       }
     });
   }, []);
 
   function getRedirectPath() {
-    return new URLSearchParams(window.location.search).get("redirect") || "/dashboard";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("next") || params.get("redirect") || "/app/dashboard";
+  }
+
+  function getAuthCallbackUrl() {
+    return `${window.location.origin}/auth/callback?next=${encodeURIComponent(getRedirectPath())}`;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -43,11 +48,10 @@ export function LoginForm() {
     }
 
     if (mode === "magic") {
-      const redirectPath = getRedirectPath();
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}${redirectPath}`,
+          emailRedirectTo: getAuthCallbackUrl(),
         },
       });
       setMessage(error ? error.message : "Check your email for the SONARA sign-in link.");
@@ -55,15 +59,21 @@ export function LoginForm() {
     }
 
     if (mode === "signup") {
-      const redirectPath = getRedirectPath();
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}${redirectPath}`,
+          emailRedirectTo: getAuthCallbackUrl(),
         },
       });
       setMessage(error ? error.message : "Account created. Check your email if confirmation is enabled.");
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = getAuthCallbackUrl();
+      }
       return;
     }
 
@@ -72,18 +82,20 @@ export function LoginForm() {
       setMessage(error.message);
       return;
     }
-    window.location.href = getRedirectPath();
+
+    window.location.href = getAuthCallbackUrl();
   }
 
   if (!configured) {
     return (
       <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
         <p className="text-xs font-black uppercase text-[#22D3EE]">Account setup</p>
-        <h1 className="mt-2 text-3xl font-black">SONARA One™ login.</h1>
+        <h1 className="mt-2 text-3xl font-black">SONARA One login.</h1>
         <p className="mt-3 leading-7 text-[#A1A1AA]">
-          Log in to access your creator operating system. Supabase Auth must be configured before accounts and saved projects go live.
+          Log in to access your creator operating system. Supabase Auth must be configured before accounts and saved
+          projects go live.
         </p>
-        <Link className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/settings">
+        <Link className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/docs">
           View setup status
         </Link>
       </section>
@@ -93,10 +105,8 @@ export function LoginForm() {
   return (
     <section className="rounded-lg border border-[#2A2A35] bg-[#171720] p-5 text-[#F8FAFC]">
       <p className="text-xs font-black uppercase text-[#22D3EE]">Secure workspace</p>
-      <h1 className="mt-2 text-3xl font-black">SONARA One™ login.</h1>
-      <p className="mt-3 leading-7 text-[#A1A1AA]">
-        Log in to access your creator operating system.
-      </p>
+      <h1 className="mt-2 text-3xl font-black">SONARA One login.</h1>
+      <p className="mt-3 leading-7 text-[#A1A1AA]">Log in to access your creator operating system.</p>
 
       <div className="mt-5 grid grid-cols-3 gap-2 rounded-lg border border-[#2A2A35] bg-[#111118] p-1 text-xs font-bold">
         {(["magic", "password", "signup"] as const).map((item) => (

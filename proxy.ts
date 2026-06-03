@@ -13,10 +13,13 @@ function isValidHttpUrl(value: string | undefined) {
 }
 
 export async function proxy(request: NextRequest) {
-  const protectedPrefixes = ["/dashboard", "/admin", "/account"];
+  const protectedPrefixes = ["/app", "/dashboard", "/admin", "/account", "/settings"];
+  const protectedExactPaths = ["/os"];
+  const authPages = ["/login", "/signup"];
   const isProtectedRoute = protectedPrefixes.some((prefix) =>
     request.nextUrl.pathname.startsWith(prefix)
-  );
+  ) || protectedExactPaths.includes(request.nextUrl.pathname);
+  const isAuthPage = authPages.includes(request.nextUrl.pathname);
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -24,7 +27,7 @@ export async function proxy(request: NextRequest) {
     if (isProtectedRoute) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
-      redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
+      redirectUrl.searchParams.set("next", request.nextUrl.pathname);
       redirectUrl.searchParams.set("setup", "supabase_required");
       return NextResponse.redirect(redirectUrl);
     }
@@ -57,7 +60,14 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtectedRoute) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
+    redirectUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && isAuthPage) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/auth/callback";
+    redirectUrl.searchParams.set("next", "/app/dashboard");
     return NextResponse.redirect(redirectUrl);
   }
 
@@ -65,5 +75,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/account/:path*"],
+  matcher: ["/app/:path*", "/dashboard/:path*", "/admin/:path*", "/account/:path*", "/settings/:path*", "/os", "/login", "/signup"],
 };
