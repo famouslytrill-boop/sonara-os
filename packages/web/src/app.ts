@@ -110,9 +110,11 @@ import { renderCreatorStudioHelpPage } from "./app/help/creator-studio/page.ts";
 import { renderGrowthStudioHelpPage } from "./app/help/growth-studio/page.ts";
 import { renderHelpPage } from "./app/help/page.ts";
 import { renderHelpCenterPlaceholderPage } from "./app/help-center/page.ts";
+import { renderAuthCallbackPage } from "./app/auth/callback/page.ts";
 import { renderLicensingPage } from "./app/licensing/page.ts";
 import { renderLaunchReadinessPage } from "./app/launch-readiness/page.tsx";
 import { renderLoginPage } from "./app/login/page.ts";
+import { renderForgotPasswordPage } from "./app/forgot-password/page.ts";
 import { renderMarketingPage } from "./app/marketing/page.ts";
 import { renderOnboardingPage } from "./app/onboarding/page.ts";
 import { renderNotFoundPage } from "./app/not-found/page.ts";
@@ -145,8 +147,10 @@ import { renderSecurityPolicyPage } from "./app/security/page.ts";
 import { renderPromptSafetyPage } from "./app/security-center/prompt-safety/page.ts";
 import { renderRecommendationSafetyPage } from "./app/security-center/recommendation-safety/page.ts";
 import { renderLaunchSecurityGatePage } from "./app/security-center/launch-security-gate/page.ts";
+import { renderResetPasswordPage } from "./app/reset-password/page.ts";
 import { renderSettingsPage } from "./app/settings/page.ts";
 import { renderSettingsReadinessPage } from "./app/settings/readiness/page.ts";
+import { renderSecuritySettingsPage as renderAccountSecuritySettingsPage } from "./app/settings/security/page.ts";
 import { renderSignupPage } from "./app/signup/page.ts";
 import { renderShellDashboard } from "./app/sonara-shell.ts";
 import { renderStrategyPage } from "./app/strategyPage.ts";
@@ -208,6 +212,7 @@ export type AppRoute =
   | "/app/onboarding"
   | "/app/settings"
   | "/app/settings/readiness"
+  | "/app/settings/security"
   | "/app/prompt-library"
   | "/app/business-builder/ai-playbooks"
   | "/app/business-builder/recommendations"
@@ -217,6 +222,9 @@ export type AppRoute =
   | "/app/growth-studio/recommendations"
   | "/login"
   | "/signup"
+  | "/auth/callback"
+  | "/forgot-password"
+  | "/reset-password"
   | "/pricing"
   | "/about"
   | "/security"
@@ -532,6 +540,18 @@ export function createApp(root: HTMLElement) {
         root.append(renderSignupPage());
         return;
       }
+      if (route === "/auth/callback") {
+        root.append(renderAuthCallbackPage());
+        return;
+      }
+      if (route === "/forgot-password") {
+        root.append(renderForgotPasswordPage());
+        return;
+      }
+      if (route === "/reset-password") {
+        root.append(renderResetPasswordPage());
+        return;
+      }
       if (route === "/not-found") {
         root.append(renderNotFoundPage(requestedPath));
         return;
@@ -622,6 +642,10 @@ export function createApp(root: HTMLElement) {
       }
       if (route === "/app/settings/readiness") {
         root.append(renderSettingsReadinessPage());
+        return;
+      }
+      if (route === "/app/settings/security") {
+        appendRoute(route, () => renderAccountSecuritySettingsPage());
         return;
       }
       if (route === "/app/security-center") {

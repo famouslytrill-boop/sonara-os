@@ -261,6 +261,15 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "public"
   }),
   Object.freeze({
+    route: "/app/settings/security",
+    label: "App Security Settings",
+    surface: "support",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "auth-ready"
+  }),
+  Object.freeze({
     route: "/app/prompt-library",
     label: "AI Playbook Center",
     surface: "product",
@@ -488,6 +497,33 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
   Object.freeze({
     route: "/signup",
     label: "Create account",
+    surface: "support",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/auth/callback",
+    label: "Auth Callback",
+    surface: "support",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/forgot-password",
+    label: "Forgot Password",
+    surface: "support",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/reset-password",
+    label: "Reset Password",
     surface: "support",
     nav: false,
     launchRequired: false,

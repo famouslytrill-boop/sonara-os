@@ -1,40 +1,29 @@
+import { renderAuthErrorNotice } from "../../components/auth/AuthErrorNotice.tsx";
+import { renderAuthReadinessCard } from "../../components/auth/AuthReadinessCard.tsx";
+import { renderAuthShell } from "../../components/auth/AuthShell.tsx";
+import { renderMagicLinkForm } from "../../components/auth/MagicLinkForm.tsx";
+import { renderOAuthButtons } from "../../components/auth/OAuthButtons.tsx";
+import { renderSignupForm } from "../../components/auth/SignupForm.tsx";
 import { createElement } from "../../dom.ts";
 import { createSupabaseAuthConfigDiagnostic } from "../../lib/env.ts";
-import { renderPublicShell } from "../../ui/shared-components.ts";
 
 export function renderSignupPage() {
-  const page = renderPublicShell("auth-page");
   const authDiagnostic = createSupabaseAuthConfigDiagnostic();
-  const form = createElement("form", { className: "planning-card shell-card" });
-  form.setAttribute("aria-label", "Signup setup form");
-  const emailLabel = createElement("label", { textContent: "Email" });
-  const email = createElement("input", { type: "email" });
-  email.setAttribute("name", "email");
-  email.setAttribute("autocomplete", "email");
-  emailLabel.append(email);
-  const productLabel = createElement("label", { textContent: "Product path" });
-  const select = createElement("select");
-  select.setAttribute("name", "product");
-  for (const optionText of ["Business Builder", "Creator Studio", "Growth Studio"]) {
-    select.append(createElement("option", { textContent: optionText }));
-  }
-  productLabel.append(select);
-  const button = createElement("button", { type: "button", textContent: "Create account" });
-  button.setAttribute("disabled", "true");
-  form.append(emailLabel, productLabel, button);
-  page.append(
-    createElement("p", { className: "shell-kicker", textContent: "SONARA Industries" }),
-    createElement("h1", { textContent: "Create account" }),
-    createElement("p", {
-      className: "screen-copy",
-      textContent:
-        "Signup stays setup-mode until auth redirects, password policy, organization creation, and RLS are verified."
-    }),
-    createElement("p", {
-      className: "warning-copy",
-      textContent: authDiagnostic.message
-    }),
-    form
-  );
-  return page;
+  return renderAuthShell({
+    title: "Create account",
+    description:
+      "Create a SONARA Industries account after auth redirects, email confirmation, organization creation, and RLS are verified.",
+    children: [
+      renderAuthConfigNotice(authDiagnostic.message),
+      renderAuthErrorNotice(undefined),
+      renderOAuthButtons(),
+      renderMagicLinkForm({ title: "Email signup link" }),
+      renderSignupForm(),
+      renderAuthReadinessCard()
+    ]
+  });
+}
+
+function renderAuthConfigNotice(message: string) {
+  return createElement("p", { className: "warning-copy", textContent: message });
 }

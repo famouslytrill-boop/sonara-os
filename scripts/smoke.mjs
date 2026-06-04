@@ -16,6 +16,10 @@ const requiredRoutes = [
   "packages/web/src/app/creator-studio/page.ts",
   "packages/web/src/app/growth-studio/page.ts",
   "packages/web/src/app/settings/readiness/page.ts",
+  "packages/web/src/app/settings/security/page.ts",
+  "packages/web/src/app/auth/callback/page.ts",
+  "packages/web/src/app/forgot-password/page.ts",
+  "packages/web/src/app/reset-password/page.ts",
   "packages/web/src/app/admin/email-readiness/page.ts",
   "packages/web/src/app/admin/owner-bootstrap/page.ts",
   "packages/web/src/app/admin/github-update-watcher/page.ts"

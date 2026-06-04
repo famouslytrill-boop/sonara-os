@@ -33,5 +33,18 @@ This diagnostic never prints anon keys, service-role keys, tokens, or database p
 2. Copy the Project URL.
 3. Paste it into Vercel as `NEXT_PUBLIC_SUPABASE_URL`.
 4. Confirm `NEXT_PUBLIC_SUPABASE_ANON_KEY` is present.
-5. Confirm Supabase Auth redirect URLs include the production site URL and callback route.
+5. Confirm Supabase Auth redirect URLs include:
+   - `https://<production-domain>/auth/callback`
+   - `https://<production-domain>/reset-password`
+   - `https://<production-domain>/app/settings/security`
 6. Redeploy from Vercel after saving environment variables.
+
+## Local auth redirects
+
+For local Windows testing, use the same route paths on localhost:
+
+- `http://localhost:5173/auth/callback`
+- `http://localhost:5173/reset-password`
+- `http://localhost:5173/app/settings/security`
+
+Google OAuth, email magic links, and password recovery remain setup-gated until Supabase provider settings and redirect URLs are verified.
