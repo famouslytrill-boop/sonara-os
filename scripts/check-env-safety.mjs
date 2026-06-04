@@ -27,7 +27,11 @@ for (const filePath of listFiles([".github", "package.json", "packages"])) {
   if (/\bnpm\s+(ci|install|run|test|audit)\b/i.test(source)) {
     issues.push(`${rel} contains an npm command.`);
   }
-  if (/SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|RESEND_API_KEY|GITHUB_TOKEN/.test(source)) {
+  if (
+    /SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|RESEND_API_KEY|GITHUB_TOKEN|GOOGLE_CLIENT_SECRET|DATABASE_URL|VERCEL_OIDC_TOKEN/.test(
+      source
+    )
+  ) {
     if (/\.(tsx|html|svg)$/.test(rel)) {
       issues.push(`${rel} references server-only environment names in public-rendered code.`);
     }

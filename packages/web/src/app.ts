@@ -51,7 +51,10 @@ import { renderAdminSupportPage } from "./app/admin/support/page.ts";
 import { renderAdminSystemHealthPage } from "./app/admin/system-health/page.ts";
 import { renderAdminUsersPage } from "./app/admin/users/page.ts";
 import { renderAdminEmailReadinessPage } from "./app/admin/email-readiness/page.ts";
+import { renderAdminAuthStatusPage } from "./app/admin/auth-status/page.ts";
+import { renderAdminLaunchReadinessPage } from "./app/admin/launch-readiness/page.ts";
 import { renderOwnerBootstrapPage } from "./app/admin/owner-bootstrap/page.ts";
+import { renderAdminSetupPage } from "./app/admin/setup/page.ts";
 import { renderAudiencePage } from "./app/audience/page.ts";
 import { renderAboutPage } from "./app/about/page.ts";
 import { renderBetaInvitePage } from "./app/beta/page.ts";
@@ -110,6 +113,7 @@ import { renderCreatorStudioHelpPage } from "./app/help/creator-studio/page.ts";
 import { renderGrowthStudioHelpPage } from "./app/help/growth-studio/page.ts";
 import { renderHelpPage } from "./app/help/page.ts";
 import { renderHelpCenterPlaceholderPage } from "./app/help-center/page.ts";
+import { renderAuthCodeErrorPage } from "./app/auth/auth-code-error/page.ts";
 import { renderAuthCallbackPage } from "./app/auth/callback/page.ts";
 import { renderLicensingPage } from "./app/licensing/page.ts";
 import { renderLaunchReadinessPage } from "./app/launch-readiness/page.tsx";
@@ -150,6 +154,7 @@ import { renderRecommendationSafetyPage } from "./app/security-center/recommenda
 import { renderLaunchSecurityGatePage } from "./app/security-center/launch-security-gate/page.ts";
 import { renderResetPasswordPage } from "./app/reset-password/page.ts";
 import { renderSettingsPage } from "./app/settings/page.ts";
+import { renderAuthStatusPage } from "./app/settings/auth-status/page.ts";
 import { renderSettingsReadinessPage } from "./app/settings/readiness/page.ts";
 import { renderSecuritySettingsPage as renderAccountSecuritySettingsPage } from "./app/settings/security/page.ts";
 import { renderSignupPage } from "./app/signup/page.ts";
@@ -193,6 +198,9 @@ export type AppRoute =
   | "/app/creator-studio"
   | "/app/growth-studio"
   | "/app/admin"
+  | "/app/admin/auth-status"
+  | "/app/admin/setup"
+  | "/app/admin/launch-readiness"
   | "/app/admin/command-center"
   | "/app/admin/users"
   | "/app/admin/organizations"
@@ -228,6 +236,7 @@ export type AppRoute =
   | "/login"
   | "/signup"
   | "/auth/callback"
+  | "/auth/auth-code-error"
   | "/forgot-password"
   | "/reset-password"
   | "/pricing"
@@ -374,6 +383,7 @@ export type AppRoute =
   | "/admin/developer-tools"
   | "/admin/launch-checklist"
   | "/settings"
+  | "/settings/auth-status"
   | "/settings/readiness"
   | "/billing"
   | "/billing/success"
@@ -584,6 +594,10 @@ export function createApp(root: HTMLElement) {
         root.append(renderAuthCallbackPage());
         return;
       }
+      if (route === "/auth/auth-code-error") {
+        root.append(renderAuthCodeErrorPage());
+        return;
+      }
       if (route === "/forgot-password") {
         root.append(renderForgotPasswordPage());
         return;
@@ -622,6 +636,18 @@ export function createApp(root: HTMLElement) {
       }
       if (route === "/app/admin") {
         appendRoute(route, () => renderAdminPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/app/admin/auth-status") {
+        appendRoute(route, () => renderAdminAuthStatusPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/app/admin/setup") {
+        appendRoute(route, () => renderAdminSetupPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/app/admin/launch-readiness") {
+        appendRoute(route, () => renderAdminLaunchReadinessPage(), { renderBlockedPreview: true });
         return;
       }
       if (route === "/app/admin/command-center") {
@@ -1202,6 +1228,10 @@ export function createApp(root: HTMLElement) {
       }
       if (route === "/settings") {
         appendRoute(route, () => renderSettingsPage());
+        return;
+      }
+      if (route === "/settings/auth-status") {
+        root.append(renderAuthStatusPage());
         return;
       }
       if (route === "/settings/readiness") {

@@ -1785,6 +1785,33 @@ const finalGoLiveRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "admin-ready"
   }),
   Object.freeze({
+    route: "/app/admin/auth-status",
+    label: "App Admin Auth Status",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/app/admin/setup",
+    label: "App Admin Setup",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/app/admin/launch-readiness",
+    label: "App Admin Launch Readiness",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
     route: "/app/admin/integrations",
     label: "App Admin Integrations",
     surface: "admin",
@@ -1801,6 +1828,24 @@ const finalGoLiveRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     launchRequired: true,
     launchStatus: "required",
     auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/auth/auth-code-error",
+    label: "Auth Code Error",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/settings/auth-status",
+    label: "Auth Status",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
   }),
   Object.freeze({
     route: "/trust",

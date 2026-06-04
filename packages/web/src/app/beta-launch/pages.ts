@@ -1,4 +1,5 @@
 import { createElement, createMetric } from "../../dom.ts";
+import { renderEmailConfigurationNotice } from "../../components/support/EmailConfigurationNotice.tsx";
 import {
   analyticsEventPlaceholders,
   areDemoAccountsClearlyFake,
@@ -99,6 +100,7 @@ export function renderSupportPage() {
   const status = createElement("p", { className: "status-copy" });
   page.append(
     renderSupportOptions(),
+    renderEmailConfigurationNotice(),
     createIssueReportForm((input) => {
       store.saveIssue(input);
       status.textContent = "Issue report saved locally for this browser only.";

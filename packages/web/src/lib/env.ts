@@ -1,7 +1,11 @@
 export type SignalEnv = {
   appName: string;
+  siteUrl?: string;
+  appUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  authGoogleEnabled?: boolean;
+  authPhoneEnabled?: boolean;
   enableSound: boolean;
   enableVideo: boolean;
   enableMic: boolean;
@@ -27,8 +31,12 @@ function readEnv(key: string): string | undefined {
 export function getSignalEnv(): SignalEnv {
   return {
     appName: readEnv("NEXT_PUBLIC_APP_NAME") ?? "SONARA Industries",
+    siteUrl: readEnv("NEXT_PUBLIC_SITE_URL"),
+    appUrl: readEnv("NEXT_PUBLIC_APP_URL"),
     supabaseUrl: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
     supabaseAnonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    authGoogleEnabled: readEnv("NEXT_PUBLIC_AUTH_GOOGLE_ENABLED") === "true",
+    authPhoneEnabled: readEnv("NEXT_PUBLIC_AUTH_PHONE_ENABLED") === "true",
     enableSound: bool(readEnv("NEXT_PUBLIC_ENABLE_SOUND"), true),
     enableVideo: bool(readEnv("NEXT_PUBLIC_ENABLE_VIDEO"), true),
     enableMic: bool(readEnv("NEXT_PUBLIC_ENABLE_MIC"), true)

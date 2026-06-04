@@ -194,6 +194,15 @@ export type {
   GoLiveStatus
 } from "./lib/go-live/index.ts";
 export { validateInfrastructureRegistry } from "./lib/shared/validate-infrastructure-registry.ts";
+export { createEnvironmentStatusSnapshot } from "./lib/env-status.ts";
+export { getPublicAuthEnvRequirements, readPublicAuthEnv } from "./lib/public-env.ts";
+export {
+  createGoogleOAuthAction,
+  createPhoneOtpAction,
+  getAuthCallbackUrl,
+  getSiteUrl,
+  isRelativeNextPath
+} from "./lib/auth/index.ts";
 export {
   createSupabaseAuthConfigDiagnostic,
   diagnoseSupabasePublicUrl,

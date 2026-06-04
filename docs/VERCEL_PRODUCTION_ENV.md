@@ -7,8 +7,12 @@ Do not commit real provider values. Configure production values in Vercel or the
 - `NEXT_PUBLIC_SITE_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED`
+- `NEXT_PUBLIC_AUTH_PHONE_ENABLED`
 
 `NEXT_PUBLIC_SUPABASE_URL` must match Supabase Project Settings -> API -> Project URL. It should look like `https://<project-ref>.supabase.co` and must not include `/rest/v1`, `/auth/v1`, query strings, fragments, dashboard URLs, or OAuth callback URLs.
+
+Keep `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=false` until the Supabase Google provider is enabled and redirect URLs are verified.
 
 ## Server-only values
 

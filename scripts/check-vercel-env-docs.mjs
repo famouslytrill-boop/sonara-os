@@ -5,6 +5,8 @@ const requiredVariables = [
   "NEXT_PUBLIC_SITE_URL",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_AUTH_GOOGLE_ENABLED",
+  "NEXT_PUBLIC_AUTH_PHONE_ENABLED",
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_ACCESS_TOKEN",
   "SUPABASE_PROJECT_ID",
@@ -26,6 +28,10 @@ const requiredVariables = [
 
 const issues = [];
 const docsPath = "docs/deployment/VERCEL_ENVIRONMENT_VARIABLES.md";
+const setupDocs = [
+  "docs/deployment/VERCEL_ENV_SETUP.md",
+  "docs/deployment/VERCEL_ENV_TROUBLESHOOTING.md"
+];
 
 if (!exists(docsPath)) {
   issues.push(`Missing ${docsPath}.`);
@@ -38,6 +44,20 @@ if (!exists(docsPath)) {
   }
   if (!/optional/i.test(source) || !/server-only/i.test(source)) {
     issues.push(`${docsPath} must distinguish optional and server-only variables.`);
+  }
+}
+
+for (const docsPath of setupDocs) {
+  if (!exists(docsPath)) {
+    issues.push(`Missing ${docsPath}.`);
+  } else {
+    const source = read(docsPath);
+    if (!/vercel env update/i.test(source)) {
+      issues.push(`${docsPath} must document vercel env update for existing variables.`);
+    }
+    if (!/NEXT_PUBLIC/i.test(source) || !/browser/i.test(source)) {
+      issues.push(`${docsPath} must document that NEXT_PUBLIC variables are browser-visible.`);
+    }
   }
 }
 

@@ -29,8 +29,14 @@ const requiredPublicRoutes = [
   "/docs",
   "/api-webhooks",
   "/integrations",
-  "/changelog"
+  "/changelog",
+  "/auth/auth-code-error",
+  "/settings/auth-status"
 ];
+
+const requiredPublicMarketingRoutes = requiredPublicRoutes.filter(
+  (route) => !["/auth/auth-code-error", "/settings/auth-status"].includes(route)
+);
 
 const requiredProtectedRoutes = [
   "/app",
@@ -38,6 +44,9 @@ const requiredProtectedRoutes = [
   "/app/settings",
   "/app/settings/readiness",
   "/app/admin",
+  "/app/admin/auth-status",
+  "/app/admin/setup",
+  "/app/admin/launch-readiness",
   "/app/admin/email-readiness",
   "/app/admin/github-radar",
   "/app/admin/integrations",
@@ -65,6 +74,9 @@ for (const route of requiredPublicRoutes) {
   if (!buildPackage.includes(`"${route}"`)) {
     issues.push(`Sitemap source list missing public route ${route}.`);
   }
+}
+
+for (const route of requiredPublicMarketingRoutes) {
   if (!publicMarketing.includes(`"${route}"`)) {
     issues.push(`Public marketing route set missing ${route}.`);
   }

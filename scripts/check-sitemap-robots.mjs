@@ -27,7 +27,9 @@ const routes = [
   "/docs",
   "/api-webhooks",
   "/integrations",
-  "/changelog"
+  "/changelog",
+  "/auth/auth-code-error",
+  "/settings/auth-status"
 ];
 
 const issues = [];

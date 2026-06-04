@@ -9,6 +9,8 @@ Values must be configured in Vercel or the selected hosting provider. Do not com
 - `NEXT_PUBLIC_MARKETING_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_AUTH_GOOGLE_ENABLED`
+- `NEXT_PUBLIC_AUTH_PHONE_ENABLED`
 - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` optional
 
 `NEXT_PUBLIC_*` values are browser-visible. Never put service-role, webhook, payment, or provider secrets in a public variable.

@@ -1,4 +1,5 @@
 import { createElement, createMetric } from "../../../dom.ts";
+import { renderEmailConfigurationNotice } from "../../../components/support/EmailConfigurationNotice.tsx";
 import { createEmailReadinessSnapshot } from "../../../lib/support/email-readiness.ts";
 import { renderAdminShell, renderAdminStatusBadge } from "../../../ui/admin-components.ts";
 
@@ -30,6 +31,7 @@ export function renderAdminEmailReadinessPage() {
     warning:
       "This page does not prove Cloudflare Email Routing or outbound delivery. DNS/provider verification and a real test email remain human-required.",
     children: [
+      renderEmailConfigurationNotice(),
       renderSummary(snapshot.outboundConfigured, snapshot.storageConfigured),
       grid,
       renderManualSteps()
