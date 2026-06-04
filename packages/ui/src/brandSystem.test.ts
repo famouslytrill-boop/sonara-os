@@ -14,8 +14,8 @@ import {
 describe("brand system", () => {
   it("centralizes SONARA identity", () => {
     expect(brandIdentity.parentName).toBe("SONARA Industries");
-    expect(brandIdentity.platformName).toBe("SONARA One");
-    expect(brandIdentity.platformDisplayName).toBe("SONARA One™");
+    expect(brandIdentity.platformName).toBe("SONARA Industries");
+    expect(brandIdentity.platformDisplayName).toBe("SONARA Industries\u2122");
     expect(brandIdentity.tagline).toBe("Build. Create. Grow.");
     expect(Object.values(brandIdentity.products)).toEqual([
       "Business Builder",

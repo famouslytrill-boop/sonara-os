@@ -1,6 +1,6 @@
 # Prompt Playbook Center
 
-Prompt Playbook Center provides original, structured prompt templates for SONARA One.
+Prompt Playbook Center provides original, structured prompt templates for SONARA Industries.
 
 Public surfaces may call this AI Playbook Center, Business Prompt Library, Growth Prompt Library, Creator Prompt Library, Launch Prompt Builder, Smart Workflow Templates, or Guided AI Tasks.
 

@@ -1,6 +1,6 @@
 # Password Security
 
-SONARA One should use the configured auth provider for password handling. The app must not store plaintext passwords.
+SONARA Industries should use the configured auth provider for password handling. The app must not store plaintext passwords.
 
 ## Requirements
 

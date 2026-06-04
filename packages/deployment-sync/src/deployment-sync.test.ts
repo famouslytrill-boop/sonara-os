@@ -26,7 +26,7 @@ describe("deployment sync", () => {
         NEXT_PUBLIC_SITE_URL: "https://sonaraindustries.com",
         NEXT_PUBLIC_APP_URL: "https://sonaraindustries.com/app",
         NEXT_PUBLIC_COMPANY_NAME: "SONARA Industries",
-        NEXT_PUBLIC_PLATFORM_NAME: "SONARA One",
+        NEXT_PUBLIC_PLATFORM_NAME: "SONARA Industries",
         NEXT_PUBLIC_SUPPORT_EMAIL: "support@example.com",
         NEXT_PUBLIC_SERVICE_ROLE_KEY: "do-not-print",
         STRIPE_SECRET_KEY: "sk_test_redacted"

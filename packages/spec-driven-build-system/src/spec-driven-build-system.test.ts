@@ -32,7 +32,7 @@ describe("spec-driven build system", () => {
       launchGateRequirements: ["Run typecheck and build."]
     });
 
-    const prompt = createCodexPrompt(spec, { repositoryName: "SONARA One" });
+    const prompt = createCodexPrompt(spec, { repositoryName: "SONARA Industries" });
 
     expect(prompt).toContain("Feature: Proof Passport");
     expect(prompt).toContain("Acceptance Criteria");

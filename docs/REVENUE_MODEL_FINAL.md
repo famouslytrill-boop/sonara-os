@@ -4,7 +4,7 @@ Date: 2026-05-21
 
 Status: final draft for launch review, not proof of profitability.
 
-This document defines the intended SONARA One™ revenue model for launch review. It does not guarantee revenue, profit, customers, or growth.
+This document defines the intended SONARA Industries™ revenue model for launch review. It does not guarantee revenue, profit, customers, or growth.
 
 ## Subscription Plans
 

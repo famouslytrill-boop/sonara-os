@@ -48,7 +48,7 @@ export function renderMoneyAdjacentPage(config: MoneyAdjacentPageConfig) {
     createElement("p", {
       className: "warning-copy",
       textContent:
-        "MVP setup stores local records only. Payment providers handle sensitive payment data; SONARA One does not collect card numbers, CVV, bank credentials, provider secrets, or tokens."
+        "MVP setup stores local records only. Payment providers handle sensitive payment data; SONARA Industries does not collect card numbers, CVV, bank credentials, provider secrets, or tokens."
     })
   );
   page.append(header);

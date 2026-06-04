@@ -1,3 +1,5 @@
+import { diagnoseSupabasePublicUrl } from "../env.ts";
+
 export type SecurityEnvIssueSeverity = "warning" | "blocked";
 
 export type SecurityEnvIssue = Readonly<{
@@ -42,6 +44,15 @@ export function validateSecurityEnv(
       id: "incomplete-public-supabase-config",
       severity: "warning",
       message: "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set together."
+    });
+  }
+
+  const supabaseUrlDiagnostic = diagnoseSupabasePublicUrl(supabaseUrl);
+  if (supabaseUrl && !supabaseUrlDiagnostic.valid) {
+    issues.push({
+      id: "malformed-public-supabase-url",
+      severity: "blocked",
+      message: supabaseUrlDiagnostic.message
     });
   }
 

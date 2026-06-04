@@ -31,7 +31,7 @@ export function renderDeploymentSyncPage() {
     {
       title: "Canonical domain",
       value: report.canonicalDomain,
-      description: "Primary public domain for SONARA One.",
+      description: "Primary public domain for SONARA Industries.",
       status: "review" as const
     },
     {
@@ -58,7 +58,7 @@ export function renderDeploymentSyncPage() {
 
   return renderDeploymentSyncShell(
     "Deployment Sync",
-    "Domain, cloud, paywall, auth, security, and deployment status across SONARA One.",
+    "Domain, cloud, paywall, auth, security, and deployment status across SONARA Industries.",
     report,
     [
       metrics,

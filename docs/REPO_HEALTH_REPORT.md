@@ -34,7 +34,7 @@ This checkout is a TypeScript ES module workspace with a static DOM web shell in
 - `packages/routes`: route helper contracts.
 - `packages/runtime`: event bus and runtime adapter scaffolding.
 - `packages/spec-driven-build-system`: internal spec, plan, task, acceptance, drift, and Codex prompt utilities.
-- `packages/web`: static web shell, SONARA One surfaces, route manifest, UI renderers, safety scaffolds, report modules, and smoke-covered launch systems.
+- `packages/web`: static web shell, SONARA Industries surfaces, route manifest, UI renderers, safety scaffolds, report modules, and smoke-covered launch systems.
 
 ## Services
 

@@ -1,6 +1,6 @@
 # Go-live Checklist
 
-This checklist is the production launch gate for SONARA One. It is intentionally strict: critical items block launch until they are verified as ready.
+This checklist is the production launch gate for SONARA Industries. It is intentionally strict: critical items block launch until they are verified as ready.
 
 ## Launch Order
 

@@ -1,6 +1,6 @@
 # Owner Confirmation Lock
 
-Owner Confirmation Lock is the internal approval layer for high-risk SONARA One actions.
+Owner Confirmation Lock is the internal approval layer for high-risk SONARA Industries actions.
 
 The system may draft, queue, recommend, flag, summarize, remind, and prepare actions automatically. It must not execute destructive, financial, legal, public-facing, customer-facing, AI-media, data-deletion, payout, or security-changing actions without owner confirmation.
 

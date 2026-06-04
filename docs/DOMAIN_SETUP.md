@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Connect SONARA One to a production custom domain without changing the app build root, hiding SSL problems, or hardcoding localhost metadata.
+Connect SONARA Industries to a production custom domain without changing the app build root, hiding SSL problems, or hardcoding localhost metadata.
 
 ## Required Public Env Vars
 
@@ -14,7 +14,7 @@ NEXT_PUBLIC_APP_URL=https://sonaraindustries.com/app
 NEXT_PUBLIC_MARKETING_URL=https://sonaraindustries.com
 NEXT_PUBLIC_SUPPORT_EMAIL=support@example.com
 NEXT_PUBLIC_COMPANY_NAME=SONARA Industries
-NEXT_PUBLIC_PLATFORM_NAME=SONARA One
+NEXT_PUBLIC_PLATFORM_NAME=SONARA Industries
 ```
 
 `NEXT_PUBLIC_*` values are browser-exposed. Do not put tokens, secrets, private URLs, service-role keys, webhook secrets, or provider API keys in these values.

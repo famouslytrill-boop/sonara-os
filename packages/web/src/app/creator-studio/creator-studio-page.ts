@@ -357,7 +357,7 @@ function renderRightsNote() {
   return createElement("p", {
     className: "warning-copy",
     textContent:
-      "Rights and licensing labels are review warnings only. SONARA One does not certify ownership, clearance, or release eligibility in this MVP."
+      "Rights and licensing labels are review warnings only. SONARA Industries does not certify ownership, clearance, or release eligibility in this MVP."
   });
 }
 

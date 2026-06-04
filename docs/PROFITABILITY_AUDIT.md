@@ -4,7 +4,7 @@ Date: 2026-05-21
 
 Status: needs review.
 
-This audit documents the profit path without claiming profitability is proven. SONARA One™ has a plausible revenue model through subscriptions and setup services, but margins, churn, support load, payment fees, provider costs, and delivery capacity still need real operating data.
+This audit documents the profit path without claiming profitability is proven. SONARA Industries™ has a plausible revenue model through subscriptions and setup services, but margins, churn, support load, payment fees, provider costs, and delivery capacity still need real operating data.
 
 ## Revenue Lines
 

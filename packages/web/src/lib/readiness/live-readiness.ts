@@ -1,3 +1,5 @@
+import { diagnoseSupabasePublicUrl } from "../env.ts";
+
 export type ReadinessStatus = "configured" | "missing" | "manual_review";
 
 export type ReadinessCheck = Readonly<{
@@ -77,6 +79,15 @@ export function getMissingReadinessChecks(snapshot = createLiveReadinessSnapshot
 }
 
 function envCheck(name: string, detail: string, serverOnly = false): ReadinessCheck {
+  if (name === "NEXT_PUBLIC_SUPABASE_URL") {
+    const diagnostic = diagnoseSupabasePublicUrl(readEnv(name));
+    return Object.freeze({
+      label: name,
+      status: diagnostic.valid ? "configured" : "missing",
+      detail: diagnostic.valid ? detail : diagnostic.message,
+      serverOnly
+    });
+  }
   const configured = Boolean(readEnv(name));
   return Object.freeze({
     label: name,

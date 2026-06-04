@@ -194,7 +194,14 @@ export type {
   GoLiveStatus
 } from "./lib/go-live/index.ts";
 export { validateInfrastructureRegistry } from "./lib/shared/validate-infrastructure-registry.ts";
-export { getSignalEnv, isSupabaseConfigured, validateSignalEnv } from "./lib/env.ts";
+export {
+  createSupabaseAuthConfigDiagnostic,
+  diagnoseSupabasePublicUrl,
+  getSignalEnv,
+  isSupabaseConfigured,
+  supabasePublicUrlMisconfiguredMessage,
+  validateSignalEnv
+} from "./lib/env.ts";
 export {
   applyDeploymentMetadata,
   createDeploymentHeadMetadata,

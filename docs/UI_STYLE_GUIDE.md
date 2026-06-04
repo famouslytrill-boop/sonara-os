@@ -2,7 +2,7 @@
 
 ## Interface Direction
 
-SONARA One uses a dark-first premium interface with simple public wording, restrained product accents, and consistent spacing. The interface should feel operational and launch-ready, not like separate experiments stitched together.
+SONARA Industries uses a dark-first premium interface with simple public wording, restrained product accents, and consistent spacing. The interface should feel operational and launch-ready, not like separate experiments stitched together.
 
 ## Layout
 
@@ -59,7 +59,7 @@ Avoid random gradients. Backgrounds should use the approved dark platform surfac
 ## Brand Usage
 
 - Use SONARA Industries for parent-company surfaces.
-- Use SONARA One for the platform shell.
+- Use SONARA Industries for the platform shell.
 - Use Business Builder, Creator Studio, and Growth Studio for product surfaces.
 - Do not expose internal engine names on public product pages.
 - Do not create new product identities without updating the brand package and docs first.

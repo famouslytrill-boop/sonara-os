@@ -10,7 +10,7 @@ The launch offer should be simple: help customers build a credible profile, prov
 
 Build. Prove. Get paid. Grow.
 
-SONARA One™ should be sold as a practical launch system for small businesses, creators, and growth operators. The first offer should focus on setup clarity, not guaranteed outcomes.
+SONARA Industries™ should be sold as a practical launch system for small businesses, creators, and growth operators. The first offer should focus on setup clarity, not guaranteed outcomes.
 
 ## Founding Member Offer
 

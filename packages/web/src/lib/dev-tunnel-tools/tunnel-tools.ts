@@ -140,7 +140,7 @@ export const blockedTunnelRoutes: readonly BlockedTunnelRoute[] = Object.freeze(
 ]);
 
 export const devTunnelSafetyWarnings: readonly string[] = Object.freeze([
-  "Preview commands only. SONARA One does not start production tunnels from this UI.",
+  "Preview commands only. SONARA Industries does not start production tunnels from this UI.",
   "Use test data only. Do not expose admin, security, internal API, secret, or source map routes.",
   "Webhook tests must use test-mode provider events and verified signatures.",
   "Stop the tunnel when testing is complete and rotate any exposed development secrets."

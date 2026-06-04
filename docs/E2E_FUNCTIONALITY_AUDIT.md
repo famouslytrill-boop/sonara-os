@@ -2,7 +2,7 @@
 
 Date: 2026-05-21
 
-This audit covers the current SONARA One static TypeScript web shell. It verifies route rendering, local model behavior, safety gates, billing placeholders, and documentation. It does not claim a complete production backend because real auth sessions, durable persistence, live Stripe routes, and deployed webhook processing are not present in this checkout.
+This audit covers the current SONARA Industries static TypeScript web shell. It verifies route rendering, local model behavior, safety gates, billing placeholders, and documentation. It does not claim a complete production backend because real auth sessions, durable persistence, live Stripe routes, and deployed webhook processing are not present in this checkout.
 
 ## Summary
 

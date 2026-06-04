@@ -92,7 +92,7 @@ export function renderProductionReadinessPage() {
   return renderAdminShell({
     activeRoute: "/admin/production-readiness",
     title: "Production Readiness",
-    description: "Final go-live verification surface for the SONARA One launch path.",
+    description: "Final go-live verification surface for the SONARA Industries launch path.",
     warning:
       "This page is a setup-mode checklist. It does not claim production cloud systems are connected.",
     children: [renderList("Critical readiness checks", items)]

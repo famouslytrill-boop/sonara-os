@@ -4,13 +4,13 @@ Date: 2026-05-21
 
 Status: needs review before public paid launch.
 
-SONARA One™ has a clear launch-facing promise: `Build. Prove. Get paid. Grow.` The public site can explain the parent company, the three products, pricing, setup services, security boundaries, and onboarding path without relying on inflated claims. The offer is understandable enough for beta review, but the launch story still needs final founder offer wording, production screenshots, and proof that billing/onboarding work in the deployed environment.
+SONARA Industries™ has a clear launch-facing promise: `Build. Prove. Get paid. Grow.` The public site can explain the parent company, the three products, pricing, setup services, security boundaries, and onboarding path without relying on inflated claims. The offer is understandable enough for beta review, but the launch story still needs final founder offer wording, production screenshots, and proof that billing/onboarding work in the deployed environment.
 
 ## 10-Second Visitor Test
 
 | Question                                                 | Result | Notes                                                                                                |
 | -------------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------- |
-| Can a visitor understand the product quickly?            | Pass   | Home page now leads with SONARA One™ and the Build/Prove/Get paid/Grow promise.                      |
+| Can a visitor understand the product quickly?            | Pass   | Home page now leads with SONARA Industries™ and the Build/Prove/Get paid/Grow promise.               |
 | Can a business owner understand why they need it?        | Pass   | Business Builder copy focuses on proof, payment links, booking, intake, reviews, and customers.      |
 | Can a creator understand why they need it?               | Pass   | Creator Studio copy focuses on profile, assets, rights notes, offers, payment, and booking.          |
 | Can a growth or agency user understand why they need it? | Pass   | Growth Studio copy focuses on campaign drafts, review requests, referral ideas, and follow-up.       |
@@ -23,7 +23,7 @@ SONARA One™ has a clear launch-facing promise: `Build. Prove. Get paid. Grow.`
 
 ## Current Positioning
 
-SONARA Industries is positioned as a technology holding company that owns independent software companies. SONARA One™ is positioned as the shared launch platform for:
+SONARA Industries is positioned as a technology holding company that owns independent software companies. SONARA Industries™ is positioned as the shared launch platform for:
 
 - Business Builder: build trust, collect setup details, prepare booking/payment/review workflows.
 - Creator Studio: package creative services, organize assets, track rights notes, prepare client-ready proof.
@@ -44,7 +44,7 @@ This structure is marketable because it avoids a generic “all-in-one” claim 
 
 Current funnel:
 
-1. `/` explains SONARA One™ and links to `/onboarding` and `/pricing`.
+1. `/` explains SONARA Industries™ and links to `/onboarding` and `/pricing`.
 2. `/business-builder`, `/creator-studio`, and `/growth-studio` explain the product surfaces.
 3. `/pricing` explains plan ranges and setup services.
 4. `/contact` routes setup, support, product access, and security questions.

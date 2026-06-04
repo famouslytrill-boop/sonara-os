@@ -204,7 +204,7 @@ function writeWebDeploymentArtifacts() {
     JSON.stringify(
       {
         ok: true,
-        service: "SONARA One web",
+        service: "SONARA Industries web",
         status: "ready",
         version,
         siteUrl: deploymentConfig.siteUrl,
@@ -386,9 +386,9 @@ function writeDeploymentIndexHtml(deploymentConfig) {
   if (!fs.existsSync(indexPath)) {
     return;
   }
-  const title = "SONARA One";
+  const title = "SONARA Industries";
   const description =
-    "SONARA One brings Business Builder, Creator Studio, and Growth Studio into one launch-focused platform.";
+    "SONARA Industries brings Business Builder, Creator Studio, and Growth Studio into one launch-focused platform.";
   const imageUrl = `${deploymentConfig.siteUrl}/brand/sonara-one-og.svg`;
   let html = fs.readFileSync(indexPath, "utf8");
   html = html

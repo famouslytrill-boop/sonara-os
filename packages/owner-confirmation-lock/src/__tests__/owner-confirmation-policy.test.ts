@@ -27,7 +27,7 @@ describe("owner confirmation policy", () => {
         requiresOwnerConfirmation({
           actionKey: `${category}_action`,
           category,
-          productArea: "SONARA One",
+          productArea: "SONARA Industries",
           title: category,
           description: "Sensitive action",
           triggeredBy: "automation"

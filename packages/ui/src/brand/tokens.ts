@@ -1,7 +1,7 @@
 export const brandIdentity = Object.freeze({
   parentName: "SONARA Industries",
-  platformName: "SONARA One",
-  platformDisplayName: "SONARA One™",
+  platformName: "SONARA Industries",
+  platformDisplayName: "SONARA Industries\u2122",
   tagline: "Build. Create. Grow.",
   productPromise: "Build. Prove. Get paid. Grow.",
   products: Object.freeze({

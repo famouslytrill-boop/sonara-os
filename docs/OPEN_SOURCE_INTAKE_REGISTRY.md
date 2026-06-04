@@ -46,6 +46,6 @@ The registry contains 35 owner-provided projects. They are intake candidates, no
 
 1. Legal review of license and branding obligations.
 2. Security review of runtime, data, credential, privacy, and abuse risk.
-3. Product-fit review against SONARA One launch scope.
+3. Product-fit review against SONARA Industries launch scope.
 4. Owner approval for any adapter, self-hosted service, beta feature, or public exposure.
 5. Audit-log entry for the decision.

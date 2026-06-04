@@ -11,7 +11,7 @@ These values are safe to expose in the browser and are used by the static build 
 | `NEXT_PUBLIC_MARKETING_URL` | Marketing/public URL                          | `https://sonaraindustries.com`     |
 | `NEXT_PUBLIC_SUPPORT_EMAIL` | Public support contact                        | `support@example.com`              |
 | `NEXT_PUBLIC_COMPANY_NAME`  | Public company name                           | `SONARA Industries`                |
-| `NEXT_PUBLIC_PLATFORM_NAME` | Public platform name                          | `SONARA One`                       |
+| `NEXT_PUBLIC_PLATFORM_NAME` | Public platform name                          | `SONARA Industries`                |
 
 ## Private Variables
 

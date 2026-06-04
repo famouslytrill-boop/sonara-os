@@ -58,7 +58,7 @@ Ready for owner review:
 
 - Test-mode walkthrough exists and warns not to mix test mode and live mode.
 - Stripe env placeholders are present and redacted in `.env.example`.
-- Owner payout documentation states payouts happen in Stripe Dashboard and that SONARA One does not control payout schedules.
+- Owner payout documentation states payouts happen in Stripe Dashboard and that SONARA Industries does not control payout schedules.
 - The app does not store raw card numbers, CVV, or bank credentials in the documented MVP payment path.
 
 Still required before live billing:

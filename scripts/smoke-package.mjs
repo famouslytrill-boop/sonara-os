@@ -606,7 +606,7 @@ function createOwnerLockSmokeAction(category) {
   return {
     actionKey: `${category}_smoke`,
     category,
-    productArea: "SONARA One",
+    productArea: "SONARA Industries",
     title: "Smoke action",
     description: "Smoke sensitive action.",
     triggeredBy: "smoke"
@@ -617,8 +617,8 @@ function smokeUi(mod) {
   if (mod.brandIdentity.parentName !== "SONARA Industries") {
     throw new Error("UI brand identity missing SONARA Industries.");
   }
-  if (mod.brandIdentity.platformName !== "SONARA One") {
-    throw new Error("UI brand identity missing SONARA One.");
+  if (mod.brandIdentity.platformName !== "SONARA Industries") {
+    throw new Error("UI brand identity missing SONARA Industries.");
   }
   if (mod.brandIdentity.tagline !== "Build. Create. Grow.") {
     throw new Error("UI brand tagline mismatch.");
@@ -989,7 +989,7 @@ function assertWebBrandAssets() {
     throw new Error("Web deployment config must contain concrete non-localhost public values.");
   }
   const health = JSON.parse(fs.readFileSync(path.join(distDir, "api", "health"), "utf8"));
-  if (!health.ok || health.service !== "SONARA One web") {
+  if (!health.ok || health.service !== "SONARA Industries web") {
     throw new Error("Web health endpoint artifact did not return an ok SONARA response.");
   }
   if (!health.checks?.securityHeaders) {

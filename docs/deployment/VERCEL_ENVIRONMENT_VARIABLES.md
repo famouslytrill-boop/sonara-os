@@ -13,6 +13,8 @@ Values must be configured in Vercel or the selected hosting provider. Do not com
 
 `NEXT_PUBLIC_*` values are browser-visible. Never put service-role, webhook, payment, or provider secrets in a public variable.
 
+`NEXT_PUBLIC_SUPABASE_URL` must exactly match Supabase Project Settings -> API -> Project URL. Use the full `https://<project-ref>.supabase.co` value. Do not use a Supabase dashboard URL, OAuth redirect URL, REST endpoint path, guessed hostname, query string, or fragment.
+
 ## Server-only variables
 
 - `SUPABASE_SERVICE_ROLE_KEY`

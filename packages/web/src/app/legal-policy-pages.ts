@@ -26,7 +26,7 @@ export function renderTermsPage() {
     eyebrow: "Review-ready policy draft",
     title: "Terms of Use",
     summary:
-      "Draft terms for using SONARA One, Business Builder, Creator Studio, Growth Studio, and shared admin systems.",
+      "Draft terms for using SONARA Industries, Business Builder, Creator Studio, Growth Studio, and shared admin systems.",
     status: "Draft for attorney review",
     sections: [
       {

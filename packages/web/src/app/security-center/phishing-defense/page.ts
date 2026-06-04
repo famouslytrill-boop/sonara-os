@@ -23,7 +23,7 @@ export function renderPhishingDefensePage() {
       "Allow only http and https URLs for public links",
       "Reject empty, script, file, and data URLs",
       "Flag unknown payment destinations for owner review",
-      "Do not display links that imply payment custody by SONARA One"
+      "Do not display links that imply payment custody by SONARA Industries"
     ])
   );
   return page;

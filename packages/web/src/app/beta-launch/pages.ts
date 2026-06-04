@@ -23,7 +23,7 @@ export function renderBetaInvitePage() {
   const store = createBetaLaunchStore();
   const page = createBetaShell({
     kicker: "Beta",
-    title: "Join the SONARA One beta",
+    title: "Join the SONARA Industries beta",
     description:
       "Use the beta to review setup flows, starter docs, demo walkthroughs, and feedback paths before launch. Demo data is fake and forms save locally in this shell."
   });

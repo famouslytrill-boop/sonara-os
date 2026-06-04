@@ -1,3 +1,5 @@
+import { diagnoseSupabasePublicUrl } from "../env.ts";
+
 export type SupabaseEnvStatus = "configured" | "missing" | "server_only";
 
 export type SupabaseEnvRequirement = Readonly<{
@@ -23,11 +25,19 @@ export const supabaseEnvRequirements = Object.freeze([
 ]);
 
 export function createSupabaseEnvironmentReport() {
+  const publicUrlDiagnostic = diagnoseSupabasePublicUrl(readEnv("NEXT_PUBLIC_SUPABASE_URL"));
   return Object.freeze(
     supabaseEnvRequirements.map((item) =>
       Object.freeze({
         ...item,
-        status: readEnv(item.name) ? ("configured" as const) : item.status
+        status:
+          item.name === "NEXT_PUBLIC_SUPABASE_URL"
+            ? publicUrlDiagnostic.valid
+              ? ("configured" as const)
+              : ("missing" as const)
+            : readEnv(item.name)
+              ? ("configured" as const)
+              : item.status
       })
     )
   );

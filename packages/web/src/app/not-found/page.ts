@@ -11,7 +11,7 @@ export function renderNotFoundPage(pathname = "") {
     createElement("p", {
       className: "screen-copy",
       textContent:
-        "The route was not found. Use the navigation to return to an available SONARA One page."
+        "The route was not found. Use the navigation to return to an available SONARA Industries page."
     }),
     createMetric("Route", pathname || "Unknown route"),
     createElement("a", {

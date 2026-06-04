@@ -2,7 +2,7 @@
 
 Parent brand: SONARA Industries.
 
-Core app: SONARA One.
+Core app: SONARA Industries.
 
 Products:
 

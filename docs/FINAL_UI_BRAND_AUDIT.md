@@ -4,16 +4,16 @@ Date: 2026-05-21
 
 Status: needs review before public paid launch.
 
-The current static web shell has a consistent SONARA One™ brand system, dark-first visual foundation, controlled logo references, mobile navigation, pricing pages, onboarding routes, product dashboards, empty states, loading states, error states, and metadata asset references. The UI is suitable for beta review, but final public launch still needs real-device visual QA, final designed logo/metadata artwork, production-domain verification, and legal/owner review of public copy.
+The current static web shell has a consistent SONARA Industries™ brand system, dark-first visual foundation, controlled logo references, mobile navigation, pricing pages, onboarding routes, product dashboards, empty states, loading states, error states, and metadata asset references. The UI is suitable for beta review, but final public launch still needs real-device visual QA, final designed logo/metadata artwork, production-domain verification, and legal/owner review of public copy.
 
 ## Brand Rules Checked
 
 | Rule                                                         | Result       | Evidence                                                                                                                       |
 | ------------------------------------------------------------ | ------------ | ------------------------------------------------------------------------------------------------------------------------------ |
 | Parent brand is SONARA Industries                            | Pass         | `packages/ui/src/brand/tokens.ts` and public navigation use SONARA Industries.                                                 |
-| Platform is SONARA One                                       | Pass         | Platform identity is centralized and the home hero now displays SONARA One™.                                                   |
+| Platform is SONARA Industries                                | Pass         | Platform identity is centralized and the home hero now displays SONARA Industries™.                                            |
 | Products are Business Builder, Creator Studio, Growth Studio | Pass         | Product names are centralized in `packages/ui/src/brand/tokens.ts`.                                                            |
-| Use ™ where appropriate                                      | Pass         | Public home hero uses SONARA One™. No ® usage was found.                                                                       |
+| Use ™ where appropriate                                      | Pass         | Public home hero uses SONARA Industries™. No ® usage was found.                                                                |
 | Plain public wording                                         | Pass         | Public product and pricing copy avoids internal implementation language.                                                       |
 | Do not overuse internal engine names                         | Needs review | Public marketing surfaces avoid engine names; some internal/admin pages still use technical labels intentionally.              |
 | Do not overuse AI                                            | Needs review | Public marketing copy avoids AI-heavy positioning; admin/legal/safety pages reference AI where required for safety boundaries. |
@@ -39,7 +39,7 @@ The current static web shell has a consistent SONARA One™ brand system, dark-f
 
 ## Fixes Applied In This Pass
 
-- Home hero now presents `SONARA One™` as the first visible brand signal.
+- Home hero now presents `SONARA Industries™` as the first visible brand signal.
 - Home primary CTA now routes to `/onboarding` with the label `Start setup`.
 - Pricing headline now reinforces `Build. Prove. Get paid. Grow.`
 - Setup service names now match the launch offer:

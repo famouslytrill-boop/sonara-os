@@ -8,7 +8,7 @@ Use this walkthrough before launch to verify billing without charging live payme
 - Do not enter live card data in test mode.
 - Do not store raw card numbers, CVV, bank credentials, provider secrets, or webhook payload secrets in the app.
 - Use hosted Stripe Checkout and Stripe Customer Portal for billing tests.
-- Payouts happen in Stripe Dashboard. SONARA One does not control Stripe payout schedules.
+- Payouts happen in Stripe Dashboard. SONARA Industries does not control Stripe payout schedules.
 
 ## Test-mode Checklist
 

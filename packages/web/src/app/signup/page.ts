@@ -1,8 +1,10 @@
 import { createElement } from "../../dom.ts";
+import { createSupabaseAuthConfigDiagnostic } from "../../lib/env.ts";
 import { renderPublicShell } from "../../ui/shared-components.ts";
 
 export function renderSignupPage() {
   const page = renderPublicShell("auth-page");
+  const authDiagnostic = createSupabaseAuthConfigDiagnostic();
   const form = createElement("form", { className: "planning-card shell-card" });
   form.setAttribute("aria-label", "Signup setup form");
   const emailLabel = createElement("label", { textContent: "Email" });
@@ -21,12 +23,16 @@ export function renderSignupPage() {
   button.setAttribute("disabled", "true");
   form.append(emailLabel, productLabel, button);
   page.append(
-    createElement("p", { className: "shell-kicker", textContent: "SONARA One" }),
+    createElement("p", { className: "shell-kicker", textContent: "SONARA Industries" }),
     createElement("h1", { textContent: "Create account" }),
     createElement("p", {
       className: "screen-copy",
       textContent:
         "Signup stays setup-mode until auth redirects, password policy, organization creation, and RLS are verified."
+    }),
+    createElement("p", {
+      className: "warning-copy",
+      textContent: authDiagnostic.message
     }),
     form
   );

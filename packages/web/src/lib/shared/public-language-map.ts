@@ -1,6 +1,6 @@
 export const publicLanguageMap = Object.freeze({
   company: "SONARA Industries",
-  platform: "SONARA One",
+  platform: "SONARA Industries",
   products: ["Business Builder", "Creator Studio", "Growth Studio"],
   sharedTools: [
     "Payment Links",

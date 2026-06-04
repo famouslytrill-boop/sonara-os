@@ -38,4 +38,4 @@ Autopilot exists to reduce routine work, not to replace owner judgment.
 
 ## Why Full Autonomy Is Not Allowed
 
-Money, legal, security, customer, public proof, and AI media decisions can create real harm. SONARA One can prepare the work, but the owner must confirm high-risk actions before execution.
+Money, legal, security, customer, public proof, and AI media decisions can create real harm. SONARA Industries can prepare the work, but the owner must confirm high-risk actions before execution.

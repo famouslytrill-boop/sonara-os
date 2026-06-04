@@ -1,6 +1,6 @@
-# Signal OS / SONARA One Workspace
+# SONARA Industries Workspace
 
-This repository is a pnpm-managed TypeScript workspace for Signal OS and SONARA foundation modules. It is not a root Next.js application in this checkout; the browser shell is compiled from `packages/web/src` into `packages/web/dist`.
+This repository is a pnpm-managed TypeScript workspace for SONARA Industries, Business Builder, Creator Studio, Growth Studio, and shared launch infrastructure. It is not a root Next.js application in this checkout; the browser shell is compiled from `packages/web/src` into `packages/web/dist`.
 
 ## Requirements
 

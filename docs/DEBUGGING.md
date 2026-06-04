@@ -1,6 +1,6 @@
 # Debugging
 
-SONARA One uses a static TypeScript web shell in this checkout. Debugging helpers are designed to keep the app usable while avoiding raw stack traces or secret values in public UI.
+SONARA Industries uses a static TypeScript web shell in this checkout. Debugging helpers are designed to keep the app usable while avoiding raw stack traces or secret values in public UI.
 
 ## Local Checks
 

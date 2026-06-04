@@ -83,7 +83,7 @@ function renderCommandBuilder() {
     createElement("p", {
       className: "recommendation",
       textContent:
-        "Preview a provider command for local use. Commands are not executed by SONARA One."
+        "Preview a provider command for local use. Commands are not executed by SONARA Industries."
     }),
     provider.wrapper,
     purpose.wrapper,

@@ -2,7 +2,7 @@
 
 Date: 2026-05-19
 
-Scope: current SONARA One MVP state in this repository, including the static web shell,
+Scope: current SONARA Industries MVP state in this repository, including the static web shell,
 typed MVP modules, local-state flows, Supabase migrations, security docs, package scripts,
 and route manifest.
 

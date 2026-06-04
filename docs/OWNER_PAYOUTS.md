@@ -1,6 +1,6 @@
 # Owner Payouts
 
-SONARA One billing must stay provider-hosted for MVP. The app does not take custody of customer funds for businesses and does not control Stripe payout timing.
+SONARA Industries billing must stay provider-hosted for MVP. The app does not take custody of customer funds for businesses and does not control Stripe payout timing.
 
 ## How The Owner Gets Paid
 
@@ -12,12 +12,12 @@ SONARA One billing must stay provider-hosted for MVP. The app does not take cust
 
 ## App Boundaries
 
-- SONARA One does not store raw card numbers.
-- SONARA One does not store CVV.
-- SONARA One does not store full bank credentials.
-- SONARA One does not store Stripe secret keys client-side.
-- SONARA One does not control Stripe payout schedules.
-- SONARA One does not provide marketplace or third-party payouts in MVP.
+- SONARA Industries does not store raw card numbers.
+- SONARA Industries does not store CVV.
+- SONARA Industries does not store full bank credentials.
+- SONARA Industries does not store Stripe secret keys client-side.
+- SONARA Industries does not control Stripe payout schedules.
+- SONARA Industries does not provide marketplace or third-party payouts in MVP.
 
 ## Stripe Connect Note
 

@@ -2,7 +2,7 @@
 
 Status: needs_review.
 
-SONARA One is not automatically approved for public launch by this document. Final launch requires passing commands, manual domain/SSL verification, Stripe test-mode verification, Supabase/RLS verification, and owner approval.
+SONARA Industries is not automatically approved for public launch by this document. Final launch requires passing commands, manual domain/SSL verification, Stripe test-mode verification, Supabase/RLS verification, and owner approval.
 
 ## Ready
 

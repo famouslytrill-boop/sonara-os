@@ -2,7 +2,7 @@
 
 ## Public name
 
-SONARA One build log
+SONARA Industries build log
 
 ## Internal name
 

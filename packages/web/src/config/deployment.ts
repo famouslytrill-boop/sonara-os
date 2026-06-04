@@ -62,7 +62,7 @@ const defaultDeploymentConfig: DeploymentConfig = Object.freeze({
 
 const defaultTitle = "SONARA Industries";
 const defaultDescription =
-  "SONARA One brings Business Builder, Creator Studio, and Growth Studio into one launch-focused platform.";
+  "SONARA Industries brings Business Builder, Creator Studio, and Growth Studio into one launch-focused platform.";
 
 type DeploymentConfigGlobal = typeof globalThis & {
   __SONARA_DEPLOYMENT_CONFIG__?: Partial<DeploymentConfig>;
@@ -119,7 +119,7 @@ export function createHealthResponse(now = new Date()) {
   const config = getDeploymentConfig();
   return Object.freeze({
     ok: true,
-    service: "SONARA One web",
+    service: "SONARA Industries web",
     status: "ready",
     version: config.appVersion,
     environment: config.environment,

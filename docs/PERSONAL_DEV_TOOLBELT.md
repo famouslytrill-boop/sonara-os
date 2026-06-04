@@ -1,6 +1,6 @@
 # Personal Dev Toolbelt
 
-This is the owner workstation checklist for SONARA One development. Install tools locally; do not paste production secrets into any utility, terminal transcript, AI prompt, or third-party collection.
+This is the owner workstation checklist for SONARA Industries development. Install tools locally; do not paste production secrets into any utility, terminal transcript, AI prompt, or third-party collection.
 
 ## Recommended Tools
 
@@ -53,5 +53,5 @@ python --version
 - Keep production deploys owner-approved.
 - Keep service-role, Stripe, Supabase, AI provider, database, webhook, and token secrets out of public and client code.
 - Use Stripe test mode for billing verification.
-- Keep research repositories outside the SONARA One repo.
+- Keep research repositories outside the SONARA Industries repo.
 - Do not grant unknown tools production repository, cloud, Stripe, Supabase, or payout access.

@@ -4,7 +4,7 @@ Date: 2026-05-21
 
 Status: admin-ready setup-mode.
 
-The Administrator Command Center is the owner/admin dashboard for reviewing the full SONARA One platform after launch. It is designed to monitor the system without exposing secrets or pretending placeholder systems are live.
+The Administrator Command Center is the owner/admin dashboard for reviewing the full SONARA Industries platform after launch. It is designed to monitor the system without exposing secrets or pretending placeholder systems are live.
 
 ## Routes
 

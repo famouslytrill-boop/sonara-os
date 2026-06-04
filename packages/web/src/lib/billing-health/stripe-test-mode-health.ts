@@ -36,7 +36,7 @@ type StripeBillingConfigGlobal = typeof globalThis & {
 
 const stripeModeWarning = "Stripe test mode and live mode must not be mixed.";
 const payoutWarning =
-  "Payouts happen in Stripe Dashboard. SONARA One does not control Stripe payout schedules.";
+  "Payouts happen in Stripe Dashboard. SONARA Industries does not control Stripe payout schedules.";
 
 export function createStripeBillingHealthSnapshot(
   input: StripeBillingHealthInput = getInjectedStripeBillingHealth()

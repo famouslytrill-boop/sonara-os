@@ -1,6 +1,6 @@
 # Deployment Sync
 
-Deployment Sync checks SONARA One launch readiness across domain, cloud, paywall, auth, security,
+Deployment Sync checks SONARA Industries launch readiness across domain, cloud, paywall, auth, security,
 and deployment configuration.
 
 It does not connect to production services, deploy to production, or claim cloud verification. It

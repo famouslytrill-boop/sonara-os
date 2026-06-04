@@ -9,7 +9,7 @@ import { validateInfrastructureRegistry } from "./lib/shared/validate-infrastruc
 import { createImplementationSequencerReport } from "./reports/implementation-sequencer-report.ts";
 import { createSecurityReport } from "./reports/security-report.ts";
 
-describe("SONARA One v101 infrastructure", () => {
+describe("SONARA Industries v101 infrastructure", () => {
   it("keeps unsafe flags disabled and registry entries valid", () => {
     expect(areUnsafeFlagsDisabled()).toBe(true);
     expect(featureFlags.IMPLEMENTATION_SEQUENCER_ENABLED).toBe(true);

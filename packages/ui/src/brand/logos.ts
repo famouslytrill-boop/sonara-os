@@ -27,7 +27,7 @@ export const brandLogos: readonly BrandLogoAsset[] = Object.freeze([
   }),
   Object.freeze({
     id: "app-icon",
-    label: "SONARA One app icon",
+    label: "SONARA Industries app icon",
     src: "/brand/sonara-one-app-icon.svg",
     width: 512,
     height: 512,
@@ -35,7 +35,7 @@ export const brandLogos: readonly BrandLogoAsset[] = Object.freeze([
   }),
   Object.freeze({
     id: "favicon",
-    label: "SONARA One favicon",
+    label: "SONARA Industries favicon",
     src: "/favicon.svg",
     width: 64,
     height: 64,
@@ -43,7 +43,7 @@ export const brandLogos: readonly BrandLogoAsset[] = Object.freeze([
   }),
   Object.freeze({
     id: "open-graph",
-    label: "SONARA One Open Graph preview",
+    label: "SONARA Industries Open Graph preview",
     src: "/brand/sonara-one-og.svg",
     width: 1200,
     height: 630,

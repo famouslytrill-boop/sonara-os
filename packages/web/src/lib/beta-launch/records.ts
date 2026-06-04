@@ -324,7 +324,7 @@ export const onboardingEmailTemplates: readonly OnboardingEmailTemplate[] = Obje
     id: "beta-welcome",
     title: "Beta welcome",
     productId: "all",
-    subject: "Welcome to the SONARA One beta",
+    subject: "Welcome to the SONARA Industries beta",
     body: "Thanks for joining the beta. Start with setup, review safety notes, and send feedback before launch.",
     sendEnabled: false,
     status: "template_only"

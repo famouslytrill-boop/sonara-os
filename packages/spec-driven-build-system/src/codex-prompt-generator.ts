@@ -2,7 +2,7 @@ import { formatAcceptanceCriteria } from "./acceptance-criteria.ts";
 import type { CodexPromptOptions, FeatureSpec } from "./types.ts";
 
 export function createCodexPrompt(spec: FeatureSpec, options: CodexPromptOptions = {}): string {
-  const repositoryName = options.repositoryName ?? "SONARA One";
+  const repositoryName = options.repositoryName ?? "SONARA Industries";
   const implementationMode = options.implementationMode ?? "implementation";
   return [
     `You are working inside ${repositoryName}.`,

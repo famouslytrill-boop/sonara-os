@@ -1,6 +1,6 @@
 # Prompt Playbook Center
 
-The Prompt Playbook Center is a governed library of original prompt templates for SONARA One.
+The Prompt Playbook Center is a governed library of original prompt templates for SONARA Industries.
 
 Public names:
 

@@ -1,6 +1,6 @@
 export const sonaraBrandExperience = Object.freeze({
   parent: "SONARA Industries",
-  platform: "SONARA One",
+  platform: "SONARA Industries",
   tagline: "Build. Create. Grow.",
   finalMessage: "Build. Prove. Get paid. Grow.",
   publicProducts: Object.freeze(["Business Builder", "Creator Studio", "Growth Studio"]),

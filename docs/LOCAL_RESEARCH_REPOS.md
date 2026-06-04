@@ -1,6 +1,6 @@
 # Local Research Repos
 
-Research clones live outside the SONARA One monorepo:
+Research clones live outside the SONARA Industries monorepo:
 
 ```text
 C:\dev\sonara-research\repos
@@ -19,8 +19,8 @@ These repositories may be cloned there for research only:
 
 ## Rules
 
-- Research clones stay outside SONARA One.
-- Do not copy code into SONARA One without license review.
+- Research clones stay outside SONARA Industries.
+- Do not copy code into SONARA Industries without license review.
 - GPL/AGPL projects are reference-only, self-host-after-review, or legal-review candidates.
 - Do not install unknown repos as production dependencies.
 - Do not paste secrets into research tools.

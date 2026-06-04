@@ -15,6 +15,7 @@ import {
   validateSecurityEnv,
   verifyWebhookSignature
 } from "./lib/security/index.ts";
+import { diagnoseSupabasePublicUrl } from "./lib/env.ts";
 import { getRouteDefinition, isKnownRoute } from "./routes/route-manifest.ts";
 
 describe("security hardening helpers", () => {
@@ -26,6 +27,24 @@ describe("security hardening helpers", () => {
     expect(result.ok).toBe(false);
     expect(result.issues.map((issue) => issue.id)).toContain("dangerous-public-env-name");
     expect(result.issues.map((issue) => issue.id)).toContain("incomplete-public-supabase-config");
+  });
+
+  it("diagnoses malformed Supabase public URLs without exposing keys", () => {
+    expect(diagnoseSupabasePublicUrl("https://example.supabase.co")).toMatchObject({
+      valid: false,
+      status: "placeholder"
+    });
+    expect(diagnoseSupabasePublicUrl("https://abcdefghijklmnopqrst.supabase.co")).toMatchObject({
+      valid: true,
+      status: "valid"
+    });
+    const result = validateSecurityEnv({
+      NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghijklmnopqrst.supabase.co/rest/v1",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "anon-public-placeholder"
+    });
+    expect(result.ok).toBe(false);
+    expect(result.issues.map((issue) => issue.id)).toContain("malformed-public-supabase-url");
+    expect(JSON.stringify(result)).not.toContain("anon-public-placeholder");
   });
 
   it("validates future API route contracts without creating live endpoints", () => {

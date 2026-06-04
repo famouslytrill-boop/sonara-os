@@ -276,7 +276,7 @@ export function createBusinessJourneyWarnings(
       id: "payment-custody",
       title: "Payment custody is not enabled",
       description:
-        "Payment options must use provider-hosted links or reviewed manual URLs. SONARA One does not store raw payment credentials.",
+        "Payment options must use provider-hosted links or reviewed manual URLs. SONARA Industries does not store raw payment credentials.",
       route: "/business-builder/payment-options",
       critical: true
     })

@@ -2,7 +2,7 @@
 
 Smart Recommendations, Growth Suggestions, Next Best Action, and Opportunity Ranking are advisory systems.
 
-This layer does not copy X/xAI branding, source code, ranking logic, or feed mechanics. It is a transparent setup and operations ranking layer for SONARA One.
+This layer does not copy X/xAI branding, source code, ranking logic, or feed mechanics. It is a transparent setup and operations ranking layer for SONARA Industries.
 
 ## Allowed Recommendations
 

@@ -1,6 +1,6 @@
 # Error Handling
 
-SONARA One error handling should keep users oriented without leaking implementation details.
+SONARA Industries error handling should keep users oriented without leaking implementation details.
 
 ## Rules
 

@@ -1,6 +1,6 @@
 # Auth And RLS
 
-This document defines the foundational auth and organization scaffold for SONARA One. It is preparation only; no live authentication provider is enabled by this change.
+This document defines the foundational auth and organization scaffold for SONARA Industries. It is preparation only; no live authentication provider is enabled by this change.
 
 ## Models
 
