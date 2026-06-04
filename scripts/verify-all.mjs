@@ -1,10 +1,13 @@
 import { spawnSync } from "node:child_process";
 
 const gates = [
+  ["pnpm", ["run", "check:package-manager"]],
   ["pnpm", ["run", "lint"]],
   ["pnpm", ["run", "typecheck"]],
   ["pnpm", ["run", "build"]],
   ["pnpm", ["run", "smoke:routes"]],
+  ["pnpm", ["run", "check-public-routes"]],
+  ["pnpm", ["run", "check:sitemap-robots"]],
   ["pnpm", ["run", "check:local-dev"]],
   ["pnpm", ["run", "check:auth-readiness"]],
   ["pnpm", ["run", "check:auth-public-copy"]],

@@ -8,13 +8,35 @@ export type PublicMarketingRoute =
   | "/pricing"
   | "/onboarding"
   | "/about"
+  | "/trust"
   | "/security"
   | "/contact"
+  | "/support"
+  | "/help"
+  | "/feedback"
+  | "/legal"
+  | "/legal/terms"
+  | "/legal/privacy"
+  | "/legal/refund-policy"
+  | "/legal/acceptable-use"
+  | "/legal/cookie-policy"
+  | "/legal/accessibility"
+  | "/legal/security"
+  | "/legal/dpa"
   | "/terms"
   | "/privacy"
   | "/refund-policy"
   | "/acceptable-use"
-  | "/disclaimers";
+  | "/disclaimers"
+  | "/research-lab"
+  | "/research-lab/open-source"
+  | "/research-lab/github-radar"
+  | "/open-source"
+  | "/status"
+  | "/docs"
+  | "/api-webhooks"
+  | "/integrations"
+  | "/changelog";
 
 export type PublicCta = Readonly<{
   label: string;
@@ -68,13 +90,35 @@ export const publicMarketingRoutes: readonly PublicMarketingRoute[] = Object.fre
   "/pricing",
   "/onboarding",
   "/about",
+  "/trust",
   "/security",
   "/contact",
+  "/support",
+  "/help",
+  "/feedback",
+  "/legal",
+  "/legal/terms",
+  "/legal/privacy",
+  "/legal/refund-policy",
+  "/legal/acceptable-use",
+  "/legal/cookie-policy",
+  "/legal/accessibility",
+  "/legal/security",
+  "/legal/dpa",
   "/terms",
   "/privacy",
   "/refund-policy",
   "/acceptable-use",
-  "/disclaimers"
+  "/disclaimers",
+  "/research-lab",
+  "/research-lab/open-source",
+  "/research-lab/github-radar",
+  "/open-source",
+  "/status",
+  "/docs",
+  "/api-webhooks",
+  "/integrations",
+  "/changelog"
 ]);
 
 export const publicNavigationLinks: readonly PublicNavigationLink[] = Object.freeze([
@@ -85,13 +129,19 @@ export const publicNavigationLinks: readonly PublicNavigationLink[] = Object.fre
   Object.freeze({ route: "/pricing", label: "Pricing", group: "Company" }),
   Object.freeze({ route: "/onboarding", label: "Start Setup", group: "Company" }),
   Object.freeze({ route: "/about", label: "About", group: "Company" }),
-  Object.freeze({ route: "/security", label: "Security", group: "Company" }),
+  Object.freeze({ route: "/trust", label: "Trust", group: "Company" }),
   Object.freeze({ route: "/contact", label: "Contact", group: "Company" }),
-  Object.freeze({ route: "/terms", label: "Terms", group: "Legal" }),
-  Object.freeze({ route: "/privacy", label: "Privacy", group: "Legal" }),
-  Object.freeze({ route: "/refund-policy", label: "Refunds", group: "Legal" }),
-  Object.freeze({ route: "/acceptable-use", label: "Acceptable Use", group: "Legal" }),
-  Object.freeze({ route: "/disclaimers", label: "Disclaimers", group: "Legal" })
+  Object.freeze({ route: "/support", label: "Support", group: "Company" }),
+  Object.freeze({ route: "/help", label: "Help", group: "Company" }),
+  Object.freeze({ route: "/status", label: "Status", group: "Company" }),
+  Object.freeze({ route: "/research-lab", label: "Research Lab", group: "Company" }),
+  Object.freeze({ route: "/docs", label: "Docs", group: "Company" }),
+  Object.freeze({ route: "/legal/terms", label: "Terms", group: "Legal" }),
+  Object.freeze({ route: "/legal/privacy", label: "Privacy", group: "Legal" }),
+  Object.freeze({ route: "/legal/refund-policy", label: "Refunds", group: "Legal" }),
+  Object.freeze({ route: "/legal/acceptable-use", label: "Acceptable Use", group: "Legal" }),
+  Object.freeze({ route: "/legal/security", label: "Security", group: "Legal" }),
+  Object.freeze({ route: "/legal/dpa", label: "DPA", group: "Legal" })
 ]);
 
 export const productMarketingPages: readonly ProductMarketingPage[] = Object.freeze([

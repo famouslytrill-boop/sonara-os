@@ -12,6 +12,7 @@ const requiredRoutes = [
   "packages/web/src/app/help/page.ts",
   "packages/web/src/app/feedback/page.ts",
   "packages/web/src/app/security/page.ts",
+  "packages/web/src/app/public-info-pages.ts",
   "packages/web/src/app/business-builder/page.ts",
   "packages/web/src/app/creator-studio/page.ts",
   "packages/web/src/app/growth-studio/page.ts",

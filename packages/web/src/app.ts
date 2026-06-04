@@ -121,6 +121,7 @@ import { renderNotFoundPage } from "./app/not-found/page.ts";
 import { renderPricingPage } from "./app/pricing/page.ts";
 import { renderPromptLibraryPage } from "./app/prompt-library/page.ts";
 import { renderPrivacyPage } from "./app/privacy/page.ts";
+import { renderPublicInfoPage } from "./app/public-info-pages.ts";
 import {
   renderBusinessBuilderMarketingPage,
   renderCreatorStudioMarketingPage,
@@ -187,13 +188,17 @@ import { renderSoundToggle } from "./ui/sound/sound-toggle.tsx";
 export type AppRoute =
   | "/"
   | "/app"
+  | "/app/dashboard"
   | "/app/business-builder"
   | "/app/creator-studio"
   | "/app/growth-studio"
+  | "/app/admin"
   | "/app/admin/command-center"
   | "/app/admin/users"
   | "/app/admin/organizations"
   | "/app/admin/billing"
+  | "/app/admin/integrations"
+  | "/app/admin/github-radar"
   | "/app/admin/owner-review"
   | "/app/admin/audit-logs"
   | "/app/admin/security-settings"
@@ -227,8 +232,18 @@ export type AppRoute =
   | "/reset-password"
   | "/pricing"
   | "/about"
+  | "/trust"
   | "/security"
   | "/contact"
+  | "/legal"
+  | "/legal/terms"
+  | "/legal/privacy"
+  | "/legal/refund-policy"
+  | "/legal/acceptable-use"
+  | "/legal/cookie-policy"
+  | "/legal/accessibility"
+  | "/legal/security"
+  | "/legal/dpa"
   | "/terms"
   | "/privacy"
   | "/refund-policy"
@@ -243,6 +258,14 @@ export type AppRoute =
   | "/support"
   | "/not-found"
   | "/onboarding"
+  | "/research-lab"
+  | "/research-lab/open-source"
+  | "/research-lab/github-radar"
+  | "/open-source"
+  | "/docs"
+  | "/api-webhooks"
+  | "/integrations"
+  | "/changelog"
   | "/dashboard"
   | "/business-builder"
   | "/business-builder/proof-passport"
@@ -476,7 +499,7 @@ export function createApp(root: HTMLElement) {
         root.append(renderAboutPage());
         return;
       }
-      if (route === "/security") {
+      if (route === "/security" || route === "/trust" || route === "/legal/security") {
         root.append(renderSecurityPolicyPage());
         return;
       }
@@ -484,20 +507,37 @@ export function createApp(root: HTMLElement) {
         root.append(renderContactPolicyPage());
         return;
       }
-      if (route === "/terms") {
+      if (route === "/terms" || route === "/legal/terms") {
         root.append(renderTermsPage());
         return;
       }
-      if (route === "/privacy") {
+      if (route === "/privacy" || route === "/legal/privacy") {
         root.append(renderPrivacyPage());
         return;
       }
-      if (route === "/refund-policy") {
+      if (route === "/refund-policy" || route === "/legal/refund-policy") {
         root.append(renderRefundPolicyPage());
         return;
       }
-      if (route === "/acceptable-use") {
+      if (route === "/acceptable-use" || route === "/legal/acceptable-use") {
         root.append(renderAcceptableUsePage());
+        return;
+      }
+      if (
+        route === "/legal" ||
+        route === "/legal/cookie-policy" ||
+        route === "/legal/accessibility" ||
+        route === "/legal/dpa" ||
+        route === "/research-lab" ||
+        route === "/research-lab/open-source" ||
+        route === "/research-lab/github-radar" ||
+        route === "/open-source" ||
+        route === "/docs" ||
+        route === "/api-webhooks" ||
+        route === "/integrations" ||
+        route === "/changelog"
+      ) {
+        root.append(renderPublicInfoPage(route));
         return;
       }
       if (route === "/disclaimers") {
@@ -564,6 +604,10 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderShellDashboard());
         return;
       }
+      if (route === "/app/dashboard") {
+        appendRoute(route, () => renderShellDashboard());
+        return;
+      }
       if (route === "/app/business-builder") {
         appendRoute(route, () => renderBusinessBuilderMarketingPage());
         return;
@@ -576,8 +620,20 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderGrowthStudioMarketingPage());
         return;
       }
+      if (route === "/app/admin") {
+        appendRoute(route, () => renderAdminPage(), { renderBlockedPreview: true });
+        return;
+      }
       if (route === "/app/admin/command-center") {
         appendRoute(route, () => renderAdminCommandCenterPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/app/admin/integrations") {
+        appendRoute(route, () => renderDeploymentSyncPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/app/admin/github-radar") {
+        appendRoute(route, () => renderGitHubUpdateWatcherPage(), { renderBlockedPreview: true });
         return;
       }
       if (route === "/app/admin/users") {

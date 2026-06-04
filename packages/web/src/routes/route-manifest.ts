@@ -1765,9 +1765,211 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
   })
 ]);
 
+const finalGoLiveRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
+  Object.freeze({
+    route: "/app/dashboard",
+    label: "App Dashboard",
+    surface: "launch",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "auth-ready"
+  }),
+  Object.freeze({
+    route: "/app/admin",
+    label: "App Admin",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/app/admin/integrations",
+    label: "App Admin Integrations",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/app/admin/github-radar",
+    label: "App GitHub Radar",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/trust",
+    label: "Trust",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal",
+    label: "Legal",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/terms",
+    label: "Terms",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/privacy",
+    label: "Privacy",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/refund-policy",
+    label: "Refund Policy",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/acceptable-use",
+    label: "Acceptable Use",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/cookie-policy",
+    label: "Cookie Policy",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/accessibility",
+    label: "Accessibility",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/security",
+    label: "Security",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/legal/dpa",
+    label: "DPA",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/research-lab",
+    label: "Research Lab",
+    surface: "launch",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/research-lab/open-source",
+    label: "Open Source Review",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/research-lab/github-radar",
+    label: "GitHub Opportunity Radar",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/open-source",
+    label: "Open Source",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/docs",
+    label: "Docs",
+    surface: "support",
+    nav: true,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/api-webhooks",
+    label: "API and Webhooks",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/integrations",
+    label: "Integrations",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/changelog",
+    label: "Changelog",
+    surface: "support",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  })
+]);
+
 export function getAllRouteDefinitions(): readonly RouteDefinition[] {
   return Object.freeze([
     ...coreRouteDefinitions,
+    ...finalGoLiveRouteDefinitions,
     ...strategyPages.map((page) =>
       Object.freeze({
         route: page.route,
@@ -1787,7 +1989,9 @@ export function getNavigationRoutes(): readonly RouteDefinition[] {
 }
 
 export function getRequiredLaunchRoutes(): readonly string[] {
-  return coreRouteDefinitions.filter((route) => route.launchRequired).map((route) => route.route);
+  return [...coreRouteDefinitions, ...finalGoLiveRouteDefinitions]
+    .filter((route) => route.launchRequired)
+    .map((route) => route.route);
 }
 
 export function isKnownRoute(route: string): boolean {
