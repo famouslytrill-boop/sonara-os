@@ -1,11 +1,16 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
+import { mapContactCategoryToEmailCategory } from "../email/email-config";
 import { getSupabaseAdminClient, type SonaraDatabase } from "../supabaseAdmin";
 import { contactRequestSchema, feedbackReportSchema, firstValidationError } from "./contact-schema";
+import { getSupportEmailReadiness, sendSupportEmailNotification, type SupportEmailResult } from "./support-email";
 
 export type SupportActionState = {
   ok: boolean;
   message: string;
+  correlationId?: string;
 };
 
 const defaultState: SupportActionState = {
@@ -29,14 +34,6 @@ function passesSpamCheck(formData: FormData) {
   const elapsedMs = Date.now() - startedAt;
 
   return !honeypot && Number.isFinite(startedAt) && elapsedMs >= 1200;
-}
-
-function emailProviderConfigured() {
-  return Boolean(
-    process.env.RESEND_API_KEY ||
-      process.env.SENDGRID_API_KEY ||
-      (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD),
-  );
 }
 
 type SupportRequestInsert = SonaraDatabase["public"]["Tables"]["support_requests"]["Insert"];
@@ -76,21 +73,41 @@ async function safeInsertFeedbackReport(payload: FeedbackReportInsert) {
   return { stored: true, reason: "stored" };
 }
 
-function deliveryMessage(stored: boolean) {
-  if (!emailProviderConfigured()) {
-    return stored
-      ? "Your request was validated and stored. Email delivery is not configured yet, so support will review it from the database-backed queue."
-      : "Your request was validated, but email delivery is not configured yet. Please try again later or use the listed support channel.";
+function deliveryMessage(stored: boolean, email: SupportEmailResult, correlationId: string) {
+  const reference = `Reference ID: ${correlationId}.`;
+
+  if (stored && email.sent) {
+    return `Your request was received, stored, and routed to SONARA support. ${reference}`;
   }
 
-  return stored
-    ? "Your request was validated and stored. Email provider settings are present, but outbound delivery remains disabled until the production email adapter is reviewed."
-    : "Your request was validated, but storage is not configured. Email provider settings are present, but outbound delivery remains disabled until the production email adapter is reviewed.";
+  if (stored && email.reason === "email_provider_not_configured") {
+    return `Your request was received and stored. Email provider not configured, so support will review it from the database-backed queue. ${reference}`;
+  }
+
+  if (stored && email.reason === "email_send_failed") {
+    return `Your request was received and stored, but the email notification could not be sent. Support can review it from the database-backed queue. ${reference}`;
+  }
+
+  if (!stored && email.sent) {
+    return `Your request was routed to SONARA support by email, but database storage is not configured. ${reference}`;
+  }
+
+  if (email.reason === "email_provider_not_configured") {
+    return `Request validated, but support storage and email provider are not configured. Please use the listed support inbox and include ${reference}`;
+  }
+
+  return `Request validated, but support storage is unavailable and email delivery failed. Please use the listed support inbox and include ${reference}`;
 }
 
 export async function submitContactRequest(_state: SupportActionState = defaultState, formData: FormData): Promise<SupportActionState> {
+  const correlationId = randomUUID();
+
   if (!passesSpamCheck(formData)) {
-    return { ok: false, message: "This request was blocked by a basic spam check. Please wait a moment and try again." };
+    return {
+      ok: false,
+      correlationId,
+      message: `This request was blocked by a basic spam check. Please wait a moment and try again. Reference ID: ${correlationId}.`,
+    };
   }
 
   const parsed = contactRequestSchema.safeParse({
@@ -106,10 +123,12 @@ export async function submitContactRequest(_state: SupportActionState = defaultS
   });
 
   if (!parsed.success) {
-    return { ok: false, message: firstValidationError(parsed.error) };
+    return { ok: false, correlationId, message: firstValidationError(parsed.error) };
   }
 
   const value = parsed.data;
+  const emailCategory = mapContactCategoryToEmailCategory(value.category);
+  const emailReadiness = getSupportEmailReadiness(emailCategory);
   const insert = await safeInsertSupportRequest({
     name: value.name,
     email: value.email,
@@ -121,16 +140,40 @@ export async function submitContactRequest(_state: SupportActionState = defaultS
     source_path: value.sourcePath ?? "/contact",
     metadata: {
       consent_to_contact: true,
-      email_provider_configured: emailProviderConfigured(),
+      correlation_id: correlationId,
+      email_provider_configured: emailReadiness.configured,
+      email_category: emailCategory,
     },
   });
 
-  return { ok: true, message: deliveryMessage(insert.stored) };
+  const email = await sendSupportEmailNotification({
+    category: emailCategory,
+    correlationId,
+    requesterEmail: value.email,
+    requesterName: value.name,
+    organizationName: value.organizationName ?? null,
+    subject: value.subject,
+    message: value.message,
+    sourcePath: value.sourcePath ?? "/contact",
+    urgency: value.urgency,
+  });
+
+  return {
+    ok: insert.stored || email.sent,
+    correlationId,
+    message: deliveryMessage(insert.stored, email, correlationId),
+  };
 }
 
 export async function submitFeedbackReport(_state: SupportActionState = defaultState, formData: FormData): Promise<SupportActionState> {
+  const correlationId = randomUUID();
+
   if (!passesSpamCheck(formData)) {
-    return { ok: false, message: "This feedback was blocked by a basic spam check. Please wait a moment and try again." };
+    return {
+      ok: false,
+      correlationId,
+      message: `This feedback was blocked by a basic spam check. Please wait a moment and try again. Reference ID: ${correlationId}.`,
+    };
   }
 
   const parsed = feedbackReportSchema.safeParse({
@@ -139,13 +182,15 @@ export async function submitFeedbackReport(_state: SupportActionState = defaultS
     rating: getRequiredString(formData, "rating"),
     message: getRequiredString(formData, "message"),
     email: getRequiredString(formData, "email"),
+    consent: getRequiredString(formData, "consent"),
   });
 
   if (!parsed.success) {
-    return { ok: false, message: firstValidationError(parsed.error) };
+    return { ok: false, correlationId, message: firstValidationError(parsed.error) };
   }
 
   const value = parsed.data;
+  const emailReadiness = getSupportEmailReadiness("feedback");
   const insert = await safeInsertFeedbackReport({
     feedback_type: value.feedbackType,
     page_path: value.pagePath ?? "/feedback",
@@ -153,9 +198,27 @@ export async function submitFeedbackReport(_state: SupportActionState = defaultS
     message: value.message,
     email: value.email ?? null,
     metadata: {
-      email_provider_configured: emailProviderConfigured(),
+      consent_to_review: true,
+      correlation_id: correlationId,
+      email_provider_configured: emailReadiness.configured,
+      email_category: "feedback",
     },
   });
 
-  return { ok: true, message: deliveryMessage(insert.stored) };
+  const email = await sendSupportEmailNotification({
+    category: "feedback",
+    correlationId,
+    requesterEmail: value.email ?? null,
+    requesterName: "Feedback submitter",
+    subject: `Feedback: ${value.feedbackType}`,
+    message: value.message,
+    sourcePath: value.pagePath ?? "/feedback",
+    urgency: value.rating && value.rating <= 2 ? "urgent" : "normal",
+  });
+
+  return {
+    ok: insert.stored || email.sent,
+    correlationId,
+    message: deliveryMessage(insert.stored, email, correlationId),
+  };
 }

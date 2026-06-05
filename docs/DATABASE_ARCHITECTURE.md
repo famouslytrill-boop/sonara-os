@@ -10,3 +10,5 @@ Scaling plan:
 - Use storage buckets by purpose and tenant access policy.
 - Plan backups, archival, read replicas, partitioning, and future sharding only after real usage requires it.
 - Keep Business Builder, Creator Studio, and Growth Studio isolated by organization/product/workspace permissions.
+- Owner bootstrap requires a real Supabase Auth user first, then a safe organization and active owner membership insert/update.
+- If production includes additional required organization columns such as `company_key`, bootstrap scripts must populate them without disabling RLS.

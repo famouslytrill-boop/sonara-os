@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@11.1.1",
+  "engines": {
+    "node": ">=22 <27"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -28,6 +31,7 @@
     "python:health": "cd python && python -m sonara_ops.main health",
     "verify:db": "node scripts/verify-db-infrastructure.mjs",
     "verify:env": "node scripts/verify-env.mjs",
+    "verify:email-env": "node scripts/verify-email-env.mjs",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
     "workers:smoke": "node scripts/worker-smoke-test.mjs",
     "stripe:seed": "node scripts/seed-stripe-products.mjs",
@@ -64,6 +68,8 @@
     "verify:all": "node scripts/verify-all.mjs",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
     "smoke:routes": "node scripts/production-smoke-test.mjs",
+    "smoke:live": "node scripts/smoke-live-routes.mjs",
+    "test:email": "node scripts/test-email-config.mjs",
     "format": "prettier . --check",
     "check:local": "pnpm run validate:infrastructure && pnpm run typecheck && pnpm run test && pnpm run build"
   },

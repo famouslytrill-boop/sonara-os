@@ -10,6 +10,7 @@ const commands = [
   ["pnpm", ["run", "verify:entity-security"]],
   ["pnpm", ["run", "verify:brand"]],
   ["pnpm", ["run", "verify:env"]],
+  ["pnpm", ["run", "verify:email-env"]],
   ["pnpm", ["run", "verify:stripe"]],
   ["pnpm", ["run", "verify:legacy-copy"]],
   ["pnpm", ["run", "check:public-claims"]],

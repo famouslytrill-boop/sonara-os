@@ -44,3 +44,7 @@ This project is RLS-ready, not production-verified. Review every policy in Supab
 4. Confirm each user can read their own organization records only.
 5. Confirm non-admin members cannot perform admin-only operations.
 6. Confirm service-role operations occur only from trusted server code.
+
+## Owner Bootstrap Review
+
+Run `scripts/sql/bootstrap-owner-safe.sql` only after the owner email exists in `auth.users`. Confirm the resulting membership is active and has role `owner` or `platform_owner` with `scripts/sql/verify-owner-bootstrap.sql`.

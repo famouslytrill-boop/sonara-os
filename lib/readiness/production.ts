@@ -35,11 +35,11 @@ export function buildProductionReadinessCards(workspace: WorkspaceBootstrapResul
       href: "/docs",
     },
     {
-      title: "Service role bootstrap",
+      title: "Backend database bootstrap",
       status: statusFor(env.supabaseAdmin),
       body: env.supabaseAdmin
-        ? "Server-only Supabase service role is available for trusted bootstrap and webhook operations."
-        : "Configure SUPABASE_SERVICE_ROLE_KEY server-side before automatic workspace creation can run.",
+        ? "Backend database admin credential is configured for trusted server-only bootstrap and webhook operations."
+        : "Configure the backend-only database admin credential in Vercel before automatic workspace creation can run.",
       href: "/app/settings/security",
     },
     {

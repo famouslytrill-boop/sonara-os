@@ -3,8 +3,9 @@
 import { useActionState, useMemo } from "react";
 import { feedbackTypes } from "../../lib/support/contact-schema";
 import { submitFeedbackReport } from "../../lib/support/support-actions";
+import type { SupportActionState } from "../../lib/support/support-actions";
 
-const initialState = { ok: false, message: "" };
+const initialState: SupportActionState = { ok: false, message: "" };
 const inputClass =
   "mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#050B14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#64748B] focus:border-[#2DD4BF] focus:ring-2 focus:ring-[#2DD4BF]/35";
 const labelClass = "text-sm font-bold text-[#E2E8F0]";
@@ -59,6 +60,11 @@ export function FeedbackForm() {
       <label className={`${labelClass} mt-4 block`}>
         Feedback
         <textarea className={`${inputClass} min-h-36 resize-y`} name="message" required minLength={10} />
+      </label>
+
+      <label className="mt-4 flex items-start gap-3 text-sm font-bold leading-6 text-[#CBD5E1]">
+        <input className="mt-1 h-4 w-4 rounded border-white/20 bg-[#050B14]" name="consent" type="checkbox" required />
+        <span>I agree that SONARA may review this feedback to improve the product or follow up if I provided an email.</span>
       </label>
 
       <button

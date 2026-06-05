@@ -1,23 +1,38 @@
-import { getSupabasePublicConfig } from "../supabase";
+import { getSupabasePublicConfigDiagnostic, supabasePublicUrlMisconfiguredMessage } from "../supabase";
 
 export function getAuthDiagnostics() {
-  const config = getSupabasePublicConfig();
+  const diagnostic = getSupabasePublicConfigDiagnostic();
 
   return {
-    supabasePublicConfigured: Boolean(config),
-    message: config
-      ? "Supabase public auth configuration is present."
-      : "Supabase Auth is missing public configuration. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel, then redeploy.",
+    supabasePublicConfigured: diagnostic.ok,
+    reason: diagnostic.reason,
+    message: diagnostic.message,
   };
 }
 
-export function formatPublicAuthError(error: unknown) {
-  if (error instanceof Error) {
-    if (/failed to fetch|networkerror|load failed/i.test(error.message)) {
-      return "Auth request could not reach Supabase. Verify NEXT_PUBLIC_SUPABASE_URL, browser network access, Supabase URL configuration, and Vercel production env scope.";
+export function formatPublicAuthError(error: unknown, context: "google" | "phone" | "email" | "password" = "email") {
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return supabasePublicUrlMisconfiguredMessage;
+  }
+
+  if (/unsupported provider|provider.*not.*enabled|provider.*disabled/i.test(message)) {
+    if (context === "google") {
+      return "Google sign-in is not enabled in Supabase yet. Enable Google in Supabase Auth Providers and add the callback URL.";
     }
 
-    return error.message;
+    if (context === "phone") {
+      return "Phone sign-in is not enabled in Supabase yet. Enable Phone Auth and an SMS provider in Supabase before using OTP login.";
+    }
+  }
+
+  if (/fetch/i.test(message) && /supabase/i.test(message)) {
+    return supabasePublicUrlMisconfiguredMessage;
+  }
+
+  if (message && !/^\s*[{[]/.test(message)) {
+    return message;
   }
 
   return "Auth request failed. Check Supabase provider setup and browser network logs.";

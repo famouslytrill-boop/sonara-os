@@ -59,6 +59,7 @@ export const feedbackReportSchema = z.object({
   rating: z.coerce.number().int().min(1).max(5).optional().or(z.literal("").transform(() => undefined)),
   message: z.string().trim().min(10, "Feedback must be at least 10 characters.").max(3000),
   email: z.string().trim().email("Enter a valid email address.").max(240).optional().or(z.literal("").transform(() => undefined)),
+  consent: z.literal("on", { message: "Consent is required." }),
 });
 
 export type ContactRequestInput = z.infer<typeof contactRequestSchema>;

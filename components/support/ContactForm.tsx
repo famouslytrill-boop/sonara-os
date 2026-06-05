@@ -3,8 +3,9 @@
 import { useActionState, useMemo } from "react";
 import { contactCategories, urgencyLevels } from "../../lib/support/contact-schema";
 import { submitContactRequest } from "../../lib/support/support-actions";
+import type { SupportActionState } from "../../lib/support/support-actions";
 
-const initialState = { ok: false, message: "" };
+const initialState: SupportActionState = { ok: false, message: "" };
 const inputClass =
   "mt-2 min-h-11 w-full rounded-xl border border-white/10 bg-[#050B14] px-3 py-2 text-sm text-white outline-none transition placeholder:text-[#64748B] focus:border-[#2DD4BF] focus:ring-2 focus:ring-[#2DD4BF]/35";
 const labelClass = "text-sm font-bold text-[#E2E8F0]";

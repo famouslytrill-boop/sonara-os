@@ -31,7 +31,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
 
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        const nextPath = params.get("next") || params.get("redirect") || "/app/dashboard";
+        const nextPath = params.get("next") || params.get("redirect") || "/onboarding";
         window.location.href = `/auth/callback?next=${encodeURIComponent(nextPath)}`;
       }
     });
@@ -39,7 +39,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
 
   function getRedirectPath() {
     const params = new URLSearchParams(window.location.search);
-    return params.get("next") || params.get("redirect") || "/os";
+    return params.get("next") || params.get("redirect") || "/onboarding";
   }
 
   function getAuthCallbackUrl() {
@@ -64,7 +64,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
             emailRedirectTo: getAuthCallbackUrl(),
           },
         });
-        setMessage(error ? error.message : "Check your email for the SONARA sign-in link.");
+        setMessage(error ? formatPublicAuthError(error, "email") : "Check your email for the SONARA sign-in link.");
         return;
       }
 
@@ -73,7 +73,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
           const { error } = await supabase.auth.signInWithOtp({ phone });
           setMessage(
             error
-              ? error.message
+              ? formatPublicAuthError(error, "phone")
               : "Phone OTP sent if Supabase Phone Auth and SMS provider are configured. Enter the code to continue.",
           );
           if (!error) setPhoneOtpSent(true);
@@ -82,7 +82,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
 
         const { error } = await supabase.auth.verifyOtp({ phone, token: otpCode, type: "sms" });
         if (error) {
-          setMessage(error.message);
+          setMessage(formatPublicAuthError(error, "phone"));
           return;
         }
         window.location.href = getAuthCallbackUrl();
@@ -97,7 +97,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
             emailRedirectTo: getAuthCallbackUrl(),
           },
         });
-        setMessage(error ? error.message : "Account created. Check your email if confirmation is enabled.");
+        setMessage(error ? formatPublicAuthError(error, "email") : "Account created. Check your email if confirmation is enabled.");
 
         const {
           data: { session },
@@ -110,7 +110,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        setMessage(error.message);
+        setMessage(formatPublicAuthError(error, "password"));
         return;
       }
 
@@ -137,7 +137,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
       });
 
       if (error) {
-        setMessage(error.message);
+        setMessage(formatPublicAuthError(error, "google"));
       }
     } catch (error) {
       setMessage(formatPublicAuthError(error));
@@ -150,8 +150,7 @@ export function LoginForm({ initialMode = "magic" }: { initialMode?: LoginMode }
         <p className="text-xs font-black uppercase text-[#22D3EE]">Account setup</p>
         <h1 className="mt-2 text-3xl font-black">SONARA One login.</h1>
         <p className="mt-3 leading-7 text-[#A1A1AA]">
-          Log in to access the protected SONARA app shell. Supabase Auth must be configured before accounts and saved
-          workspace records go live.
+          {diagnostics.message} Supabase Auth must be configured before accounts and saved workspace records go live.
         </p>
         <Link className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-[#8B5CF6] px-4 text-sm font-bold text-white" href="/docs">
           View setup status

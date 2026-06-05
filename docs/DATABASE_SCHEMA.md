@@ -50,3 +50,5 @@ Membership reads are scoped to the signed-in user's active memberships. Organiza
 - Private organization, customer, payment, file, and audit data must not have public read policies.
 - Apply migrations only after backing up the target Supabase project.
 - Generate TypeScript types after migration review with `pnpm run db:types`.
+- Some production schemas may include a required `organizations.company_key` column. Owner bootstrap SQL sets `company_key = 'sonara'` when the column exists.
+- Do not rely on `ON CONFLICT` for owner bootstrap unless a matching unique or exclusion constraint has been confirmed.

@@ -66,3 +66,11 @@ Public pages must render without Supabase environment variables. Persistent gene
 - `support_requests` allows public inserts only; reads and management stay authenticated/server-side.
 - `feedback_reports` allows public inserts only; reads and management stay authenticated/server-side.
 - Email delivery is optional and must not be claimed active unless a reviewed provider adapter and real provider env vars are configured.
+
+## Owner Bootstrap
+
+- The owner email must sign in once before owner bootstrap SQL is run.
+- Use `scripts/sql/bootstrap-owner-safe.sql`; replace `OWNER_EMAIL_HERE` before running.
+- The script fills `company_key = 'sonara'` when that production column exists.
+- Verify with `scripts/sql/verify-owner-bootstrap.sql`.
+- Do not disable RLS or create hidden admin users during bootstrap.
