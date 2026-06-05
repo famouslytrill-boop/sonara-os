@@ -33,6 +33,7 @@
     "verify:env": "node scripts/verify-env.mjs",
     "verify:email-env": "node scripts/verify-email-env.mjs",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
+    "verify:stripe-prices": "node scripts/verify-stripe-env.mjs --strict",
     "workers:smoke": "node scripts/worker-smoke-test.mjs",
     "stripe:seed": "node scripts/seed-stripe-products.mjs",
     "heartbeat": "node scripts/entity-heartbeat-check.mjs",
