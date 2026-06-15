@@ -1,25 +1,39 @@
-const request = require('supertest');
-const assert = require('assert')
-const app = require('../server');
+const request = require("supertest");
+const assert = require("assert");
+const app = require("../server");
 
-describe('GET /', () => {
-  it('responds responds to the world', async function() {
+describe("GET /", () => {
+  it("responds with the Express landing page", async function() {
     const res = await request(app)
-      .get('/')
-      .set('Accept', 'application/json');
+      .get("/")
+      .set("Accept", "text/html");
 
     assert.equal(res.status, 200);
-    assert.equal(res.type, 'application/json');
-    assert.equal(res.body.message, 'Hello World!');
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Express service is online/);
   });
 });
 
-describe('GET /404', () => {
-  it('responds with a 404', async function() {
+describe("GET /api/health", () => {
+  it("responds with JSON health status", async function() {
     const res = await request(app)
-      .get('/404')
-      .set('Accept', 'application/json');
+      .get("/api/health")
+      .set("Accept", "application/json");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "application/json");
+    assert.deepEqual(res.body, { ok: true });
+  });
+});
+
+describe("GET /404", () => {
+  it("responds with a 404", async function() {
+    const res = await request(app)
+      .get("/404")
+      .set("Accept", "application/json");
 
     assert.equal(res.status, 404);
+    assert.equal(res.type, "application/json");
+    assert.equal(res.body.error, "not_found");
   });
 });
