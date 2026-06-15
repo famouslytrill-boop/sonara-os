@@ -1,0 +1,12 @@
+backups/
+launch-logs/
+*.bak
+*.patch
+.gitpod.yml
+.env
+.env.*
+.vercel/
+node_modules/
+.next/
+supabase/.temp/
+packages/web/src/lib/database.types.ts

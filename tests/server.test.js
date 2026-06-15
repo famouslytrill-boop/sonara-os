@@ -26,6 +26,18 @@ describe("GET /api/health", () => {
   });
 });
 
+describe("GET /contact", () => {
+  it("responds with the contact page", async function() {
+    const res = await request(app)
+      .get("/contact")
+      .set("Accept", "text/html");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Contact SONARA Industries/);
+  });
+});
+
 describe("GET /unknown-route", () => {
   it("responds with a 404", async function() {
     const res = await request(app)
