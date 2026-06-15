@@ -1,12 +1,13 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
+  "version": 2,
+  "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm run build",
-  "crons": [
+  "buildCommand": "pnpm build",
+  "rewrites": [
     {
-      "path": "/api/cron/sonara-maintenance",
-      "schedule": "0 10 * * 1"
+      "source": "/(.*)",
+      "destination": "/api"
     }
   ]
 }

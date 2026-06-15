@@ -1,133 +1,53 @@
-<<<<<<< HEAD
 # SONARA Industries
 
-SONARA Industries is a technology holding company that owns independent software companies.
+SONARA Industries is the Express/Vercel application for the SONARA parent site and the Business Builder, Creator Studio, and Growth Studio workspaces.
 
-Tagline: Build. Create. Grow.
+The app intentionally stays on Express/Node for the current production deployment. Do not add Next.js, React, or client-side secret exposure as part of this launch path.
 
-Public message: Build. Create. Grow.
+## Product Areas
 
-## Product Architecture
-
-- Business Builder: create, launch, run, and manage a business with guided systems, payments, bookings, records, and operational intelligence.
-- Creator Studio: organize, protect, publish, monetize, and grow creative work, digital products, media, and creator operations.
-- Growth Studio: attract customers, leads, fans, referrals, reviews, and revenue through campaigns, follow-up, offers, and growth systems.
-
-SONARA One is the shared app platform for the three product workspaces.
-
-## Shared Infrastructure
-
-- Trust Shield
-- Proof-to-Payment
-- Business Memory Graph
-- Smart Setup Wizard
-- Research Lab
-- Graph Builder
-- Files & Records
-- Access Control
-- Billing & Entitlements
-- Alerts & Signals
-- AI Governance
-- Customer Success
-- Launch Readiness
+- Business Builder: service-business setup, intake, offers, customer records, orders, billing, and employee access.
+- Creator Studio: assets, offers, releases, records, and creator workspace settings.
+- Growth Studio: campaigns, leads, follow-ups, records, and growth workspace settings.
 
 ## Safety Rules
 
-- No raw card data or CVV storage.
-- Service-role keys stay server-side.
-- Stripe webhooks verify signatures.
-- Paid checkout stays disabled or safely errors until real Stripe env vars are configured.
-- Risky actions require owner approval.
-- No guaranteed legal, financial, cybersecurity, uptime, customer, or revenue claims.
-- Legal pages are review-ready drafts, not legal advice.
+- Service-role keys, Stripe secrets, webhook secrets, Resend keys, and admin credentials stay server-side.
+- Stripe Checkout session creation does not unlock paid access.
+- Paid access unlocks only after Stripe webhook events record valid billing state in Supabase.
+- Failed payments are audited but never unlock paid modules.
+- Owner/admin roles can access internal modules for operations without creating fake customer entitlements.
+- Legal pages and launch docs require owner and qualified legal review before paid public launch.
 
-## Stack
-
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- Supabase-ready auth/RLS structure
-- Stripe Checkout and webhook scaffolding
-- PWA manifest/service worker
-- GitHub Actions dependency/security workflow
-
-## Public Routes
-
-- `/`
-- `/business-builder`
-- `/creator-studio`
-- `/growth-studio`
-- `/pricing`
-- `/trust`
-- `/about`
-- `/contact`
-- `/legal`
-- `/legal/terms`
-- `/legal/privacy`
-- `/legal/refund-policy`
-- `/legal/acceptable-use`
-
-## App Routes
-
-- `/app`
-- `/app/dashboard`
-- `/app/business-builder`
-- `/app/creator-studio`
-- `/app/growth-studio`
-- `/app/settings`
-- `/admin`
-
-## Local Setup And Validation
+## Local Validation
 
 Use pnpm only.
 
 ```powershell
 pnpm install --frozen-lockfile
-pnpm audit --audit-level moderate
-pnpm run typecheck
-pnpm run lint
+pnpm lint
 pnpm test
-pnpm run build
-pnpm run verify:legacy-copy
+pnpm typecheck
+pnpm build
+pnpm run scan:client-secrets
 ```
 
-Do not use npm, `npm audit fix`, or `package-lock.json`.
+## Deployment
+
+Vercel routes all traffic to the Express serverless handler in `api/index.js`, which exports the app from `server.js`.
+
+Required deployment files:
+
+- `server.js`
+- `api/index.js`
+- `vercel.json`
+- `pnpm-workspace.yaml`
+- `package.json`
 
 ## Environment
 
-Use `.env.example` as the source of truth. Keep secret values in local `.env`, Vercel, Supabase, Stripe, GitHub secrets, or a password manager.
-
-Required setup docs:
-
-- `docs/ENVIRONMENT_VARIABLES.md`
-- `docs/DEPLOYMENT_RUNBOOK.md`
-- `docs/SUPABASE_SETUP.md`
-- `docs/STRIPE_SETUP.md`
-- `docs/BILLING_RUNBOOK.md`
-- `docs/PRODUCTION_CHECKLIST.md`
+Use `.env.example` as the source of truth. Keep real values only in local `.env`, Vercel, Supabase, Stripe, Resend, or a password manager. Never commit real provider credentials.
 
 ## Database
 
-Supabase migration scaffolding lives in `supabase/migrations/010_sonara_platform_current_schema.sql`.
-
-RLS-ready table structure is included, but production RLS is not complete until applied and tested in Supabase.
-=======
-# Node Express template project
-
-This project is based on a GitLab [Project Template](https://docs.gitlab.com/ee/user/project/#create-a-project-from-a-built-in-template).
-
-Improvements can be proposed in the [original project](https://gitlab.com/gitlab-org/project-templates/express).
-
-## CI/CD with Auto DevOps
-
-This template is compatible with [Auto DevOps](https://docs.gitlab.com/ee/topics/autodevops/).
-
-If Auto DevOps is not already enabled for this project, you can [turn it on](https://docs.gitlab.com/ee/topics/autodevops/#enable-or-disable-auto-devops) in the project settings.
-
-### Developing with Gitpod
-
-This template has a fully-automated dev setup for [Gitpod](https://docs.gitlab.com/ee/integration/gitpod.html).
-
-If you open this project in Gitpod, you'll get all Node dependencies pre-installed.
->>>>>>> 451d11f (Initialized from 'NodeJS Express' project template)
+Supabase migrations live in `supabase/migrations/`. Apply them through the Supabase CLI or Supabase dashboard review flow. Do not commit generated Supabase temp state from `supabase/.temp/` or `supabase/.branches/`.
