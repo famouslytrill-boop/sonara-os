@@ -9,4 +9,3 @@ launch-logs/
 node_modules/
 .next/
 supabase/.temp/
-packages/web/src/lib/database.types.ts
