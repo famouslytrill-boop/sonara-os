@@ -57,10 +57,12 @@ typings/
 # dotenv environment variables file
 .env
 
-# next.js build output
-.next
-.vercel
-.env*
+# Local framework/build output
+.next/
+.vercel/
+node_modules/
+
+# Environment files
 .env
 .env.*
 !.env.example
@@ -68,6 +70,3 @@ typings/
 backups/
 *.bak
 *.patch
-
-.vercel/
-node_modules/
