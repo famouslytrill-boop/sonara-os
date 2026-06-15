@@ -61,6 +61,7 @@ typings/
 .next
 .vercel
 .env*
+<<<<<<< HEAD
 supabase/.temp/
 supabase/.branches/
 supabase/.env
@@ -69,3 +70,15 @@ supabase/.env
 .pnpm-store/
 dist/
 .next/
+=======
+.env
+.env.*
+!.env.example
+
+backups/
+*.bak
+*.patch
+
+.vercel/
+node_modules/
+>>>>>>> 51a2c0e (Fix project scripts and quality gates)
