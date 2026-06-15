@@ -68,5 +68,8 @@ node_modules/
 !.env.example
 
 backups/
+launch-logs/
 *.bak
 *.patch
+.gitpod.yml
+supabase/.temp/
