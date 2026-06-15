@@ -1,8 +1,6 @@
 const express = require("express");
 const app = express();
 
-const port = process.env.PORT || 5000;
-
 app.get("/", (req, res) => {
   return res.status(200).type("html").send(`<!doctype html>
 <html lang="en">
@@ -29,6 +27,7 @@ app.use((req, res) => {
 });
 
 if (require.main === module) {
+  const port = process.env.PORT || 5000;
   app.listen(port, () => {
     console.log(`Listening on ${port}`);
   });
