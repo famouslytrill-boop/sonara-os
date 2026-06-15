@@ -26,10 +26,10 @@ describe("GET /api/health", () => {
   });
 });
 
-describe("GET /404", () => {
+describe("GET /unknown-route", () => {
   it("responds with a 404", async function() {
     const res = await request(app)
-      .get("/404")
+      .get("/unknown-route")
       .set("Accept", "application/json");
 
     assert.equal(res.status, 404);
