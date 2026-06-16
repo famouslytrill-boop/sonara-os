@@ -33,6 +33,14 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 9. Verify Resend delivery from a verified domain.
 10. Complete legal review before paid public launch.
 
+## Pricing to configure
+
+- Free: no Stripe price required.
+- Starter monthly: $7.
+- Core monthly: $19.
+- Pro monthly: $39.
+- Business Builder Setup: $99 one-time.
+
 ## Safety rules
 
 - Never expose `SUPABASE_SERVICE_ROLE_KEY`.

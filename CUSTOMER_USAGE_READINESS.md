@@ -31,3 +31,11 @@ When providers are missing:
 - Configure Google OAuth and Supabase Auth provider settings.
 - Complete legal review.
 - Run owner production smoke tests.
+
+## Pricing ladder
+
+- Free: $0 readiness checklist and product path selection.
+- Starter: $7/month for one workspace and basic tools.
+- Core: $19/month for best-value workspace operations.
+- Pro: $39/month for all three studios and deeper planning.
+- Business Builder Setup: $99 one-time guided setup.

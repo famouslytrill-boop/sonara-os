@@ -51,22 +51,23 @@ registerProduct("business-builder", {
   name: "Business Builder",
   body: "Service-business launch infrastructure for offers, intake, customer records, booking readiness, and payment readiness.",
   cards: [
-    ["Offer builder shell", "Shape the launch offer, scope, proof points, and customer next action."],
-    ["Intake/request queue shell", "Capture requests through the support queue and review workflow."],
-    ["Booking/payment readiness shell", "Keep checkout gated until Stripe products, prices, and webhooks are configured."],
-    ["Customer records shell", "Prepare organization-scoped customer records for Supabase-backed operations."]
+    ["Offer Builder", "Shape the launch offer, scope, proof points, and customer next action."],
+    ["Intake & Request Queue", "Capture requests through the support queue and review workflow."],
+    ["Booking & Payment Readiness", "Keep checkout gated until Stripe products, prices, and webhooks are configured."],
+    ["Customer Records", "Prepare organization-scoped customer records for Supabase-backed operations."]
   ],
-  checklist: ["Define launch offer", "Verify contact intake", "Confirm payment readiness", "Review customer records"]
+  checklist: ["Business profile", "Offer", "Intake", "Pricing", "Payment", "Support", "Legal", "Analytics"]
 });
 
 registerProduct("creator-studio", {
   name: "Creator Studio",
   body: "Creator product and catalog workspace for assets, offers, release planning, monetization readiness, and media records.",
   cards: [
-    ["Asset/catalog shell", "Organize creator assets, catalog items, and provenance-ready records."],
-    ["Creator offer shell", "Prepare creator products and customer-facing offers."],
+    ["Asset Catalog", "Organize creator assets, catalog items, and provenance-ready records."],
+    ["Creator Offers", "Prepare creator products and customer-facing offers."],
     ["Release/content checklist", "Track release and content tasks without claiming automation is live."],
-    ["Monetization readiness shell", "Surface payment and email setup requirements before selling."]
+    ["Monetization Readiness", "Surface payment and email setup requirements before selling."],
+    ["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."]
   ],
   checklist: ["Review asset catalog", "Prepare creator offer", "Confirm release checklist", "Verify monetization readiness"]
 });
@@ -75,10 +76,11 @@ registerProduct("growth-studio", {
   name: "Growth Studio",
   body: "Growth workspace for campaign planning, lead follow-up, consent-safe checklists, automation readiness, and growth records.",
   cards: [
-    ["Campaign workspace shell", "Plan growth campaigns and launch experiments."],
-    ["Lead/customer follow-up shell", "Prepare follow-up workflows with consent and owner review."],
+    ["Campaign Workspace", "Plan growth campaigns and launch experiments."],
+    ["Lead & Customer Follow-Up", "Prepare follow-up workflows with consent and owner review."],
     ["Consent-safe checklist", "Keep outbound actions reviewable and audit-ready."],
-    ["Automation readiness shell", "Show setup requirements instead of pretending automations are live."]
+    ["Automation Readiness", "Show setup requirements instead of pretending automations are live."],
+    ["Growth Records", "Track campaign records, leads, outcomes, and notes."]
   ],
   checklist: ["Plan campaign", "Review consent posture", "Confirm email readiness", "Prepare growth records"]
 });
@@ -135,10 +137,10 @@ app.get("/pricing", (req, res) => {
         ? "Checkout is configured for server-side processing."
         : "Checkout is setup_required until Stripe server variables and price IDs are configured.",
       sections: [
-        priceCard("Free", "$0", "Public readiness shell and launch review entry point.", "free", stripeReady),
-        priceCard("Starter monthly", "$9/mo", "Essential launch infrastructure.", "starter_monthly", stripeReady),
-        priceCard("Core monthly", "$29/mo", "Operating system for active businesses.", "core_monthly", stripeReady),
-        priceCard("Pro monthly", "$59/mo", "Campaign and customer growth workspace.", "pro_monthly", stripeReady),
+        priceCard("Free", "$0", "Public readiness checklist and product path selection.", "free", stripeReady),
+        priceCard("Starter monthly", "$7/mo", "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.", "starter_monthly", stripeReady),
+        priceCard("Core monthly", "$19/mo", "Best value for one studio, customer records, offer records, launch readiness, and support queue.", "core_monthly", stripeReady),
+        priceCard("Pro monthly", "$39/mo", "All three studios, deeper records, campaign planning, advanced readiness, and priority support queue.", "pro_monthly", stripeReady),
         priceCard("Business Builder setup", "One-time", "Manual setup package for service launch infrastructure.", "business_builder_one_time", stripeReady)
       ],
       actions: [linkAction("/contact", "Request setup"), linkAction("/legal/refund-policy", "Refund policy")]
@@ -226,9 +228,35 @@ app.get("/login", (req, res) => {
   return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
 });
 
+app.get("/signup", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Signup",
+      eyebrow: "Account readiness",
+      heading: "Create an account",
+      body: "Account access will unlock Business Builder, Creator Studio, and Growth Studio once Supabase Auth is configured by the owner.",
+      sections: [
+        authForm("Create account", "/auth/signup"),
+        brandCard("Account access", "Use one account for product path selection, first offer setup, support preferences, and payment readiness.")
+      ],
+      actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
+    })
+  );
+});
+
+app.post("/auth/signup", async (req, res) => {
+  const result = await handleEmailAuth("signup", req.body);
+  return res.status(result.status).json(result.body);
+});
+
+app.post("/auth/login", async (req, res) => {
+  const result = await handleEmailAuth("login", req.body);
+  return res.status(result.status).json(result.body);
+});
+
 app.get("/logout", (req, res) => {
   return res.status(200).type("html").send(
-    responsePage("Logout", "No persistent session is active in this Express readiness shell. OAuth-backed session logout will be enabled when owner credentials are configured.", [
+    responsePage("Logout", "No persistent session is active. OAuth-backed session logout will be enabled when owner credentials are configured.", [
       linkAction("/", "Home"),
       linkAction("/login", "Login")
     ])
@@ -236,7 +264,39 @@ app.get("/logout", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  return res.status(200).json({ ok: true, message: "No persistent session is active in this Express readiness shell." });
+  return res.status(200).json({ ok: true, message: "No persistent session is active." });
+});
+
+app.post("/auth/logout", (req, res) => {
+  return res.status(200).json({ ok: true, message: "No persistent session is active." });
+});
+
+app.get("/account", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Account",
+      eyebrow: "Account readiness",
+      heading: "Account",
+      body: getReadiness().services.supabase === "configured"
+        ? "Supabase Auth is configured. Persistent session handling requires owner smoke testing before customer launch."
+        : "setup_required: Connect Supabase Auth to enable account sessions.",
+      sections: accountSetupCards(),
+      actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
+    })
+  );
+});
+
+app.get("/account/setup", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Account setup",
+      eyebrow: "Account readiness",
+      heading: "Account setup",
+      body: "Complete these items after email login is configured and owner-tested.",
+      sections: accountSetupCards(),
+      actions: [linkAction("/account", "Account"), linkAction("/contact", "Request setup"), linkAction("/", "Home")]
+    })
+  );
 });
 
 app.get("/auth/callback", (req, res) => {
@@ -270,9 +330,104 @@ app.post("/api/checkout/session", async (req, res) => {
   return res.status(200).json({ ok: true, checkout_url: session.url });
 });
 
+app.get("/api/billing/status", (req, res) => {
+  const readiness = getReadiness();
+  return res.status(200).json({
+    ok: true,
+    checkout: readiness.services.checkout,
+    stripe: readiness.services.stripe,
+    paidStatus: "not_verified",
+    message: readiness.services.checkout === "enabled" ? "Checkout can be started server-side." : "setup_required"
+  });
+});
+
+app.post("/api/business-builder/offers", async (req, res) => {
+  const validation = requireFields(req.body, ["serviceType", "audience", "priceIdea", "deliverables"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = buildBusinessOffer(req.body);
+  return res.status(200).json(await saveModuleOutput("business_builder", "offer_builder", req.body, output));
+});
+
+app.post("/api/business-builder/intake", async (req, res) => {
+  const validation = requireFields(req.body, ["name", "email", "message", "serviceInterest"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = {
+    referenceId: randomUUID(),
+    summary: `${req.body.name} requested ${req.body.serviceInterest}.`,
+    nextAction: "Review request and follow up through the support queue."
+  };
+  return res.status(200).json(await saveModuleOutput("business_builder", "intake_queue", req.body, output));
+});
+
+app.get("/api/business-builder/records", async (req, res) => res.status(200).json(await readModuleRecords("business_builder")));
+app.get("/api/business-builder/readiness", (req, res) => res.status(200).json(productReadinessJson("business_builder")));
+
+app.post("/api/creator-studio/assets", async (req, res) => {
+  const validation = requireFields(req.body, ["title", "type", "platform", "status", "rightsNotes"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = {
+    title: String(req.body.title),
+    rightsReview: "Rights notes captured for owner review.",
+    nextAction: "Add platform, status, and release checklist before monetization."
+  };
+  return res.status(200).json(await saveModuleOutput("creator_studio", "asset_catalog", req.body, output));
+});
+
+app.post("/api/creator-studio/offers", async (req, res) => {
+  const validation = requireFields(req.body, ["offerType", "audience", "deliverables", "priceIdea"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = buildCreatorOffer(req.body);
+  return res.status(200).json(await saveModuleOutput("creator_studio", "creator_offers", req.body, output));
+});
+
+app.get("/api/creator-studio/records", async (req, res) => res.status(200).json(await readModuleRecords("creator_studio")));
+app.get("/api/creator-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("creator_studio")));
+
+app.post("/api/growth-studio/campaigns", async (req, res) => {
+  const validation = requireFields(req.body, ["goal", "audience", "offer", "channel", "timeline"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = buildCampaignPlan(req.body);
+  return res.status(200).json(await saveModuleOutput("growth_studio", "campaign_workspace", req.body, output));
+});
+
+app.post("/api/growth-studio/leads", async (req, res) => {
+  const validation = requireFields(req.body, ["name", "email", "source", "consentStatus"]);
+  if (!validation.ok) return res.status(400).json(validation);
+  const output = {
+    followUpPlan: "Confirm consent, use truthful subject/from lines, include unsubscribe language for commercial email, and keep audience source notes.",
+    nextAction: "Review lead before any outreach."
+  };
+  return res.status(200).json(await saveModuleOutput("growth_studio", "lead_follow_up", req.body, output));
+});
+
+app.get("/api/growth-studio/records", async (req, res) => res.status(200).json(await readModuleRecords("growth_studio")));
+app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("growth_studio")));
+
 app.get("/api/health", (req, res) => res.status(200).json({ ok: true }));
 
 app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
+
+app.get("/manifest.webmanifest", (req, res) => {
+  return res.status(200).type("application/manifest+json").json({
+    name: "SONARA Industries",
+    short_name: "SONARA",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: "#07070a",
+    theme_color: "#07070a",
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+    ]
+  });
+});
+
+app.get("/offline", (req, res) => {
+  return res.status(200).type("html").send(
+    responsePage("Offline", "The SONARA interface is available again when network access returns.", [linkAction("/", "Home")])
+  );
+});
 
 app.get("/admin", requireAdmin, (req, res) => {
   const readiness = getReadiness();
@@ -336,7 +491,7 @@ function registerProduct(slug, config) {
     res.status(200).type("html").send(
       layout({
         title: config.name,
-        eyebrow: "Product shell",
+        eyebrow: "Product system",
         heading: config.name,
         body: config.body,
         sections: [
@@ -360,9 +515,9 @@ function registerProduct(slug, config) {
         title: `${config.name} Dashboard`,
         eyebrow: "Workspace",
         heading: `${config.name} Dashboard`,
-        body: "Operational shell with setup-aware cards. Backend-dependent actions remain gated until provider variables are configured.",
+        body: "Operational workspace with setup-aware cards. Backend-dependent actions remain gated until provider variables are configured.",
         sections: [
-          brandCard("Dashboard cards", "Workspace status, provider readiness, recent activity, and customer next actions are available in shell form."),
+          brandCard("Dashboard cards", "Workspace status, provider readiness, recent activity, and customer next actions are available."),
           brandCard("Records/workspace", readiness.services.supabase === "configured" ? "Supabase-backed records can be connected." : "setup_required: Supabase is not configured."),
           brandCard("Recent activity", "No production activity is shown until backend providers are configured."),
           brandCard("Customer next actions", "Review readiness, submit launch request, or prepare product records.")
@@ -393,16 +548,20 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07070a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SONARA">
+    <link rel="manifest" href="/manifest.webmanifest">
     <title>${escapeHtml(title)} | SONARA Industries</title>
     <style>
       :root { color-scheme: dark; --bg: #07070a; --panel: #111119; --line: #2b2b38; --text: #f7f3ee; --muted: #aaa3b5; --gold: #d7b46a; }
       * { box-sizing: border-box; }
-      body { margin: 0; background: radial-gradient(circle at top left, #27202f 0, #07070a 38rem); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: radial-gradient(circle at top left, #27202f 0, #07070a 38rem); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
       a { color: inherit; }
       header, main, footer { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
       header { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 28px 0; }
       nav { display: flex; flex-wrap: wrap; gap: 14px; }
-      nav a, .action { border: 1px solid var(--line); border-radius: 999px; padding: 10px 14px; text-decoration: none; color: var(--muted); background: rgba(255,255,255,0.03); }
+      nav a, .action { border: 1px solid var(--line); border-radius: 999px; padding: 12px 16px; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: var(--muted); background: rgba(255,255,255,0.03); }
       nav a:hover, .action:hover { border-color: var(--gold); color: var(--text); }
       .brand { letter-spacing: .16em; text-transform: uppercase; font-size: 13px; color: var(--gold); }
       .hero { padding: 72px 0 52px; }
@@ -415,7 +574,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       .card { min-height: 190px; border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: rgba(17,17,25,.82); box-shadow: 0 24px 80px rgba(0,0,0,.32); }
       .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
       form { display: grid; gap: 14px; }
-      input, textarea, select, button { width: 100%; border-radius: 12px; border: 1px solid var(--line); background: #09090f; color: var(--text); padding: 12px 14px; font: inherit; }
+      input, textarea, select, button { width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #09090f; color: var(--text); padding: 12px 14px; font: inherit; }
       button { cursor: pointer; background: var(--gold); color: #111; font-weight: 700; }
       .fine { font-size: 13px; color: var(--muted); }
       footer { border-top: 1px solid var(--line); padding: 28px 0 44px; color: var(--muted); }
@@ -495,20 +654,42 @@ function contactForm() {
   return `<article class="card">
     <h2>Request intake</h2>
     <form method="post" action="/contact">
-      <input name="name" type="text" placeholder="name" required>
-      <input name="email" type="email" placeholder="work email" required>
-      <input name="subject" type="text" placeholder="subject" required>
+      <label>Name<input name="name" type="text" required></label>
+      <label>Work email<input name="email" type="email" required></label>
+      <label>Subject<input name="subject" type="text" required></label>
       <select name="category" required>
         <option value="contact">Contact</option>
         <option value="support">Support</option>
         <option value="billing">Billing</option>
         <option value="feedback">Feedback</option>
       </select>
-      <textarea name="message" rows="6" placeholder="launch context" required></textarea>
+      <label>Launch context<textarea name="message" rows="6" required></textarea></label>
       <label class="fine"><input name="consent" type="checkbox" value="yes" required> Consent to process this request</label>
       <button type="submit">Submit request</button>
     </form>
   </article>`;
+}
+
+function authForm(label, action) {
+  return `<article class="card">
+    <h2>${escapeHtml(label)}</h2>
+    <form method="post" action="${escapeHtml(action)}">
+      <label>Email<input name="email" type="email" required></label>
+      <label>Password<input name="password" type="password" required></label>
+      <button type="submit">${escapeHtml(label)}</button>
+    </form>
+  </article>`;
+}
+
+function accountSetupCards() {
+  return [
+    brandCard("Organization name", "Required after account access is configured."),
+    brandCard("Product path", "Choose Business Builder, Creator Studio, Growth Studio, or all three."),
+    brandCard("First offer", "Draft the first offer before checkout activation."),
+    brandCard("Contact email", "Confirm the support and customer contact address."),
+    brandCard("Payment readiness", "Connect Stripe to enable checkout."),
+    brandCard("Support preference", "Connect Supabase and Resend to enable the support queue.")
+  ];
 }
 
 function legalPage(res, title, points) {
@@ -531,7 +712,15 @@ function legalPages() {
     { href: "/legal/refund-policy", title: "Refund Policy", points: ["Subscription and setup refund requests are reviewed based on plan terms, usage, and delivered work.", "Approved refunds are returned through the original payment provider when available.", "Chargeback, fraud, or abuse cases may require additional review."] },
     { href: "/legal/cookie-policy", title: "Cookie Policy", points: ["SONARA Industries may use essential cookies for session, security, and application stability.", "Analytics or marketing cookies should remain disabled until configured with disclosure and consent controls.", "Browser settings may be used to limit non-essential storage."] },
     { href: "/legal/acceptable-use", title: "Acceptable Use", points: ["Do not use SONARA Industries for spam, credential capture, unlawful surveillance, piracy, or unsafe automation.", "AI-assisted outbound actions require preview, approval, and audit records.", "Voice, media, and creator tools require consent, provenance, and anti-clone safety."] },
-    { href: "/legal/accessibility", title: "Accessibility", points: ["SONARA Industries aims to provide clear navigation, readable layouts, and keyboard-accessible workflows.", "Accessibility issues can be reported through the contact route for review.", "Launch pages should remain usable without requiring animated or media-heavy experiences."] }
+    { href: "/legal/accessibility", title: "Accessibility", points: ["SONARA Industries aims to provide clear navigation, readable layouts, and keyboard-accessible workflows.", "Accessibility issues can be reported through the contact route for review.", "Launch pages should remain usable without requiring animated or media-heavy experiences."] },
+    { href: "/legal/disclaimer", title: "General Disclaimer", points: ["SONARA Industries provides operational software and setup tools, not legal, tax, financial, or business guarantees.", "Customers remain responsible for reviewing outputs before use.", "No revenue, customer, or compliance outcome is guaranteed."] },
+    { href: "/legal/earnings-disclaimer", title: "Earnings Disclaimer", points: ["Pricing, launch tools, and campaign planning do not guarantee revenue.", "Results depend on market demand, offer quality, audience, execution, and provider setup.", "Any examples require owner review before public use."] },
+    { href: "/legal/ai-disclaimer", title: "AI and Tooling Disclaimer", points: ["Automated or assisted outputs require human review before use.", "The system must not be used to make deceptive claims or unsafe outbound actions.", "AI-assisted output should be checked for accuracy, rights, and provenance."] },
+    { href: "/legal/payment-terms", title: "Payment Terms", points: ["Stripe checkout activates only after owner configuration.", "Refunds, chargebacks, failed payments, and subscription changes require provider and owner review.", "Stripe restricted-business rules and payment-network rules apply."] },
+    { href: "/legal/data-processing", title: "Data Processing", points: ["Customer, support, billing, and module records may be processed to provide the service.", "Service-role credentials are server-only and must not be exposed to clients.", "Third-party processors may include Supabase, Vercel, Stripe, Resend, and analytics providers when configured."] },
+    { href: "/legal/security-policy", title: "Security Policy", points: ["Report security issues through the contact route or configured support address.", "Do not submit secrets through public forms.", "Admin routes require protected access and should be replaced with full OAuth/session admin auth before broader operator access."] },
+    { href: "/legal/can-spam", title: "Commercial Email Reminder", points: ["Commercial email should use truthful subject and from information.", "Include unsubscribe language and a physical mailing address when required.", "Keep consent and audience-source notes before outreach."] },
+    { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: ["Configured infrastructure providers may process data to operate the service.", "Provider use depends on owner configuration and production settings.", "Customers should review processor terms before paid public launch."] }
   ];
 }
 
@@ -552,29 +741,22 @@ function normalizeSupportRequest(body) {
 }
 
 async function saveSupportRequest(request) {
-  const config = getSupabaseServerConfig();
   const referenceId = randomUUID();
   let stored = false;
   let supportRequestId;
 
-  if (config.ok) {
-    const response = await fetch(`${config.url}/rest/v1/support_requests`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { prefer: "return=representation" }),
-      body: JSON.stringify({
-        reference_id: referenceId,
-        category: request.category === "billing" ? "support" : request.category,
-        requester_email: request.email,
-        message_preview: redactSensitiveText(`${request.name} - ${request.subject}: ${request.message}`).slice(0, 280),
-        consent_accepted: true,
-        metadata: { source: "express_contact", subject: request.subject, name: request.name }
-      })
-    }).catch(() => undefined);
-    if (response?.ok) {
-      stored = true;
-      const rows = await response.json().catch(() => []);
-      supportRequestId = rows[0]?.id;
-    }
+  const insert = await safeInsertSupportRequest({
+    reference_id: referenceId,
+    category: request.category === "billing" ? "support" : request.category,
+    requester_email: request.email,
+    message_preview: redactSensitiveText(`${request.name} - ${request.subject}: ${request.message}`).slice(0, 280),
+    consent_accepted: true,
+    metadata: { source: "express_contact", subject: request.subject, name: request.name }
+  });
+
+  if (insert.ok) {
+    stored = true;
+    supportRequestId = insert.rows[0]?.id;
   }
 
   const email = await sendSupportNotification({ ...request, referenceId });
@@ -622,8 +804,154 @@ function getReadiness() {
   };
 }
 
+function isSupabaseConfigured() {
+  return getReadiness().services.supabase === "configured";
+}
+
+function getSupabaseServerClient() {
+  return getSupabaseServerConfig();
+}
+
+function getSupabaseAdminClient() {
+  return getSupabaseServerConfig();
+}
+
+async function safeInsertSupportRequest(record) {
+  const config = getSupabaseAdminClient();
+  if (!config.ok) return { ok: false, code: "setup_required" };
+  const response = await fetch(`${config.url}/rest/v1/support_requests`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "return=representation" }),
+    body: JSON.stringify(record)
+  }).catch(() => undefined);
+  return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
+}
+
+async function safeInsertModuleOutput(productKey, moduleKey, input, output) {
+  const config = getSupabaseAdminClient();
+  if (!config.ok) return { ok: false, code: "setup_required" };
+  const response = await fetch(`${config.url}/rest/v1/module_outputs`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "return=representation" }),
+    body: JSON.stringify({ product_key: productKey, module_key: moduleKey, input_payload: input, output_payload: output })
+  }).catch(() => undefined);
+  return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
+}
+
+async function safeReadOrganizationScopedRecords(productKey) {
+  const config = getSupabaseAdminClient();
+  if (!config.ok) return { ok: false, code: "setup_required", records: [] };
+  const response = await fetch(`${config.url}/rest/v1/module_outputs?select=id,module_key,created_at,output_payload&product_key=eq.${encodeURIComponent(productKey)}&order=created_at.desc&limit=20`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, code: "read_failed", records: [] };
+  return { ok: true, records: await response.json().catch(() => []) };
+}
+
+async function saveModuleOutput(productKey, moduleKey, input, output) {
+  const saved = await safeInsertModuleOutput(productKey, moduleKey, input, output);
+  return {
+    ok: true,
+    saved: saved.ok,
+    code: saved.ok ? "saved" : "setup_required",
+    productKey,
+    moduleKey,
+    output
+  };
+}
+
+async function readModuleRecords(productKey) {
+  const result = await safeReadOrganizationScopedRecords(productKey);
+  return {
+    ok: true,
+    saved: result.ok,
+    code: result.ok ? "records_available" : "setup_required",
+    productKey,
+    records: result.records
+  };
+}
+
+function productReadinessJson(productKey) {
+  return { ok: true, productKey, readiness: getReadiness().services };
+}
+
+function requireFields(body, fields) {
+  const missingFields = fields.filter((field) => !String(body[field] || "").trim());
+  if (missingFields.length) return { ok: false, code: "validation_failed", missing: missingFields };
+  return { ok: true };
+}
+
+function buildBusinessOffer(input) {
+  return {
+    headline: `${input.serviceType} for ${input.audience}`,
+    pricePosition: String(input.priceIdea),
+    deliverables: splitList(input.deliverables),
+    proofPoints: splitList(input.proofPoints || ""),
+    buyerNextAction: "Submit an intake request and schedule owner review.",
+    caution: "Validate scope, refund terms, and payment readiness before selling."
+  };
+}
+
+function buildCreatorOffer(input) {
+  return {
+    offerType: String(input.offerType),
+    audience: String(input.audience),
+    deliverables: splitList(input.deliverables),
+    pricePosition: String(input.priceIdea),
+    rightsReminder: "Confirm ownership, license terms, and platform rules before monetization.",
+    buyerNextAction: "Review catalog details and support requirements."
+  };
+}
+
+function buildCampaignPlan(input) {
+  return {
+    goal: String(input.goal),
+    audience: String(input.audience),
+    offer: String(input.offer),
+    channel: String(input.channel),
+    timeline: String(input.timeline),
+    plan: [
+      "Confirm audience source and consent status.",
+      "Prepare truthful subject/from language for commercial email.",
+      "Include unsubscribe language and physical mailing address when required.",
+      "Review offer claims before launch.",
+      "Track outcomes without overstating attribution."
+    ]
+  };
+}
+
+function splitList(value) {
+  return String(value).split(",").map((item) => item.trim()).filter(Boolean);
+}
+
 function missing(keys) {
   return keys.filter((key) => !process.env[key]);
+}
+
+async function handleEmailAuth(mode, body) {
+  if (!isSupabaseConfigured()) {
+    return { status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
+  }
+  const email = String(body.email || "").trim();
+  const password = String(body.password || "");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
+    return { status: 400, body: { ok: false, code: "validation_failed" } };
+  }
+
+  const endpoint = mode === "signup" ? "/auth/v1/signup" : "/auth/v1/token?grant_type=password";
+  const config = getSupabaseServerClient();
+  const response = await fetch(`${config.url}${endpoint}`, {
+    method: "POST",
+    headers: {
+      apikey: process.env.SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  }).catch(() => undefined);
+
+  if (!response?.ok) return { status: 401, body: { ok: false, code: "auth_not_completed" } };
+  return { status: 200, body: { ok: true, code: mode === "signup" ? "signup_requested" : "login_ready", sessionStored: false } };
 }
 
 function requireAdmin(req, res, next) {

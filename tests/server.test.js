@@ -28,15 +28,29 @@ describe("public site", () => {
     "/pricing",
     "/security",
     "/help",
-    "/docs"
+    "/docs",
+    "/signup",
+    "/account",
+    "/account/setup",
+    "/logout"
   ]) {
     it(`GET ${route} returns 200`, async function() {
       const res = await request(app).get(route).set("Accept", "text/html");
       assert.equal(res.status, 200);
       assert.equal(res.type, "text/html");
       assert.doesNotMatch(res.text, /\[To be added\]/);
+      assert.doesNotMatch(res.text, /shell/i);
+      assert.doesNotMatch(res.text, /lorem/i);
+      assert.doesNotMatch(res.text, /href="#"/i);
     });
   }
+
+  it("homepage includes mobile and PWA metadata", async function() {
+    const res = await request(app).get("/").set("Accept", "text/html");
+    assert.match(res.text, /name="viewport"/);
+    assert.match(res.text, /name="theme-color"/);
+    assert.match(res.text, /rel="manifest"/);
+  });
 });
 
 describe("health and readiness", () => {
@@ -89,6 +103,51 @@ describe("contact support", () => {
   });
 });
 
+describe("auth setup", () => {
+  it("POST /auth/login returns setup_required when Supabase is missing", async function() {
+    const res = await request(app).post("/auth/login").send({ email: "owner@example.com", password: "password123" });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.code, "setup_required");
+  });
+
+  it("POST /auth/signup returns setup_required when Supabase is missing", async function() {
+    const res = await request(app).post("/auth/signup").send({ email: "owner@example.com", password: "password123" });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.code, "setup_required");
+  });
+});
+
+describe("product module APIs", () => {
+  it("POST /api/business-builder/offers validates input", async function() {
+    const res = await request(app).post("/api/business-builder/offers").send({});
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "validation_failed");
+  });
+
+  it("POST /api/business-builder/offers returns deterministic output", async function() {
+    const res = await request(app).post("/api/business-builder/offers").send({
+      serviceType: "mobile detailing",
+      audience: "busy local drivers",
+      priceIdea: "$99",
+      deliverables: "wash, wax, interior",
+      proofPoints: "insured, local"
+    });
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.output.pricePosition, "$99");
+  });
+
+  it("POST /api/creator-studio/offers validates input", async function() {
+    const res = await request(app).post("/api/creator-studio/offers").send({});
+    assert.equal(res.status, 400);
+  });
+
+  it("POST /api/growth-studio/campaigns validates input", async function() {
+    const res = await request(app).post("/api/growth-studio/campaigns").send({});
+    assert.equal(res.status, 400);
+  });
+});
+
 describe("pricing and checkout", () => {
   it("POST /api/checkout/session returns setup_required when Stripe is missing", async function() {
     const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
@@ -137,7 +196,15 @@ describe("legal pages", () => {
     "/legal/refund-policy",
     "/legal/cookie-policy",
     "/legal/acceptable-use",
-    "/legal/accessibility"
+    "/legal/accessibility",
+    "/legal/disclaimer",
+    "/legal/earnings-disclaimer",
+    "/legal/ai-disclaimer",
+    "/legal/payment-terms",
+    "/legal/data-processing",
+    "/legal/security-policy",
+    "/legal/can-spam",
+    "/legal/subprocessor-notice"
   ]) {
     it(`GET ${route} returns legal draft`, async function() {
       const res = await request(app).get(route).set("Accept", "text/html");
@@ -145,8 +212,18 @@ describe("legal pages", () => {
       assert.equal(res.type, "text/html");
       assert.doesNotMatch(res.text, /\[To be added\]/);
       assert.match(res.text, /qualified legal review/);
+      assert.match(res.text, /not legal advice/);
     });
   }
+});
+
+describe("mobile and app readiness", () => {
+  it("GET /manifest.webmanifest returns valid JSON", async function() {
+    const res = await request(app).get("/manifest.webmanifest").set("Accept", "application/manifest+json");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.name, "SONARA Industries");
+    assert.equal(res.body.display, "standalone");
+  });
 });
 
 describe("fallback", () => {

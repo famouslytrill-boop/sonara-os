@@ -10,10 +10,12 @@ Use Stripe test mode for verification. Switch to live mode only after products, 
 
 Create these prices in Stripe and copy the price IDs into Vercel:
 
-- Starter monthly -> `STRIPE_PRICE_STARTER_MONTHLY`
-- Core monthly -> `STRIPE_PRICE_CORE_MONTHLY`
-- Pro monthly -> `STRIPE_PRICE_PRO_MONTHLY`
-- Business Builder one-time -> `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
+- Starter monthly: $7/month -> `STRIPE_PRICE_STARTER_MONTHLY`
+- Core monthly: $19/month -> `STRIPE_PRICE_CORE_MONTHLY`
+- Pro monthly: $39/month -> `STRIPE_PRICE_PRO_MONTHLY`
+- Business Builder one-time setup: $99 -> `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
+
+Do not create $1-$3 paid tiers unless the owner explicitly accepts the payment-fee tradeoff.
 
 ## Checkout endpoint
 
