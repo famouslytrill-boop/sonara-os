@@ -10,7 +10,7 @@ Supported request methods:
 
 - `X-Admin-Access-Token` header
 - `Authorization: Bearer <token>` header
-- `?token=<token>` query parameter for manual browser review
+- `?admin_token=<token>` query parameter for temporary manual browser review
 
 Never display the token in the UI. Never commit the token.
 
