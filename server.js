@@ -135,7 +135,7 @@ app.get("/pricing", (req, res) => {
       heading: "Pricing",
       body: stripeReady
         ? "Checkout is configured for server-side processing."
-        : "Checkout is setup_required until Stripe server variables and price IDs are configured.",
+        : "Checkout setup required until Stripe server variables and price IDs are configured.",
       sections: [
         priceCard("Free", "$0", "Public readiness checklist and product path selection.", "free", stripeReady),
         priceCard("Starter monthly", "$7/mo", "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.", "starter_monthly", stripeReady),
@@ -192,7 +192,7 @@ app.get("/docs", (req, res) => {
       sections: [
         brandCard("Environment", "Configure Supabase, Stripe, Resend, Google OAuth, and admin access in Vercel."),
         brandCard("Payments", "Checkout remains server-gated until Stripe variables and price IDs exist."),
-        brandCard("Support", "Contact requests use Supabase and Resend when configured, with safe setup_required fallback behavior.")
+        brandCard("Support", "Contact requests use Supabase and Resend when configured, with safe setup required fallback behavior.")
       ],
       actions: [linkAction("/help", "Help"), linkAction("/api/readiness", "Readiness JSON"), linkAction("/", "Home")]
     })
@@ -207,7 +207,7 @@ app.get("/login", (req, res) => {
         title: "Login",
         eyebrow: "Access readiness",
         heading: "Login",
-        body: "setup_required: Google OAuth is not configured. Public pages remain available while owner credentials are added.",
+        body: "Setup required: Google OAuth is not configured. Public pages remain available while owner credentials are added.",
         sections: [
           brandCard("Google OAuth", "Configure Google Cloud OAuth and Supabase Auth provider settings before enabling persistent sessions."),
           brandCard("Admin protection", "Founder routes remain protected by a temporary server-only admin token until OAuth sessions are complete.")
@@ -279,7 +279,7 @@ app.get("/account", (req, res) => {
       heading: "Account",
       body: getReadiness().services.supabase === "configured"
         ? "Supabase Auth is configured. Persistent session handling requires owner smoke testing before customer launch."
-        : "setup_required: Connect Supabase Auth to enable account sessions.",
+        : "Setup required: Connect Supabase Auth to enable account sessions.",
       sections: accountSetupCards(),
       actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
     })
@@ -441,7 +441,7 @@ app.get("/admin/support", requireAdmin, async (req, res) => {
       title: "Support queue",
       eyebrow: "Founder operations",
       heading: "Support queue",
-      body: result.ok ? "Recent database-backed support requests are available for review." : "Support queue setup_required: Supabase service role is not configured.",
+      body: result.ok ? "Recent database-backed support requests are available for review." : "Support queue setup required: Supabase service role is not configured.",
       sections: result.requests.length
         ? result.requests.map((request) => brandCard(request.reference_id || "Support request", `${request.category || "contact"} - ${request.email_delivery_status || "pending"} - ${request.created_at || "no timestamp"}`))
         : [brandCard("Queue status", result.ok ? "No recent requests returned." : "Database-backed queue requires Supabase setup.")],
@@ -457,11 +457,11 @@ app.get("/admin/billing", requireAdmin, (req, res) => {
       title: "Billing readiness",
       eyebrow: "Founder operations",
       heading: "Billing readiness",
-      body: readiness.services.checkout === "enabled" ? "Stripe checkout and webhook variables are present." : "Stripe checkout remains setup_required until server variables and price IDs exist.",
+      body: readiness.services.checkout === "enabled" ? "Stripe checkout and webhook variables are present." : "Stripe checkout remains setup required until server variables and price IDs exist.",
       sections: [
         brandCard("Checkout", readiness.services.checkout),
         brandCard("Stripe", readiness.services.stripe),
-        brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "setup_required")
+        brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "Setup required")
       ],
       actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing")]
     })
@@ -497,7 +497,7 @@ function registerProduct(slug, config) {
         sections: [
           brandCard("What this product does", config.body),
           ...config.cards.map(([title, body]) => brandCard(title, body)),
-          checklistCard("Setup checklist", config.checklist)
+          checklistCard("Launch Setup Checklist", config.checklist)
         ],
         actions: [
           linkAction(`/${slug}/dashboard`, "Open dashboard"),
@@ -518,7 +518,7 @@ function registerProduct(slug, config) {
         body: "Operational workspace with setup-aware cards. Backend-dependent actions remain gated until provider variables are configured.",
         sections: [
           brandCard("Dashboard cards", "Workspace status, provider readiness, recent activity, and customer next actions are available."),
-          brandCard("Records/workspace", readiness.services.supabase === "configured" ? "Supabase-backed records can be connected." : "setup_required: Supabase is not configured."),
+          brandCard("Records/workspace", readiness.services.supabase === "configured" ? "Supabase-backed records can be connected." : "Setup required: Supabase is not configured."),
           brandCard("Recent activity", "No production activity is shown until backend providers are configured."),
           brandCard("Customer next actions", "Review readiness, submit launch request, or prepare product records.")
         ],
@@ -534,7 +534,7 @@ function registerProduct(slug, config) {
         title: `${config.name} Launch Readiness`,
         eyebrow: "Readiness",
         heading: `${config.name} Launch Readiness`,
-        body: "Provider readiness is shown without exposing secrets. Missing services stay setup_required.",
+        body: "Provider readiness is shown without exposing secrets. Missing services stay setup required.",
         sections: readinessCards(readiness),
         actions: [linkAction(`/${slug}/dashboard`, "Dashboard"), linkAction("/api/readiness", "Readiness JSON"), linkAction("/", "SONARA Industries")]
       })
@@ -623,7 +623,15 @@ function adminPage(title, body, readiness) {
 }
 
 function readinessCards(readiness) {
-  return Object.entries(readiness.services).map(([key, value]) => brandCard(formatLabel(key), value));
+  return Object.entries(readiness.services).map(([key, value]) => brandCard(formatLabel(key), displayStatus(value)));
+}
+
+function displayStatus(value) {
+  return String(value)
+    .replace(/setup_required/g, "Setup required")
+    .replace(/review_required/g, "Review required")
+    .replace(/_/g, " ")
+    .replace(/^./, (char) => char.toUpperCase());
 }
 
 function brandCard(title, body) {
@@ -638,10 +646,10 @@ function priceCard(name, price, description, plan, stripeReady) {
   if (plan === "free") return brandCard(`${name} - ${price}`, `${description} No checkout required.`);
   return `<article class="card">
     <h2>${escapeHtml(`${name} - ${price}`)}</h2>
-    <p>${escapeHtml(`${description} ${stripeReady ? "Checkout available." : "Checkout setup_required."}`)}</p>
+    <p>${escapeHtml(`${description} ${stripeReady ? "Checkout available." : "Checkout setup required."}`)}</p>
     <form method="post" action="/api/checkout/session">
       <input type="hidden" name="plan" value="${escapeHtml(plan)}">
-      <button type="submit">${stripeReady ? "Start checkout" : "Checkout setup_required"}</button>
+      <button type="submit">${stripeReady ? "Start checkout" : "Checkout setup required"}</button>
     </form>
   </article>`;
 }
@@ -713,12 +721,12 @@ function legalPages() {
     { href: "/legal/cookie-policy", title: "Cookie Policy", points: ["SONARA Industries may use essential cookies for session, security, and application stability.", "Analytics or marketing cookies should remain disabled until configured with disclosure and consent controls.", "Browser settings may be used to limit non-essential storage."] },
     { href: "/legal/acceptable-use", title: "Acceptable Use", points: ["Do not use SONARA Industries for spam, credential capture, unlawful surveillance, piracy, or unsafe automation.", "AI-assisted outbound actions require preview, approval, and audit records.", "Voice, media, and creator tools require consent, provenance, and anti-clone safety."] },
     { href: "/legal/accessibility", title: "Accessibility", points: ["SONARA Industries aims to provide clear navigation, readable layouts, and keyboard-accessible workflows.", "Accessibility issues can be reported through the contact route for review.", "Launch pages should remain usable without requiring animated or media-heavy experiences."] },
-    { href: "/legal/disclaimer", title: "General Disclaimer", points: ["SONARA Industries provides operational software and setup tools, not legal, tax, financial, or business guarantees.", "Customers remain responsible for reviewing outputs before use.", "No revenue, customer, or compliance outcome is guaranteed."] },
     { href: "/legal/earnings-disclaimer", title: "Earnings Disclaimer", points: ["Pricing, launch tools, and campaign planning do not guarantee revenue.", "Results depend on market demand, offer quality, audience, execution, and provider setup.", "Any examples require owner review before public use."] },
     { href: "/legal/ai-disclaimer", title: "AI and Tooling Disclaimer", points: ["Automated or assisted outputs require human review before use.", "The system must not be used to make deceptive claims or unsafe outbound actions.", "AI-assisted output should be checked for accuracy, rights, and provenance."] },
     { href: "/legal/payment-terms", title: "Payment Terms", points: ["Stripe checkout activates only after owner configuration.", "Refunds, chargebacks, failed payments, and subscription changes require provider and owner review.", "Stripe restricted-business rules and payment-network rules apply."] },
     { href: "/legal/data-processing", title: "Data Processing", points: ["Customer, support, billing, and module records may be processed to provide the service.", "Service-role credentials are server-only and must not be exposed to clients.", "Third-party processors may include Supabase, Vercel, Stripe, Resend, and analytics providers when configured."] },
     { href: "/legal/security-policy", title: "Security Policy", points: ["Report security issues through the contact route or configured support address.", "Do not submit secrets through public forms.", "Admin routes require protected access and should be replaced with full OAuth/session admin auth before broader operator access."] },
+    { href: "/legal/disclaimer", title: "General Disclaimer", points: ["SONARA Industries provides operational software and setup tools, not legal, tax, financial, or business guarantees.", "Customers remain responsible for reviewing outputs before use.", "No revenue, customer, or compliance outcome is guaranteed."] },
     { href: "/legal/can-spam", title: "Commercial Email Reminder", points: ["Commercial email should use truthful subject and from information.", "Include unsubscribe language and a physical mailing address when required.", "Keep consent and audience-source notes before outreach."] },
     { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: ["Configured infrastructure providers may process data to operate the service.", "Provider use depends on owner configuration and production settings.", "Customers should review processor terms before paid public launch."] }
   ];
@@ -764,7 +772,7 @@ async function saveSupportRequest(request) {
 
   if (stored && email.ok) return { ok: true, referenceId, status: "received", message: `Your request was received. Reference ID: ${referenceId}. Email notification: sent.` };
   if (stored && !email.ok) return { ok: true, referenceId, status: "email_notification_failed", message: `Your request was received. Reference ID: ${referenceId}. Email notification failed and remains queued.` };
-  return { ok: true, referenceId, status: "setup_required", message: `setup_required: Supabase is not configured, so the request used the safe fallback queue. Reference ID: ${referenceId}.` };
+  return { ok: true, referenceId, status: "setup_required", message: `Setup required: Supabase is not configured, so the request used the safe fallback queue. Reference ID: ${referenceId}.` };
 }
 
 async function sendSupportNotification(request) {

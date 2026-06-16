@@ -51,6 +51,45 @@ describe("public site", () => {
     assert.match(res.text, /name="theme-color"/);
     assert.match(res.text, /rel="manifest"/);
   });
+
+  it("business builder includes Launch Setup Checklist", async function() {
+    const res = await request(app).get("/business-builder").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Launch Setup Checklist/);
+    assert.doesNotMatch(res.text, /Setup checklist/);
+  });
+
+  it("pricing uses readable setup text", async function() {
+    const res = await request(app).get("/pricing").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Checkout setup required/);
+    assert.doesNotMatch(res.text, /setup_required/);
+    assert.doesNotMatch(res.text, /Public readiness shell/);
+    assert.match(res.text, /Public readiness checklist/);
+  });
+
+  it("footer links include all legal routes", async function() {
+    const legalRoutes = [
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/refund-policy",
+      "/legal/cookie-policy",
+      "/legal/acceptable-use",
+      "/legal/accessibility",
+      "/legal/earnings-disclaimer",
+      "/legal/ai-disclaimer",
+      "/legal/payment-terms",
+      "/legal/data-processing",
+      "/legal/security-policy",
+      "/legal/disclaimer",
+      "/legal/can-spam",
+      "/legal/subprocessor-notice"
+    ];
+    const res = await request(app).get("/").set("Accept", "text/html");
+    for (const route of legalRoutes) {
+      assert.match(res.text, new RegExp(`href="${route}"`));
+    }
+  });
 });
 
 describe("health and readiness", () => {
@@ -99,7 +138,7 @@ describe("contact support", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Reference ID:/);
-    assert.match(res.text, /setup_required|received|email notification failed/i);
+    assert.match(res.text, /Setup required|received|email notification failed/i);
   });
 });
 
