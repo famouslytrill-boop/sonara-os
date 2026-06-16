@@ -24,7 +24,8 @@ module.exports = [
         __filename: "readonly",
         module: "readonly",
         require: "readonly",
-        exports: "readonly"
+        exports: "readonly",
+        fetch: "readonly"
       }
     },
     rules: {

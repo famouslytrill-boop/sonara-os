@@ -3,14 +3,17 @@ const assert = require("assert");
 const app = require("../server");
 
 describe("GET /", () => {
-  it("responds with the Express landing page", async function() {
+  it("responds with the SONARA Industries homepage", async function() {
     const res = await request(app)
       .get("/")
       .set("Accept", "text/html");
 
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
-    assert.match(res.text, /Express service is online/);
+    assert.match(res.text, /SONARA Industries/);
+    assert.match(res.text, /Business Builder/);
+    assert.match(res.text, /Creator Studio/);
+    assert.match(res.text, /Growth Studio/);
   });
 });
 
@@ -35,6 +38,32 @@ describe("GET /contact", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Contact SONARA Industries/);
+  });
+});
+
+describe("GET /pricing", () => {
+  it("responds with the pricing page", async function() {
+    const res = await request(app)
+      .get("/pricing")
+      .set("Accept", "text/html");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Pricing/);
+    assert.match(res.text, /Checkout is blocked until live Stripe server variables are configured/);
+  });
+});
+
+describe("GET /legal/terms", () => {
+  it("responds with complete legal terms", async function() {
+    const res = await request(app)
+      .get("/legal/terms")
+      .set("Accept", "text/html");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Terms of Service/);
+    assert.doesNotMatch(res.text, /\[To be added\]/);
   });
 });
 
