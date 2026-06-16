@@ -10,7 +10,7 @@ app.get("/", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "SONARA Industries",
-      eyebrow: "Launch operating system",
+      eyebrow: "LAUNCH OPERATING SYSTEM",
       heading: "SONARA Industries",
       body:
         "A house of focused studios for launching service businesses, creator products, and growth systems with disciplined infrastructure.",

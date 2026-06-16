@@ -10,10 +10,15 @@ describe("GET /", () => {
 
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
+    assert.match(res.text, /LAUNCH OPERATING SYSTEM/);
     assert.match(res.text, /SONARA Industries/);
+    assert.match(res.text, /Request launch review/);
+    assert.match(res.text, /View pricing/);
+    assert.match(res.text, /Security posture/);
     assert.match(res.text, /Business Builder/);
     assert.match(res.text, /Creator Studio/);
     assert.match(res.text, /Growth Studio/);
+    assert.doesNotMatch(res.text, /Express service is online/);
   });
 });
 
