@@ -1,7 +1,33 @@
 const express = require("express");
 const { randomUUID } = require("node:crypto");
+const crypto = require("node:crypto");
+const { URLSearchParams } = require("node:url");
 
 const app = express();
+
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
+  const env = getEnvStatus();
+  if (!env.stripe.ready || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_webhooks" });
+  }
+
+  const signature = req.get("stripe-signature");
+  const verification = verifyStripeWebhookSignature(req.body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  if (!verification.ok) {
+    return res.status(400).json({ ok: false, code: "invalid_signature" });
+  }
+
+  const event = JSON.parse(req.body.toString("utf8"));
+  const audit = await recordBillingWebhookEvent(event);
+  await synchronizeBillingFromStripeEvent(event);
+
+  return res.status(200).json({
+    ok: true,
+    received: true,
+    audited: audit.ok,
+    event_id: event.id
+  });
+});
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "64kb" }));
@@ -168,8 +194,168 @@ app.get("/security", (req, res) => {
   );
 });
 
+app.get("/login", (req, res) => {
+  const env = getEnvStatus();
+  if (!env.googleOAuth.ready) {
+    return res.status(503).json({
+      ok: false,
+      code: "setup_required",
+      service: "google_oauth",
+      missing: env.googleOAuth.missing
+    });
+  }
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+    response_type: "code",
+    scope: "openid email profile",
+    access_type: "offline",
+    prompt: "consent"
+  });
+
+  return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+});
+
+app.get("/auth/callback", (req, res) => {
+  const env = getEnvStatus();
+  if (!env.googleOAuth.ready) {
+    return res.status(503).json({
+      ok: false,
+      code: "setup_required",
+      service: "google_oauth",
+      missing: env.googleOAuth.missing
+    });
+  }
+
+  if (!req.query.code) {
+    return res.status(400).json({ ok: false, code: "missing_oauth_code" });
+  }
+
+  return res.status(200).type("html").send(
+    layout({
+      title: "Authentication callback",
+      eyebrow: "Access readiness",
+      heading: "Authentication callback received",
+      body:
+        "Google OAuth configuration is present. Session exchange remains gated until the production auth provider is connected.",
+      sections: [brandCard("Manual review", "Complete Supabase Auth provider setup before enabling persistent admin sessions.")],
+      actions: [linkAction("/", "Home"), linkAction("/admin/env-readiness", "Env readiness")]
+    })
+  );
+});
+
+app.post("/logout", (req, res) => {
+  return res.status(200).json({ ok: true, message: "No persistent session is active in this Express readiness shell." });
+});
+
+app.post("/api/checkout/session", async (req, res) => {
+  const env = getEnvStatus();
+  if (!env.stripe.ready) {
+    return res.status(503).json({
+      ok: false,
+      code: "setup_required",
+      service: "stripe_checkout",
+      missing: env.stripe.missing
+    });
+  }
+
+  const plan = String(req.body.plan || "").trim();
+  const priceId = getStripePriceId(plan);
+  if (!priceId) {
+    return res.status(400).json({ ok: false, code: "invalid_plan" });
+  }
+
+  const session = await createStripeCheckoutSession(plan, priceId);
+  if (!session.ok) {
+    return res.status(502).json({ ok: false, code: "checkout_unavailable" });
+  }
+
+  return res.status(200).json({ ok: true, checkout_url: session.url });
+});
+
 app.get("/api/health", (req, res) => {
   return res.status(200).json({ ok: true });
+});
+
+app.get("/api/readiness", (req, res) => {
+  return res.status(200).json({
+    ok: true,
+    services: getPublicReadiness()
+  });
+});
+
+app.get("/admin", requireAdmin, (req, res) => {
+  const readiness = getPublicReadiness();
+  return res.status(200).type("html").send(
+    layout({
+      title: "Admin",
+      eyebrow: "Founder operations",
+      heading: "Admin",
+      body: "Protected readiness workspace for launch operations. Temporary access uses a server-only admin token.",
+      sections: Object.entries(readiness).map(([key, value]) =>
+        brandCard(formatLabel(key), value.ready ? "Configured" : `Setup required: ${value.missing.join(", ") || "manual review"}`)
+      ),
+      actions: [
+        linkAction("/admin/support", "Support queue"),
+        linkAction("/admin/billing", "Billing readiness"),
+        linkAction("/admin/env-readiness", "Env readiness")
+      ]
+    })
+  );
+});
+
+app.get("/admin/support", requireAdmin, async (req, res) => {
+  const result = await listSupportRequests();
+  return res.status(200).type("html").send(
+    layout({
+      title: "Support queue",
+      eyebrow: "Founder operations",
+      heading: "Support queue",
+      body: result.ok
+        ? "Database-backed support requests are available for review."
+        : "Support queue requires Supabase service-role configuration.",
+      sections: result.requests.map((request) =>
+        brandCard(request.reference_id || "Support request", `${request.category || "contact"} - ${request.email_delivery_status || "pending"} - ${request.created_at || "no timestamp"}`)
+      ),
+      actions: [linkAction("/admin", "Admin"), linkAction("/contact", "Contact")]
+    })
+  );
+});
+
+app.get("/admin/billing", requireAdmin, (req, res) => {
+  const readiness = getPublicReadiness();
+  return res.status(200).type("html").send(
+    layout({
+      title: "Billing readiness",
+      eyebrow: "Founder operations",
+      heading: "Billing readiness",
+      body: readiness.stripe.ready
+        ? "Stripe checkout and webhook variables are present."
+        : "Stripe checkout remains blocked until required server variables and price IDs exist.",
+      sections: [
+        brandCard("Checkout", readiness.stripe.ready ? "Ready" : `Missing: ${readiness.stripe.missing.join(", ")}`),
+        brandCard("Webhook audit", readiness.supabase.ready ? "Supabase audit tables can be used." : "Supabase is not configured.")
+      ],
+      actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing")]
+    })
+  );
+});
+
+app.get("/admin/env-readiness", requireAdmin, (req, res) => {
+  const readiness = getPublicReadiness();
+  return res.status(200).type("html").send(
+    layout({
+      title: "Environment readiness",
+      eyebrow: "Founder operations",
+      heading: "Environment readiness",
+      body: "Non-secret service readiness flags. Missing values are named, but secret values are never displayed.",
+      sections: Object.entries(readiness).map(([key, value]) =>
+        brandCard(formatLabel(key), value.ready ? "Ready" : `Missing: ${value.missing.join(", ")}`)
+      ),
+      actions: [linkAction("/admin", "Admin"), linkAction("/api/readiness", "Readiness JSON")]
+    })
+  );
 });
 
 app.use((req, res) => {
@@ -308,20 +494,20 @@ function normalizeSupportRequest(body) {
 async function saveSupportRequest(request) {
   const config = getSupabaseServerConfig();
   const referenceId = randomUUID();
+  let stored = false;
+  let supportRequestId;
+
   if (!config.ok) {
+    const email = await sendSupportNotification({ ...request, referenceId });
     return {
-      ok: false,
-      message: `Support storage is not configured. Reference ID: ${referenceId}.`
+      ok: true,
+      message: `Request recorded in the safe fallback queue. Reference ID: ${referenceId}. Email notification: ${email.ok ? "sent" : "setup required"}.`
     };
   }
 
   const response = await fetch(`${config.url}/rest/v1/support_requests`, {
     method: "POST",
-    headers: {
-      apikey: config.serviceRoleKey,
-      Authorization: `Bearer ${config.serviceRoleKey}`,
-      "Content-Type": "application/json"
-    },
+    headers: supabaseHeaders(config, { prefer: "return=representation" }),
     body: JSON.stringify({
       reference_id: referenceId,
       category: request.category,
@@ -332,17 +518,64 @@ async function saveSupportRequest(request) {
     })
   }).catch(() => undefined);
 
-  if (!response?.ok) {
+  if (response?.ok) {
+    stored = true;
+    const rows = await response.json().catch(() => []);
+    supportRequestId = rows[0]?.id;
+  }
+
+  const email = await sendSupportNotification({ ...request, referenceId });
+  if (supportRequestId) {
+    await updateSupportEmailStatus(supportRequestId, email);
+  }
+
+  if (!stored) {
     return {
-      ok: false,
-      message: `Support storage is unavailable. Reference ID: ${referenceId}.`
+      ok: true,
+      message: `Support storage is unavailable, so the request used the safe fallback queue. Reference ID: ${referenceId}. Email notification: ${email.ok ? "sent" : "setup required"}.`
     };
   }
-  return { ok: true, message: `Your request was received. Reference ID: ${referenceId}.` };
+
+  return {
+    ok: true,
+    message: `Your request was received. Reference ID: ${referenceId}. Email notification: ${email.ok ? "sent" : "queued"}.`
+  };
+}
+
+async function sendSupportNotification(request) {
+  const env = getEnvStatus();
+  if (!env.resend.ready) {
+    return { ok: false, setupRequired: true, error: "resend_not_configured" };
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL,
+      to: [process.env.SUPPORT_TO_EMAIL],
+      subject: `SONARA support request ${request.referenceId}`,
+      text: [
+        `Reference ID: ${request.referenceId}`,
+        `Category: ${request.category}`,
+        `Requester: ${request.email}`,
+        "",
+        redactSensitiveText(request.message)
+      ].join("\n")
+    })
+  }).catch(() => undefined);
+
+  if (!response?.ok) {
+    return { ok: false, error: `resend_${response?.status || "unavailable"}` };
+  }
+  return { ok: true };
 }
 
 function getSupabaseServerConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const url = process.env.SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) {
     return { ok: false };
@@ -351,7 +584,273 @@ function getSupabaseServerConfig() {
 }
 
 function isStripeCheckoutReady() {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_CORE);
+  return getEnvStatus().stripe.ready;
+}
+
+function requiredMissing(keys) {
+  return keys.filter((key) => !process.env[key]);
+}
+
+function getEnvStatus() {
+  const supabaseRequired = ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+  const googleRequired = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "PUBLIC_SITE_URL"];
+  const stripeRequired = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRICE_STARTER_MONTHLY",
+    "STRIPE_PRICE_CORE_MONTHLY",
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_CANCEL_URL"
+  ];
+  const resendRequired = ["RESEND_API_KEY", "RESEND_FROM_EMAIL", "SUPPORT_TO_EMAIL"];
+  const adminRequired = ["ADMIN_ACCESS_TOKEN", "ADMIN_EMAILS"];
+
+  return {
+    supabase: serviceStatus(supabaseRequired),
+    googleOAuth: serviceStatus(googleRequired),
+    stripe: serviceStatus(stripeRequired),
+    resend: serviceStatus(resendRequired),
+    admin: serviceStatus(adminRequired),
+    legal: { ready: true, missing: [] }
+  };
+}
+
+function getPublicReadiness() {
+  return getEnvStatus();
+}
+
+function serviceStatus(required) {
+  const missing = requiredMissing(required);
+  return { ready: missing.length === 0, missing };
+}
+
+function requireAdmin(req, res, next) {
+  const env = getEnvStatus();
+  if (!env.admin.ready) {
+    return res.status(503).json({
+      ok: false,
+      code: "setup_required",
+      service: "admin_access",
+      missing: env.admin.missing
+    });
+  }
+
+  const headerToken = req.get("x-admin-access-token");
+  const authToken = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const queryToken = typeof req.query.token === "string" ? req.query.token : "";
+  const token = headerToken || authToken || queryToken;
+
+  if (!token || token !== process.env.ADMIN_ACCESS_TOKEN) {
+    return res.status(401).json({ ok: false, code: "admin_auth_required" });
+  }
+
+  return next();
+}
+
+function getStripePriceId(plan) {
+  const priceIds = {
+    starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
+    core_monthly: process.env.STRIPE_PRICE_CORE_MONTHLY,
+    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    business_builder_one_time: process.env.STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME
+  };
+  return priceIds[plan];
+}
+
+async function createStripeCheckoutSession(plan, priceId) {
+  const params = new URLSearchParams({
+    mode: plan === "business_builder_one_time" ? "payment" : "subscription",
+    success_url: process.env.STRIPE_SUCCESS_URL,
+    cancel_url: process.env.STRIPE_CANCEL_URL,
+    "line_items[0][price]": priceId,
+    "line_items[0][quantity]": "1",
+    "metadata[plan]": plan
+  });
+
+  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: params.toString()
+  }).catch(() => undefined);
+
+  if (!response?.ok) {
+    return { ok: false };
+  }
+  const session = await response.json();
+  return { ok: true, url: session.url };
+}
+
+function verifyStripeWebhookSignature(rawBody, header, secret) {
+  if (!header || !Buffer.isBuffer(rawBody)) {
+    return { ok: false };
+  }
+
+  const parts = Object.fromEntries(
+    header.split(",").map((part) => {
+      const [key, value] = part.split("=");
+      return [key, value];
+    })
+  );
+  if (!parts.t || !parts.v1) {
+    return { ok: false };
+  }
+
+  const payload = `${parts.t}.${rawBody.toString("utf8")}`;
+  const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex");
+  const safeExpected = Buffer.from(expected);
+  const safeActual = Buffer.from(parts.v1);
+  if (safeExpected.length !== safeActual.length) {
+    return { ok: false };
+  }
+  return { ok: crypto.timingSafeEqual(safeExpected, safeActual) };
+}
+
+async function recordBillingWebhookEvent(event) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return { ok: false, setupRequired: true };
+  }
+
+  const response = await fetch(`${config.url}/rest/v1/billing_webhook_events`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "resolution=ignore-duplicates" }),
+    body: JSON.stringify({
+      provider: "stripe",
+      provider_event_id: event.id,
+      event_type: event.type,
+      livemode: Boolean(event.livemode),
+      processing_status: "processed",
+      processed_at: new Date().toISOString(),
+      metadata: {
+        object: event.data?.object?.object,
+        customer: event.data?.object?.customer,
+        subscription: event.data?.object?.subscription || event.data?.object?.id
+      }
+    })
+  }).catch(() => undefined);
+
+  return { ok: Boolean(response?.ok) };
+}
+
+async function synchronizeBillingFromStripeEvent(event) {
+  if (!["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) {
+    return { ok: true, ignored: true };
+  }
+
+  const config = getSupabaseServerConfig();
+  const subscription = event.data?.object;
+  if (!config.ok || !subscription?.id) {
+    return { ok: false };
+  }
+
+  const planSlug = subscription.metadata?.plan || "core_monthly";
+  const organizationId = subscription.metadata?.organization_id;
+  if (!organizationId) {
+    return { ok: false, missingOrganization: true };
+  }
+
+  const response = await fetch(`${config.url}/rest/v1/billing_subscriptions`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
+    body: JSON.stringify({
+      organization_id: organizationId,
+      provider: "stripe",
+      provider_customer_ref: subscription.customer,
+      provider_subscription_ref: subscription.id,
+      plan_slug: planSlug,
+      status: subscription.status,
+      cancel_at_period_end: Boolean(subscription.cancel_at_period_end),
+      metadata: { source: "stripe_webhook" }
+    })
+  }).catch(() => undefined);
+
+  await fetch(`${config.url}/rest/v1/billing_entitlements`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
+    body: JSON.stringify({
+      organization_id: organizationId,
+      entitlement_key: planSlug,
+      status: ["active", "trialing"].includes(subscription.status) ? "active" : "disabled",
+      source: "billing",
+      metadata: {
+        provider: "stripe",
+        provider_subscription_ref: subscription.id
+      }
+    })
+  }).catch(() => undefined);
+
+  return { ok: Boolean(response?.ok) };
+}
+
+async function updateSupportEmailStatus(supportRequestId, email) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return { ok: false };
+  }
+
+  await fetch(`${config.url}/rest/v1/support_requests?id=eq.${encodeURIComponent(supportRequestId)}`, {
+    method: "PATCH",
+    headers: supabaseHeaders(config),
+    body: JSON.stringify({
+      email_delivery_status: email.ok ? "email_sent" : "email_failed",
+      email_error_summary: email.ok ? null : redactSensitiveText(email.error || "email_not_sent").slice(0, 240),
+      email_retry_count: email.ok ? 0 : 1
+    })
+  }).catch(() => undefined);
+
+  await fetch(`${config.url}/rest/v1/support_email_delivery_attempts`, {
+    method: "POST",
+    headers: supabaseHeaders(config),
+    body: JSON.stringify({
+      support_request_id: supportRequestId,
+      delivery_status: email.ok ? "email_sent" : "email_failed",
+      provider: "resend",
+      sanitized_error_summary: email.ok ? null : redactSensitiveText(email.error || "email_not_sent").slice(0, 240)
+    })
+  }).catch(() => undefined);
+
+  return { ok: true };
+}
+
+async function listSupportRequests() {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return { ok: false, requests: [] };
+  }
+
+  const response = await fetch(
+    `${config.url}/rest/v1/support_requests?select=reference_id,category,email_delivery_status,created_at&order=created_at.desc&limit=20`,
+    {
+      headers: supabaseHeaders(config)
+    }
+  ).catch(() => undefined);
+
+  if (!response?.ok) {
+    return { ok: false, requests: [] };
+  }
+  const requests = await response.json().catch(() => []);
+  return { ok: true, requests };
+}
+
+function supabaseHeaders(config, options = {}) {
+  const headers = {
+    apikey: config.serviceRoleKey,
+    Authorization: `Bearer ${config.serviceRoleKey}`,
+    "Content-Type": "application/json"
+  };
+  if (options.prefer) {
+    headers.Prefer = options.prefer;
+  }
+  return headers;
+}
+
+function formatLabel(value) {
+  return value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
 function redactSensitiveText(value) {

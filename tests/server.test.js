@@ -34,6 +34,23 @@ describe("GET /api/health", () => {
   });
 });
 
+describe("GET /api/readiness", () => {
+  it("responds with non-secret readiness flags", async function() {
+    const res = await request(app)
+      .get("/api/readiness")
+      .set("Accept", "application/json");
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "application/json");
+    assert.equal(res.body.ok, true);
+    assert.equal(typeof res.body.services.supabase.ready, "boolean");
+    assert.equal(typeof res.body.services.stripe.ready, "boolean");
+    assert.equal(typeof res.body.services.resend.ready, "boolean");
+    assert.equal(typeof res.body.services.googleOAuth.ready, "boolean");
+    assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
+  });
+});
+
 describe("GET /contact", () => {
   it("responds with the contact page", async function() {
     const res = await request(app)
@@ -43,6 +60,24 @@ describe("GET /contact", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Contact SONARA Industries/);
+  });
+});
+
+describe("POST /contact", () => {
+  it("returns a safe reference when email is not configured", async function() {
+    const res = await request(app)
+      .post("/contact")
+      .type("form")
+      .send({
+        category: "contact",
+        email: "launch@example.com",
+        message: "Please review the paid launch readiness path.",
+        consent: "yes"
+      });
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Reference ID:/);
   });
 });
 
@@ -59,6 +94,19 @@ describe("GET /pricing", () => {
   });
 });
 
+describe("POST /api/checkout/session", () => {
+  it("returns setup_required when Stripe is not configured", async function() {
+    const res = await request(app)
+      .post("/api/checkout/session")
+      .send({ plan: "starter_monthly" })
+      .set("Accept", "application/json");
+
+    assert.equal(res.status, 503);
+    assert.equal(res.type, "application/json");
+    assert.equal(res.body.code, "setup_required");
+  });
+});
+
 describe("GET /legal/terms", () => {
   it("responds with complete legal terms", async function() {
     const res = await request(app)
@@ -69,6 +117,17 @@ describe("GET /legal/terms", () => {
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Terms of Service/);
     assert.doesNotMatch(res.text, /\[To be added\]/);
+  });
+});
+
+describe("GET /admin", () => {
+  it("requires protection", async function() {
+    const res = await request(app)
+      .get("/admin")
+      .set("Accept", "application/json");
+
+    assert.ok([401, 503].includes(res.status));
+    assert.match(res.text, /admin_auth_required|setup_required/);
   });
 });
 
