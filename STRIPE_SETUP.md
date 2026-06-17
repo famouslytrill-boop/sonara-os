@@ -15,6 +15,13 @@ Create these prices in Stripe and copy the price IDs into Vercel:
 - Pro monthly: $39/month -> `STRIPE_PRICE_PRO_MONTHLY`
 - Business Builder one-time setup: $99 -> `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
 
+Accepted aliases for the house-of-brands naming model:
+
+- Business Builder monthly -> `STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY`
+- Creator Studio monthly -> `STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY`
+- Growth Studio monthly -> `STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY`
+- Business Builder one-time setup -> `STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME`
+
 Do not create $1-$3 paid tiers unless the owner explicitly accepts the payment-fee tradeoff.
 
 Each copied value must start with `price_`. Do not paste secret keys (`sk_live_` or `sk_test_`), products (`prod_`), or customers (`cus_`) into price variables.
@@ -55,6 +62,10 @@ Set `STRIPE_WEBHOOK_SECRET` from the webhook signing secret. The app verifies si
 - `STRIPE_PRICE_CORE_MONTHLY`
 - `STRIPE_PRICE_PRO_MONTHLY`
 - `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
+- `STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY` optional alias
+- `STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY` optional alias
+- `STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY` optional alias
+- `STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME` optional alias
 - `STRIPE_SUCCESS_URL`
 - `STRIPE_CANCEL_URL`
 

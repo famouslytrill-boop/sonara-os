@@ -6,12 +6,17 @@ Configure production values in Vercel Project Settings -> Environment Variables.
 
 - `APP_URL`: Production app URL. Use `https://sonaraindustries.com`.
 - `PUBLIC_SITE_URL`: Public base URL used for OAuth and checkout redirects. Use `https://sonaraindustries.com`.
+- `NEXT_PUBLIC_APP_URL`: Browser-safe app URL alias for future frontend clients.
+- `NEXT_PUBLIC_SITE_URL`: Browser-safe site URL alias for future frontend clients.
 
 ## Supabase
 
 - `SUPABASE_URL`: Server-side Supabase project URL used by Express REST calls.
 - `SUPABASE_ANON_KEY`: Public Supabase anon key for future browser-safe clients. Do not use for privileged server writes.
 - `SUPABASE_SERVICE_ROLE_KEY`: Server-only key for support queue, billing audit, and admin reads. Never expose to browser code.
+- `NEXT_PUBLIC_SUPABASE_URL`: Browser-safe Supabase URL alias for future frontend clients.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Browser-safe Supabase anon key alias.
+- `SUPABASE_DB_URL`: Direct database URL for owner migration tooling only. Do not expose to browser code.
 
 Configure these from Supabase Project Settings -> API.
 
@@ -31,8 +36,13 @@ Configure these in Google Cloud Console OAuth credentials and, if Supabase Auth 
 - `STRIPE_PRICE_CORE_MONTHLY`: Stripe price ID for Core monthly.
 - `STRIPE_PRICE_PRO_MONTHLY`: Stripe price ID for Pro monthly.
 - `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`: Stripe price ID for one-time Business Builder purchase.
+- `STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY`: Alias accepted for Business Builder monthly pricing.
+- `STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY`: Alias accepted for Creator Studio monthly pricing.
+- `STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY`: Alias accepted for Growth Studio monthly pricing.
+- `STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME`: Alias accepted for Business Builder one-time setup pricing.
 - `STRIPE_SUCCESS_URL`: Checkout success redirect.
 - `STRIPE_CANCEL_URL`: Checkout cancel redirect.
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Browser-safe publishable key reserved for future client-side Stripe Elements. Checkout Sessions do not require it.
 
 Configure these in Stripe Dashboard and Vercel.
 
@@ -50,6 +60,7 @@ Validation rules:
 - `RESEND_API_KEY`: Server-only Resend API key.
 - `RESEND_FROM_EMAIL`: Verified sender address.
 - `SUPPORT_TO_EMAIL`: Internal support recipient.
+- `CONTACT_TO_EMAIL`: Alias accepted for the internal contact recipient.
 
 Configure these in Resend after domain verification.
 
@@ -57,6 +68,7 @@ Configure these in Resend after domain verification.
 
 - `ADMIN_ACCESS_TOKEN`: Temporary server-only admin gate until OAuth-backed admin sessions are complete.
 - `ADMIN_EMAILS`: Comma-separated owner/admin emails for future OAuth authorization.
+- `ADMIN_EMAIL`: Single-admin alias for future OAuth authorization.
 
 Never display or expose `ADMIN_ACCESS_TOKEN`.
 

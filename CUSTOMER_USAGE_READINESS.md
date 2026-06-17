@@ -1,6 +1,6 @@
 # Customer Usage Readiness
 
-SONARA Industries is code-ready for customer-facing shell review. The remaining work is provider configuration and owner approval.
+SONARA Industries is code-ready for customer-facing launch review. The remaining work is provider configuration and owner approval.
 
 ## Customer-facing areas
 
@@ -9,7 +9,7 @@ SONARA Industries is code-ready for customer-facing shell review. The remaining 
 - Creator Studio overview, dashboard, and launch readiness.
 - Growth Studio overview, dashboard, and launch readiness.
 - Contact and support intake.
-- Pricing and server-side checkout shell.
+- Pricing and server-side checkout readiness.
 - Help, docs, security, login readiness, and legal pages.
 
 ## Setup-required behavior

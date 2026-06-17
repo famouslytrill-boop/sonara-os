@@ -19,6 +19,7 @@ const STRIPE_PLANS = {
     price: "$7/mo",
     description: "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.",
     env: "STRIPE_PRICE_STARTER_MONTHLY",
+    envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY"],
     mode: "subscription"
   },
   core_monthly: {
@@ -26,6 +27,7 @@ const STRIPE_PLANS = {
     price: "$19/mo",
     description: "Best value for one studio, customer records, offer records, launch readiness, and support queue.",
     env: "STRIPE_PRICE_CORE_MONTHLY",
+    envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY"],
     mode: "subscription"
   },
   pro_monthly: {
@@ -33,6 +35,7 @@ const STRIPE_PLANS = {
     price: "$39/mo",
     description: "All three studios, deeper records, campaign planning, advanced readiness, and priority support queue.",
     env: "STRIPE_PRICE_PRO_MONTHLY",
+    envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY"],
     mode: "subscription"
   },
   business_builder_one_time: {
@@ -40,19 +43,20 @@ const STRIPE_PLANS = {
     price: "One-time",
     description: "Manual setup package for service launch infrastructure.",
     env: "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
+    envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME"],
     mode: "payment"
   }
 };
-
 app.use(express.static("public"));
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
   const readiness = getReadiness();
-  if (readiness.services.stripe !== "configured" || !process.env.STRIPE_WEBHOOK_SECRET) {
+  const webhookSecret = getEnv("STRIPE_WEBHOOK_SECRET");
+  if (readiness.services.stripeWebhook !== "configured" || !webhookSecret) {
     return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_webhooks" });
   }
 
-  const verification = verifyStripeWebhookSignature(req.body, req.get("stripe-signature"), process.env.STRIPE_WEBHOOK_SECRET);
+  const verification = verifyStripeWebhookSignature(req.body, req.get("stripe-signature"), webhookSecret);
   if (!verification.ok) {
     return res.status(400).json({ ok: false, code: "invalid_signature" });
   }
@@ -106,7 +110,7 @@ registerProduct("creator-studio", {
   cards: [
     ["Asset Catalog", "Organize creator assets, catalog items, and provenance-ready records."],
     ["Creator Offers", "Prepare creator products and customer-facing offers."],
-    ["Release/content checklist", "Track release and content tasks without claiming automation is live."],
+    ["Release & Content Checklist", "Track release and content tasks without claiming automation is live."],
     ["Monetization Readiness", "Surface payment and email setup requirements before selling."],
     ["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."]
   ],
@@ -119,7 +123,7 @@ registerProduct("growth-studio", {
   cards: [
     ["Campaign Workspace", "Plan growth campaigns and launch experiments."],
     ["Lead & Customer Follow-Up", "Prepare follow-up workflows with consent and owner review."],
-    ["Consent-safe checklist", "Keep outbound actions reviewable and audit-ready."],
+    ["Consent-Safe Campaign Checklist", "Keep outbound actions reviewable and audit-ready."],
     ["Automation Readiness", "Show setup requirements instead of pretending automations are live."],
     ["Growth Records", "Track campaign records, leads, outcomes, and notes."]
   ],
@@ -245,6 +249,7 @@ app.get("/login", (req, res) => {
         heading: "Login",
         body: "Setup required: Google OAuth is not configured. Public pages remain available while owner credentials are added.",
         sections: [
+          authForm("Login with email", "/auth/login"),
           brandCard("Google OAuth", "Configure Google Cloud OAuth and Supabase Auth provider settings before enabling persistent sessions."),
           brandCard("Admin protection", "Founder routes remain protected by a temporary server-only admin token until OAuth sessions are complete.")
         ],
@@ -254,8 +259,8 @@ app.get("/login", (req, res) => {
   }
 
   const params = new URLSearchParams({
-    client_id: process.env.GOOGLE_CLIENT_ID,
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+    client_id: getEnv("GOOGLE_CLIENT_ID"),
+    redirect_uri: getEnv("GOOGLE_REDIRECT_URI"),
     response_type: "code",
     scope: "openid email profile",
     access_type: "offline",
@@ -335,6 +340,27 @@ app.get("/account/setup", (req, res) => {
   );
 });
 
+app.get("/dashboard", requireCustomer, (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Dashboard",
+      eyebrow: "Workspace",
+      heading: "Dashboard",
+      body: "Choose a SONARA product workspace. Customer sessions must be configured before protected workspace data is shown.",
+      sections: [
+        brandCard("Business Builder", "Offer, intake, customer, and payment readiness workspace."),
+        brandCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace."),
+        brandCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace.")
+      ],
+      actions: [
+        linkAction("/business-builder/dashboard", "Business Builder dashboard"),
+        linkAction("/creator-studio/dashboard", "Creator Studio dashboard"),
+        linkAction("/growth-studio/dashboard", "Growth Studio dashboard")
+      ]
+    })
+  );
+});
+
 app.get("/auth/callback", (req, res) => {
   const readiness = getReadiness();
   if (readiness.services.googleOAuth !== "configured") {
@@ -381,6 +407,23 @@ app.get("/api/billing/status", (req, res) => {
     paidStatus: "not_verified",
     message: readiness.services.checkout === "enabled" ? "Checkout can be started server-side." : "setup_required"
   });
+});
+
+app.get("/settings", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Settings",
+      eyebrow: "Account readiness",
+      heading: "Settings",
+      body: "Language and unit preferences are prepared for profile-backed storage after Supabase Auth sessions are enabled.",
+      sections: [
+        brandCard("Language preference", "Default: English. Recommended implementation: persist a locale field on profile_settings and apply translations through a dedicated i18n layer."),
+        brandCard("Unit preference", "Default: US customary where relevant. Store metric or imperial preference in profile_settings when customer profiles are active."),
+        brandCard("Session requirement", "Preferences are not persisted until account sessions are configured and owner-tested.")
+      ],
+      actions: [linkAction("/account", "Account"), linkAction("/", "Home")]
+    })
+  );
 });
 
 app.post("/api/business-builder/offers", async (req, res) => {
@@ -594,7 +637,7 @@ function registerProduct(slug, config) {
     );
   });
 
-  app.get(`/${slug}/dashboard`, (req, res) => {
+  app.get(`/${slug}/dashboard`, requireCustomer, (req, res) => {
     const readiness = getReadiness();
     res.status(200).type("html").send(
       layout({
@@ -671,6 +714,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
         <a href="/growth-studio">Growth Studio</a>
         <a href="/contact">Contact</a>
         <a href="/pricing">Pricing</a>
+        <a href="/login">Login</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/admin">Admin</a>
         <a href="/help">Help</a>
         <a href="/security">Security</a>
       </nav>
@@ -690,6 +736,18 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
         ${legalPages().map((page) => `<a href="${escapeHtml(page.href)}">${escapeHtml(page.title)}</a>`).join("")}
       </nav>
     </footer>
+    <script>
+      document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = document.getElementById(button.getAttribute("data-toggle-password"));
+          if (!input) return;
+          const hidden = input.type === "password";
+          input.type = hidden ? "text" : "password";
+          button.textContent = hidden ? "Hide password" : "Show password";
+          button.setAttribute("aria-pressed", String(hidden));
+        });
+      });
+    </script>
   </body>
 </html>`;
 }
@@ -716,7 +774,14 @@ function responsePage(title, body, actions) {
 }
 
 function adminPage(title, body, readiness) {
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: readinessCards(readiness), actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
+  const operations = [
+    brandCard("Users and customers", readiness.services.supabase === "configured" ? "Supabase-backed profile and organization records are available server-side." : "Setup required: connect Supabase before customer records can be listed."),
+    brandCard("Orders and subscriptions", readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."),
+    brandCard("Contact messages", readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references."),
+    brandCard("Product catalog status", "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas."),
+    brandCard("System status", "Health and readiness checks are available without exposing secret values.")
+  ];
+  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
 }
 
 function readinessCards(readiness) {
@@ -799,11 +864,13 @@ function contactForm() {
 }
 
 function authForm(label, action) {
+  const inputId = `password-${crypto.createHash("sha1").update(action).digest("hex").slice(0, 8)}`;
   return `<article class="card">
     <h2>${escapeHtml(label)}</h2>
     <form method="post" action="${escapeHtml(action)}">
       <label>Email<input name="email" type="email" required></label>
-      <label>Password<input name="password" type="password" required></label>
+      <label>Password<input id="${inputId}" name="password" type="password" required></label>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
       <button type="submit">${escapeHtml(label)}</button>
     </form>
   </article>`;
@@ -899,10 +966,10 @@ async function sendSupportNotification(request) {
   if (getReadiness().services.emailDelivery !== "enabled") return { ok: false, error: "resend_not_configured" };
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${getEnv("RESEND_API_KEY")}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: process.env.RESEND_FROM_EMAIL,
-      to: [process.env.SUPPORT_TO_EMAIL],
+      from: getEnv("RESEND_FROM_EMAIL"),
+      to: [getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])],
       subject: `SONARA support request ${request.referenceId}: ${request.subject}`,
       text: [`Reference ID: ${request.referenceId}`, `Category: ${request.category}`, `Name: ${request.name}`, `Requester: ${request.email}`, "", redactSensitiveText(request.message)].join("\n")
     })
@@ -911,10 +978,26 @@ async function sendSupportNotification(request) {
 }
 
 function getReadiness() {
-  const supabase = missing(["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
-  const resend = missing(["RESEND_API_KEY", "RESEND_FROM_EMAIL", "SUPPORT_TO_EMAIL"]);
-  const googleOAuth = missing(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "PUBLIC_SITE_URL"]);
-  const adminProtection = missing(["ADMIN_ACCESS_TOKEN", "ADMIN_EMAILS"]);
+  const supabase = missingEnvGroups([
+    ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
+    ["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
+    ["SUPABASE_SERVICE_ROLE_KEY"]
+  ]);
+  const resend = missingEnvGroups([
+    ["RESEND_API_KEY"],
+    ["RESEND_FROM_EMAIL"],
+    ["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"]
+  ]);
+  const googleOAuth = missingEnvGroups([
+    ["GOOGLE_CLIENT_ID"],
+    ["GOOGLE_CLIENT_SECRET"],
+    ["GOOGLE_REDIRECT_URI"],
+    ["PUBLIC_SITE_URL", "NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "APP_URL"]
+  ]);
+  const adminProtection = missingEnvGroups([
+    ["ADMIN_ACCESS_TOKEN"],
+    ["ADMIN_EMAILS", "ADMIN_EMAIL"]
+  ]);
   const stripeSecret = getStripeSecretStatus();
   const stripeWebhook = getStripeWebhookStatus();
   const checkoutPlans = getCheckoutPlanStatuses();
@@ -945,8 +1028,8 @@ function getReadiness() {
 }
 
 function getAdminEnvReadiness() {
-  const adminToken = process.env.ADMIN_ACCESS_TOKEN || "";
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const adminToken = getEnv("ADMIN_ACCESS_TOKEN");
+  const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   return [
     { key: "ADMIN_ACCESS_TOKEN", label: "ADMIN_ACCESS_TOKEN", ok: Boolean(adminToken), warning: "ADMIN_ACCESS_TOKEN is required for temporary founder access." },
     { key: "ADMIN_ACCESS_TOKEN_NOT_PLACEHOLDER", label: "ADMIN_ACCESS_TOKEN placeholder check", ok: Boolean(adminToken) && !/^A+$/i.test(adminToken), warning: "ADMIN_ACCESS_TOKEN must not use an all-A placeholder value." },
@@ -955,11 +1038,11 @@ function getAdminEnvReadiness() {
       .filter(([, config]) => config.env)
       .map(([plan, config]) => {
         const status = getStripePlanPriceStatus(plan);
-        return { key: config.env, label: config.env, ok: status.status === "configured", warning: getStripePriceWarning(status) };
+        return { key: config.env, label: getPlanEnvLabel(config), ok: status.status === "configured", warning: getStripePriceWarning(status) };
       }),
     { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: getStripeSecretStatus().status === "configured", warning: "Stripe secret key should start with sk_live_ or sk_test_." },
     { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: getStripeWebhookStatus().status === "configured", warning: "Stripe webhook secret should start with whsec_." },
-    { key: "SUPABASE_URL", label: "SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(process.env.SUPABASE_URL || ""), warning: "Supabase URL should start with https:// and include .supabase.co." },
+    { key: "SUPABASE_URL", label: "SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"])), warning: "Supabase URL should start with https:// and include .supabase.co." },
     { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Supabase service role key must exist server-side only." }
   ];
 }
@@ -971,14 +1054,14 @@ function getStripePriceWarning(status) {
 }
 
 function getStripeSecretStatus() {
-  const value = String(process.env.STRIPE_SECRET_KEY || "").trim();
+  const value = getEnv("STRIPE_SECRET_KEY");
   if (!value) return { status: "missing" };
   if (!startsWithAny(value, ["sk_live_", "sk_test_"])) return { status: "invalid_prefix" };
   return { status: "configured" };
 }
 
 function getStripeWebhookStatus() {
-  const value = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  const value = getEnv("STRIPE_WEBHOOK_SECRET");
   if (!value) return { status: "missing" };
   if (!value.startsWith("whsec_")) return { status: "invalid_prefix" };
   return { status: "configured" };
@@ -987,10 +1070,12 @@ function getStripeWebhookStatus() {
 function getStripePlanPriceStatus(plan) {
   const config = STRIPE_PLANS[plan];
   if (!config?.env) return { status: "not_required", checkout: "enabled", env: undefined, reason: "not_required" };
-  const value = String(process.env[config.env] || "").trim();
-  if (!value) return { status: "missing", checkout: "setup_required", env: config.env, reason: "missing" };
-  if (!isStripePriceId(value)) return { status: "invalid_prefix", checkout: "setup_required", env: config.env, reason: "invalid_prefix" };
-  return { status: "configured", checkout: getStripeSecretStatus().status === "configured" ? "enabled" : "setup_required", env: config.env, reason: "configured", priceId: value };
+  const envNames = getPlanEnvNames(config);
+  const value = getEnv(envNames);
+  const envLabel = envNames.join(" or ");
+  if (!value) return { status: "missing", checkout: "setup_required", env: envLabel, reason: "missing" };
+  if (!isStripePriceId(value)) return { status: "invalid_prefix", checkout: "setup_required", env: envLabel, reason: "invalid_prefix" };
+  return { status: "configured", checkout: getStripeSecretStatus().status === "configured" ? "enabled" : "setup_required", env: envLabel, reason: "configured", priceId: value };
 }
 
 function getCheckoutPlanStatuses() {
@@ -1019,6 +1104,14 @@ function isStripePriceId(value) {
 
 function startsWithAny(value, prefixes) {
   return prefixes.some((prefix) => String(value || "").startsWith(prefix));
+}
+
+function getPlanEnvNames(config) {
+  return [config.env, ...(config.envAliases || [])].filter(Boolean);
+}
+
+function getPlanEnvLabel(config) {
+  return getPlanEnvNames(config).join(" / ");
 }
 
 function isSupabaseConfigured() {
@@ -1141,8 +1234,19 @@ function splitList(value) {
   return String(value).split(",").map((item) => item.trim()).filter(Boolean);
 }
 
-function missing(keys) {
-  return keys.filter((key) => !process.env[key]);
+function getEnv(names) {
+  const keys = Array.isArray(names) ? names : [names];
+  for (const key of keys) {
+    const value = String(process.env[key] || "").trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function missingEnvGroups(groups) {
+  return groups
+    .filter((group) => !getEnv(group))
+    .map((group) => group.join(" or "));
 }
 
 async function handleEmailAuth(mode, body) {
@@ -1160,8 +1264,8 @@ async function handleEmailAuth(mode, body) {
   const response = await fetch(`${config.url}${endpoint}`, {
     method: "POST",
     headers: {
-      apikey: process.env.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${process.env.SUPABASE_ANON_KEY}`,
+      apikey: getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]),
+      Authorization: `Bearer ${getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({ email, password })
@@ -1169,6 +1273,39 @@ async function handleEmailAuth(mode, body) {
 
   if (!response?.ok) return { status: 401, body: { ok: false, code: "auth_not_completed" } };
   return { status: 200, body: { ok: true, code: mode === "signup" ? "signup_requested" : "login_ready", sessionStored: false } };
+}
+
+async function requireCustomer(req, res, next) {
+  if (!isSupabaseConfigured()) {
+    if (acceptsHtml(req)) return res.redirect(303, "/login");
+    return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
+  }
+
+  const authHeader = String(req.get("authorization") || "");
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  if (!bearerMatch?.[1]) {
+    if (acceptsHtml(req)) return res.redirect(303, "/login");
+    return res.status(401).json({ ok: false, code: "customer_auth_required" });
+  }
+
+  const verification = await verifySupabaseAccessToken(bearerMatch[1]);
+  if (!verification.ok) return res.status(401).json({ ok: false, code: "customer_auth_required" });
+  req.sonaraUser = verification.user;
+  return next();
+}
+
+async function verifySupabaseAccessToken(accessToken) {
+  const config = getSupabaseServerClient();
+  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
+  if (!config.ok || !anonKey) return { ok: false };
+  const response = await fetch(`${config.url}/auth/v1/user`, {
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${accessToken}`
+    }
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  return { ok: true, user: await response.json().catch(() => undefined) };
 }
 
 function requireAdmin(req, res, next) {
@@ -1195,7 +1332,7 @@ function getAdminRequestToken(req) {
 }
 
 function isAdminTokenValid(token) {
-  return timingSafeCompare(String(token || ""), String(process.env.ADMIN_ACCESS_TOKEN || ""));
+  return timingSafeCompare(String(token || ""), getEnv("ADMIN_ACCESS_TOKEN"));
 }
 
 function timingSafeCompare(a, b) {
@@ -1235,7 +1372,7 @@ function isAdminSessionCookieValid(req) {
 }
 
 function signAdminSessionPayload(payload) {
-  return crypto.createHmac("sha256", process.env.ADMIN_ACCESS_TOKEN || "admin-session-not-configured").update(payload).digest("base64url");
+  return crypto.createHmac("sha256", getEnv("ADMIN_ACCESS_TOKEN") || "admin-session-not-configured").update(payload).digest("base64url");
 }
 
 function getCookie(req, name) {
@@ -1266,7 +1403,7 @@ async function createStripeCheckoutSession(req, plan, priceId) {
   });
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, "Content-Type": "application/x-www-form-urlencoded" },
+    headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
     body: params.toString()
   }).catch(() => undefined);
   if (!response?.ok) return { ok: false };
@@ -1283,7 +1420,7 @@ function getCheckoutRedirectUrls(req) {
 }
 
 function getPublicAppUrl(req) {
-  const configured = process.env.APP_URL || process.env.PUBLIC_SITE_URL;
+  const configured = getEnv(["APP_URL", "PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SITE_URL"]);
   if (isSafePublicUrl(configured)) return String(configured).replace(/\/$/, "");
 
   const host = req.get("x-forwarded-host") || req.get("host") || "sonaraindustries.com";
@@ -1382,8 +1519,8 @@ async function listSupportRequests() {
 }
 
 function getSupabaseServerConfig() {
-  const url = process.env.SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
+  const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) return { ok: false };
   return { ok: true, url: url.replace(/\/$/, ""), serviceRoleKey };
 }

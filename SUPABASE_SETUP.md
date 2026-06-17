@@ -6,9 +6,10 @@ Supabase is the primary backend for support queue and billing audit readiness.
 
 In Supabase Dashboard -> Project Settings -> API:
 
-- Project URL -> `SUPABASE_URL`
-- anon public key -> `SUPABASE_ANON_KEY`
+- Project URL -> `SUPABASE_URL` and optional browser-safe alias `NEXT_PUBLIC_SUPABASE_URL`
+- anon public key -> `SUPABASE_ANON_KEY` and optional browser-safe alias `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - service role key -> `SUPABASE_SERVICE_ROLE_KEY`
+- database URL -> `SUPABASE_DB_URL` for owner migration tooling only
 
 The service role key is server-only. Never expose it to browser code.
 
@@ -52,8 +53,33 @@ Apply only the clean intentional migrations:
 - `supabase/migrations/0003_agent_growth_rag_foundation.sql`
 - `supabase/migrations/0004_support_email_delivery_status.sql`
 - `supabase/migrations/0005_current_app_schema_hardening.sql`
+- `supabase/migrations/0006_platform_accounts_modules_and_usage.sql`
+- `supabase/migrations/0007_launch_roles_and_preferences.sql`
 
 Do not apply remote sync dumps or data backups.
+
+## Role and preference tables
+
+The launch schema includes:
+
+- `public.user_roles` for `owner`, `admin`, and `customer` authorization.
+- `public.profile_settings` for language and unit preferences.
+
+After the owner signs up, use Supabase SQL Editor to promote the owner account:
+
+```sql
+insert into public.user_roles (user_id, role)
+select id, 'owner'
+from auth.users
+where email = 'OWNER_EMAIL_HERE'
+on conflict (user_id, role) do nothing;
+```
+
+Replace the email before running. Do not add real emails to migrations.
+
+## API grants and RLS
+
+RLS is enabled on customer and organization tables. Service-role policies are server-side permissions, not secrets. If Supabase Data API access is used directly, confirm table grants and RLS policies are both present before production launch.
 
 ## Health checks
 

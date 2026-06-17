@@ -16,19 +16,17 @@ describe("public site", () => {
 
   for (const route of [
     "/business-builder",
-    "/business-builder/dashboard",
     "/business-builder/launch-readiness",
     "/creator-studio",
-    "/creator-studio/dashboard",
     "/creator-studio/launch-readiness",
     "/growth-studio",
-    "/growth-studio/dashboard",
     "/growth-studio/launch-readiness",
     "/contact",
     "/pricing",
     "/security",
     "/help",
     "/docs",
+    "/settings",
     "/signup",
     "/account",
     "/account/setup",
@@ -95,7 +93,7 @@ describe("public site", () => {
 });
 
 describe("icon assets", () => {
-  for (const route of ["/", "/pricing", "/business-builder/dashboard"]) {
+  for (const route of ["/", "/pricing", "/business-builder"]) {
     it(`GET ${route} includes icon metadata`, async function() {
       const res = await request(app).get(route).set("Accept", "text/html");
       assert.equal(res.status, 200);
@@ -162,6 +160,60 @@ describe("health and readiness", () => {
     assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
     assert.equal(res.text.includes("STRIPE_SECRET_KEY="), false);
   });
+
+  it("GET /api/readiness accepts documented environment aliases", async function() {
+    const keys = [
+      "SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "RESEND_API_KEY",
+      "RESEND_FROM_EMAIL",
+      "SUPPORT_TO_EMAIL",
+      "CONTACT_TO_EMAIL",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_REDIRECT_URI",
+      "PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_APP_URL",
+      "APP_URL",
+      "ADMIN_ACCESS_TOKEN",
+      "ADMIN_EMAILS",
+      "ADMIN_EMAIL"
+    ];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.RESEND_API_KEY = "resend-placeholder";
+    process.env.RESEND_FROM_EMAIL = "support@example.com";
+    process.env.CONTACT_TO_EMAIL = "owner@example.com";
+    process.env.GOOGLE_CLIENT_ID = "google-client-placeholder";
+    process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
+    process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
+    process.env.ADMIN_ACCESS_TOKEN = "admin-token-placeholder-1234567890abcdef";
+    process.env.ADMIN_EMAIL = "owner@example.com";
+
+    const res = await request(app).get("/api/readiness").set("Accept", "application/json");
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.services.supabase, "configured");
+    assert.equal(res.body.services.resend, "configured");
+    assert.equal(res.body.services.googleOAuth, "configured");
+    assert.equal(res.body.services.adminProtection, "configured");
+    assert.doesNotMatch(res.text, /service-role-placeholder/);
+    assert.doesNotMatch(res.text, /google-secret-placeholder/);
+  });
 });
 
 describe("contact support", () => {
@@ -191,6 +243,57 @@ describe("contact support", () => {
 });
 
 describe("auth setup", () => {
+  const supabaseEnvKeys = [
+    "SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ];
+  let originalSupabaseEnv;
+
+  beforeEach(() => {
+    originalSupabaseEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, process.env[key]]));
+    for (const key of supabaseEnvKeys) delete process.env[key];
+  });
+
+  afterEach(() => {
+    for (const key of supabaseEnvKeys) {
+      if (originalSupabaseEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalSupabaseEnv[key];
+    }
+  });
+
+  it("GET /login renders email login with password visibility control", async function() {
+    const res = await request(app).get("/login").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Login with email/);
+    assert.match(res.text, /Show password/);
+    assert.match(res.text, /data-toggle-password/);
+  });
+
+  it("GET /signup renders password visibility control", async function() {
+    const res = await request(app).get("/signup").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Create account/);
+    assert.match(res.text, /Show password/);
+    assert.match(res.text, /data-toggle-password/);
+  });
+
+  it("customer dashboards require authentication", async function() {
+    const topLevel = await request(app).get("/dashboard").set("Accept", "text/html");
+    assert.equal(topLevel.status, 303);
+    assert.equal(topLevel.headers.location, "/login");
+
+    const browser = await request(app).get("/business-builder/dashboard").set("Accept", "text/html");
+    assert.equal(browser.status, 303);
+    assert.equal(browser.headers.location, "/login");
+
+    const api = await request(app).get("/business-builder/dashboard").set("Accept", "application/json");
+    assert.equal(api.status, 503);
+    assert.equal(api.body.code, "setup_required");
+  });
+
   it("POST /auth/login returns setup_required when Supabase is missing", async function() {
     const res = await request(app).post("/auth/login").send({ email: "owner@example.com", password: "password123" });
     assert.equal(res.status, 503);
@@ -247,6 +350,10 @@ describe("pricing and checkout", () => {
     "STRIPE_PRICE_CORE_MONTHLY",
     "STRIPE_PRICE_PRO_MONTHLY",
     "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
+    "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY",
+    "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY",
+    "STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY",
+    "STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME",
     "STRIPE_SUCCESS_URL",
     "STRIPE_CANCEL_URL",
     "APP_URL",
@@ -287,6 +394,16 @@ describe("pricing and checkout", () => {
     assert.match(res.text, /Checkout is not configured for this plan yet/);
   });
 
+  it("GET /pricing accepts house-of-brands Stripe price aliases", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY = validCorePrice;
+
+    const res = await request(app).get("/pricing").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.equal((res.text.match(/Start checkout/g) || []).length, 2);
+  });
+
   it("GET /pricing does not count the free plan as paid checkout readiness", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -320,7 +437,7 @@ describe("pricing and checkout", () => {
     const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
     assert.equal(res.status, 503);
     assert.equal(res.body.service, "stripe_price");
-    assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY");
+    assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY");
     assert.equal(res.body.reason, "missing");
   });
 
@@ -333,9 +450,9 @@ describe("pricing and checkout", () => {
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.status, 200);
     const invalidEnvs = readiness.body.invalid.stripe.map((item) => item.env);
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_STARTER_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY"));
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY"));
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY or STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY"));
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY"));
 
     const checkout = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
     assert.equal(checkout.status, 503);
@@ -385,6 +502,11 @@ describe("auth and admin", () => {
     const res = await request(app).get("/admin").set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.match(res.text, /Protected founder operations/);
+    assert.match(res.text, /Users and customers/);
+    assert.match(res.text, /Orders and subscriptions/);
+    assert.match(res.text, /Contact messages/);
+    assert.match(res.text, /Product catalog status/);
+    assert.match(res.text, /System status/);
     assert.doesNotMatch(res.text, new RegExp(adminToken));
   });
 
