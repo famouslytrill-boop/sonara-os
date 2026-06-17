@@ -61,7 +61,13 @@ app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), asyn
     return res.status(400).json({ ok: false, code: "invalid_signature" });
   }
 
-  const event = JSON.parse(req.body.toString("utf8"));
+  let event;
+  try {
+    event = JSON.parse(req.body.toString("utf8"));
+  } catch {
+    return res.status(400).json({ ok: false, code: "invalid_payload" });
+  }
+
   const audit = await recordBillingWebhookEvent(event);
   const sync = await synchronizeBillingFromStripeEvent(event);
   return res.status(200).json({ ok: true, received: true, audited: audit.ok, synchronized: sync.ok, event_id: event.id });
@@ -215,7 +221,7 @@ app.get("/help", (req, res) => {
       sections: [
         brandCard("Contact support", "Use the contact form for launch, billing, access, and readiness requests."),
         brandCard("Readiness", "Provider setup is surfaced through non-secret readiness checks."),
-        brandCard("Admin access", "Founder operations remain protected behind temporary server-only admin access until OAuth sessions are complete.")
+        brandCard("Admin access", "Founder operations remain protected by server-side admin authorization.")
       ],
       actions: [linkAction("/contact", "Contact"), linkAction("/docs", "Docs"), linkAction("/", "Home")]
     })
@@ -230,7 +236,7 @@ app.get("/docs", (req, res) => {
       heading: "Docs",
       body: "Operational setup references for paid-launch readiness.",
       sections: [
-        brandCard("Environment", "Configure Supabase, Stripe, Resend, Google OAuth, and admin access in Vercel."),
+        brandCard("Environment", "Configure Supabase, Stripe, Resend, email auth, and admin access in Vercel."),
         brandCard("Payments", "Checkout remains server-gated until Stripe variables and price IDs exist."),
         brandCard("Support", "Contact requests use Supabase and Resend when configured, with safe setup required fallback behavior.")
       ],
@@ -240,33 +246,20 @@ app.get("/docs", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  const readiness = getReadiness();
-  if (readiness.services.googleOAuth !== "configured") {
-    return res.status(200).type("html").send(
-      layout({
-        title: "Login",
-        eyebrow: "Access readiness",
-        heading: "Login",
-        body: "Setup required: Google OAuth is not configured. Public pages remain available while owner credentials are added.",
-        sections: [
-          authForm("Login with email", "/auth/login"),
-          brandCard("Google OAuth", "Configure Google Cloud OAuth and Supabase Auth provider settings before enabling persistent sessions."),
-          brandCard("Admin protection", "Founder routes remain protected by a temporary server-only admin token until OAuth sessions are complete.")
-        ],
-        actions: [linkAction("/docs", "Docs"), linkAction("/", "Home")]
-      })
-    );
-  }
-
-  const params = new URLSearchParams({
-    client_id: getEnv("GOOGLE_CLIENT_ID"),
-    redirect_uri: getEnv("GOOGLE_REDIRECT_URI"),
-    response_type: "code",
-    scope: "openid email profile",
-    access_type: "offline",
-    prompt: "consent"
-  });
-  return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  return res.status(200).type("html").send(
+    layout({
+      title: "Login",
+      eyebrow: "Access readiness",
+      heading: "Login",
+      body: "Use email/password access after Supabase Auth is configured and owner-tested.",
+      sections: [
+        authForm("Login with email", "/auth/login"),
+        brandCard("Account access", "Email login unlocks protected workspaces after Supabase sessions are configured."),
+        brandCard("Admin protection", "Founder routes remain protected by server-side authorization.")
+      ],
+      actions: [linkAction("/signup", "Create account"), linkAction("/docs", "Docs"), linkAction("/", "Home")]
+    })
+  );
 });
 
 app.get("/signup", (req, res) => {
@@ -362,13 +355,11 @@ app.get("/dashboard", requireCustomer, (req, res) => {
 });
 
 app.get("/auth/callback", (req, res) => {
-  const readiness = getReadiness();
-  if (readiness.services.googleOAuth !== "configured") {
-    return res.status(503).json({ ok: false, code: "setup_required", service: "google_oauth" });
-  }
-  if (!req.query.code) return res.status(400).json({ ok: false, code: "missing_oauth_code" });
-  return res.status(200).type("html").send(
-    responsePage("Authentication callback received", "Google OAuth configuration is present. Session exchange remains gated until the production auth provider is connected.", [
+  const payload = { ok: false, code: "disabled", service: "google_oauth", message: "Google OAuth is deferred until owner configuration is complete." };
+  if (!acceptsHtml(req)) return res.status(503).json(payload);
+  return res.status(503).type("html").send(
+    responsePage("OAuth deferred", "Google OAuth is disabled for launch verification. Use email/password access after Supabase Auth is configured.", [
+      linkAction("/login", "Login"),
       linkAction("/", "Home")
     ])
   );
@@ -381,7 +372,10 @@ app.get("/api/checkout/session", (req, res) => {
 app.post("/api/checkout/session", async (req, res) => {
   const plan = String(req.body.plan || "").trim();
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
-  if (plan === "free") return res.redirect(303, "/contact");
+  if (plan === "free") {
+    if (wantsJson(req)) return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/contact" });
+    return res.redirect(303, "/contact");
+  }
 
   const secretStatus = getStripeSecretStatus();
   if (secretStatus.status !== "configured") {
@@ -394,8 +388,9 @@ app.post("/api/checkout/session", async (req, res) => {
   }
 
   const session = await createStripeCheckoutSession(req, plan, priceStatus.priceId);
-if (!session.ok || !session.url) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
-return res.redirect(303, session.url);
+  if (!session.ok || !session.url) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
+  if (wantsJson(req)) return res.status(200).json({ ok: true, checkout_url: session.url });
+  return res.redirect(303, session.url);
 });
 
 app.get("/api/billing/status", (req, res) => {
@@ -409,7 +404,7 @@ app.get("/api/billing/status", (req, res) => {
   });
 });
 
-app.get("/settings", (req, res) => {
+app.get("/settings", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Settings",
@@ -500,7 +495,7 @@ app.get("/offline", (req, res) => {
   );
 });
 
-app.get("/admin/login", (req, res) => {
+app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
   const readiness = getAdminEnvReadiness();
   const tokenReady = readiness.find((item) => item.key === "ADMIN_ACCESS_TOKEN")?.ok;
   return res.status(tokenReady ? 200 : 503).type("html").send(
@@ -550,13 +545,16 @@ app.post("/admin/logout", (req, res) => {
   return res.redirect(303, "/admin/login");
 });
 
-app.get("/admin", requireAdmin, (req, res) => {
+app.get("/admin", requireAdmin, async (req, res) => {
   const readiness = getReadiness();
-  return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness));
+  const metrics = await getAdminMetrics();
+  await recordAdminAuditEvent(req, "admin.dashboard.view", { path: req.path });
+  return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness, metrics));
 });
 
 app.get("/admin/support", requireAdmin, async (req, res) => {
   const result = await listSupportRequests();
+  await recordAdminAuditEvent(req, "admin.support.view", { path: req.path });
   return res.status(200).type("html").send(
     layout({
       title: "Support queue",
@@ -571,8 +569,10 @@ app.get("/admin/support", requireAdmin, async (req, res) => {
   );
 });
 
-app.get("/admin/billing", requireAdmin, (req, res) => {
+app.get("/admin/billing", requireAdmin, async (req, res) => {
   const readiness = getReadiness();
+  const billingSummary = await getBillingSummary();
+  await recordAdminAuditEvent(req, "admin.billing.view", { path: req.path });
   return res.status(200).type("html").send(
     layout({
       title: "Billing readiness",
@@ -582,14 +582,17 @@ app.get("/admin/billing", requireAdmin, (req, res) => {
       sections: [
         brandCard("Checkout", readiness.services.checkout),
         brandCard("Stripe", readiness.services.stripe),
-        brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "Setup required")
+        brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "Setup required"),
+        brandCard("Webhook events", billingSummary.webhookEvents),
+        brandCard("Subscriptions", billingSummary.subscriptions)
       ],
       actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing"), adminLogoutAction()]
     })
   );
 });
 
-app.get("/admin/env-readiness", requireAdmin, (req, res) => {
+app.get("/admin/env-readiness", requireAdmin, async (req, res) => {
+  await recordAdminAuditEvent(req, "admin.env_readiness.view", { path: req.path });
   return res.status(200).type("html").send(
     layout({
       title: "Environment readiness",
@@ -773,12 +776,13 @@ function responsePage(title, body, actions) {
   return layout({ title, eyebrow: "System response", heading: title, body, sections: [], actions });
 }
 
-function adminPage(title, body, readiness) {
+function adminPage(title, body, readiness, metrics = {}) {
   const operations = [
-    brandCard("Users and customers", readiness.services.supabase === "configured" ? "Supabase-backed profile and organization records are available server-side." : "Setup required: connect Supabase before customer records can be listed."),
-    brandCard("Orders and subscriptions", readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."),
-    brandCard("Contact messages", readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references."),
-    brandCard("Product catalog status", "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas."),
+    brandCard("Users and customers", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed.")),
+    brandCard("Orders and subscriptions", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid.")),
+    brandCard("Billing webhook events", metrics.webhookEvents || (readiness.services.supabase === "configured" ? "Webhook audit table is available after migrations are applied." : "Setup required: connect Supabase before webhook audit events can be listed.")),
+    brandCard("Contact messages", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references.")),
+    brandCard("Product catalog status", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas."),
     brandCard("System status", "Health and readiness checks are available without exposing secret values.")
   ];
   return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
@@ -1015,7 +1019,7 @@ function getReadiness() {
       stripe: stripeSecret.status === "configured" ? "configured" : "missing",
       stripeWebhook: stripeWebhook.status === "configured" ? "configured" : "missing",
       resend: resend.length ? "missing" : "configured",
-      googleOAuth: googleOAuth.length ? "missing" : "configured",
+      googleOAuth: "deferred",
       adminProtection: adminProtection.length ? "missing" : "configured",
       legalPages: "review_required",
       checkout: enabledPlanCount ? "enabled" : "setup_required",
@@ -1281,14 +1285,13 @@ async function requireCustomer(req, res, next) {
     return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
   }
 
-  const authHeader = String(req.get("authorization") || "");
-  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-  if (!bearerMatch?.[1]) {
+  const bearerToken = getBearerToken(req);
+  if (!bearerToken) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
     return res.status(401).json({ ok: false, code: "customer_auth_required" });
   }
 
-  const verification = await verifySupabaseAccessToken(bearerMatch[1]);
+  const verification = await verifySupabaseAccessToken(bearerToken);
   if (!verification.ok) return res.status(401).json({ ok: false, code: "customer_auth_required" });
   req.sonaraUser = verification.user;
   return next();
@@ -1308,16 +1311,50 @@ async function verifySupabaseAccessToken(accessToken) {
   return { ok: true, user: await response.json().catch(() => undefined) };
 }
 
-function requireAdmin(req, res, next) {
-  if (getReadiness().services.adminProtection !== "configured") {
+async function rejectCustomerBearerFromAdminLogin(req, res, next) {
+  const bearerToken = getBearerToken(req);
+  if (!bearerToken || isAdminTokenValid(bearerToken)) return next();
+
+  const verification = await verifySupabaseAccessToken(bearerToken);
+  if (!verification.ok) return next();
+  const admin = await isSupabaseAdminUser(verification.user);
+  if (admin.ok) return next();
+
+  if (acceptsHtml(req)) return res.status(403).type("html").send(responsePage("Admin access denied", "Customer sessions cannot open founder operations.", [linkAction("/", "Home")]));
+  return res.status(403).json({ ok: false, code: "admin_forbidden" });
+}
+
+async function requireAdmin(req, res, next) {
+  const admin = await verifyAdminRequest(req);
+  if (admin.ok) {
+    req.sonaraAdmin = admin;
+    return next();
+  }
+
+  if (admin.setupRequired) {
     if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
     return res.status(503).json({ ok: false, code: "setup_required", service: "admin_access" });
   }
 
-  if (isAdminTokenValid(getAdminRequestToken(req)) || isAdminSessionCookieValid(req)) return next();
-
   if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
   return res.status(401).json({ ok: false, code: "admin_auth_required" });
+}
+
+async function verifyAdminRequest(req) {
+  if (isAdminTokenValid(getAdminRequestToken(req))) return { ok: true, method: "admin_token" };
+  if (isAdminSessionCookieValid(req)) return { ok: true, method: "admin_cookie" };
+
+  const bearerToken = getBearerToken(req);
+  if (bearerToken && !isAdminTokenValid(bearerToken)) {
+    const verification = await verifySupabaseAccessToken(bearerToken);
+    if (verification.ok) {
+      const admin = await isSupabaseAdminUser(verification.user);
+      if (admin.ok) return { ok: true, method: "supabase_role", user: verification.user };
+      return { ok: false };
+    }
+  }
+
+  return { ok: false, setupRequired: getReadiness().services.adminProtection !== "configured" };
 }
 
 function getAdminRequestToken(req) {
@@ -1335,6 +1372,23 @@ function isAdminTokenValid(token) {
   return timingSafeCompare(String(token || ""), getEnv("ADMIN_ACCESS_TOKEN"));
 }
 
+function getBearerToken(req) {
+  const authHeader = String(req.get("authorization") || "");
+  return authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+}
+
+async function isSupabaseAdminUser(user) {
+  const userId = String(user?.id || "").trim();
+  if (!userId) return { ok: false };
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false };
+  const query = `/rest/v1/user_roles?select=role&user_id=eq.${encodeURIComponent(userId)}&role=in.(owner,admin)&limit=1`;
+  const response = await fetch(`${config.url}${query}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const roles = await response.json().catch(() => []);
+  return { ok: Array.isArray(roles) && roles.length > 0 };
+}
+
 function timingSafeCompare(a, b) {
   if (!a || !b) return false;
   const left = crypto.createHash("sha256").update(String(a)).digest();
@@ -1345,6 +1399,10 @@ function timingSafeCompare(a, b) {
 function acceptsHtml(req) {
   const accept = String(req.get("accept") || "");
   return accept.includes("text/html") && !accept.includes("application/json");
+}
+
+function wantsJson(req) {
+  return Boolean(req.is("application/json")) || String(req.get("accept") || "").includes("application/json");
 }
 
 function createAdminSessionCookie() {
@@ -1458,7 +1516,7 @@ function verifyStripeWebhookSignature(rawBody, header, secret) {
 async function recordBillingWebhookEvent(event) {
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false };
-  const response = await fetch(`${config.url}/rest/v1/billing_webhook_events`, {
+  const response = await fetch(`${config.url}/rest/v1/billing_webhook_events?on_conflict=provider,provider_event_id`, {
     method: "POST",
     headers: supabaseHeaders(config, { prefer: "resolution=ignore-duplicates" }),
     body: JSON.stringify({
@@ -1466,6 +1524,7 @@ async function recordBillingWebhookEvent(event) {
       provider_event_id: event.id,
       event_type: event.type,
       livemode: Boolean(event.livemode),
+      payload: event,
       processing_status: "processed",
       processed_at: new Date().toISOString(),
       metadata: { object: event.data?.object?.object, customer: event.data?.object?.customer, subscription: event.data?.object?.subscription || event.data?.object?.id }
@@ -1475,18 +1534,20 @@ async function recordBillingWebhookEvent(event) {
 }
 
 async function synchronizeBillingFromStripeEvent(event) {
+  if (event.type === "checkout.session.completed") return synchronizeCheckoutSessionCompleted(event);
   if (!["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) return { ok: true, ignored: true };
   const config = getSupabaseServerConfig();
   const subscription = event.data?.object;
   const organizationId = subscription?.metadata?.organization_id;
   if (!config.ok || !subscription?.id || !organizationId) return { ok: false };
   const planSlug = subscription.metadata?.plan || "core_monthly";
-  const response = await fetch(`${config.url}/rest/v1/billing_subscriptions`, {
+  const currentPeriodEnd = Number.isFinite(subscription.current_period_end) ? new Date(subscription.current_period_end * 1000).toISOString() : null;
+  const response = await fetch(`${config.url}/rest/v1/billing_subscriptions?on_conflict=provider,provider_subscription_ref`, {
     method: "POST",
     headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-    body: JSON.stringify({ organization_id: organizationId, provider: "stripe", provider_customer_ref: subscription.customer, provider_subscription_ref: subscription.id, plan_slug: planSlug, status: subscription.status, cancel_at_period_end: Boolean(subscription.cancel_at_period_end), metadata: { source: "stripe_webhook" } })
+    body: JSON.stringify({ organization_id: organizationId, provider: "stripe", provider_customer_ref: subscription.customer, provider_subscription_ref: subscription.id, plan_slug: planSlug, status: subscription.status, current_period_end: currentPeriodEnd, cancel_at_period_end: Boolean(subscription.cancel_at_period_end), metadata: { source: "stripe_webhook" } })
   }).catch(() => undefined);
-  await fetch(`${config.url}/rest/v1/billing_entitlements`, {
+  await fetch(`${config.url}/rest/v1/billing_entitlements?on_conflict=organization_id,entitlement_key`, {
     method: "POST",
     headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
     body: JSON.stringify({ organization_id: organizationId, entitlement_key: planSlug, status: ["active", "trialing"].includes(subscription.status) ? "active" : "disabled", source: "billing", metadata: { provider: "stripe", provider_subscription_ref: subscription.id } })
@@ -1516,6 +1577,101 @@ async function listSupportRequests() {
   const response = await fetch(`${config.url}/rest/v1/support_requests?select=reference_id,category,email_delivery_status,created_at&order=created_at.desc&limit=20`, { headers: supabaseHeaders(config) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, requests: [] };
   return { ok: true, requests: await response.json().catch(() => []) };
+}
+
+async function getAdminMetrics() {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return {};
+  const [users, subscriptions, webhookEvents, supportRequests, catalog] = await Promise.all([
+    safeCountTable(config, "profiles"),
+    safeCountTable(config, "billing_subscriptions"),
+    safeCountTable(config, "billing_webhook_events"),
+    safeCountTable(config, "support_requests"),
+    safeCountTable(config, "product_modules")
+  ]);
+  return {
+    users: formatMetric("Profiles", users),
+    subscriptions: formatMetric("Subscription records", subscriptions),
+    webhookEvents: formatMetric("Webhook events", webhookEvents),
+    supportRequests: formatMetric("Support requests", supportRequests),
+    catalog: formatMetric("Product modules", catalog)
+  };
+}
+
+async function getBillingSummary() {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { webhookEvents: "Setup required: Supabase is not configured.", subscriptions: "Setup required: Supabase is not configured." };
+  const [webhookEvents, subscriptions] = await Promise.all([
+    safeCountTable(config, "billing_webhook_events"),
+    safeCountTable(config, "billing_subscriptions")
+  ]);
+  return {
+    webhookEvents: formatMetric("Recorded events", webhookEvents),
+    subscriptions: formatMetric("Subscription records", subscriptions)
+  };
+}
+
+async function safeCountTable(config, table) {
+  const response = await fetch(`${config.url}/rest/v1/${table}?select=id&limit=1`, {
+    headers: supabaseHeaders(config, { prefer: "count=exact" })
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const range = response.headers?.get?.("content-range") || "";
+  const match = range.match(/\/(\d+)$/);
+  if (match) return { ok: true, count: Number(match[1]) };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, count: Array.isArray(rows) ? rows.length : 0 };
+}
+
+function formatMetric(label, result) {
+  if (!result?.ok) return `${label}: unavailable until Supabase tables are migrated.`;
+  return `${label}: ${result.count}`;
+}
+
+async function recordAdminAuditEvent(req, action, metadata = {}) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false };
+  const user = req.sonaraAdmin?.user;
+  const response = await fetch(`${config.url}/rest/v1/admin_audit_events`, {
+    method: "POST",
+    headers: supabaseHeaders(config),
+    body: JSON.stringify({
+      actor_user_id: user?.id || null,
+      actor_email: user?.email || null,
+      action,
+      target_type: "route",
+      target_id: req.path,
+      metadata: {
+        method: req.method,
+        auth_method: req.sonaraAdmin?.method || "unknown",
+        ...metadata
+      }
+    })
+  }).catch(() => undefined);
+  return { ok: Boolean(response?.ok) };
+}
+
+async function synchronizeCheckoutSessionCompleted(event) {
+  const config = getSupabaseServerConfig();
+  const session = event.data?.object;
+  const organizationId = session?.metadata?.organization_id;
+  const planSlug = session?.metadata?.plan;
+  if (!config.ok || !session?.id || !organizationId || !planSlug) return { ok: true, ignored: true };
+  if (session.mode === "payment" && session.payment_status === "paid") {
+    const entitlement = await fetch(`${config.url}/rest/v1/billing_entitlements?on_conflict=organization_id,entitlement_key`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
+      body: JSON.stringify({
+        organization_id: organizationId,
+        entitlement_key: planSlug,
+        status: "active",
+        source: "billing",
+        metadata: { provider: "stripe", checkout_session_id: session.id }
+      })
+    }).catch(() => undefined);
+    return { ok: Boolean(entitlement?.ok) };
+  }
+  return { ok: true, ignored: true };
 }
 
 function getSupabaseServerConfig() {

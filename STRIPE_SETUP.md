@@ -51,8 +51,12 @@ Required events:
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
+- `invoice.payment_succeeded`
+- `payment_intent.payment_failed`
+- `charge.failed`
 
 Set `STRIPE_WEBHOOK_SECRET` from the webhook signing secret. The app verifies signatures before processing events.
+Failure events are audited but do not unlock paid access.
 
 ## Required Vercel variables
 

@@ -14,7 +14,7 @@ importers:
     devDependencies:
       '@vercel/node':
         specifier: ^5.8.15
-        version: 5.8.15
+        version: 5.8.15(supports-color@8.1.1)
       eslint:
         specifier: ^10.4.1
         version: 10.4.1(supports-color@8.1.1)
@@ -1540,11 +1540,11 @@ snapshots:
     dependencies:
       minipass: 7.1.3
 
-  '@mapbox/node-pre-gyp@2.0.3':
+  '@mapbox/node-pre-gyp@2.0.3(supports-color@8.1.1)':
     dependencies:
       consola: 3.4.2
       detect-libc: 2.1.2
-      https-proxy-agent: 7.0.6
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
       node-fetch: 2.6.9
       nopt: 8.1.0
       semver: 7.8.4
@@ -1604,9 +1604,9 @@ snapshots:
 
   '@vercel/error-utils@2.2.0': {}
 
-  '@vercel/nft@1.10.0':
+  '@vercel/nft@1.10.0(supports-color@8.1.1)':
     dependencies:
-      '@mapbox/node-pre-gyp': 2.0.3
+      '@mapbox/node-pre-gyp': 2.0.3(supports-color@8.1.1)
       '@rollup/pluginutils': 5.4.0
       acorn: 8.16.0
       acorn-import-attributes: 1.9.5(acorn@8.16.0)
@@ -1623,7 +1623,7 @@ snapshots:
       - rollup
       - supports-color
 
-  '@vercel/node@5.8.15':
+  '@vercel/node@5.8.15(supports-color@8.1.1)':
     dependencies:
       '@edge-runtime/node-utils': 2.3.0
       '@edge-runtime/primitives': 4.1.0
@@ -1631,7 +1631,7 @@ snapshots:
       '@types/node': 20.11.0
       '@vercel/build-utils': 13.29.0
       '@vercel/error-utils': 2.2.0
-      '@vercel/nft': 1.10.0
+      '@vercel/nft': 1.10.0(supports-color@8.1.1)
       '@vercel/static-config': 3.4.0
       async-listen: 3.0.0
       cjs-module-lexer: 1.2.3
@@ -2224,7 +2224,7 @@ snapshots:
       statuses: 2.0.2
       toidentifier: 1.0.1
 
-  https-proxy-agent@7.0.6:
+  https-proxy-agent@7.0.6(supports-color@8.1.1):
     dependencies:
       agent-base: 7.1.4
       debug: 4.4.3(supports-color@8.1.1)

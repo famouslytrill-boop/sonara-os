@@ -9,7 +9,8 @@
     "start": "node server.js",
     "build": "echo No build step required",
     "lint": "eslint .",
-    "typecheck": "echo No TypeScript configured"
+    "typecheck": "echo No TypeScript configured",
+    "scan:client-secrets": "node scripts/client-secret-scan.cjs"
   },
   "license": "MIT",
   "devDependencies": {

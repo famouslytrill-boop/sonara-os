@@ -1,5 +1,6 @@
 const request = require("supertest");
 const assert = require("assert");
+const crypto = require("node:crypto");
 const app = require("../server");
 
 describe("public site", () => {
@@ -26,7 +27,6 @@ describe("public site", () => {
     "/security",
     "/help",
     "/docs",
-    "/settings",
     "/signup",
     "/account",
     "/account/setup",
@@ -152,7 +152,7 @@ describe("health and readiness", () => {
     assert.ok(["configured", "missing"].includes(res.body.services.supabase));
     assert.ok(["configured", "missing"].includes(res.body.services.stripe));
     assert.ok(["configured", "missing"].includes(res.body.services.resend));
-    assert.ok(["configured", "missing"].includes(res.body.services.googleOAuth));
+    assert.ok(["configured", "missing", "deferred"].includes(res.body.services.googleOAuth));
     assert.ok(["configured", "missing"].includes(res.body.services.adminProtection));
     assert.equal(res.body.services.legalPages, "review_required");
     assert.ok(["enabled", "setup_required"].includes(res.body.services.checkout));
@@ -209,7 +209,7 @@ describe("health and readiness", () => {
     assert.equal(res.status, 200);
     assert.equal(res.body.services.supabase, "configured");
     assert.equal(res.body.services.resend, "configured");
-    assert.equal(res.body.services.googleOAuth, "configured");
+    assert.equal(res.body.services.googleOAuth, "deferred");
     assert.equal(res.body.services.adminProtection, "configured");
     assert.doesNotMatch(res.text, /service-role-placeholder/);
     assert.doesNotMatch(res.text, /google-secret-placeholder/);
@@ -270,6 +270,14 @@ describe("auth setup", () => {
     assert.match(res.text, /Login with email/);
     assert.match(res.text, /Show password/);
     assert.match(res.text, /data-toggle-password/);
+    assert.doesNotMatch(res.text, /Google OAuth/);
+  });
+
+  it("GET /auth/callback is disabled while Google OAuth is deferred", async function() {
+    const res = await request(app).get("/auth/callback").set("Accept", "application/json");
+    assert.equal(res.status, 503);
+    assert.equal(res.body.code, "disabled");
+    assert.equal(res.body.service, "google_oauth");
   });
 
   it("GET /signup renders password visibility control", async function() {
@@ -292,6 +300,34 @@ describe("auth setup", () => {
     const api = await request(app).get("/business-builder/dashboard").set("Accept", "application/json");
     assert.equal(api.status, 503);
     assert.equal(api.body.code, "setup_required");
+
+    const settings = await request(app).get("/settings").set("Accept", "text/html");
+    assert.equal(settings.status, 303);
+    assert.equal(settings.headers.location, "/login");
+  });
+
+  it("customer bearer sessions can access protected customer routes", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000001", email: "customer@example.com" }) };
+      }
+      return { ok: false, json: async () => [] };
+    };
+
+    const dashboard = await request(app).get("/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+    const settings = await request(app).get("/settings").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(dashboard.status, 200);
+    assert.match(dashboard.text, /Dashboard/);
+    assert.equal(settings.status, 200);
+    assert.match(settings.text, /Language preference/);
   });
 
   it("POST /auth/login returns setup_required when Supabase is missing", async function() {
@@ -441,6 +477,55 @@ describe("pricing and checkout", () => {
     assert.equal(res.body.reason, "missing");
   });
 
+  it("POST /api/checkout/session redirects browser form posts to Stripe", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.APP_URL = "https://sonaraindustries.com";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
+        return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
+      }
+      return originalFetch(url);
+    };
+
+    const res = await request(app)
+      .post("/api/checkout/session")
+      .type("form")
+      .set("Accept", "text/html")
+      .send({ plan: "starter_monthly" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "https://checkout.stripe.com/c/session_test");
+  });
+
+  it("POST /api/checkout/session returns JSON for API callers", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.APP_URL = "https://sonaraindustries.com";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
+        return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
+      }
+      return originalFetch(url);
+    };
+
+    const res = await request(app)
+      .post("/api/checkout/session")
+      .set("Accept", "application/json")
+      .send({ plan: "starter_monthly" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.checkout_url, "https://checkout.stripe.com/c/session_test");
+  });
+
   it("Stripe price validation rejects secret, product, and customer prefixes", async function() {
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
     process.env.STRIPE_PRICE_STARTER_MONTHLY = invalidPriceSecretPrefix;
@@ -464,16 +549,67 @@ describe("pricing and checkout", () => {
     assert.ok([400, 503].includes(res.status));
     assert.match(res.text, /setup_required|invalid_signature/);
   });
+
+  it("POST /api/webhooks/stripe rejects invalid signatures when configured", async function() {
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    const res = await request(app)
+      .post("/api/webhooks/stripe")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", "t=123,v1=bad")
+      .send({ id: "evt_test", type: "payment_intent.payment_failed" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "invalid_signature");
+  });
+
+  it("POST /api/webhooks/stripe audits valid failure events without unlocking access", async function() {
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    const payload = JSON.stringify({
+      id: "evt_payment_failed",
+      type: "payment_intent.payment_failed",
+      livemode: false,
+      data: { object: { object: "payment_intent", customer: "cus_test" } }
+    });
+    const timestamp = "1234567890";
+    const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), body: options.body });
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/webhooks/stripe")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", `t=${timestamp},v1=${signature}`)
+      .send(payload);
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.received, true);
+    assert.ok(calls.some((call) => call.url.includes("/billing_webhook_events")));
+    assert.equal(calls.some((call) => call.url.includes("/billing_entitlements")), false);
+    assert.equal(calls.some((call) => call.url.includes("/billing_subscriptions")), false);
+  });
 });
 
 describe("auth and admin", () => {
   const adminToken = "test-admin-token-1234567890abcdef123456";
   let originalAdminToken;
   let originalAdminEmails;
+  let originalSupabaseUrl;
+  let originalSupabaseAnon;
+  let originalSupabaseServiceRole;
 
   beforeEach(() => {
     originalAdminToken = process.env.ADMIN_ACCESS_TOKEN;
     originalAdminEmails = process.env.ADMIN_EMAILS;
+    originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    originalSupabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    originalSupabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
     process.env.ADMIN_ACCESS_TOKEN = adminToken;
     process.env.ADMIN_EMAILS = "founder@example.com";
   });
@@ -483,6 +619,12 @@ describe("auth and admin", () => {
     else process.env.ADMIN_ACCESS_TOKEN = originalAdminToken;
     if (originalAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
     else process.env.ADMIN_EMAILS = originalAdminEmails;
+    if (originalSupabaseUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    else process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;
+    if (originalSupabaseAnon === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalSupabaseAnon;
+    if (originalSupabaseServiceRole === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = originalSupabaseServiceRole;
   });
 
   it("GET /login returns 200", async function() {
@@ -514,6 +656,60 @@ describe("auth and admin", () => {
     const res = await request(app).get("/admin").set("x-admin-token", adminToken).set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.match(res.text, /Protected founder operations/);
+  });
+
+  it("GET /admin rejects normal customer bearer sessions", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000002", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      return { ok: false, json: async () => [] };
+    };
+
+    const admin = await request(app).get("/admin").set("Authorization", "Bearer customer-session").set("Accept", "application/json");
+    const login = await request(app).get("/admin/login").set("Authorization", "Bearer customer-session").set("Accept", "application/json");
+
+    global.fetch = originalFetch;
+
+    assert.equal(admin.status, 401);
+    assert.equal(admin.body.code, "admin_auth_required");
+    assert.equal(login.status, 403);
+    assert.equal(login.body.code, "admin_forbidden");
+  });
+
+  it("GET /admin accepts Supabase owner/admin roles server-side", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    const originalFetch = global.fetch;
+    const calls = [];
+    global.fetch = async (url) => {
+      calls.push(String(url));
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000003", email: "owner@example.com" }) };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [{ role: "owner" }] };
+      if (String(url).includes("/rest/v1/")) {
+        return { ok: true, headers: { get: () => "0-0/1" }, json: async () => [] };
+      }
+      return { ok: false, json: async () => [] };
+    };
+
+    const res = await request(app).get("/admin").set("Authorization", "Bearer owner-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Protected founder operations/);
+    assert.ok(calls.some((url) => url.includes("/user_roles")));
+    assert.ok(calls.some((url) => url.includes("/admin_audit_events")));
   });
 
   it("GET /admin with temporary query token succeeds", async function() {

@@ -1,6 +1,6 @@
 # Auth Setup
 
-SONARA uses email-first Supabase Auth readiness in code. Google OAuth remains documented for later enablement.
+SONARA uses email-first Supabase Auth readiness in code. Google OAuth is deferred and disabled in the normal login flow until owner configuration is complete.
 
 ## Required variables
 
@@ -20,7 +20,8 @@ SONARA uses email-first Supabase Auth readiness in code. Google OAuth remains do
 - No logged-in session is faked.
 - `/logout` and `POST /auth/logout` are user-triggered only.
 - Customer dashboard routes redirect browser traffic to `/login` until Supabase-backed sessions are configured and a bearer session token is available.
-- Admin routes are protected by a temporary server-only `ADMIN_ACCESS_TOKEN` header/cookie flow until Supabase role sessions are enabled.
+- Admin routes accept Supabase bearer sessions only when `public.user_roles` marks the user as `owner` or `admin`.
+- Admin routes also keep temporary server-only `ADMIN_ACCESS_TOKEN` header/cookie access for owner break-glass operations.
 
 ## Owner role promotion
 

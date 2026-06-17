@@ -1,6 +1,6 @@
 # Google OAuth Setup
 
-This app is Express/Node and currently exposes OAuth readiness routes only.
+Google OAuth is deferred for the paid-launch verification pass. The app is Express/Node and keeps `/auth/callback` safe, but `/login` uses email/password Supabase Auth readiness only.
 
 ## Google Cloud Console
 
@@ -29,7 +29,8 @@ If Supabase Auth is used for persistent sessions, enable Google in Supabase Dash
 
 ## Current behavior
 
-- `/login` returns `setup_required` until the Google OAuth variables exist.
-- `/login` redirects to Google when variables exist.
-- `/auth/callback` validates that an OAuth code is present but does not yet create a persistent session.
+- `/login` renders email/password login and does not show Google OAuth.
+- `/auth/callback` returns a disabled/setup response until the owner explicitly re-enables Google OAuth.
 - `/logout` does not auto-clear users; it only reports that no persistent Express session is active.
+
+Do not enable Google OAuth in production until Supabase Auth email sessions, owner/admin roles, and callback URL settings are smoke-tested.

@@ -55,6 +55,7 @@ Apply only the clean intentional migrations:
 - `supabase/migrations/0005_current_app_schema_hardening.sql`
 - `supabase/migrations/0006_platform_accounts_modules_and_usage.sql`
 - `supabase/migrations/0007_launch_roles_and_preferences.sql`
+- `supabase/migrations/0008_billing_webhook_events_and_integrity.sql`
 
 Do not apply remote sync dumps or data backups.
 
@@ -64,6 +65,8 @@ The launch schema includes:
 
 - `public.user_roles` for `owner`, `admin`, and `customer` authorization.
 - `public.profile_settings` for language and unit preferences.
+- `public.billing_webhook_events` for Stripe webhook idempotency and audit.
+- `public.admin_audit_events` for server-side founder/admin access logging.
 
 After the owner signs up, use Supabase SQL Editor to promote the owner account:
 

@@ -14,7 +14,7 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 
 - Real Vercel environment variables.
 - Real Supabase project URL, anon key, and service role key.
-- Real Google OAuth client credentials and callback URL.
+- Google OAuth remains deferred until after email/password auth is verified.
 - Real Stripe products, prices, and webhook signing secret.
 - Real Resend API key and verified sending domain.
 - Qualified legal review.
@@ -25,12 +25,12 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 1. Confirm `.env`, backups, logs, patches, and SQL dumps are not tracked.
 2. Configure all variables from `.env.example` in Vercel.
 3. In Supabase Auth URL Configuration, set production and preview URLs from `SUPABASE_SETUP.md`.
-4. Apply Supabase migrations `0001` through `0005`.
+4. Apply Supabase migrations `0001` through `0008`.
 5. Submit a contact request and record the reference ID.
 6. Check `/api/readiness`.
 7. Test `/admin/env-readiness` with `ADMIN_ACCESS_TOKEN`.
 8. Test Stripe Checkout in test mode using `POST /api/checkout/session`.
-9. Verify Stripe webhook delivery.
+9. Verify Stripe webhook delivery and confirm `billing_webhook_events` records the event.
 10. Verify Resend delivery from a verified domain.
 11. Complete legal review before paid public launch.
 
