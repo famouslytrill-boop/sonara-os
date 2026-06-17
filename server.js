@@ -283,6 +283,18 @@ app.post("/auth/signup", async (req, res) => {
   return res.status(result.status).json(result.body);
 });
 
+app.get("/auth/login", (req, res) => {
+  if (wantsJson(req)) {
+    return res.status(405).json({
+      ok: false,
+      code: "method_not_allowed",
+      message: "Use POST /auth/login for email/password API login."
+    });
+  }
+
+  return res.redirect(303, "/login");
+});
+
 app.post("/auth/login", async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
   return res.status(result.status).json(result.body);

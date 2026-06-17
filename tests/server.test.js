@@ -280,6 +280,19 @@ describe("auth setup", () => {
     assert.equal(res.body.service, "google_oauth");
   });
 
+  it("GET /auth/login redirects browser requests to /login", async function() {
+    const res = await request(app).get("/auth/login").set("Accept", "text/html");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/login");
+  });
+
+  it("GET /auth/login returns JSON only for explicit API callers", async function() {
+    const res = await request(app).get("/auth/login").set("Accept", "application/json");
+    assert.equal(res.status, 405);
+    assert.equal(res.body.ok, false);
+    assert.equal(res.body.code, "method_not_allowed");
+  });
+
   it("GET /signup renders password visibility control", async function() {
     const res = await request(app).get("/signup").set("Accept", "text/html");
     assert.equal(res.status, 200);
