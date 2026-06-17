@@ -4,7 +4,8 @@ Configure production values in Vercel Project Settings -> Environment Variables.
 
 ## Public site
 
-- `PUBLIC_SITE_URL`: Public base URL used for OAuth and checkout redirects. Server-read, safe to disclose as a URL.
+- `APP_URL`: Production app URL. Use `https://sonaraindustries.com`.
+- `PUBLIC_SITE_URL`: Public base URL used for OAuth and checkout redirects. Use `https://sonaraindustries.com`.
 
 ## Supabase
 
@@ -33,7 +34,16 @@ Configure these in Google Cloud Console OAuth credentials and, if Supabase Auth 
 - `STRIPE_SUCCESS_URL`: Checkout success redirect.
 - `STRIPE_CANCEL_URL`: Checkout cancel redirect.
 
-Configure these in Stripe Dashboard and Vercel. Checkout remains blocked until all required values exist.
+Configure these in Stripe Dashboard and Vercel.
+
+Validation rules:
+
+- `STRIPE_SECRET_KEY` must start with `sk_live_` or `sk_test_`.
+- `STRIPE_WEBHOOK_SECRET` must start with `whsec_`.
+- Every `STRIPE_PRICE_*` variable must start with `price_`.
+- Do not paste `sk_live_`, `sk_test_`, `prod_`, or `cus_` values into `STRIPE_PRICE_*`.
+- Checkout is enabled per plan. A missing Pro or one-time setup price must not block Starter or Core if their own price IDs are valid.
+- Never place Stripe secrets in `NEXT_PUBLIC_*` variables.
 
 ## Resend
 
@@ -49,3 +59,9 @@ Configure these in Resend after domain verification.
 - `ADMIN_EMAILS`: Comma-separated owner/admin emails for future OAuth authorization.
 
 Never display or expose `ADMIN_ACCESS_TOKEN`.
+
+`ADMIN_ACCESS_TOKEN` must not be all `A` characters and should be at least 32 characters.
+
+## Optional Vercel runtime
+
+- `VERCEL_OIDC_TOKEN`: Use only if a future Vercel OIDC flow explicitly needs it.

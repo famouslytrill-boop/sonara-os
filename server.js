@@ -1,11 +1,48 @@
 const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
-const { URLSearchParams } = require("node:url");
+const { URL, URLSearchParams } = require("node:url");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
+const STRIPE_PLANS = {
+  free: {
+    name: "Free",
+    price: "$0",
+    description: "Public readiness checklist and product path selection.",
+    env: undefined,
+    mode: undefined
+  },
+  starter_monthly: {
+    name: "Starter monthly",
+    price: "$7/mo",
+    description: "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.",
+    env: "STRIPE_PRICE_STARTER_MONTHLY",
+    mode: "subscription"
+  },
+  core_monthly: {
+    name: "Core monthly",
+    price: "$19/mo",
+    description: "Best value for one studio, customer records, offer records, launch readiness, and support queue.",
+    env: "STRIPE_PRICE_CORE_MONTHLY",
+    mode: "subscription"
+  },
+  pro_monthly: {
+    name: "Pro monthly",
+    price: "$39/mo",
+    description: "All three studios, deeper records, campaign planning, advanced readiness, and priority support queue.",
+    env: "STRIPE_PRICE_PRO_MONTHLY",
+    mode: "subscription"
+  },
+  business_builder_one_time: {
+    name: "Business Builder setup",
+    price: "One-time",
+    description: "Manual setup package for service launch infrastructure.",
+    env: "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
+    mode: "payment"
+  }
+};
 
 app.use(express.static("public"));
 
@@ -131,22 +168,17 @@ app.get("/api/support/status", (req, res) => {
 
 app.get("/pricing", (req, res) => {
   const readiness = getReadiness();
-  const stripeReady = readiness.services.checkout === "enabled";
+  const planStatuses = getCheckoutPlanStatuses();
+  const enabledPlanCount = Object.values(planStatuses).filter((status) => status.checkout === "enabled").length;
   return res.status(200).type("html").send(
     layout({
       title: "Pricing",
       eyebrow: "Commercial readiness",
       heading: "Pricing",
-      body: stripeReady
-        ? "Checkout is configured for server-side processing."
-        : "Checkout setup required until Stripe server variables and price IDs are configured.",
-      sections: [
-        priceCard("Free", "$0", "Public readiness checklist and product path selection.", "free", stripeReady),
-        priceCard("Starter monthly", "$7/mo", "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.", "starter_monthly", stripeReady),
-        priceCard("Core monthly", "$19/mo", "Best value for one studio, customer records, offer records, launch readiness, and support queue.", "core_monthly", stripeReady),
-        priceCard("Pro monthly", "$39/mo", "All three studios, deeper records, campaign planning, advanced readiness, and priority support queue.", "pro_monthly", stripeReady),
-        priceCard("Business Builder setup", "One-time", "Manual setup package for service launch infrastructure.", "business_builder_one_time", stripeReady)
-      ],
+      body: enabledPlanCount
+        ? "Checkout is configured for server-side processing on enabled plans."
+        : "Checkout setup required until Stripe server variables and plan price IDs are configured.",
+      sections: Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
       actions: [linkAction("/contact", "Request setup"), linkAction("/legal/refund-policy", "Refund policy")]
     })
   );
@@ -316,20 +348,26 @@ app.get("/auth/callback", (req, res) => {
   );
 });
 
+app.get("/api/checkout/session", (req, res) => {
+  return res.status(405).json({ ok: false, code: "method_not_allowed", message: "Use POST to create a checkout session." });
+});
+
 app.post("/api/checkout/session", async (req, res) => {
   const plan = String(req.body.plan || "").trim();
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
   if (plan === "free") return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/contact" });
 
-  const readiness = getReadiness();
-  if (readiness.services.checkout !== "enabled") {
-    return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_checkout" });
+  const secretStatus = getStripeSecretStatus();
+  if (secretStatus.status !== "configured") {
+    return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_secret_key", reason: secretStatus.status });
   }
 
-  const priceId = getStripePriceId(plan);
-  if (!priceId) return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_price" });
+  const priceStatus = getStripePlanPriceStatus(plan);
+  if (priceStatus.status !== "configured") {
+    return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_price", plan, reason: priceStatus.status, env: priceStatus.env });
+  }
 
-  const session = await createStripeCheckoutSession(plan, priceId);
+  const session = await createStripeCheckoutSession(req, plan, priceStatus.priceId);
   if (!session.ok) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
   return res.status(200).json({ ok: true, checkout_url: session.url });
 });
@@ -701,16 +739,25 @@ function checklistCard(title, items) {
   return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${items.map((item) => escapeHtml(item)).join(" / ")}</p></article>`;
 }
 
-function priceCard(name, price, description, plan, stripeReady) {
-  if (plan === "free") return brandCard(`${name} - ${price}`, `${description} No checkout required.`);
+function priceCard(plan, config, planStatus, readiness) {
+  if (plan === "free") return brandCard(`${config.name} - ${config.price}`, `${config.description} No checkout required.`);
+  const enabled = planStatus.checkout === "enabled";
+  const setupText = getPriceCardSetupText(planStatus, readiness);
   return `<article class="card">
-    <h2>${escapeHtml(`${name} - ${price}`)}</h2>
-    <p>${escapeHtml(`${description} ${stripeReady ? "Checkout available." : "Checkout setup required."}`)}</p>
+    <h2>${escapeHtml(`${config.name} - ${config.price}`)}</h2>
+    <p>${escapeHtml(`${config.description} ${enabled ? "Checkout available." : setupText}`)}</p>
     <form method="post" action="/api/checkout/session">
       <input type="hidden" name="plan" value="${escapeHtml(plan)}">
-      <button type="submit">${stripeReady ? "Start checkout" : "Checkout setup required"}</button>
+      <button type="submit">${enabled ? "Start checkout" : "Checkout setup required"}</button>
     </form>
   </article>`;
+}
+
+function getPriceCardSetupText(planStatus, readiness) {
+  if (readiness.services.stripe !== "configured") return "Checkout setup required: Stripe secret key is missing or invalid.";
+  if (planStatus.reason === "missing") return "Checkout is not configured for this plan yet.";
+  if (planStatus.reason === "invalid_prefix") return "Checkout setup required: plan price ID must start with price_.";
+  return "Checkout setup required.";
 }
 
 function linkAction(href, label) {
@@ -865,23 +912,35 @@ async function sendSupportNotification(request) {
 
 function getReadiness() {
   const supabase = missing(["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
-  const stripe = missing(["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "STRIPE_PRICE_STARTER_MONTHLY", "STRIPE_PRICE_CORE_MONTHLY", "STRIPE_PRICE_PRO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME", "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL"]);
   const resend = missing(["RESEND_API_KEY", "RESEND_FROM_EMAIL", "SUPPORT_TO_EMAIL"]);
   const googleOAuth = missing(["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REDIRECT_URI", "PUBLIC_SITE_URL"]);
   const adminProtection = missing(["ADMIN_ACCESS_TOKEN", "ADMIN_EMAILS"]);
+  const stripeSecret = getStripeSecretStatus();
+  const stripeWebhook = getStripeWebhookStatus();
+  const checkoutPlans = getCheckoutPlanStatuses();
+  const enabledPlanCount = Object.values(checkoutPlans).filter((plan) => plan.checkout === "enabled").length;
+  const stripeMissing = [];
+  if (stripeSecret.status === "missing") stripeMissing.push("STRIPE_SECRET_KEY");
+  if (stripeWebhook.status === "missing") stripeMissing.push("STRIPE_WEBHOOK_SECRET");
+  for (const planStatus of Object.values(checkoutPlans)) {
+    if (planStatus.env && planStatus.reason === "missing") stripeMissing.push(planStatus.env);
+  }
   return {
     ok: true,
     services: {
       supabase: supabase.length ? "missing" : "configured",
-      stripe: stripe.length ? "missing" : "configured",
+      stripe: stripeSecret.status === "configured" ? "configured" : "missing",
+      stripeWebhook: stripeWebhook.status === "configured" ? "configured" : "missing",
       resend: resend.length ? "missing" : "configured",
       googleOAuth: googleOAuth.length ? "missing" : "configured",
       adminProtection: adminProtection.length ? "missing" : "configured",
       legalPages: "review_required",
-      checkout: stripe.length ? "setup_required" : "enabled",
+      checkout: enabledPlanCount ? "enabled" : "setup_required",
       emailDelivery: resend.length ? "setup_required" : "enabled"
     },
-    missing: { supabase, stripe, resend, googleOAuth, adminProtection }
+    checkoutPlans,
+    missing: { supabase, stripe: stripeMissing, resend, googleOAuth, adminProtection },
+    invalid: { stripe: getInvalidStripeEnvStatuses() }
   };
 }
 
@@ -892,22 +951,74 @@ function getAdminEnvReadiness() {
     { key: "ADMIN_ACCESS_TOKEN", label: "ADMIN_ACCESS_TOKEN", ok: Boolean(adminToken), warning: "ADMIN_ACCESS_TOKEN is required for temporary founder access." },
     { key: "ADMIN_ACCESS_TOKEN_NOT_PLACEHOLDER", label: "ADMIN_ACCESS_TOKEN placeholder check", ok: Boolean(adminToken) && !/^A+$/i.test(adminToken), warning: "ADMIN_ACCESS_TOKEN must not use an all-A placeholder value." },
     { key: "ADMIN_ACCESS_TOKEN_LENGTH", label: "ADMIN_ACCESS_TOKEN length", ok: adminToken.length >= 32, warning: "ADMIN_ACCESS_TOKEN should be at least 32 characters." },
-    { key: "STRIPE_PRICE_STARTER_MONTHLY", label: "STRIPE_PRICE_STARTER_MONTHLY", ok: startsWithEnv("STRIPE_PRICE_STARTER_MONTHLY", "price_"), warning: "Starter monthly price ID should start with price_." },
-    { key: "STRIPE_PRICE_CORE_MONTHLY", label: "STRIPE_PRICE_CORE_MONTHLY", ok: startsWithEnv("STRIPE_PRICE_CORE_MONTHLY", "price_"), warning: "Core monthly price ID should start with price_." },
-    { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: startsWithAnyEnv("STRIPE_SECRET_KEY", ["sk_live_", "sk_test_"]), warning: "Stripe secret key should start with sk_live_ or sk_test_." },
-    { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: startsWithEnv("STRIPE_WEBHOOK_SECRET", "whsec_"), warning: "Stripe webhook secret should start with whsec_." },
+    ...Object.entries(STRIPE_PLANS)
+      .filter(([, config]) => config.env)
+      .map(([plan, config]) => {
+        const status = getStripePlanPriceStatus(plan);
+        return { key: config.env, label: config.env, ok: status.status === "configured", warning: getStripePriceWarning(status) };
+      }),
+    { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: getStripeSecretStatus().status === "configured", warning: "Stripe secret key should start with sk_live_ or sk_test_." },
+    { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: getStripeWebhookStatus().status === "configured", warning: "Stripe webhook secret should start with whsec_." },
     { key: "SUPABASE_URL", label: "SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(process.env.SUPABASE_URL || ""), warning: "Supabase URL should start with https:// and include .supabase.co." },
     { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Supabase service role key must exist server-side only." }
   ];
 }
 
-function startsWithEnv(key, prefix) {
-  return String(process.env[key] || "").startsWith(prefix);
+function getStripePriceWarning(status) {
+  if (status.status === "missing") return `${status.env} is missing.`;
+  if (status.status === "invalid_prefix") return `${status.env} must start with price_; it must not use secret, product, or customer IDs.`;
+  return "Stripe price ID should start with price_.";
 }
 
-function startsWithAnyEnv(key, prefixes) {
-  const value = String(process.env[key] || "");
-  return prefixes.some((prefix) => value.startsWith(prefix));
+function getStripeSecretStatus() {
+  const value = String(process.env.STRIPE_SECRET_KEY || "").trim();
+  if (!value) return { status: "missing" };
+  if (!startsWithAny(value, ["sk_live_", "sk_test_"])) return { status: "invalid_prefix" };
+  return { status: "configured" };
+}
+
+function getStripeWebhookStatus() {
+  const value = String(process.env.STRIPE_WEBHOOK_SECRET || "").trim();
+  if (!value) return { status: "missing" };
+  if (!value.startsWith("whsec_")) return { status: "invalid_prefix" };
+  return { status: "configured" };
+}
+
+function getStripePlanPriceStatus(plan) {
+  const config = STRIPE_PLANS[plan];
+  if (!config?.env) return { status: "not_required", checkout: "enabled", env: undefined, reason: "not_required" };
+  const value = String(process.env[config.env] || "").trim();
+  if (!value) return { status: "missing", checkout: "setup_required", env: config.env, reason: "missing" };
+  if (!isStripePriceId(value)) return { status: "invalid_prefix", checkout: "setup_required", env: config.env, reason: "invalid_prefix" };
+  return { status: "configured", checkout: getStripeSecretStatus().status === "configured" ? "enabled" : "setup_required", env: config.env, reason: "configured", priceId: value };
+}
+
+function getCheckoutPlanStatuses() {
+  return Object.fromEntries(Object.keys(STRIPE_PLANS).map((plan) => {
+    const status = getStripePlanPriceStatus(plan);
+    return [plan, { checkout: status.checkout, env: status.env, reason: status.reason }];
+  }));
+}
+
+function getInvalidStripeEnvStatuses() {
+  const statuses = [];
+  const secret = getStripeSecretStatus();
+  const webhook = getStripeWebhookStatus();
+  if (secret.status === "invalid_prefix") statuses.push({ env: "STRIPE_SECRET_KEY", reason: "invalid_prefix" });
+  if (webhook.status === "invalid_prefix") statuses.push({ env: "STRIPE_WEBHOOK_SECRET", reason: "invalid_prefix" });
+  for (const plan of Object.keys(STRIPE_PLANS)) {
+    const status = getStripePlanPriceStatus(plan);
+    if (status.status === "invalid_prefix") statuses.push({ env: status.env, reason: "invalid_prefix" });
+  }
+  return statuses;
+}
+
+function isStripePriceId(value) {
+  return String(value || "").startsWith("price_");
+}
+
+function startsWithAny(value, prefixes) {
+  return prefixes.some((prefix) => String(value || "").startsWith(prefix));
 }
 
 function isSupabaseConfigured() {
@@ -1140,23 +1251,15 @@ function getCookie(req, name) {
 }
 
 function isValidPlan(plan) {
-  return ["free", "starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"].includes(plan);
+  return Object.prototype.hasOwnProperty.call(STRIPE_PLANS, plan);
 }
 
-function getStripePriceId(plan) {
-  return {
-    starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
-    core_monthly: process.env.STRIPE_PRICE_CORE_MONTHLY,
-    pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
-    business_builder_one_time: process.env.STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME
-  }[plan];
-}
-
-async function createStripeCheckoutSession(plan, priceId) {
+async function createStripeCheckoutSession(req, plan, priceId) {
+  const urls = getCheckoutRedirectUrls(req);
   const params = new URLSearchParams({
-    mode: plan === "business_builder_one_time" ? "payment" : "subscription",
-    success_url: process.env.STRIPE_SUCCESS_URL,
-    cancel_url: process.env.STRIPE_CANCEL_URL,
+    mode: STRIPE_PLANS[plan].mode,
+    success_url: urls.successUrl,
+    cancel_url: urls.cancelUrl,
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     "metadata[plan]": plan
@@ -1169,6 +1272,40 @@ async function createStripeCheckoutSession(plan, priceId) {
   if (!response?.ok) return { ok: false };
   const session = await response.json();
   return { ok: true, url: session.url };
+}
+
+function getCheckoutRedirectUrls(req) {
+  const baseUrl = getPublicAppUrl(req);
+  return {
+    successUrl: getSafeAbsoluteUrl(process.env.STRIPE_SUCCESS_URL, `${baseUrl}/account`),
+    cancelUrl: getSafeAbsoluteUrl(process.env.STRIPE_CANCEL_URL, `${baseUrl}/pricing`)
+  };
+}
+
+function getPublicAppUrl(req) {
+  const configured = process.env.APP_URL || process.env.PUBLIC_SITE_URL;
+  if (isSafePublicUrl(configured)) return String(configured).replace(/\/$/, "");
+
+  const host = req.get("x-forwarded-host") || req.get("host") || "sonaraindustries.com";
+  const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
+  return `${protocol}://${host}`.replace(/\/$/, "");
+}
+
+function getSafeAbsoluteUrl(value, fallback) {
+  if (isSafePublicUrl(value)) return String(value);
+  return fallback;
+}
+
+function isSafePublicUrl(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(String(value));
+    if (!["http:", "https:"].includes(url.protocol)) return false;
+    if (process.env.NODE_ENV === "production" && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(url.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function verifyStripeWebhookSignature(rawBody, header, secret) {

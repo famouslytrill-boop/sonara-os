@@ -24,14 +24,15 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 
 1. Confirm `.env`, backups, logs, patches, and SQL dumps are not tracked.
 2. Configure all variables from `.env.example` in Vercel.
-3. Apply Supabase migrations `0001` through `0005`.
-4. Submit a contact request and record the reference ID.
-5. Check `/api/readiness`.
-6. Test `/admin/env-readiness` with `ADMIN_ACCESS_TOKEN`.
-7. Test Stripe Checkout in test mode.
-8. Verify Stripe webhook delivery.
-9. Verify Resend delivery from a verified domain.
-10. Complete legal review before paid public launch.
+3. In Supabase Auth URL Configuration, set production and preview URLs from `SUPABASE_SETUP.md`.
+4. Apply Supabase migrations `0001` through `0005`.
+5. Submit a contact request and record the reference ID.
+6. Check `/api/readiness`.
+7. Test `/admin/env-readiness` with `ADMIN_ACCESS_TOKEN`.
+8. Test Stripe Checkout in test mode using `POST /api/checkout/session`.
+9. Verify Stripe webhook delivery.
+10. Verify Resend delivery from a verified domain.
+11. Complete legal review before paid public launch.
 
 ## Pricing to configure
 
@@ -46,4 +47,5 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 - Never expose `SUPABASE_SERVICE_ROLE_KEY`.
 - Never display `ADMIN_ACCESS_TOKEN`.
 - Do not enable live checkout until Stripe variables and price IDs are configured.
+- `STRIPE_PRICE_*` values must start with `price_`.
 - Missing providers must show `setup_required`, not crash.

@@ -1,6 +1,6 @@
 # Stripe Setup
 
-Checkout is blocked unless all required Stripe variables exist. Do not hardcode price IDs or live keys.
+Checkout is enabled per plan when the server Stripe key and that plan's Stripe price ID are configured. Do not hardcode price IDs or live keys.
 
 ## Mode
 
@@ -16,6 +16,8 @@ Create these prices in Stripe and copy the price IDs into Vercel:
 - Business Builder one-time setup: $99 -> `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
 
 Do not create $1-$3 paid tiers unless the owner explicitly accepts the payment-fee tradeoff.
+
+Each copied value must start with `price_`. Do not paste secret keys (`sk_live_` or `sk_test_`), products (`prod_`), or customers (`cus_`) into price variables.
 
 ## Checkout endpoint
 
@@ -55,3 +57,16 @@ Set `STRIPE_WEBHOOK_SECRET` from the webhook signing secret. The app verifies si
 - `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
 - `STRIPE_SUCCESS_URL`
 - `STRIPE_CANCEL_URL`
+
+Recommended production redirects:
+
+- `STRIPE_SUCCESS_URL=https://sonaraindustries.com/account`
+- `STRIPE_CANCEL_URL=https://sonaraindustries.com/pricing`
+
+If success/cancel URLs are absent, the app falls back to `APP_URL` or `PUBLIC_SITE_URL` with `/account` and `/pricing`.
+
+## Readiness behavior
+
+- Missing or invalid `STRIPE_SECRET_KEY` blocks Checkout Session creation.
+- Missing or invalid `STRIPE_WEBHOOK_SECRET` blocks webhook processing but does not block Checkout Session creation.
+- Missing optional plan price IDs only block those specific plans.

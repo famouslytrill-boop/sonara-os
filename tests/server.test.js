@@ -236,16 +236,101 @@ describe("product module APIs", () => {
 });
 
 describe("pricing and checkout", () => {
+  const validStripeSecret = ["sk", "test", "checkout_ready"].join("_");
+  const invalidPriceSecretPrefix = ["sk", "live", "wrong"].join("_");
+  const validStarterPrice = ["price", "starter"].join("_");
+  const validCorePrice = ["price", "core"].join("_");
+  const stripeEnvKeys = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PRICE_STARTER_MONTHLY",
+    "STRIPE_PRICE_CORE_MONTHLY",
+    "STRIPE_PRICE_PRO_MONTHLY",
+    "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
+    "STRIPE_SUCCESS_URL",
+    "STRIPE_CANCEL_URL",
+    "APP_URL",
+    "PUBLIC_SITE_URL",
+    "NODE_ENV"
+  ];
+  let originalStripeEnv;
+
+  beforeEach(() => {
+    originalStripeEnv = Object.fromEntries(stripeEnvKeys.map((key) => [key, process.env[key]]));
+    for (const key of stripeEnvKeys) delete process.env[key];
+  });
+
+  afterEach(() => {
+    for (const key of stripeEnvKeys) {
+      if (originalStripeEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalStripeEnv[key];
+    }
+  });
+
+  it("GET /pricing returns pricing cards", async function() {
+    const res = await request(app).get("/pricing").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Starter monthly/);
+    assert.match(res.text, /Core monthly/);
+    assert.match(res.text, /Pro monthly/);
+    assert.match(res.text, /Business Builder setup/);
+  });
+
+  it("GET /pricing does not globally disable checkout when optional plan prices are missing", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.STRIPE_PRICE_CORE_MONTHLY = validCorePrice;
+
+    const res = await request(app).get("/pricing").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.equal((res.text.match(/Start checkout/g) || []).length, 2);
+    assert.match(res.text, /Checkout is not configured for this plan yet/);
+  });
+
+  it("GET /api/checkout/session returns 405", async function() {
+    const res = await request(app).get("/api/checkout/session").set("Accept", "application/json");
+    assert.equal(res.status, 405);
+    assert.equal(res.body.code, "method_not_allowed");
+  });
+
   it("POST /api/checkout/session returns setup_required when Stripe is missing", async function() {
     const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
     assert.equal(res.status, 503);
     assert.equal(res.body.code, "setup_required");
+    assert.equal(res.body.service, "stripe_secret_key");
   });
 
   it("POST /api/checkout/session rejects invalid plans", async function() {
     const res = await request(app).post("/api/checkout/session").send({ plan: "unknown" });
     assert.equal(res.status, 400);
     assert.equal(res.body.code, "invalid_plan");
+  });
+
+  it("POST /api/checkout/session rejects plan with missing price env", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.service, "stripe_price");
+    assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY");
+    assert.equal(res.body.reason, "missing");
+  });
+
+  it("Stripe price validation rejects secret, product, and customer prefixes", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = invalidPriceSecretPrefix;
+    process.env.STRIPE_PRICE_CORE_MONTHLY = "prod_wrong";
+    process.env.STRIPE_PRICE_PRO_MONTHLY = "cus_wrong";
+
+    const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
+    assert.equal(readiness.status, 200);
+    const invalidEnvs = readiness.body.invalid.stripe.map((item) => item.env);
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_STARTER_MONTHLY"));
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY"));
+    assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY"));
+
+    const checkout = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
+    assert.equal(checkout.status, 503);
+    assert.equal(checkout.body.reason, "invalid_prefix");
   });
 
   it("POST /api/webhooks/stripe handles missing setup/signature safely", async function() {

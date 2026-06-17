@@ -16,6 +16,33 @@ The service role key is server-only. Never expose it to browser code.
 
 Add the three Supabase variables in Vercel Project Settings -> Environment Variables.
 
+## Auth URL configuration
+
+In Supabase Dashboard -> Authentication -> URL Configuration:
+
+Production Site URL:
+
+- `https://sonaraindustries.com`
+
+Allowed Redirect URLs:
+
+- `https://sonaraindustries.com/auth/callback`
+- `https://sonaraindustries.com/**`
+- `https://sonaraindustries.com/login`
+- `https://sonaraindustries.com/dashboard`
+
+Vercel preview redirect patterns:
+
+- `https://*.vercel.app/auth/callback`
+- `https://*.vercel.app/**`
+
+Local development:
+
+- `http://localhost:3000/auth/callback`
+- `http://localhost:3000/**`
+
+The app callback route is `/auth/callback`.
+
 ## Apply migrations manually
 
 Apply only the clean intentional migrations:
