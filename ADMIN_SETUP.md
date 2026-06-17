@@ -8,11 +8,13 @@ Until OAuth-backed admin sessions are complete, admin routes require a server-on
 
 Supported request methods:
 
-- `X-Admin-Access-Token` header
 - `Authorization: Bearer <token>` header
+- `X-Admin-Token` header
+- `X-Admin-Access-Token` header
 - `?admin_token=<token>` query parameter for temporary manual browser review
+- `/admin/login` browser form, which stores a signed HTTP-only session cookie
 
-Never display the token in the UI. Never commit the token.
+Prefer the bearer header or browser login flow. The query parameter is temporary and should only be used for manual review over HTTPS. Never display the token in the UI. Never commit the token.
 
 ## Routes
 

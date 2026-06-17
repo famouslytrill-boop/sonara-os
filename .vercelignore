@@ -10,6 +10,7 @@ launch-logs/
 node_modules/
 .next/
 supabase/.temp/
+supabase/.branches/
 supabase_data_backup.sql
 supabase_schema_backup.sql
 *_sync_remote_schema*.sql

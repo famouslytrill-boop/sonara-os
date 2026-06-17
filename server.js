@@ -4,6 +4,8 @@ const { randomUUID } = require("node:crypto");
 const { URLSearchParams } = require("node:url");
 
 const app = express();
+const ADMIN_SESSION_COOKIE = "sonara_admin_session";
+const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 
 app.use(express.static("public"));
 
@@ -417,6 +419,56 @@ app.get("/offline", (req, res) => {
   );
 });
 
+app.get("/admin/login", (req, res) => {
+  const readiness = getAdminEnvReadiness();
+  const tokenReady = readiness.find((item) => item.key === "ADMIN_ACCESS_TOKEN")?.ok;
+  return res.status(tokenReady ? 200 : 503).type("html").send(
+    layout({
+      title: "Admin login",
+      eyebrow: "Founder operations",
+      heading: "Admin login",
+      body: tokenReady
+        ? "Enter the temporary server-side admin access token to open founder operations."
+        : "Admin access setup is required before founder operations can open.",
+      sections: [
+        adminLoginForm(),
+        ...readiness.map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning))
+      ],
+      actions: [linkAction("/", "Home")]
+    })
+  );
+});
+
+app.post("/admin/login", (req, res) => {
+  if (getReadiness().services.adminProtection !== "configured") {
+    return res.status(503).type("html").send(responsePage("Admin setup required", "Admin access requires a server-side ADMIN_ACCESS_TOKEN before browser login can be used.", [linkAction("/admin/login", "Return to admin login")]));
+  }
+
+  const token = String(req.body.token || req.body.password || "").trim();
+  if (!isAdminTokenValid(token)) {
+    return res.status(401).type("html").send(responsePage("Admin access denied", "The submitted admin token was not accepted.", [linkAction("/admin/login", "Return to admin login")]));
+  }
+
+  res.cookie(ADMIN_SESSION_COOKIE, createAdminSessionCookie(), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: ADMIN_SESSION_MAX_AGE_SECONDS * 1000
+  });
+  return res.redirect(303, "/admin");
+});
+
+app.post("/admin/logout", (req, res) => {
+  res.clearCookie(ADMIN_SESSION_COOKIE, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/"
+  });
+  return res.redirect(303, "/admin/login");
+});
+
 app.get("/admin", requireAdmin, (req, res) => {
   const readiness = getReadiness();
   return res.status(200).type("html").send(adminPage("Admin", "Protected founder operations for launch readiness.", readiness));
@@ -433,7 +485,7 @@ app.get("/admin/support", requireAdmin, async (req, res) => {
       sections: result.requests.length
         ? result.requests.map((request) => brandCard(request.reference_id || "Support request", `${request.category || "contact"} - ${request.email_delivery_status || "pending"} - ${request.created_at || "no timestamp"}`))
         : [brandCard("Queue status", result.ok ? "No recent requests returned." : "Database-backed queue requires Supabase setup.")],
-      actions: [linkAction("/admin", "Admin"), linkAction("/contact", "Contact")]
+      actions: [linkAction("/admin", "Admin"), linkAction("/contact", "Contact"), adminLogoutAction()]
     })
   );
 });
@@ -451,14 +503,22 @@ app.get("/admin/billing", requireAdmin, (req, res) => {
         brandCard("Stripe", readiness.services.stripe),
         brandCard("Webhook audit", readiness.services.supabase === "configured" ? "database-backed audit available" : "Setup required")
       ],
-      actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing")]
+      actions: [linkAction("/admin", "Admin"), linkAction("/pricing", "Pricing"), adminLogoutAction()]
     })
   );
 });
 
 app.get("/admin/env-readiness", requireAdmin, (req, res) => {
-  const readiness = getReadiness();
-  return res.status(200).type("html").send(adminPage("Environment readiness", "Non-secret service readiness flags. Secret values are never displayed.", readiness));
+  return res.status(200).type("html").send(
+    layout({
+      title: "Environment readiness",
+      eyebrow: "Founder operations",
+      heading: "Environment readiness",
+      body: "Non-secret service readiness flags. Secret values are never displayed.",
+      sections: getAdminEnvReadiness().map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning)),
+      actions: [linkAction("/admin", "Admin"), linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), adminLogoutAction()]
+    })
+  );
 });
 
 for (const page of legalPages()) {
@@ -618,7 +678,7 @@ function responsePage(title, body, actions) {
 }
 
 function adminPage(title, body, readiness) {
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: readinessCards(readiness), actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness")] });
+  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: readinessCards(readiness), actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
 }
 
 function readinessCards(readiness) {
@@ -655,6 +715,20 @@ function priceCard(name, price, description, plan, stripeReady) {
 
 function linkAction(href, label) {
   return `<a class="action" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+}
+
+function adminLogoutAction() {
+  return `<form method="post" action="/admin/logout"><button class="action" type="submit">Logout</button></form>`;
+}
+
+function adminLoginForm() {
+  return `<article class="card">
+    <h2>Protected access</h2>
+    <form method="post" action="/admin/login">
+      <label>Admin token<input name="token" type="password" autocomplete="current-password" required></label>
+      <button type="submit">Open admin</button>
+    </form>
+  </article>`;
 }
 
 function contactForm() {
@@ -811,6 +885,31 @@ function getReadiness() {
   };
 }
 
+function getAdminEnvReadiness() {
+  const adminToken = process.env.ADMIN_ACCESS_TOKEN || "";
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  return [
+    { key: "ADMIN_ACCESS_TOKEN", label: "ADMIN_ACCESS_TOKEN", ok: Boolean(adminToken), warning: "ADMIN_ACCESS_TOKEN is required for temporary founder access." },
+    { key: "ADMIN_ACCESS_TOKEN_NOT_PLACEHOLDER", label: "ADMIN_ACCESS_TOKEN placeholder check", ok: Boolean(adminToken) && !/^A+$/i.test(adminToken), warning: "ADMIN_ACCESS_TOKEN must not use an all-A placeholder value." },
+    { key: "ADMIN_ACCESS_TOKEN_LENGTH", label: "ADMIN_ACCESS_TOKEN length", ok: adminToken.length >= 32, warning: "ADMIN_ACCESS_TOKEN should be at least 32 characters." },
+    { key: "STRIPE_PRICE_STARTER_MONTHLY", label: "STRIPE_PRICE_STARTER_MONTHLY", ok: startsWithEnv("STRIPE_PRICE_STARTER_MONTHLY", "price_"), warning: "Starter monthly price ID should start with price_." },
+    { key: "STRIPE_PRICE_CORE_MONTHLY", label: "STRIPE_PRICE_CORE_MONTHLY", ok: startsWithEnv("STRIPE_PRICE_CORE_MONTHLY", "price_"), warning: "Core monthly price ID should start with price_." },
+    { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: startsWithAnyEnv("STRIPE_SECRET_KEY", ["sk_live_", "sk_test_"]), warning: "Stripe secret key should start with sk_live_ or sk_test_." },
+    { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: startsWithEnv("STRIPE_WEBHOOK_SECRET", "whsec_"), warning: "Stripe webhook secret should start with whsec_." },
+    { key: "SUPABASE_URL", label: "SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(process.env.SUPABASE_URL || ""), warning: "Supabase URL should start with https:// and include .supabase.co." },
+    { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Supabase service role key must exist server-side only." }
+  ];
+}
+
+function startsWithEnv(key, prefix) {
+  return String(process.env[key] || "").startsWith(prefix);
+}
+
+function startsWithAnyEnv(key, prefixes) {
+  const value = String(process.env[key] || "");
+  return prefixes.some((prefix) => value.startsWith(prefix));
+}
+
 function isSupabaseConfigured() {
   return getReadiness().services.supabase === "configured";
 }
@@ -962,11 +1061,82 @@ async function handleEmailAuth(mode, body) {
 }
 
 function requireAdmin(req, res, next) {
-  if (getReadiness().services.adminProtection !== "configured") return res.status(503).json({ ok: false, code: "setup_required", service: "admin_access" });
-  const authToken = String(req.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  const token = req.get("x-admin-access-token") || authToken || (typeof req.query.admin_token === "string" ? req.query.admin_token : "");
-  if (!token || token !== process.env.ADMIN_ACCESS_TOKEN) return res.status(401).json({ ok: false, code: "admin_auth_required" });
-  return next();
+  if (getReadiness().services.adminProtection !== "configured") {
+    if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
+    return res.status(503).json({ ok: false, code: "setup_required", service: "admin_access" });
+  }
+
+  if (isAdminTokenValid(getAdminRequestToken(req)) || isAdminSessionCookieValid(req)) return next();
+
+  if (acceptsHtml(req)) return res.redirect(303, "/admin/login");
+  return res.status(401).json({ ok: false, code: "admin_auth_required" });
+}
+
+function getAdminRequestToken(req) {
+  const authHeader = String(req.get("authorization") || "");
+  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+  return [
+    bearerMatch?.[1],
+    req.get("x-admin-token"),
+    req.get("x-admin-access-token"),
+    typeof req.query.admin_token === "string" ? req.query.admin_token : ""
+  ].find((value) => String(value || "").trim()) || "";
+}
+
+function isAdminTokenValid(token) {
+  return timingSafeCompare(String(token || ""), String(process.env.ADMIN_ACCESS_TOKEN || ""));
+}
+
+function timingSafeCompare(a, b) {
+  if (!a || !b) return false;
+  const left = crypto.createHash("sha256").update(String(a)).digest();
+  const right = crypto.createHash("sha256").update(String(b)).digest();
+  return crypto.timingSafeEqual(left, right);
+}
+
+function acceptsHtml(req) {
+  const accept = String(req.get("accept") || "");
+  return accept.includes("text/html") && !accept.includes("application/json");
+}
+
+function createAdminSessionCookie() {
+  const now = Math.floor(Date.now() / 1000);
+  const payload = Buffer.from(JSON.stringify({
+    iat: now,
+    exp: now + ADMIN_SESSION_MAX_AGE_SECONDS,
+    nonce: randomUUID()
+  })).toString("base64url");
+  return `${payload}.${signAdminSessionPayload(payload)}`;
+}
+
+function isAdminSessionCookieValid(req) {
+  const value = getCookie(req, ADMIN_SESSION_COOKIE);
+  if (!value || !value.includes(".")) return false;
+  const [payload, signature] = value.split(".");
+  if (!payload || !signature || !timingSafeCompare(signature, signAdminSessionPayload(payload))) return false;
+
+  try {
+    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    return Number.isFinite(session.exp) && session.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function signAdminSessionPayload(payload) {
+  return crypto.createHmac("sha256", process.env.ADMIN_ACCESS_TOKEN || "admin-session-not-configured").update(payload).digest("base64url");
+}
+
+function getCookie(req, name) {
+  const cookieHeader = String(req.get("cookie") || "");
+  const cookies = cookieHeader.split(";").map((part) => part.trim()).filter(Boolean);
+  for (const cookie of cookies) {
+    const separator = cookie.indexOf("=");
+    if (separator === -1) continue;
+    const key = decodeURIComponent(cookie.slice(0, separator));
+    if (key === name) return decodeURIComponent(cookie.slice(separator + 1));
+  }
+  return "";
 }
 
 function isValidPlan(plan) {

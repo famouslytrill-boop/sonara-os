@@ -256,6 +256,24 @@ describe("pricing and checkout", () => {
 });
 
 describe("auth and admin", () => {
+  const adminToken = "test-admin-token-1234567890abcdef123456";
+  let originalAdminToken;
+  let originalAdminEmails;
+
+  beforeEach(() => {
+    originalAdminToken = process.env.ADMIN_ACCESS_TOKEN;
+    originalAdminEmails = process.env.ADMIN_EMAILS;
+    process.env.ADMIN_ACCESS_TOKEN = adminToken;
+    process.env.ADMIN_EMAILS = "founder@example.com";
+  });
+
+  afterEach(() => {
+    if (originalAdminToken === undefined) delete process.env.ADMIN_ACCESS_TOKEN;
+    else process.env.ADMIN_ACCESS_TOKEN = originalAdminToken;
+    if (originalAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
+    else process.env.ADMIN_EMAILS = originalAdminEmails;
+  });
+
   it("GET /login returns 200", async function() {
     const res = await request(app).get("/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -263,16 +281,81 @@ describe("auth and admin", () => {
     assert.match(res.text, /Login/);
   });
 
-  it("GET /admin requires protection", async function() {
+  it("GET /admin without auth returns JSON 401 for API clients", async function() {
     const res = await request(app).get("/admin").set("Accept", "application/json");
-    assert.ok([401, 503].includes(res.status));
-    assert.match(res.text, /admin_auth_required|setup_required/);
+    assert.equal(res.status, 401);
+    assert.deepEqual(res.body, { ok: false, code: "admin_auth_required" });
+  });
+
+  it("GET /admin with Authorization Bearer succeeds", async function() {
+    const res = await request(app).get("/admin").set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Protected founder operations/);
+    assert.doesNotMatch(res.text, new RegExp(adminToken));
+  });
+
+  it("GET /admin with x-admin-token succeeds", async function() {
+    const res = await request(app).get("/admin").set("x-admin-token", adminToken).set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Protected founder operations/);
+  });
+
+  it("GET /admin with temporary query token succeeds", async function() {
+    const res = await request(app).get(`/admin?admin_token=${encodeURIComponent(adminToken)}`).set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Protected founder operations/);
+    assert.doesNotMatch(res.text, new RegExp(adminToken));
   });
 
   it("GET /admin/env-readiness requires protection", async function() {
     const res = await request(app).get("/admin/env-readiness").set("Accept", "application/json");
-    assert.ok([401, 503].includes(res.status));
-    assert.match(res.text, /admin_auth_required|setup_required/);
+    assert.equal(res.status, 401);
+    assert.match(res.text, /admin_auth_required/);
+  });
+
+  it("GET /admin/login renders HTML", async function() {
+    const res = await request(app).get("/admin/login").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Admin login/);
+    assert.doesNotMatch(res.text, new RegExp(adminToken));
+  });
+
+  it("POST /admin/login with bad token fails", async function() {
+    const res = await request(app).post("/admin/login").type("form").send({ token: "wrong-token" });
+    assert.equal(res.status, 401);
+    assert.match(res.text, /Admin access denied/);
+  });
+
+  it("POST /admin/login with good token sets HttpOnly cookie", async function() {
+    const res = await request(app).post("/admin/login").type("form").send({ token: adminToken });
+    assert.equal(res.status, 303);
+    const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
+    assert.ok(cookie);
+    assert.match(cookie, /HttpOnly/);
+    assert.match(cookie, /SameSite=Lax/);
+    assert.doesNotMatch(cookie, new RegExp(adminToken));
+  });
+
+  it("GET /admin with valid cookie succeeds", async function() {
+    const agent = request.agent(app);
+    const login = await agent.post("/admin/login").type("form").send({ token: adminToken });
+    assert.equal(login.status, 303);
+
+    const res = await agent.get("/admin").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Protected founder operations/);
+  });
+
+  it("POST /admin/logout clears cookie", async function() {
+    const agent = request.agent(app);
+    await agent.post("/admin/login").type("form").send({ token: adminToken });
+
+    const res = await agent.post("/admin/logout");
+    assert.equal(res.status, 303);
+    const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
+    assert.ok(cookie);
+    assert.match(cookie, /Expires=Thu, 01 Jan 1970/);
   });
 });
 
