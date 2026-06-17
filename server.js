@@ -5,6 +5,8 @@ const { URLSearchParams } = require("node:url");
 
 const app = express();
 
+app.use(express.static("public"));
+
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
   const readiness = getReadiness();
   if (readiness.services.stripe !== "configured" || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -407,21 +409,7 @@ app.get("/api/health", (req, res) => res.status(200).json({ ok: true }));
 
 app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
 
-app.get("/manifest.webmanifest", (req, res) => {
-  return res.status(200).type("application/manifest+json").json({
-    name: "SONARA Industries",
-    short_name: "SONARA",
-    start_url: "/",
-    scope: "/",
-    display: "standalone",
-    background_color: "#07070a",
-    theme_color: "#07070a",
-    icons: [
-      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }
-    ]
-  });
-});
+app.get("/manifest.webmanifest", (req, res) => res.redirect(308, "/site.webmanifest"));
 
 app.get("/offline", (req, res) => {
   return res.status(200).type("html").send(
@@ -546,13 +534,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
   return `<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#07070a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="SONARA">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <title>${escapeHtml(title)} | SONARA Industries</title>
+    ${renderHead(title)}
     <style>
       :root { color-scheme: dark; --bg: #07070a; --panel: #111119; --line: #2b2b38; --text: #f7f3ee; --muted: #aaa3b5; --gold: #d7b46a; }
       * { box-sizing: border-box; }
@@ -612,6 +594,23 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
     </footer>
   </body>
 </html>`;
+}
+
+function renderHead(title) {
+  return `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#11101a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="SONARA">
+    <meta property="og:title" content="${escapeHtml(title)} | SONARA Industries">
+    <meta property="og:site_name" content="SONARA Industries">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="/og-image.png">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icons/icon-180.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <title>${escapeHtml(title)} | SONARA Industries</title>`;
 }
 
 function responsePage(title, body, actions) {

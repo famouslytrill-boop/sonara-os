@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Industries">
+  <defs>
+    <radialGradient id="bg" cx="28%" cy="20%" r="85%">
+      <stop offset="0%" stop-color="#4d355f"/>
+      <stop offset="48%" stop-color="#11101a"/>
+      <stop offset="100%" stop-color="#07070a"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="24" y1="18" x2="106" y2="108">
+      <stop offset="0%" stop-color="#f2d28c"/>
+      <stop offset="45%" stop-color="#b99cff"/>
+      <stop offset="100%" stop-color="#63d2c7"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <circle cx="33" cy="25" r="28" fill="#7a5cff" opacity="0.22"/>
+  <circle cx="98" cy="96" r="34" fill="#42d7c8" opacity="0.16"/>
+  <path d="M87 35c-5.7-7.2-15-11-26.5-10.1-14.4 1.1-25 9-25 21.2 0 10 7.5 15.2 22.2 18.8l9.7 2.4c7 1.7 10.7 4 10.7 8.4 0 5.5-5.7 9.2-14.6 9.2-10.1 0-17.3-4.2-22.1-11.2L29.5 84.1c7.2 10.8 19.2 16.8 34 16.8 17 0 29.4-9.1 29.4-23.1 0-10.9-7.3-16.5-23.6-20.5l-9.2-2.2c-6.2-1.5-9.7-3.4-9.7-7.7 0-4.9 4.8-8.1 12.1-8.1 7.4 0 12.8 2.4 17.2 7.6L87 35Z" fill="url(#mark)" filter="url(#glow)"/>
+  <path d="M33 102h62" stroke="#f2d28c" stroke-width="5" stroke-linecap="round" opacity="0.76"/>
+</svg>

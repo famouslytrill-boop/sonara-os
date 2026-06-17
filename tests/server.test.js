@@ -49,7 +49,9 @@ describe("public site", () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.match(res.text, /name="viewport"/);
     assert.match(res.text, /name="theme-color"/);
-    assert.match(res.text, /rel="manifest"/);
+    assert.match(res.text, /href="\/favicon.svg"/);
+    assert.match(res.text, /rel="apple-touch-icon"/);
+    assert.match(res.text, /href="\/site.webmanifest"/);
   });
 
   it("business builder includes Launch Setup Checklist", async function() {
@@ -90,6 +92,52 @@ describe("public site", () => {
       assert.match(res.text, new RegExp(`href="${route}"`));
     }
   });
+});
+
+describe("icon assets", () => {
+  for (const route of ["/", "/pricing", "/business-builder/dashboard"]) {
+    it(`GET ${route} includes icon metadata`, async function() {
+      const res = await request(app).get(route).set("Accept", "text/html");
+      assert.equal(res.status, 200);
+      assert.match(res.text, /href="\/favicon.ico"/);
+      assert.match(res.text, /href="\/favicon.svg"/);
+      assert.match(res.text, /href="\/icons\/icon-180.png"/);
+      assert.match(res.text, /href="\/site.webmanifest"/);
+    });
+  }
+
+  it("GET /favicon.ico returns the ICO asset", async function() {
+    const res = await request(app).get("/favicon.ico");
+    assert.equal(res.status, 200);
+    assert.match(res.type, /image|application\/octet-stream/);
+  });
+
+  it("GET /favicon.svg returns the SVG asset", async function() {
+    const res = await request(app).get("/favicon.svg");
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "image/svg+xml");
+    assert.match(res.body.toString("utf8"), /SONARA Industries/);
+  });
+
+  it("GET /site.webmanifest returns the SONARA manifest", async function() {
+    const res = await request(app).get("/site.webmanifest");
+    assert.equal(res.status, 200);
+    const manifest = JSON.parse(res.text);
+    assert.equal(manifest.name, "SONARA Industries");
+    assert.equal(manifest.short_name, "SONARA");
+    assert.equal(manifest.theme_color, "#11101a");
+    assert.equal(manifest.display, "standalone");
+    assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-192.png"));
+    assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-512.png"));
+  });
+
+  for (const route of ["/icons/icon-192.png", "/icons/icon-512.png"]) {
+    it(`GET ${route} returns png`, async function() {
+      const res = await request(app).get(route);
+      assert.equal(res.status, 200);
+      assert.equal(res.type, "image/png");
+    });
+  }
 });
 
 describe("health and readiness", () => {
@@ -257,11 +305,12 @@ describe("legal pages", () => {
 });
 
 describe("mobile and app readiness", () => {
-  it("GET /manifest.webmanifest returns valid JSON", async function() {
-    const res = await request(app).get("/manifest.webmanifest").set("Accept", "application/manifest+json");
+  it("GET /site.webmanifest returns valid JSON", async function() {
+    const res = await request(app).get("/site.webmanifest").set("Accept", "application/manifest+json");
     assert.equal(res.status, 200);
-    assert.equal(res.body.name, "SONARA Industries");
-    assert.equal(res.body.display, "standalone");
+    const manifest = JSON.parse(res.text);
+    assert.equal(manifest.name, "SONARA Industries");
+    assert.equal(manifest.display, "standalone");
   });
 });
 
