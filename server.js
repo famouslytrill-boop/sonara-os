@@ -381,7 +381,7 @@ app.get("/api/checkout/session", (req, res) => {
 app.post("/api/checkout/session", async (req, res) => {
   const plan = String(req.body.plan || "").trim();
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
-  if (plan === "free") return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/contact" });
+  if (plan === "free") return res.redirect(303, "/contact");
 
   const secretStatus = getStripeSecretStatus();
   if (secretStatus.status !== "configured") {
@@ -394,8 +394,8 @@ app.post("/api/checkout/session", async (req, res) => {
   }
 
   const session = await createStripeCheckoutSession(req, plan, priceStatus.priceId);
-  if (!session.ok) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
-  return res.status(200).json({ ok: true, checkout_url: session.url });
+if (!session.ok || !session.url) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
+return res.redirect(303, session.url);
 });
 
 app.get("/api/billing/status", (req, res) => {
