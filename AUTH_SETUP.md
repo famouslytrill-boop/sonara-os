@@ -22,6 +22,9 @@ SONARA uses email-first Supabase Auth readiness in code. Google OAuth is deferre
 - Customer dashboard routes redirect browser traffic to `/login` until Supabase-backed sessions are configured and a bearer session token is available.
 - Admin routes accept Supabase bearer sessions only when `public.user_roles` marks the user as `owner` or `admin`.
 - Admin routes also keep temporary server-only `ADMIN_ACCESS_TOKEN` header/cookie access for owner break-glass operations.
+- `/business-builder/login` is the Business Builder owner/manager/employee login entry. It uses email/password only.
+- Business Builder owners/managers create employee invites with name, email, role, workspace ID, organization ID, and permissions. They must not create or submit employee passwords.
+- Employees accept invites and set their own password through Supabase Auth. Invite records store a token hash only.
 
 ## Owner role promotion
 
@@ -40,3 +43,5 @@ Do not place owner emails, tokens, or credentials in migrations.
 ## Owner work
 
 Enable Supabase email auth, configure production URLs, apply migrations, promote the owner account, then smoke test customer sessions and role-gated admin access before replacing the temporary admin token gate.
+
+For Business Builder employee access, create an organization, create a Business Builder workspace, add the owner as an active `business_memberships` row, then create employee invites from the protected Business Builder employee portal.

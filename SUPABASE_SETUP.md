@@ -56,6 +56,7 @@ Apply only the clean intentional migrations:
 - `supabase/migrations/0006_platform_accounts_modules_and_usage.sql`
 - `supabase/migrations/0007_launch_roles_and_preferences.sql`
 - `supabase/migrations/0008_billing_webhook_events_and_integrity.sql`
+- `supabase/migrations/20260617214513_business_builder_employee_portal.sql`
 
 Do not apply remote sync dumps or data backups.
 
@@ -67,6 +68,9 @@ The launch schema includes:
 - `public.profile_settings` for language and unit preferences.
 - `public.billing_webhook_events` for Stripe webhook idempotency and audit.
 - `public.admin_audit_events` for server-side founder/admin access logging.
+- `public.business_workspaces`, `public.business_memberships`, and `public.business_employee_invites` for Business Builder owner/manager/employee access.
+
+Business Builder employee invite records store `token_hash` only. They must never store raw invite tokens or employee passwords. Employees set their own password through Supabase Auth during invite acceptance.
 
 After the owner signs up, use Supabase SQL Editor to promote the owner account:
 

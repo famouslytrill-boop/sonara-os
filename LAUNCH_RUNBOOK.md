@@ -25,14 +25,17 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 1. Confirm `.env`, backups, logs, patches, and SQL dumps are not tracked.
 2. Configure all variables from `.env.example` in Vercel.
 3. In Supabase Auth URL Configuration, set production and preview URLs from `SUPABASE_SETUP.md`.
-4. Apply Supabase migrations `0001` through `0008`.
+4. Apply Supabase migrations `0001` through `0008`, plus `20260617214513_business_builder_employee_portal.sql`.
 5. Submit a contact request and record the reference ID.
 6. Check `/api/readiness`.
 7. Test `/admin/env-readiness` with `ADMIN_ACCESS_TOKEN`.
 8. Test Stripe Checkout in test mode using `POST /api/checkout/session`.
 9. Verify Stripe webhook delivery and confirm `billing_webhook_events` records the event.
 10. Verify Resend delivery from a verified domain.
-11. Complete legal review before paid public launch.
+11. Create a Business Builder workspace and active owner membership, then test employee invite creation.
+12. Confirm failed payment events do not create active `billing_entitlements`.
+13. Confirm a successful subscription webhook writes `billing_webhook_events`, `billing_subscriptions`, and active `billing_entitlements`.
+14. Complete legal review before paid public launch.
 
 ## Pricing to configure
 

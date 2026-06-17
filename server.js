@@ -6,6 +6,7 @@ const { URL, URLSearchParams } = require("node:url");
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
+const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const STRIPE_PLANS = {
   free: {
     name: "Free",
@@ -310,6 +311,7 @@ app.get("/logout", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
+  if (acceptsHtml(req)) return res.redirect(303, "/login");
   return res.status(200).json({ ok: true, message: "No persistent session is active." });
 });
 
@@ -355,12 +357,15 @@ app.get("/dashboard", requireCustomer, (req, res) => {
       sections: [
         brandCard("Business Builder", "Offer, intake, customer, and payment readiness workspace."),
         brandCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace."),
-        brandCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace.")
+        brandCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace."),
+        brandCard("Free access", "Authenticated customers can use public readiness checklists and setup-aware module outputs without a Stripe subscription."),
+        brandCard("Paid access", "Paid workspaces stay locked until Stripe webhook records confirm an active or trialing subscription.")
       ],
       actions: [
         linkAction("/business-builder/dashboard", "Business Builder dashboard"),
         linkAction("/creator-studio/dashboard", "Creator Studio dashboard"),
-        linkAction("/growth-studio/dashboard", "Growth Studio dashboard")
+        linkAction("/growth-studio/dashboard", "Growth Studio dashboard"),
+        logoutAction()
       ]
     })
   );
@@ -428,8 +433,79 @@ app.get("/settings", requireCustomer, (req, res) => {
         brandCard("Unit preference", "Default: US customary where relevant. Store metric or imperial preference in profile_settings when customer profiles are active."),
         brandCard("Session requirement", "Preferences are not persisted until account sessions are configured and owner-tested.")
       ],
-      actions: [linkAction("/account", "Account"), linkAction("/", "Home")]
+      actions: [linkAction("/account", "Account"), linkAction("/", "Home"), logoutAction()]
     })
+  );
+});
+
+app.get("/business-builder/login", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Business Builder Login",
+      eyebrow: "Business Builder access",
+      heading: "Business Builder Login",
+      body: "Email/password access for Business Builder owners, managers, and employees.",
+      sections: [
+        authForm("Login with email", "/auth/login"),
+        brandCard("Employee access", "Employees use their own Supabase Auth credentials after accepting an owner-created invite."),
+        brandCard("Password ownership", "Business owners never create, view, store, or know employee passwords.")
+      ],
+      actions: [linkAction("/business-builder", "Business Builder"), linkAction("/login", "SONARA login"), linkAction("/", "Home")]
+    })
+  );
+});
+
+app.get("/business-builder/employees", requireBusinessManager, async (req, res) => {
+  const summary = await getBusinessEmployeeSummary(req.sonaraBusinessMembership?.workspace_id);
+  return res.status(200).type("html").send(
+    layout({
+      title: "Business Builder Employees",
+      eyebrow: "Business Builder operations",
+      heading: "Employee access",
+      body: "Owner and manager workspace for employee invitations. Employees set their own password through the invite flow.",
+      sections: [
+        businessEmployeeInviteForm(),
+        brandCard("Memberships", summary.memberships),
+        brandCard("Pending invites", summary.invites),
+        brandCard("Password policy", "Invite records store token hashes only. Raw employee passwords are never accepted from owners.")
+      ],
+      actions: [linkAction("/business-builder/dashboard", "Dashboard"), linkAction("/business-builder/login", "Employee login"), logoutAction()]
+    })
+  );
+});
+
+app.post("/api/business-builder/employees/invite", requireBusinessManager, async (req, res) => {
+  const result = await createBusinessEmployeeInvite(req);
+  if (wantsJson(req)) return res.status(result.status).json(result.body);
+  return res.status(result.status).type("html").send(
+    responsePage(result.body.ok ? "Invite recorded" : "Invite not created", result.body.message || result.body.code, [
+      linkAction("/business-builder/employees", "Employees"),
+      linkAction("/business-builder/dashboard", "Dashboard")
+    ])
+  );
+});
+
+app.get("/business-builder/invite/accept", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "Accept Business Builder Invite",
+      eyebrow: "Business Builder access",
+      heading: "Accept invite",
+      body: "Employees accept an invite and set their own password. Owners cannot create employee passwords.",
+      sections: [businessEmployeeAcceptForm()],
+      actions: [linkAction("/business-builder/login", "Employee login"), linkAction("/business-builder", "Business Builder")]
+    })
+  );
+});
+
+app.post("/business-builder/invite/accept", async (req, res) => {
+  const result = await acceptBusinessEmployeeInvite(req.body);
+  if (wantsJson(req)) return res.status(result.status).json(result.body);
+  return res.status(result.status).type("html").send(
+    responsePage(result.body.ok ? "Invite accepted" : "Invite not accepted", result.body.message || result.body.code, [
+      linkAction("/business-builder/login", "Employee login"),
+      linkAction("/business-builder/invite/accept", "Try again")
+    ])
   );
 });
 
@@ -527,16 +603,19 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
   );
 });
 
-app.post("/admin/login", (req, res) => {
+app.post("/admin/login", rejectCustomerBearerFromAdminLogin, async (req, res) => {
   if (getReadiness().services.adminProtection !== "configured") {
+    await recordAdminAuditEvent(req, "admin.login.setup_required", { path: req.path });
     return res.status(503).type("html").send(responsePage("Admin setup required", "Admin access requires a server-side ADMIN_ACCESS_TOKEN before browser login can be used.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
   const token = String(req.body.token || req.body.password || "").trim();
   if (!isAdminTokenValid(token)) {
+    await recordAdminAuditEvent(req, "admin.login.failed", { path: req.path });
     return res.status(401).type("html").send(responsePage("Admin access denied", "The submitted admin token was not accepted.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
+  await recordAdminAuditEvent(req, "admin.login.succeeded", { path: req.path });
   res.cookie(ADMIN_SESSION_COOKIE, createAdminSessionCookie(), {
     httpOnly: true,
     sameSite: "lax",
@@ -603,6 +682,26 @@ app.get("/admin/billing", requireAdmin, async (req, res) => {
   );
 });
 
+app.get("/admin/business-builder/employees", requireAdmin, async (req, res) => {
+  const summary = await getBusinessEmployeeSummary();
+  await recordAdminAuditEvent(req, "admin.business_builder_employees.view", { path: req.path });
+  return res.status(200).type("html").send(
+    layout({
+      title: "Business Builder Employees",
+      eyebrow: "Founder operations",
+      heading: "Business Builder employees",
+      body: "Founder view for Business Builder employee invitation and membership readiness. Secret values and raw invite tokens are never displayed.",
+      sections: [
+        brandCard("Workspaces", summary.workspaces),
+        brandCard("Memberships", summary.memberships),
+        brandCard("Pending invites", summary.invites),
+        brandCard("Password control", "Employees set their own password through Supabase Auth. Owners do not create employee passwords.")
+      ],
+      actions: [linkAction("/admin", "Admin"), linkAction("/admin/billing", "Billing"), linkAction("/business-builder/employees", "Workspace employee portal"), adminLogoutAction()]
+    })
+  );
+});
+
 app.get("/admin/env-readiness", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "admin.env_readiness.view", { path: req.path });
   return res.status(200).type("html").send(
@@ -646,6 +745,7 @@ function registerProduct(slug, config) {
         actions: [
           linkAction(`/${slug}/dashboard`, "Open dashboard"),
           linkAction(`/${slug}/launch-readiness`, "Launch readiness"),
+          ...(slug === "business-builder" ? [linkAction("/business-builder/login", "Business login")] : []),
           linkAction("/", "SONARA Industries")
         ]
       })
@@ -662,11 +762,19 @@ function registerProduct(slug, config) {
         body: "Operational workspace with setup-aware cards. Backend-dependent actions remain gated until provider variables are configured.",
         sections: [
           brandCard("Dashboard cards", "Workspace status, provider readiness, recent activity, and customer next actions are available."),
+          brandCard("Free access", "Readiness checklists and setup-aware planning outputs are available to authenticated customers without paid entitlement."),
+          brandCard("Paid access", "Paid records and advanced workspace operations remain locked until Stripe webhook state confirms an active entitlement."),
           brandCard("Records/workspace", readiness.services.supabase === "configured" ? "Supabase-backed records can be connected." : "Setup required: Supabase is not configured."),
           brandCard("Recent activity", "No production activity is shown until backend providers are configured."),
           brandCard("Customer next actions", "Review readiness, submit launch request, or prepare product records.")
         ],
-        actions: [linkAction(`/${slug}`, "Overview"), linkAction(`/${slug}/launch-readiness`, "Launch readiness"), linkAction("/", "SONARA Industries")]
+        actions: [
+          linkAction(`/${slug}`, "Overview"),
+          linkAction(`/${slug}/launch-readiness`, "Launch readiness"),
+          ...(slug === "business-builder" ? [linkAction("/business-builder/employees", "Employees")] : []),
+          linkAction("/pricing", "Upgrade"),
+          logoutAction()
+        ]
       })
     );
   });
@@ -797,7 +905,7 @@ function adminPage(title, body, readiness, metrics = {}) {
     brandCard("Product catalog status", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas."),
     brandCard("System status", "Health and readiness checks are available without exposing secret values.")
   ];
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
+  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: [linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), linkAction("/admin/business-builder/employees", "Business employees"), linkAction("/admin/env-readiness", "Env readiness"), adminLogoutAction()] });
 }
 
 function readinessCards(readiness) {
@@ -849,12 +957,46 @@ function adminLogoutAction() {
   return `<form method="post" action="/admin/logout"><button class="action" type="submit">Logout</button></form>`;
 }
 
+function logoutAction() {
+  return `<form method="post" action="/logout"><button class="action" type="submit">Logout</button></form>`;
+}
+
 function adminLoginForm() {
   return `<article class="card">
     <h2>Protected access</h2>
     <form method="post" action="/admin/login">
       <label>Admin token<input name="token" type="password" autocomplete="current-password" required></label>
       <button type="submit">Open admin</button>
+    </form>
+  </article>`;
+}
+
+function businessEmployeeInviteForm() {
+  return `<article class="card">
+    <h2>Create employee invite</h2>
+    <form method="post" action="/api/business-builder/employees/invite">
+      <label>Workspace ID<input name="workspaceId" type="text" required></label>
+      <label>Organization ID<input name="organizationId" type="text" required></label>
+      <label>Employee name<input name="name" type="text" required></label>
+      <label>Employee email<input name="email" type="email" required></label>
+      <label>Role<select name="role" required><option value="employee">Employee</option><option value="manager">Manager</option></select></label>
+      <label>Permissions<input name="permissions" type="text" placeholder="intake,records,readiness"></label>
+      <p class="fine">Do not enter an employee password. Employees set their own password through the invite flow.</p>
+      <button type="submit">Create invite</button>
+    </form>
+  </article>`;
+}
+
+function businessEmployeeAcceptForm() {
+  const inputId = "business-employee-password";
+  return `<article class="card">
+    <h2>Set employee password</h2>
+    <form method="post" action="/business-builder/invite/accept">
+      <label>Invite token<input name="token" type="text" required></label>
+      <label>Email<input name="email" type="email" required></label>
+      <label>Password<input id="${inputId}" name="password" type="password" required></label>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
+      <button type="submit">Accept invite</button>
     </form>
   </article>`;
 }
@@ -991,6 +1133,151 @@ async function sendSupportNotification(request) {
     })
   }).catch(() => undefined);
   return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
+}
+
+async function createBusinessEmployeeInvite(req) {
+  const body = req.body || {};
+  if (body.password || body.employeePassword || body.temporaryPassword) {
+    return { status: 400, body: { ok: false, code: "password_not_allowed", message: "Owners cannot create or submit employee passwords." } };
+  }
+
+  const workspaceId = String(body.workspaceId || body.workspace_id || req.sonaraBusinessMembership?.workspace_id || "").trim();
+  const organizationId = String(body.organizationId || body.organization_id || req.sonaraBusinessMembership?.organization_id || "").trim();
+  const email = String(body.email || "").trim().toLowerCase();
+  const name = String(body.name || body.invitedName || "").trim();
+  const role = String(body.role || "employee").trim();
+  const permissions = splitList(body.permissions || "");
+
+  if (!workspaceId || !organizationId) return { status: 400, body: { ok: false, code: "validation_failed", message: "Workspace ID and organization ID are required." } };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter a valid employee email." } };
+  if (name.length < 2) return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter the employee name." } };
+  if (!["manager", "employee"].includes(role)) return { status: 400, body: { ok: false, code: "validation_failed", message: "Choose manager or employee." } };
+
+  const config = getSupabaseAdminClient();
+  if (!config.ok) return { status: 503, body: { ok: false, code: "setup_required", service: "supabase" } };
+
+  const rawToken = crypto.randomBytes(32).toString("base64url");
+  const tokenHash = hashInviteToken(rawToken);
+  const expiresAt = new Date(Date.now() + EMPLOYEE_INVITE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+  const response = await fetch(`${config.url}/rest/v1/business_employee_invites`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "return=representation" }),
+    body: JSON.stringify({
+      organization_id: organizationId,
+      workspace_id: workspaceId,
+      invited_email: email,
+      invited_name: name,
+      role,
+      permissions,
+      status: "pending",
+      token_hash: tokenHash,
+      expires_at: expiresAt,
+      created_by_user_id: req.sonaraUser?.id || null
+    })
+  }).catch(() => undefined);
+
+  if (!response?.ok) return { status: 502, body: { ok: false, code: "invite_not_recorded", message: "Employee invite could not be recorded." } };
+  const rows = await response.json().catch(() => []);
+  const invite = rows[0] || {};
+  const inviteUrl = `${getPublicAppUrl(req)}/business-builder/invite/accept?token=${encodeURIComponent(rawToken)}`;
+  const emailResult = await sendBusinessInviteEmail({ email, name, role, inviteUrl });
+  await recordAdminAuditEvent(req, "business.employee_invite.created", { target_type: "business_employee_invite", target_id: invite.id || "pending", workspace_id: workspaceId, email_domain: email.split("@")[1] || "unknown", email_delivery: emailResult.ok ? "sent" : "setup_required" });
+
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      code: "invite_recorded",
+      inviteId: invite.id,
+      delivery: emailResult.ok ? "email_sent" : "setup_required",
+      message: emailResult.ok
+        ? "Employee invite recorded and email delivery was requested."
+        : "Employee invite recorded. Resend setup is required before invite email delivery is available."
+    }
+  };
+}
+
+async function acceptBusinessEmployeeInvite(body) {
+  const token = String(body.token || "").trim();
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "");
+  if (!token || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
+    return { status: 400, body: { ok: false, code: "validation_failed", message: "Invite token, valid email, and an 8+ character password are required." } };
+  }
+  if (!isSupabaseConfigured()) return { status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
+
+  const config = getSupabaseAdminClient();
+  const inviteResponse = await fetch(`${config.url}/rest/v1/business_employee_invites?select=id,organization_id,workspace_id,role,status,expires_at,invited_email&token_hash=eq.${encodeURIComponent(hashInviteToken(token))}&status=eq.pending&limit=1`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (!inviteResponse?.ok) return { status: 502, body: { ok: false, code: "invite_lookup_failed" } };
+  const invites = await inviteResponse.json().catch(() => []);
+  const invite = invites[0];
+  if (!invite) return { status: 404, body: { ok: false, code: "invite_not_found" } };
+  if (String(invite.invited_email || "").toLowerCase() !== email) return { status: 403, body: { ok: false, code: "invite_email_mismatch" } };
+  if (new Date(invite.expires_at).getTime() <= Date.now()) return { status: 410, body: { ok: false, code: "invite_expired" } };
+
+  const auth = await createEmployeeAuthUser(email, password);
+  if (!auth.ok || !auth.userId) return { status: auth.status || 502, body: { ok: false, code: auth.code || "auth_not_completed" } };
+
+  const membership = await fetch(`${config.url}/rest/v1/business_memberships?on_conflict=workspace_id,user_id`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
+    body: JSON.stringify({
+      organization_id: invite.organization_id,
+      workspace_id: invite.workspace_id,
+      user_id: auth.userId,
+      role: invite.role,
+      status: "active"
+    })
+  }).catch(() => undefined);
+  if (!membership?.ok) return { status: 502, body: { ok: false, code: "membership_not_recorded" } };
+
+  await fetch(`${config.url}/rest/v1/business_employee_invites?id=eq.${encodeURIComponent(invite.id)}`, {
+    method: "PATCH",
+    headers: supabaseHeaders(config),
+    body: JSON.stringify({ status: "accepted", accepted_by_user_id: auth.userId, accepted_at: new Date().toISOString() })
+  }).catch(() => undefined);
+
+  return { status: 200, body: { ok: true, code: "invite_accepted", message: "Invite accepted. Use Business Builder login with your email and password." } };
+}
+
+async function createEmployeeAuthUser(email, password) {
+  const config = getSupabaseServerClient();
+  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
+  if (!config.ok || !anonKey) return { ok: false, status: 503, code: "setup_required" };
+  const response = await fetch(`${config.url}/auth/v1/signup`, {
+    method: "POST",
+    headers: {
+      apikey: anonKey,
+      Authorization: `Bearer ${anonKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, status: 401, code: "auth_not_completed" };
+  const payload = await response.json().catch(() => ({}));
+  const userId = payload.user?.id || payload.id;
+  return { ok: Boolean(userId), userId };
+}
+
+async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
+  if (getReadiness().services.emailDelivery !== "enabled") return { ok: false, error: "resend_not_configured" };
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getEnv("RESEND_API_KEY")}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: getEnv("RESEND_FROM_EMAIL"),
+      to: [email],
+      subject: "Business Builder employee invite",
+      text: [`Hello ${name},`, "", `You were invited as a Business Builder ${role}.`, "Set your own password using this secure invite link:", inviteUrl, "", "If you did not expect this invite, ignore this email."].join("\n")
+    })
+  }).catch(() => undefined);
+  return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
+}
+
+function hashInviteToken(token) {
+  return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
 
 function getReadiness() {
@@ -1352,6 +1639,32 @@ async function requireAdmin(req, res, next) {
   return res.status(401).json({ ok: false, code: "admin_auth_required" });
 }
 
+async function requireBusinessManager(req, res, next) {
+  if (!isSupabaseConfigured()) {
+    if (acceptsHtml(req)) return res.redirect(303, "/business-builder/login");
+    return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
+  }
+
+  const bearerToken = getBearerToken(req);
+  if (!bearerToken) {
+    if (acceptsHtml(req)) return res.redirect(303, "/business-builder/login");
+    return res.status(401).json({ ok: false, code: "business_auth_required" });
+  }
+
+  const verification = await verifySupabaseAccessToken(bearerToken);
+  if (!verification.ok) return res.status(401).json({ ok: false, code: "business_auth_required" });
+
+  const membership = await isBusinessManagerUser(verification.user, getBusinessWorkspaceId(req));
+  if (!membership.ok) {
+    if (acceptsHtml(req)) return res.status(403).type("html").send(responsePage("Business access denied", "This account is not authorized to manage Business Builder employees for the selected workspace.", [linkAction("/business-builder/login", "Business login")]));
+    return res.status(403).json({ ok: false, code: "business_forbidden" });
+  }
+
+  req.sonaraUser = verification.user;
+  req.sonaraBusinessMembership = membership.membership;
+  return next();
+}
+
 async function verifyAdminRequest(req) {
   if (isAdminTokenValid(getAdminRequestToken(req))) return { ok: true, method: "admin_token" };
   if (isAdminSessionCookieValid(req)) return { ok: true, method: "admin_cookie" };
@@ -1399,6 +1712,29 @@ async function isSupabaseAdminUser(user) {
   if (!response?.ok) return { ok: false };
   const roles = await response.json().catch(() => []);
   return { ok: Array.isArray(roles) && roles.length > 0 };
+}
+
+async function isBusinessManagerUser(user, workspaceId) {
+  const userId = String(user?.id || "").trim();
+  if (!userId) return { ok: false };
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false };
+  const filters = [
+    "select=id,organization_id,workspace_id,role,status",
+    `user_id=eq.${encodeURIComponent(userId)}`,
+    "status=eq.active",
+    "role=in.(owner,manager)",
+    "limit=1"
+  ];
+  if (workspaceId) filters.splice(3, 0, `workspace_id=eq.${encodeURIComponent(workspaceId)}`);
+  const response = await fetch(`${config.url}/rest/v1/business_memberships?${filters.join("&")}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const rows = await response.json().catch(() => []);
+  return { ok: Array.isArray(rows) && rows.length > 0, membership: rows[0] };
+}
+
+function getBusinessWorkspaceId(req) {
+  return String(req.body?.workspaceId || req.body?.workspace_id || req.query?.workspaceId || req.query?.workspace_id || req.get("x-business-workspace-id") || "").trim();
 }
 
 function timingSafeCompare(a, b) {
@@ -1621,6 +1957,40 @@ async function getBillingSummary() {
     webhookEvents: formatMetric("Recorded events", webhookEvents),
     subscriptions: formatMetric("Subscription records", subscriptions)
   };
+}
+
+async function getBusinessEmployeeSummary(workspaceId) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return {
+      workspaces: "Setup required: Supabase is not configured.",
+      memberships: "Setup required: Supabase is not configured.",
+      invites: "Setup required: Supabase is not configured."
+    };
+  }
+  const filter = workspaceId ? `?workspace_id=eq.${encodeURIComponent(workspaceId)}&select=id&limit=1` : "?select=id&limit=1";
+  const [workspaces, memberships, invites] = await Promise.all([
+    workspaceId ? safeCountFiltered(config, "business_workspaces", `?id=eq.${encodeURIComponent(workspaceId)}&select=id&limit=1`) : safeCountTable(config, "business_workspaces"),
+    safeCountFiltered(config, "business_memberships", filter),
+    safeCountFiltered(config, "business_employee_invites", workspaceId ? `?workspace_id=eq.${encodeURIComponent(workspaceId)}&status=eq.pending&select=id&limit=1` : "?status=eq.pending&select=id&limit=1")
+  ]);
+  return {
+    workspaces: formatMetric("Business workspaces", workspaces),
+    memberships: formatMetric("Membership records", memberships),
+    invites: formatMetric("Pending invites", invites)
+  };
+}
+
+async function safeCountFiltered(config, table, query) {
+  const response = await fetch(`${config.url}/rest/v1/${table}${query}`, {
+    headers: supabaseHeaders(config, { prefer: "count=exact" })
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const range = response.headers?.get?.("content-range") || "";
+  const match = range.match(/\/(\d+)$/);
+  if (match) return { ok: true, count: Number(match[1]) };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, count: Array.isArray(rows) ? rows.length : 0 };
 }
 
 async function safeCountTable(config, table) {

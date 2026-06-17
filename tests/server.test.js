@@ -17,6 +17,7 @@ describe("public site", () => {
 
   for (const route of [
     "/business-builder",
+    "/business-builder/login",
     "/business-builder/launch-readiness",
     "/creator-studio",
     "/creator-studio/launch-readiness",
@@ -273,6 +274,15 @@ describe("auth setup", () => {
     assert.doesNotMatch(res.text, /Google OAuth/);
   });
 
+  it("GET /business-builder/login renders email login without Google OAuth", async function() {
+    const res = await request(app).get("/business-builder/login").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Business Builder Login/);
+    assert.match(res.text, /Login with email/);
+    assert.match(res.text, /Show password/);
+    assert.doesNotMatch(res.text, /Google OAuth/);
+  });
+
   it("GET /auth/callback is disabled while Google OAuth is deferred", async function() {
     const res = await request(app).get("/auth/callback").set("Accept", "application/json");
     assert.equal(res.status, 503);
@@ -339,8 +349,18 @@ describe("auth setup", () => {
 
     assert.equal(dashboard.status, 200);
     assert.match(dashboard.text, /Dashboard/);
+    assert.match(dashboard.text, /Free access/);
+    assert.match(dashboard.text, /Paid access/);
+    assert.match(dashboard.text, /Logout/);
     assert.equal(settings.status, 200);
     assert.match(settings.text, /Language preference/);
+    assert.match(settings.text, /Logout/);
+  });
+
+  it("POST /logout redirects browser requests to /login", async function() {
+    const res = await request(app).post("/logout").set("Accept", "text/html");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/login");
   });
 
   it("POST /auth/login returns setup_required when Supabase is missing", async function() {
@@ -387,6 +407,153 @@ describe("product module APIs", () => {
   });
 });
 
+describe("business builder employee portal", () => {
+  const supabaseEnvKeys = [
+    "SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "RESEND_API_KEY",
+    "RESEND_FROM_EMAIL",
+    "SUPPORT_TO_EMAIL"
+  ];
+  let originalEnv;
+
+  beforeEach(() => {
+    originalEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, process.env[key]]));
+    for (const key of supabaseEnvKeys) delete process.env[key];
+  });
+
+  afterEach(() => {
+    for (const key of supabaseEnvKeys) {
+      if (originalEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[key];
+    }
+  });
+
+  function configureSupabase() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+  }
+
+  it("GET /business-builder/employees redirects browser users to Business Builder login when auth is missing", async function() {
+    const res = await request(app).get("/business-builder/employees").set("Accept", "text/html");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/business-builder/login");
+  });
+
+  it("normal customers cannot access Business Builder employee management", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000021", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/business_memberships")) return { ok: true, json: async () => [] };
+      return { ok: false, json: async () => [] };
+    };
+
+    const res = await request(app).get("/business-builder/employees").set("Authorization", "Bearer customer-session").set("Accept", "application/json");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 403);
+    assert.equal(res.body.code, "business_forbidden");
+  });
+
+  it("employee invite creation rejects owner-submitted passwords", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000022", email: "owner@example.com" }) };
+      }
+      if (String(url).includes("/business_memberships")) {
+        return { ok: true, json: async () => [{ id: "membership-1", organization_id: "00000000-0000-0000-0000-000000000031", workspace_id: "00000000-0000-0000-0000-000000000041", role: "owner", status: "active" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/business-builder/employees/invite")
+      .set("Authorization", "Bearer owner-session")
+      .set("Accept", "application/json")
+      .send({
+        workspaceId: "00000000-0000-0000-0000-000000000041",
+        organizationId: "00000000-0000-0000-0000-000000000031",
+        name: "Employee One",
+        email: "employee@example.com",
+        role: "employee",
+        password: "owner-created-password"
+      });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "password_not_allowed");
+  });
+
+  it("employee invite stores a token hash and never returns raw token or password", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000023", email: "owner@example.com" }) };
+      }
+      if (String(url).includes("/business_memberships")) {
+        return { ok: true, json: async () => [{ id: "membership-1", organization_id: "00000000-0000-0000-0000-000000000031", workspace_id: "00000000-0000-0000-0000-000000000041", role: "owner", status: "active" }] };
+      }
+      if (String(url).includes("/business_employee_invites") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "invite-1" }] };
+      }
+      if (String(url).includes("/admin_audit_events")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/business-builder/employees/invite")
+      .set("Authorization", "Bearer owner-session")
+      .set("Accept", "application/json")
+      .send({
+        workspaceId: "00000000-0000-0000-0000-000000000041",
+        organizationId: "00000000-0000-0000-0000-000000000031",
+        name: "Employee One",
+        email: "employee@example.com",
+        role: "employee",
+        permissions: "intake,records"
+      });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.delivery, "setup_required");
+    assert.equal("inviteUrl" in res.body, false);
+    assert.equal("token" in res.body, false);
+    const insert = calls.find((call) => call.url.includes("/business_employee_invites") && call.method === "POST");
+    assert.ok(insert);
+    const record = JSON.parse(insert.body);
+    assert.ok(record.token_hash);
+    assert.equal("token" in record, false);
+    assert.equal("password" in record, false);
+    assert.deepEqual(record.permissions, ["intake", "records"]);
+  });
+
+  it("employee invite acceptance fails safely when Supabase Auth is missing", async function() {
+    const res = await request(app)
+      .post("/business-builder/invite/accept")
+      .set("Accept", "application/json")
+      .send({ token: "invite-token", email: "employee@example.com", password: "password123" });
+    assert.equal(res.status, 503);
+    assert.equal(res.body.code, "setup_required");
+    assert.equal(res.body.service, "supabase_auth");
+  });
+});
+
 describe("pricing and checkout", () => {
   const validStripeSecret = ["sk", "test", "checkout_ready"].join("_");
   const invalidPriceSecretPrefix = ["sk", "live", "wrong"].join("_");
@@ -407,7 +574,12 @@ describe("pricing and checkout", () => {
     "STRIPE_CANCEL_URL",
     "APP_URL",
     "PUBLIC_SITE_URL",
-    "NODE_ENV"
+    "NODE_ENV",
+    "SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY"
   ];
   let originalStripeEnv;
 
@@ -607,6 +779,54 @@ describe("pricing and checkout", () => {
     assert.equal(calls.some((call) => call.url.includes("/billing_entitlements")), false);
     assert.equal(calls.some((call) => call.url.includes("/billing_subscriptions")), false);
   });
+
+  it("POST /api/webhooks/stripe records active subscription state from valid subscription events", async function() {
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    const organizationId = "00000000-0000-0000-0000-000000000051";
+    const payload = JSON.stringify({
+      id: "evt_subscription_updated",
+      type: "customer.subscription.updated",
+      livemode: false,
+      data: {
+        object: {
+          id: "sub_test",
+          customer: "cus_test",
+          status: "active",
+          current_period_end: 1893456000,
+          cancel_at_period_end: false,
+          metadata: { organization_id: organizationId, plan: "starter_monthly" }
+        }
+      }
+    });
+    const timestamp = "1234567890";
+    const signature = crypto.createHmac("sha256", process.env.STRIPE_WEBHOOK_SECRET).update(`${timestamp}.${payload}`).digest("hex");
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), body: options.body });
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/webhooks/stripe")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", `t=${timestamp},v1=${signature}`)
+      .send(payload);
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.received, true);
+    const subscription = calls.find((call) => call.url.includes("/billing_subscriptions"));
+    const entitlement = calls.find((call) => call.url.includes("/billing_entitlements"));
+    assert.ok(subscription);
+    assert.ok(entitlement);
+    assert.equal(JSON.parse(subscription.body).status, "active");
+    assert.equal(JSON.parse(entitlement.body).status, "active");
+  });
 });
 
 describe("auth and admin", () => {
@@ -694,6 +914,33 @@ describe("auth and admin", () => {
     assert.equal(admin.body.code, "admin_auth_required");
     assert.equal(login.status, 403);
     assert.equal(login.body.code, "admin_forbidden");
+  });
+
+  it("POST /admin/login rejects normal customer bearer sessions", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000024", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      return { ok: false, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/admin/login")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "application/json")
+      .type("form")
+      .send({ token: adminToken });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 403);
+    assert.equal(res.body.code, "admin_forbidden");
   });
 
   it("GET /admin accepts Supabase owner/admin roles server-side", async function() {
