@@ -287,6 +287,15 @@ describe("pricing and checkout", () => {
     assert.match(res.text, /Checkout is not configured for this plan yet/);
   });
 
+  it("GET /pricing does not count the free plan as paid checkout readiness", async function() {
+    const res = await request(app).get("/pricing").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Checkout setup required until Stripe server variables and plan price IDs are configured/);
+
+    const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
+    assert.equal(readiness.body.services.checkout, "setup_required");
+  });
+
   it("GET /api/checkout/session returns 405", async function() {
     const res = await request(app).get("/api/checkout/session").set("Accept", "application/json");
     assert.equal(res.status, 405);

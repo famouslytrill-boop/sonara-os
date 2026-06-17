@@ -169,7 +169,7 @@ app.get("/api/support/status", (req, res) => {
 app.get("/pricing", (req, res) => {
   const readiness = getReadiness();
   const planStatuses = getCheckoutPlanStatuses();
-  const enabledPlanCount = Object.values(planStatuses).filter((status) => status.checkout === "enabled").length;
+  const enabledPlanCount = Object.entries(planStatuses).filter(([plan, status]) => plan !== "free" && status.checkout === "enabled").length;
   return res.status(200).type("html").send(
     layout({
       title: "Pricing",
@@ -918,7 +918,7 @@ function getReadiness() {
   const stripeSecret = getStripeSecretStatus();
   const stripeWebhook = getStripeWebhookStatus();
   const checkoutPlans = getCheckoutPlanStatuses();
-  const enabledPlanCount = Object.values(checkoutPlans).filter((plan) => plan.checkout === "enabled").length;
+  const enabledPlanCount = Object.entries(checkoutPlans).filter(([plan, status]) => plan !== "free" && status.checkout === "enabled").length;
   const stripeMissing = [];
   if (stripeSecret.status === "missing") stripeMissing.push("STRIPE_SECRET_KEY");
   if (stripeWebhook.status === "missing") stripeMissing.push("STRIPE_WEBHOOK_SECRET");
