@@ -254,7 +254,8 @@ create table if not exists public.support_email_delivery_attempts (
   sanitized_error_summary text,
   created_at timestamptz not null default now()
 );
-
+alter table public.organizations
+add column if not exists owner_user_id uuid references auth.users(id) on delete set null;
 create index if not exists organizations_owner_idx on public.organizations(owner_user_id);
 create index if not exists organization_members_user_idx on public.organization_members(user_id);
 create index if not exists product_workspaces_org_idx on public.product_workspaces(organization_id);
