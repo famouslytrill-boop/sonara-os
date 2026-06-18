@@ -65,9 +65,19 @@ describe("public site", () => {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.match(res.text, /Checkout setup required/);
+    assert.match(res.text, /payment connection/);
     assert.doesNotMatch(res.text, /setup_required/);
     assert.doesNotMatch(res.text, /Public readiness shell/);
     assert.match(res.text, /Public readiness checklist/);
+  });
+
+  it("public pages use customer-facing setup language", async function() {
+    for (const route of ["/", "/pricing", "/login", "/signup", "/business-builder", "/creator-studio", "/growth-studio", "/help", "/docs"]) {
+      const res = await request(app).get(route).set("Accept", "text/html");
+      assert.equal(res.status, 200);
+      assert.doesNotMatch(res.text, /Provider readiness|setup-aware|Backend-dependent|Authenticated customers|Billing webhook events|Stripe Webhook|Admin Protection/);
+      assert.doesNotMatch(res.text, /SUPABASE_SERVICE_ROLE_KEY|STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|RESEND_API_KEY|ADMIN_PASSWORD_HASH/);
+    }
   });
 
   it("footer links include all legal routes", async function() {
@@ -398,6 +408,9 @@ describe("auth setup", () => {
     const dashboard = await request(app).get("/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const settings = await request(app).get("/settings").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const businessBuilder = await request(app).get("/business-builder/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+    const businessIntake = await request(app).get("/business-builder/intake").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+    const creatorAssets = await request(app).get("/creator-studio/assets").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+    const growthCampaigns = await request(app).get("/growth-studio/campaigns").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
 
     global.fetch = originalFetch;
 
@@ -412,6 +425,15 @@ describe("auth setup", () => {
     assert.equal(businessBuilder.status, 200);
     assert.match(businessBuilder.text, /Business Builder Dashboard/);
     assert.match(businessBuilder.text, /Logout/);
+    assert.equal(businessIntake.status, 200);
+    assert.match(businessIntake.text, /Intake &amp; Request Queue/);
+    assert.match(businessIntake.text, /Record intake/);
+    assert.equal(creatorAssets.status, 200);
+    assert.match(creatorAssets.text, /Asset Catalog/);
+    assert.match(creatorAssets.text, /Create asset record/);
+    assert.equal(growthCampaigns.status, 200);
+    assert.match(growthCampaigns.text, /Campaign Workspace/);
+    assert.match(growthCampaigns.text, /Create campaign plan/);
   });
 
   it("POST /logout redirects browser requests to /login", async function() {
@@ -691,6 +713,57 @@ describe("product module APIs", () => {
     assert.equal(res.body.code, "records_available");
     assert.equal(res.body.records.length, 1);
   });
+
+  it("customer paid workspace pages stay locked without billing state", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000105", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_entitlements")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/business-builder/customers").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 402);
+    assert.match(res.text, /Upgrade required/);
+    assert.match(res.text, /payment updates/);
+  });
+
+  it("active billing state unlocks paid workspace pages for customers", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000106", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_entitlements")) {
+        return { ok: true, json: async () => [{ entitlement_key: "starter_monthly", status: "active" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/business-builder/customers").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Customer Records/);
+    assert.match(res.text, /Paid tools are available/);
+  });
 });
 
 describe("business builder employee portal", () => {
@@ -937,7 +1010,7 @@ describe("pricing and checkout", () => {
   it("GET /pricing does not count the free plan as paid checkout readiness", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Checkout setup required until Stripe server variables and plan price IDs are configured/);
+    assert.match(res.text, /Checkout setup required until the payment connection and plan settings are configured/);
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.body.services.checkout, "setup_required");
@@ -1258,6 +1331,37 @@ describe("auth and admin", () => {
     assert.match(res.text, /System status/);
     assert.match(res.text, /Logout/);
     assert.doesNotMatch(res.text, new RegExp(adminToken));
+  });
+
+  it("owner/admin override can access all internal product workspaces", async function() {
+    for (const route of ["/dashboard", "/business-builder/dashboard", "/business-builder/customers", "/business-builder/employees", "/creator-studio/dashboard", "/creator-studio/monetization", "/growth-studio/dashboard", "/growth-studio/analytics"]) {
+      const res = await request(app).get(route).set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+      assert.equal(res.status, 200, route);
+      assert.match(res.text, /Owner\/Admin access|Employee access|Dashboard|Analytics|Monetization/);
+      assert.doesNotMatch(res.text, new RegExp(adminToken));
+    }
+  });
+
+  it("admin control-center routes require founder access and render safely", async function() {
+    const routes = [
+      "/admin/users",
+      "/admin/roles",
+      "/admin/subscriptions",
+      "/admin/webhooks",
+      "/admin/support",
+      "/admin/catalog",
+      "/admin/system",
+      "/admin/business-builder",
+      "/admin/creator-studio",
+      "/admin/growth-studio"
+    ];
+    for (const route of routes) {
+      const res = await request(app).get(route).set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+      assert.equal(res.status, 200, route);
+      assert.match(res.text, /Founder operations/);
+      assert.doesNotMatch(res.text, new RegExp(adminToken));
+      assert.doesNotMatch(res.text, /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+    }
   });
 
   it("GET /admin with x-admin-token succeeds", async function() {
