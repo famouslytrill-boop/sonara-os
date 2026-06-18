@@ -285,11 +285,13 @@ app.post("/auth/signup", async (req, res) => {
 });
 
 app.get("/auth/login", (req, res) => {
-  if (wantsJson(req)) {
-    return res.status(405).json({
-      ok: false,
-      code: "method_not_allowed",
-      message: "Use POST /auth/login for email/password API login."
+  if (wantsAuthLoginReadinessJson(req)) {
+    return res.status(200).json({
+      ok: true,
+      code: "login_ready",
+      sessionStored: false,
+      method: "POST",
+      action: "/auth/login"
     });
   }
 
@@ -1751,6 +1753,12 @@ function acceptsHtml(req) {
 
 function wantsJson(req) {
   return Boolean(req.is("application/json")) || String(req.get("accept") || "").includes("application/json");
+}
+
+function wantsAuthLoginReadinessJson(req) {
+  const format = String(req.query?.format || "").trim().toLowerCase();
+  const explicitApiClient = String(req.get("x-sonara-api-client") || "").trim().toLowerCase();
+  return format === "json" || explicitApiClient === "true";
 }
 
 function createAdminSessionCookie() {

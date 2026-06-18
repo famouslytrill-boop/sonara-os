@@ -290,17 +290,39 @@ describe("auth setup", () => {
     assert.equal(res.body.service, "google_oauth");
   });
 
-  it("GET /auth/login redirects browser requests to /login", async function() {
-    const res = await request(app).get("/auth/login").set("Accept", "text/html");
+  it("GET /auth/login redirects to /login by default", async function() {
+    const res = await request(app).get("/auth/login");
     assert.equal(res.status, 303);
     assert.equal(res.headers.location, "/login");
   });
 
-  it("GET /auth/login returns JSON only for explicit API callers", async function() {
+  it("GET /auth/login redirects browser requests to /login even when JSON is accepted", async function() {
     const res = await request(app).get("/auth/login").set("Accept", "application/json");
-    assert.equal(res.status, 405);
-    assert.equal(res.body.ok, false);
-    assert.equal(res.body.code, "method_not_allowed");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/login");
+  });
+
+  it("GET /auth/login?format=json returns JSON readiness", async function() {
+    const res = await request(app).get("/auth/login?format=json");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.code, "login_ready");
+    assert.equal(res.body.sessionStored, false);
+    assert.equal(res.body.action, "/auth/login");
+  });
+
+  it("GET /auth/login with x-sonara-api-client returns JSON readiness", async function() {
+    const res = await request(app).get("/auth/login").set("x-sonara-api-client", "true");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.code, "login_ready");
+    assert.equal(res.body.sessionStored, false);
+  });
+
+  it("GET /auth/login with x-sonara-api-client: false redirects to /login", async function() {
+    const res = await request(app).get("/auth/login").set("x-sonara-api-client", "false");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/login");
   });
 
   it("GET /signup renders password visibility control", async function() {
