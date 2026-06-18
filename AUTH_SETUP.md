@@ -9,7 +9,8 @@ SONARA uses email-first Supabase Auth readiness in code. Google OAuth is deferre
 - `SUPABASE_ANON_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` server-only
 - `PUBLIC_SITE_URL` or `NEXT_PUBLIC_SITE_URL`
-- `ADMIN_ACCESS_TOKEN` for temporary founder access
+- `ADMIN_PASSWORD_HASH` for temporary founder password access
+- `ADMIN_PASSWORD` only as a short-lived server-only fallback if a hash cannot be generated before deployment
 - `ADMIN_EMAILS` or `ADMIN_EMAIL` for future role authorization
 
 ## Current code behavior
@@ -21,7 +22,7 @@ SONARA uses email-first Supabase Auth readiness in code. Google OAuth is deferre
 - `/logout` and `POST /auth/logout` are user-triggered only.
 - Customer dashboard routes redirect browser traffic to `/login` until Supabase-backed sessions are configured and a bearer session token is available.
 - Admin routes accept Supabase bearer sessions only when `public.user_roles` marks the user as `owner` or `admin`.
-- Admin routes also keep temporary server-only `ADMIN_ACCESS_TOKEN` header/cookie access for owner break-glass operations.
+- Admin routes use server-side founder password verification for browser login. Legacy `ADMIN_ACCESS_TOKEN` header/query support remains only for owner break-glass operations until it is removed.
 - `/business-builder/login` is the Business Builder owner/manager/employee login entry. It uses email/password only.
 - Business Builder owners/managers create employee invites with name, email, role, workspace ID, organization ID, and permissions. They must not create or submit employee passwords.
 - Employees accept invites and set their own password through Supabase Auth. Invite records store a token hash only.
@@ -42,6 +43,6 @@ Do not place owner emails, tokens, or credentials in migrations.
 
 ## Owner work
 
-Enable Supabase email auth, configure production URLs, apply migrations, promote the owner account, then smoke test customer sessions and role-gated admin access before replacing the temporary admin token gate.
+Enable Supabase email auth, configure production URLs, apply migrations, promote the owner account, then smoke test customer sessions and role-gated admin access before replacing the temporary founder password gate with full OAuth/session admin auth.
 
 For Business Builder employee access, create an organization, create a Business Builder workspace, add the owner as an active `business_memberships` row, then create employee invites from the protected Business Builder employee portal.

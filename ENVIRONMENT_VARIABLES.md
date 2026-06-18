@@ -66,13 +66,15 @@ Configure these in Resend after domain verification.
 
 ## Admin
 
-- `ADMIN_ACCESS_TOKEN`: Temporary server-only admin gate until OAuth-backed admin sessions are complete.
+- `ADMIN_PASSWORD_HASH`: Preferred server-only founder password hash for `/admin/login`.
+- `ADMIN_PASSWORD`: Temporary server-only plaintext fallback if a hash cannot be generated before deployment.
+- `ADMIN_ACCESS_TOKEN`: Legacy server-only fallback for existing header/query automation. Do not use for customer-facing admin login copy.
 - `ADMIN_EMAILS`: Comma-separated owner/admin emails for future OAuth authorization.
 - `ADMIN_EMAIL`: Single-admin alias for future OAuth authorization.
 
-Never display or expose `ADMIN_ACCESS_TOKEN`.
+Never display or expose `ADMIN_PASSWORD_HASH`, `ADMIN_PASSWORD`, or `ADMIN_ACCESS_TOKEN`.
 
-`ADMIN_ACCESS_TOKEN` must not be all `A` characters and should be at least 32 characters.
+`ADMIN_PASSWORD_HASH` should use `scrypt$saltHex$hashHex`. `ADMIN_PASSWORD` should be temporary, strong, and at least 12 characters. Legacy `ADMIN_ACCESS_TOKEN` must not be all `A` characters and should be at least 32 characters.
 
 ## Optional Vercel runtime
 

@@ -5,7 +5,9 @@ const { URL, URLSearchParams } = require("node:url");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
+const CUSTOMER_SESSION_COOKIE = "sonara_customer_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
+const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const STRIPE_PLANS = {
   free: {
@@ -203,7 +205,7 @@ app.get("/security", (req, res) => {
       heading: "Security",
       body: "SONARA keeps production infrastructure boring, reviewable, and server-controlled. Secrets stay server-side and high-risk automation requires approval.",
       sections: [
-        brandCard("Server-only credentials", "Service-role keys, provider secrets, webhook secrets, and admin tokens are never shipped to public clients."),
+        brandCard("Server-only credentials", "Service-role keys, provider secrets, webhook secrets, and admin credentials are never shipped to public clients."),
         brandCard("Human approval", "AI and outbound actions require preview, owner approval, and audit-ready records."),
         brandCard("Data boundaries", "Organization-scoped records require RBAC, provenance, and retention discipline.")
       ],
@@ -281,11 +283,25 @@ app.get("/signup", (req, res) => {
 
 app.post("/auth/signup", async (req, res) => {
   const result = await handleEmailAuth("signup", req.body);
-  return res.status(result.status).json(result.body);
+  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
+});
+
+app.get("/auth/signup", (req, res) => {
+  if (wantsAuthReadinessJson(req)) {
+    return res.status(200).json({
+      ok: true,
+      code: "signup_ready",
+      sessionStored: false,
+      method: "POST",
+      action: "/auth/signup"
+    });
+  }
+
+  return res.redirect(303, "/signup");
 });
 
 app.get("/auth/login", (req, res) => {
-  if (wantsAuthLoginReadinessJson(req)) {
+  if (wantsAuthReadinessJson(req)) {
     return res.status(200).json({
       ok: true,
       code: "login_ready",
@@ -300,7 +316,7 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
-  return res.status(result.status).json(result.body);
+  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
 });
 
 app.get("/logout", (req, res) => {
@@ -313,11 +329,13 @@ app.get("/logout", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
+  clearCustomerSessionCookie(res);
   if (acceptsHtml(req)) return res.redirect(303, "/login");
   return res.status(200).json({ ok: true, message: "No persistent session is active." });
 });
 
 app.post("/auth/logout", (req, res) => {
+  clearCustomerSessionCookie(res);
   return res.status(200).json({ ok: true, message: "No persistent session is active." });
 });
 
@@ -587,15 +605,15 @@ app.get("/offline", (req, res) => {
 
 app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
   const readiness = getAdminEnvReadiness();
-  const tokenReady = readiness.find((item) => item.key === "ADMIN_ACCESS_TOKEN")?.ok;
-  return res.status(tokenReady ? 200 : 503).type("html").send(
+  const adminReady = getReadiness().services.adminProtection === "configured";
+  return res.status(adminReady ? 200 : 503).type("html").send(
     layout({
       title: "Admin login",
       eyebrow: "Founder operations",
       heading: "Admin login",
-      body: tokenReady
-        ? "Enter the temporary server-side admin access token to open founder operations."
-        : "Admin access setup is required before founder operations can open.",
+      body: adminReady
+        ? "Enter the server-side founder password to open protected founder operations."
+        : "Founder password and admin allowlist setup are required before founder operations can open.",
       sections: [
         adminLoginForm(),
         ...readiness.map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning))
@@ -608,13 +626,13 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
 app.post("/admin/login", rejectCustomerBearerFromAdminLogin, async (req, res) => {
   if (getReadiness().services.adminProtection !== "configured") {
     await recordAdminAuditEvent(req, "admin.login.setup_required", { path: req.path });
-    return res.status(503).type("html").send(responsePage("Admin setup required", "Admin access requires a server-side ADMIN_ACCESS_TOKEN before browser login can be used.", [linkAction("/admin/login", "Return to admin login")]));
+    return res.status(503).type("html").send(responsePage("Admin setup required", "Admin access requires a server-side founder password before browser login can be used.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
-  const token = String(req.body.token || req.body.password || "").trim();
-  if (!isAdminTokenValid(token)) {
+  const password = String(req.body.password || req.body.token || "");
+  if (!isAdminPasswordValid(password)) {
     await recordAdminAuditEvent(req, "admin.login.failed", { path: req.path });
-    return res.status(401).type("html").send(responsePage("Admin access denied", "The submitted admin token was not accepted.", [linkAction("/admin/login", "Return to admin login")]));
+    return res.status(401).type("html").send(responsePage("Admin access denied", "The submitted founder password was not accepted.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
   await recordAdminAuditEvent(req, "admin.login.succeeded", { path: req.path });
@@ -966,11 +984,13 @@ function logoutAction() {
 }
 
 function adminLoginForm() {
+  const inputId = "admin-founder-password";
   return `<article class="card">
     <h2>Protected access</h2>
     <form method="post" action="/admin/login">
-      <label>Admin token<input name="token" type="password" autocomplete="current-password" required></label>
-      <button type="submit">Open admin</button>
+      <label>Founder password<input id="${inputId}" name="password" type="password" autocomplete="current-password" required></label>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
+      <button type="submit">Sign in to admin</button>
     </form>
   </article>`;
 }
@@ -1301,10 +1321,10 @@ function getReadiness() {
     ["GOOGLE_REDIRECT_URI"],
     ["PUBLIC_SITE_URL", "NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "APP_URL"]
   ]);
-  const adminProtection = missingEnvGroups([
-    ["ADMIN_ACCESS_TOKEN"],
-    ["ADMIN_EMAILS", "ADMIN_EMAIL"]
-  ]);
+  const adminProtection = [];
+  const adminCredential = getAdminCredentialStatus();
+  if (!adminCredential.ok) adminProtection.push("ADMIN_PASSWORD_HASH or ADMIN_PASSWORD");
+  if (!getEnv(["ADMIN_EMAILS", "ADMIN_EMAIL"])) adminProtection.push("ADMIN_EMAILS or ADMIN_EMAIL");
   const stripeSecret = getStripeSecretStatus();
   const stripeWebhook = getStripeWebhookStatus();
   const checkoutPlans = getCheckoutPlanStatuses();
@@ -1335,12 +1355,12 @@ function getReadiness() {
 }
 
 function getAdminEnvReadiness() {
-  const adminToken = getEnv("ADMIN_ACCESS_TOKEN");
+  const adminCredential = getAdminCredentialStatus();
   const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   return [
-    { key: "ADMIN_ACCESS_TOKEN", label: "ADMIN_ACCESS_TOKEN", ok: Boolean(adminToken), warning: "ADMIN_ACCESS_TOKEN is required for temporary founder access." },
-    { key: "ADMIN_ACCESS_TOKEN_NOT_PLACEHOLDER", label: "ADMIN_ACCESS_TOKEN placeholder check", ok: Boolean(adminToken) && !/^A+$/i.test(adminToken), warning: "ADMIN_ACCESS_TOKEN must not use an all-A placeholder value." },
-    { key: "ADMIN_ACCESS_TOKEN_LENGTH", label: "ADMIN_ACCESS_TOKEN length", ok: adminToken.length >= 32, warning: "ADMIN_ACCESS_TOKEN should be at least 32 characters." },
+    { key: "ADMIN_PASSWORD_CONFIGURED", label: "ADMIN_PASSWORD_HASH / ADMIN_PASSWORD", ok: adminCredential.configured, warning: "Founder password credential is missing." },
+    { key: "ADMIN_PASSWORD_SAFETY", label: "Founder password safety check", ok: adminCredential.ok, warning: adminCredential.warning },
+    { key: "ADMIN_EMAILS", label: "ADMIN_EMAILS / ADMIN_EMAIL", ok: Boolean(getEnv(["ADMIN_EMAILS", "ADMIN_EMAIL"])), warning: "Admin email allowlist is required for role-backed founder access." },
     ...Object.entries(STRIPE_PLANS)
       .filter(([, config]) => config.env)
       .map(([plan, config]) => {
@@ -1579,7 +1599,51 @@ async function handleEmailAuth(mode, body) {
   }).catch(() => undefined);
 
   if (!response?.ok) return { status: 401, body: { ok: false, code: "auth_not_completed" } };
-  return { status: 200, body: { ok: true, code: mode === "signup" ? "signup_requested" : "login_ready", sessionStored: false } };
+  const data = await response.json().catch(() => ({}));
+  const accessToken = typeof data.access_token === "string" ? data.access_token : "";
+  const reportedExpiresIn = Number(data.expires_in);
+  const expiresIn = Number.isFinite(reportedExpiresIn) ? Math.max(60, Math.min(reportedExpiresIn, CUSTOMER_SESSION_MAX_AGE_SECONDS)) : CUSTOMER_SESSION_MAX_AGE_SECONDS;
+  return {
+    status: 200,
+    body: { ok: true, code: mode === "signup" ? "signup_requested" : "login_ready", sessionStored: Boolean(accessToken) },
+    session: accessToken ? { accessToken, maxAgeSeconds: expiresIn } : undefined
+  };
+}
+
+function sendEmailAuthResult(req, res, result, sessionRedirect, fallbackRedirect) {
+  if (result.session?.accessToken) setCustomerSessionCookie(res, result.session.accessToken, result.session.maxAgeSeconds);
+
+  if (acceptsHtml(req)) {
+    if (result.status >= 200 && result.status < 300) {
+      return res.redirect(303, result.session?.accessToken ? sessionRedirect : fallbackRedirect);
+    }
+
+    const message = result.body?.code === "setup_required"
+      ? "Supabase Auth setup is required before email/password access can complete."
+      : "Email/password access was not completed.";
+    return res.status(result.status).type("html").send(responsePage("Access not completed", message, [linkAction("/login", "Login"), linkAction("/signup", "Create account")]));
+  }
+
+  return res.status(result.status).json(result.body);
+}
+
+function setCustomerSessionCookie(res, accessToken, maxAgeSeconds = CUSTOMER_SESSION_MAX_AGE_SECONDS) {
+  res.cookie(CUSTOMER_SESSION_COOKIE, accessToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: Math.max(60, Math.min(Number(maxAgeSeconds) || CUSTOMER_SESSION_MAX_AGE_SECONDS, CUSTOMER_SESSION_MAX_AGE_SECONDS)) * 1000
+  });
+}
+
+function clearCustomerSessionCookie(res) {
+  res.clearCookie(CUSTOMER_SESSION_COOKIE, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/"
+  });
 }
 
 async function requireCustomer(req, res, next) {
@@ -1588,13 +1652,13 @@ async function requireCustomer(req, res, next) {
     return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
   }
 
-  const bearerToken = getBearerToken(req);
-  if (!bearerToken) {
+  const sessionToken = getCustomerSessionToken(req);
+  if (!sessionToken) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
     return res.status(401).json({ ok: false, code: "customer_auth_required" });
   }
 
-  const verification = await verifySupabaseAccessToken(bearerToken);
+  const verification = await verifySupabaseAccessToken(sessionToken);
   if (!verification.ok) return res.status(401).json({ ok: false, code: "customer_auth_required" });
   req.sonaraUser = verification.user;
   return next();
@@ -1697,6 +1761,84 @@ function getAdminRequestToken(req) {
   ].find((value) => String(value || "").trim()) || "";
 }
 
+function isAdminPasswordValid(password) {
+  const submitted = String(password || "");
+  if (!submitted) return false;
+
+  const hash = getEnv("ADMIN_PASSWORD_HASH");
+  if (hash) return verifyAdminPasswordHash(submitted, hash);
+
+  const plaintext = getEnv("ADMIN_PASSWORD");
+  if (plaintext) return timingSafeCompare(submitted, plaintext);
+
+  return isAdminTokenValid(submitted);
+}
+
+function getAdminCredentialStatus() {
+  const hash = getEnv("ADMIN_PASSWORD_HASH");
+  if (hash) {
+    const validHash = isSupportedAdminPasswordHash(hash);
+    return {
+      configured: true,
+      ok: validHash,
+      source: "password_hash",
+      warning: validHash ? "Ready" : "ADMIN_PASSWORD_HASH must use scrypt$saltHex$hashHex format."
+    };
+  }
+
+  const plaintext = getEnv("ADMIN_PASSWORD");
+  if (plaintext) {
+    const safePassword = isAdminPlainPasswordSafe(plaintext);
+    return {
+      configured: true,
+      ok: safePassword,
+      source: "password",
+      warning: safePassword ? "Ready" : "Founder password must be at least 12 characters and must not be an all-A placeholder."
+    };
+  }
+
+  const legacy = getEnv("ADMIN_ACCESS_TOKEN");
+  if (legacy) {
+    const safeLegacy = legacy.length >= 32 && !/^A+$/i.test(legacy);
+    return {
+      configured: true,
+      ok: safeLegacy,
+      source: "legacy",
+      warning: safeLegacy ? "Ready" : "Founder password fallback must be at least 32 characters and must not be an all-A placeholder."
+    };
+  }
+
+  return {
+    configured: false,
+    ok: false,
+    source: "missing",
+    warning: "Configure ADMIN_PASSWORD_HASH preferred, or ADMIN_PASSWORD as a temporary server-only fallback."
+  };
+}
+
+function isAdminPlainPasswordSafe(password) {
+  const value = String(password || "");
+  return value.length >= 12 && !/^A+$/i.test(value);
+}
+
+function isSupportedAdminPasswordHash(hash) {
+  const parts = String(hash || "").split("$");
+  if (parts.length !== 3 || parts[0] !== "scrypt") return false;
+  return /^[a-f0-9]{16,}$/i.test(parts[1]) && /^[a-f0-9]{64,}$/i.test(parts[2]) && parts[2].length % 2 === 0;
+}
+
+function verifyAdminPasswordHash(password, storedHash) {
+  if (!isSupportedAdminPasswordHash(storedHash)) return false;
+  const [, saltHex, expectedHex] = String(storedHash).split("$");
+  try {
+    const expected = Buffer.from(expectedHex, "hex");
+    const actual = crypto.scryptSync(String(password), Buffer.from(saltHex, "hex"), expected.length);
+    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+  } catch {
+    return false;
+  }
+}
+
 function isAdminTokenValid(token) {
   return timingSafeCompare(String(token || ""), getEnv("ADMIN_ACCESS_TOKEN"));
 }
@@ -1704,6 +1846,10 @@ function isAdminTokenValid(token) {
 function getBearerToken(req) {
   const authHeader = String(req.get("authorization") || "");
   return authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+}
+
+function getCustomerSessionToken(req) {
+  return getBearerToken(req) || getCookie(req, CUSTOMER_SESSION_COOKIE);
 }
 
 async function isSupabaseAdminUser(user) {
@@ -1757,7 +1903,7 @@ function wantsJson(req) {
   return Boolean(req.is("application/json")) || String(req.get("accept") || "").includes("application/json");
 }
 
-function wantsAuthLoginReadinessJson(req) {
+function wantsAuthReadinessJson(req) {
   const format = String(req.query?.format || "").trim().toLowerCase();
   const explicitApiClient = String(req.get("x-sonara-api-client") || "").trim().toLowerCase();
   return format === "json" || explicitApiClient === "true";
@@ -1788,7 +1934,20 @@ function isAdminSessionCookieValid(req) {
 }
 
 function signAdminSessionPayload(payload) {
-  return crypto.createHmac("sha256", getEnv("ADMIN_ACCESS_TOKEN") || "admin-session-not-configured").update(payload).digest("base64url");
+  return crypto.createHmac("sha256", getAdminSessionSecret()).update(payload).digest("base64url");
+}
+
+function getAdminSessionSecret() {
+  const hash = getEnv("ADMIN_PASSWORD_HASH");
+  if (hash) return hash;
+
+  const password = getEnv("ADMIN_PASSWORD");
+  if (password) return crypto.createHash("sha256").update(password).digest("hex");
+
+  const legacy = getEnv("ADMIN_ACCESS_TOKEN");
+  if (legacy) return legacy;
+
+  return "admin-session-not-configured";
 }
 
 function getCookie(req, name) {

@@ -28,7 +28,7 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 4. Apply Supabase migrations `0001` through `0008`, plus `20260617214513_business_builder_employee_portal.sql`.
 5. Submit a contact request and record the reference ID.
 6. Check `/api/readiness`.
-7. Test `/admin/env-readiness` with `ADMIN_ACCESS_TOKEN`.
+7. Test `/admin/login` with the configured founder password and confirm `/admin/env-readiness` after login.
 8. Test Stripe Checkout in test mode using `POST /api/checkout/session`.
 9. Verify Stripe webhook delivery and confirm `billing_webhook_events` records the event.
 10. Verify Resend delivery from a verified domain.
@@ -48,7 +48,7 @@ This runbook covers the remaining owner/manual steps for paid launch. The codeba
 ## Safety rules
 
 - Never expose `SUPABASE_SERVICE_ROLE_KEY`.
-- Never display `ADMIN_ACCESS_TOKEN`.
+- Never display founder passwords, password hashes, legacy admin access values, or provider secrets.
 - Do not enable live checkout until Stripe variables and price IDs are configured.
 - `STRIPE_PRICE_*` values must start with `price_`.
 - Missing providers must show `setup_required`, not crash.

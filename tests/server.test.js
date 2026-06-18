@@ -180,6 +180,8 @@ describe("health and readiness", () => {
       "NEXT_PUBLIC_SITE_URL",
       "NEXT_PUBLIC_APP_URL",
       "APP_URL",
+      "ADMIN_PASSWORD_HASH",
+      "ADMIN_PASSWORD",
       "ADMIN_ACCESS_TOKEN",
       "ADMIN_EMAILS",
       "ADMIN_EMAIL"
@@ -197,7 +199,7 @@ describe("health and readiness", () => {
     process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
     process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
     process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
-    process.env.ADMIN_ACCESS_TOKEN = "admin-token-placeholder-1234567890abcdef";
+    process.env.ADMIN_PASSWORD = "founder-password-placeholder";
     process.env.ADMIN_EMAIL = "owner@example.com";
 
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
@@ -325,6 +327,34 @@ describe("auth setup", () => {
     assert.equal(res.headers.location, "/login");
   });
 
+  it("GET /auth/signup redirects to /signup by default", async function() {
+    const res = await request(app).get("/auth/signup");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/signup");
+  });
+
+  it("GET /auth/signup redirects browser requests to /signup even when JSON is accepted", async function() {
+    const res = await request(app).get("/auth/signup").set("Accept", "application/json");
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/signup");
+  });
+
+  it("GET /auth/signup?format=json returns JSON readiness", async function() {
+    const res = await request(app).get("/auth/signup?format=json");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.code, "signup_ready");
+    assert.equal(res.body.sessionStored, false);
+    assert.equal(res.body.action, "/auth/signup");
+  });
+
+  it("GET /auth/signup with x-sonara-api-client returns JSON readiness", async function() {
+    const res = await request(app).get("/auth/signup").set("x-sonara-api-client", "true");
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.code, "signup_ready");
+  });
+
   it("GET /signup renders password visibility control", async function() {
     const res = await request(app).get("/signup").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -389,14 +419,99 @@ describe("auth setup", () => {
     assert.equal(res.headers.location, "/login");
   });
 
+  it("POST /auth/signup browser form does not show raw JSON when Supabase is missing", async function() {
+    const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
+    const res = await request(app)
+      .post("/auth/signup")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ email: "owner@example.com", password: "password123" });
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(res.status, 503);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Access not completed/);
+    assert.doesNotMatch(res.text, /\{"ok":/);
+  });
+
+  it("POST /auth/login browser form stores an HttpOnly session cookie and unlocks free dashboard access", async function() {
+    const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/token")) {
+        return { ok: true, json: async () => ({ access_token: "customer-session-token", expires_in: 3600 }) };
+      }
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000101", email: "customer@example.com" }) };
+      }
+      return { ok: false, json: async () => [] };
+    };
+
+    const agent = request.agent(app);
+    const login = await agent
+      .post("/auth/login")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ email: "customer@example.com", password: "password123" });
+    const dashboard = await agent.get("/dashboard").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(login.status, 303);
+    assert.equal(login.headers.location, "/dashboard");
+    const cookie = login.headers["set-cookie"]?.find((value) => value.startsWith("sonara_customer_session="));
+    assert.ok(cookie);
+    assert.match(cookie, /HttpOnly/);
+    assert.equal(dashboard.status, 200);
+    assert.match(dashboard.text, /Free access/);
+    assert.match(dashboard.text, /Paid access/);
+    assert.match(dashboard.text, /Paid workspaces stay locked/);
+  });
+
   it("POST /auth/login returns setup_required when Supabase is missing", async function() {
+    const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
     const res = await request(app).post("/auth/login").send({ email: "owner@example.com", password: "password123" });
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
     assert.equal(res.status, 503);
     assert.equal(res.body.code, "setup_required");
   });
 
   it("POST /auth/signup returns setup_required when Supabase is missing", async function() {
+    const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
     const res = await request(app).post("/auth/signup").send({ email: "owner@example.com", password: "password123" });
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
     assert.equal(res.status, 503);
     assert.equal(res.body.code, "setup_required");
   });
@@ -857,7 +972,10 @@ describe("pricing and checkout", () => {
 
 describe("auth and admin", () => {
   const adminToken = "test-admin-token-1234567890abcdef123456";
+  const adminPassword = "correct-founder-password-123";
   let originalAdminToken;
+  let originalAdminPassword;
+  let originalAdminPasswordHash;
   let originalAdminEmails;
   let originalSupabaseUrl;
   let originalSupabaseAnon;
@@ -868,6 +986,8 @@ describe("auth and admin", () => {
 
   beforeEach(() => {
     originalAdminToken = process.env.ADMIN_ACCESS_TOKEN;
+    originalAdminPassword = process.env.ADMIN_PASSWORD;
+    originalAdminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
     originalAdminEmails = process.env.ADMIN_EMAILS;
     originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     originalSupabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -876,12 +996,18 @@ describe("auth and admin", () => {
     originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
     process.env.ADMIN_ACCESS_TOKEN = adminToken;
+    process.env.ADMIN_PASSWORD = adminPassword;
+    delete process.env.ADMIN_PASSWORD_HASH;
     process.env.ADMIN_EMAILS = "founder@example.com";
   });
 
   afterEach(() => {
     if (originalAdminToken === undefined) delete process.env.ADMIN_ACCESS_TOKEN;
     else process.env.ADMIN_ACCESS_TOKEN = originalAdminToken;
+    if (originalAdminPassword === undefined) delete process.env.ADMIN_PASSWORD;
+    else process.env.ADMIN_PASSWORD = originalAdminPassword;
+    if (originalAdminPasswordHash === undefined) delete process.env.ADMIN_PASSWORD_HASH;
+    else process.env.ADMIN_PASSWORD_HASH = originalAdminPasswordHash;
     if (originalAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
     else process.env.ADMIN_EMAILS = originalAdminEmails;
     if (originalSupabaseUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -897,6 +1023,12 @@ describe("auth and admin", () => {
     if (originalStripeStarterPrice === undefined) delete process.env.STRIPE_PRICE_STARTER_MONTHLY;
     else process.env.STRIPE_PRICE_STARTER_MONTHLY = originalStripeStarterPrice;
   });
+
+  function makeAdminPasswordHash(password) {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(password, Buffer.from(salt, "hex"), 64).toString("hex");
+    return `scrypt$${salt}$${hash}`;
+  }
 
   it("GET /login returns 200", async function() {
     const res = await request(app).get("/login").set("Accept", "text/html");
@@ -974,7 +1106,7 @@ describe("auth and admin", () => {
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
       .type("form")
-      .send({ token: adminToken });
+      .send({ password: adminPassword });
 
     global.fetch = originalFetch;
 
@@ -1025,6 +1157,9 @@ describe("auth and admin", () => {
   });
 
   it("GET /admin/login renders HTML", async function() {
+    delete process.env.ADMIN_ACCESS_TOKEN;
+    process.env.ADMIN_PASSWORD_HASH = makeAdminPasswordHash(adminPassword);
+    delete process.env.ADMIN_PASSWORD;
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-value-that-must-not-render";
     process.env.STRIPE_SECRET_KEY = "sk_test_value_that_must_not_render";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_value_that_must_not_render";
@@ -1034,6 +1169,13 @@ describe("auth and admin", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Admin login/);
+    assert.match(res.text, /Founder password/);
+    assert.match(res.text, /Sign in to admin/);
+    assert.match(res.text, /ADMIN_PASSWORD_HASH \/ ADMIN_PASSWORD/);
+    assert.match(res.text, /Founder password safety check/);
+    assert.doesNotMatch(res.text, /Admin token/);
+    assert.doesNotMatch(res.text, /Open admin/);
+    assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN/);
     assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
     assert.match(res.text, /overflow-wrap: anywhere/);
     assert.match(res.text, /word-break: break-word/);
@@ -1045,27 +1187,54 @@ describe("auth and admin", () => {
     assert.doesNotMatch(res.text, /sk_test_value_that_must_not_render/);
     assert.doesNotMatch(res.text, /whsec_value_that_must_not_render/);
     assert.doesNotMatch(res.text, /price_starter_value_that_must_not_render/);
+    assert.doesNotMatch(res.text, new RegExp(adminPassword));
   });
 
-  it("POST /admin/login with bad token fails", async function() {
-    const res = await request(app).post("/admin/login").type("form").send({ token: "wrong-token" });
+  it("GET /admin/login shows safe missing founder password readiness", async function() {
+    delete process.env.ADMIN_ACCESS_TOKEN;
+    delete process.env.ADMIN_PASSWORD;
+    delete process.env.ADMIN_PASSWORD_HASH;
+
+    const res = await request(app).get("/admin/login").set("Accept", "text/html");
+    assert.equal(res.status, 503);
+    assert.match(res.text, /Founder password and admin allowlist setup are required/);
+    assert.match(res.text, /Founder password credential is missing/);
+    assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN/);
+  });
+
+  it("POST /admin/login with wrong founder password fails", async function() {
+    const res = await request(app).post("/admin/login").type("form").send({ password: "wrong-password" });
     assert.equal(res.status, 401);
     assert.match(res.text, /Admin access denied/);
+    assert.match(res.text, /founder password was not accepted/);
   });
 
-  it("POST /admin/login with good token sets HttpOnly cookie", async function() {
-    const res = await request(app).post("/admin/login").type("form").send({ token: adminToken });
+  it("POST /admin/login with correct founder password sets HttpOnly cookie", async function() {
+    const res = await request(app).post("/admin/login").type("form").send({ password: adminPassword });
     assert.equal(res.status, 303);
     const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
     assert.ok(cookie);
     assert.match(cookie, /HttpOnly/);
     assert.match(cookie, /SameSite=Lax/);
     assert.doesNotMatch(cookie, new RegExp(adminToken));
+    assert.doesNotMatch(cookie, new RegExp(adminPassword));
+  });
+
+  it("POST /admin/login with ADMIN_PASSWORD_HASH sets HttpOnly cookie", async function() {
+    process.env.ADMIN_PASSWORD_HASH = makeAdminPasswordHash(adminPassword);
+    delete process.env.ADMIN_PASSWORD;
+
+    const res = await request(app).post("/admin/login").type("form").send({ password: adminPassword });
+    assert.equal(res.status, 303);
+    const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
+    assert.ok(cookie);
+    assert.match(cookie, /HttpOnly/);
+    assert.doesNotMatch(cookie, new RegExp(adminPassword));
   });
 
   it("GET /admin with valid cookie succeeds", async function() {
     const agent = request.agent(app);
-    const login = await agent.post("/admin/login").type("form").send({ token: adminToken });
+    const login = await agent.post("/admin/login").type("form").send({ password: adminPassword });
     assert.equal(login.status, 303);
 
     const res = await agent.get("/admin").set("Accept", "text/html");
@@ -1075,7 +1244,7 @@ describe("auth and admin", () => {
 
   it("POST /admin/logout clears cookie", async function() {
     const agent = request.agent(app);
-    await agent.post("/admin/login").type("form").send({ token: adminToken });
+    await agent.post("/admin/login").type("form").send({ password: adminPassword });
 
     const res = await agent.post("/admin/logout");
     assert.equal(res.status, 303);
