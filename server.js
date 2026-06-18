@@ -639,8 +639,8 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
       eyebrow: "Founder operations",
       heading: "Admin login",
       body: adminReady
-        ? "Enter the server-side founder password to open protected founder operations."
-        : "Founder password and admin allowlist setup are required before founder operations can open.",
+        ? "Sign in with the founder/admin email account. Access is checked server-side against the admin allowlist or user roles."
+        : "Supabase email login and founder access rules are required before founder operations can open.",
       sections: [
         adminLoginForm(),
         ...readiness.map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning))
@@ -653,22 +653,29 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
 app.post("/admin/login", rejectCustomerBearerFromAdminLogin, async (req, res) => {
   if (getReadiness().services.adminProtection !== "configured") {
     await recordAdminAuditEvent(req, "admin.login.setup_required", { path: req.path });
-    return res.status(503).type("html").send(responsePage("Admin setup required", "Admin access requires a server-side founder password before browser login can be used.", [linkAction("/admin/login", "Return to admin login")]));
+    return res.status(503).type("html").send(responsePage("Admin setup required", "Supabase auth is not configured.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
-  const password = String(req.body.password || req.body.token || "");
-  if (!isAdminPasswordValid(password)) {
+  const auth = await handleEmailAuth("login", req.body);
+  if (auth.status < 200 || auth.status >= 300 || !auth.session?.accessToken) {
     await recordAdminAuditEvent(req, "admin.login.failed", { path: req.path });
-    return res.status(401).type("html").send(responsePage("Admin access denied", "The submitted founder password was not accepted.", [linkAction("/admin/login", "Return to admin login")]));
+    return res.status(401).type("html").send(responsePage("Admin access denied", "Email or password is incorrect.", [linkAction("/admin/login", "Return to admin login")]));
   }
 
-  await recordAdminAuditEvent(req, "admin.login.succeeded", { path: req.path });
-  res.cookie(ADMIN_SESSION_COOKIE, createAdminSessionCookie(), {
+  const verification = await verifySupabaseAccessToken(auth.session.accessToken);
+  const admin = verification.ok ? await isSupabaseAdminUser(verification.user) : { ok: false };
+  if (!admin.ok) {
+    await recordAdminAuditEvent(req, "admin.login.not_admin", { path: req.path, email_domain: String(req.body.email || "").split("@")[1] || "unknown" });
+    return res.status(403).type("html").send(responsePage("Admin access denied", "This account is not an admin.", [linkAction("/admin/login", "Return to admin login")]));
+  }
+
+  await recordAdminAuditEvent(req, "admin.login.succeeded", { path: req.path, method: "supabase_email" });
+  res.cookie(ADMIN_SESSION_COOKIE, auth.session.accessToken, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: ADMIN_SESSION_MAX_AGE_SECONDS * 1000
+    maxAge: Math.min(auth.session.maxAgeSeconds || ADMIN_SESSION_MAX_AGE_SECONDS, ADMIN_SESSION_MAX_AGE_SECONDS) * 1000
   });
   return res.redirect(303, "/admin");
 });
@@ -1337,7 +1344,8 @@ function adminLoginForm() {
   return `<article class="card">
     <h2>Protected access</h2>
     <form method="post" action="/admin/login">
-      <label>Founder password<input id="${inputId}" name="password" type="password" autocomplete="current-password" required></label>
+      <label>Founder email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="current-password" required></label>
       <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
       <button type="submit">Sign in to admin</button>
     </form>
@@ -1756,9 +1764,8 @@ function getReadiness() {
     ["PUBLIC_SITE_URL", "NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "APP_URL"]
   ]);
   const adminProtection = [];
-  const adminCredential = getAdminCredentialStatus();
-  if (!adminCredential.ok) adminProtection.push("ADMIN_PASSWORD_HASH or ADMIN_PASSWORD");
-  if (!getEnv(["ADMIN_EMAILS", "ADMIN_EMAIL"])) adminProtection.push("ADMIN_EMAILS or ADMIN_EMAIL");
+  if (!isSupabaseAuthConfigured()) adminProtection.push("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL and SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  if (!hasAdminAuthorizationSource()) adminProtection.push("ADMIN_EMAILS or ADMIN_EMAIL or SUPABASE_SERVICE_ROLE_KEY for user_roles");
   const stripeSecret = getStripeSecretStatus();
   const stripeWebhook = getStripeWebhookStatus();
   const checkoutPlans = getCheckoutPlanStatuses();
@@ -1789,12 +1796,10 @@ function getReadiness() {
 }
 
 function getAdminEnvReadiness() {
-  const adminCredential = getAdminCredentialStatus();
   const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   return [
-    { key: "ADMIN_PASSWORD_CONFIGURED", label: "ADMIN_PASSWORD_HASH / ADMIN_PASSWORD", ok: adminCredential.configured, warning: "Founder password credential is missing." },
-    { key: "ADMIN_PASSWORD_SAFETY", label: "Founder password safety check", ok: adminCredential.ok, warning: adminCredential.warning },
-    { key: "ADMIN_EMAILS", label: "ADMIN_EMAILS / ADMIN_EMAIL", ok: Boolean(getEnv(["ADMIN_EMAILS", "ADMIN_EMAIL"])), warning: "Admin email allowlist is required for role-backed founder access." },
+    { key: "SUPABASE_AUTH", label: "Supabase email login", ok: isSupabaseAuthConfigured(), warning: "Supabase auth is not configured." },
+    { key: "ADMIN_ACCESS_SOURCE", label: "ADMIN_EMAILS / ADMIN_EMAIL or user_roles", ok: hasAdminAuthorizationSource(), warning: "Configure an admin email allowlist or the service role key for user_roles lookup." },
     ...Object.entries(STRIPE_PLANS)
       .filter(([, config]) => config.env)
       .map(([plan, config]) => {
@@ -1804,7 +1809,7 @@ function getAdminEnvReadiness() {
     { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: getStripeSecretStatus().status === "configured", warning: "Stripe secret key should start with sk_live_ or sk_test_." },
     { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: getStripeWebhookStatus().status === "configured", warning: "Stripe webhook secret should start with whsec_." },
     { key: "SUPABASE_URL", label: "SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"])), warning: "Supabase URL should start with https:// and include .supabase.co." },
-    { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Supabase service role key must exist server-side only." }
+    { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Server-only service role key is required for admin database metrics and durable user_roles lookup." }
   ];
 }
 
@@ -2227,7 +2232,7 @@ async function verifySupabaseAccessToken(accessToken) {
 
 async function rejectCustomerBearerFromAdminLogin(req, res, next) {
   const bearerToken = getBearerToken(req);
-  if (!bearerToken || isAdminTokenValid(bearerToken)) return next();
+  if (!bearerToken) return next();
 
   const verification = await verifySupabaseAccessToken(bearerToken);
   if (!verification.ok) return next();
@@ -2356,11 +2361,18 @@ function getPaidEntitlementKeys(productKey) {
 }
 
 async function verifyAdminRequest(req) {
-  if (isAdminTokenValid(getAdminRequestToken(req))) return { ok: true, method: "admin_token" };
-  if (isAdminSessionCookieValid(req)) return { ok: true, method: "admin_cookie" };
+  const cookieToken = getCookie(req, ADMIN_SESSION_COOKIE);
+  if (cookieToken) {
+    const verification = await verifySupabaseAccessToken(cookieToken);
+    if (verification.ok) {
+      const admin = await isSupabaseAdminUser(verification.user);
+      if (admin.ok) return { ok: true, method: "admin_cookie", user: verification.user, roles: admin.roles };
+      return { ok: false };
+    }
+  }
 
   const bearerToken = getBearerToken(req);
-  if (bearerToken && !isAdminTokenValid(bearerToken)) {
+  if (bearerToken) {
     const verification = await verifySupabaseAccessToken(bearerToken);
     if (verification.ok) {
       const admin = await isSupabaseAdminUser(verification.user);
@@ -2370,99 +2382,6 @@ async function verifyAdminRequest(req) {
   }
 
   return { ok: false, setupRequired: getReadiness().services.adminProtection !== "configured" };
-}
-
-function getAdminRequestToken(req) {
-  const authHeader = String(req.get("authorization") || "");
-  const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-  return [
-    bearerMatch?.[1],
-    req.get("x-admin-token"),
-    req.get("x-admin-access-token"),
-    typeof req.query.admin_token === "string" ? req.query.admin_token : ""
-  ].find((value) => String(value || "").trim()) || "";
-}
-
-function isAdminPasswordValid(password) {
-  const submitted = String(password || "");
-  if (!submitted) return false;
-
-  const hash = getEnv("ADMIN_PASSWORD_HASH");
-  if (hash) return verifyAdminPasswordHash(submitted, hash);
-
-  const plaintext = getEnv("ADMIN_PASSWORD");
-  if (plaintext) return timingSafeCompare(submitted, plaintext);
-
-  return isAdminTokenValid(submitted);
-}
-
-function getAdminCredentialStatus() {
-  const hash = getEnv("ADMIN_PASSWORD_HASH");
-  if (hash) {
-    const validHash = isSupportedAdminPasswordHash(hash);
-    return {
-      configured: true,
-      ok: validHash,
-      source: "password_hash",
-      warning: validHash ? "Ready" : "ADMIN_PASSWORD_HASH must use scrypt$saltHex$hashHex format."
-    };
-  }
-
-  const plaintext = getEnv("ADMIN_PASSWORD");
-  if (plaintext) {
-    const safePassword = isAdminPlainPasswordSafe(plaintext);
-    return {
-      configured: true,
-      ok: safePassword,
-      source: "password",
-      warning: safePassword ? "Ready" : "Founder password must be at least 12 characters and must not use an unsafe repeated test value."
-    };
-  }
-
-  const legacy = getEnv("ADMIN_ACCESS_TOKEN");
-  if (legacy) {
-    const safeLegacy = legacy.length >= 32 && !/^A+$/i.test(legacy);
-    return {
-      configured: true,
-      ok: safeLegacy,
-      source: "legacy",
-      warning: safeLegacy ? "Ready" : "Founder password fallback must be at least 32 characters and must not use an unsafe repeated test value."
-    };
-  }
-
-  return {
-    configured: false,
-    ok: false,
-    source: "missing",
-    warning: "Configure ADMIN_PASSWORD_HASH preferred, or ADMIN_PASSWORD as a temporary server-only fallback."
-  };
-}
-
-function isAdminPlainPasswordSafe(password) {
-  const value = String(password || "");
-  return value.length >= 12 && !/^A+$/i.test(value);
-}
-
-function isSupportedAdminPasswordHash(hash) {
-  const parts = String(hash || "").split("$");
-  if (parts.length !== 3 || parts[0] !== "scrypt") return false;
-  return /^[a-f0-9]{16,}$/i.test(parts[1]) && /^[a-f0-9]{64,}$/i.test(parts[2]) && parts[2].length % 2 === 0;
-}
-
-function verifyAdminPasswordHash(password, storedHash) {
-  if (!isSupportedAdminPasswordHash(storedHash)) return false;
-  const [, saltHex, expectedHex] = String(storedHash).split("$");
-  try {
-    const expected = Buffer.from(expectedHex, "hex");
-    const actual = crypto.scryptSync(String(password), Buffer.from(saltHex, "hex"), expected.length);
-    return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
-  } catch {
-    return false;
-  }
-}
-
-function isAdminTokenValid(token) {
-  return timingSafeCompare(String(token || ""), getEnv("ADMIN_ACCESS_TOKEN"));
 }
 
 function getBearerToken(req) {
@@ -2507,6 +2426,10 @@ function getAdminEmailSet() {
   return new Set(splitList(getEnv(["ADMIN_EMAILS", "ADMIN_EMAIL"])).map((email) => email.toLowerCase()));
 }
 
+function hasAdminAuthorizationSource() {
+  return getAdminEmailSet().size > 0 || Boolean(getEnv("SUPABASE_SERVICE_ROLE_KEY"));
+}
+
 async function isBusinessManagerUser(user, workspaceId) {
   const userId = String(user?.id || "").trim();
   if (!userId) return { ok: false };
@@ -2530,13 +2453,6 @@ function getBusinessWorkspaceId(req) {
   return String(req.body?.workspaceId || req.body?.workspace_id || req.query?.workspaceId || req.query?.workspace_id || req.get("x-business-workspace-id") || "").trim();
 }
 
-function timingSafeCompare(a, b) {
-  if (!a || !b) return false;
-  const left = crypto.createHash("sha256").update(String(a)).digest();
-  const right = crypto.createHash("sha256").update(String(b)).digest();
-  return crypto.timingSafeEqual(left, right);
-}
-
 function acceptsHtml(req) {
   const accept = String(req.get("accept") || "");
   return accept.includes("text/html") && !accept.includes("application/json");
@@ -2550,47 +2466,6 @@ function wantsAuthReadinessJson(req) {
   const format = String(req.query?.format || "").trim().toLowerCase();
   const explicitApiClient = String(req.get("x-sonara-api-client") || "").trim().toLowerCase();
   return format === "json" || explicitApiClient === "true";
-}
-
-function createAdminSessionCookie() {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    iat: now,
-    exp: now + ADMIN_SESSION_MAX_AGE_SECONDS,
-    nonce: randomUUID()
-  })).toString("base64url");
-  return `${payload}.${signAdminSessionPayload(payload)}`;
-}
-
-function isAdminSessionCookieValid(req) {
-  const value = getCookie(req, ADMIN_SESSION_COOKIE);
-  if (!value || !value.includes(".")) return false;
-  const [payload, signature] = value.split(".");
-  if (!payload || !signature || !timingSafeCompare(signature, signAdminSessionPayload(payload))) return false;
-
-  try {
-    const session = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
-    return Number.isFinite(session.exp) && session.exp > Math.floor(Date.now() / 1000);
-  } catch {
-    return false;
-  }
-}
-
-function signAdminSessionPayload(payload) {
-  return crypto.createHmac("sha256", getAdminSessionSecret()).update(payload).digest("base64url");
-}
-
-function getAdminSessionSecret() {
-  const hash = getEnv("ADMIN_PASSWORD_HASH");
-  if (hash) return hash;
-
-  const password = getEnv("ADMIN_PASSWORD");
-  if (password) return crypto.createHash("sha256").update(password).digest("hex");
-
-  const legacy = getEnv("ADMIN_ACCESS_TOKEN");
-  if (legacy) return legacy;
-
-  return "admin-session-not-configured";
 }
 
 function getCookie(req, name) {

@@ -5,8 +5,16 @@ module.exports = [
       "dist/**",
       "build/**",
       ".vercel/**",
+      ".next/**",
       "coverage/**",
+      "app/**",
       "backups/**",
+      "components/**",
+      "frontend/**",
+      "lib/**",
+      "my-app/**",
+      "src/**",
+      "sonara-industries/**",
       "*.bak",
       "*.patch"
     ]
@@ -24,12 +32,41 @@ module.exports = [
         __filename: "readonly",
         module: "readonly",
         require: "readonly",
-        exports: "readonly"
+        exports: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly"
       }
     },
     rules: {
       "no-unused-vars": "warn",
       "no-undef": "error"
+    }
+  },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      sourceType: "module",
+      globals: {
+        console: "readonly",
+        process: "readonly",
+        Buffer: "readonly",
+        fetch: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly",
+        Request: "readonly"
+      }
+    }
+  },
+  {
+    files: ["public-sw.js", "public/**/*.js"],
+    languageOptions: {
+      globals: {
+        self: "readonly",
+        caches: "readonly",
+        fetch: "readonly",
+        URL: "readonly"
+      }
     }
   },
   {

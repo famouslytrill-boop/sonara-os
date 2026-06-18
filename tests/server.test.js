@@ -191,9 +191,6 @@ describe("health and readiness", () => {
       "NEXT_PUBLIC_SITE_URL",
       "NEXT_PUBLIC_APP_URL",
       "APP_URL",
-      "ADMIN_PASSWORD_HASH",
-      "ADMIN_PASSWORD",
-      "ADMIN_ACCESS_TOKEN",
       "ADMIN_EMAILS",
       "ADMIN_EMAIL"
     ];
@@ -210,7 +207,6 @@ describe("health and readiness", () => {
     process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
     process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
     process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
-    process.env.ADMIN_PASSWORD = "founder-password-placeholder";
     process.env.ADMIN_EMAIL = "owner@example.com";
 
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
@@ -1248,12 +1244,10 @@ describe("pricing and checkout", () => {
 });
 
 describe("auth and admin", () => {
-  const adminToken = "test-admin-token-1234567890abcdef123456";
+  const adminAccessToken = "admin-session-token-placeholder";
   const adminPassword = "correct-founder-password-123";
-  let originalAdminToken;
-  let originalAdminPassword;
-  let originalAdminPasswordHash;
   let originalAdminEmails;
+  let originalAdminEmail;
   let originalSupabaseUrl;
   let originalSupabaseAnon;
   let originalSupabaseServiceRole;
@@ -1262,31 +1256,29 @@ describe("auth and admin", () => {
   let originalStripeStarterPrice;
 
   beforeEach(() => {
-    originalAdminToken = process.env.ADMIN_ACCESS_TOKEN;
-    originalAdminPassword = process.env.ADMIN_PASSWORD;
-    originalAdminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
     originalAdminEmails = process.env.ADMIN_EMAILS;
+    originalAdminEmail = process.env.ADMIN_EMAIL;
     originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     originalSupabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     originalSupabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
     originalStripeSecret = process.env.STRIPE_SECRET_KEY;
     originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
-    process.env.ADMIN_ACCESS_TOKEN = adminToken;
-    process.env.ADMIN_PASSWORD = adminPassword;
-    delete process.env.ADMIN_PASSWORD_HASH;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
     process.env.ADMIN_EMAILS = "founder@example.com";
+    delete process.env.ADMIN_EMAIL;
+    delete process.env.ADMIN_PASSWORD;
+    delete process.env.ADMIN_PASSWORD_HASH;
+    delete process.env.ADMIN_ACCESS_TOKEN;
   });
 
   afterEach(() => {
-    if (originalAdminToken === undefined) delete process.env.ADMIN_ACCESS_TOKEN;
-    else process.env.ADMIN_ACCESS_TOKEN = originalAdminToken;
-    if (originalAdminPassword === undefined) delete process.env.ADMIN_PASSWORD;
-    else process.env.ADMIN_PASSWORD = originalAdminPassword;
-    if (originalAdminPasswordHash === undefined) delete process.env.ADMIN_PASSWORD_HASH;
-    else process.env.ADMIN_PASSWORD_HASH = originalAdminPasswordHash;
     if (originalAdminEmails === undefined) delete process.env.ADMIN_EMAILS;
     else process.env.ADMIN_EMAILS = originalAdminEmails;
+    if (originalAdminEmail === undefined) delete process.env.ADMIN_EMAIL;
+    else process.env.ADMIN_EMAIL = originalAdminEmail;
     if (originalSupabaseUrl === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     else process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;
     if (originalSupabaseAnon === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -1301,10 +1293,33 @@ describe("auth and admin", () => {
     else process.env.STRIPE_PRICE_STARTER_MONTHLY = originalStripeStarterPrice;
   });
 
-  function makeAdminPasswordHash(password) {
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(password, Buffer.from(salt, "hex"), 64).toString("hex");
-    return `scrypt$${salt}$${hash}`;
+  function installAdminFetchMock(options = {}) {
+    const {
+      email = "founder@example.com",
+      roles = ["owner"],
+      tokenOk = true,
+      userOk = true
+    } = options;
+    const originalFetch = global.fetch;
+    const calls = [];
+    global.fetch = async (url, fetchOptions = {}) => {
+      const requestUrl = String(url);
+      calls.push({ url: requestUrl, method: fetchOptions.method || "GET", body: fetchOptions.body });
+      if (requestUrl.includes("/auth/v1/token")) {
+        return tokenOk
+          ? { ok: true, json: async () => ({ access_token: adminAccessToken, expires_in: 3600 }) }
+          : { ok: false, json: async () => ({}) };
+      }
+      if (requestUrl.includes("/auth/v1/user")) {
+        return userOk
+          ? { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000003", email }) }
+          : { ok: false, json: async () => ({}) };
+      }
+      if (requestUrl.includes("/user_roles")) return { ok: true, json: async () => roles.map((role) => ({ role })) };
+      if (requestUrl.includes("/rest/v1/")) return { ok: true, headers: { get: () => "0-0/1" }, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+    return { calls, restore: () => { global.fetch = originalFetch; } };
   }
 
   it("GET /login returns 200", async function() {
@@ -1312,6 +1327,7 @@ describe("auth and admin", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Login/);
+    assert.doesNotMatch(res.text, /Google/);
   });
 
   it("GET /admin without auth returns JSON 401 for API clients", async function() {
@@ -1320,8 +1336,11 @@ describe("auth and admin", () => {
     assert.deepEqual(res.body, { ok: false, code: "admin_auth_required" });
   });
 
-  it("GET /admin with Authorization Bearer succeeds", async function() {
-    const res = await request(app).get("/admin").set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+  it("GET /admin with Supabase owner bearer succeeds", async function() {
+    const mock = installAdminFetchMock();
+    const res = await request(app).get("/admin").set("Authorization", "Bearer owner-session").set("Accept", "text/html");
+    mock.restore();
+
     assert.equal(res.status, 200);
     assert.match(res.text, /Protected founder operations/);
     assert.match(res.text, /Users and customers/);
@@ -1330,16 +1349,19 @@ describe("auth and admin", () => {
     assert.match(res.text, /Product catalog status/);
     assert.match(res.text, /System status/);
     assert.match(res.text, /Logout/);
-    assert.doesNotMatch(res.text, new RegExp(adminToken));
+    assert.doesNotMatch(res.text, /owner-session/);
+    assert.ok(mock.calls.some((call) => call.url.includes("/user_roles")));
   });
 
   it("owner/admin override can access all internal product workspaces", async function() {
+    const mock = installAdminFetchMock();
     for (const route of ["/dashboard", "/business-builder/dashboard", "/business-builder/customers", "/business-builder/employees", "/creator-studio/dashboard", "/creator-studio/monetization", "/growth-studio/dashboard", "/growth-studio/analytics"]) {
-      const res = await request(app).get(route).set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+      const res = await request(app).get(route).set("Authorization", "Bearer owner-session").set("Accept", "text/html");
       assert.equal(res.status, 200, route);
       assert.match(res.text, /Owner\/Admin access|Employee access|Dashboard|Analytics|Monetization/);
-      assert.doesNotMatch(res.text, new RegExp(adminToken));
+      assert.doesNotMatch(res.text, /owner-session/);
     }
+    mock.restore();
   });
 
   it("admin control-center routes require founder access and render safely", async function() {
@@ -1355,39 +1377,22 @@ describe("auth and admin", () => {
       "/admin/creator-studio",
       "/admin/growth-studio"
     ];
+    const mock = installAdminFetchMock();
     for (const route of routes) {
-      const res = await request(app).get(route).set("Authorization", `Bearer ${adminToken}`).set("Accept", "text/html");
+      const res = await request(app).get(route).set("Authorization", "Bearer owner-session").set("Accept", "text/html");
       assert.equal(res.status, 200, route);
       assert.match(res.text, /Founder operations/);
-      assert.doesNotMatch(res.text, new RegExp(adminToken));
+      assert.doesNotMatch(res.text, /owner-session/);
       assert.doesNotMatch(res.text, /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
     }
-  });
-
-  it("GET /admin with x-admin-token succeeds", async function() {
-    const res = await request(app).get("/admin").set("x-admin-token", adminToken).set("Accept", "text/html");
-    assert.equal(res.status, 200);
-    assert.match(res.text, /Protected founder operations/);
+    mock.restore();
   });
 
   it("GET /admin rejects normal customer bearer sessions", async function() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-
-    const originalFetch = global.fetch;
-    global.fetch = async (url) => {
-      if (String(url).includes("/auth/v1/user")) {
-        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000002", email: "customer@example.com" }) };
-      }
-      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
-      return { ok: false, json: async () => [] };
-    };
-
+    const mock = installAdminFetchMock({ email: "customer@example.com", roles: [] });
     const admin = await request(app).get("/admin").set("Authorization", "Bearer customer-session").set("Accept", "application/json");
     const login = await request(app).get("/admin/login").set("Authorization", "Bearer customer-session").set("Accept", "application/json");
-
-    global.fetch = originalFetch;
+    mock.restore();
 
     assert.equal(admin.status, 401);
     assert.equal(admin.body.code, "admin_auth_required");
@@ -1396,78 +1401,20 @@ describe("auth and admin", () => {
   });
 
   it("POST /admin/login rejects normal customer bearer sessions", async function() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-
-    const originalFetch = global.fetch;
-    global.fetch = async (url) => {
-      if (String(url).includes("/auth/v1/user")) {
-        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000024", email: "customer@example.com" }) };
-      }
-      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
-      return { ok: false, json: async () => [] };
-    };
-
+    const mock = installAdminFetchMock({ email: "customer@example.com", roles: [] });
     const res = await request(app)
       .post("/admin/login")
       .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
       .type("form")
-      .send({ password: adminPassword });
-
-    global.fetch = originalFetch;
+      .send({ email: "founder@example.com", password: adminPassword });
+    mock.restore();
 
     assert.equal(res.status, 403);
     assert.equal(res.body.code, "admin_forbidden");
   });
 
-  it("GET /admin accepts Supabase owner/admin roles server-side", async function() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-
-    const originalFetch = global.fetch;
-    const calls = [];
-    global.fetch = async (url) => {
-      calls.push(String(url));
-      if (String(url).includes("/auth/v1/user")) {
-        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000003", email: "owner@example.com" }) };
-      }
-      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [{ role: "owner" }] };
-      if (String(url).includes("/rest/v1/")) {
-        return { ok: true, headers: { get: () => "0-0/1" }, json: async () => [] };
-      }
-      return { ok: false, json: async () => [] };
-    };
-
-    const res = await request(app).get("/admin").set("Authorization", "Bearer owner-session").set("Accept", "text/html");
-
-    global.fetch = originalFetch;
-
-    assert.equal(res.status, 200);
-    assert.match(res.text, /Protected founder operations/);
-    assert.ok(calls.some((url) => url.includes("/user_roles")));
-    assert.ok(calls.some((url) => url.includes("/admin_audit_events")));
-  });
-
-  it("GET /admin with temporary query token succeeds", async function() {
-    const res = await request(app).get(`/admin?admin_token=${encodeURIComponent(adminToken)}`).set("Accept", "text/html");
-    assert.equal(res.status, 200);
-    assert.match(res.text, /Protected founder operations/);
-    assert.doesNotMatch(res.text, new RegExp(adminToken));
-  });
-
-  it("GET /admin/env-readiness requires protection", async function() {
-    const res = await request(app).get("/admin/env-readiness").set("Accept", "application/json");
-    assert.equal(res.status, 401);
-    assert.match(res.text, /admin_auth_required/);
-  });
-
-  it("GET /admin/login renders HTML", async function() {
-    delete process.env.ADMIN_ACCESS_TOKEN;
-    process.env.ADMIN_PASSWORD_HASH = makeAdminPasswordHash(adminPassword);
-    delete process.env.ADMIN_PASSWORD;
+  it("GET /admin/login renders Supabase email/password admin form safely", async function() {
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-value-that-must-not-render";
     process.env.STRIPE_SECRET_KEY = "sk_test_value_that_must_not_render";
     process.env.STRIPE_WEBHOOK_SECRET = "whsec_value_that_must_not_render";
@@ -1477,20 +1424,18 @@ describe("auth and admin", () => {
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Admin login/);
-    assert.match(res.text, /Founder password/);
+    assert.match(res.text, /Founder email/);
+    assert.match(res.text, /Password/);
     assert.match(res.text, /Sign in to admin/);
-    assert.match(res.text, /ADMIN_PASSWORD_HASH \/ ADMIN_PASSWORD/);
-    assert.match(res.text, /Founder password safety check/);
-    assert.doesNotMatch(res.text, /Admin token/);
-    assert.doesNotMatch(res.text, /Open admin/);
-    assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN/);
+    assert.match(res.text, /Supabase email login/);
+    assert.match(res.text, /ADMIN_EMAILS \/ ADMIN_EMAIL or user_roles/);
+    assert.doesNotMatch(res.text, /Admin token|ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD|ADMIN_PASSWORD_HASH/);
     assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
     assert.match(res.text, /overflow-wrap: anywhere/);
     assert.match(res.text, /word-break: break-word/);
     assert.match(res.text, /STRIPE_PRICE_STARTER_MONTHLY/);
     assert.match(res.text, /SUPABASE_SERVICE_ROLE_KEY/);
     assert.match(res.text, /Ready/);
-    assert.doesNotMatch(res.text, new RegExp(adminToken));
     assert.doesNotMatch(res.text, /service-role-value-that-must-not-render/);
     assert.doesNotMatch(res.text, /sk_test_value_that_must_not_render/);
     assert.doesNotMatch(res.text, /whsec_value_that_must_not_render/);
@@ -1498,70 +1443,81 @@ describe("auth and admin", () => {
     assert.doesNotMatch(res.text, new RegExp(adminPassword));
   });
 
-  it("GET /admin/login shows safe missing founder password readiness", async function() {
-    delete process.env.ADMIN_ACCESS_TOKEN;
-    delete process.env.ADMIN_PASSWORD;
-    delete process.env.ADMIN_PASSWORD_HASH;
+  it("GET /admin/login shows safe missing Supabase admin readiness", async function() {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.ADMIN_EMAILS;
+    delete process.env.ADMIN_EMAIL;
 
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 503);
-    assert.match(res.text, /Founder password and admin allowlist setup are required/);
-    assert.match(res.text, /Founder password credential is missing/);
-    assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN/);
+    assert.match(res.text, /Supabase email login and founder access rules are required/);
+    assert.match(res.text, /Supabase auth is not configured/);
+    assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD/);
   });
 
-  it("POST /admin/login with wrong founder password fails", async function() {
-    const res = await request(app).post("/admin/login").type("form").send({ password: "wrong-password" });
+  it("POST /admin/login with incorrect email or password fails safely", async function() {
+    const mock = installAdminFetchMock({ tokenOk: false });
+    const res = await request(app).post("/admin/login").type("form").send({ email: "founder@example.com", password: "wrong-password" });
+    mock.restore();
+
     assert.equal(res.status, 401);
     assert.match(res.text, /Admin access denied/);
-    assert.match(res.text, /founder password was not accepted/);
+    assert.match(res.text, /Email or password is incorrect/);
   });
 
-  it("POST /admin/login with correct founder password sets HttpOnly cookie", async function() {
-    const res = await request(app).post("/admin/login").type("form").send({ password: adminPassword });
+  it("POST /admin/login with non-admin account fails safely", async function() {
+    const mock = installAdminFetchMock({ email: "customer@example.com", roles: [] });
+    const res = await request(app).post("/admin/login").type("form").send({ email: "customer@example.com", password: adminPassword });
+    mock.restore();
+
+    assert.equal(res.status, 403);
+    assert.match(res.text, /Admin access denied/);
+    assert.match(res.text, /This account is not an admin/);
+  });
+
+  it("POST /admin/login with admin email/password sets HttpOnly cookie", async function() {
+    const mock = installAdminFetchMock();
+    const res = await request(app).post("/admin/login").type("form").send({ email: "founder@example.com", password: adminPassword });
+    mock.restore();
+
     assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/admin");
     const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
     assert.ok(cookie);
     assert.match(cookie, /HttpOnly/);
     assert.match(cookie, /SameSite=Lax/);
-    assert.doesNotMatch(cookie, new RegExp(adminToken));
     assert.doesNotMatch(cookie, new RegExp(adminPassword));
   });
 
-  it("POST /admin/login with ADMIN_PASSWORD_HASH sets HttpOnly cookie", async function() {
-    process.env.ADMIN_PASSWORD_HASH = makeAdminPasswordHash(adminPassword);
-    delete process.env.ADMIN_PASSWORD;
-
-    const res = await request(app).post("/admin/login").type("form").send({ password: adminPassword });
-    assert.equal(res.status, 303);
-    const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
-    assert.ok(cookie);
-    assert.match(cookie, /HttpOnly/);
-    assert.doesNotMatch(cookie, new RegExp(adminPassword));
-  });
-
-  it("GET /admin with valid cookie succeeds", async function() {
+  it("GET /admin with valid admin session cookie succeeds", async function() {
     const agent = request.agent(app);
-    const login = await agent.post("/admin/login").type("form").send({ password: adminPassword });
+    const mock = installAdminFetchMock();
+    const login = await agent.post("/admin/login").type("form").send({ email: "founder@example.com", password: adminPassword });
     assert.equal(login.status, 303);
 
     const res = await agent.get("/admin").set("Accept", "text/html");
+    mock.restore();
+
     assert.equal(res.status, 200);
     assert.match(res.text, /Protected founder operations/);
   });
 
   it("POST /admin/logout clears cookie", async function() {
     const agent = request.agent(app);
-    await agent.post("/admin/login").type("form").send({ password: adminPassword });
+    const mock = installAdminFetchMock();
+    await agent.post("/admin/login").type("form").send({ email: "founder@example.com", password: adminPassword });
 
     const res = await agent.post("/admin/logout");
+    mock.restore();
+
     assert.equal(res.status, 303);
     const cookie = res.headers["set-cookie"]?.find((value) => value.startsWith("sonara_admin_session="));
     assert.ok(cookie);
     assert.match(cookie, /Expires=Thu, 01 Jan 1970/);
   });
 });
-
 describe("legal pages", () => {
   for (const route of [
     "/legal/terms",
