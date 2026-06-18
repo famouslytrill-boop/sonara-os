@@ -366,6 +366,7 @@ describe("auth setup", () => {
 
     const dashboard = await request(app).get("/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
     const settings = await request(app).get("/settings").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+    const businessBuilder = await request(app).get("/business-builder/dashboard").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
 
     global.fetch = originalFetch;
 
@@ -377,6 +378,9 @@ describe("auth setup", () => {
     assert.equal(settings.status, 200);
     assert.match(settings.text, /Language preference/);
     assert.match(settings.text, /Logout/);
+    assert.equal(businessBuilder.status, 200);
+    assert.match(businessBuilder.text, /Business Builder Dashboard/);
+    assert.match(businessBuilder.text, /Logout/);
   });
 
   it("POST /logout redirects browser requests to /login", async function() {
@@ -858,6 +862,9 @@ describe("auth and admin", () => {
   let originalSupabaseUrl;
   let originalSupabaseAnon;
   let originalSupabaseServiceRole;
+  let originalStripeSecret;
+  let originalStripeWebhookSecret;
+  let originalStripeStarterPrice;
 
   beforeEach(() => {
     originalAdminToken = process.env.ADMIN_ACCESS_TOKEN;
@@ -865,6 +872,9 @@ describe("auth and admin", () => {
     originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     originalSupabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     originalSupabaseServiceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    originalStripeSecret = process.env.STRIPE_SECRET_KEY;
+    originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
     process.env.ADMIN_ACCESS_TOKEN = adminToken;
     process.env.ADMIN_EMAILS = "founder@example.com";
   });
@@ -880,6 +890,12 @@ describe("auth and admin", () => {
     else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalSupabaseAnon;
     if (originalSupabaseServiceRole === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     else process.env.SUPABASE_SERVICE_ROLE_KEY = originalSupabaseServiceRole;
+    if (originalStripeSecret === undefined) delete process.env.STRIPE_SECRET_KEY;
+    else process.env.STRIPE_SECRET_KEY = originalStripeSecret;
+    if (originalStripeWebhookSecret === undefined) delete process.env.STRIPE_WEBHOOK_SECRET;
+    else process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhookSecret;
+    if (originalStripeStarterPrice === undefined) delete process.env.STRIPE_PRICE_STARTER_MONTHLY;
+    else process.env.STRIPE_PRICE_STARTER_MONTHLY = originalStripeStarterPrice;
   });
 
   it("GET /login returns 200", async function() {
@@ -904,6 +920,7 @@ describe("auth and admin", () => {
     assert.match(res.text, /Contact messages/);
     assert.match(res.text, /Product catalog status/);
     assert.match(res.text, /System status/);
+    assert.match(res.text, /Logout/);
     assert.doesNotMatch(res.text, new RegExp(adminToken));
   });
 
@@ -1008,11 +1025,26 @@ describe("auth and admin", () => {
   });
 
   it("GET /admin/login renders HTML", async function() {
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-value-that-must-not-render";
+    process.env.STRIPE_SECRET_KEY = "sk_test_value_that_must_not_render";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_value_that_must_not_render";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_starter_value_that_must_not_render";
+
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
     assert.match(res.text, /Admin login/);
+    assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
+    assert.match(res.text, /overflow-wrap: anywhere/);
+    assert.match(res.text, /word-break: break-word/);
+    assert.match(res.text, /STRIPE_PRICE_STARTER_MONTHLY/);
+    assert.match(res.text, /SUPABASE_SERVICE_ROLE_KEY/);
+    assert.match(res.text, /Ready/);
     assert.doesNotMatch(res.text, new RegExp(adminToken));
+    assert.doesNotMatch(res.text, /service-role-value-that-must-not-render/);
+    assert.doesNotMatch(res.text, /sk_test_value_that_must_not_render/);
+    assert.doesNotMatch(res.text, /whsec_value_that_must_not_render/);
+    assert.doesNotMatch(res.text, /price_starter_value_that_must_not_render/);
   });
 
   it("POST /admin/login with bad token fails", async function() {

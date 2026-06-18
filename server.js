@@ -818,8 +818,10 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       h2 { margin: 0 0 10px; }
       p { color: var(--muted); line-height: 1.7; font-size: 17px; }
       .lede { max-width: 760px; font-size: 20px; }
-      .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 28px 0 44px; }
-      .card { min-height: 190px; border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: rgba(17,17,25,.82); box-shadow: 0 24px 80px rgba(0,0,0,.32); }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 28px 0 44px; align-items: stretch; }
+      .card { min-width: 0; min-height: 190px; border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: rgba(17,17,25,.82); box-shadow: 0 24px 80px rgba(0,0,0,.32); overflow-wrap: anywhere; word-break: break-word; }
+      .card h2 { overflow-wrap: anywhere; word-break: break-word; }
+      .card p { overflow-wrap: anywhere; word-break: break-word; }
       .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
       form { display: grid; gap: 14px; }
       input, textarea, select, button { width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #09090f; color: var(--text); padding: 12px 14px; font: inherit; }
