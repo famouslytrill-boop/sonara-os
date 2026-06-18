@@ -54,6 +54,7 @@ describe("route manifest", () => {
       "/creator-studio/setup",
       "/growth-studio",
       "/growth-studio/offers",
+      "/growth-studio/tactics",
       "/growth-studio/campaigns",
       "/growth-studio/win-back",
       "/growth-studio/referrals",
@@ -99,6 +100,8 @@ describe("route manifest", () => {
       "/admin/payments",
       "/admin/autopilot",
       "/admin/support",
+      "/admin/contact-requests",
+      "/admin/env-readiness",
       "/admin/audit-logs",
       "/admin/system-health",
       "/admin/settings",
@@ -126,7 +129,34 @@ describe("route manifest", () => {
       "/downloads",
       "/marketing",
       "/account",
-      "/admin"
+      "/admin",
+      "/app/dashboard",
+      "/app/admin",
+      "/app/admin/auth-status",
+      "/app/admin/setup",
+      "/app/admin/launch-readiness",
+      "/app/admin/integrations",
+      "/app/admin/github-radar",
+      "/auth/auth-code-error",
+      "/settings/auth-status",
+      "/trust",
+      "/legal",
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/refund-policy",
+      "/legal/acceptable-use",
+      "/legal/cookie-policy",
+      "/legal/accessibility",
+      "/legal/security",
+      "/legal/dpa",
+      "/research-lab",
+      "/research-lab/open-source",
+      "/research-lab/github-radar",
+      "/open-source",
+      "/docs",
+      "/api-webhooks",
+      "/integrations",
+      "/changelog"
     ]);
     expect(getNavigationRoutes().some((route) => route.label === "Signal Initialization")).toBe(
       true
@@ -208,6 +238,8 @@ describe("route manifest", () => {
     expect(isKnownRoute("/admin/payments")).toBe(true);
     expect(isKnownRoute("/admin/autopilot")).toBe(true);
     expect(isKnownRoute("/admin/support")).toBe(true);
+    expect(isKnownRoute("/admin/contact-requests")).toBe(true);
+    expect(isKnownRoute("/admin/env-readiness")).toBe(true);
     expect(isKnownRoute("/admin/audit-logs")).toBe(true);
     expect(isKnownRoute("/admin/system-health")).toBe(true);
     expect(isKnownRoute("/admin/settings")).toBe(true);
@@ -395,6 +427,18 @@ describe("route manifest", () => {
     });
     expect(getRouteDefinition("/admin/support")).toMatchObject({
       auth: "admin-ready",
+      launchStatus: "required"
+    });
+    expect(getRouteDefinition("/admin/contact-requests")).toMatchObject({
+      auth: "admin-ready",
+      launchStatus: "required"
+    });
+    expect(getRouteDefinition("/admin/env-readiness")).toMatchObject({
+      auth: "admin-ready",
+      launchStatus: "required"
+    });
+    expect(getRouteDefinition("/dashboard")).toMatchObject({
+      auth: "auth-ready",
       launchStatus: "required"
     });
     expect(getRouteDefinition("/admin/audit-logs")).toMatchObject({

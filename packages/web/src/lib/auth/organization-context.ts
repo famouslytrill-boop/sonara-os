@@ -2,6 +2,7 @@ import type {
   Organization,
   OrganizationContext,
   OrganizationMembership,
+  OrganizationRole,
   UserProfile
 } from "./types.ts";
 
@@ -15,6 +16,21 @@ export function createOrganizationSetupContext(): OrganizationContext {
 export function createSignedOutOrganizationContext(): OrganizationContext {
   return Object.freeze({
     state: "signed-out",
+    memberships: Object.freeze([])
+  });
+}
+
+export function createAuthenticatedOrganizationContext({
+  user,
+  globalRoles = Object.freeze([])
+}: {
+  user: UserProfile;
+  globalRoles?: readonly OrganizationRole[];
+}): OrganizationContext {
+  return Object.freeze({
+    state: "ready",
+    user,
+    globalRoles: Object.freeze([...globalRoles]),
     memberships: Object.freeze([])
   });
 }
@@ -36,6 +52,7 @@ export function createOrganizationContext({
     user,
     organization,
     membership,
+    globalRoles: Object.freeze([]),
     memberships: Object.freeze([...memberships])
   });
 }

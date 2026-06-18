@@ -9,8 +9,10 @@ export {
   normalizeProviderErrorCode
 } from "./auth-error-messages.ts";
 export { getAuthCallbackUrl, getSiteUrl, isRelativeNextPath } from "./get-site-url.ts";
+export { createManualLogoutController } from "./logout-policy.ts";
 export { canAccessOwnerAdmin, requireOwnerAdmin } from "./admin-guard.ts";
 export {
+  createAuthenticatedOrganizationContext,
   createOrganizationContext,
   createOrganizationSetupContext,
   createSignedOutOrganizationContext,

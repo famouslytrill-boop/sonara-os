@@ -6,8 +6,14 @@ export type DeploymentConfig = Readonly<{
   companyName: string;
   appVersion: string;
   environment: string;
+  publicAuth: PublicAuthConfig;
   diagnostics: DeploymentDiagnosticsConfig;
   stripeBillingHealth: StripeBillingDeploymentHealth;
+}>;
+
+export type PublicAuthConfig = Readonly<{
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
 }>;
 
 export type DeploymentHeadMetadata = Readonly<{
@@ -46,6 +52,7 @@ const defaultDeploymentConfig: DeploymentConfig = Object.freeze({
   companyName: "SONARA Industries",
   appVersion: "0.1.0",
   environment: "production",
+  publicAuth: Object.freeze({}),
   diagnostics: Object.freeze({
     database: createEnvStatus(false, "Database connection is in setup mode."),
     stripe: createEnvStatus(false, "Stripe server secrets are not exposed to the client."),
@@ -78,6 +85,7 @@ export function getDeploymentConfig(): DeploymentConfig {
     companyName: normalizeText(injected.companyName, defaultDeploymentConfig.companyName),
     appVersion: normalizeText(injected.appVersion, defaultDeploymentConfig.appVersion),
     environment: normalizeText(injected.environment, defaultDeploymentConfig.environment),
+    publicAuth: normalizePublicAuthConfig(injected.publicAuth),
     diagnostics: normalizeDiagnostics(injected.diagnostics),
     stripeBillingHealth: normalizeStripeBillingHealth(injected.stripeBillingHealth)
   });
@@ -168,6 +176,13 @@ export function normalizeStripeBillingHealth(
   });
 }
 
+function normalizePublicAuthConfig(config: Partial<PublicAuthConfig> | undefined): PublicAuthConfig {
+  return Object.freeze({
+    supabaseUrl: normalizeOptionalHttpsUrl(config?.supabaseUrl),
+    supabaseAnonKey: normalizeText(config?.supabaseAnonKey, "")
+  });
+}
+
 function normalizeHttpUrl(value: string | undefined, fallback: string) {
   const source = value?.trim() || fallback;
   try {
@@ -180,6 +195,24 @@ function normalizeHttpUrl(value: string | undefined, fallback: string) {
     return url.toString().replace(/\/$/, "");
   } catch {
     return fallback;
+  }
+}
+
+function normalizeOptionalHttpsUrl(value: string | undefined) {
+  const source = value?.trim();
+  if (!source) {
+    return undefined;
+  }
+  try {
+    const url = new URL(source);
+    if (url.protocol !== "https:") {
+      return undefined;
+    }
+    url.hash = "";
+    url.search = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return undefined;
   }
 }
 

@@ -7,7 +7,10 @@ const requiredFiles = [
   "packages/web/src/lib/support/email-readiness.ts",
   "packages/web/src/lib/support/support-email.ts",
   "packages/web/src/lib/support/support-storage.ts",
+  "packages/web/src/components/support/ContactForm.tsx",
   "packages/web/src/components/support/EmailConfigurationNotice.tsx",
+  "api/contact.js",
+  "api/admin/contact-requests.js",
   "docs/email/CLOUDFLARE_EMAIL_ROUTING.md",
   "docs/email/OUTBOUND_EMAIL_PROVIDER.md",
   "docs/email/SUPPORT_EMAIL_ROUTING_CHECKLIST.md"

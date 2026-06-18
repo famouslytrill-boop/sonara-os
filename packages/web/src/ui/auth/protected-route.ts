@@ -23,19 +23,20 @@ export function renderProtectedRoute({
   }
 
   const card = createElement("section", { className: "work-screen protected-route-card" });
+  const recoveryHref = auth === "admin-ready" ? "/admin/login" : "/login";
+  const recoveryText = auth === "admin-ready" ? "Open admin login" : "Log in";
   card.append(
     createElement("p", { className: "shell-kicker", textContent: "Protected route" }),
     createElement("h1", { textContent: routeLabel }),
     createElement("p", { className: "screen-copy", textContent: decision.message }),
     createElement("p", {
       className: "warning-copy",
-      textContent:
-        "Auth and organization wiring are scaffolded only. Private data will remain hidden until a real session, organization membership, and RLS-backed access path are configured."
+      textContent: "Private records stay hidden until your account has the right access."
     }),
     createElement("a", {
       className: "secondary-action",
-      href: "/",
-      textContent: "Return to dashboard"
+      href: recoveryHref,
+      textContent: recoveryText
     })
   );
   return card;

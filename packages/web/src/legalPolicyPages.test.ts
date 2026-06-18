@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  legalPolicyDates,
   renderAcceptableUsePage,
   renderContactPolicyPage,
   renderDisclaimersPage,
@@ -90,6 +91,9 @@ describe("legal and policy pages", () => {
     expect(copy).toMatch(/Owner Confirmation Lock/i);
     expect(copy).toMatch(/not legal advice/i);
     expect(copy).toMatch(/does not claim guaranteed legal compliance/i);
+    expect(copy).toContain(`Effective date ${legalPolicyDates.effectiveDate}`);
+    expect(copy).toContain(`Last updated ${legalPolicyDates.lastUpdated}`);
+    expect(copy).not.toContain("[To be added]");
     expect(copy).toMatch(/does not store raw card numbers/i);
     expect(copy).toMatch(/does not store CVV/i);
     expect(copy).not.toMatch(

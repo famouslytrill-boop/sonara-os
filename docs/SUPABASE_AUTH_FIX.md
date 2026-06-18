@@ -48,3 +48,13 @@ For local Windows testing, use the same route paths on localhost:
 - `http://localhost:5173/app/settings/security`
 
 Google OAuth, email magic links, and password recovery remain setup-gated until Supabase provider settings and redirect URLs are verified.
+
+## Google OAuth `invalid_client`
+
+If Google shows `Error 401: invalid_client` or `The OAuth client was not found`, verify the Google OAuth client in Google Cloud Console:
+
+- Client type must be `Web application`.
+- Authorized JavaScript origins must include the production app origin.
+- Authorized redirect URI must be `https://<SUPABASE_PROJECT_REF>.supabase.co/auth/v1/callback`.
+- Google Client ID and Client Secret must be configured in Supabase Auth -> Providers -> Google.
+- Keep `NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY=false` until the provider has been verified.

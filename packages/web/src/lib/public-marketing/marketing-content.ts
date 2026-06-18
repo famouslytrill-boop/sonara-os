@@ -130,18 +130,38 @@ export const publicNavigationLinks: readonly PublicNavigationLink[] = Object.fre
   Object.freeze({ route: "/onboarding", label: "Start Setup", group: "Company" }),
   Object.freeze({ route: "/about", label: "About", group: "Company" }),
   Object.freeze({ route: "/trust", label: "Trust", group: "Company" }),
+  Object.freeze({ route: "/security", label: "Security", group: "Company" }),
   Object.freeze({ route: "/contact", label: "Contact", group: "Company" }),
   Object.freeze({ route: "/support", label: "Support", group: "Company" }),
   Object.freeze({ route: "/help", label: "Help", group: "Company" }),
-  Object.freeze({ route: "/status", label: "Status", group: "Company" }),
-  Object.freeze({ route: "/research-lab", label: "Research Lab", group: "Company" }),
-  Object.freeze({ route: "/docs", label: "Docs", group: "Company" }),
+  Object.freeze({ route: "/feedback", label: "Feedback", group: "Company" }),
+  Object.freeze({ route: "/legal", label: "Legal", group: "Legal" }),
   Object.freeze({ route: "/legal/terms", label: "Terms", group: "Legal" }),
   Object.freeze({ route: "/legal/privacy", label: "Privacy", group: "Legal" }),
   Object.freeze({ route: "/legal/refund-policy", label: "Refunds", group: "Legal" }),
   Object.freeze({ route: "/legal/acceptable-use", label: "Acceptable Use", group: "Legal" }),
+  Object.freeze({ route: "/legal/cookie-policy", label: "Cookies", group: "Legal" }),
+  Object.freeze({ route: "/legal/accessibility", label: "Accessibility", group: "Legal" }),
   Object.freeze({ route: "/legal/security", label: "Security", group: "Legal" }),
-  Object.freeze({ route: "/legal/dpa", label: "DPA", group: "Legal" })
+  Object.freeze({ route: "/legal/dpa", label: "DPA", group: "Legal" }),
+  Object.freeze({ route: "/terms", label: "Terms Alias", group: "Legal" }),
+  Object.freeze({ route: "/privacy", label: "Privacy Alias", group: "Legal" }),
+  Object.freeze({ route: "/refund-policy", label: "Refund Alias", group: "Legal" }),
+  Object.freeze({ route: "/acceptable-use", label: "Acceptable Use Alias", group: "Legal" }),
+  Object.freeze({ route: "/disclaimers", label: "Disclaimers", group: "Legal" }),
+  Object.freeze({ route: "/research-lab", label: "Research Lab", group: "Company" }),
+  Object.freeze({
+    route: "/research-lab/open-source",
+    label: "Open Source Review",
+    group: "Company"
+  }),
+  Object.freeze({ route: "/research-lab/github-radar", label: "GitHub Radar", group: "Company" }),
+  Object.freeze({ route: "/open-source", label: "Open Source", group: "Company" }),
+  Object.freeze({ route: "/status", label: "Status", group: "Company" }),
+  Object.freeze({ route: "/docs", label: "Docs", group: "Company" }),
+  Object.freeze({ route: "/api-webhooks", label: "API and Webhooks", group: "Company" }),
+  Object.freeze({ route: "/integrations", label: "Integrations", group: "Company" }),
+  Object.freeze({ route: "/changelog", label: "Changelog", group: "Company" })
 ]);
 
 export const productMarketingPages: readonly ProductMarketingPage[] = Object.freeze([
@@ -210,37 +230,43 @@ export const productMarketingPages: readonly ProductMarketingPage[] = Object.fre
 export const pricingTiers: readonly PricingTier[] = Object.freeze([
   Object.freeze({
     name: "Free",
-    price: "$0/mo",
+    price: "$0",
     description: "Explore the product structure and prepare setup notes.",
     fit: "Early evaluation"
   }),
   Object.freeze({
-    name: "Starter",
-    price: "$9-$15/mo",
+    name: "SONARA One Starter",
+    price: "$9/mo",
     description: "Basic profiles, proof setup, and simple launch preparation.",
     fit: "Solo owners and creators"
   }),
   Object.freeze({
-    name: "Core",
+    name: "SONARA One Core",
     price: "$29/mo",
     description: "Core business tools for proof, payment links, booking, and intake setup.",
     fit: "Small businesses getting organized"
   }),
   Object.freeze({
-    name: "Growth",
-    price: "$49-$59/mo",
+    name: "Creator Studio",
+    price: "$29/mo",
+    description: "Creator asset, prompt/template, and release-campaign workspace.",
+    fit: "Creators preparing client-ready work"
+  }),
+  Object.freeze({
+    name: "SONARA One Growth",
+    price: "$59/mo",
     description: "Growth planning, reviews, referrals, and campaign setup.",
     fit: "Businesses ready to improve follow-up"
   }),
   Object.freeze({
-    name: "Pro/Business",
-    price: "$79-$99/mo",
+    name: "SONARA One Pro",
+    price: "$99/mo",
     description: "More complete operating tools for teams that need stronger setup workflows.",
     fit: "Established businesses"
   }),
   Object.freeze({
-    name: "Agency/Scale",
-    price: "$149-$199/mo or custom",
+    name: "SONARA One Agency/Scale",
+    price: "$199/mo or custom",
     description: "Workspace support for agencies, multi-client work, and scale planning.",
     fit: "Agencies and larger teams"
   })
@@ -249,18 +275,24 @@ export const pricingTiers: readonly PricingTier[] = Object.freeze([
 export const setupServiceTiers: readonly SetupServiceTier[] = Object.freeze([
   Object.freeze({
     name: "Profile Setup",
-    price: "$99",
+    price: "$99 one-time",
     description: "A basic profile setup with links, proof notes, and a launch checklist pass."
   }),
   Object.freeze({
     name: "Business Launch Setup",
-    price: "$299",
+    price: "$299 one-time",
     description: "Proof sections, intake, booking, payment link review, and launch setup support."
   }),
   Object.freeze({
     name: "Premium Setup",
-    price: "$499+",
+    price: "$499 one-time",
     description: "Expanded setup support for more complex business, creator, or growth workflows."
+  }),
+  Object.freeze({
+    name: "Complete Launch Setup",
+    price: "$999 one-time",
+    description:
+      "Business Builder launch setup for public pages, intake, payment-link review, and admin handoff."
   })
 ]);
 

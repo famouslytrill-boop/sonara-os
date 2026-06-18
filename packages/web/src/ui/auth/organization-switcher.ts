@@ -11,7 +11,7 @@ export function renderOrganizationSwitcherPlaceholder(context: OrganizationConte
     createElement("strong", { textContent: label }),
     createElement("span", {
       className: "organization-switcher__note",
-      textContent: "Switcher placeholder"
+      textContent: "Membership required"
     })
   );
   return wrapper;

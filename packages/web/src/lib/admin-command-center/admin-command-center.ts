@@ -16,6 +16,9 @@ export type AdminCommandRoute =
   | "/admin/open-source-intake"
   | "/admin/github-update-watcher"
   | "/admin/ai-cost-control"
+  | "/admin/architecture"
+  | "/admin/growth/tactics"
+  | "/admin/restaurant"
   | "/admin/production-readiness"
   | "/admin/security-settings"
   | "/admin/deployment-sync"
@@ -101,6 +104,9 @@ export const adminSidebarLinks: readonly AdminSidebarLink[] = Object.freeze([
     group: "Controls"
   }),
   Object.freeze({ label: "AI Cost Control", route: "/admin/ai-cost-control", group: "Controls" }),
+  Object.freeze({ label: "Architecture", route: "/admin/architecture", group: "Controls" }),
+  Object.freeze({ label: "Growth Tactics", route: "/admin/growth/tactics", group: "Controls" }),
+  Object.freeze({ label: "Restaurant Modules", route: "/admin/restaurant", group: "Controls" }),
   Object.freeze({
     label: "Production Readiness",
     route: "/admin/production-readiness",
@@ -187,6 +193,60 @@ const commandMetrics: readonly AdminMetric[] = Object.freeze([
     "review"
   ),
   metric(
+    "Model Routing Status",
+    "Policy ready",
+    "Cost-aware routing rules exist; no provider calls or keys are used.",
+    "ready"
+  ),
+  metric(
+    "High-Cost Task Count",
+    "No live data yet",
+    "High-cost task counts require provider telemetry or audit logs.",
+    "setup"
+  ),
+  metric(
+    "Fallback Usage",
+    "No live data yet",
+    "Fallback usage is modeled but not live-measured in this static shell.",
+    "setup"
+  ),
+  metric(
+    "Agent Task Volume",
+    "No live data yet",
+    "Agent task volume requires durable agent_tasks records.",
+    "setup"
+  ),
+  metric(
+    "Estimated AI Cost Placeholder",
+    "Placeholder",
+    "No AI spend is calculated until provider usage records are configured.",
+    "review"
+  ),
+  metric(
+    "Tasks Requiring Admin Review",
+    "Policy enforced",
+    "High-risk agent tasks require admin or owner review before execution.",
+    "ready"
+  ),
+  metric(
+    "External Model Access Status",
+    "Gated",
+    "External model routing requires explicit policy and provider setup.",
+    "review"
+  ),
+  metric(
+    "Agent Memory Health",
+    "Supabase-first",
+    "Agent memory is scoped and requires RLS-backed persistence before live use.",
+    "review"
+  ),
+  metric(
+    "Knowledge Search Health",
+    "pgvector planned",
+    "Knowledge search uses a Supabase-first vector abstraction; local engines are disabled.",
+    "review"
+  ),
+  metric(
     "Security warnings",
     "Review required",
     "Security Center routes are admin-ready and must be verified with real auth.",
@@ -200,9 +260,9 @@ const commandMetrics: readonly AdminMetric[] = Object.freeze([
   ),
   metric(
     "Support tickets",
-    "No live data yet",
-    "Support request persistence is not connected.",
-    "setup"
+    "Queue gated",
+    "Public intake stores support_requests through /api/contact when Supabase server env is configured.",
+    "review"
   ),
   metric(
     "Stripe webhook status",
@@ -290,6 +350,27 @@ export function createSystemHealthItems(): readonly AdminHealthItem[] {
       "medium",
       "Growth drafts render; campaign sends must remain approval-gated.",
       "/admin/command-center"
+    ),
+    health(
+      "Agent Control Plane",
+      "review",
+      "high",
+      "Typed foundation exists; autonomous execution, shell access, and customer actions remain disabled.",
+      "/admin/ai-cost-control"
+    ),
+    health(
+      "Model Routing",
+      "ready",
+      "medium",
+      "Routing policy selects provider and cost tiers without making external model calls.",
+      "/admin/ai-cost-control"
+    ),
+    health(
+      "Vector Memory",
+      "review",
+      "medium",
+      "Supabase pgvector is preferred; local vector engine is disabled by default.",
+      "/admin/architecture"
     ),
     health(
       "Stripe",
@@ -593,6 +674,77 @@ const adminSubPages: Readonly<Record<AdminCommandRoute, AdminSubPage>> = Object.
     ],
     ["Provider keys and raw prompts must stay server-side/redacted."]
   ),
+  "/admin/architecture": subPage(
+    "/admin/architecture",
+    "Cloud Architecture",
+    "Review launch architecture across frontend, API routes, Supabase, Stripe, email, agents, vector memory, and product surfaces.",
+    "review",
+    [
+      metric(
+        "Architecture map",
+        "Available",
+        "Diagram-style admin page renders setup status.",
+        "ready"
+      ),
+      metric(
+        "Provider secrets",
+        "Hidden",
+        "No provider secret or tenant record is displayed.",
+        "ready"
+      ),
+      metric(
+        "Missing integrations",
+        "Labeled",
+        "Provider-gated services are not claimed live.",
+        "review"
+      )
+    ],
+    ["Architecture status is descriptive and does not prove provider connectivity."]
+  ),
+  "/admin/growth/tactics": subPage(
+    "/admin/growth/tactics",
+    "Growth Tactics",
+    "Review Growth Studio tactics, checklists, and campaign safety posture by company.",
+    "review",
+    [
+      metric("Tactics", "Draft templates", "Tactics are planning records only.", "review"),
+      metric(
+        "Fake analytics",
+        "Blocked",
+        "No fake analytics or fabricated growth data are shown.",
+        "ready"
+      ),
+      metric(
+        "Risky outreach",
+        "Consent-gated",
+        "Phone, SMS, and voicemail remain disabled.",
+        "blocked"
+      )
+    ],
+    ["Admin review is required before any customer-facing campaign launch."]
+  ),
+  "/admin/restaurant": subPage(
+    "/admin/restaurant",
+    "Restaurant Modules",
+    "Review future Restaurant Growth Pack and AI Receptionist surfaces.",
+    "blocked",
+    [
+      metric(
+        "Restaurant Growth Pack",
+        "Feature-flagged",
+        "Hidden unless explicitly enabled.",
+        "review"
+      ),
+      metric(
+        "AI Receptionist",
+        "Disabled",
+        "No live calling, answering, voicemail, or reservations.",
+        "blocked"
+      ),
+      metric("Data ownership", "Positioned", "Messaging is original and account-scoped.", "ready")
+    ],
+    ["Do not claim live phone answering or reservation automation before provider/legal review."]
+  ),
   "/admin/production-readiness": subPage(
     "/admin/production-readiness",
     "Production Readiness",
@@ -757,9 +909,9 @@ const adminSubPages: Readonly<Record<AdminCommandRoute, AdminSubPage>> = Object.
     [
       metric(
         "Open support tickets",
-        "No live data yet",
-        "Support persistence is not connected.",
-        "setup"
+        "Admin token required",
+        "Read support_requests through /api/admin/contact-requests with Supabase Auth and SONARA_ADMIN_EMAILS.",
+        "review"
       ),
       metric(
         "Billing support",

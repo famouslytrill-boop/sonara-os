@@ -5,10 +5,21 @@ export type SignalEnv = {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   authGoogleEnabled?: boolean;
+  authGoogleProviderReady?: boolean;
   authPhoneEnabled?: boolean;
   enableSound: boolean;
   enableVideo: boolean;
   enableMic: boolean;
+  enableRestaurantPack?: boolean;
+  enableRestaurantAiReceptionist?: boolean;
+  enableKnowledgeBase?: boolean;
+  enableCreatorAssetLibrary?: boolean;
+  enableGrowthCampaignMemory?: boolean;
+  enableLocalVectorEngine?: boolean;
+  enableFacilityAutomation?: boolean;
+  enableWorldModelResearch?: boolean;
+  enableModelRouting?: boolean;
+  enableGrowthTactics?: boolean;
 };
 
 declare const process:
@@ -36,10 +47,24 @@ export function getSignalEnv(): SignalEnv {
     supabaseUrl: readEnv("NEXT_PUBLIC_SUPABASE_URL"),
     supabaseAnonKey: readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
     authGoogleEnabled: readEnv("NEXT_PUBLIC_AUTH_GOOGLE_ENABLED") === "true",
+    authGoogleProviderReady: readEnv("NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY") === "true",
     authPhoneEnabled: readEnv("NEXT_PUBLIC_AUTH_PHONE_ENABLED") === "true",
     enableSound: bool(readEnv("NEXT_PUBLIC_ENABLE_SOUND"), true),
     enableVideo: bool(readEnv("NEXT_PUBLIC_ENABLE_VIDEO"), true),
-    enableMic: bool(readEnv("NEXT_PUBLIC_ENABLE_MIC"), true)
+    enableMic: bool(readEnv("NEXT_PUBLIC_ENABLE_MIC"), true),
+    enableRestaurantPack: bool(readEnv("NEXT_PUBLIC_ENABLE_RESTAURANT_PACK"), false),
+    enableRestaurantAiReceptionist: bool(
+      readEnv("NEXT_PUBLIC_ENABLE_RESTAURANT_AI_RECEPTIONIST"),
+      false
+    ),
+    enableKnowledgeBase: bool(readEnv("NEXT_PUBLIC_ENABLE_KNOWLEDGE_BASE"), true),
+    enableCreatorAssetLibrary: bool(readEnv("NEXT_PUBLIC_ENABLE_CREATOR_ASSET_LIBRARY"), true),
+    enableGrowthCampaignMemory: bool(readEnv("NEXT_PUBLIC_ENABLE_GROWTH_CAMPAIGN_MEMORY"), true),
+    enableLocalVectorEngine: bool(readEnv("NEXT_PUBLIC_ENABLE_LOCAL_VECTOR_ENGINE"), false),
+    enableFacilityAutomation: bool(readEnv("NEXT_PUBLIC_ENABLE_FACILITY_AUTOMATION"), false),
+    enableWorldModelResearch: bool(readEnv("NEXT_PUBLIC_ENABLE_WORLD_MODEL_RESEARCH"), false),
+    enableModelRouting: bool(readEnv("NEXT_PUBLIC_ENABLE_MODEL_ROUTING"), true),
+    enableGrowthTactics: bool(readEnv("NEXT_PUBLIC_ENABLE_GROWTH_TACTICS"), true)
   };
 }
 

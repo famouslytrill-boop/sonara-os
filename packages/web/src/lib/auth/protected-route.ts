@@ -24,13 +24,19 @@ export function canAccessProtectedRoute({
   if (!context.user) {
     return deny(
       "missing-auth",
-      "Sign-in wiring is required before this route can show private data."
+      "Log in to use this area."
     );
+  }
+  if (auth === "auth-ready" && !permission) {
+    return allow("Logged-in route access allowed.");
+  }
+  if (auth === "admin-ready" && context.globalRoles?.some(canAccessAdminArea)) {
+    return allow("Owner/admin route access allowed.");
   }
   if (!isOrganizationContextReady(context)) {
     return deny(
       "missing-organization",
-      "An organization membership is required before this route can show private data."
+      "Choose or create an organization before opening this area."
     );
   }
 
@@ -41,7 +47,7 @@ export function canAccessProtectedRoute({
   if (auth === "admin-ready" && !canAccessAdminArea(membership.role)) {
     return deny(
       "missing-permission",
-      "This route requires an admin, developer, owner, or support role."
+      "This route requires an owner or admin role."
     );
   }
   if (permission && !roleHasPermission(membership.role, permission)) {

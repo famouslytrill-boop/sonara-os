@@ -1,7 +1,16 @@
 export type OrganizationKind = "business" | "creator-studio" | "agency" | "internal";
 export type OrganizationStatus = "active" | "setup" | "suspended" | "archived";
 
-export type OrganizationRole = "owner" | "admin" | "member" | "viewer" | "developer" | "support";
+export type OrganizationRole =
+  | "owner"
+  | "admin"
+  | "business_admin"
+  | "customer"
+  | "employee"
+  | "member"
+  | "viewer"
+  | "developer"
+  | "support";
 
 export type MembershipStatus = "active" | "invited" | "suspended" | "removed";
 
@@ -61,5 +70,6 @@ export type OrganizationContext = Readonly<{
   user?: UserProfile;
   organization?: Organization;
   membership?: OrganizationMembership;
+  globalRoles?: readonly OrganizationRole[];
   memberships: readonly OrganizationMembership[];
 }>;

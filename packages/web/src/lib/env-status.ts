@@ -43,6 +43,12 @@ export function createEnvironmentStatusSnapshot(
       "Google auth button remains disabled unless this is exactly true."
     ),
     item(
+      "NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY",
+      publicAuthEnv.googleProviderReady,
+      true,
+      "Set to true only after the Supabase Google provider and Google Cloud Web application OAuth client are verified."
+    ),
+    item(
       "NEXT_PUBLIC_AUTH_PHONE_ENABLED",
       publicAuthEnv.phoneEnabled,
       true,
@@ -64,6 +70,7 @@ export function createEnvironmentStatusSnapshot(
     productionSafe:
       supabase.browserAuthReady &&
       publicAuthEnv.googleEnabled === true &&
+      publicAuthEnv.googleProviderReady === true &&
       items.every((status) => status.publicSafe || status.configured)
   });
 }

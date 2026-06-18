@@ -64,7 +64,7 @@ function renderManualSteps() {
   for (const step of [
     "Verify DNS/MX/SPF/DKIM/DMARC for inbound mail.",
     "Confirm the support inbox receives routed messages.",
-    "Configure RESEND_API_KEY and RESEND_FROM_EMAIL only in the hosting provider.",
+    "Configure RESEND_API_KEY, RESEND_FROM_EMAIL, and SUPPORT_TO_EMAIL only in the hosting provider.",
     "Send a real provider test email after secrets are configured.",
     "Keep passwords, card numbers, bank details, API keys, and private customer data out of support forms."
   ]) {

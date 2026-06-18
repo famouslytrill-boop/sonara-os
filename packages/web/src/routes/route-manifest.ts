@@ -555,7 +555,25 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     nav: false,
     launchRequired: true,
     launchStatus: "required",
-    auth: "public"
+    auth: "auth-ready"
+  }),
+  Object.freeze({
+    route: "/dashboard/growth/tactics",
+    label: "Dashboard Growth Tactics",
+    surface: "product",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "auth-ready"
+  }),
+  Object.freeze({
+    route: "/dashboard/restaurant/receptionist",
+    label: "Dashboard Restaurant Receptionist",
+    surface: "product",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "auth-ready"
   }),
   Object.freeze({
     route: "/business-builder",
@@ -681,6 +699,24 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     nav: false,
     launchRequired: true,
     launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/business-builder/restaurant-pack",
+    label: "Restaurant Growth Pack",
+    surface: "product",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/business-builder/restaurant-ai-receptionist",
+    label: "Restaurant AI Receptionist",
+    surface: "product",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
     auth: "public"
   }),
   Object.freeze({
@@ -812,6 +848,15 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
   Object.freeze({
     route: "/growth-studio/offers",
     label: "Growth Offers",
+    surface: "product",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "public"
+  }),
+  Object.freeze({
+    route: "/growth-studio/tactics",
+    label: "Growth Tactics",
     surface: "product",
     nav: false,
     launchRequired: true,
@@ -1179,6 +1224,33 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "admin-ready"
   }),
   Object.freeze({
+    route: "/admin/architecture",
+    label: "Cloud Architecture",
+    surface: "admin",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/admin/growth/tactics",
+    label: "Admin Growth Tactics",
+    surface: "admin",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/admin/restaurant",
+    label: "Admin Restaurant Modules",
+    surface: "admin",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
     route: "/admin/production-readiness",
     label: "Production Readiness",
     surface: "admin",
@@ -1377,12 +1449,30 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "admin-ready"
   }),
   Object.freeze({
+    route: "/admin/contact-requests",
+    label: "Contact Requests",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
     route: "/admin/email-readiness",
     label: "Email Readiness",
     surface: "admin",
     nav: false,
     launchRequired: false,
     launchStatus: "optional",
+    auth: "admin-ready"
+  }),
+  Object.freeze({
+    route: "/admin/env-readiness",
+    label: "Environment Readiness",
+    surface: "admin",
+    nav: false,
+    launchRequired: true,
+    launchStatus: "required",
     auth: "admin-ready"
   }),
   Object.freeze({
@@ -1656,6 +1746,15 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     auth: "auth-ready"
   }),
   Object.freeze({
+    route: "/admin/login",
+    label: "Admin Login",
+    surface: "admin",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth: "public"
+  }),
+  Object.freeze({
     route: "/admin",
     label: "Launch Readiness",
     surface: "launch",
@@ -1763,6 +1862,80 @@ export const coreRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
     launchStatus: "optional",
     auth: "public"
   })
+]);
+
+function workspaceRoute(
+  route: string,
+  label: string,
+  auth: RouteAuthBoundary = "auth-ready"
+): RouteDefinition {
+  return Object.freeze({
+    route,
+    label,
+    surface: "product",
+    nav: false,
+    launchRequired: false,
+    launchStatus: "optional",
+    auth
+  });
+}
+
+const activatedWorkspaceRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
+  workspaceRoute("/business-builder/dashboard", "Business Builder Dashboard"),
+  workspaceRoute("/business-builder/onboarding", "Business Builder Onboarding"),
+  workspaceRoute("/business-builder/business-profile", "Business Profile"),
+  workspaceRoute("/business-builder/business-plan", "Business Plan"),
+  workspaceRoute("/business-builder/intake", "Intake"),
+  workspaceRoute("/business-builder/products", "Products"),
+  workspaceRoute("/business-builder/services", "Services"),
+  workspaceRoute("/business-builder/offers/free", "Free Offer Drafts"),
+  workspaceRoute("/business-builder/records/free", "Free Customer Records"),
+  workspaceRoute("/business-builder/invoices", "Invoices", "admin-ready"),
+  workspaceRoute("/business-builder/orders", "Orders", "admin-ready"),
+  workspaceRoute("/business-builder/billing", "Business Billing", "admin-ready"),
+  workspaceRoute("/business-builder/employees", "Business Employees", "admin-ready"),
+  workspaceRoute("/business-builder/tasks", "Tasks"),
+  workspaceRoute("/business-builder/documents", "Documents"),
+  workspaceRoute("/business-builder/launch-checklist", "Launch Checklist"),
+  workspaceRoute("/business-builder/marketing-plan", "Marketing Plan", "admin-ready"),
+  workspaceRoute("/business-builder/operations", "Operations Checklist", "admin-ready"),
+  workspaceRoute("/business-builder/settings", "Business Settings"),
+  workspaceRoute("/business-builder/upgrade", "Business Builder Upgrade"),
+  workspaceRoute("/business-builder/checklist", "Business Checklist"),
+  workspaceRoute("/business-builder/help", "Business Builder Help", "public"),
+  workspaceRoute("/creator-studio/dashboard", "Creator Studio Dashboard"),
+  workspaceRoute("/creator-studio/projects", "Creator Projects"),
+  workspaceRoute("/creator-studio/assets", "Creator Assets"),
+  workspaceRoute("/creator-studio/offers", "Creator Offers"),
+  workspaceRoute("/creator-studio/offers/free", "Free Creator Offers"),
+  workspaceRoute("/creator-studio/releases", "Creator Releases"),
+  workspaceRoute("/creator-studio/records", "Creator Records"),
+  workspaceRoute("/creator-studio/records/free", "Free Creator Records"),
+  workspaceRoute("/creator-studio/content-calendar", "Content Calendar"),
+  workspaceRoute("/creator-studio/briefs", "Creative Briefs"),
+  workspaceRoute("/creator-studio/production-notes", "Production Notes"),
+  workspaceRoute("/creator-studio/campaigns", "Creator Campaigns"),
+  workspaceRoute("/creator-studio/tasks", "Creator Tasks"),
+  workspaceRoute("/creator-studio/exports", "Creator Exports", "admin-ready"),
+  workspaceRoute("/creator-studio/settings", "Creator Settings"),
+  workspaceRoute("/creator-studio/upgrade", "Creator Studio Upgrade"),
+  workspaceRoute("/creator-studio/checklist", "Creator Checklist"),
+  workspaceRoute("/creator-studio/help", "Creator Studio Help", "public"),
+  workspaceRoute("/growth-studio/dashboard", "Growth Studio Dashboard"),
+  workspaceRoute("/growth-studio/leads", "Growth Leads"),
+  workspaceRoute("/growth-studio/follow-ups", "Growth Follow-ups"),
+  workspaceRoute("/growth-studio/followups", "Growth Follow-ups"),
+  workspaceRoute("/growth-studio/consent", "Consent Records"),
+  workspaceRoute("/growth-studio/content-plan", "Content Plan"),
+  workspaceRoute("/growth-studio/analytics", "Growth Analytics", "admin-ready"),
+  workspaceRoute("/growth-studio/exports", "Growth Exports", "admin-ready"),
+  workspaceRoute("/growth-studio/settings", "Growth Settings"),
+  workspaceRoute("/growth-studio/upgrade", "Growth Studio Upgrade"),
+  workspaceRoute("/growth-studio/records", "Growth Records"),
+  workspaceRoute("/growth-studio/records/free", "Free Growth Records"),
+  workspaceRoute("/growth-studio/offers/free", "Free Growth Offers"),
+  workspaceRoute("/growth-studio/checklist", "Growth Checklist"),
+  workspaceRoute("/growth-studio/help", "Growth Studio Help", "public")
 ]);
 
 const finalGoLiveRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
@@ -2014,6 +2187,7 @@ const finalGoLiveRouteDefinitions: readonly RouteDefinition[] = Object.freeze([
 export function getAllRouteDefinitions(): readonly RouteDefinition[] {
   return Object.freeze([
     ...coreRouteDefinitions,
+    ...activatedWorkspaceRouteDefinitions,
     ...finalGoLiveRouteDefinitions,
     ...strategyPages.map((page) =>
       Object.freeze({

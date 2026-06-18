@@ -20,6 +20,7 @@ declare const process:
 
 const emailVariables = [
   ["SUPPORT_EMAIL", "Primary support inbox"],
+  ["SUPPORT_TO_EMAIL", "Outbound support notification recipient"],
   ["CONTACT_EMAIL", "General contact routing"],
   ["HELP_EMAIL", "Help center routing"],
   ["BILLING_EMAIL", "Billing and refund routing"],
@@ -40,7 +41,11 @@ export function createEmailReadinessSnapshot(): EmailReadinessSnapshot {
 
   return Object.freeze({
     inboundNeedsProviderVerification: true,
-    outboundConfigured: Boolean(readEnv("RESEND_API_KEY") && readEnv("RESEND_FROM_EMAIL")),
+    outboundConfigured: Boolean(
+      readEnv("RESEND_API_KEY") &&
+      readEnv("RESEND_FROM_EMAIL") &&
+      (readEnv("SUPPORT_TO_EMAIL") || readEnv("SUPPORT_EMAIL"))
+    ),
     storageConfigured: Boolean(
       readEnv("NEXT_PUBLIC_SUPABASE_URL") &&
       readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY") &&

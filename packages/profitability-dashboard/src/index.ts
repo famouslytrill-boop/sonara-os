@@ -15,14 +15,14 @@ export const profitabilityRules = Object.freeze([
 
 export const revenueModelItems: readonly RevenueModelItem[] = Object.freeze([
   item("no_cost_plan", "Free tier", "$0", "needs_review"),
-  item("starter_plan", "Starter", "$9-$15/mo", "ready_for_checkout_mapping"),
-  item("core_plan", "Core", "$29/mo", "ready_for_checkout_mapping"),
-  item("growth_plan", "Growth", "$49-$59/mo", "ready_for_checkout_mapping"),
-  item("business_plan", "Pro / Business", "$79-$99/mo", "ready_for_checkout_mapping"),
-  item("scale_plan", "Agency / Scale", "$149-$199/mo or custom", "needs_review"),
-  item("setup_99", "Profile setup", "$99", "ready_for_checkout_mapping"),
-  item("setup_299", "Business launch setup", "$299", "ready_for_checkout_mapping"),
-  item("setup_499", "Premium setup", "$499+", "ready_for_checkout_mapping")
+  item("starter_plan", "SONARA One Starter", "$9/mo", "ready_for_checkout_mapping"),
+  item("core_plan", "SONARA One Core", "$29/mo", "ready_for_checkout_mapping"),
+  item("growth_plan", "SONARA One Growth", "$59/mo", "ready_for_checkout_mapping"),
+  item("business_plan", "SONARA One Pro", "$99/mo", "ready_for_checkout_mapping"),
+  item("scale_plan", "SONARA One Agency/Scale", "$199/mo or custom", "needs_review"),
+  item("setup_99", "Profile setup", "$99 one-time", "ready_for_checkout_mapping"),
+  item("setup_299", "Business launch setup", "$299 one-time", "ready_for_checkout_mapping"),
+  item("setup_499", "Premium setup", "$499 one-time", "ready_for_checkout_mapping")
 ]);
 
 export function summarizeRevenueModel(): Readonly<{ items: number; noGuarantees: true }> {

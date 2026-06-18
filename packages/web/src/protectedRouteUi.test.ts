@@ -64,7 +64,8 @@ describe("protected route UI", () => {
 
     const text = collectText(rendered);
     expect(text).toContain("Protected route");
-    expect(text).toContain("Sign-in wiring is required");
+    expect(text).toContain("Log in to use this area.");
+    expect(text).toContain("Open admin login");
     expect(text).not.toContain("Admin secret queue");
     expect(text).not.toContain("Blocked preview secret");
   });

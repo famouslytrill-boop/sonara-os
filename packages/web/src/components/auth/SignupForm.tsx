@@ -1,4 +1,5 @@
 import { createElement } from "../../dom.ts";
+import { signUpWithEmailPassword } from "../../lib/supabase/client.ts";
 import { renderPasswordField } from "./PasswordField.tsx";
 
 export function renderSignupForm({
@@ -20,23 +21,45 @@ export function renderSignupForm({
 
   const form = createElement("form", { className: "planning-card shell-card" });
   form.setAttribute("aria-label", "Create account");
+  const nameField = renderTextField("name", "Name", "name");
+  const emailField = renderTextField("email", "Email", "email");
+  const status = createElement("p", {
+    className: "recommendation",
+    textContent: "Create an account to save free tools and upgrade when you are ready."
+  });
+  const button = createElement("button", { type: "submit", textContent: "Create account" });
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    button.setAttribute("disabled", "true");
+    status.className = "recommendation";
+    status.textContent = "Creating account...";
+    void signUpWithEmailPassword({
+      email: getInputValue(form, "email"),
+      password: getInputValue(form, "signup-password"),
+      displayName: getInputValue(form, "name")
+    }).then((result) => {
+      if (!result.ok) {
+        button.removeAttribute("disabled");
+        status.className = "warning-copy";
+        status.textContent = result.message;
+        return;
+      }
+      status.textContent = "Account created. Check your email if confirmation is enabled.";
+      window.location.assign("/dashboard");
+    });
+  });
+
   form.append(
     createElement("h2", { textContent: "Create account" }),
-    renderTextField("name", "Name", "name"),
-    renderTextField("email", "Email", "email"),
+    nameField,
+    emailField,
     renderPasswordField({ id: "signup-password", label: "Password", autocomplete: "new-password" }),
     renderProductInterest(),
     renderTermsCheckbox()
   );
-  const button = createElement("button", { type: "button", textContent: "Create account" });
-  button.setAttribute("disabled", "true");
   form.append(
     button,
-    createElement("p", {
-      className: "warning-copy",
-      textContent:
-        "Account creation stays disabled until auth redirects, email confirmation, RLS, and owner bootstrap are verified."
-    })
+    status
   );
   return form;
 }
@@ -64,10 +87,15 @@ function renderProductInterest() {
 }
 
 function renderTermsCheckbox() {
-  const label = createElement("label", { textContent: "I agree to the Terms and Privacy Policy" });
+  const label = createElement("label");
   const checkbox = createElement("input", { type: "checkbox" });
   checkbox.setAttribute("name", "terms_privacy_consent");
   checkbox.setAttribute("aria-label", "Agree to Terms and Privacy Policy");
-  label.prepend(checkbox);
+  label.append(checkbox, "I agree to the Terms and Privacy Policy");
   return label;
+}
+
+function getInputValue(form: HTMLFormElement, name: string) {
+  const input = form.elements.namedItem(name);
+  return input instanceof HTMLInputElement ? input.value : "";
 }

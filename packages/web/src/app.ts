@@ -4,6 +4,7 @@ import { renderAIProvidersPage } from "./app/admin/ai-providers/page.ts";
 import { renderModelRouterPage } from "./app/admin/ai-providers/model-router/page.ts";
 import { renderAccountPage } from "./app/account/page.ts";
 import { renderAdminPage } from "./app/admin/page.ts";
+import { renderAdminLoginPage } from "./app/admin/login/page.ts";
 import { renderVideoIntelligencePage } from "./app/admin/video-intelligence/page.ts";
 import { renderAutomationRulesPage } from "./app/admin/automation-rules/page.ts";
 import { renderDeveloperUtilitiesPage } from "./app/admin/developer-utilities/page.ts";
@@ -28,6 +29,9 @@ import { renderAdminAuditLogsPage } from "./app/admin/audit-logs/page.ts";
 import { renderAdminAutopilotPage } from "./app/admin/autopilot/page.ts";
 import { renderAdminBillingPage } from "./app/admin/billing/page.ts";
 import { renderAdminCommandCenterPage } from "./app/admin/command-center/page.ts";
+import { renderAdminArchitecturePage } from "./app/admin/architecture/page.ts";
+import { renderAdminGrowthTacticsPage } from "./app/admin/growth/tactics/page.ts";
+import { renderAdminRestaurantPage } from "./app/admin/restaurant/page.ts";
 import { renderOpenSourceIntakeBlockedPage } from "./app/admin/open-source-intake/blocked/page.ts";
 import { renderOpenSourceIntakePage } from "./app/admin/open-source-intake/page.ts";
 import { renderOpenSourceIntakeReviewsPage } from "./app/admin/open-source-intake/reviews/page.ts";
@@ -55,6 +59,7 @@ import { renderAdminAuthStatusPage } from "./app/admin/auth-status/page.ts";
 import { renderAdminLaunchReadinessPage } from "./app/admin/launch-readiness/page.ts";
 import { renderOwnerBootstrapPage } from "./app/admin/owner-bootstrap/page.ts";
 import { renderAdminSetupPage } from "./app/admin/setup/page.ts";
+import { renderLogoutButton } from "./components/auth/LogoutButton.tsx";
 import { renderAudiencePage } from "./app/audience/page.ts";
 import { renderAboutPage } from "./app/about/page.ts";
 import { renderBetaInvitePage } from "./app/beta/page.ts";
@@ -74,8 +79,11 @@ import { renderProofPassportPage } from "./app/business-builder/proof-passport/p
 import { renderBusinessRecommendationsPage } from "./app/business-builder/recommendations/page.ts";
 import { renderBusinessReviewsPage } from "./app/business-builder/reviews/page.ts";
 import { renderBusinessBuilderSetupPage } from "./app/business-builder/setup/page.ts";
+import { renderBusinessBuilderDashboard } from "./app/business-builder/page.ts";
+import { renderRestaurantAiReceptionistPage } from "./app/business-builder/restaurant-ai-receptionist/page.ts";
+import { renderRestaurantPackPage } from "./app/business-builder/restaurant-pack/page.ts";
 import { renderSmartIntakePage } from "./app/business-builder/smart-intake/page.ts";
-import { renderContactPolicyPage } from "./app/contact/page.ts";
+import { renderContactPage } from "./app/contact/page.ts";
 import { renderContentPage } from "./app/content/page.ts";
 import { renderCreatorPaymentBookingPage } from "./app/creator-studio/payment-booking/page.ts";
 import { renderCreatorAiPlaybooksPage } from "./app/creator-studio/ai-playbooks/page.ts";
@@ -87,6 +95,7 @@ import { renderCreatorRecommendationsPage } from "./app/creator-studio/recommend
 import { renderReleaseChecklistPage } from "./app/creator-studio/release-checklist/page.ts";
 import { renderServiceOffersPage } from "./app/creator-studio/service-offers/page.ts";
 import { renderCreatorStudioSetupPage } from "./app/creator-studio/setup/page.ts";
+import { renderCreatorStudioDashboard } from "./app/creator-studio/page.ts";
 import { renderCreatorVideoReviewPage } from "./app/creator-studio/video-review/page.ts";
 import { renderVoiceStudioPage } from "./app/creator-studio/voice-studio/page.ts";
 import { renderVisualStudioPage } from "./app/creator-studio/visual-studio/page.ts";
@@ -97,6 +106,7 @@ import { renderAcceptableUsePage } from "./app/acceptable-use/page.ts";
 import { renderDisclaimersPage } from "./app/disclaimers/page.ts";
 import { renderCampaignVisualsPage } from "./app/growth-studio/campaign-visuals/page.ts";
 import { renderGrowthCampaignsPage } from "./app/growth-studio/campaigns/page.ts";
+import { renderGrowthTacticsPage } from "./app/growth-studio/tactics/page.ts";
 import { renderGrowthOffersPage } from "./app/growth-studio/offers/page.ts";
 import { renderReferralBuilderPage } from "./app/growth-studio/referrals/page.ts";
 import { renderReviewRequestsPage } from "./app/growth-studio/review-requests/page.ts";
@@ -106,7 +116,10 @@ import { renderGrowthRecommendationsPage } from "./app/growth-studio/recommendat
 import { renderCampaignClaimReviewPage } from "./app/growth-studio/legal-readiness/campaign-review/page.ts";
 import { renderLocalGrowthPage } from "./app/growth-studio/local-growth/page.ts";
 import { renderGrowthStudioSetupPage } from "./app/growth-studio/setup/page.ts";
+import { renderGrowthStudioDashboard } from "./app/growth-studio/page.ts";
 import { renderWinBackPage } from "./app/growth-studio/win-back/page.ts";
+import { renderDashboardGrowthTacticsPage } from "./app/dashboard/growth/tactics/page.ts";
+import { renderDashboardRestaurantReceptionistPage } from "./app/dashboard/restaurant/receptionist/page.ts";
 import { renderFeedbackPage } from "./app/feedback/page.ts";
 import { renderBusinessBuilderHelpPage } from "./app/help/business-builder/page.ts";
 import { renderCreatorStudioHelpPage } from "./app/help/creator-studio/page.ts";
@@ -176,6 +189,10 @@ import { renderMutationPage } from "./pages/mutationPage.ts";
 import { createOrganizationSetupContext } from "./lib/auth/organization-context.ts";
 import { createClientSafeError, installGlobalErrorBoundary } from "./lib/debugging/index.ts";
 import { logger } from "./lib/logger.ts";
+import {
+  installBrowserAuthGlobal,
+  loadBrowserOrganizationContext
+} from "./lib/supabase/client.ts";
 import {
   publicMarketingRoutes,
   publicNavigationLinks,
@@ -277,20 +294,62 @@ export type AppRoute =
   | "/changelog"
   | "/dashboard"
   | "/business-builder"
+  | "/business-builder/dashboard"
+  | "/business-builder/onboarding"
+  | "/business-builder/business-profile"
+  | "/business-builder/business-plan"
+  | "/business-builder/intake"
+  | "/business-builder/products"
+  | "/business-builder/services"
   | "/business-builder/proof-passport"
   | "/business-builder/recommendations"
   | "/business-builder/money-path"
   | "/business-builder/smart-intake"
   | "/business-builder/offers"
+  | "/business-builder/offers/free"
   | "/business-builder/customers"
+  | "/business-builder/records/free"
   | "/business-builder/customers/follow-up"
+  | "/business-builder/invoices"
+  | "/business-builder/orders"
+  | "/business-builder/billing"
+  | "/business-builder/employees"
+  | "/business-builder/tasks"
+  | "/business-builder/documents"
+  | "/business-builder/launch-checklist"
+  | "/business-builder/marketing-plan"
+  | "/business-builder/operations"
+  | "/business-builder/settings"
+  | "/business-builder/upgrade"
+  | "/business-builder/checklist"
+  | "/business-builder/help"
   | "/business-builder/autopilot-board"
   | "/business-builder/payment-options"
   | "/business-builder/bookings"
   | "/business-builder/reviews"
   | "/business-builder/legal-readiness"
   | "/business-builder/setup"
+  | "/business-builder/restaurant-pack"
+  | "/business-builder/restaurant-ai-receptionist"
   | "/creator-studio"
+  | "/creator-studio/dashboard"
+  | "/creator-studio/projects"
+  | "/creator-studio/assets"
+  | "/creator-studio/offers"
+  | "/creator-studio/offers/free"
+  | "/creator-studio/releases"
+  | "/creator-studio/records"
+  | "/creator-studio/records/free"
+  | "/creator-studio/content-calendar"
+  | "/creator-studio/briefs"
+  | "/creator-studio/production-notes"
+  | "/creator-studio/campaigns"
+  | "/creator-studio/tasks"
+  | "/creator-studio/exports"
+  | "/creator-studio/settings"
+  | "/creator-studio/upgrade"
+  | "/creator-studio/checklist"
+  | "/creator-studio/help"
   | "/creator-studio/proof-card"
   | "/creator-studio/recommendations"
   | "/creator-studio/asset-vault"
@@ -304,7 +363,23 @@ export type AppRoute =
   | "/creator-studio/visual-studio"
   | "/creator-studio/setup"
   | "/growth-studio"
+  | "/growth-studio/dashboard"
+  | "/growth-studio/leads"
+  | "/growth-studio/follow-ups"
+  | "/growth-studio/followups"
+  | "/growth-studio/consent"
+  | "/growth-studio/content-plan"
+  | "/growth-studio/analytics"
+  | "/growth-studio/exports"
+  | "/growth-studio/settings"
+  | "/growth-studio/upgrade"
+  | "/growth-studio/records"
+  | "/growth-studio/records/free"
+  | "/growth-studio/checklist"
+  | "/growth-studio/help"
   | "/growth-studio/offers"
+  | "/growth-studio/offers/free"
+  | "/growth-studio/tactics"
   | "/growth-studio/campaigns"
   | "/growth-studio/win-back"
   | "/growth-studio/referrals"
@@ -333,11 +408,15 @@ export type AppRoute =
   | "/security-center/visual-safety"
   | "/security-center/video-source-safety"
   | "/admin/reliability-center"
+  | "/admin/login"
   | "/admin/reliability-center/providers"
   | "/admin/reliability-center/incidents"
   | "/admin/reliability-center/continuity-mode"
   | "/admin/ai-providers"
   | "/admin/ai-providers/model-router"
+  | "/admin/architecture"
+  | "/admin/growth/tactics"
+  | "/admin/restaurant"
   | "/admin/video-intelligence"
   | "/admin/dev-tunnel-tools"
   | "/admin/open-source-intake"
@@ -367,7 +446,9 @@ export type AppRoute =
   | "/admin/payments"
   | "/admin/autopilot"
   | "/admin/support"
+  | "/admin/contact-requests"
   | "/admin/email-readiness"
+  | "/admin/env-readiness"
   | "/admin/audit-logs"
   | "/admin/system-health"
   | "/admin/settings"
@@ -398,6 +479,8 @@ export type AppRoute =
   | "/downloads"
   | "/marketing"
   | "/account"
+  | "/dashboard/growth/tactics"
+  | "/dashboard/restaurant/receptionist"
   | "/admin"
   | "/launch-readiness"
   | "/timeline"
@@ -469,8 +552,13 @@ export function normalizeRoute(pathname: string): AppRoute {
 }
 
 export function createApp(root: HTMLElement) {
-  const organizationContext = createOrganizationSetupContext();
+  let organizationContext = createOrganizationSetupContext();
   installGlobalErrorBoundary();
+  installBrowserAuthGlobal();
+  void loadBrowserOrganizationContext().then((context) => {
+    organizationContext = context;
+    render();
+  });
 
   function routeTo(path: string) {
     const targetPath = getLegacyRouteRedirect(path) ?? path;
@@ -514,7 +602,7 @@ export function createApp(root: HTMLElement) {
         return;
       }
       if (route === "/contact") {
-        root.append(renderContactPolicyPage());
+        root.append(renderContactPage());
         return;
       }
       if (route === "/terms" || route === "/legal/terms") {
@@ -779,11 +867,115 @@ export function createApp(root: HTMLElement) {
         return;
       }
       if (route === "/dashboard") {
-        root.append(renderShellDashboard());
+        appendRoute(route, () => renderShellDashboard());
+        return;
+      }
+      if (route === "/dashboard/growth/tactics") {
+        appendRoute(route, () => renderDashboardGrowthTacticsPage());
+        return;
+      }
+      if (route === "/dashboard/restaurant/receptionist") {
+        appendRoute(route, () => renderDashboardRestaurantReceptionistPage(), {
+          renderBlockedPreview: true
+        });
         return;
       }
       if (route === "/business-builder") {
         root.append(renderBusinessBuilderMarketingPage());
+        return;
+      }
+      if (route === "/business-builder/dashboard") {
+        appendRoute(route, () => renderBusinessBuilderDashboard());
+        return;
+      }
+      if (route === "/business-builder/onboarding" || route === "/business-builder/checklist") {
+        appendRoute(route, () => renderBusinessBuilderSetupPage());
+        return;
+      }
+      if (route === "/business-builder/business-profile") {
+        appendRoute(route, () => renderProofPassportPage());
+        return;
+      }
+      if (route === "/business-builder/intake") {
+        appendRoute(route, () => renderSmartIntakePage());
+        return;
+      }
+      if (route === "/business-builder/products" || route === "/business-builder/services") {
+        appendRoute(route, () => renderOffersPage());
+        return;
+      }
+      if (route === "/business-builder/offers/free") {
+        appendRoute(route, () => renderOffersPage());
+        return;
+      }
+      if (route === "/business-builder/records/free") {
+        appendRoute(route, () => renderCustomersPage());
+        return;
+      }
+      if (route === "/business-builder/tasks" || route === "/business-builder/launch-checklist") {
+        appendRoute(route, () => renderBusinessBuilderSetupPage());
+        return;
+      }
+      if (route === "/business-builder/documents") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: "Business Documents",
+            description:
+              "Document storage needs the Supabase-backed documents table and file storage policy applied before users can upload or export files."
+          })
+        );
+        return;
+      }
+      if (route === "/business-builder/business-plan") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: "Business Plan",
+            description:
+              "Business plans require the new business_plans table and the server-side OpenAI route before generated plans can be saved."
+          })
+        );
+        return;
+      }
+      if (
+        route === "/business-builder/invoices" ||
+        route === "/business-builder/orders" ||
+        route === "/business-builder/billing"
+      ) {
+        appendRoute(route, () => renderBusinessPaymentOptionsPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/business-builder/employees") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: "Employee Management",
+            description:
+              "Employee invites are modeled in Supabase with invite hashes only. Apply the migration and connect Resend before sending invite email."
+          }),
+          { renderBlockedPreview: true }
+        );
+        return;
+      }
+      if (route === "/business-builder/marketing-plan" || route === "/business-builder/operations") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: route === "/business-builder/marketing-plan" ? "Marketing Plan" : "Operations Checklist",
+            description:
+              "This module needs the database migration and server-side generation route before customer outputs can be created."
+          }),
+          { renderBlockedPreview: true }
+        );
+        return;
+      }
+      if (route === "/business-builder/settings") {
+        appendRoute(route, () => renderSettingsPage());
+        return;
+      }
+      if (route === "/business-builder/upgrade") {
+        appendRoute(route, () => renderBillingPlaceholderPage());
+        return;
+      }
+      if (route === "/business-builder/help") {
+        root.append(renderBusinessBuilderHelpPage());
         return;
       }
       if (route === "/business-builder/proof-passport") {
@@ -838,8 +1030,80 @@ export function createApp(root: HTMLElement) {
         root.append(renderBusinessBuilderSetupPage());
         return;
       }
+      if (route === "/business-builder/restaurant-pack") {
+        root.append(renderRestaurantPackPage());
+        return;
+      }
+      if (route === "/business-builder/restaurant-ai-receptionist") {
+        root.append(renderRestaurantAiReceptionistPage());
+        return;
+      }
       if (route === "/creator-studio") {
         root.append(renderCreatorStudioMarketingPage());
+        return;
+      }
+      if (route === "/creator-studio/dashboard") {
+        appendRoute(route, () => renderCreatorStudioDashboard());
+        return;
+      }
+      if (route === "/creator-studio/projects") {
+        appendRoute(route, () => renderProjectRoomsPage());
+        return;
+      }
+      if (route === "/creator-studio/assets") {
+        appendRoute(route, () => renderAssetVaultPage());
+        return;
+      }
+      if (route === "/creator-studio/offers" || route === "/creator-studio/offers/free") {
+        appendRoute(route, () => renderServiceOffersPage());
+        return;
+      }
+      if (
+        route === "/creator-studio/releases" ||
+        route === "/creator-studio/checklist" ||
+        route === "/creator-studio/records" ||
+        route === "/creator-studio/records/free"
+      ) {
+        appendRoute(route, () => renderReleaseChecklistPage());
+        return;
+      }
+      if (
+        route === "/creator-studio/content-calendar" ||
+        route === "/creator-studio/briefs" ||
+        route === "/creator-studio/production-notes" ||
+        route === "/creator-studio/campaigns" ||
+        route === "/creator-studio/tasks"
+      ) {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: getRouteDefinition(route)?.label ?? "Creator Studio Module",
+            description:
+              "This Creator Studio module needs the new Supabase tables applied before saved records are available."
+          })
+        );
+        return;
+      }
+      if (route === "/creator-studio/exports") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: "Creator Exports",
+            description:
+              "Exports are disabled until generated document storage and owner-reviewed download policy are connected."
+          }),
+          { renderBlockedPreview: true }
+        );
+        return;
+      }
+      if (route === "/creator-studio/settings") {
+        appendRoute(route, () => renderSettingsPage());
+        return;
+      }
+      if (route === "/creator-studio/upgrade") {
+        appendRoute(route, () => renderBillingPlaceholderPage());
+        return;
+      }
+      if (route === "/creator-studio/help") {
+        root.append(renderCreatorStudioHelpPage());
         return;
       }
       if (route === "/creator-studio/proof-card") {
@@ -894,8 +1158,59 @@ export function createApp(root: HTMLElement) {
         root.append(renderGrowthStudioMarketingPage());
         return;
       }
+      if (route === "/growth-studio/dashboard") {
+        appendRoute(route, () => renderGrowthStudioDashboard());
+        return;
+      }
+      if (route === "/growth-studio/leads" || route === "/growth-studio/records" || route === "/growth-studio/records/free") {
+        appendRoute(route, () => renderWinBackPage());
+        return;
+      }
+      if (route === "/growth-studio/follow-ups" || route === "/growth-studio/followups") {
+        appendRoute(route, () => renderReviewRequestsPage());
+        return;
+      }
+      if (route === "/growth-studio/consent") {
+        appendRoute(route, () => renderCampaignClaimReviewPage());
+        return;
+      }
+      if (route === "/growth-studio/content-plan" || route === "/growth-studio/checklist") {
+        appendRoute(route, () => renderGrowthCampaignsPage());
+        return;
+      }
+      if (route === "/growth-studio/analytics" || route === "/growth-studio/exports") {
+        appendRoute(route, () =>
+          renderModuleSetupRequiredPage({
+            title: getRouteDefinition(route)?.label ?? "Growth Studio Module",
+            description:
+              "Analytics and exports stay locked until payment state and database-backed reporting are connected."
+          }),
+          { renderBlockedPreview: true }
+        );
+        return;
+      }
+      if (route === "/growth-studio/settings") {
+        appendRoute(route, () => renderSettingsPage());
+        return;
+      }
+      if (route === "/growth-studio/upgrade") {
+        appendRoute(route, () => renderBillingPlaceholderPage());
+        return;
+      }
+      if (route === "/growth-studio/help") {
+        root.append(renderGrowthStudioHelpPage());
+        return;
+      }
+      if (route === "/growth-studio/offers/free") {
+        appendRoute(route, () => renderGrowthOffersPage());
+        return;
+      }
       if (route === "/growth-studio/offers") {
         root.append(renderGrowthOffersPage());
+        return;
+      }
+      if (route === "/growth-studio/tactics") {
+        root.append(renderGrowthTacticsPage());
         return;
       }
       if (route === "/growth-studio/campaigns") {
@@ -1064,6 +1379,18 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderAiCostControlPage(), { renderBlockedPreview: true });
         return;
       }
+      if (route === "/admin/architecture") {
+        appendRoute(route, () => renderAdminArchitecturePage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/admin/growth/tactics") {
+        appendRoute(route, () => renderAdminGrowthTacticsPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/admin/restaurant") {
+        appendRoute(route, () => renderAdminRestaurantPage(), { renderBlockedPreview: true });
+        return;
+      }
       if (route === "/admin/production-readiness") {
         appendRoute(route, () => renderProductionReadinessPage(), { renderBlockedPreview: true });
         return;
@@ -1166,8 +1493,16 @@ export function createApp(root: HTMLElement) {
         appendRoute(route, () => renderAdminSupportPage(), { renderBlockedPreview: true });
         return;
       }
+      if (route === "/admin/contact-requests") {
+        appendRoute(route, () => renderAdminSupportPage(), { renderBlockedPreview: true });
+        return;
+      }
       if (route === "/admin/email-readiness") {
         appendRoute(route, () => renderAdminEmailReadinessPage(), { renderBlockedPreview: true });
+        return;
+      }
+      if (route === "/admin/env-readiness") {
+        appendRoute(route, () => renderAdminDiagnosticsPage(), { renderBlockedPreview: true });
         return;
       }
       if (route === "/admin/audit-logs") {
@@ -1280,6 +1615,10 @@ export function createApp(root: HTMLElement) {
       }
       if (route === "/account") {
         appendRoute(route, () => renderAccountPage());
+        return;
+      }
+      if (route === "/admin/login") {
+        root.append(renderAdminLoginPage());
         return;
       }
       if (route === "/admin" || route === "/launch-readiness") {
@@ -1449,6 +1788,47 @@ function renderRouteError(route: AppRoute, error: unknown) {
   return page;
 }
 
+function renderModuleSetupRequiredPage({
+  title,
+  description
+}: {
+  title: string;
+  description: string;
+}) {
+  const page = createElement("section", {
+    className: "work-screen sonara-shell protected-route-card"
+  });
+  const actions = createElement("div", { className: "action-row" });
+  actions.append(
+    createElement("a", {
+      className: "secondary-action",
+      href: "/pricing",
+      textContent: "View plans"
+    }),
+    createElement("a", {
+      className: "secondary-action",
+      href: "/admin",
+      textContent: "Owner setup"
+    })
+  );
+  page.append(
+    createElement("p", { className: "shell-kicker", textContent: "Setup required" }),
+    createElement("h1", { textContent: title }),
+    createElement("p", {
+      className: "screen-copy",
+      textContent: description
+    }),
+    createMetric("Customer status", "Not available yet"),
+    createElement("p", {
+      className: "recommendation",
+      textContent:
+        "This page is intentionally disabled until the database migration, server route, and access rules are live."
+    }),
+    actions
+  );
+  return page;
+}
+
 function createNavigation(
   activeRoute: AppRoute,
   organizationContext: ReturnType<typeof createOrganizationSetupContext>
@@ -1471,6 +1851,7 @@ function createNavigation(
     utilityGroup.append(createNavLink(route.route, route.label, activeRoute));
   }
   utilityGroup.append(renderSoundToggle());
+  utilityGroup.append(renderLogoutButton());
   nav.append(utilityGroup);
   return nav;
 }

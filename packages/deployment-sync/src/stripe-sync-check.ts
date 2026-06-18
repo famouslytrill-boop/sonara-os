@@ -1,21 +1,29 @@
 import type { DeploymentSyncContext, StripeSyncStatus } from "./types.ts";
-import { isEnvConfigured } from "./env-validator.ts";
+import { getStripePriceEnvValidation, isEnvConfigured } from "./env-validator.ts";
 import { makeFinding, summarizeStatus } from "./sync-utils.ts";
 
 const stripePriceKeys = Object.freeze([
   "STRIPE_PRICE_STARTER",
   "STRIPE_PRICE_CORE",
+  "STRIPE_PRICE_CREATOR",
   "STRIPE_PRICE_GROWTH",
   "STRIPE_PRICE_PRO",
-  "STRIPE_PRICE_AGENCY",
+  "STRIPE_PRICE_AGENCY_SCALE",
   "STRIPE_PRICE_SETUP_99",
   "STRIPE_PRICE_SETUP_299",
-  "STRIPE_PRICE_SETUP_499"
+  "STRIPE_PRICE_SETUP_499",
+  "STRIPE_PRICE_SETUP_999"
 ]);
 
 export function checkStripeSync(context: DeploymentSyncContext = {}): StripeSyncStatus {
   const env = context.env ?? {};
-  const allPricesConfigured = stripePriceKeys.every((key) => isEnvConfigured(env, key));
+  const priceValidation = stripePriceKeys.map((key) => ({
+    key,
+    result: getStripePriceEnvValidation(env[key])
+  }));
+  const allPricesConfigured = priceValidation.every(({ result }) => result.valid);
+  const invalidPrices = priceValidation.filter(({ result }) => result.configured && !result.valid);
+  const missingPrices = priceValidation.filter(({ result }) => !result.configured);
   const findings = [
     makeFinding(
       "stripe",
@@ -40,10 +48,14 @@ export function checkStripeSync(context: DeploymentSyncContext = {}): StripeSync
     ),
     makeFinding(
       "stripe",
-      allPricesConfigured ? "configured" : "needs_review",
+      allPricesConfigured ? "configured" : invalidPrices.length > 0 ? "failed" : "needs_review",
       "high",
       "stripe.price_ids",
-      "Pricing page and checkout must map to env-driven Stripe price IDs."
+      allPricesConfigured
+        ? "Pricing page and checkout map to valid-looking price_ IDs."
+        : invalidPrices.length > 0
+          ? `Invalid Stripe price env values: ${invalidPrices.map(({ key }) => key).join(", ")}. Values must start with price_ and must not be dollar amounts, product IDs, keys, webhook secrets, or /mo display text.`
+          : `Missing Stripe price env values: ${missingPrices.map(({ key }) => key).join(", ")}. Checkout must stay disabled until every required value starts with price_.`
     ),
     makeFinding(
       "stripe",
@@ -60,7 +72,9 @@ export function checkStripeSync(context: DeploymentSyncContext = {}): StripeSync
     metadata: Object.freeze({
       rawCardDataStored: false,
       marketplaceConnectDefault: false,
-      ownerPayoutPathDocumented: true
+      ownerPayoutPathDocumented: true,
+      checkedPriceEnvVars: stripePriceKeys,
+      invalidPriceEnvVars: invalidPrices.map(({ key }) => key)
     })
   });
 }

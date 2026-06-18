@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "start": "node scripts/start.mjs",
     "check": "pnpm run lint && pnpm run format && pnpm run validate:migrations && pnpm test && pnpm run typecheck && pnpm run build && pnpm run smoke",
     "typecheck": "node scripts/typecheck.mjs && tsc --noEmit",
     "build": "node scripts/build.mjs",
@@ -32,12 +33,15 @@
     "check:auth-config": "node scripts/check-auth-config.mjs",
     "check:admin-bootstrap": "node scripts/check-admin-bootstrap.mjs",
     "check:support-readiness": "node scripts/check-support-readiness.mjs",
+    "check:email": "pnpm run check:support-readiness",
     "check:auth-public-copy": "node scripts/check-auth-public-copy.mjs",
     "check:old-branding": "node scripts/check-old-branding.mjs",
     "check:metadata-branding": "node scripts/check-metadata-branding.mjs",
     "check:public-claims": "node scripts/check-public-claims.mjs",
     "check:risky-features": "node scripts/check-risky-features.mjs",
     "check:env-safety": "node scripts/check-env-safety.mjs",
+    "check:stripe-prices": "node scripts/check-stripe-prices.mjs",
+    "check:stripe": "pnpm run check:stripe-prices",
     "check-license-risk": "node scripts/check-license-risk.mjs",
     "check-provider-registry": "node scripts/check-provider-registry.mjs",
     "check-technology-registry": "node scripts/check-technology-registry.mjs",
@@ -47,6 +51,8 @@
     "check:auto-install-disabled": "node scripts/check-auto-install-disabled.mjs",
     "check:vercel-env-docs": "node scripts/check-vercel-env-docs.mjs",
     "check:live-readiness": "node scripts/check-live-readiness.mjs",
+    "check:env": "pnpm run env:check && pnpm run check:vercel-env-docs",
+    "check:launch": "pnpm run check:auth-config && pnpm run check:support-readiness && pnpm run check:stripe-prices && pnpm run check:live-readiness",
     "check:supabase-env": "node scripts/check-supabase-env.mjs",
     "check:supabase-service-role": "node scripts/check-supabase-service-role-safety.mjs",
     "check:supabase-migrations": "node scripts/check-supabase-migrations.mjs",
@@ -82,7 +88,7 @@
     "check:controlled-architecture": "node scripts/check-controlled-architecture.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -101,12 +107,18 @@
     "@react-three/postprocessing": "^3.0.4",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.1",
+    "date-fns": "^4.4.0",
     "jszip": "^3.10.1",
+    "lucide-react": "^1.20.0",
     "motion": "^12.38.0",
+    "openai": "^6.44.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "resend": "^6.14.0",
+    "stripe": "^22.2.1",
     "tailwindcss": "^4.2.4",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "zod": "^4.4.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

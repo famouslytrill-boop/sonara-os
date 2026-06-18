@@ -12,6 +12,7 @@ import {
   type ReferralCampaignDraft,
   type WinBackCustomerTag
 } from "../../lib/growth-studio/index.ts";
+import { renderDataOwnershipSection } from "../../ui/data-ownership-sections.ts";
 
 type FieldControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
@@ -30,6 +31,12 @@ const dashboardCards = Object.freeze([
     description: "Create campaign records with owner-reviewed launch notes.",
     status: "Beta",
     href: "/growth-studio/campaigns"
+  }),
+  Object.freeze({
+    title: "Growth Tactics",
+    description: "Plan tactics, experiments, and launch checklists without fake analytics.",
+    status: "Beta",
+    href: "/growth-studio/tactics"
   }),
   Object.freeze({
     title: "Customer Win-Back",
@@ -79,7 +86,12 @@ export function renderGrowthStudioDashboard() {
     description:
       "Plan offers, campaigns, win-back lists, reviews, and referrals without fake metrics or automated customer contact."
   });
-  page.append(renderDashboardCards(), renderSetupChecklist(state), renderGrowthSafetyNote());
+  page.append(
+    renderDashboardCards(),
+    renderDataOwnershipSection("growth_studio"),
+    renderSetupChecklist(state),
+    renderGrowthSafetyNote()
+  );
   return page;
 }
 

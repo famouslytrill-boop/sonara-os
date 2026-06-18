@@ -25,6 +25,7 @@ export type StripeBillingHealthInput = Partial<{
   publishableKeyConfigured: boolean;
   webhookSecretConfigured: boolean;
   priceIdsConfigured: boolean;
+  invalidPriceIdKeys: readonly string[];
   webhookRouteReachable: boolean;
 }>;
 
@@ -37,10 +38,31 @@ type StripeBillingConfigGlobal = typeof globalThis & {
 const stripeModeWarning = "Stripe test mode and live mode must not be mixed.";
 const payoutWarning =
   "Payouts happen in Stripe Dashboard. SONARA Industries does not control Stripe payout schedules.";
+const invalidStripePricePrefixes = Object.freeze(["$", "prod_", "sk_", "pk_", "whsec_"]);
+
+export function isValidStripePriceEnvValue(value: string | undefined): boolean {
+  const source = value?.trim();
+  if (!source) {
+    return false;
+  }
+  if (source.includes("/mo")) {
+    return false;
+  }
+  if (invalidStripePricePrefixes.some((prefix) => source.startsWith(prefix))) {
+    return false;
+  }
+  return source.startsWith("price_");
+}
+
+export function getStripePriceEnvStatus(value: string | undefined): StripeHealthStatus {
+  return isValidStripePriceEnvValue(value) ? "configured" : "setup_required";
+}
 
 export function createStripeBillingHealthSnapshot(
   input: StripeBillingHealthInput = getInjectedStripeBillingHealth()
 ): StripeBillingHealthSnapshot {
+  const invalidPriceIdKeys = input.invalidPriceIdKeys ?? [];
+  const priceIdsConfigured = Boolean(input.priceIdsConfigured) && invalidPriceIdKeys.length === 0;
   const secretKey = createHealthField({
     id: "stripe-secret-key",
     label: "Stripe secret key configured",
@@ -62,8 +84,11 @@ export function createStripeBillingHealthSnapshot(
   const priceIds = createHealthField({
     id: "stripe-price-ids",
     label: "Price IDs configured",
-    configured: Boolean(input.priceIdsConfigured),
-    detail: "All launch subscription and setup-service price IDs must be mapped."
+    configured: priceIdsConfigured,
+    detail:
+      invalidPriceIdKeys.length > 0
+        ? `Invalid price env vars: ${invalidPriceIdKeys.join(", ")}. Values must start with price_ and must not be dollar amounts, product IDs, keys, webhook secrets, or /mo display text.`
+        : "All launch subscription and setup-service price IDs must be mapped to values that start with price_."
   });
   const webhookRoute = createHealthField({
     id: "stripe-webhook-route",

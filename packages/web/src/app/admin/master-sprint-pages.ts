@@ -10,6 +10,7 @@ import {
 import { notificationSoundPreference } from "@signal-os/notification-sound-system";
 import { revenueModelItems, summarizeRevenueModel } from "@signal-os/profitability-dashboard";
 import { createElement, createMetric } from "../../dom.ts";
+import { createDefaultRoutingRequest, routeModelTask } from "../../lib/agents/model-routing.ts";
 import {
   renderAdminShell,
   renderAdminStatusBadge,
@@ -52,6 +53,8 @@ export function renderAiCostControlPage() {
   const low = evaluateAiRunCost(1);
   const expensive = evaluateAiRunCost(10);
   const blocked = evaluateAiRunCost(75);
+  const supportRouting = routeModelTask(createDefaultRoutingRequest("customer_support"));
+  const complianceRouting = routeModelTask(createDefaultRoutingRequest("compliance_review"));
   return renderAdminShell({
     activeRoute: "/admin/ai-cost-control",
     title: "AI Cost Control",
@@ -76,6 +79,36 @@ export function renderAiCostControlPage() {
         value: blocked.allowed ? "Allowed" : "Blocked",
         description: blocked.reason,
         status: "blocked"
+      }),
+      renderMetricCard({
+        title: "Model Routing Status",
+        value: "Policy ready",
+        description: supportRouting.reason,
+        status: "ready"
+      }),
+      renderMetricCard({
+        title: "Fallback Usage",
+        value: supportRouting.fallbackProvider.replaceAll("_", " "),
+        description: "Fallback provider tier is selected by policy, not by exposed keys.",
+        status: "review"
+      }),
+      renderMetricCard({
+        title: "Tasks Requiring Admin Review",
+        value: complianceRouting.requiresAdminReview ? "Required" : "Not required",
+        description: "Compliance, risk, campaign, code, and restaurant receptionist tasks are review-gated.",
+        status: "review"
+      }),
+      renderMetricCard({
+        title: "Agent Memory Health",
+        value: "RLS required",
+        description: "Agent memory must be owner/company scoped before durable search is enabled.",
+        status: "review"
+      }),
+      renderMetricCard({
+        title: "Knowledge Search Health",
+        value: "Supabase-first",
+        description: "pgvector abstraction is present; local vector engines are disabled by default.",
+        status: "review"
       })
     ]
   });

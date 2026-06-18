@@ -6,6 +6,7 @@
     "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "strict": true,
+    "types": ["node"],
     "noEmit": true,
     "skipLibCheck": true
   },

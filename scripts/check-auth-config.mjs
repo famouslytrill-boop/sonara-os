@@ -55,6 +55,7 @@ const publicEnv = read("packages/web/src/lib/public-env.ts");
 for (const expected of [
   "getAuthCallbackUrl",
   "publicEnv.googleEnabled",
+  "publicEnv.googleProviderReady",
   "Google sign-in is not enabled yet. Use email/password or email link, or finish Supabase Google provider setup."
 ]) {
   if (!authActions.includes(expected)) {
@@ -82,6 +83,7 @@ for (const code of [
 const envExample = exists(".env.example") ? read(".env.example") : "";
 for (const flag of [
   "NEXT_PUBLIC_AUTH_GOOGLE_ENABLED=false",
+  "NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY=false",
   "NEXT_PUBLIC_AUTH_PHONE_ENABLED=false"
 ]) {
   if (!envExample.includes(flag)) {

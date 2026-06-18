@@ -3,6 +3,9 @@ import type { OrganizationRole, Permission } from "./types.ts";
 export const organizationRoles: readonly OrganizationRole[] = Object.freeze([
   "owner",
   "admin",
+  "business_admin",
+  "customer",
+  "employee",
   "member",
   "viewer",
   "developer",
@@ -37,6 +40,16 @@ export const rolePermissions: Readonly<Record<OrganizationRole, readonly Permiss
       "support:read",
       "audit:read"
     ),
+    business_admin: permissions(
+      "organization:read",
+      "organization:manage",
+      "profile:read",
+      "profile:manage",
+      "billing:read",
+      "support:read"
+    ),
+    customer: permissions("organization:read", "profile:read", "profile:manage", "support:read"),
+    employee: permissions("organization:read", "profile:read", "support:read"),
     member: permissions("organization:read", "profile:read", "profile:manage", "support:read"),
     viewer: permissions("organization:read", "profile:read", "support:read"),
     developer: permissions(
@@ -66,9 +79,5 @@ export function canManageOrganization(role: OrganizationRole): boolean {
 }
 
 export function canAccessAdminArea(role: OrganizationRole): boolean {
-  return (
-    roleHasPermission(role, "security:read") ||
-    roleHasPermission(role, "developer-tools:read") ||
-    roleHasPermission(role, "audit:read")
-  );
+  return role === "owner" || role === "admin";
 }

@@ -29,11 +29,11 @@ Do not use fake countdowns, fake scarcity, fake testimonials, or fake customer l
 
 | Offer                 | Price       | Best fit                                            | Included scope                                                           |
 | --------------------- | ----------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
-| Starter               | `$9-$15/mo` | Solo owners and creators testing the platform       | Basic profile, proof setup, and launch preparation.                      |
-| Core                  | `$29/mo`    | Small businesses getting organized                  | Proof, payment links, booking, intake, and customer setup workflows.     |
-| Profile Setup         | `$99`       | Users who want help starting                        | Basic profile, links, proof notes, and launch checklist setup.           |
-| Business Launch Setup | `$299`      | Users who want done-with-you launch setup           | Proof sections, intake, booking, payment link review, and setup support. |
-| Premium Setup         | `$499+`     | More complex business, creator, or growth workflows | Expanded setup support with clearly scoped deliverables.                 |
+| SONARA One Starter    | `$9/mo` | Solo owners and creators testing the platform       | Basic profile, proof setup, and launch preparation.                      |
+| SONARA One Core       | `$29/mo`    | Small businesses getting organized                  | Proof, payment links, booking, intake, and customer setup workflows.     |
+| Profile Setup         | `$99 one-time`       | Users who want help starting                        | Basic profile, links, proof notes, and launch checklist setup.           |
+| Business Launch Setup | `$299 one-time`      | Users who want done-with-you launch setup           | Proof sections, intake, booking, payment link review, and setup support. |
+| Premium Setup         | `$499 one-time`     | More complex business, creator, or growth workflows | Expanded setup support with clearly scoped deliverables.                 |
 
 ## Done-For-You Launch Package
 

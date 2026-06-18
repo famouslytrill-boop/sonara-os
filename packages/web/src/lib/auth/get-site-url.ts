@@ -1,7 +1,9 @@
 export function getSiteUrl(env: Partial<Record<string, string | undefined>> = getRuntimeEnv()) {
   const raw =
-    env.NEXT_PUBLIC_SITE_URL ??
     env.NEXT_PUBLIC_APP_URL ??
+    env.APP_URL ??
+    env.SITE_URL ??
+    env.NEXT_PUBLIC_SITE_URL ??
     env.NEXT_PUBLIC_VERCEL_URL ??
     env.VERCEL_URL ??
     (env.NODE_ENV === "development" ? "http://localhost:3000" : undefined);

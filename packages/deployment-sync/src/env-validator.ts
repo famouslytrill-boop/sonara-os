@@ -22,12 +22,21 @@ export const deploymentEnvRequirements: readonly EnvRequirement[] = Object.freez
   env("STRIPE_WEBHOOK_SECRET", false, true, "paid_launch"),
   env("STRIPE_PRICE_STARTER", false, false, "paid_launch"),
   env("STRIPE_PRICE_CORE", false, false, "paid_launch"),
+  env("STRIPE_PRICE_CREATOR", false, false, "paid_launch"),
   env("STRIPE_PRICE_GROWTH", false, false, "paid_launch"),
   env("STRIPE_PRICE_PRO", false, false, "paid_launch"),
-  env("STRIPE_PRICE_AGENCY", false, false, "paid_launch"),
+  env("STRIPE_PRICE_AGENCY_SCALE", false, false, "paid_launch"),
   env("STRIPE_PRICE_SETUP_99", false, false, "paid_launch"),
   env("STRIPE_PRICE_SETUP_299", false, false, "paid_launch"),
   env("STRIPE_PRICE_SETUP_499", false, false, "paid_launch"),
+  env("STRIPE_PRICE_SETUP_999", false, false, "paid_launch"),
+  env("STRIPE_PRICE_BUSINESS_BUILDER_MONTHLY", false, false, "optional"),
+  env("STRIPE_PRICE_BUSINESS_BUILDER_ONETIME", false, false, "optional"),
+  env("STRIPE_PRICE_CREATOR_STUDIO_MONTHLY", false, false, "optional"),
+  env("STRIPE_PRICE_GROWTH_STUDIO_MONTHLY", false, false, "optional"),
+  env("STRIPE_PRICE_RESTAURANT_PACK_ADDON", false, false, "optional"),
+  env("STRIPE_PRICE_RESTAURANT_AI_RECEPTIONIST_ADDON", false, false, "optional"),
+  env("STRIPE_PRICE_GROWTH_OUTREACH_ADDON", false, false, "optional"),
   env("NEXT_PUBLIC_SUPABASE_URL", true, false, "database"),
   env("NEXT_PUBLIC_SUPABASE_ANON_KEY", true, false, "database"),
   env("SUPABASE_SERVICE_ROLE_KEY", false, true, "database"),
@@ -68,9 +77,69 @@ export function isEnvConfigured(env: Readonly<Record<string, string | undefined>
   return Boolean(env[key]?.trim());
 }
 
+export type StripePriceEnvValidation = Readonly<{
+  configured: boolean;
+  valid: boolean;
+  reason: "missing" | "valid" | "invalid_prefix" | "display_value" | "wrong_identifier";
+  message: string;
+}>;
+
+export const invalidStripePriceEnvPrefixes = Object.freeze(["$", "prod_", "sk_", "pk_", "whsec_"]);
+
+export function getStripePriceEnvValidation(value: string | undefined): StripePriceEnvValidation {
+  const source = value?.trim();
+  if (!source) {
+    return createStripePriceValidation(
+      false,
+      false,
+      "missing",
+      "Stripe price ID is not configured."
+    );
+  }
+  if (source.includes("/mo")) {
+    return createStripePriceValidation(
+      true,
+      false,
+      "display_value",
+      "Stripe price env value must be a price_ ID, not display pricing copy."
+    );
+  }
+  if (invalidStripePriceEnvPrefixes.some((prefix) => source.startsWith(prefix))) {
+    return createStripePriceValidation(
+      true,
+      false,
+      "invalid_prefix",
+      "Stripe price env value must not be a dollar amount, product ID, key, or webhook secret."
+    );
+  }
+  if (!source.startsWith("price_")) {
+    return createStripePriceValidation(
+      true,
+      false,
+      "wrong_identifier",
+      "Stripe price env value must start with price_."
+    );
+  }
+  return createStripePriceValidation(
+    true,
+    true,
+    "valid",
+    "Stripe price ID has a valid-looking prefix."
+  );
+}
+
+export function isValidStripePriceEnvValue(value: string | undefined): boolean {
+  return getStripePriceEnvValidation(value).valid;
+}
+
 export function redactEnvValue(key: string, value: string | undefined): string {
   if (!value?.trim()) {
     return "not_configured";
+  }
+  if (key.startsWith("STRIPE_PRICE_")) {
+    return getStripePriceEnvValidation(value).valid
+      ? "configured_valid_price_id"
+      : "invalid_stripe_price_id_redacted";
   }
   if (isSecretLikeKey(key)) {
     return "configured_redacted";
@@ -99,8 +168,16 @@ function createEnvFinding(
   sourceEnv: Readonly<Record<string, string | undefined>>
 ): DeploymentSyncFinding {
   const configured = isEnvConfigured(sourceEnv, requirement.name);
+  const stripePriceValidation = requirement.name.startsWith("STRIPE_PRICE_")
+    ? getStripePriceEnvValidation(sourceEnv[requirement.name])
+    : null;
+  const invalidStripePrice = Boolean(
+    stripePriceValidation?.configured && !stripePriceValidation.valid
+  );
   const riskLevel = configured
-    ? "low"
+    ? invalidStripePrice
+      ? "high"
+      : "low"
     : requirement.requiredFor === "public_launch" || requirement.requiredFor === "paid_launch"
       ? "high"
       : requirement.requiredFor === "optional"
@@ -108,20 +185,25 @@ function createEnvFinding(
         : "medium";
   return Object.freeze({
     provider: "environment",
-    status: configured
-      ? "configured"
-      : requirement.requiredFor === "optional"
-        ? "skipped_for_mvp"
-        : "not_configured",
+    status: invalidStripePrice
+      ? "failed"
+      : configured
+        ? "configured"
+        : requirement.requiredFor === "optional"
+          ? "skipped_for_mvp"
+          : "not_configured",
     riskLevel,
     findingKey: `env.${requirement.name}`,
-    message: configured
-      ? `${requirement.name} is configured; value is redacted.`
-      : `${requirement.name} is not configured for ${requirement.requiredFor}.`,
+    message: invalidStripePrice
+      ? `${requirement.name} is invalid. ${stripePriceValidation?.message ?? "Use a price_ ID."}`
+      : configured
+        ? `${requirement.name} is configured; value is redacted.`
+        : `${requirement.name} is not configured for ${requirement.requiredFor}.`,
     metadata: Object.freeze({
       variable: requirement.name,
       publicSafe: requirement.publicSafe,
       secret: requirement.secret,
+      validation: stripePriceValidation?.reason,
       value: redactEnvValue(requirement.name, sourceEnv[requirement.name])
     })
   });
@@ -149,6 +231,15 @@ function isSecretLikeKey(key: string) {
   return ["SECRET", "SERVICE_ROLE", "DATABASE_URL", "TOKEN", "PRIVATE", "WEBHOOK"].some((part) =>
     upper.includes(part)
   );
+}
+
+function createStripePriceValidation(
+  configured: boolean,
+  valid: boolean,
+  reason: StripePriceEnvValidation["reason"],
+  message: string
+): StripePriceEnvValidation {
+  return Object.freeze({ configured, valid, reason, message });
 }
 
 function getRuntimeEnv(): Readonly<Record<string, string | undefined>> {

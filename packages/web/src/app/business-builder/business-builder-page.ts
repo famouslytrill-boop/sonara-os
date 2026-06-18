@@ -33,6 +33,7 @@ import {
   type SmartIntakeDraft
 } from "../../lib/business-builder/index.ts";
 import { createMoneyAdjacentStore } from "../../lib/money-adjacent/index.ts";
+import { renderDataOwnershipSection } from "../../ui/data-ownership-sections.ts";
 
 type FieldControl = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
@@ -121,6 +122,7 @@ export function renderBusinessBuilderDashboard() {
     renderNextActionCard(journey.nextAction),
     renderJourneyWarnings(journey.warnings),
     renderDashboardCards(),
+    renderDataOwnershipSection("business_builder"),
     renderSetupChecklist(state)
   );
   return page;

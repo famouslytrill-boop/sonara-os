@@ -5,6 +5,7 @@ export type PublicAuthEnvSnapshot = Readonly<{
   supabaseUrl?: string;
   supabaseAnonKeyConfigured: boolean;
   googleEnabled: boolean;
+  googleProviderReady: boolean;
   phoneEnabled: boolean;
 }>;
 
@@ -24,6 +25,7 @@ export function readPublicAuthEnv(
     supabaseUrl: normalizeEnvValue(env.NEXT_PUBLIC_SUPABASE_URL),
     supabaseAnonKeyConfigured: Boolean(env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()),
     googleEnabled: env.NEXT_PUBLIC_AUTH_GOOGLE_ENABLED === "true",
+    googleProviderReady: env.NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY === "true",
     phoneEnabled: env.NEXT_PUBLIC_AUTH_PHONE_ENABLED === "true"
   });
 }
@@ -35,6 +37,7 @@ export function getPublicAuthEnvRequirements() {
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_AUTH_GOOGLE_ENABLED",
+    "NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY",
     "NEXT_PUBLIC_AUTH_PHONE_ENABLED"
   ]);
 }

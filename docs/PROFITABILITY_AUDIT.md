@@ -11,11 +11,11 @@ This audit documents the profit path without claiming profitability is proven. S
 | Revenue line                | Current status | Notes                                                                                  |
 | --------------------------- | -------------- | -------------------------------------------------------------------------------------- |
 | Free tier                   | Planned/listed | Useful for evaluation and onboarding. Must not create high support burden.             |
-| Starter subscription        | Planned/listed | `$9-$15/mo`; simple entry point for solo owners and creators.                          |
+| SONARA One Starter subscription        | Planned/listed | `$9/mo`; simple entry point for solo owners and creators.                          |
 | Core subscription           | Planned/listed | `$29/mo`; likely first meaningful recurring plan for Business Builder users.           |
-| Growth subscription         | Planned/listed | `$49-$59/mo`; positioned for review/referral/follow-up planning.                       |
-| Pro / Business subscription | Planned/listed | `$79-$99/mo`; for stronger operating workflows and teams.                              |
-| Agency / Scale subscription | Planned/listed | `$149-$199/mo or custom`; requires careful support and permissions boundaries.         |
+| SONARA One Growth subscription         | Planned/listed | `$59/mo`; positioned for review/referral/follow-up planning.                       |
+| SONARA One Pro subscription | Planned/listed | `$99/mo`; for stronger operating workflows and teams.                              |
+| SONARA One Agency/Scale subscription | Planned/listed | `$199/mo or custom`; requires careful support and permissions boundaries.         |
 | Profile Setup               | Planned/listed | `$99`; basic paid service and low-friction cash collection path.                       |
 | Business Launch Setup       | Planned/listed | `$299`; setup service for proof, intake, booking, payment links, and launch checklist. |
 | Premium Setup               | Planned/listed | `$499+`; higher-touch service for complex business, creator, or growth setup.          |

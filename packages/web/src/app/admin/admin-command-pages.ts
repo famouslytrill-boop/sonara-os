@@ -48,11 +48,17 @@ export function renderAdminSubPage(route: AdminCommandRoute) {
   if (route === "/admin/users" || route === "/admin/support") {
     children.push(
       renderEmptyState({
-        title: "No live records yet",
+        title:
+          route === "/admin/support" ? "Support queue requires admin auth" : "No live records yet",
         description:
-          "This admin surface is ready for wiring, but it does not display private production records in setup mode."
+          route === "/admin/support"
+            ? "Stored contact/support requests are available from /api/admin/contact-requests only after a verified Supabase user token belongs to an email in SONARA_ADMIN_EMAILS."
+            : "This admin surface is ready for wiring, but it does not display private production records in setup mode."
       })
     );
+  }
+  if (route === "/admin/support") {
+    children.push(createSupportQueueReadinessCard());
   }
 
   return renderAdminShell({
@@ -63,4 +69,19 @@ export function renderAdminSubPage(route: AdminCommandRoute) {
       "No secrets, private customer details, payout data, webhook secrets, API keys, or tokens are shown on this page.",
     children
   });
+}
+
+function createSupportQueueReadinessCard() {
+  const card = createElement("article", { className: "planning-card shell-card" });
+  const list = createElement("ul", { className: "security-list" });
+  for (const item of [
+    "Public submissions POST to /api/contact.",
+    "The server stores support_requests with pending_email, email_sent, or email_failed.",
+    "Resend failures keep the support row saved for manual queue review.",
+    "Admin queue reads require a Supabase user bearer token and SONARA_ADMIN_EMAILS allowlist."
+  ]) {
+    list.append(createElement("li", { textContent: item }));
+  }
+  card.append(createElement("h2", { textContent: "Contact request queue" }), list);
+  return card;
 }

@@ -3,14 +3,17 @@ import { createElement, createMetric } from "../../dom.ts";
 import {
   getProductMarketingPage,
   pricingSafetyNotes,
-  pricingTiers,
   productMarketingPages,
-  setupServiceTiers,
   sonaraParentStatement,
   sonaraProductPromise,
   sonaraTagline,
   type ProductMarketingPage
 } from "../../lib/public-marketing/index.ts";
+import {
+  getPricingReadiness,
+  publicPricingCatalog,
+  type PricingCatalogItem
+} from "../../lib/product-catalog/product-catalog.ts";
 import { renderPublicShell } from "../../ui/shared-components.ts";
 
 export function renderPublicHomePage() {
@@ -49,34 +52,21 @@ export function renderGrowthStudioMarketingPage() {
 export function renderPricingPage() {
   const page = createPublicShell();
   const tierGrid = createElement("div", { className: "planning-grid" });
-  for (const tier of pricingTiers) {
-    const card = createElement("article", { className: "planning-card shell-card" });
-    card.append(
-      createElement("h2", { textContent: tier.name }),
-      createElement("p", { className: "recommendation", textContent: tier.description }),
-      createMetric("Price", tier.price),
-      createMetric("Best for", tier.fit)
-    );
-    tierGrid.append(card);
+  for (const tier of publicPricingCatalog.filter((item) => item.mode !== "payment")) {
+    tierGrid.append(renderPricingCatalogCard(tier));
   }
 
   const setupGrid = createElement("div", { className: "planning-grid" });
-  for (const setup of setupServiceTiers) {
-    const card = createElement("article", { className: "planning-card shell-card" });
-    card.append(
-      createElement("h3", { textContent: setup.name }),
-      createElement("p", { className: "recommendation", textContent: setup.description }),
-      createMetric("Setup service", setup.price)
-    );
-    setupGrid.append(card);
+  for (const setup of publicPricingCatalog.filter((item) => item.mode === "payment")) {
+    setupGrid.append(renderPricingCatalogCard(setup));
   }
 
   page.append(
     renderHero({
       eyebrow: "Pricing",
-      title: "Pricing for Build. Prove. Get paid. Grow.",
+      title: "SONARA Industries Pricing",
       description:
-        "Start small, choose the plan that matches the work, and use setup services only when you want hands-on help.",
+        "Start free, choose a SONARA One monthly plan when ready, and use setup services only when you want hands-on help.",
       ctas: [
         ["Contact", "/contact", "primary-action"],
         ["About SONARA", "/about", "secondary-action"]
@@ -184,7 +174,7 @@ export function renderTermsPlaceholderPage() {
   return renderLegalPlaceholderPage({
     title: "Terms",
     description:
-      "Terms are a placeholder until final legal review is complete. Do not rely on this page as a final agreement."
+      "Review-ready terms are prepared for launch planning and require qualified legal review before paid public launch."
   });
 }
 
@@ -192,7 +182,7 @@ export function renderPrivacyPlaceholderPage() {
   return renderLegalPlaceholderPage({
     title: "Privacy",
     description:
-      "Privacy policy is a placeholder until final legal review is complete. Production data practices must be documented before launch."
+      "Review-ready privacy language is prepared for launch planning and must match production data practices before paid public launch."
   });
 }
 
@@ -204,7 +194,7 @@ function renderProductMarketingPage(product: ProductMarketingPage) {
       title: product.title,
       description: `${product.promise} ${product.description}`,
       logoSrc: product.logoSrc,
-      logoAlt: `${product.title} logo placeholder`,
+      logoAlt: `${product.title} logo`,
       ctas: product.ctas.map((cta) => [
         cta.label,
         cta.href,
@@ -229,7 +219,7 @@ function renderLegalPlaceholderPage({
   const page = createPublicShell();
   page.append(
     renderHero({
-      eyebrow: "Legal Placeholder",
+      eyebrow: "Legal Review",
       title,
       description,
       ctas: [
@@ -238,7 +228,7 @@ function renderLegalPlaceholderPage({
       ]
     }),
     renderSafetyNote([
-      "This placeholder is not legal advice.",
+      "This review-ready template is not legal advice.",
       "Final terms and privacy pages require human legal review before public launch.",
       "No customer data, payment data, or consent record is shown here."
     ])
@@ -297,7 +287,7 @@ function renderProductGrid() {
       className: `planning-card shell-card ${product.productThemeClassName}`
     });
     card.append(
-      renderBrandLogo(product.logoSrc, `${product.title} logo placeholder`),
+      renderBrandLogo(product.logoSrc, `${product.title} logo`),
       createElement("h2", { textContent: product.title }),
       createElement("p", { className: "recommendation", textContent: product.promise }),
       createMetric("Launch status", product.launchStatusLabel),
@@ -339,6 +329,71 @@ function renderInfoGrid(items: readonly (readonly [string, string])[]) {
     grid.append(card);
   }
   return grid;
+}
+
+function renderPricingCatalogCard(item: PricingCatalogItem) {
+  const readiness = getPricingReadiness(item);
+  const card = createElement("article", { className: "planning-card shell-card" });
+  card.append(
+    createElement("h2", { textContent: item.name }),
+    createElement("p", { className: "recommendation", textContent: item.description }),
+    createMetric("Price", item.displayPrice),
+    createMetric("Product", item.product),
+    createMetric(
+      "Checkout mode",
+      item.mode === "subscription"
+        ? "Subscription"
+        : item.mode === "payment"
+          ? "One-time payment"
+          : "Included"
+    ),
+    createMetric("Stripe setup", readiness.label)
+  );
+  if (item.mode === "included") {
+    const includedButton = createElement("button", {
+      className: "secondary-action",
+      type: "button",
+      textContent: "Included"
+    });
+    includedButton.setAttribute("disabled", "true");
+    card.append(includedButton);
+    return card;
+  }
+  const button = createElement("button", {
+    className: readiness.valid ? "primary-action" : "secondary-action",
+    type: readiness.valid ? "submit" : "button",
+    textContent: readiness.valid
+      ? item.mode === "payment"
+        ? "Buy setup"
+        : "Start checkout"
+      : "Payment setup required"
+  });
+  if (!readiness.valid) {
+    button.setAttribute("disabled", "true");
+  }
+  const actionWrapper = readiness.valid
+    ? createElement("form", { className: "trust-warning-list" })
+    : createElement("div", { className: "trust-warning-list" });
+  if (readiness.valid) {
+    actionWrapper.setAttribute("method", "post");
+    actionWrapper.setAttribute("action", "/api/stripe/checkout");
+    const planInput = createElement("input", { type: "hidden", value: item.id });
+    planInput.setAttribute("name", "planSlug");
+    const modeInput = createElement("input", { type: "hidden", value: item.mode });
+    modeInput.setAttribute("name", "mode");
+    actionWrapper.append(planInput, modeInput);
+  }
+  actionWrapper.append(button);
+  card.append(
+    actionWrapper,
+    createElement("p", {
+      className: "warning-copy",
+      textContent: readiness.valid
+        ? "Stripe price ID is configured. Checkout is created by the server route; the browser never receives Stripe secrets."
+        : "Checkout remains disabled until the server-side env value starts with price_ and the checkout route is verified."
+    })
+  );
+  return card;
 }
 
 function renderPromiseBand() {

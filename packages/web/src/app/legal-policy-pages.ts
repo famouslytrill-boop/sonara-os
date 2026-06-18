@@ -21,6 +21,11 @@ const sharedDraftNotice = Object.freeze([
   "SONARA does not claim guaranteed legal compliance, guaranteed cybersecurity, guaranteed uptime, guaranteed revenue, or professional legal, tax, financial, medical, or security advice."
 ]);
 
+export const legalPolicyDates = Object.freeze({
+  effectiveDate: "2026-06-11",
+  lastUpdated: "2026-06-11"
+});
+
 export function renderTermsPage() {
   return renderPolicyPage({
     eyebrow: "Review-ready policy draft",
@@ -293,6 +298,8 @@ function renderPolicyPage(policy: PolicyPage) {
   statusCard.append(
     createElement("h2", { textContent: "Review status" }),
     createMetric("Status", policy.status),
+    createMetric("Effective date", legalPolicyDates.effectiveDate),
+    createMetric("Last updated", legalPolicyDates.lastUpdated),
     createMetric("Company", brandIdentity.parentName),
     createMetric("Approval", "Owner Confirmation Lock required before publishing changes")
   );

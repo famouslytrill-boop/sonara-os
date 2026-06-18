@@ -5,11 +5,11 @@ This document describes the intended revenue model without guaranteed income cla
 ## Subscription Path
 
 - Free tier for initial adoption.
-- Starter: $9-$15/mo.
+- SONARA One Starter: $9/mo.
 - Core: $29/mo.
-- Growth: $49-$59/mo.
-- Pro / Business: $79-$99/mo.
-- Agency / Scale: $149-$199/mo or custom.
+- SONARA One Growth: $59/mo.
+- SONARA One Pro: $99/mo.
+- SONARA One Agency/Scale: $199/mo or custom.
 
 ## Setup Services
 

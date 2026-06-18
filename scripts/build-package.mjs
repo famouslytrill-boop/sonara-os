@@ -35,6 +35,31 @@ const webVendorPackages = Object.freeze(
   ])
 );
 
+const requiredStripePriceEnvVars = Object.freeze([
+  "STRIPE_PRICE_STARTER",
+  "STRIPE_PRICE_CORE",
+  "STRIPE_PRICE_CREATOR",
+  "STRIPE_PRICE_GROWTH",
+  "STRIPE_PRICE_PRO",
+  "STRIPE_PRICE_AGENCY_SCALE",
+  "STRIPE_PRICE_SETUP_99",
+  "STRIPE_PRICE_SETUP_299",
+  "STRIPE_PRICE_SETUP_499",
+  "STRIPE_PRICE_SETUP_999"
+]);
+
+const stripePriceEnvAliases = Object.freeze({
+  STRIPE_PRICE_STARTER: Object.freeze(["STRIPE_PRICE_SONARA_ONE_STARTER_MONTHLY"]),
+  STRIPE_PRICE_CORE: Object.freeze(["STRIPE_PRICE_SONARA_ONE_CORE_MONTHLY"]),
+  STRIPE_PRICE_CREATOR: Object.freeze(["STRIPE_PRICE_CREATOR_STUDIO_MONTHLY"])
+});
+
+const stripePriceReadinessEnvVars = Object.freeze(
+  Array.from(
+    new Set([...requiredStripePriceEnvVars, ...Object.values(stripePriceEnvAliases).flat()])
+  )
+);
+
 if (!fs.existsSync(srcDir)) {
   throw new Error(`Missing src directory: ${path.relative(repoRoot, srcDir)}`);
 }
@@ -147,6 +172,7 @@ function writeWebDeploymentArtifacts() {
     "/business-builder",
     "/creator-studio",
     "/growth-studio",
+    "/growth-studio/tactics",
     "/pricing",
     "/about",
     "/trust",
@@ -316,6 +342,10 @@ function getWebDeploymentConfig(version) {
       process.env.NEXT_PUBLIC_APP_ENV ?? process.env.NODE_ENV,
       "production"
     ),
+    publicAuth: Object.freeze({
+      supabaseUrl: normalizeOptionalHttpsUrl(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      supabaseAnonKey: normalizeText(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, "")
+    }),
     diagnostics: Object.freeze({
       database: createEnvStatus(
         Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
@@ -343,22 +373,69 @@ function getWebDeploymentConfig(version) {
       publishableKeyConfigured: Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
       webhookSecretConfigured: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
       priceIdsConfigured: areStripePriceIdsConfigured(process.env),
+      invalidPriceIdKeys: getInvalidStripePriceEnvKeys(process.env),
       webhookRouteReachable: false
-    })
+    }),
+    stripePriceReadiness: createStripePriceReadiness(process.env)
   });
 }
 
+function normalizeOptionalHttpsUrl(value) {
+  const source = value?.trim();
+  if (!source) {
+    return undefined;
+  }
+  try {
+    const url = new URL(source);
+    if (url.protocol !== "https:") {
+      return undefined;
+    }
+    url.hash = "";
+    url.search = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return undefined;
+  }
+}
+
 function areStripePriceIdsConfigured(env) {
-  return [
-    "STRIPE_PRICE_STARTER",
-    "STRIPE_PRICE_CORE",
-    "STRIPE_PRICE_GROWTH",
-    "STRIPE_PRICE_PRO",
-    "STRIPE_PRICE_AGENCY",
-    "STRIPE_PRICE_SETUP_99",
-    "STRIPE_PRICE_SETUP_299",
-    "STRIPE_PRICE_SETUP_499"
-  ].every((key) => Boolean(env[key]));
+  return requiredStripePriceEnvVars.every((key) =>
+    [key, ...(stripePriceEnvAliases[key] ?? [])].some((candidateKey) =>
+      isValidStripePriceEnvValue(env[candidateKey])
+    )
+  );
+}
+
+function getInvalidStripePriceEnvKeys(env) {
+  return stripePriceReadinessEnvVars.filter(
+    (key) => Boolean(env[key]?.trim()) && !isValidStripePriceEnvValue(env[key])
+  );
+}
+
+function createStripePriceReadiness(env) {
+  return Object.fromEntries(
+    stripePriceReadinessEnvVars.map((key) => [
+      key,
+      {
+        configured: Boolean(env[key]?.trim()),
+        valid: isValidStripePriceEnvValue(env[key])
+      }
+    ])
+  );
+}
+
+function isValidStripePriceEnvValue(value) {
+  const source = value?.trim();
+  if (!source) {
+    return false;
+  }
+  if (source.includes("/mo")) {
+    return false;
+  }
+  if (["$", "prod_", "sk_", "pk_", "whsec_"].some((prefix) => source.startsWith(prefix))) {
+    return false;
+  }
+  return source.startsWith("price_");
 }
 
 function normalizeUrl(value, fallback) {

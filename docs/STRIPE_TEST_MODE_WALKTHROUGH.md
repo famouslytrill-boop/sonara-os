@@ -38,13 +38,35 @@ STRIPE_PRICE_STARTER=
 STRIPE_PRICE_CORE=
 STRIPE_PRICE_GROWTH=
 STRIPE_PRICE_PRO=
-STRIPE_PRICE_AGENCY=
+STRIPE_PRICE_AGENCY_SCALE=
 STRIPE_PRICE_SETUP_99=
 STRIPE_PRICE_SETUP_299=
 STRIPE_PRICE_SETUP_499=
 ```
 
 `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` is browser-exposed. All other Stripe values above must remain server-side.
+
+Each `STRIPE_PRICE_*` value must be a Stripe Price ID that starts with `price_`. Do not use dollar values like `$9/mo`, product IDs like `prod_...`, secret keys like `sk_...`, publishable keys like `pk_...`, webhook secrets like `whsec_...`, or any value containing `/mo`.
+
+The public pricing catalog must match:
+
+| Item | Price | Env var | Checkout mode |
+| --- | --- | --- | --- |
+| Free | `$0` | none | no Stripe checkout |
+| SONARA One Starter | `$9/mo` | `STRIPE_PRICE_STARTER` | `subscription` |
+| SONARA One Core | `$29/mo` | `STRIPE_PRICE_CORE` | `subscription` |
+| SONARA One Growth | `$59/mo` | `STRIPE_PRICE_GROWTH` | `subscription` |
+| SONARA One Pro | `$99/mo` | `STRIPE_PRICE_PRO` | `subscription` |
+| SONARA One Agency/Scale | `$199/mo or custom` | `STRIPE_PRICE_AGENCY_SCALE` | `subscription` |
+| Profile Setup | `$99 one-time` | `STRIPE_PRICE_SETUP_99` | `payment` |
+| Business Launch Setup | `$299 one-time` | `STRIPE_PRICE_SETUP_299` | `payment` |
+| Premium Setup | `$499 one-time` | `STRIPE_PRICE_SETUP_499` | `payment` |
+
+Run this check where production or preview Stripe environment variables are loaded:
+
+```bash
+pnpm run check:stripe-prices
+```
 
 ## Verification Order
 
@@ -62,6 +84,7 @@ STRIPE_PRICE_SETUP_499=
 
 ```bash
 pnpm run validate:infrastructure
+pnpm run check:stripe-prices
 pnpm run typecheck
 pnpm test
 pnpm run build

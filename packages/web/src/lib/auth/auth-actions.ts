@@ -37,12 +37,18 @@ export function createGoogleOAuthAction(
       "Google sign-in is not enabled yet. Use email/password or email link, or finish Supabase Google provider setup."
     );
   }
+  if (!publicEnv.googleProviderReady) {
+    return disabled(
+      redirectTo,
+      "Google sign-in setup is not complete. Confirm the Supabase Google provider and Google Cloud OAuth client, then set NEXT_PUBLIC_AUTH_GOOGLE_PROVIDER_READY=true."
+    );
+  }
   return Object.freeze({
     provider: "google",
     status: "ready",
     redirectTo,
     message:
-      "Google sign-in is feature-flag enabled. Supabase must still have the Google provider enabled before production testing."
+      "Google sign-in is enabled. Supabase must use a Web application Google OAuth client and the production callback URL before testing."
   });
 }
 

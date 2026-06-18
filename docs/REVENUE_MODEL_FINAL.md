@@ -11,11 +11,11 @@ This document defines the intended SONARA Industries™ revenue model for launch
 | Plan           | Price                    | Intended customer                | Notes                                                                    |
 | -------------- | ------------------------ | -------------------------------- | ------------------------------------------------------------------------ |
 | Free           | `$0/mo`                  | Evaluators and early setup users | Keep limits clear to avoid high support cost.                            |
-| Starter        | `$9-$15/mo`              | Solo owners and creators         | Entry plan for basic profile and launch setup.                           |
+| SONARA One Starter        | `$9/mo`              | Solo owners and creators         | Entry plan for basic profile and launch setup.                           |
 | Core           | `$29/mo`                 | Small businesses                 | Core proof, payment link, booking, intake, and customer setup workflows. |
-| Growth         | `$49-$59/mo`             | Businesses improving follow-up   | Reviews, referrals, campaign setup, and growth planning.                 |
-| Pro / Business | `$79-$99/mo`             | Established businesses           | More complete operating workflows and team needs.                        |
-| Agency / Scale | `$149-$199/mo or custom` | Agencies and larger teams        | Requires careful permissions, support, and customer data controls.       |
+| SONARA One Growth         | `$59/mo`             | Businesses improving follow-up   | Reviews, referrals, campaign setup, and growth planning.                 |
+| SONARA One Pro | `$99/mo`             | Established businesses           | More complete operating workflows and team needs.                        |
+| SONARA One Agency/Scale | `$199/mo or custom` | Agencies and larger teams        | Requires careful permissions, support, and customer data controls.       |
 
 ## Setup Services
 
