@@ -1,6 +1,7 @@
 const request = require("supertest");
 const assert = require("assert");
 const crypto = require("node:crypto");
+const { URLSearchParams } = require("node:url");
 const app = require("../server");
 
 describe("public site", () => {
@@ -500,6 +501,34 @@ describe("auth setup", () => {
     assert.equal(res.body.code, "setup_required");
   });
 
+  it("POST /auth/login uses public Supabase Auth config without requiring the service role key", async function() {
+    const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/token")) {
+        return { ok: true, json: async () => ({ access_token: "customer-session-token", expires_in: 3600 }) };
+      }
+      return { ok: false, json: async () => [] };
+    };
+
+    const res = await request(app).post("/auth/login").send({ email: "owner@example.com", password: "password123" });
+
+    global.fetch = originalFetch;
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.sessionStored, true);
+  });
+
   it("POST /auth/signup returns setup_required when Supabase is missing", async function() {
     const keys = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
     const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
@@ -518,13 +547,42 @@ describe("auth setup", () => {
 });
 
 describe("product module APIs", () => {
+  const supabaseEnvKeys = [
+    "SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY"
+  ];
+  const organizationId = "00000000-0000-0000-0000-000000000061";
+  let originalSupabaseEnv;
+
+  beforeEach(() => {
+    originalSupabaseEnv = Object.fromEntries(supabaseEnvKeys.map((key) => [key, process.env[key]]));
+    for (const key of supabaseEnvKeys) delete process.env[key];
+  });
+
+  afterEach(() => {
+    for (const key of supabaseEnvKeys) {
+      if (originalSupabaseEnv[key] === undefined) delete process.env[key];
+      else process.env[key] = originalSupabaseEnv[key];
+    }
+  });
+
+  function configureSupabase() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+  }
+
   it("POST /api/business-builder/offers validates input", async function() {
     const res = await request(app).post("/api/business-builder/offers").send({});
     assert.equal(res.status, 400);
     assert.equal(res.body.code, "validation_failed");
   });
 
-  it("POST /api/business-builder/offers returns deterministic output", async function() {
+  it("POST /api/business-builder/offers requires customer auth before returning free module output", async function() {
+    configureSupabase();
     const res = await request(app).post("/api/business-builder/offers").send({
       serviceType: "mobile detailing",
       audience: "busy local drivers",
@@ -532,9 +590,45 @@ describe("product module APIs", () => {
       deliverables: "wash, wax, interior",
       proofPoints: "insured, local"
     });
+    assert.equal(res.status, 401);
+    assert.equal(res.body.code, "customer_auth_required");
+  });
+
+  it("POST /api/business-builder/offers returns deterministic free output for authenticated customers", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000101", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/module_outputs") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "module-output-1" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).post("/api/business-builder/offers").set("Authorization", "Bearer customer-session").send({
+      serviceType: "mobile detailing",
+      audience: "busy local drivers",
+      priceIdea: "$99",
+      deliverables: "wash, wax, interior",
+      proofPoints: "insured, local"
+    });
+
+    global.fetch = originalFetch;
+
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
+    assert.equal(res.body.saved, true);
     assert.equal(res.body.output.pricePosition, "$99");
+    const insert = calls.find((call) => call.url.includes("/module_outputs") && call.method === "POST");
+    assert.ok(insert);
+    assert.equal(JSON.parse(insert.body).organization_id, organizationId);
   });
 
   it("POST /api/creator-studio/offers validates input", async function() {
@@ -545,6 +639,57 @@ describe("product module APIs", () => {
   it("POST /api/growth-studio/campaigns validates input", async function() {
     const res = await request(app).post("/api/growth-studio/campaigns").send({});
     assert.equal(res.status, 400);
+  });
+
+  it("GET /api/business-builder/records stays locked without paid billing state", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000102", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/billing_entitlements")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/api/business-builder/records").set("Authorization", "Bearer customer-session");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 402);
+    assert.equal(res.body.code, "upgrade_required");
+  });
+
+  it("GET /api/business-builder/records unlocks only from active billing entitlement state", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000103", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/billing_entitlements")) {
+        return { ok: true, json: async () => [{ entitlement_key: "starter_monthly", status: "active" }] };
+      }
+      if (String(url).includes("/module_outputs")) {
+        return { ok: true, json: async () => [{ id: "module-output-1", module_key: "offer_builder" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/api/business-builder/records").set("Authorization", "Bearer customer-session");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.code, "records_available");
+    assert.equal(res.body.records.length, 1);
   });
 });
 
@@ -736,6 +881,29 @@ describe("pricing and checkout", () => {
     }
   });
 
+  function configureSupabaseForCheckout() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+  }
+
+  function mockCheckoutFetch(calls = []) {
+    const organizationId = "00000000-0000-0000-0000-000000000071";
+    return async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000104", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
+        return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
+      }
+      return { ok: true, json: async () => [] };
+    };
+  }
+
   it("GET /pricing returns pricing cards", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -782,7 +950,14 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/checkout/session returns setup_required when Stripe is missing", async function() {
-    const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
+    configureSupabaseForCheckout();
+    const originalFetch = global.fetch;
+    global.fetch = mockCheckoutFetch();
+
+    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+
+    global.fetch = originalFetch;
+
     assert.equal(res.status, 503);
     assert.equal(res.body.code, "setup_required");
     assert.equal(res.body.service, "stripe_secret_key");
@@ -795,29 +970,50 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/checkout/session rejects plan with missing price env", async function() {
+    configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
-    const res = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
+    const originalFetch = global.fetch;
+    global.fetch = mockCheckoutFetch();
+
+    const res = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+
+    global.fetch = originalFetch;
+
     assert.equal(res.status, 503);
     assert.equal(res.body.service, "stripe_price");
     assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY");
     assert.equal(res.body.reason, "missing");
   });
 
+  it("POST /api/checkout/session redirects browser form posts to login before auth", async function() {
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
+    process.env.APP_URL = "https://sonaraindustries.com";
+    configureSupabaseForCheckout();
+
+    const res = await request(app)
+      .post("/api/checkout/session")
+      .type("form")
+      .set("Accept", "text/html")
+      .send({ plan: "starter_monthly" });
+
+    assert.equal(res.status, 303);
+    assert.equal(res.headers.location, "/login");
+  });
+
   it("POST /api/checkout/session redirects browser form posts to Stripe", async function() {
+    configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
     process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
     process.env.APP_URL = "https://sonaraindustries.com";
 
+    const calls = [];
     const originalFetch = global.fetch;
-    global.fetch = async (url) => {
-      if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
-        return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
-      }
-      return originalFetch(url);
-    };
+    global.fetch = mockCheckoutFetch(calls);
 
     const res = await request(app)
       .post("/api/checkout/session")
+      .set("Authorization", "Bearer customer-session")
       .type("form")
       .set("Accept", "text/html")
       .send({ plan: "starter_monthly" });
@@ -826,23 +1022,27 @@ describe("pricing and checkout", () => {
 
     assert.equal(res.status, 303);
     assert.equal(res.headers.location, "https://checkout.stripe.com/c/session_test");
+    const stripeCall = calls.find((call) => call.url.includes("api.stripe.com/v1/checkout/sessions"));
+    assert.ok(stripeCall);
+    const params = new URLSearchParams(stripeCall.body);
+    assert.equal(params.get("metadata[plan]"), "starter_monthly");
+    assert.equal(params.get("metadata[organization_id]"), "00000000-0000-0000-0000-000000000071");
+    assert.equal(params.get("subscription_data[metadata][plan]"), "starter_monthly");
+    assert.equal(params.get("subscription_data[metadata][organization_id]"), "00000000-0000-0000-0000-000000000071");
   });
 
   it("POST /api/checkout/session returns JSON for API callers", async function() {
+    configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
     process.env.STRIPE_PRICE_STARTER_MONTHLY = validStarterPrice;
     process.env.APP_URL = "https://sonaraindustries.com";
 
     const originalFetch = global.fetch;
-    global.fetch = async (url) => {
-      if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
-        return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
-      }
-      return originalFetch(url);
-    };
+    global.fetch = mockCheckoutFetch();
 
     const res = await request(app)
       .post("/api/checkout/session")
+      .set("Authorization", "Bearer customer-session")
       .set("Accept", "application/json")
       .send({ plan: "starter_monthly" });
 
@@ -853,10 +1053,13 @@ describe("pricing and checkout", () => {
   });
 
   it("Stripe price validation rejects secret, product, and customer prefixes", async function() {
+    configureSupabaseForCheckout();
     process.env.STRIPE_SECRET_KEY = validStripeSecret;
     process.env.STRIPE_PRICE_STARTER_MONTHLY = invalidPriceSecretPrefix;
     process.env.STRIPE_PRICE_CORE_MONTHLY = "prod_wrong";
     process.env.STRIPE_PRICE_PRO_MONTHLY = "cus_wrong";
+    const originalFetch = global.fetch;
+    global.fetch = mockCheckoutFetch();
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.status, 200);
@@ -865,7 +1068,8 @@ describe("pricing and checkout", () => {
     assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY or STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY"));
     assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY"));
 
-    const checkout = await request(app).post("/api/checkout/session").send({ plan: "starter_monthly" });
+    const checkout = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
+    global.fetch = originalFetch;
     assert.equal(checkout.status, 503);
     assert.equal(checkout.body.reason, "invalid_prefix");
   });

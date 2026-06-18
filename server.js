@@ -410,8 +410,19 @@ app.post("/api/checkout/session", async (req, res) => {
   const plan = String(req.body.plan || "").trim();
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
   if (plan === "free") {
-    if (wantsJson(req)) return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/contact" });
-    return res.redirect(303, "/contact");
+    if (wantsJson(req)) return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/dashboard" });
+    return res.redirect(303, "/dashboard");
+  }
+
+  const customer = await resolveCustomerSession(req);
+  if (!customer.ok) {
+    if (acceptsHtml(req)) return res.redirect(303, "/login");
+    return res.status(customer.status).json(customer.body);
+  }
+
+  const organization = await getCustomerPrimaryOrganization(customer.user);
+  if (!organization.ok) {
+    return res.status(503).json({ ok: false, code: "setup_required", service: "customer_organization", reason: organization.code });
   }
 
   const secretStatus = getStripeSecretStatus();
@@ -424,7 +435,7 @@ app.post("/api/checkout/session", async (req, res) => {
     return res.status(503).json({ ok: false, code: "setup_required", service: "stripe_price", plan, reason: priceStatus.status, env: priceStatus.env });
   }
 
-  const session = await createStripeCheckoutSession(req, plan, priceStatus.priceId);
+  const session = await createStripeCheckoutSession(req, plan, priceStatus.priceId, organization.organizationId);
   if (!session.ok || !session.url) return res.status(502).json({ ok: false, code: "checkout_unavailable" });
   if (wantsJson(req)) return res.status(200).json({ ok: true, checkout_url: session.url });
   return res.redirect(303, session.url);
@@ -532,63 +543,75 @@ app.post("/business-builder/invite/accept", async (req, res) => {
 app.post("/api/business-builder/offers", async (req, res) => {
   const validation = requireFields(req.body, ["serviceType", "audience", "priceIdea", "deliverables"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = buildBusinessOffer(req.body);
-  return res.status(200).json(await saveModuleOutput("business_builder", "offer_builder", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = buildBusinessOffer(req.body);
+    return res.status(200).json(await saveModuleOutput(req, "business_builder", "offer_builder", req.body, output));
+  });
 });
 
 app.post("/api/business-builder/intake", async (req, res) => {
   const validation = requireFields(req.body, ["name", "email", "message", "serviceInterest"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = {
-    referenceId: randomUUID(),
-    summary: `${req.body.name} requested ${req.body.serviceInterest}.`,
-    nextAction: "Review request and follow up through the support queue."
-  };
-  return res.status(200).json(await saveModuleOutput("business_builder", "intake_queue", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = {
+      referenceId: randomUUID(),
+      summary: `${req.body.name} requested ${req.body.serviceInterest}.`,
+      nextAction: "Review request and follow up through the support queue."
+    };
+    return res.status(200).json(await saveModuleOutput(req, "business_builder", "intake_queue", req.body, output));
+  });
 });
 
-app.get("/api/business-builder/records", async (req, res) => res.status(200).json(await readModuleRecords("business_builder")));
+app.get("/api/business-builder/records", requireCustomer, requirePaidEntitlement("business_builder"), async (req, res) => res.status(200).json(await readModuleRecords(req, "business_builder")));
 app.get("/api/business-builder/readiness", (req, res) => res.status(200).json(productReadinessJson("business_builder")));
 
 app.post("/api/creator-studio/assets", async (req, res) => {
   const validation = requireFields(req.body, ["title", "type", "platform", "status", "rightsNotes"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = {
-    title: String(req.body.title),
-    rightsReview: "Rights notes captured for owner review.",
-    nextAction: "Add platform, status, and release checklist before monetization."
-  };
-  return res.status(200).json(await saveModuleOutput("creator_studio", "asset_catalog", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = {
+      title: String(req.body.title),
+      rightsReview: "Rights notes captured for owner review.",
+      nextAction: "Add platform, status, and release checklist before monetization."
+    };
+    return res.status(200).json(await saveModuleOutput(req, "creator_studio", "asset_catalog", req.body, output));
+  });
 });
 
 app.post("/api/creator-studio/offers", async (req, res) => {
   const validation = requireFields(req.body, ["offerType", "audience", "deliverables", "priceIdea"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = buildCreatorOffer(req.body);
-  return res.status(200).json(await saveModuleOutput("creator_studio", "creator_offers", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = buildCreatorOffer(req.body);
+    return res.status(200).json(await saveModuleOutput(req, "creator_studio", "creator_offers", req.body, output));
+  });
 });
 
-app.get("/api/creator-studio/records", async (req, res) => res.status(200).json(await readModuleRecords("creator_studio")));
+app.get("/api/creator-studio/records", requireCustomer, requirePaidEntitlement("creator_studio"), async (req, res) => res.status(200).json(await readModuleRecords(req, "creator_studio")));
 app.get("/api/creator-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("creator_studio")));
 
 app.post("/api/growth-studio/campaigns", async (req, res) => {
   const validation = requireFields(req.body, ["goal", "audience", "offer", "channel", "timeline"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = buildCampaignPlan(req.body);
-  return res.status(200).json(await saveModuleOutput("growth_studio", "campaign_workspace", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = buildCampaignPlan(req.body);
+    return res.status(200).json(await saveModuleOutput(req, "growth_studio", "campaign_workspace", req.body, output));
+  });
 });
 
 app.post("/api/growth-studio/leads", async (req, res) => {
   const validation = requireFields(req.body, ["name", "email", "source", "consentStatus"]);
   if (!validation.ok) return res.status(400).json(validation);
-  const output = {
-    followUpPlan: "Confirm consent, use truthful subject/from lines, include unsubscribe language for commercial email, and keep audience source notes.",
-    nextAction: "Review lead before any outreach."
-  };
-  return res.status(200).json(await saveModuleOutput("growth_studio", "lead_follow_up", req.body, output));
+  return requireCustomer(req, res, async () => {
+    const output = {
+      followUpPlan: "Confirm consent, use truthful subject/from lines, include unsubscribe language for commercial email, and keep audience source notes.",
+      nextAction: "Review lead before any outreach."
+    };
+    return res.status(200).json(await saveModuleOutput(req, "growth_studio", "lead_follow_up", req.body, output));
+  });
 });
 
-app.get("/api/growth-studio/records", async (req, res) => res.status(200).json(await readModuleRecords("growth_studio")));
+app.get("/api/growth-studio/records", requireCustomer, requirePaidEntitlement("growth_studio"), async (req, res) => res.status(200).json(await readModuleRecords(req, "growth_studio")));
 app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("growth_studio")));
 
 app.get("/api/health", (req, res) => res.status(200).json({ ok: true }));
@@ -1004,7 +1027,7 @@ function businessEmployeeInviteForm() {
       <label>Employee name<input name="name" type="text" required></label>
       <label>Employee email<input name="email" type="email" required></label>
       <label>Role<select name="role" required><option value="employee">Employee</option><option value="manager">Manager</option></select></label>
-      <label>Permissions<input name="permissions" type="text" placeholder="intake,records,readiness"></label>
+      <label>Permissions<input name="permissions" type="text" aria-label="Permissions such as intake, records, readiness"></label>
       <p class="fine">Do not enter an employee password. Employees set their own password through the invite flow.</p>
       <button type="submit">Create invite</button>
     </form>
@@ -1445,6 +1468,17 @@ function isSupabaseConfigured() {
   return getReadiness().services.supabase === "configured";
 }
 
+function isSupabaseAuthConfigured() {
+  return Boolean(getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]) && getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]));
+}
+
+function getSupabaseAuthConfig() {
+  const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
+  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
+  if (!url || !anonKey) return { ok: false };
+  return { ok: true, url: url.replace(/\/$/, ""), anonKey };
+}
+
 function getSupabaseServerClient() {
   return getSupabaseServerConfig();
 }
@@ -1464,29 +1498,32 @@ async function safeInsertSupportRequest(record) {
   return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
 }
 
-async function safeInsertModuleOutput(productKey, moduleKey, input, output) {
+async function safeInsertModuleOutput(organizationId, productKey, moduleKey, input, output) {
   const config = getSupabaseAdminClient();
   if (!config.ok) return { ok: false, code: "setup_required" };
+  if (!organizationId) return { ok: false, code: "organization_setup_required" };
   const response = await fetch(`${config.url}/rest/v1/module_outputs`, {
     method: "POST",
     headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify({ product_key: productKey, module_key: moduleKey, input_payload: input, output_payload: output })
+    body: JSON.stringify({ organization_id: organizationId, product_key: productKey, module_key: moduleKey, input_payload: input, output_payload: output })
   }).catch(() => undefined);
   return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
 }
 
-async function safeReadOrganizationScopedRecords(productKey) {
+async function safeReadOrganizationScopedRecords(organizationId, productKey) {
   const config = getSupabaseAdminClient();
   if (!config.ok) return { ok: false, code: "setup_required", records: [] };
-  const response = await fetch(`${config.url}/rest/v1/module_outputs?select=id,module_key,created_at,output_payload&product_key=eq.${encodeURIComponent(productKey)}&order=created_at.desc&limit=20`, {
+  if (!organizationId) return { ok: false, code: "organization_setup_required", records: [] };
+  const response = await fetch(`${config.url}/rest/v1/module_outputs?select=id,module_key,created_at,output_payload&organization_id=eq.${encodeURIComponent(organizationId)}&product_key=eq.${encodeURIComponent(productKey)}&order=created_at.desc&limit=20`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
   if (!response?.ok) return { ok: false, code: "read_failed", records: [] };
   return { ok: true, records: await response.json().catch(() => []) };
 }
 
-async function saveModuleOutput(productKey, moduleKey, input, output) {
-  const saved = await safeInsertModuleOutput(productKey, moduleKey, input, output);
+async function saveModuleOutput(req, productKey, moduleKey, input, output) {
+  const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+  const saved = await safeInsertModuleOutput(organization.organizationId, productKey, moduleKey, input, output);
   return {
     ok: true,
     saved: saved.ok,
@@ -1497,8 +1534,9 @@ async function saveModuleOutput(productKey, moduleKey, input, output) {
   };
 }
 
-async function readModuleRecords(productKey) {
-  const result = await safeReadOrganizationScopedRecords(productKey);
+async function readModuleRecords(req, productKey) {
+  const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+  const result = await safeReadOrganizationScopedRecords(organization.organizationId, productKey);
   return {
     ok: true,
     saved: result.ok,
@@ -1577,7 +1615,7 @@ function missingEnvGroups(groups) {
 }
 
 async function handleEmailAuth(mode, body) {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseAuthConfigured()) {
     return { status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
   }
   const email = String(body.email || "").trim();
@@ -1587,7 +1625,7 @@ async function handleEmailAuth(mode, body) {
   }
 
   const endpoint = mode === "signup" ? "/auth/v1/signup" : "/auth/v1/token?grant_type=password";
-  const config = getSupabaseServerClient();
+  const config = getSupabaseAuthConfig();
   const response = await fetch(`${config.url}${endpoint}`, {
     method: "POST",
     headers: {
@@ -1647,7 +1685,7 @@ function clearCustomerSessionCookie(res) {
 }
 
 async function requireCustomer(req, res, next) {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseAuthConfigured()) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
     return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
   }
@@ -1664,13 +1702,44 @@ async function requireCustomer(req, res, next) {
   return next();
 }
 
+async function resolveCustomerSession(req) {
+  if (!isSupabaseAuthConfigured()) {
+    return { ok: false, status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
+  }
+
+  const sessionToken = getCustomerSessionToken(req);
+  if (!sessionToken) {
+    return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
+  }
+
+  const verification = await verifySupabaseAccessToken(sessionToken);
+  if (!verification.ok) return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
+  return { ok: true, user: verification.user };
+}
+
+function requirePaidEntitlement(productKey) {
+  return async (req, res, next) => {
+    const entitlement = await getCustomerPaidEntitlement(req.sonaraUser, productKey);
+    if (!entitlement.ok) {
+      return res.status(entitlement.status || 402).json({
+        ok: false,
+        code: entitlement.code || "upgrade_required",
+        productKey,
+        message: entitlement.message || "Upgrade required. Paid records unlock only after Stripe webhook billing state is recorded.",
+        upgrade_url: "/pricing"
+      });
+    }
+    req.sonaraEntitlement = entitlement;
+    return next();
+  };
+}
+
 async function verifySupabaseAccessToken(accessToken) {
-  const config = getSupabaseServerClient();
-  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
-  if (!config.ok || !anonKey) return { ok: false };
+  const config = getSupabaseAuthConfig();
+  if (!config.ok) return { ok: false };
   const response = await fetch(`${config.url}/auth/v1/user`, {
     headers: {
-      apikey: anonKey,
+      apikey: config.anonKey,
       Authorization: `Bearer ${accessToken}`
     }
   }).catch(() => undefined);
@@ -1733,6 +1802,73 @@ async function requireBusinessManager(req, res, next) {
   return next();
 }
 
+async function getCustomerPrimaryOrganization(user) {
+  const config = getSupabaseServerConfig();
+  const userId = String(user?.id || "").trim();
+  if (!config.ok) return { ok: false, code: "setup_required" };
+  if (!userId) return { ok: false, code: "customer_auth_required" };
+
+  const organizationMembership = await fetch(`${config.url}/rest/v1/organization_members?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&limit=1`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (organizationMembership?.ok) {
+    const rows = await organizationMembership.json().catch(() => []);
+    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_members" };
+  }
+
+  const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (businessMembership?.ok) {
+    const rows = await businessMembership.json().catch(() => []);
+    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "business_memberships" };
+  }
+
+  return { ok: false, code: "organization_membership_missing" };
+}
+
+async function getCustomerPaidEntitlement(user, productKey) {
+  const organization = await getCustomerPrimaryOrganization(user);
+  if (!organization.ok) return { ok: false, status: 402, code: "upgrade_required", reason: organization.code };
+
+  const config = getSupabaseServerConfig();
+  const allowedKeys = getPaidEntitlementKeys(productKey);
+  const entitlementResponse = await fetch(`${config.url}/rest/v1/billing_entitlements?select=entitlement_key,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=eq.active`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (entitlementResponse?.ok) {
+    const rows = await entitlementResponse.json().catch(() => []);
+    const match = rows.find((row) => allowedKeys.includes(row.entitlement_key) && row.status === "active");
+    if (match) return { ok: true, organizationId: organization.organizationId, source: "billing_entitlements", entitlementKey: match.entitlement_key };
+  }
+
+  const subscriptionResponse = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (subscriptionResponse?.ok) {
+    const rows = await subscriptionResponse.json().catch(() => []);
+    const match = rows.find((row) => allowedKeys.includes(row.plan_slug) && ["active", "trialing"].includes(row.status));
+    if (match) return { ok: true, organizationId: organization.organizationId, source: "billing_subscriptions", entitlementKey: match.plan_slug };
+  }
+
+  return {
+    ok: false,
+    status: 402,
+    code: "upgrade_required",
+    reason: "billing_state_missing",
+    message: "Paid access is locked until Stripe webhook records show an active or trialing subscription, or an active one-time entitlement."
+  };
+}
+
+function getPaidEntitlementKeys(productKey) {
+  const map = {
+    business_builder: ["starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"],
+    creator_studio: ["core_monthly", "pro_monthly"],
+    growth_studio: ["pro_monthly"]
+  };
+  return map[productKey] || [];
+}
+
 async function verifyAdminRequest(req) {
   if (isAdminTokenValid(getAdminRequestToken(req))) return { ok: true, method: "admin_token" };
   if (isAdminSessionCookieValid(req)) return { ok: true, method: "admin_cookie" };
@@ -1793,7 +1929,7 @@ function getAdminCredentialStatus() {
       configured: true,
       ok: safePassword,
       source: "password",
-      warning: safePassword ? "Ready" : "Founder password must be at least 12 characters and must not be an all-A placeholder."
+      warning: safePassword ? "Ready" : "Founder password must be at least 12 characters and must not use an unsafe repeated test value."
     };
   }
 
@@ -1804,7 +1940,7 @@ function getAdminCredentialStatus() {
       configured: true,
       ok: safeLegacy,
       source: "legacy",
-      warning: safeLegacy ? "Ready" : "Founder password fallback must be at least 32 characters and must not be an all-A placeholder."
+      warning: safeLegacy ? "Ready" : "Founder password fallback must be at least 32 characters and must not use an unsafe repeated test value."
     };
   }
 
@@ -1966,7 +2102,7 @@ function isValidPlan(plan) {
   return Object.prototype.hasOwnProperty.call(STRIPE_PLANS, plan);
 }
 
-async function createStripeCheckoutSession(req, plan, priceId) {
+async function createStripeCheckoutSession(req, plan, priceId, organizationId) {
   const urls = getCheckoutRedirectUrls(req);
   const params = new URLSearchParams({
     mode: STRIPE_PLANS[plan].mode,
@@ -1974,8 +2110,13 @@ async function createStripeCheckoutSession(req, plan, priceId) {
     cancel_url: urls.cancelUrl,
     "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
-    "metadata[plan]": plan
+    "metadata[plan]": plan,
+    "metadata[organization_id]": organizationId
   });
+  if (STRIPE_PLANS[plan].mode === "subscription") {
+    params.set("subscription_data[metadata][plan]", plan);
+    params.set("subscription_data[metadata][organization_id]", organizationId);
+  }
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
     headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
