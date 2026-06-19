@@ -1,4 +1,5 @@
 const express = require("express");
+<<<<<<< HEAD
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
@@ -2825,3 +2826,20 @@ function redactSensitiveText(value) {
 function escapeHtml(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+=======
+const app = express();
+
+const port = process.env.PORT || 5000;
+
+app.get("/", (req, res) => {
+  return res.status(200).send({
+    message: "Hello World!",
+  });
+});
+
+app.listen(port, () => {
+  console.log("Listening on " + port);
+});
+
+module.exports = app;
+>>>>>>> origin/main

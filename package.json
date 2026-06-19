@@ -1,7 +1,13 @@
 {
+<<<<<<< HEAD
   "name": "sonara-os",
   "version": "0.0.0",
   "private": true,
+=======
+  "name": "demo",
+  "version": "0.0.0",
+  "private": "true",
+>>>>>>> origin/main
   "main": "server.js",
   "scripts": {
     "vercel-build": "echo No build step required",
@@ -9,8 +15,12 @@
     "start": "node server.js",
     "build": "echo No build step required",
     "lint": "eslint .",
+<<<<<<< HEAD
     "typecheck": "echo No TypeScript configured",
     "scan:client-secrets": "node scripts/client-secret-scan.cjs"
+=======
+    "typecheck": "echo No TypeScript configured"
+>>>>>>> origin/main
   },
   "license": "MIT",
   "devDependencies": {
