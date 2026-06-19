@@ -49,7 +49,8 @@ const LEGAL = {
   cookies: ["Cookie Policy", "Template cookie notice. Current cookies are used for account and admin sessions."],
   "acceptable-use": ["Acceptable Use", "Users may not abuse the system, attempt unauthorized access, upload unlawful material, or use workflows for deceptive outreach."],
   accessibility: ["Accessibility", "Template accessibility statement. The interface includes labels, focus states, keyboard-friendly controls, and responsive layouts; production testing is still required."],
-  "earnings-disclaimer": ["Earnings Disclaimer", "SONARA helps structure launch operations. It does not promise revenue, profit, customers, investment, or business success."]
+  "earnings-disclaimer": ["Earnings Disclaimer", "SONARA helps structure launch operations. It does not promise revenue, profit, customers, investment, or business success."],
+  "subprocessor-notice": ["Subprocessor Notice", "This template explains how SONARA Industries may use subprocessors for hosting, payments, email delivery, analytics, authentication, monitoring, and support operations. This is a template and requires qualified legal review before production use."]
 };
 
 app.use(express.static("public"));
@@ -155,7 +156,12 @@ app.get("/api/admin/overview", requireAdmin, async (req, res) => res.json({ ok: 
 app.get("/api/admin/env-status", requireAdmin, (req, res) => res.json({ ok: true, env: envStatus() }));
 app.get("/admin", requireAdmin, async (req, res) => { const o = await overview(); return page(res, "Admin Overview", "Founder operations", "Admin overview", "Operational counts, payment state, intake, support, activity, audit logs, and env readiness. No secrets are displayed.", [adminCards(o), readinessCard(), activityCard(o.recentActivity || []), auditCard(o.auditLogs || [])], [link("/api/admin/overview", "Overview API"), link("/api/admin/env-status", "Env status API"), adminLogout()]); });
 
-for (const [slug, data] of Object.entries(LEGAL)) for (const route of [`/${slug}`, `/legal/${slug}`]) app.get(route, (req, res) => page(res, data[0], "Legal template", data[0], data[1], [card("Counsel review required", "This is a plain-language template, not legal advice. Have qualified counsel review before production use.")], [link("/", "Home"), link("/pricing", "Pricing")]));
+for (const [slug, data] of Object.entries(LEGAL)) for (const route of [`/${slug}`, `/legal/${slug}`]) app.get(route, (req, res) => page(res, data[0], "Legal template", data[0], data[1], legalCards(slug), [link("/", "Home"), link("/pricing", "Pricing")]));
+
+app.use((req, res) => {
+  if (wantsJson(req)) return res.status(404).json({ ok: false, code: "not_found", error: "not_found", message: "Unknown route." });
+  return res.status(404).type("html").send(responsePage("Page not found", "Unknown route.", [link("/", "Home"), link("/help", "Help")]));
+});
 
 async function requireCustomer(req, res, next) { const a = await resolveAccess(req, CUSTOMER_COOKIE); if (a.ok) { req.access = a; return next(); } if (ready().accountDatabase === "missing") return setupPage(req, res); return wantsJson(req) ? res.status(401).json({ ok: false, code: "auth_required" }) : res.redirect(303, "/login"); }
 async function requireAdmin(req, res, next) { const a = await resolveAccess(req, ADMIN_COOKIE); if (isAdmin(a)) { req.access = a; return next(); } return wantsJson(req) ? res.status(a.setupRequired ? 503 : 401).json({ ok: false, code: a.setupRequired ? "setup_required" : "admin_auth_required" }) : res.redirect(303, "/admin/login"); }
@@ -232,6 +238,7 @@ function link(h, t) { return `<a class="action" href="${esc(h)}">${esc(t)}</a>`;
 function logout() { return `<form class="inline" method="post" action="/logout"><button class="action buttonish" type="submit">Logout</button></form>`; }
 function adminLogout() { return `<form class="inline" method="post" action="/admin/logout"><button class="action buttonish" type="submit">Logout</button></form>`; }
 function responsePage(title, body, actions) { return layout({ title, eyebrow: "System response", heading: title, body, sections: [], actions }); }
+function legalCards(slug) { return slug === "subprocessor-notice" ? [card("Service providers", "SONARA Industries may use subprocessors for hosting, payments, email delivery, analytics, authentication, monitoring, and support operations."), card("Data handling", "Subprocessors should receive only the data needed to provide the service, subject to provider terms, contracts, and production configuration."), card("Review required", "This legal template requires qualified legal review before production use. It is not legal advice.")] : [card("Counsel review required", "This is a plain-language template, not legal advice. Have qualified legal review before production use.")]; }
 function card(title, body, href = "") { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p>${href ? `<a class="textlink" href="${esc(href)}">Open</a>` : ""}</article>`; }
 function graphic(body) { return `<article class="card graphic"><div class="orb"></div><div class="nodes"><span></span><span></span><span></span></div><h2>Operating map</h2><p>${esc(body)}</p></article>`; }
 function gate(title, body, ok) { return `<article class="card ${ok ? "ok" : "locked"}"><h2>${esc(title)}</h2><p>${esc(ok ? body : `Locked: ${body}`)}</p><p class="fine">${ok ? "Access granted by role or verified billing state." : "Upgrade or complete setup to unlock. No hardcoded paid access."}</p></article>`; }
