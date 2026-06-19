@@ -61,6 +61,13 @@ describe("public site", () => {
     assert.doesNotMatch(res.text, /Setup checklist/);
   });
 
+  it("business builder landing does not duplicate Launch Setup Checklist CTAs", async function() {
+    const res = await request(app).get("/business-builder").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    const ctas = res.text.match(/<a class="action" href="\/business-builder\/launch-readiness">Launch checklist<\/a>/g) || [];
+    assert.equal(ctas.length, 1);
+  });
+
   it("pricing uses readable setup text", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -154,21 +161,34 @@ describe("health and readiness", () => {
   it("GET /api/health returns ok", async function() {
     const res = await request(app).get("/api/health").set("Accept", "application/json");
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { ok: true });
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.app, "sonara-industries");
+    assert.equal(res.body.runtime, "express");
+    assert.ok(res.body.deployment);
+    assert.ok(res.body.deployment.commitSha);
+    assert.ok(res.body.deployment.branch);
+    assert.ok(res.body.deployment.environment);
+    assert.ok(res.body.timestamp);
+    assert.doesNotMatch(JSON.stringify(res.body), /sk_|whsec_|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY/);
   });
 
   it("GET /api/readiness returns non-secret flags", async function() {
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
-    assert.ok(["configured", "missing"].includes(res.body.services.supabase));
-    assert.ok(["configured", "missing"].includes(res.body.services.stripe));
-    assert.ok(["configured", "missing"].includes(res.body.services.resend));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.supabase));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.stripe));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.resend));
     assert.ok(["configured", "missing", "deferred"].includes(res.body.services.googleOAuth));
-    assert.ok(["configured", "missing"].includes(res.body.services.adminProtection));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.adminProtection));
     assert.equal(res.body.services.legalPages, "review_required");
     assert.ok(["enabled", "setup_required"].includes(res.body.services.checkout));
-    assert.ok(["enabled", "setup_required"].includes(res.body.services.emailDelivery));
+    assert.ok(["enabled", "setup_required", "invalid"].includes(res.body.services.emailDelivery));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.accountDatabase));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentConnection));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentUpdates));
+    assert.equal(res.body.services.googleSignIn, "deferred");
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.founderAccess));
     assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
     assert.equal(res.text.includes("STRIPE_SECRET_KEY="), false);
   });
@@ -197,17 +217,17 @@ describe("health and readiness", () => {
     const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
     for (const key of keys) delete process.env[key];
 
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-    process.env.RESEND_API_KEY = "resend-placeholder";
-    process.env.RESEND_FROM_EMAIL = "support@example.com";
-    process.env.CONTACT_TO_EMAIL = "owner@example.com";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-status.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_status_check_value_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_status_check_value_1234567890";
+    process.env.RESEND_API_KEY = "re_status_check_value_1234567890";
+    process.env.RESEND_FROM_EMAIL = "support@sonaraindustries.com";
+    process.env.CONTACT_TO_EMAIL = "owner@sonaraindustries.com";
     process.env.GOOGLE_CLIENT_ID = "google-client-placeholder";
     process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
     process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
     process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
-    process.env.ADMIN_EMAIL = "owner@example.com";
+    process.env.ADMIN_EMAIL = "owner@sonaraindustries.com";
 
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
 
@@ -223,6 +243,52 @@ describe("health and readiness", () => {
     assert.equal(res.body.services.adminProtection, "configured");
     assert.doesNotMatch(res.text, /service-role-placeholder/);
     assert.doesNotMatch(res.text, /google-secret-placeholder/);
+  });
+
+  it("GET /api/readiness marks placeholder provider values invalid", async function() {
+    const keys = [
+      "SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "RESEND_API_KEY",
+      "RESEND_FROM_EMAIL",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_PRICE_STARTER_MONTHLY",
+      "ADMIN_EMAILS",
+      "ADMIN_EMAIL",
+      "FOUNDER_EMAILS"
+    ];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://your-project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.RESEND_API_KEY = "resend-placeholder";
+    process.env.RESEND_FROM_EMAIL = "sender@example.com";
+    process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.ADMIN_EMAILS = "your-email@example.com";
+
+    const res = await request(app).get("/api/readiness").set("Accept", "application/json");
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.services.supabase, "invalid");
+    assert.equal(res.body.services.stripe, "invalid");
+    assert.equal(res.body.services.stripeWebhook, "invalid");
+    assert.equal(res.body.services.resend, "invalid");
+    assert.equal(res.body.services.adminProtection, "invalid");
+    assert.equal(res.body.services.founderAccess, "invalid");
+    assert.ok(res.body.invalid.stripe.some((item) => item.reason === "invalid_placeholder"));
   });
 });
 
@@ -588,9 +654,9 @@ describe("product module APIs", () => {
   });
 
   function configureSupabase() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-employees.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_employee_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_employee_status_key_1234567890";
   }
 
   it("POST /api/business-builder/offers validates input", async function() {
@@ -624,6 +690,9 @@ describe("product module APIs", () => {
       if (String(url).includes("/organization_members")) {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
+      if (String(url).includes("/activity_events")) {
+        return { ok: true, json: async () => [{ id: "activity-1" }] };
+      }
       if (String(url).includes("/module_outputs") && options.method === "POST") {
         return { ok: true, json: async () => [{ id: "module-output-1" }] };
       }
@@ -647,6 +716,82 @@ describe("product module APIs", () => {
     const insert = calls.find((call) => call.url.includes("/module_outputs") && call.method === "POST");
     assert.ok(insert);
     assert.equal(JSON.parse(insert.body).organization_id, organizationId);
+  });
+
+  it("POST /api/business-builder/intake writes intake requests and activity when configured", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000107", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/intake_requests") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "00000000-0000-0000-0000-000000000201" }] };
+      }
+      if (String(url).includes("/activity_events")) return { ok: true, json: async () => [{ id: "activity-1" }] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/business-builder/intake")
+      .set("Authorization", "Bearer customer-session")
+      .send({
+        name: "Launch Owner",
+        email: "owner@example.com",
+        serviceInterest: "business setup",
+        message: "I need help launching a service business."
+      });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.saved, true);
+    assert.equal(res.body.intakeRequestId, "00000000-0000-0000-0000-000000000201");
+    assert.ok(calls.some((call) => call.url.includes("/intake_requests") && call.method === "POST"));
+    assert.ok(calls.some((call) => call.url.includes("/activity_events") && call.method === "POST"));
+  });
+
+  it("GET and POST /api/business-builder/checklist use launch checklist records", async function() {
+    configureSupabase();
+    const checklistId = "00000000-0000-0000-0000-000000000301";
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000108", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/launch_checklist_items") && (options.method || "GET") === "GET") {
+        return { ok: true, json: async () => [{ id: checklistId, title: "Confirm offer", status: "todo" }] };
+      }
+      if (String(url).includes("/launch_checklist_items") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: checklistId, title: "Confirm offer", status: "todo" }] };
+      }
+      if (String(url).includes("/activity_events")) return { ok: true, json: async () => [{ id: "activity-1" }] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const list = await request(app).get("/api/business-builder/checklist").set("Authorization", "Bearer customer-session");
+    const create = await request(app)
+      .post("/api/business-builder/checklist")
+      .set("Authorization", "Bearer customer-session")
+      .send({ title: "Confirm offer", category: "Offer" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(list.status, 200);
+    assert.equal(list.body.items[0].id, checklistId);
+    assert.equal(create.status, 200);
+    assert.equal(create.body.saved, true);
+    assert.ok(calls.some((call) => call.url.includes("/launch_checklist_items") && call.method === "POST"));
   });
 
   it("POST /api/creator-studio/offers validates input", async function() {
@@ -760,6 +905,31 @@ describe("product module APIs", () => {
     assert.match(res.text, /Customer Records/);
     assert.match(res.text, /Paid tools are available/);
   });
+
+  it("GET /business-builder/billing renders authenticated billing actions", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000109", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/business-builder/billing").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Billing actions/);
+    assert.match(res.text, /Manage billing portal/);
+    assert.match(res.text, /Upgrade: Starter monthly/);
+  });
 });
 
 describe("business builder employee portal", () => {
@@ -788,9 +958,9 @@ describe("business builder employee portal", () => {
   });
 
   function configureSupabase() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-employees.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_employee_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_employee_status_key_1234567890";
   }
 
   it("GET /business-builder/employees redirects browser users to Business Builder login when auth is missing", async function() {
@@ -966,8 +1136,14 @@ describe("pricing and checkout", () => {
       if (String(url).includes("/organization_members")) {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
+      if (String(url).includes("api.stripe.com/v1/customers")) {
+        return { ok: true, json: async () => ({ id: "cus_test_customer" }) };
+      }
       if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
         return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
+      }
+      if (String(url).includes("/stripe_customers")) {
+        return { ok: true, json: async () => [] };
       }
       return { ok: true, json: async () => [] };
     };
@@ -1050,7 +1226,8 @@ describe("pricing and checkout", () => {
 
     assert.equal(res.status, 503);
     assert.equal(res.body.service, "stripe_price");
-    assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY");
+    assert.match(res.body.env, /STRIPE_PRICE_STARTER_MONTHLY/);
+    assert.match(res.body.env, /STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY/);
     assert.equal(res.body.reason, "missing");
   });
 
@@ -1094,10 +1271,64 @@ describe("pricing and checkout", () => {
     const stripeCall = calls.find((call) => call.url.includes("api.stripe.com/v1/checkout/sessions"));
     assert.ok(stripeCall);
     const params = new URLSearchParams(stripeCall.body);
+    assert.equal(params.get("customer"), "cus_test_customer");
     assert.equal(params.get("metadata[plan]"), "starter_monthly");
     assert.equal(params.get("metadata[organization_id]"), "00000000-0000-0000-0000-000000000071");
     assert.equal(params.get("subscription_data[metadata][plan]"), "starter_monthly");
     assert.equal(params.get("subscription_data[metadata][organization_id]"), "00000000-0000-0000-0000-000000000071");
+  });
+
+  it("POST /api/billing/create-checkout-session aliases checkout creation", async function() {
+    configureSupabaseForCheckout();
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY = validStarterPrice;
+    process.env.APP_URL = "https://sonaraindustries.com";
+
+    const originalFetch = global.fetch;
+    global.fetch = mockCheckoutFetch();
+
+    const res = await request(app)
+      .post("/api/billing/create-checkout-session")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "application/json")
+      .send({ priceKey: "business_builder_monthly" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.checkout_url, "https://checkout.stripe.com/c/session_test");
+  });
+
+  it("POST /api/billing/create-portal-session creates Stripe portal sessions safely", async function() {
+    configureSupabaseForCheckout();
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000104", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: "00000000-0000-0000-0000-000000000071" }] };
+      }
+      if (String(url).includes("/stripe_customers") && (options.method || "GET") === "GET") {
+        return { ok: true, json: async () => [{ stripe_customer_id: "cus_test_customer" }] };
+      }
+      if (String(url).includes("api.stripe.com/v1/billing_portal/sessions")) {
+        return { ok: true, json: async () => ({ url: "https://billing.stripe.com/session/test" }) };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/billing/create-portal-session")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "application/json")
+      .send({});
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.portal_url, "https://billing.stripe.com/session/test");
   });
 
   it("POST /api/checkout/session returns JSON for API callers", async function() {
@@ -1133,9 +1364,9 @@ describe("pricing and checkout", () => {
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.status, 200);
     const invalidEnvs = readiness.body.invalid.stripe.map((item) => item.env);
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY or STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY"));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_STARTER_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_CORE_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_PRO_MONTHLY")));
 
     const checkout = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
     global.fetch = originalFetch;
@@ -1150,7 +1381,7 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe rejects invalid signatures when configured", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
     const res = await request(app)
       .post("/api/webhooks/stripe")
       .set("Content-Type", "application/json")
@@ -1160,10 +1391,21 @@ describe("pricing and checkout", () => {
     assert.equal(res.body.code, "invalid_signature");
   });
 
+  it("POST /api/stripe/webhook rejects invalid signatures on the canonical endpoint", async function() {
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
+    const res = await request(app)
+      .post("/api/stripe/webhook")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", "t=123,v1=bad")
+      .send({ id: "evt_test", type: "invoice.payment_failed" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "invalid_signature");
+  });
+
   it("POST /api/webhooks/stripe audits valid failure events without unlocking access", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_webhook_status_key_1234567890";
     const payload = JSON.stringify({
       id: "evt_payment_failed",
       type: "payment_intent.payment_failed",
@@ -1195,10 +1437,10 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe records active subscription state from valid subscription events", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_webhook_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_webhook_status_key_1234567890";
     const organizationId = "00000000-0000-0000-0000-000000000051";
     const payload = JSON.stringify({
       id: "evt_subscription_updated",
@@ -1264,9 +1506,9 @@ describe("auth and admin", () => {
     originalStripeSecret = process.env.STRIPE_SECRET_KEY;
     originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-admin.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_admin_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_admin_status_key_1234567890";
     process.env.ADMIN_EMAILS = "founder@example.com";
     delete process.env.ADMIN_EMAIL;
     delete process.env.ADMIN_PASSWORD;
@@ -1415,10 +1657,10 @@ describe("auth and admin", () => {
   });
 
   it("GET /admin/login renders Supabase email/password admin form safely", async function() {
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-value-that-must-not-render";
-    process.env.STRIPE_SECRET_KEY = "sk_test_value_that_must_not_render";
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_value_that_must_not_render";
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_starter_value_that_must_not_render";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_status_key_1234567890";
+    process.env.STRIPE_SECRET_KEY = "sk_test_sonara_status_key_1234567890";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_sonara_status_key_1234567890";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_sonara_status_1234567890";
 
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -1428,18 +1670,18 @@ describe("auth and admin", () => {
     assert.match(res.text, /Password/);
     assert.match(res.text, /Sign in to admin/);
     assert.match(res.text, /Supabase email login/);
-    assert.match(res.text, /ADMIN_EMAILS \/ ADMIN_EMAIL or user_roles/);
+    assert.match(res.text, /Founder email allowlist or user_roles/);
     assert.doesNotMatch(res.text, /Admin token|ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD|ADMIN_PASSWORD_HASH/);
     assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
     assert.match(res.text, /overflow-wrap: anywhere/);
     assert.match(res.text, /word-break: break-word/);
     assert.match(res.text, /STRIPE_PRICE_STARTER_MONTHLY/);
     assert.match(res.text, /SUPABASE_SERVICE_ROLE_KEY/);
-    assert.match(res.text, /Ready/);
-    assert.doesNotMatch(res.text, /service-role-value-that-must-not-render/);
-    assert.doesNotMatch(res.text, /sk_test_value_that_must_not_render/);
-    assert.doesNotMatch(res.text, /whsec_value_that_must_not_render/);
-    assert.doesNotMatch(res.text, /price_starter_value_that_must_not_render/);
+    assert.match(res.text, /Configured/);
+    assert.doesNotMatch(res.text, /service_role_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /sk_test_sonara_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /whsec_sonara_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /price_sonara_status_1234567890/);
     assert.doesNotMatch(res.text, new RegExp(adminPassword));
   });
 
@@ -1453,8 +1695,27 @@ describe("auth and admin", () => {
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 503);
     assert.match(res.text, /Supabase email login and founder access rules are required/);
-    assert.match(res.text, /Supabase auth is not configured/);
+    assert.match(res.text, /Supabase email login/);
+    assert.match(res.text, /Missing/);
     assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD/);
+  });
+
+  it("GET /admin/login marks placeholder integration values invalid without exposing them", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://your-project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.RESEND_API_KEY = "resend-placeholder";
+    process.env.RESEND_FROM_EMAIL = "sender@example.com";
+    process.env.ADMIN_EMAILS = "your-email@example.com";
+
+    const res = await request(app).get("/admin/login").set("Accept", "text/html");
+
+    assert.equal(res.status, 503);
+    assert.match(res.text, /Invalid placeholder/);
+    assert.doesNotMatch(res.text, /anon-placeholder|service-role-placeholder|sk_test_placeholder|whsec_placeholder|price_xxx|resend-placeholder/);
   });
 
   it("POST /admin/login with incorrect email or password fails safely", async function() {
@@ -1517,6 +1778,21 @@ describe("auth and admin", () => {
     assert.ok(cookie);
     assert.match(cookie, /Expires=Thu, 01 Jan 1970/);
   });
+
+  it("admin JSON APIs return safe overview and env status", async function() {
+    const mock = installAdminFetchMock();
+    const overview = await request(app).get("/api/admin/overview").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    const env = await request(app).get("/api/admin/env-status").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    mock.restore();
+
+    assert.equal(overview.status, 200);
+    assert.equal(overview.body.ok, true);
+    assert.ok(Object.prototype.hasOwnProperty.call(overview.body.metrics, "users"));
+    assert.equal(env.status, 200);
+    assert.equal(env.body.ok, true);
+    assert.ok(Array.isArray(env.body.checks));
+    assert.doesNotMatch(JSON.stringify(env.body), /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+  });
 });
 describe("legal pages", () => {
   for (const route of [
@@ -1544,6 +1820,15 @@ describe("legal pages", () => {
       assert.match(res.text, /not legal advice/);
     });
   }
+
+  for (const route of ["/terms", "/privacy", "/refund-policy", "/cookies", "/acceptable-use", "/accessibility", "/earnings-disclaimer"]) {
+    it(`GET ${route} returns legal alias`, async function() {
+      const res = await request(app).get(route).set("Accept", "text/html");
+      assert.equal(res.status, 200);
+      assert.match(res.text, /qualified legal review/);
+      assert.match(res.text, /not legal advice/);
+    });
+  }
 });
 
 describe("mobile and app readiness", () => {
@@ -1560,6 +1845,8 @@ describe("fallback", () => {
   it("unknown route returns 404", async function() {
     const res = await request(app).get("/unknown-route").set("Accept", "application/json");
     assert.equal(res.status, 404);
+    assert.equal(res.body.ok, false);
+    assert.equal(res.body.code, "not_found");
     assert.equal(res.body.error, "not_found");
   });
 });

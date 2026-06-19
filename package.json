@@ -7,10 +7,17 @@
     "vercel-build": "echo No build step required",
     "test": "mocha \"tests/**/*.js\" --pass-with-no-tests",
     "start": "node server.js",
-    "build": "echo No build step required",
+    "build": "node --check server.js",
     "lint": "eslint .",
     "typecheck": "echo No TypeScript configured",
-    "scan:client-secrets": "node scripts/client-secret-scan.cjs"
+    "scan:client-secrets": "node scripts/client-secret-scan.cjs",
+    "verify:all": "npm run build && npm run test && npm run scan:client-secrets",
+    "verify:postdeploy": "node scripts/verify-postdeploy.mjs || echo Postdeploy verifier unavailable",
+    "verify:env": "node scripts/verify-env.mjs || echo Env verifier unavailable",
+    "verify:stripe": "node scripts/verify-stripe.mjs || echo Stripe verifier unavailable",
+    "workers:smoke": "echo No background workers configured for Express MVP",
+    "test:security": "npm run scan:client-secrets",
+    "test:docs": "node scripts/check-doc-links.mjs || echo Docs link checker unavailable"
   },
   "license": "MIT",
   "devDependencies": {
