@@ -1,256 +1,186 @@
-# SONARA Industries
+# SONARA Industries SaaS Launch System
 
-SONARA Industries is the Express/Vercel application for the SONARA parent site and the Business Builder, Creator Studio, and Growth Studio workspaces.
+SONARA Industries is an Express/Vercel SaaS platform for the parent SONARA site and three child products:
 
-The current production path is intentionally Express/Node:
+- **Business Builder:** turn service ideas into paid offers, intake flows, launch checklists, and customer operations.
+- **Creator Studio:** plan, package, and manage creative releases, campaigns, and audience workflows.
+- **Growth Studio:** track outreach, campaigns, offers, and growth experiments from one operating dashboard.
 
-- `server.js` defines the app and exports it.
-- `api/index.js` exports the Express app for Vercel.
-- `vercel.json` rewrites all traffic to `/api`.
-- Do not convert this launch path to Next.js or expose server-only provider secrets to browser code.
+The app intentionally remains an Express/Node deployment for this repo. Do not add fake Next.js pages just because the internet has collectively decided every button must summon a hydration problem.
 
-## What Works In Code
+## What is functional now
 
-- Public SONARA Industries marketing, pricing, help, security, contact, and legal pages.
-- Email/password signup and login through Supabase Auth when Supabase public auth env vars are configured.
-- Customer sessions stored in secure HTTP-only cookies.
-- Manual logout from customer, workspace, and admin shells.
-- Free workspace pages for Business Builder, Creator Studio, and Growth Studio.
-- Business Builder intake API that writes to `intake_requests` and records `activity_events` when Supabase is configured.
-- Business Builder checklist API with GET, POST, PATCH, and DELETE against `launch_checklist_items`.
-- Stripe Checkout creation for configured plans.
-- Stripe Customer Portal creation for authenticated customers with Stripe customer records.
-- Stripe webhook signature verification and billing-state synchronization.
-- Paid workspace gates that require active billing entitlement/subscription records unless the user is owner/admin.
-- Founder/admin login through Supabase email/password plus server-side role or email allowlist checks.
-- Admin overview and env-status APIs that return only safe booleans/counts, never secret values.
-- Resend support/contact and employee invite email attempts when Resend is configured.
+- Public marketing pages for `/`, `/pricing`, `/business-builder`, `/creator-studio`, and `/growth-studio`.
+- Email/password signup, login, logout, persistent HTTP-only session cookies, and password visibility toggles when Supabase is configured.
+- Auth-protected `/dashboard`, product dashboards, Business Builder intake, launch readiness, billing, and support pages.
+- Role-aware access for `customer`, `paid_customer`, `owner`, `admin`, and `founder`.
+- Paid-tool access gates based on roles, active/trialing subscription rows, or valid purchase rows.
+- Supabase-backed intake requests, checklist items, support requests, activity events, profiles, organizations, memberships, subscriptions, purchases, and audit logs.
+- Stripe Checkout session creation, Customer Portal session creation, webhook signature verification, subscription/purchase sync, and payment activity events.
+- Admin-only overview and environment-status API routes that return booleans only, never secret values.
+- Legal template pages: terms, privacy, refund policy, cookies, acceptable use, accessibility, and earnings disclaimer.
+- Setup-required states when Supabase, Stripe, Resend, Google OAuth, or founder access are missing.
 
-## Manual Setup Still Required
+## What still requires manual external setup
 
-- Add real Vercel environment variables.
-- Apply Supabase migrations to the production Supabase project.
-- Promote the real owner account through reviewed SQL after signup.
-- Create real Stripe products, prices, customer portal configuration, and webhook endpoint.
-- Verify Resend domain and sender email.
-- Complete qualified legal review.
-- Run final production smoke tests.
+- Create/configure the Supabase project.
+- Apply the SQL migrations in `supabase/migrations/`.
+- Configure Supabase email auth and any Google OAuth provider settings.
+- Create Stripe products/prices and add the price IDs to env vars.
+- Configure the Stripe webhook endpoint to hit `/api/stripe/webhook` and copy the webhook secret.
+- Configure Resend sender/domain verification.
+- Add real founder/admin emails to `FOUNDER_EMAILS` or `ADMIN_EMAILS`.
+- Have qualified counsel review the legal templates before production use.
 
-## Local Setup
-
-Use pnpm.
+## Local setup
 
 ```powershell
+cd C:\Users\AXPAY\famouslytrill-project
 corepack enable
 pnpm install
-pnpm lint
-pnpm test
-pnpm typecheck
-pnpm build
-pnpm run scan:client-secrets
+copy .env.example .env
+pnpm start
 ```
 
-## Vercel Setup
+Open `http://localhost:3000`.
 
-Project settings:
+## Required env vars
 
-- Framework preset: Other
-- Install command: `pnpm install --frozen-lockfile`
-- Build command: `pnpm build`
-- Output directory: leave empty
-- Production domain: `https://sonaraindustries.com`
-
-Required files:
-
-- `server.js`
-- `api/index.js`
-- `vercel.json`
-- `pnpm-workspace.yaml`
-- `package.json`
-- `pnpm-lock.yaml`
-
-## Environment Variables
-
-Use `.env.example` as the source of truth. Do not commit real values.
-
-Public browser-safe values:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_SITE_URL`
-- `NEXT_PUBLIC_APP_URL`
-
-Server-only values:
-
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
-- `SUPPORT_TO_EMAIL`
-- `CONTACT_TO_EMAIL`
-- `ADMIN_EMAILS`
-- `ADMIN_EMAIL`
-- `FOUNDER_EMAILS`
-
-Stripe price variables and aliases:
-
-- `STRIPE_PRICE_STARTER_MONTHLY`
-- `STRIPE_PRICE_CORE_MONTHLY`
-- `STRIPE_PRICE_PRO_MONTHLY`
-- `STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME`
-- `STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY`
-- `STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME`
-- `STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY`
-- `STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY`
-- `STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY`
-- `STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY`
-- `STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY`
-- `STRIPE_PRICE_BUSINESS_BUILDER_ONETIME`
-- `STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY`
-- `STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY`
-- `STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY`
-- `STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY`
-
-Rules:
-
-- Stripe price IDs must start with `price_`.
-- Stripe secret keys should be server-only and start with `sk_live_`, `sk_test_`, or a restricted key accepted by the deployment policy.
-- Stripe webhook secrets must start with `whsec_`.
-- Never create `NEXT_PUBLIC_` aliases for service-role keys, Stripe secrets, webhook secrets, Resend keys, or admin/founder allowlists.
-
-## Supabase Setup
-
-Migrations live in `supabase/migrations/`.
-
-Apply pending migrations:
-
-```powershell
-supabase migration list --linked
-supabase db push
-```
-
-If applying manually through the Supabase SQL editor, review and run the newest migration files in order. New public tables include explicit grants plus RLS policies because new Supabase projects may not expose public tables to the Data API automatically.
-
-Owner promotion after signup should be done manually and reviewed. Example pattern:
-
-```sql
-insert into public.user_roles (user_id, role)
-select id, 'owner'
-from auth.users
-where email = 'OWNER_EMAIL_HERE'
-on conflict do nothing;
-```
-
-Replace `OWNER_EMAIL_HERE` in the dashboard before running. Do not commit real owner emails if they are private.
-
-## Stripe Setup
-
-Create products and prices in Stripe for:
-
-- Starter monthly
-- Core monthly
-- Pro monthly
-- Business Builder one-time setup
-
-Add the matching `price_` IDs to Vercel env vars. Configure the Customer Portal in Stripe before relying on `/api/billing/create-portal-session`.
-
-Webhook endpoint:
+Use `.env.example` as the source of truth. Required names for production SaaS behavior:
 
 ```text
-https://sonaraindustries.com/api/stripe/webhook
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY=
+STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME=
+STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY=
+STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
+NEXT_PUBLIC_SITE_URL=
+FOUNDER_EMAILS=
 ```
 
-The legacy-compatible endpoint also works:
+Backward-compatible aliases are documented in `.env.example` and remain supported where practical.
 
-```text
-https://sonaraindustries.com/api/webhooks/stripe
-```
+## Supabase setup
 
-Subscribe to:
-
-- `checkout.session.completed`
-- `customer.subscription.created`
-- `customer.subscription.updated`
-- `customer.subscription.deleted`
-- `invoice.payment_succeeded`
-- `invoice.payment_failed`
-
-Use Stripe CLI for local webhook testing:
+1. Create or open your Supabase project.
+2. Go to **Project Settings → API**.
+3. Copy:
+   - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
+   - Anon/public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - Service role key → `SUPABASE_SERVICE_ROLE_KEY`
+4. Go to **Authentication → Providers → Email** and confirm email/password is enabled.
+5. Apply the migration:
 
 ```powershell
-stripe listen --forward-to localhost:5000/api/stripe/webhook
+pnpm exec supabase login
+pnpm exec supabase link --project-ref YOUR_PROJECT_REF
+pnpm exec supabase db push
 ```
 
-## Resend Setup
+Manual SQL Editor fallback: open `supabase/migrations/011_sonara_saas_launch_system.sql`, review it, then run it in the Supabase SQL Editor.
 
-In Resend:
+## Stripe setup
 
-- Verify the sending domain.
-- Add required DNS records.
-- Set `RESEND_API_KEY`.
-- Set `RESEND_FROM_EMAIL`.
-- Set `SUPPORT_TO_EMAIL` or `CONTACT_TO_EMAIL`.
+1. In Stripe, create products/prices for:
+   - Business Builder monthly
+   - Business Builder one-time setup
+   - Creator Studio monthly
+   - Growth Studio monthly
+2. Copy each `price_...` ID to the matching env var.
+3. Copy your secret key to `STRIPE_SECRET_KEY`.
+4. Create a webhook endpoint:
 
-If Resend is missing, contact and invite routes do not fake email delivery. They return setup-required states or save records without claiming email was sent.
+```text
+https://YOUR_DOMAIN/api/stripe/webhook
+```
 
-## Admin Setup
+5. Subscribe to these events:
 
-Admin access uses Supabase email/password plus server-side authorization:
+```text
+checkout.session.completed
+customer.subscription.created
+customer.subscription.updated
+customer.subscription.deleted
+invoice.payment_succeeded
+invoice.payment_failed
+```
 
-- `ADMIN_EMAILS`, `ADMIN_EMAIL`, or `FOUNDER_EMAILS` can allow founder/admin email accounts.
-- `user_roles` can store durable `owner` and `admin` roles.
-- Admin routes never return raw secrets.
-- Admin audit events are written when Supabase service-role access is configured.
+6. Copy the signing secret to `STRIPE_WEBHOOK_SECRET`.
 
-## Functional Routes
+## Resend setup
 
-Core:
+1. Verify your sending domain in Resend.
+2. Create an API key.
+3. Add:
 
-- `/`
-- `/pricing`
-- `/login`
-- `/signup`
-- `/logout`
-- `/dashboard`
-- `/settings`
-- `/contact`
-- `/help`
-- `/docs`
-- `/security`
+```text
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=SONARA Industries <no-reply@yourdomain.com>
+```
 
-Business Builder:
+If Resend is missing, intake still saves when Supabase is configured and returns `emailDelivery: setup_required`.
 
-- `/business-builder`
-- `/business-builder/dashboard`
-- `/business-builder/intake`
-- `/business-builder/checklist`
-- `/business-builder/launch-readiness`
-- `/business-builder/billing`
-- `/business-builder/employees`
+## Founder/admin setup
 
-APIs:
+Add comma-separated founder/admin emails:
 
-- `/api/health`
-- `/api/readiness`
-- `/api/business-builder/intake`
-- `/api/business-builder/checklist`
-- `/api/billing/create-checkout-session`
-- `/api/billing/create-portal-session`
-- `/api/stripe/webhook`
-- `/api/admin/overview`
-- `/api/admin/env-status`
+```text
+FOUNDER_EMAILS=you@example.com
+ADMIN_EMAILS=you@example.com
+```
 
-## Deployment
+Founder/admin access is checked server-side. Customers cannot access admin pages or admin JSON routes.
 
-After checks pass:
+## Vercel setup
+
+1. Import the GitHub repo into Vercel.
+2. Set the framework preset to **Other** if Vercel does not auto-detect the Express setup.
+3. Add all production env vars in **Project Settings → Environment Variables**.
+4. Confirm `vercel.json` routes traffic to `api/index.js`.
+5. Deploy.
+6. Visit:
+   - `/api/health`
+   - `/api/readiness`
+   - `/pricing`
+   - `/admin/login`
+
+## How to test webhooks locally
+
+```powershell
+stripe login
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+Copy the `whsec_...` value to `STRIPE_WEBHOOK_SECRET` in `.env`, then trigger a test checkout.
+
+## Quality gates
+
+Run these before deployment:
 
 ```powershell
 git status
-git add server.js tests/server.test.js .env.example README.md .vercelignore supabase/migrations
-git commit -m "Build functional SONARA SaaS launch system"
-git push origin main
-pnpm dlx vercel@latest --prod
+git grep -n -E "<<<<<<<|=======|>>>>>>>" -- . || true
+node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('package.json','utf8')); console.log('package.json valid')"
+node -e "const fs=require('fs'); JSON.parse(fs.readFileSync('vercel.json','utf8')); console.log('vercel.json valid')"
+corepack enable
+pnpm install
+pnpm run build
+pnpm run lint
+pnpm test
+pnpm run scan:client-secrets
 ```
 
-Do not force push.
+## Production honesty rules
+
+- No committed secrets.
+- No fake users, fake revenue, fake activity, fake testimonials, or fake customer logos.
+- Checkout session creation never unlocks paid access.
+- Stripe webhooks are the source of truth for paid state.
+- Missing providers must show setup-required states.
+- Legal pages are templates until counsel reviews them.
