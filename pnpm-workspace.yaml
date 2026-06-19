@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 packages:
   - "."
 
 allowBuilds:
   esbuild: true
-=======
-allowBuilds:
-  esbuild: true
-  sharp: true
-  unrs-resolver: true
->>>>>>> origin/main

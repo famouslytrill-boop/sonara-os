@@ -5,7 +5,6 @@ module.exports = [
       "dist/**",
       "build/**",
       ".vercel/**",
-<<<<<<< HEAD
       ".next/**",
       "coverage/**",
       "app/**",
@@ -16,10 +15,6 @@ module.exports = [
       "my-app/**",
       "src/**",
       "sonara-industries/**",
-=======
-      "coverage/**",
-      "backups/**",
->>>>>>> origin/main
       "*.bak",
       "*.patch"
     ]
@@ -37,14 +32,10 @@ module.exports = [
         __filename: "readonly",
         module: "readonly",
         require: "readonly",
-<<<<<<< HEAD
         exports: "readonly",
         fetch: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly"
-=======
-        exports: "readonly"
->>>>>>> origin/main
       }
     },
     rules: {
@@ -53,7 +44,6 @@ module.exports = [
     }
   },
   {
-<<<<<<< HEAD
     files: ["**/*.mjs"],
     languageOptions: {
       sourceType: "module",
@@ -80,8 +70,6 @@ module.exports = [
     }
   },
   {
-=======
->>>>>>> origin/main
     files: ["test/**/*.js", "tests/**/*.js"],
     languageOptions: {
       globals: {
@@ -94,8 +82,4 @@ module.exports = [
       }
     }
   }
-<<<<<<< HEAD
 ];
-=======
-];
->>>>>>> origin/main
