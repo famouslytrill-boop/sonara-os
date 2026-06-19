@@ -169,6 +169,11 @@ describe("health and readiness", () => {
     assert.equal(res.body.services.legalPages, "review_required");
     assert.ok(["enabled", "setup_required"].includes(res.body.services.checkout));
     assert.ok(["enabled", "setup_required"].includes(res.body.services.emailDelivery));
+    assert.ok(["configured", "missing"].includes(res.body.services.accountDatabase));
+    assert.ok(["configured", "missing"].includes(res.body.services.paymentConnection));
+    assert.ok(["configured", "missing"].includes(res.body.services.paymentUpdates));
+    assert.equal(res.body.services.googleSignIn, "deferred");
+    assert.ok(["configured", "missing"].includes(res.body.services.founderAccess));
     assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
     assert.equal(res.text.includes("STRIPE_SECRET_KEY="), false);
   });
@@ -624,6 +629,9 @@ describe("product module APIs", () => {
       if (String(url).includes("/organization_members")) {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
+      if (String(url).includes("/activity_events")) {
+        return { ok: true, json: async () => [{ id: "activity-1" }] };
+      }
       if (String(url).includes("/module_outputs") && options.method === "POST") {
         return { ok: true, json: async () => [{ id: "module-output-1" }] };
       }
@@ -647,6 +655,82 @@ describe("product module APIs", () => {
     const insert = calls.find((call) => call.url.includes("/module_outputs") && call.method === "POST");
     assert.ok(insert);
     assert.equal(JSON.parse(insert.body).organization_id, organizationId);
+  });
+
+  it("POST /api/business-builder/intake writes intake requests and activity when configured", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000107", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/intake_requests") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "00000000-0000-0000-0000-000000000201" }] };
+      }
+      if (String(url).includes("/activity_events")) return { ok: true, json: async () => [{ id: "activity-1" }] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/business-builder/intake")
+      .set("Authorization", "Bearer customer-session")
+      .send({
+        name: "Launch Owner",
+        email: "owner@example.com",
+        serviceInterest: "business setup",
+        message: "I need help launching a service business."
+      });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.saved, true);
+    assert.equal(res.body.intakeRequestId, "00000000-0000-0000-0000-000000000201");
+    assert.ok(calls.some((call) => call.url.includes("/intake_requests") && call.method === "POST"));
+    assert.ok(calls.some((call) => call.url.includes("/activity_events") && call.method === "POST"));
+  });
+
+  it("GET and POST /api/business-builder/checklist use launch checklist records", async function() {
+    configureSupabase();
+    const checklistId = "00000000-0000-0000-0000-000000000301";
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000108", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/launch_checklist_items") && (options.method || "GET") === "GET") {
+        return { ok: true, json: async () => [{ id: checklistId, title: "Confirm offer", status: "todo" }] };
+      }
+      if (String(url).includes("/launch_checklist_items") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: checklistId, title: "Confirm offer", status: "todo" }] };
+      }
+      if (String(url).includes("/activity_events")) return { ok: true, json: async () => [{ id: "activity-1" }] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const list = await request(app).get("/api/business-builder/checklist").set("Authorization", "Bearer customer-session");
+    const create = await request(app)
+      .post("/api/business-builder/checklist")
+      .set("Authorization", "Bearer customer-session")
+      .send({ title: "Confirm offer", category: "Offer" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(list.status, 200);
+    assert.equal(list.body.items[0].id, checklistId);
+    assert.equal(create.status, 200);
+    assert.equal(create.body.saved, true);
+    assert.ok(calls.some((call) => call.url.includes("/launch_checklist_items") && call.method === "POST"));
   });
 
   it("POST /api/creator-studio/offers validates input", async function() {
@@ -759,6 +843,31 @@ describe("product module APIs", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /Customer Records/);
     assert.match(res.text, /Paid tools are available/);
+  });
+
+  it("GET /business-builder/billing renders authenticated billing actions", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000109", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/user_roles")) return { ok: true, json: async () => [] };
+      if (String(url).includes("/billing_subscriptions")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app).get("/business-builder/billing").set("Authorization", "Bearer customer-session").set("Accept", "text/html");
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Billing actions/);
+    assert.match(res.text, /Manage billing portal/);
+    assert.match(res.text, /Upgrade: Starter monthly/);
   });
 });
 
@@ -966,8 +1075,14 @@ describe("pricing and checkout", () => {
       if (String(url).includes("/organization_members")) {
         return { ok: true, json: async () => [{ organization_id: organizationId }] };
       }
+      if (String(url).includes("api.stripe.com/v1/customers")) {
+        return { ok: true, json: async () => ({ id: "cus_test_customer" }) };
+      }
       if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
         return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
+      }
+      if (String(url).includes("/stripe_customers")) {
+        return { ok: true, json: async () => [] };
       }
       return { ok: true, json: async () => [] };
     };
@@ -1050,7 +1165,8 @@ describe("pricing and checkout", () => {
 
     assert.equal(res.status, 503);
     assert.equal(res.body.service, "stripe_price");
-    assert.equal(res.body.env, "STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY");
+    assert.match(res.body.env, /STRIPE_PRICE_STARTER_MONTHLY/);
+    assert.match(res.body.env, /STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY/);
     assert.equal(res.body.reason, "missing");
   });
 
@@ -1094,10 +1210,64 @@ describe("pricing and checkout", () => {
     const stripeCall = calls.find((call) => call.url.includes("api.stripe.com/v1/checkout/sessions"));
     assert.ok(stripeCall);
     const params = new URLSearchParams(stripeCall.body);
+    assert.equal(params.get("customer"), "cus_test_customer");
     assert.equal(params.get("metadata[plan]"), "starter_monthly");
     assert.equal(params.get("metadata[organization_id]"), "00000000-0000-0000-0000-000000000071");
     assert.equal(params.get("subscription_data[metadata][plan]"), "starter_monthly");
     assert.equal(params.get("subscription_data[metadata][organization_id]"), "00000000-0000-0000-0000-000000000071");
+  });
+
+  it("POST /api/billing/create-checkout-session aliases checkout creation", async function() {
+    configureSupabaseForCheckout();
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    process.env.STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY = validStarterPrice;
+    process.env.APP_URL = "https://sonaraindustries.com";
+
+    const originalFetch = global.fetch;
+    global.fetch = mockCheckoutFetch();
+
+    const res = await request(app)
+      .post("/api/billing/create-checkout-session")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "application/json")
+      .send({ priceKey: "business_builder_monthly" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.checkout_url, "https://checkout.stripe.com/c/session_test");
+  });
+
+  it("POST /api/billing/create-portal-session creates Stripe portal sessions safely", async function() {
+    configureSupabaseForCheckout();
+    process.env.STRIPE_SECRET_KEY = validStripeSecret;
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000104", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: "00000000-0000-0000-0000-000000000071" }] };
+      }
+      if (String(url).includes("/stripe_customers") && (options.method || "GET") === "GET") {
+        return { ok: true, json: async () => [{ stripe_customer_id: "cus_test_customer" }] };
+      }
+      if (String(url).includes("api.stripe.com/v1/billing_portal/sessions")) {
+        return { ok: true, json: async () => ({ url: "https://billing.stripe.com/session/test" }) };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/billing/create-portal-session")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "application/json")
+      .send({});
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.portal_url, "https://billing.stripe.com/session/test");
   });
 
   it("POST /api/checkout/session returns JSON for API callers", async function() {
@@ -1133,9 +1303,9 @@ describe("pricing and checkout", () => {
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.status, 200);
     const invalidEnvs = readiness.body.invalid.stripe.map((item) => item.env);
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_STARTER_MONTHLY or STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_CORE_MONTHLY or STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY"));
-    assert.ok(invalidEnvs.includes("STRIPE_PRICE_PRO_MONTHLY or STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY"));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_STARTER_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_CORE_MONTHLY")));
+    assert.ok(invalidEnvs.some((env) => env.includes("STRIPE_PRICE_PRO_MONTHLY")));
 
     const checkout = await request(app).post("/api/checkout/session").set("Authorization", "Bearer customer-session").send({ plan: "starter_monthly" });
     global.fetch = originalFetch;
@@ -1156,6 +1326,17 @@ describe("pricing and checkout", () => {
       .set("Content-Type", "application/json")
       .set("stripe-signature", "t=123,v1=bad")
       .send({ id: "evt_test", type: "payment_intent.payment_failed" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "invalid_signature");
+  });
+
+  it("POST /api/stripe/webhook rejects invalid signatures on the canonical endpoint", async function() {
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    const res = await request(app)
+      .post("/api/stripe/webhook")
+      .set("Content-Type", "application/json")
+      .set("stripe-signature", "t=123,v1=bad")
+      .send({ id: "evt_test", type: "invoice.payment_failed" });
     assert.equal(res.status, 400);
     assert.equal(res.body.code, "invalid_signature");
   });
@@ -1428,7 +1609,7 @@ describe("auth and admin", () => {
     assert.match(res.text, /Password/);
     assert.match(res.text, /Sign in to admin/);
     assert.match(res.text, /Supabase email login/);
-    assert.match(res.text, /ADMIN_EMAILS \/ ADMIN_EMAIL or user_roles/);
+    assert.match(res.text, /Founder email allowlist or user_roles/);
     assert.doesNotMatch(res.text, /Admin token|ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD|ADMIN_PASSWORD_HASH/);
     assert.match(res.text, /grid-template-columns: repeat\(auto-fit, minmax\(280px, 1fr\)\)/);
     assert.match(res.text, /overflow-wrap: anywhere/);
@@ -1517,6 +1698,21 @@ describe("auth and admin", () => {
     assert.ok(cookie);
     assert.match(cookie, /Expires=Thu, 01 Jan 1970/);
   });
+
+  it("admin JSON APIs return safe overview and env status", async function() {
+    const mock = installAdminFetchMock();
+    const overview = await request(app).get("/api/admin/overview").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    const env = await request(app).get("/api/admin/env-status").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    mock.restore();
+
+    assert.equal(overview.status, 200);
+    assert.equal(overview.body.ok, true);
+    assert.ok(Object.prototype.hasOwnProperty.call(overview.body.metrics, "users"));
+    assert.equal(env.status, 200);
+    assert.equal(env.body.ok, true);
+    assert.ok(Array.isArray(env.body.checks));
+    assert.doesNotMatch(JSON.stringify(env.body), /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+  });
 });
 describe("legal pages", () => {
   for (const route of [
@@ -1540,6 +1736,15 @@ describe("legal pages", () => {
       assert.equal(res.status, 200);
       assert.equal(res.type, "text/html");
       assert.doesNotMatch(res.text, /\[To be added\]/);
+      assert.match(res.text, /qualified legal review/);
+      assert.match(res.text, /not legal advice/);
+    });
+  }
+
+  for (const route of ["/terms", "/privacy", "/refund-policy", "/cookies", "/acceptable-use", "/accessibility", "/earnings-disclaimer"]) {
+    it(`GET ${route} returns legal alias`, async function() {
+      const res = await request(app).get(route).set("Accept", "text/html");
+      assert.equal(res.status, 200);
       assert.match(res.text, /qualified legal review/);
       assert.match(res.text, /not legal advice/);
     });

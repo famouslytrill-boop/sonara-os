@@ -64,3 +64,15 @@ Thumbs.db
 # Historical or audit-only documentation not needed at runtime
 docs/archive/
 docs/audits/
+
+# Local backups, dumps, and patch artifacts
+backup/
+backups/
+dumps/
+launch-logs/
+*.bak
+*.patch
+.gitpod.yml
+supabase_data_backup.sql
+supabase_schema_backup.sql
+*_sync_remote_schema*.sql
