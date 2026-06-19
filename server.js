@@ -179,7 +179,7 @@ app.get("/pricing", (req, res) => {
         ? "Checkout is configured for enabled plans."
         : "Checkout setup required until the payment connection and plan settings are configured.",
       sections: Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-      actions: [linkAction("/contact", "Request setup"), linkAction("/legal/refund-policy", "Refund policy")]
+      actions: [linkAction("/signup", "Start Free"), linkAction("/login", "Login"), linkAction("/business-builder/billing", "Billing")]
     })
   );
 });
@@ -637,7 +637,13 @@ app.post("/api/growth-studio/leads", async (req, res) => {
 app.get("/api/growth-studio/records", requirePaidOrOwnerAccess("growth_studio"), async (req, res) => res.status(200).json(await readModuleRecords(req, "growth_studio")));
 app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("growth_studio")));
 
-app.get("/api/health", (req, res) => res.status(200).json({ ok: true }));
+app.get("/api/health", (req, res) => res.status(200).json({
+  ok: true,
+  app: "sonara-industries",
+  runtime: "express",
+  deployment: getDeploymentInfo(),
+  timestamp: new Date().toISOString()
+}));
 
 app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
 
@@ -651,7 +657,7 @@ app.get("/api/admin/env-status", requireAdmin, async (req, res) => {
   return res.status(200).json({
     ok: true,
     services: getReadiness().services,
-    checks: getAdminEnvReadiness().map((item) => ({ key: item.key, label: item.label, ok: item.ok, status: item.ok ? "configured" : "missing" }))
+    checks: getAdminEnvReadiness().map((item) => ({ key: item.key, label: item.label, ok: item.ok, status: item.status }))
   });
 });
 
@@ -676,9 +682,9 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
         : "Supabase email login and founder access rules are required before founder operations can open.",
       sections: [
         adminLoginForm(),
-        ...readiness.map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning))
+        ...readiness.map((item) => brandCard(item.label, adminReadinessText(item)))
       ],
-      actions: [linkAction("/", "Home")]
+      actions: [linkAction("/", "Home"), linkAction("/api/readiness", "Readiness"), linkAction("/security", "Security")]
     })
   );
 });
@@ -797,7 +803,7 @@ app.get("/admin/env-readiness", requireAdmin, async (req, res) => {
       eyebrow: "Founder operations",
       heading: "Environment readiness",
       body: "Non-secret service readiness flags. Secret values are never displayed.",
-      sections: getAdminEnvReadiness().map((item) => brandCard(item.label, item.ok ? "Ready" : item.warning)),
+      sections: getAdminEnvReadiness().map((item) => brandCard(item.label, adminReadinessText(item))),
       actions: [linkAction("/admin", "Admin"), linkAction("/admin/support", "Support queue"), linkAction("/admin/billing", "Billing"), adminLogoutAction()]
     })
   );
@@ -896,7 +902,7 @@ app.get("/admin/system", requireAdmin, async (req, res) => {
       eyebrow: "Founder operations",
       heading: "System status",
       body: "Non-secret system readiness and route map for launch operations.",
-      sections: [...readinessCards(getReadiness()), ...getRouteMapCards()],
+      sections: [deploymentCard(), ...readinessCards(getReadiness()), ...getRouteMapCards()],
       actions: adminActions()
     })
   );
@@ -958,19 +964,13 @@ function registerProduct(slug, config) {
           ...config.cards.map(([title, body]) => brandCard(title, body)),
           checklistCard("Launch Setup Checklist", config.checklist)
         ],
-        actions: [
-          linkAction(`/${slug}/dashboard`, "Open dashboard"),
-          linkAction(`/${slug}/launch-readiness`, "Launch Setup Checklist"),
-          ...routes.free.slice(0, 3).map((page) => linkAction(page.path, page.label)),
-          ...(slug === "business-builder" ? [linkAction("/business-builder/login", "Business login")] : []),
-          linkAction("/", "SONARA Industries")
-        ]
+        actions: productLandingActions(slug)
       })
     );
   });
 
-  app.get(`/${slug}/dashboard`, requireWorkspaceAccess(productKey), (req, res) => {
-    const readiness = getReadiness();
+  app.get(`/${slug}/dashboard`, requireWorkspaceAccess(productKey), async (req, res) => {
+    const dashboard = await getWorkspaceDashboardSummary(req.sonaraAccess, productKey);
     res.status(200).type("html").send(
       layout({
         title: `${config.name} Dashboard`,
@@ -981,18 +981,11 @@ function registerProduct(slug, config) {
           accessCard(req.sonaraAccess),
           brandCard("Free tools", `Logged-in users can open: ${routes.free.map((page) => page.label).join(", ")}.`),
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
-          brandCard("Records", readiness.services.supabase === "configured" ? "Your saved records will appear here after you submit a form." : "Setup required: account database is not configured."),
-          brandCard("Recent activity", "No activity is shown until real records are saved through a form or webhook."),
+          workspaceRecordsCard(dashboard),
+          workspaceActivityCard(dashboard),
           brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations.")
         ],
-        actions: [
-          linkAction(`/${slug}`, "Overview"),
-          linkAction(`/${slug}/launch-readiness`, "Launch Setup Checklist"),
-          ...routes.free.slice(0, 3).map((page) => linkAction(page.path, page.label)),
-          ...(slug === "business-builder" ? [linkAction("/business-builder/employees", "Employees")] : []),
-          linkAction("/pricing", "Upgrade"),
-          logoutAction()
-        ]
+        actions: productDashboardActions(slug)
       })
     );
   });
@@ -1006,7 +999,7 @@ function registerProduct(slug, config) {
         heading: `${config.name} Setup Checklist`,
         body: "Service setup is shown without exposing secrets. Missing services stay setup required.",
         sections: readinessCards(readiness),
-        actions: [linkAction(`/${slug}/dashboard`, "Dashboard"), linkAction("/docs", "Setup details"), linkAction("/", "SONARA Industries")]
+        actions: productLaunchReadinessActions(slug)
       })
     );
   });
@@ -1084,6 +1077,60 @@ function getProductPageDefinitions(slug) {
     }
   };
   return definitions[slug] || { free: [], paid: [] };
+}
+
+function productLandingActions(slug) {
+  if (slug === "business-builder") {
+    return [
+      linkAction("/business-builder/dashboard", "Open dashboard"),
+      linkAction("/business-builder/intake", "Intake"),
+      linkAction("/business-builder/launch-readiness", "Launch checklist"),
+      linkAction("/pricing", "Pricing"),
+      linkAction("/login", "Login")
+    ];
+  }
+  return [
+    linkAction(`/${slug}/dashboard`, "Open dashboard"),
+    linkAction(`/${slug}/launch-readiness`, "Launch checklist"),
+    linkAction("/pricing", "Pricing"),
+    linkAction("/login", "Login")
+  ];
+}
+
+function productDashboardActions(slug) {
+  if (slug === "business-builder") {
+    return [
+      linkAction("/business-builder/intake", "Intake"),
+      linkAction("/business-builder/launch-readiness", "Launch checklist"),
+      linkAction("/business-builder/billing", "Billing"),
+      linkAction("/contact", "Support"),
+      logoutAction()
+    ];
+  }
+  return [
+    linkAction(`/${slug}/launch-readiness`, "Launch checklist"),
+    linkAction("/dashboard", "All workspaces"),
+    linkAction("/pricing", "Pricing"),
+    logoutAction()
+  ];
+}
+
+function productLaunchReadinessActions(slug) {
+  if (slug === "business-builder") {
+    return [
+      linkAction("/business-builder/dashboard", "Business Builder dashboard"),
+      linkAction("/business-builder/intake", "Intake"),
+      linkAction("/business-builder/billing", "Billing"),
+      linkAction("/dashboard", "All workspaces"),
+      logoutAction()
+    ];
+  }
+  return [
+    linkAction(`/${slug}/dashboard`, "Dashboard"),
+    linkAction("/dashboard", "All workspaces"),
+    linkAction("/pricing", "Pricing"),
+    logoutAction()
+  ];
 }
 
 function workspaceToolPage({ slug, config, page, access, paid }) {
@@ -1243,6 +1290,7 @@ function responsePage(title, body, actions) {
 
 function adminPage(title, body, readiness, metrics = {}) {
   const operations = [
+    deploymentCard(),
     brandCard("Users and customers", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed.")),
     brandCard("Orders and subscriptions", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid.")),
     brandCard("Payment updates", metrics.webhookEvents || (readiness.services.supabase === "configured" ? "Webhook audit table is available after migrations are applied." : "Setup required: connect the account database before payment updates can be listed.")),
@@ -1251,6 +1299,11 @@ function adminPage(title, body, readiness, metrics = {}) {
     brandCard("System status", "Health and readiness checks are available without exposing secret values.")
   ];
   return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: adminActions() });
+}
+
+function deploymentCard() {
+  const deployment = getDeploymentInfo();
+  return brandCard("Deployment", `Commit: ${deployment.commitSha}. Branch: ${deployment.branch}. Environment: ${deployment.environment}.`);
 }
 
 function adminActions() {
@@ -1359,6 +1412,48 @@ function accessCard(access) {
   return brandCard("Access", "Login is required before protected workspace tools can open.");
 }
 
+async function getWorkspaceDashboardSummary(access, productKey) {
+  const readiness = getReadiness();
+  if (readiness.services.supabase !== "configured") return { ok: false, code: "setup_required", service: "account_database", counts: null, activity: [] };
+  const organization = await getCustomerPrimaryOrganization(access?.user);
+  if (!organization.ok) return { ok: false, code: organization.code || "organization_membership_missing", service: "organization", counts: null, activity: [] };
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false, code: "setup_required", service: "account_database", counts: null, activity: [] };
+  const [intake, checklist, support, activity] = await Promise.all([
+    safeCountFiltered(config, "intake_requests", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
+    safeCountFiltered(config, "launch_checklist_items", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
+    safeCountFiltered(config, "support_requests", `?organization_id=eq.${encodeURIComponent(organization.organizationId)}&select=id&limit=1`),
+    safeListTable("activity_events", `?select=event_type,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=6`)
+  ]);
+  return {
+    ok: true,
+    productKey,
+    organizationId: organization.organizationId,
+    counts: { intake, checklist, support },
+    activity: activity.ok ? activity.rows : []
+  };
+}
+
+function workspaceRecordsCard(summary) {
+  if (!summary.ok) return brandCard("Records", `Setup required: ${displayStatus(summary.service || summary.code || "account_database")} is not ready.`);
+  const counts = summary.counts || {};
+  return brandCard("Records", [
+    `Intake: ${countLabel(counts.intake)}.`,
+    `Checklist: ${countLabel(counts.checklist)}.`,
+    `Support: ${countLabel(counts.support)}.`
+  ].join(" "));
+}
+
+function workspaceActivityCard(summary) {
+  if (!summary.ok) return brandCard("Recent activity", "No activity is shown until the account database and organization membership are ready.");
+  if (!summary.activity?.length) return brandCard("Recent activity", "No activity yet.");
+  return brandCard("Recent activity", summary.activity.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
+}
+
+function countLabel(result) {
+  return result?.ok ? String(result.count) : "unavailable";
+}
+
 function checklistCard(title, items) {
   return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${items.map((item) => escapeHtml(item)).join(" / ")}</p></article>`;
 }
@@ -1399,6 +1494,7 @@ function billingPanel(readiness, billing) {
 function getPriceCardSetupText(planStatus, readiness) {
   if (readiness.services.stripe !== "configured") return "Checkout setup required: payment connection is missing or invalid.";
   if (planStatus.reason === "missing") return "Checkout is not configured for this plan yet.";
+  if (planStatus.reason === "invalid_placeholder") return "Checkout setup required: plan price settings are placeholders.";
   if (planStatus.reason === "invalid_prefix") return "Checkout setup required: plan price settings are invalid.";
   return "Checkout setup required.";
 }
@@ -1837,25 +1933,18 @@ function hashInviteToken(token) {
 }
 
 function getReadiness() {
-  const supabase = missingEnvGroups([
-    ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"],
-    ["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-    ["SUPABASE_SERVICE_ROLE_KEY"]
-  ]);
-  const resend = missingEnvGroups([
-    ["RESEND_API_KEY"],
-    ["RESEND_FROM_EMAIL"],
-    ["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"]
-  ]);
+  const supabaseStatus = getSupabaseReadinessStatus();
+  const supabaseAuthStatus = getSupabaseAuthReadinessStatus();
+  const resendStatus = getResendStatus();
   const googleOAuth = missingEnvGroups([
     ["GOOGLE_CLIENT_ID"],
     ["GOOGLE_CLIENT_SECRET"],
     ["GOOGLE_REDIRECT_URI"],
     ["PUBLIC_SITE_URL", "NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "APP_URL"]
   ]);
-  const adminProtection = [];
-  if (!isSupabaseAuthConfigured()) adminProtection.push("SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL and SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY");
-  if (!hasAdminAuthorizationSource()) adminProtection.push("ADMIN_EMAILS or ADMIN_EMAIL or FOUNDER_EMAILS or SUPABASE_SERVICE_ROLE_KEY for user_roles");
+  const serviceRoleStatus = getSecretValueStatus("SUPABASE_SERVICE_ROLE_KEY");
+  const founderAccessStatus = getFounderAccessStatus();
+  const adminProtectionStatus = getAdminProtectionStatus(supabaseAuthStatus, founderAccessStatus, serviceRoleStatus);
   const stripeSecret = getStripeSecretStatus();
   const stripeWebhook = getStripeWebhookStatus();
   const checkoutPlans = getCheckoutPlanStatuses();
@@ -1867,56 +1956,165 @@ function getReadiness() {
     if (planStatus.env && planStatus.reason === "missing") stripeMissing.push(planStatus.env);
   }
   const services = {
-    supabase: supabase.length ? "missing" : "configured",
-    stripe: stripeSecret.status === "configured" ? "configured" : "missing",
-    stripeWebhook: stripeWebhook.status === "configured" ? "configured" : "missing",
-    resend: resend.length ? "missing" : "configured",
+    supabase: supabaseStatus.status,
+    stripe: stripeSecret.status === "configured" ? "configured" : stripeSecret.status === "missing" ? "missing" : "invalid",
+    stripeWebhook: stripeWebhook.status === "configured" ? "configured" : stripeWebhook.status === "missing" ? "missing" : "invalid",
+    resend: resendStatus.status,
     googleOAuth: "deferred",
-    adminProtection: adminProtection.length ? "missing" : "configured",
+    adminProtection: adminProtectionStatus.status,
     legalPages: "review_required",
     checkout: enabledPlanCount ? "enabled" : "setup_required",
-    emailDelivery: resend.length ? "setup_required" : "enabled",
-    accountDatabase: supabase.length ? "missing" : "configured",
-    paymentConnection: stripeSecret.status === "configured" ? "configured" : "missing",
-    paymentUpdates: stripeWebhook.status === "configured" ? "configured" : "missing",
+    emailDelivery: resendStatus.status === "configured" ? "enabled" : resendStatus.status === "missing" ? "setup_required" : "invalid",
+    accountDatabase: supabaseStatus.status,
+    paymentConnection: stripeSecret.status === "configured" ? "configured" : stripeSecret.status === "missing" ? "missing" : "invalid",
+    paymentUpdates: stripeWebhook.status === "configured" ? "configured" : stripeWebhook.status === "missing" ? "missing" : "invalid",
     googleSignIn: "deferred",
-    founderAccess: adminProtection.length ? "missing" : "configured"
+    founderAccess: founderAccessStatus.status
   };
   return {
     ok: true,
     accountDatabase: services.accountDatabase,
     paymentConnection: services.paymentConnection,
     paymentUpdates: services.paymentUpdates,
-    emailDelivery: services.emailDelivery === "enabled" ? "configured" : "missing",
+    emailDelivery: resendStatus.status,
     googleSignIn: services.googleSignIn,
     founderAccess: services.founderAccess,
     services,
     checkoutPlans,
-    missing: { supabase, stripe: stripeMissing, resend, googleOAuth, adminProtection },
-    invalid: { stripe: getInvalidStripeEnvStatuses() }
+    missing: { supabase: supabaseStatus.missing, stripe: stripeMissing, resend: resendStatus.missing, googleOAuth, adminProtection: adminProtectionStatus.missing },
+    invalid: { supabase: supabaseStatus.invalid, stripe: getInvalidStripeEnvStatuses(), resend: resendStatus.invalid, founderAccess: founderAccessStatus.invalid, adminProtection: adminProtectionStatus.invalid }
   };
 }
 
 function getAdminEnvReadiness() {
-  const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseAuth = getSupabaseAuthReadinessStatus();
+  const adminSource = getAdminAuthorizationSourceStatus();
+  const serviceRole = getSecretValueStatus("SUPABASE_SERVICE_ROLE_KEY");
+  const resend = getResendStatus();
   return [
-    { key: "SUPABASE_AUTH", label: "Supabase email login", ok: isSupabaseAuthConfigured(), warning: "Supabase auth is not configured." },
-    { key: "ADMIN_ACCESS_SOURCE", label: "Founder email allowlist or user_roles", ok: hasAdminAuthorizationSource(), warning: "Configure an admin/founder email allowlist or the service role key for user_roles lookup." },
+    readinessItem("SUPABASE_AUTH", "Supabase email login", supabaseAuth.status, "Supabase auth is not configured."),
+    readinessItem("ADMIN_ACCESS_SOURCE", "Founder email allowlist or user_roles", adminSource.status, "Configure an admin/founder email allowlist or the service role key for user_roles lookup."),
     ...Object.entries(STRIPE_PLANS)
       .filter(([, config]) => config.env)
       .map(([plan, config]) => {
         const status = getStripePlanPriceStatus(plan);
-        return { key: config.env, label: getPlanEnvLabel(config), ok: status.status === "configured", warning: getStripePriceWarning(status) };
+        return readinessItem(config.env, getPlanEnvLabel(config), status.status, getStripePriceWarning(status));
       }),
-    { key: "STRIPE_SECRET_KEY", label: "STRIPE_SECRET_KEY", ok: getStripeSecretStatus().status === "configured", warning: "Stripe secret key should start with sk_live_ or sk_test_." },
-    { key: "STRIPE_WEBHOOK_SECRET", label: "STRIPE_WEBHOOK_SECRET", ok: getStripeWebhookStatus().status === "configured", warning: "Stripe webhook secret should start with whsec_." },
-    { key: "SUPABASE_URL", label: "SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL", ok: /^https:\/\/.+\.supabase\.co\/?$/.test(getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"])), warning: "Supabase URL should start with https:// and include .supabase.co." },
-    { key: "SUPABASE_SERVICE_ROLE_KEY", label: "SUPABASE_SERVICE_ROLE_KEY", ok: Boolean(serviceRoleKey), warning: "Server-only service role key is required for admin database metrics and durable user_roles lookup." }
+    readinessItem("STRIPE_SECRET_KEY", "STRIPE_SECRET_KEY", getStripeSecretStatus().status, "Stripe secret key should start with sk_live_ or sk_test_."),
+    readinessItem("STRIPE_WEBHOOK_SECRET", "STRIPE_WEBHOOK_SECRET", getStripeWebhookStatus().status, "Stripe webhook secret should start with whsec_."),
+    readinessItem("SUPABASE_URL", "SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL", getSupabaseUrlStatus().status, "Supabase URL should start with https:// and include .supabase.co."),
+    readinessItem("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY", serviceRole.status, "Server-only service role key is required for admin database metrics and durable user_roles lookup."),
+    readinessItem("RESEND_API_KEY", "Email delivery key", getResendApiKeyStatus().status, "Email delivery key is missing or looks like a placeholder."),
+    readinessItem("RESEND_FROM_EMAIL", "Email sender", getEmailValueStatus("RESEND_FROM_EMAIL").status, "Email sender is missing or invalid.")
   ];
+}
+
+function readinessItem(key, label, status, warning) {
+  const normalized = status === "invalid_prefix" || status === "invalid_placeholder" ? "invalid" : status;
+  return { key, label, ok: normalized === "configured", status: normalized, warning: normalized === "invalid" ? "Invalid placeholder" : warning };
+}
+
+function adminReadinessText(item) {
+  if (item.status === "configured") return "Configured";
+  if (item.status === "invalid") return "Invalid placeholder";
+  if (item.status === "missing") return "Missing";
+  return item.warning || displayStatus(item.status || "setup_required");
+}
+
+function getSupabaseReadinessStatus() {
+  return combineEnvStatuses([
+    { env: "SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL", ...getSupabaseUrlStatus() },
+    { env: "SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY", ...getSecretValueStatus(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) },
+    { env: "SUPABASE_SERVICE_ROLE_KEY", ...getSecretValueStatus("SUPABASE_SERVICE_ROLE_KEY") }
+  ]);
+}
+
+function getSupabaseAuthReadinessStatus() {
+  return combineEnvStatuses([
+    { env: "SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL", ...getSupabaseUrlStatus() },
+    { env: "SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY", ...getSecretValueStatus(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) }
+  ]);
+}
+
+function getSupabaseUrlStatus() {
+  const value = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
+  if (!value) return { status: "missing" };
+  if (isPlaceholderValue(value) || !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(value)) return { status: "invalid" };
+  return { status: "configured" };
+}
+
+function getResendStatus() {
+  return combineEnvStatuses([
+    { env: "RESEND_API_KEY", ...getResendApiKeyStatus() },
+    { env: "RESEND_FROM_EMAIL", ...getEmailValueStatus("RESEND_FROM_EMAIL") }
+  ]);
+}
+
+function getResendApiKeyStatus() {
+  const value = getEnv("RESEND_API_KEY");
+  if (!value) return { status: "missing" };
+  if (isPlaceholderValue(value) || value.length < 12) return { status: "invalid" };
+  return { status: "configured" };
+}
+
+function getEmailValueStatus(name) {
+  const value = getEnv(name);
+  if (!value) return { status: "missing" };
+  if (!isEmailLike(value) || isPlaceholderEmail(value)) return { status: "invalid" };
+  return { status: "configured" };
+}
+
+function getSecretValueStatus(names) {
+  const value = getEnv(names);
+  if (!value) return { status: "missing" };
+  if (isPlaceholderValue(value) || value.length < 12) return { status: "invalid" };
+  return { status: "configured" };
+}
+
+function getFounderAccessStatus() {
+  const rawEmails = splitList([getEnv("FOUNDER_EMAILS"), getEnv("ADMIN_EMAILS"), getEnv("ADMIN_EMAIL")].filter(Boolean).join(","));
+  if (!rawEmails.length) return { status: "missing", missing: ["FOUNDER_EMAILS or ADMIN_EMAILS"] };
+  const valid = rawEmails.filter((email) => isEmailLike(email) && !isPlaceholderEmail(email));
+  if (!valid.length) return { status: "invalid", invalid: ["FOUNDER_EMAILS or ADMIN_EMAILS"] };
+  return { status: "configured", missing: [], invalid: [] };
+}
+
+function getAdminAuthorizationSourceStatus() {
+  const founder = getFounderAccessStatus();
+  const serviceRole = getSecretValueStatus("SUPABASE_SERVICE_ROLE_KEY");
+  if (founder.status === "configured" || serviceRole.status === "configured") return { status: "configured" };
+  if (founder.status === "invalid" || serviceRole.status === "invalid") return { status: "invalid" };
+  return { status: "missing" };
+}
+
+function getAdminProtectionStatus(authStatus, founderStatus, serviceRoleStatus) {
+  const adminSourceConfigured = founderStatus.status === "configured" || serviceRoleStatus.status === "configured";
+  const missing = [];
+  const invalid = [];
+  if (authStatus.status === "missing") missing.push("Supabase auth");
+  if (authStatus.status === "invalid") invalid.push("Supabase auth");
+  if (!adminSourceConfigured) {
+    if (founderStatus.status === "invalid" || serviceRoleStatus.status === "invalid") invalid.push("Founder access source");
+    else missing.push("Founder access source");
+  }
+  if (invalid.length) return { status: "invalid", missing, invalid };
+  if (missing.length) return { status: "missing", missing, invalid };
+  return { status: "configured", missing, invalid };
+}
+
+function combineEnvStatuses(items) {
+  const missing = items.filter((item) => item.status === "missing").map((item) => item.env);
+  const invalid = items.filter((item) => item.status === "invalid").map((item) => item.env);
+  return {
+    status: invalid.length ? "invalid" : missing.length ? "missing" : "configured",
+    missing,
+    invalid
+  };
 }
 
 function getStripePriceWarning(status) {
   if (status.status === "missing") return `${status.env} is missing.`;
+  if (status.status === "invalid_placeholder") return `${status.env} looks like a placeholder.`;
   if (status.status === "invalid_prefix") return `${status.env} must start with price_; it must not use secret, product, or customer IDs.`;
   return "Stripe price ID should start with price_.";
 }
@@ -1924,6 +2122,7 @@ function getStripePriceWarning(status) {
 function getStripeSecretStatus() {
   const value = getEnv("STRIPE_SECRET_KEY");
   if (!value) return { status: "missing" };
+  if (isPlaceholderValue(value)) return { status: "invalid_placeholder" };
   if (!startsWithAny(value, ["sk_live_", "sk_test_"])) return { status: "invalid_prefix" };
   return { status: "configured" };
 }
@@ -1931,6 +2130,7 @@ function getStripeSecretStatus() {
 function getStripeWebhookStatus() {
   const value = getEnv("STRIPE_WEBHOOK_SECRET");
   if (!value) return { status: "missing" };
+  if (isPlaceholderValue(value)) return { status: "invalid_placeholder" };
   if (!value.startsWith("whsec_")) return { status: "invalid_prefix" };
   return { status: "configured" };
 }
@@ -1942,6 +2142,7 @@ function getStripePlanPriceStatus(plan) {
   const value = getEnv(envNames);
   const envLabel = envNames.join(" or ");
   if (!value) return { status: "missing", checkout: "setup_required", env: envLabel, reason: "missing" };
+  if (isPlaceholderValue(value)) return { status: "invalid_placeholder", checkout: "setup_required", env: envLabel, reason: "invalid_placeholder" };
   if (!isStripePriceId(value)) return { status: "invalid_prefix", checkout: "setup_required", env: envLabel, reason: "invalid_prefix" };
   return { status: "configured", checkout: getStripeSecretStatus().status === "configured" ? "enabled" : "setup_required", env: envLabel, reason: "configured", priceId: value };
 }
@@ -1957,21 +2158,42 @@ function getInvalidStripeEnvStatuses() {
   const statuses = [];
   const secret = getStripeSecretStatus();
   const webhook = getStripeWebhookStatus();
-  if (secret.status === "invalid_prefix") statuses.push({ env: "STRIPE_SECRET_KEY", reason: "invalid_prefix" });
-  if (webhook.status === "invalid_prefix") statuses.push({ env: "STRIPE_WEBHOOK_SECRET", reason: "invalid_prefix" });
+  if (secret.status.startsWith("invalid")) statuses.push({ env: "STRIPE_SECRET_KEY", reason: secret.status });
+  if (webhook.status.startsWith("invalid")) statuses.push({ env: "STRIPE_WEBHOOK_SECRET", reason: webhook.status });
   for (const plan of Object.keys(STRIPE_PLANS)) {
     const status = getStripePlanPriceStatus(plan);
-    if (status.status === "invalid_prefix") statuses.push({ env: status.env, reason: "invalid_prefix" });
+    if (status.status.startsWith("invalid")) statuses.push({ env: status.env, reason: status.status });
   }
   return statuses;
 }
 
 function isStripePriceId(value) {
-  return String(value || "").startsWith("price_");
+  return String(value || "").startsWith("price_") && !isPlaceholderValue(value);
 }
 
 function startsWithAny(value, prefixes) {
   return prefixes.some((prefix) => String(value || "").startsWith(prefix));
+}
+
+function isPlaceholderValue(value) {
+  const raw = String(value || "").trim();
+  const normalized = raw.toLowerCase();
+  if (!normalized) return true;
+  if (normalized.includes("...")) return true;
+  if (["changeme", "change-me", "replace-me", "todo"].includes(normalized)) return true;
+  return /(^|[_\-\s])(placeholder|dummy|fake|xxx|your|sample|example|must[_-]?not[_-]?render)([_\-\s]|$)/i.test(normalized)
+    || /^price_(test|xxx|placeholder|example|your)/i.test(normalized)
+    || /^sk_(test|live)_(test|xxx|placeholder|example|your)/i.test(normalized)
+    || /^whsec_(test|xxx|placeholder|example|your)/i.test(normalized);
+}
+
+function isEmailLike(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function isPlaceholderEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  return isPlaceholderValue(email) || ["your-email@example.com", "you@example.com"].includes(email);
 }
 
 function getPlanEnvNames(config) {
@@ -2278,6 +2500,19 @@ function missingEnvGroups(groups) {
   return groups
     .filter((group) => !getEnv(group))
     .map((group) => group.join(" or "));
+}
+
+function getDeploymentInfo() {
+  return {
+    commitSha: safePublicEnvValue(getEnv("VERCEL_GIT_COMMIT_SHA") || "local"),
+    branch: safePublicEnvValue(getEnv("VERCEL_GIT_COMMIT_REF") || "local"),
+    environment: safePublicEnvValue(getEnv("VERCEL_ENV") || process.env.NODE_ENV || "development")
+  };
+}
+
+function safePublicEnvValue(value) {
+  const cleaned = String(value || "").trim().replace(/[^\w./:-]/g, "").slice(0, 120);
+  return cleaned || "local";
 }
 
 async function handleEmailAuth(mode, body) {

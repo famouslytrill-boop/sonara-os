@@ -17,7 +17,7 @@ describe("SONARA SaaS functional routes", () => {
 
   it("rejects invalid Stripe webhook signatures", async () => {
     const previous = process.env.STRIPE_WEBHOOK_SECRET;
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test_secret";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_check_1234567890";
     const payload = Buffer.from(JSON.stringify({ id: "evt_test", type: "checkout.session.completed", data: { object: {} } }));
     const signature = `t=123,v1=${crypto.createHmac("sha256", "wrong_secret").update(`123.${payload.toString("utf8")}`).digest("hex")}`;
     await request(app)

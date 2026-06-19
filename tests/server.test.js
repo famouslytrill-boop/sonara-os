@@ -61,6 +61,13 @@ describe("public site", () => {
     assert.doesNotMatch(res.text, /Setup checklist/);
   });
 
+  it("business builder landing does not duplicate Launch Setup Checklist CTAs", async function() {
+    const res = await request(app).get("/business-builder").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    const ctas = res.text.match(/<a class="action" href="\/business-builder\/launch-readiness">Launch checklist<\/a>/g) || [];
+    assert.equal(ctas.length, 1);
+  });
+
   it("pricing uses readable setup text", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -154,26 +161,34 @@ describe("health and readiness", () => {
   it("GET /api/health returns ok", async function() {
     const res = await request(app).get("/api/health").set("Accept", "application/json");
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body, { ok: true });
+    assert.equal(res.body.ok, true);
+    assert.equal(res.body.app, "sonara-industries");
+    assert.equal(res.body.runtime, "express");
+    assert.ok(res.body.deployment);
+    assert.ok(res.body.deployment.commitSha);
+    assert.ok(res.body.deployment.branch);
+    assert.ok(res.body.deployment.environment);
+    assert.ok(res.body.timestamp);
+    assert.doesNotMatch(JSON.stringify(res.body), /sk_|whsec_|SUPABASE_SERVICE_ROLE_KEY|RESEND_API_KEY/);
   });
 
   it("GET /api/readiness returns non-secret flags", async function() {
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
-    assert.ok(["configured", "missing"].includes(res.body.services.supabase));
-    assert.ok(["configured", "missing"].includes(res.body.services.stripe));
-    assert.ok(["configured", "missing"].includes(res.body.services.resend));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.supabase));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.stripe));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.resend));
     assert.ok(["configured", "missing", "deferred"].includes(res.body.services.googleOAuth));
-    assert.ok(["configured", "missing"].includes(res.body.services.adminProtection));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.adminProtection));
     assert.equal(res.body.services.legalPages, "review_required");
     assert.ok(["enabled", "setup_required"].includes(res.body.services.checkout));
-    assert.ok(["enabled", "setup_required"].includes(res.body.services.emailDelivery));
-    assert.ok(["configured", "missing"].includes(res.body.services.accountDatabase));
-    assert.ok(["configured", "missing"].includes(res.body.services.paymentConnection));
-    assert.ok(["configured", "missing"].includes(res.body.services.paymentUpdates));
+    assert.ok(["enabled", "setup_required", "invalid"].includes(res.body.services.emailDelivery));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.accountDatabase));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentConnection));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.paymentUpdates));
     assert.equal(res.body.services.googleSignIn, "deferred");
-    assert.ok(["configured", "missing"].includes(res.body.services.founderAccess));
+    assert.ok(["configured", "missing", "invalid"].includes(res.body.services.founderAccess));
     assert.equal(res.text.includes("SUPABASE_SERVICE_ROLE_KEY="), false);
     assert.equal(res.text.includes("STRIPE_SECRET_KEY="), false);
   });
@@ -202,17 +217,17 @@ describe("health and readiness", () => {
     const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
     for (const key of keys) delete process.env[key];
 
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
-    process.env.RESEND_API_KEY = "resend-placeholder";
-    process.env.RESEND_FROM_EMAIL = "support@example.com";
-    process.env.CONTACT_TO_EMAIL = "owner@example.com";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-status.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_status_check_value_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_status_check_value_1234567890";
+    process.env.RESEND_API_KEY = "re_status_check_value_1234567890";
+    process.env.RESEND_FROM_EMAIL = "support@sonaraindustries.com";
+    process.env.CONTACT_TO_EMAIL = "owner@sonaraindustries.com";
     process.env.GOOGLE_CLIENT_ID = "google-client-placeholder";
     process.env.GOOGLE_CLIENT_SECRET = "google-secret-placeholder";
     process.env.GOOGLE_REDIRECT_URI = "https://sonaraindustries.com/auth/callback";
     process.env.NEXT_PUBLIC_SITE_URL = "https://sonaraindustries.com";
-    process.env.ADMIN_EMAIL = "owner@example.com";
+    process.env.ADMIN_EMAIL = "owner@sonaraindustries.com";
 
     const res = await request(app).get("/api/readiness").set("Accept", "application/json");
 
@@ -228,6 +243,52 @@ describe("health and readiness", () => {
     assert.equal(res.body.services.adminProtection, "configured");
     assert.doesNotMatch(res.text, /service-role-placeholder/);
     assert.doesNotMatch(res.text, /google-secret-placeholder/);
+  });
+
+  it("GET /api/readiness marks placeholder provider values invalid", async function() {
+    const keys = [
+      "SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "RESEND_API_KEY",
+      "RESEND_FROM_EMAIL",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "STRIPE_PRICE_STARTER_MONTHLY",
+      "ADMIN_EMAILS",
+      "ADMIN_EMAIL",
+      "FOUNDER_EMAILS"
+    ];
+    const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
+    for (const key of keys) delete process.env[key];
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://your-project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.RESEND_API_KEY = "resend-placeholder";
+    process.env.RESEND_FROM_EMAIL = "sender@example.com";
+    process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.ADMIN_EMAILS = "your-email@example.com";
+
+    const res = await request(app).get("/api/readiness").set("Accept", "application/json");
+
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.services.supabase, "invalid");
+    assert.equal(res.body.services.stripe, "invalid");
+    assert.equal(res.body.services.stripeWebhook, "invalid");
+    assert.equal(res.body.services.resend, "invalid");
+    assert.equal(res.body.services.adminProtection, "invalid");
+    assert.equal(res.body.services.founderAccess, "invalid");
+    assert.ok(res.body.invalid.stripe.some((item) => item.reason === "invalid_placeholder"));
   });
 });
 
@@ -593,9 +654,9 @@ describe("product module APIs", () => {
   });
 
   function configureSupabase() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-employees.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_employee_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_employee_status_key_1234567890";
   }
 
   it("POST /api/business-builder/offers validates input", async function() {
@@ -897,9 +958,9 @@ describe("business builder employee portal", () => {
   });
 
   function configureSupabase() {
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-employees.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_employee_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_employee_status_key_1234567890";
   }
 
   it("GET /business-builder/employees redirects browser users to Business Builder login when auth is missing", async function() {
@@ -1320,7 +1381,7 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe rejects invalid signatures when configured", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
     const res = await request(app)
       .post("/api/webhooks/stripe")
       .set("Content-Type", "application/json")
@@ -1331,7 +1392,7 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/stripe/webhook rejects invalid signatures on the canonical endpoint", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
     const res = await request(app)
       .post("/api/stripe/webhook")
       .set("Content-Type", "application/json")
@@ -1342,9 +1403,9 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe audits valid failure events without unlocking access", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_webhook_status_key_1234567890";
     const payload = JSON.stringify({
       id: "evt_payment_failed",
       type: "payment_intent.payment_failed",
@@ -1376,10 +1437,10 @@ describe("pricing and checkout", () => {
   });
 
   it("POST /api/webhooks/stripe records active subscription state from valid subscription events", async function() {
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_test";
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_signature_status_key_1234567890";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-webhooks.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_webhook_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_webhook_status_key_1234567890";
     const organizationId = "00000000-0000-0000-0000-000000000051";
     const payload = JSON.stringify({
       id: "evt_subscription_updated",
@@ -1445,9 +1506,9 @@ describe("auth and admin", () => {
     originalStripeSecret = process.env.STRIPE_SECRET_KEY;
     originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     originalStripeStarterPrice = process.env.STRIPE_PRICE_STARTER_MONTHLY;
-    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://sonara-admin.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_admin_status_key_1234567890";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_admin_status_key_1234567890";
     process.env.ADMIN_EMAILS = "founder@example.com";
     delete process.env.ADMIN_EMAIL;
     delete process.env.ADMIN_PASSWORD;
@@ -1596,10 +1657,10 @@ describe("auth and admin", () => {
   });
 
   it("GET /admin/login renders Supabase email/password admin form safely", async function() {
-    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-value-that-must-not-render";
-    process.env.STRIPE_SECRET_KEY = "sk_test_value_that_must_not_render";
-    process.env.STRIPE_WEBHOOK_SECRET = "whsec_value_that_must_not_render";
-    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_starter_value_that_must_not_render";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_status_key_1234567890";
+    process.env.STRIPE_SECRET_KEY = "sk_test_sonara_status_key_1234567890";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_sonara_status_key_1234567890";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_sonara_status_1234567890";
 
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 200);
@@ -1616,11 +1677,11 @@ describe("auth and admin", () => {
     assert.match(res.text, /word-break: break-word/);
     assert.match(res.text, /STRIPE_PRICE_STARTER_MONTHLY/);
     assert.match(res.text, /SUPABASE_SERVICE_ROLE_KEY/);
-    assert.match(res.text, /Ready/);
-    assert.doesNotMatch(res.text, /service-role-value-that-must-not-render/);
-    assert.doesNotMatch(res.text, /sk_test_value_that_must_not_render/);
-    assert.doesNotMatch(res.text, /whsec_value_that_must_not_render/);
-    assert.doesNotMatch(res.text, /price_starter_value_that_must_not_render/);
+    assert.match(res.text, /Configured/);
+    assert.doesNotMatch(res.text, /service_role_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /sk_test_sonara_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /whsec_sonara_status_key_1234567890/);
+    assert.doesNotMatch(res.text, /price_sonara_status_1234567890/);
     assert.doesNotMatch(res.text, new RegExp(adminPassword));
   });
 
@@ -1634,8 +1695,27 @@ describe("auth and admin", () => {
     const res = await request(app).get("/admin/login").set("Accept", "text/html");
     assert.equal(res.status, 503);
     assert.match(res.text, /Supabase email login and founder access rules are required/);
-    assert.match(res.text, /Supabase auth is not configured/);
+    assert.match(res.text, /Supabase email login/);
+    assert.match(res.text, /Missing/);
     assert.doesNotMatch(res.text, /ADMIN_ACCESS_TOKEN|ADMIN_PASSWORD/);
+  });
+
+  it("GET /admin/login marks placeholder integration values invalid without exposing them", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://your-project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    process.env.STRIPE_SECRET_KEY = "sk_test_placeholder";
+    process.env.STRIPE_WEBHOOK_SECRET = "whsec_placeholder";
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_xxx";
+    process.env.RESEND_API_KEY = "resend-placeholder";
+    process.env.RESEND_FROM_EMAIL = "sender@example.com";
+    process.env.ADMIN_EMAILS = "your-email@example.com";
+
+    const res = await request(app).get("/admin/login").set("Accept", "text/html");
+
+    assert.equal(res.status, 503);
+    assert.match(res.text, /Invalid placeholder/);
+    assert.doesNotMatch(res.text, /anon-placeholder|service-role-placeholder|sk_test_placeholder|whsec_placeholder|price_xxx|resend-placeholder/);
   });
 
   it("POST /admin/login with incorrect email or password fails safely", async function() {
@@ -1765,6 +1845,8 @@ describe("fallback", () => {
   it("unknown route returns 404", async function() {
     const res = await request(app).get("/unknown-route").set("Accept", "application/json");
     assert.equal(res.status, 404);
+    assert.equal(res.body.ok, false);
+    assert.equal(res.body.code, "not_found");
     assert.equal(res.body.error, "not_found");
   });
 });
