@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
+const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -57,6 +58,19 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handl
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "64kb" }));
+
+registerLastNineHoursRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  responsePage,
+  escapeHtml,
+  requireCustomer,
+  requireBusinessManager,
+  requireWorkspaceAccess,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig
+});
 
 app.get("/", (req, res) => {
   return res.status(200).type("html").send(
