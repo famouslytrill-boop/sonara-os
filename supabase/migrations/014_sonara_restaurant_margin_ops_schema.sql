@@ -1,5 +1,121 @@
 create extension if not exists pgcrypto;
+-- compatibility repair for older existing tables
+alter table if exists public.vendor_accounts
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
 
+alter table if exists public.vendor_invoices
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists vendor_id uuid references public.vendor_accounts(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.vendor_invoice_lines
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists invoice_id uuid references public.vendor_invoices(id) on delete cascade,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.purchase_orders
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists vendor_id uuid references public.vendor_accounts(id) on delete set null,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.purchase_order_lines
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists purchase_order_id uuid references public.purchase_orders(id) on delete cascade,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.recipe_cards
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists platform_id uuid references public.sonara_platforms(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.recipe_ingredients
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists recipe_id uuid references public.recipe_cards(id) on delete cascade,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.menu_items
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists platform_id uuid references public.sonara_platforms(id) on delete set null,
+  add column if not exists recipe_id uuid references public.recipe_cards(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.pos_sales_summaries
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.pos_menu_mix_items
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists sales_summary_id uuid references public.pos_sales_summaries(id) on delete cascade,
+  add column if not exists menu_item_id uuid references public.menu_items(id) on delete set null,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.inventory_count_sessions
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.inventory_count_lines
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists count_session_id uuid references public.inventory_count_sessions(id) on delete cascade,
+  add column if not exists inventory_item_id uuid references public.inventory_items(id) on delete set null,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.waste_logs
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists inventory_item_id uuid references public.inventory_items(id) on delete set null,
+  add column if not exists created_at timestamptz default now();
+
+alter table if exists public.daily_profit_snapshots
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.bill_payment_records
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists vendor_id uuid references public.vendor_accounts(id) on delete set null,
+  add column if not exists invoice_id uuid references public.vendor_invoices(id) on delete set null,
+  add column if not exists metadata jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.accounting_exports
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists payload jsonb not null default '{}'::jsonb,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.location_transfers
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists from_location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists to_location_id uuid references public.business_locations(id) on delete set null,
+  add column if not exists created_at timestamptz default now(),
+  add column if not exists updated_at timestamptz default now();
+
+alter table if exists public.location_transfer_lines
+  add column if not exists organization_id uuid references public.organizations(id) on delete cascade,
+  add column if not exists transfer_id uuid references public.location_transfers(id) on delete cascade,
+  add column if not exists inventory_item_id uuid references public.inventory_items(id) on delete set null,
+  add column if not exists created_at timestamptz default now();
 -- =========================================================
 -- SONARA Restaurant / Back Office Operations Layer
 -- Inspired by common restaurant operations needs: vendors, invoices, inventory, recipes,
