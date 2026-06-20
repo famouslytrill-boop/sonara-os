@@ -135,6 +135,61 @@ This document converts competitor/app research into build patterns for SONARA In
   - plain-language business recommendations
   - export to PDF later
 
+## Open-source and AI technology references to study
+
+### NVIDIA Nemotron 3.5 ASR Streaming 0.6B
+- Source: `https://huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b`
+- Use for Creator Studio and Business Builder speech-to-text, live meeting notes, voice memo transcription, music-session notes, multilingual captions, customer-call summaries, and employee/owner voice capture.
+- SONARA pattern: `Creator Studio -> Audio Job -> Transcribe -> Summarize -> Save to project`.
+- Worker placement: GPU/ASR worker only. Do not run this inside the Express web server.
+- Build modules:
+  - audio_transcription_jobs
+  - audio_transcription_segments
+  - creator_audio_notes
+  - business_voice_notes
+  - customer_call_summaries
+  - worker_job_artifacts
+- UI ideas:
+  - microphone capture card
+  - upload audio file action
+  - transcript progress timeline
+  - language tag badge
+  - confidence/setup-required status
+
+### OpenCut
+- Source: `https://github.com/OpenCut-app/OpenCut`
+- Use for Creator Studio video editing workflow inspiration, timeline interface, clips, exports, batch rendering, plugin architecture, and creator asset management.
+- SONARA pattern: `Creator Studio -> Video Project -> Timeline -> Export Package`.
+- Do not copy OpenCut code into SONARA without license review and architecture isolation.
+- Build modules:
+  - creator_video_projects
+  - creator_video_clips
+  - creator_video_timelines
+  - creator_video_export_jobs
+  - creator_asset_library
+  - worker_job_artifacts
+- UI ideas:
+  - timeline strip
+  - clip cards
+  - export status panel
+  - asset library drawer
+  - headless/batch render status for workers later
+
+### Clone-Wars
+- Source: `https://github.com/GorvGoyl/Clone-Wars`
+- Use as a learning and pattern-discovery index for how popular apps are structured. Do not use it as a copy machine, because that is how you create legal and product garbage at the same time.
+- SONARA pattern: `Admin -> Pattern Lab -> Study interface flow -> Convert into original component pattern`.
+- Build modules:
+  - sonara_pattern_lab_sources
+  - sonara_pattern_lab_reviews
+  - sonara_ui_component_patterns
+  - sonara_feature_gap_reports
+- UI ideas:
+  - pattern checklist
+  - competitor-flow notes
+  - component inspiration board
+  - legal-safe design review status
+
 ## Infrastructure registry additions
 
 Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
@@ -147,6 +202,9 @@ Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
 - `staff_communications_system`: Skype/Teams-inspired staff communications flow.
 - `creator_music_discovery_system`: Apple Music/Spotify-inspired creator discovery and release flow.
 - `business_strategy_planner`: AI business-planning workflow.
+- `creator_asr_transcription_system`: NVIDIA Nemotron-inspired ASR transcription workflow.
+- `creator_video_editor_system`: OpenCut-inspired creator video timeline and export workflow.
+- `sonara_pattern_lab`: Clone-Wars-inspired safe pattern research workflow.
 
 Each system must have:
 
@@ -157,6 +215,7 @@ Each system must have:
 5. Admin control-plane row.
 6. Test coverage.
 7. Setup-required status when integrations are missing.
+8. License and terms review when external repositories, models, or APIs are involved.
 
 ## Public-language rule
 
@@ -172,4 +231,4 @@ Use common words in the UI:
 
 ## Design rule
 
-Borrow patterns only. Do not copy protected logos, screenshots, exact text, layouts, or proprietary interaction details.
+Borrow patterns only. Do not copy protected logos, screenshots, exact text, layouts, private code, proprietary assets, or provider branding.
