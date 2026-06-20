@@ -190,6 +190,26 @@ This document converts competitor/app research into build patterns for SONARA In
   - component inspiration board
   - legal-safe design review status
 
+### Pydantic Monty
+- Source: `https://github.com/pydantic/monty`
+- Use as a reference for secure agent-execution architecture: controlled code execution, resource limits, host-function allowlists, stdout/stderr capture, snapshot/resume, and safer AI-generated code workflows.
+- SONARA pattern: `Admin / Growth Studio / Creator Studio -> Agent Task -> Safe Code Step -> Result -> Save Artifact`.
+- Monty is experimental. Treat it as a research benchmark first, not a production dependency until reviewed.
+- Build modules:
+  - agent_execution_profiles
+  - agent_execution_runs
+  - agent_allowed_functions
+  - agent_execution_artifacts
+  - agent_execution_limits
+  - agent_execution_audit_logs
+- UI ideas:
+  - safe execution badge
+  - allowed actions list
+  - memory/time limit controls
+  - stdout/stderr result card
+  - snapshot/resume timeline
+  - blocked access warning for filesystem, network, and env variables
+
 ## Infrastructure registry additions
 
 Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
@@ -200,11 +220,12 @@ Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
 - `business_accounting_system`: QuickBooks/Wave-inspired accounting and reporting flow.
 - `business_procurement_system`: Amazon Business-inspired purchase order and supplier flow.
 - `staff_communications_system`: Skype/Teams-inspired staff communications flow.
-- `creator_music_discovery_system`: Apple Music/Spotify-inspired creator discovery and release flow.
+- `creator_music_discovery_system`: Apple Music/Spotify-inspired creator discovery flow.
 - `business_strategy_planner`: AI business-planning workflow.
 - `creator_asr_transcription_system`: NVIDIA Nemotron-inspired ASR transcription workflow.
 - `creator_video_editor_system`: OpenCut-inspired creator video timeline and export workflow.
 - `sonara_pattern_lab`: Clone-Wars-inspired safe pattern research workflow.
+- `safe_agent_execution_system`: Pydantic Monty-inspired secure agent code execution and audit workflow.
 
 Each system must have:
 
