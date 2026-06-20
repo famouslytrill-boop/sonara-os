@@ -210,6 +210,37 @@ This document converts competitor/app research into build patterns for SONARA In
   - snapshot/resume timeline
   - blocked access warning for filesystem, network, and env variables
 
+### OBS Studio
+- Source: `https://obsproject.com/`
+- Use for Creator Studio live-streaming, screen recording, scene/source composition, audio/video capture, creator tutorials, live shopping, owner walkthroughs, and business training recordings.
+- SONARA pattern: `Creator Studio -> Broadcast Project -> Scenes -> Sources -> Stream/Record -> Save Asset`.
+- Worker placement: local/desktop capture first, then optional worker jobs for upload processing, transcript generation, thumbnail generation, captions, and clip extraction.
+- Build modules:
+  - creator_broadcast_projects
+  - creator_broadcast_scenes
+  - creator_broadcast_sources
+  - creator_stream_profiles
+  - creator_recording_sessions
+  - creator_stream_keys
+  - creator_video_assets
+  - creator_caption_jobs
+  - creator_clip_exports
+- Business Builder uses:
+  - staff training videos
+  - restaurant/menu walkthroughs
+  - food truck setup tutorials
+  - product demos
+  - customer support recordings
+  - live event checklists
+- UI ideas:
+  - scene builder checklist
+  - source cards for camera, screen, audio, browser, image, and text
+  - stream setup wizard
+  - recording quality preset selector
+  - destination checklist for YouTube, Twitch, private file, or training library
+  - setup-required warning for stream keys and external platform credentials
+  - upload-to-asset-library action
+
 ## Infrastructure registry additions
 
 Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
@@ -226,6 +257,7 @@ Add these rows to the future `021_sonara_runtime_control_plane.sql` seed data:
 - `creator_video_editor_system`: OpenCut-inspired creator video timeline and export workflow.
 - `sonara_pattern_lab`: Clone-Wars-inspired safe pattern research workflow.
 - `safe_agent_execution_system`: Pydantic Monty-inspired secure agent code execution and audit workflow.
+- `creator_broadcast_studio_system`: OBS-inspired live-streaming, screen recording, scene/source, and training-video workflow.
 
 Each system must have:
 
