@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
+const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 
 const app = express();
@@ -58,6 +59,15 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handl
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "64kb" }));
+
+registerCreatorMusicSystemReadOnlyRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireWorkspaceAccess,
+  safeListTable
+});
 
 registerLastNineHoursRoutes(app, {
   layout,
