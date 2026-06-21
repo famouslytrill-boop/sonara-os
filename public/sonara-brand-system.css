@@ -52,22 +52,22 @@ body::after {
   opacity: .72;
 }
 
-.shell-business-builder {
+.sonara-business-builder {
   --product-accent: #72f4a9;
   --product-accent-2: #f4c56f;
   --product-gradient: radial-gradient(circle at 8% 0%, rgba(116,242,167,.26), transparent 33rem), radial-gradient(circle at 82% 12%, rgba(244,197,111,.18), transparent 29rem), linear-gradient(135deg, #04130d 0%, #0c1f18 54%, #07090b 100%);
 }
-.shell-creator-studio {
+.sonara-creator-studio {
   --product-accent: #ff5db8;
   --product-accent-2: #7b61ff;
   --product-gradient: radial-gradient(circle at 10% 0%, rgba(255,93,184,.28), transparent 34rem), radial-gradient(circle at 84% 18%, rgba(72,225,255,.20), transparent 31rem), linear-gradient(135deg, #120412 0%, #18122d 52%, #080914 100%);
 }
-.shell-growth-studio {
+.sonara-growth-studio {
   --product-accent: #48e1ff;
   --product-accent-2: #74f2a7;
   --product-gradient: radial-gradient(circle at 8% 0%, rgba(72,225,255,.28), transparent 34rem), radial-gradient(circle at 84% 14%, rgba(116,242,167,.18), transparent 31rem), linear-gradient(135deg, #031018 0%, #0b1f2c 52%, #070914 100%);
 }
-.shell-admin, .shell-formulas, .shell-ecosystem {
+.sonara-admin, .sonara-formulas, .sonara-ecosystem {
   --product-accent: #f4c56f;
   --product-accent-2: #8b6cff;
 }
