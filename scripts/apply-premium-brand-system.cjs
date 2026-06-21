@@ -27,7 +27,11 @@ source = source.replace(
 
 source = source.replace(
   '<link rel="manifest" href="/site.webmanifest">\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;',
-  '<link rel="manifest" href="/site.webmanifest">\n    <link rel="stylesheet" href="/sonara-brand-system.css">\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;'
+  '<link rel="manifest" href="/site.webmanifest">\n    <link rel="stylesheet" href="/sonara-brand-system.css">\n    <link rel="stylesheet" href="/sonara-friendly-premium.css">\n    <script defer src="/sonara-experience.js"></script>\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;'
+);
+source = source.replace(
+  '<link rel="stylesheet" href="/sonara-brand-system.css">\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;',
+  '<link rel="stylesheet" href="/sonara-brand-system.css">\n    <link rel="stylesheet" href="/sonara-friendly-premium.css">\n    <script defer src="/sonara-experience.js"></script>\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;'
 );
 
 source = source.replace(
@@ -63,4 +67,4 @@ if (!source.includes("function pageBrandClass(title")) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("Premium SONARA brand system wired into server.js with customer-safe class names.");
+console.log("Premium SONARA brand system wired into server.js with brighter friendly styling and customer-safe class names.");
