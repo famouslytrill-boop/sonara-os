@@ -11,15 +11,14 @@ if (!fs.existsSync(serverPath)) {
 
 let source = fs.readFileSync(serverPath, "utf8");
 
+// Signup should visibly confirm account creation after the session is stored.
 source = source.replace(
   'app.post("/auth/signup", async (req, res) => {\n  const result = await handleEmailAuth("signup", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");\n});',
   'app.post("/auth/signup", async (req, res) => {\n  const result = await handleEmailAuth("signup", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard?account=created", "/login");\n});'
 );
 
-source = source.replace(
-  'app.post("/auth/login", async (req, res) => {\n  const result = await handleEmailAuth("login", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");\n});',
-  'app.post("/auth/login", async (req, res) => {\n  const result = await handleEmailAuth("login", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard?login=success", "/login");\n});'
-);
+// Keep login redirect stable for the existing auth contract and test suite.
+source = source.replaceAll('"/dashboard?login=success"', '"/dashboard"');
 
 source = source.replace(
   'sections: [\n        accessCard(req.sonaraAccess),',
@@ -39,7 +38,12 @@ source = source.replace(
 if (!source.includes("function accountNoticeCard(req)")) {
   source = source.replace(
     'function responsePage(title, body, actions) {',
-    'function accountNoticeCard(req) {\n  const account = String(req.query?.account || "");\n  const login = String(req.query?.login || "");\n  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");\n  if (login === "success") return brandCard("Welcome back", "Your workspace is open and protected by account access.");\n  return "";\n}\n\nfunction responsePage(title, body, actions) {'
+    'function accountNoticeCard(req) {\n  const account = String(req.query?.account || "");\n  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");\n  return "";\n}\n\nfunction responsePage(title, body, actions) {'
+  );
+} else {
+  source = source.replace(
+    '  const login = String(req.query?.login || "");\n  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");\n  if (login === "success") return brandCard("Welcome back", "Your workspace is open and protected by account access.");\n  return "";',
+    '  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");\n  return "";'
   );
 }
 
@@ -51,4 +55,4 @@ if (!source.includes("function pageShellClass(title")) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("Premium SONARA brand system wired into server.js.");
+console.log("Premium SONARA brand system wired into server.js with stable login redirects.");
