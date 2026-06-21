@@ -8,6 +8,17 @@ const {
   productAreaToWorkspace
 } = require("../lib/sonara-formula-library.cjs");
 
+const FORMULA_GROUP_LABELS = {
+  business_revenue: "Business and revenue",
+  restaurant_margin: "Restaurant and service margin",
+  employee_payroll: "Employee payroll",
+  inventory_operations: "Inventory and operations",
+  growth_marketing: "Growth and marketing",
+  creator_music: "Creator music and release",
+  ui_device_experience: "Device and interface experience",
+  operating_twin: "Operating twin and decision support"
+};
+
 module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
@@ -161,11 +172,11 @@ function groupDefinitions(definitions) {
 }
 
 function formatLabel(value) {
-  return String(value || "").replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return FORMULA_GROUP_LABELS[value] || String(value || "").replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function pass(req, res, next) { next(); }
-function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
+function esc(value) { return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
 function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }
