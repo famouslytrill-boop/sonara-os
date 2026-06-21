@@ -1,0 +1,80 @@
+:root {
+  --sonara-text: #fffdf7;
+  --sonara-muted: #ddd6e8;
+  --sonara-gold: #ffd166;
+  --sonara-coral: #ff7a66;
+  --sonara-violet: #a78bfa;
+  --sonara-cyan: #5ee7ff;
+  --sonara-green: #8ff7b8;
+  --product-accent: var(--sonara-gold);
+  --product-accent-2: var(--sonara-coral);
+  --product-accent-3: var(--sonara-violet);
+  --product-gradient: radial-gradient(circle at 14% 0%, rgba(255,209,102,.36), transparent 32rem), radial-gradient(circle at 88% 14%, rgba(167,139,250,.24), transparent 30rem), radial-gradient(circle at 50% 100%, rgba(94,231,255,.16), transparent 34rem), linear-gradient(135deg, #141426 0%, #22243f 48%, #101321 100%);
+}
+
+body { background: var(--product-gradient) !important; }
+body::before { opacity: .74 !important; }
+
+.sonara-business-builder {
+  --product-accent: #8ff7b8;
+  --product-accent-2: #ffd166;
+  --product-accent-3: #4ee39a;
+  --product-gradient: radial-gradient(circle at 10% 0%, rgba(143,247,184,.36), transparent 32rem), radial-gradient(circle at 84% 12%, rgba(255,209,102,.24), transparent 30rem), linear-gradient(135deg, #0b2118 0%, #153824 52%, #111722 100%);
+}
+.sonara-creator-studio {
+  --product-accent: #ff79c6;
+  --product-accent-2: #a78bfa;
+  --product-accent-3: #5ee7ff;
+  --product-gradient: radial-gradient(circle at 10% 0%, rgba(255,121,198,.36), transparent 33rem), radial-gradient(circle at 84% 18%, rgba(94,231,255,.25), transparent 31rem), linear-gradient(135deg, #28112d 0%, #24264f 52%, #101321 100%);
+}
+.sonara-growth-studio {
+  --product-accent: #5ee7ff;
+  --product-accent-2: #8ff7b8;
+  --product-accent-3: #ffd166;
+  --product-gradient: radial-gradient(circle at 8% 0%, rgba(94,231,255,.36), transparent 32rem), radial-gradient(circle at 84% 14%, rgba(143,247,184,.24), transparent 31rem), linear-gradient(135deg, #071d2b 0%, #12344a 52%, #101321 100%);
+}
+
+header {
+  background: linear-gradient(180deg, rgba(20,22,40,.88), rgba(20,22,40,.24)) !important;
+  border-bottom-color: rgba(255,255,255,.12) !important;
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+h1 {
+  letter-spacing: -0.055em !important;
+  text-shadow: 0 18px 90px color-mix(in srgb, var(--product-accent) 32%, transparent) !important;
+}
+.lede { color: rgba(255,253,247,.9) !important; }
+
+.card {
+  border-color: color-mix(in srgb, var(--product-accent) 34%, rgba(255,255,255,.16)) !important;
+  background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.055)), radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--product-accent) 18%, transparent), transparent 22rem) !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.17) !important;
+}
+.card::before {
+  width: 40px !important;
+  height: 5px !important;
+  background: linear-gradient(90deg, var(--product-accent), var(--product-accent-2), var(--product-accent-3)) !important;
+}
+.card p { color: rgba(255,253,247,.84) !important; }
+
+nav a, .action, button {
+  border-color: color-mix(in srgb, var(--product-accent) 40%, rgba(255,255,255,.18)) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.06)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 34px rgba(0,0,0,.18) !important;
+}
+button, .action:first-child {
+  background: linear-gradient(135deg, var(--product-accent), var(--product-accent-2)) !important;
+  color: #080812 !important;
+  font-weight: 950 !important;
+}
+
+input, textarea, select {
+  background: rgba(255,255,255,.08) !important;
+  color: var(--sonara-text) !important;
+}
+
+@media (max-width: 760px) {
+  h1 { letter-spacing: -0.04em !important; }
+  nav a, .action, button { min-height: 48px; }
+}
