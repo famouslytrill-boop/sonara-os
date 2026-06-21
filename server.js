@@ -2,6 +2,8 @@ const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
+const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.cjs");
+const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 
@@ -59,6 +61,30 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handl
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "64kb" }));
+
+registerSonaraEcosystemRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireAdmin,
+  safeListTable
+});
+
+registerSonaraFormulaRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  responsePage,
+  escapeHtml,
+  requireAdmin,
+  requireWorkspaceAccess,
+  safeListTable,
+  getSupabaseServerConfig,
+  getCustomerPrimaryOrganization,
+  supabaseHeaders,
+  insertActivityEvent
+});
 
 registerCreatorMusicSystemReadOnlyRoutes(app, {
   layout,
@@ -1340,6 +1366,8 @@ function adminActions() {
     linkAction("/admin/support", "Support queue"),
     linkAction("/admin/catalog", "Catalog"),
     linkAction("/admin/system", "System"),
+    linkAction("/admin/formulas", "Formulas"),
+    linkAction("/admin/ecosystem", "Ecosystem"),
     linkAction("/admin/business-builder", "Business Builder"),
     linkAction("/admin/creator-studio", "Creator Studio"),
     linkAction("/admin/growth-studio", "Growth Studio"),
