@@ -32,8 +32,16 @@ source = source.replace(
 
 source = source.replace(
   '  <body>\n    <header>',
-  '  <body class="${escapeHtml(pageShellClass(title, heading, eyebrow))}">\n    <header>'
+  '  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">\n    <header>'
 );
+source = source.replace(/pageShellClass/g, "pageBrandClass");
+source = source.replace(/shell-business-builder/g, "sonara-business-builder");
+source = source.replace(/shell-creator-studio/g, "sonara-creator-studio");
+source = source.replace(/shell-growth-studio/g, "sonara-growth-studio");
+source = source.replace(/shell-formulas/g, "sonara-formulas");
+source = source.replace(/shell-ecosystem/g, "sonara-ecosystem");
+source = source.replace(/shell-admin/g, "sonara-admin");
+source = source.replace(/shell-sonara/g, "sonara-platform");
 
 if (!source.includes("function accountNoticeCard(req)")) {
   source = source.replace(
@@ -47,12 +55,12 @@ if (!source.includes("function accountNoticeCard(req)")) {
   );
 }
 
-if (!source.includes("function pageShellClass(title")) {
+if (!source.includes("function pageBrandClass(title")) {
   source = source.replace(
     'function renderHead(title) {',
-    'function pageShellClass(title, heading, eyebrow) {\n  const text = `${title || ""} ${heading || ""} ${eyebrow || ""}`.toLowerCase();\n  if (text.includes("business builder")) return "shell-business-builder";\n  if (text.includes("creator studio") || text.includes("formula")) return text.includes("formula") ? "shell-formulas" : "shell-creator-studio";\n  if (text.includes("growth studio")) return "shell-growth-studio";\n  if (text.includes("admin") || text.includes("founder")) return "shell-admin";\n  if (text.includes("ecosystem")) return "shell-ecosystem";\n  return "shell-sonara";\n}\n\nfunction renderHead(title) {'
+    'function pageBrandClass(title, heading, eyebrow) {\n  const text = `${title || ""} ${heading || ""} ${eyebrow || ""}`.toLowerCase();\n  if (text.includes("business builder")) return "sonara-business-builder";\n  if (text.includes("creator studio") || text.includes("formula")) return text.includes("formula") ? "sonara-formulas" : "sonara-creator-studio";\n  if (text.includes("growth studio")) return "sonara-growth-studio";\n  if (text.includes("admin") || text.includes("founder")) return "sonara-admin";\n  if (text.includes("ecosystem")) return "sonara-ecosystem";\n  return "sonara-platform";\n}\n\nfunction renderHead(title) {'
   );
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("Premium SONARA brand system wired into server.js with stable login redirects.");
+console.log("Premium SONARA brand system wired into server.js with customer-safe class names.");
