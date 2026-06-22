@@ -2,6 +2,7 @@ const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
+const registerSonaraInfrastructureRoutes = require("./routes/sonara-infrastructure-routes.cjs");
 const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
@@ -61,6 +62,14 @@ app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handl
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json({ limit: "64kb" }));
+
+registerSonaraInfrastructureRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireAdmin
+});
 
 registerSonaraEcosystemRoutes(app, {
   layout,
@@ -353,7 +362,7 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
-  return sendEmailAuthResult(req, res, result, "/dashboard?login=success", "/login");
+  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
 });
 
 app.get("/logout", (req, res) => {
@@ -1272,7 +1281,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
   </head>
-  <body class="${escapeHtml(pageShellClass(title, heading, eyebrow))}">
+  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
       <a class="brand" href="/">SONARA Industries</a>
       <nav aria-label="Primary">
@@ -1319,14 +1328,14 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
 </html>`;
 }
 
-function pageShellClass(title, heading, eyebrow) {
+function pageBrandClass(title, heading, eyebrow) {
   const text = `${title || ""} ${heading || ""} ${eyebrow || ""}`.toLowerCase();
-  if (text.includes("business builder")) return "shell-business-builder";
-  if (text.includes("creator studio") || text.includes("formula")) return text.includes("formula") ? "shell-formulas" : "shell-creator-studio";
-  if (text.includes("growth studio")) return "shell-growth-studio";
-  if (text.includes("admin") || text.includes("founder")) return "shell-admin";
-  if (text.includes("ecosystem")) return "shell-ecosystem";
-  return "shell-sonara";
+  if (text.includes("business builder")) return "sonara-business-builder";
+  if (text.includes("creator studio") || text.includes("formula")) return text.includes("formula") ? "sonara-formulas" : "sonara-creator-studio";
+  if (text.includes("growth studio")) return "sonara-growth-studio";
+  if (text.includes("admin") || text.includes("founder")) return "sonara-admin";
+  if (text.includes("ecosystem")) return "sonara-ecosystem";
+  return "sonara-platform";
 }
 
 function renderHead(title) {
@@ -1344,14 +1353,14 @@ function renderHead(title) {
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/sonara-brand-system.css">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css">
+    <script defer src="/sonara-experience.js"></script>
     <title>${escapeHtml(title)} | SONARA Industries</title>`;
 }
 
 function accountNoticeCard(req) {
   const account = String(req.query?.account || "");
-  const login = String(req.query?.login || "");
   if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");
-  if (login === "success") return brandCard("Welcome back", "Your workspace is open and protected by account access.");
   return "";
 }
 
@@ -1389,6 +1398,7 @@ function adminActions() {
     linkAction("/admin/system", "System"),
     linkAction("/admin/formulas", "Formulas"),
     linkAction("/admin/ecosystem", "Ecosystem"),
+    linkAction("/admin/infrastructure", "Infrastructure"),
     linkAction("/admin/business-builder", "Business Builder"),
     linkAction("/admin/creator-studio", "Creator Studio"),
     linkAction("/admin/growth-studio", "Growth Studio"),
