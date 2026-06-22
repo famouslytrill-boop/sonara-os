@@ -16,13 +16,11 @@ if (!fs.existsSync(serverPath)) {
 
 let source = fs.readFileSync(serverPath, "utf8");
 
-// Signup should visibly confirm account creation after the session is stored.
 source = source.replace(
   'app.post("/auth/signup", async (req, res) => {\n  const result = await handleEmailAuth("signup", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");\n});',
   'app.post("/auth/signup", async (req, res) => {\n  const result = await handleEmailAuth("signup", req.body);\n  return sendEmailAuthResult(req, res, result, "/dashboard?account=created", "/login");\n});'
 );
 
-// Keep login redirect stable for the existing auth contract and test suite.
 source = source.replaceAll('"/dashboard?login=success"', '"/dashboard"');
 
 source = source.replace(
@@ -30,27 +28,30 @@ source = source.replace(
   'sections: [\n        accountNoticeCard(req),\n        accessCard(req.sonaraAccess),'
 );
 
-source = source.replace(
-  '<link rel="manifest" href="/site.webmanifest">\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;',
-  '<link rel="manifest" href="/site.webmanifest">\n    <link rel="stylesheet" href="/sonara-brand-system.css">\n    <link rel="stylesheet" href="/sonara-friendly-premium.css">\n    <script defer src="/sonara-experience.js"></script>\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;'
-);
-source = source.replace(
-  '<link rel="stylesheet" href="/sonara-brand-system.css">\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;',
-  '<link rel="stylesheet" href="/sonara-brand-system.css">\n    <link rel="stylesheet" href="/sonara-friendly-premium.css">\n    <script defer src="/sonara-experience.js"></script>\n    <title>${escapeHtml(title)} | SONARA Industries</title>`;'
-);
+source = source
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-brand-system\.css">/g, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-friendly-premium\.css">/g, "")
+  .replace(/\n\s*<script defer src="\/sonara-experience\.js"><\/script>/g, "");
+
+if (!source.includes('href="/sonara-friendly-premium.css"')) {
+  source = source.replace(
+    '    </style>\n  </head>',
+    '    </style>\n    <link rel="stylesheet" href="/sonara-brand-system.css">\n    <link rel="stylesheet" href="/sonara-friendly-premium.css">\n    <script defer src="/sonara-experience.js"></script>\n  </head>'
+  );
+}
 
 source = source.replace(
   '  <body>\n    <header>',
   '  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">\n    <header>'
 );
-source = source.replace(/pageBrandClass/g, "pageBrandClass");
-source = source.replace(/sonara-business-builder/g, "sonara-business-builder");
-source = source.replace(/sonara-creator-studio/g, "sonara-creator-studio");
-source = source.replace(/sonara-growth-studio/g, "sonara-growth-studio");
-source = source.replace(/sonara-formulas/g, "sonara-formulas");
-source = source.replace(/sonara-ecosystem/g, "sonara-ecosystem");
-source = source.replace(/sonara-admin/g, "sonara-admin");
-source = source.replace(/sonara-platform/g, "sonara-platform");
+source = source.replace(/pageShellClass/g, "pageBrandClass");
+source = source.replace(/shell-business-builder/g, "sonara-business-builder");
+source = source.replace(/shell-creator-studio/g, "sonara-creator-studio");
+source = source.replace(/shell-growth-studio/g, "sonara-growth-studio");
+source = source.replace(/shell-formulas/g, "sonara-formulas");
+source = source.replace(/shell-ecosystem/g, "sonara-ecosystem");
+source = source.replace(/shell-admin/g, "sonara-admin");
+source = source.replace(/shell-sonara/g, "sonara-platform");
 
 if (!source.includes("function accountNoticeCard(req)")) {
   source = source.replace(
@@ -72,5 +73,4 @@ if (!source.includes("function pageBrandClass(title")) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("Premium SONARA brand system wired into server.js with infrastructure routes, brighter friendly styling, and customer-safe class names.");
-
+console.log("Premium SONARA brand system wired after base styles so the brighter interface loads correctly.");
