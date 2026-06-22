@@ -3,6 +3,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const infraScriptPath = path.join(process.cwd(), "scripts", "apply-infrastructure-routes.cjs");
+if (fs.existsSync(infraScriptPath)) {
+  require(infraScriptPath);
+}
+
 const serverPath = path.join(process.cwd(), "server.js");
 if (!fs.existsSync(serverPath)) {
   console.error("server.js not found. Run from repository root.");
@@ -67,4 +72,4 @@ if (!source.includes("function pageBrandClass(title")) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("Premium SONARA brand system wired into server.js with brighter friendly styling and customer-safe class names.");
+console.log("Premium SONARA brand system wired into server.js with infrastructure routes, brighter friendly styling, and customer-safe class names.");
