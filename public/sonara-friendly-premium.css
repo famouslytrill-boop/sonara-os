@@ -1,80 +1,287 @@
+/* SONARA friendly premium final visual override. Keep this file loaded after server.js inline styles. */
 :root {
   --sonara-text: #fffdf7;
-  --sonara-muted: #ddd6e8;
+  --sonara-muted: #ede4ff;
   --sonara-gold: #ffd166;
   --sonara-coral: #ff7a66;
-  --sonara-violet: #a78bfa;
+  --sonara-violet: #b693ff;
   --sonara-cyan: #5ee7ff;
   --sonara-green: #8ff7b8;
+  --sonara-rose: #ff79c6;
+  --sonara-cream: #fff4d8;
   --product-accent: var(--sonara-gold);
   --product-accent-2: var(--sonara-coral);
   --product-accent-3: var(--sonara-violet);
-  --product-gradient: radial-gradient(circle at 14% 0%, rgba(255,209,102,.36), transparent 32rem), radial-gradient(circle at 88% 14%, rgba(167,139,250,.24), transparent 30rem), radial-gradient(circle at 50% 100%, rgba(94,231,255,.16), transparent 34rem), linear-gradient(135deg, #141426 0%, #22243f 48%, #101321 100%);
 }
 
-body { background: var(--product-gradient) !important; }
-body::before { opacity: .74 !important; }
+html,
+body {
+  min-height: 100% !important;
+  background:
+    radial-gradient(circle at 12% 5%, rgba(255,209,102,.48), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgba(182,147,255,.34), transparent 26rem),
+    radial-gradient(circle at 48% 95%, rgba(94,231,255,.20), transparent 30rem),
+    linear-gradient(135deg, #23143a 0%, #251d47 45%, #111427 100%) !important;
+  color: var(--sonara-text) !important;
+}
+
+body::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  opacity: .88 !important;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.10), transparent 24%, rgba(255,209,102,.10) 42%, transparent 70%),
+    linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px) !important;
+  background-size: auto, 64px 64px, 64px 64px !important;
+  mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%) !important;
+}
+
+body::after {
+  content: "PREMIUM LAUNCH OS" !important;
+  position: fixed !important;
+  right: clamp(14px, 4vw, 52px) !important;
+  top: clamp(86px, 13vw, 140px) !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  color: rgba(255,255,255,.055) !important;
+  font-size: clamp(54px, 10vw, 132px) !important;
+  line-height: .8 !important;
+  font-weight: 950 !important;
+  letter-spacing: -.08em !important;
+  text-align: right !important;
+  max-width: 740px !important;
+}
+
+header,
+main,
+footer {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+header {
+  width: min(1240px, calc(100% - 32px)) !important;
+  margin-top: 18px !important;
+  padding: 18px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 28px !important;
+  background: rgba(28, 22, 51, .72) !important;
+  box-shadow: 0 24px 80px rgba(0,0,0,.30), inset 0 1px 0 rgba(255,255,255,.16) !important;
+  backdrop-filter: blur(24px) saturate(1.28) !important;
+}
+
+.brand {
+  min-width: 194px !important;
+  min-height: 56px !important;
+  padding: 12px 16px 12px 60px !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(135deg, rgba(255,209,102,.24), rgba(255,122,102,.12)),
+    rgba(255,255,255,.08) !important;
+  border: 1px solid rgba(255,209,102,.34) !important;
+  color: var(--sonara-cream) !important;
+  letter-spacing: .03em !important;
+  text-transform: none !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+.brand::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 12px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, #ffd166, #ff7a66 48%, #b693ff) !important;
+  box-shadow: 0 14px 34px rgba(255,209,102,.28) !important;
+}
+.brand::after {
+  content: "SONARA OS" !important;
+}
+
+nav {
+  gap: 12px !important;
+}
+nav a,
+.action,
+button {
+  min-height: 48px !important;
+  padding: 13px 18px !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.10) !important;
+  color: #fffdf7 !important;
+  font-weight: 850 !important;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.17), 0 12px 30px rgba(0,0,0,.20) !important;
+  backdrop-filter: blur(18px) saturate(1.18) !important;
+}
+nav a:hover,
+.action:hover,
+button:hover {
+  transform: translateY(-2px) scale(1.015) !important;
+  border-color: rgba(255,209,102,.58) !important;
+  background: rgba(255,255,255,.16) !important;
+}
+
+main {
+  width: min(1240px, calc(100% - 32px)) !important;
+}
+.hero {
+  min-height: 62vh !important;
+  display: grid !important;
+  align-content: center !important;
+  padding: clamp(64px, 9vw, 128px) 0 clamp(42px, 6vw, 80px) !important;
+}
+.eyebrow {
+  width: max-content !important;
+  max-width: 100% !important;
+  padding: 10px 14px !important;
+  border: 1px solid rgba(255,209,102,.38) !important;
+  border-radius: 999px !important;
+  background: rgba(255,209,102,.13) !important;
+  color: #ffd166 !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+  letter-spacing: .22em !important;
+}
+h1 {
+  margin: 20px 0 18px !important;
+  max-width: 960px !important;
+  font-size: clamp(58px, 9vw, 118px) !important;
+  line-height: .88 !important;
+  letter-spacing: -.085em !important;
+  font-weight: 1000 !important;
+  color: #fffdf7 !important;
+  background: linear-gradient(100deg, #fffdf7 0%, #fff4d8 30%, #ffd166 56%, #ff79c6 82%, #5ee7ff 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: none !important;
+  filter: drop-shadow(0 22px 70px rgba(255,209,102,.20)) !important;
+}
+.lede {
+  max-width: 880px !important;
+  color: rgba(255,253,247,.92) !important;
+  font-size: clamp(20px, 2.3vw, 28px) !important;
+  line-height: 1.55 !important;
+  font-weight: 650 !important;
+}
+.actions {
+  gap: 14px !important;
+  margin-top: 28px !important;
+}
+.actions .action:first-child,
+button[type="submit"] {
+  background: linear-gradient(135deg, #ffd166, #ff7a66) !important;
+  color: #15101f !important;
+  border-color: rgba(255,209,102,.75) !important;
+  box-shadow: 0 20px 50px rgba(255,122,102,.24), inset 0 1px 0 rgba(255,255,255,.38) !important;
+}
+
+.grid {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
+  gap: 20px !important;
+  margin: 20px 0 70px !important;
+}
+.card {
+  min-height: 220px !important;
+  padding: 28px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  border-radius: 30px !important;
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.065)),
+    radial-gradient(circle at 18% 0%, rgba(255,209,102,.20), transparent 22rem) !important;
+  box-shadow: 0 30px 90px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.18) !important;
+  backdrop-filter: blur(24px) saturate(1.28) !important;
+  transform: translateZ(0) !important;
+}
+.card::before {
+  content: "" !important;
+  display: block !important;
+  width: 58px !important;
+  height: 7px !important;
+  margin-bottom: 22px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, #ffd166, #ff7a66, #b693ff, #5ee7ff) !important;
+}
+.card h2 {
+  padding-top: 0 !important;
+  margin-bottom: 12px !important;
+  color: #fffdf7 !important;
+  font-size: 26px !important;
+  letter-spacing: -.04em !important;
+}
+.card p {
+  color: rgba(255,253,247,.85) !important;
+  font-size: 17px !important;
+}
 
 .sonara-business-builder {
   --product-accent: #8ff7b8;
   --product-accent-2: #ffd166;
-  --product-accent-3: #4ee39a;
-  --product-gradient: radial-gradient(circle at 10% 0%, rgba(143,247,184,.36), transparent 32rem), radial-gradient(circle at 84% 12%, rgba(255,209,102,.24), transparent 30rem), linear-gradient(135deg, #0b2118 0%, #153824 52%, #111722 100%);
+  background:
+    radial-gradient(circle at 10% 5%, rgba(143,247,184,.50), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgba(255,209,102,.28), transparent 26rem),
+    linear-gradient(135deg, #0b2419 0%, #183d29 48%, #111427 100%) !important;
 }
 .sonara-creator-studio {
   --product-accent: #ff79c6;
-  --product-accent-2: #a78bfa;
-  --product-accent-3: #5ee7ff;
-  --product-gradient: radial-gradient(circle at 10% 0%, rgba(255,121,198,.36), transparent 33rem), radial-gradient(circle at 84% 18%, rgba(94,231,255,.25), transparent 31rem), linear-gradient(135deg, #28112d 0%, #24264f 52%, #101321 100%);
+  --product-accent-2: #b693ff;
+  background:
+    radial-gradient(circle at 10% 5%, rgba(255,121,198,.48), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgba(94,231,255,.24), transparent 26rem),
+    linear-gradient(135deg, #2c1231 0%, #262752 48%, #111427 100%) !important;
 }
 .sonara-growth-studio {
   --product-accent: #5ee7ff;
   --product-accent-2: #8ff7b8;
-  --product-accent-3: #ffd166;
-  --product-gradient: radial-gradient(circle at 8% 0%, rgba(94,231,255,.36), transparent 32rem), radial-gradient(circle at 84% 14%, rgba(143,247,184,.24), transparent 31rem), linear-gradient(135deg, #071d2b 0%, #12344a 52%, #101321 100%);
+  background:
+    radial-gradient(circle at 10% 5%, rgba(94,231,255,.48), transparent 24rem),
+    radial-gradient(circle at 82% 12%, rgba(143,247,184,.25), transparent 26rem),
+    linear-gradient(135deg, #082538 0%, #153b52 48%, #111427 100%) !important;
 }
 
-header {
-  background: linear-gradient(180deg, rgba(20,22,40,.88), rgba(20,22,40,.24)) !important;
-  border-bottom-color: rgba(255,255,255,.12) !important;
-  backdrop-filter: blur(22px) saturate(1.2);
-}
-
-h1 {
-  letter-spacing: -0.055em !important;
-  text-shadow: 0 18px 90px color-mix(in srgb, var(--product-accent) 32%, transparent) !important;
-}
-.lede { color: rgba(255,253,247,.9) !important; }
-
-.card {
-  border-color: color-mix(in srgb, var(--product-accent) 34%, rgba(255,255,255,.16)) !important;
-  background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.055)), radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--product-accent) 18%, transparent), transparent 22rem) !important;
-  box-shadow: 0 30px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.17) !important;
-}
-.card::before {
-  width: 40px !important;
-  height: 5px !important;
-  background: linear-gradient(90deg, var(--product-accent), var(--product-accent-2), var(--product-accent-3)) !important;
-}
-.card p { color: rgba(255,253,247,.84) !important; }
-
-nav a, .action, button {
-  border-color: color-mix(in srgb, var(--product-accent) 40%, rgba(255,255,255,.18)) !important;
-  background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.06)) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 34px rgba(0,0,0,.18) !important;
-}
-button, .action:first-child {
-  background: linear-gradient(135deg, var(--product-accent), var(--product-accent-2)) !important;
-  color: #080812 !important;
-  font-weight: 950 !important;
-}
-
-input, textarea, select {
-  background: rgba(255,255,255,.08) !important;
-  color: var(--sonara-text) !important;
+footer {
+  width: min(1240px, calc(100% - 32px)) !important;
+  margin-bottom: 26px !important;
+  border: 1px solid rgba(255,255,255,.14) !important;
+  border-radius: 28px !important;
+  background: rgba(255,255,255,.065) !important;
+  padding: 26px !important;
 }
 
 @media (max-width: 760px) {
-  h1 { letter-spacing: -0.04em !important; }
-  nav a, .action, button { min-height: 48px; }
+  header,
+  main,
+  footer {
+    width: min(100% - 20px, 1240px) !important;
+  }
+  header {
+    border-radius: 22px !important;
+  }
+  nav a,
+  .action,
+  button {
+    min-height: 50px !important;
+  }
+  h1 {
+    font-size: clamp(52px, 17vw, 78px) !important;
+    letter-spacing: -.075em !important;
+  }
+  .lede {
+    font-size: 19px !important;
+  }
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
 }
