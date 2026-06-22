@@ -320,7 +320,7 @@ app.get("/signup", (req, res) => {
 
 app.post("/auth/signup", async (req, res) => {
   const result = await handleEmailAuth("signup", req.body);
-  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
+  return sendEmailAuthResult(req, res, result, "/dashboard?account=created", "/login");
 });
 
 app.get("/auth/signup", (req, res) => {
@@ -353,7 +353,7 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
-  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
+  return sendEmailAuthResult(req, res, result, "/dashboard?login=success", "/login");
 });
 
 app.get("/logout", (req, res) => {
@@ -412,6 +412,7 @@ app.get("/dashboard", requireAppAccess, (req, res) => {
       heading: "Dashboard",
       body: "Choose a SONARA product workspace. Owner/admin access is for operations; customer access follows free and paid plan rules.",
       sections: [
+        accountNoticeCard(req),
         accessCard(req.sonaraAccess),
         brandCard("Business Builder", "Offer, intake, customer, and payment readiness workspace."),
         brandCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace."),
@@ -518,6 +519,7 @@ app.get("/business-builder/billing", requireWorkspaceAccess("business_builder"),
       heading: "Billing",
       body: "Manage upgrades and billing. Paid tools unlock only after payment updates record active access.",
       sections: [
+        accountNoticeCard(req),
         accessCard(req.sonaraAccess),
         billingPanel(readiness, billing),
         brandCard("Current plan", billing.status || "No active paid plan found."),
@@ -1270,7 +1272,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
   </head>
-  <body>
+  <body class="${escapeHtml(pageShellClass(title, heading, eyebrow))}">
     <header>
       <a class="brand" href="/">SONARA Industries</a>
       <nav aria-label="Primary">
@@ -1317,6 +1319,16 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
 </html>`;
 }
 
+function pageShellClass(title, heading, eyebrow) {
+  const text = `${title || ""} ${heading || ""} ${eyebrow || ""}`.toLowerCase();
+  if (text.includes("business builder")) return "shell-business-builder";
+  if (text.includes("creator studio") || text.includes("formula")) return text.includes("formula") ? "shell-formulas" : "shell-creator-studio";
+  if (text.includes("growth studio")) return "shell-growth-studio";
+  if (text.includes("admin") || text.includes("founder")) return "shell-admin";
+  if (text.includes("ecosystem")) return "shell-ecosystem";
+  return "shell-sonara";
+}
+
 function renderHead(title) {
   return `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1331,7 +1343,16 @@ function renderHead(title) {
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/sonara-brand-system.css">
     <title>${escapeHtml(title)} | SONARA Industries</title>`;
+}
+
+function accountNoticeCard(req) {
+  const account = String(req.query?.account || "");
+  const login = String(req.query?.login || "");
+  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");
+  if (login === "success") return brandCard("Welcome back", "Your workspace is open and protected by account access.");
+  return "";
 }
 
 function responsePage(title, body, actions) {
