@@ -1280,6 +1280,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
+    <link rel="stylesheet" href="/sonara-brand-system.css">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css">
+    <script defer src="/sonara-experience.js"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
@@ -1352,9 +1355,6 @@ function renderHead(title) {
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <link rel="manifest" href="/site.webmanifest">
-    <link rel="stylesheet" href="/sonara-brand-system.css">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css">
-    <script defer src="/sonara-experience.js"></script>
     <title>${escapeHtml(title)} | SONARA Industries</title>`;
 }
 
