@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
@@ -1280,9 +1280,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-hero-20260623">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-hero-20260623">
-    <script defer src="/sonara-experience.js?v=interface-hero-20260623"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260623">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260623">
+    <script defer src="/sonara-experience.js?v=interface-dom-20260623"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
@@ -1301,11 +1301,30 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       </nav>
     </header>
     <main>
-      <section class="hero">
-        <div class="eyebrow">${escapeHtml(eyebrow)}</div>
-        <h1>${escapeHtml(heading)}</h1>
-        <p class="lede">${escapeHtml(body)}</p>
-        <div class="actions">${actions.join("")}</div>
+      <section class="hero sonara-hero-stage" data-sonara-interface="live">
+        <div class="sonara-hero-copy">
+          <div class="eyebrow">${escapeHtml(eyebrow)}</div>
+          <h1>${escapeHtml(heading)}</h1>
+          <p class="lede">${escapeHtml(body)}</p>
+          <div class="actions">${actions.join("")}</div>
+        </div>
+        <aside class="sonara-interface-face" aria-label="SONARA interface preview">
+          <div class="sonara-face-orb" aria-hidden="true">
+            <span class="sonara-orb-core"></span>
+            <span class="sonara-orb-ring ring-a"></span>
+            <span class="sonara-orb-ring ring-b"></span>
+            <span class="sonara-orb-node node-a"></span>
+            <span class="sonara-orb-node node-b"></span>
+            <span class="sonara-orb-node node-c"></span>
+          </div>
+          <div class="sonara-device-card">
+            <div class="sonara-device-bar"><span></span><span></span><span></span></div>
+            <strong>SONARA OS</strong>
+            <p>One bright command interface for Business Builder, Creator Studio, and Growth Studio.</p>
+            <div class="sonara-module-strip"><span>Business</span><span>Creator</span><span>Growth</span></div>
+          </div>
+          <div class="sonara-proof-pill">Mobile-ready â€¢ Paid-ready â€¢ Operator-controlled</div>
+        </aside>
       </section>
       <section class="grid">${sections.join("")}</section>
     </main>
@@ -3603,4 +3622,5 @@ function redactSensitiveText(value) {
 function escapeHtml(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
+
 
