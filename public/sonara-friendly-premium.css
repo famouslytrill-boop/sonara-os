@@ -15,10 +15,10 @@ body {
   min-height: 100% !important;
   color: var(--sonara-ink) !important;
   background:
-    radial-gradient(circle at 12% 4%, rgba(255,209,102,.46), transparent 22rem),
-    radial-gradient(circle at 86% 10%, rgba(94,231,255,.28), transparent 24rem),
-    radial-gradient(circle at 50% 108%, rgba(255,121,198,.23), transparent 30rem),
-    linear-gradient(135deg, #28153f 0%, #1d2346 44%, #080b18 100%) !important;
+    radial-gradient(circle at 12% 4%, rgba(255,209,102,.48), transparent 22rem),
+    radial-gradient(circle at 86% 10%, rgba(94,231,255,.34), transparent 24rem),
+    radial-gradient(circle at 50% 108%, rgba(255,121,198,.27), transparent 30rem),
+    linear-gradient(135deg, #2b1647 0%, #1d234d 44%, #080b18 100%) !important;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
@@ -28,13 +28,12 @@ body::before {
   inset: 0 !important;
   pointer-events: none !important;
   z-index: 0 !important;
-  opacity: .9 !important;
+  opacity: .95 !important;
   background:
-    linear-gradient(115deg, rgba(255,255,255,.12), transparent 26%, rgba(255,209,102,.11) 46%, transparent 70%),
-    linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) !important;
+    linear-gradient(115deg, rgba(255,255,255,.14), transparent 26%, rgba(255,209,102,.13) 46%, transparent 70%),
+    linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px) !important;
   background-size: auto, 54px 54px, 54px 54px !important;
-  mask-image: linear-gradient(to bottom, black 0%, black 74%, transparent 100%) !important;
 }
 
 header,
@@ -97,62 +96,67 @@ button {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 34px rgba(0,0,0,.22) !important;
   backdrop-filter: blur(18px) saturate(1.15) !important;
 }
-nav a:hover,
-.action:hover,
-button:hover {
-  transform: translateY(-2px) scale(1.015) !important;
-  border-color: rgba(255,209,102,.66) !important;
-  background: rgba(255,255,255,.18) !important;
-}
 
 .hero {
   position: relative !important;
   isolation: isolate !important;
-  min-height: 70vh !important;
+  min-height: 74vh !important;
   display: grid !important;
   align-content: center !important;
-  padding: clamp(58px, 8vw, 118px) clamp(22px, 5vw, 58px) !important;
+  padding: clamp(58px, 8vw, 120px) clamp(22px, 5vw, 64px) !important;
   margin: 30px 0 24px !important;
   border-radius: clamp(30px, 5vw, 56px) !important;
-  border: 1px solid rgba(255,255,255,.18) !important;
+  border: 1px solid rgba(255,255,255,.20) !important;
   overflow: hidden !important;
   background:
-    linear-gradient(135deg, rgba(255,255,255,.13), rgba(255,255,255,.035)),
-    radial-gradient(circle at 20% 12%, rgba(255,209,102,.22), transparent 24rem),
-    radial-gradient(circle at 88% 42%, rgba(94,231,255,.18), transparent 26rem) !important;
+    linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.04)),
+    radial-gradient(circle at 20% 12%, rgba(255,209,102,.24), transparent 24rem),
+    radial-gradient(circle at 88% 42%, rgba(94,231,255,.20), transparent 26rem) !important;
   box-shadow: 0 42px 120px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.16) !important;
   backdrop-filter: blur(20px) saturate(1.2) !important;
 }
 
-/* The actual visible interface graphic face. No more invisible theme tweaks, because apparently CSS needs supervision. */
+.hero > * {
+  position: relative !important;
+  z-index: 3 !important;
+  max-width: 760px !important;
+}
+
+/* FORCED VISIBLE SONARA INTERFACE FACE */
 .hero::before {
   content: "" !important;
   position: absolute !important;
-  right: clamp(-60px, 2vw, 30px) !important;
+  right: clamp(8px, 5vw, 80px) !important;
   top: 50% !important;
-  width: clamp(270px, 38vw, 540px) !important;
+  width: clamp(310px, 40vw, 560px) !important;
   aspect-ratio: 1 !important;
   transform: translateY(-50%) rotate(-8deg) !important;
   border-radius: 44% 56% 48% 52% / 48% 42% 58% 52% !important;
-  z-index: -1 !important;
-  opacity: .96 !important;
+  z-index: 1 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
   background:
-    radial-gradient(circle at 34% 38%, rgba(255,255,255,.94) 0 3%, transparent 4%),
-    radial-gradient(circle at 61% 36%, rgba(255,255,255,.92) 0 3%, transparent 4%),
-    radial-gradient(ellipse at 49% 64%, rgba(8,10,22,.82) 0 9%, transparent 10%),
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.32), transparent 34%),
-    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.34) 0 1px, transparent 2px 9px),
+    radial-gradient(circle at 34% 38%, rgba(255,255,255,1) 0 3.5%, transparent 4.5%),
+    radial-gradient(circle at 61% 36%, rgba(255,255,255,1) 0 3.5%, transparent 4.5%),
+    radial-gradient(ellipse at 49% 64%, rgba(8,10,22,.90) 0 10%, transparent 11%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.42), transparent 33%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.42) 0 1px, transparent 2px 9px),
     conic-gradient(from 210deg, #ffd166, #ff7a66, #ff79c6, #b693ff, #5ee7ff, #8ff7b8, #ffd166) !important;
-  filter: drop-shadow(0 34px 90px rgba(94,231,255,.22)) drop-shadow(0 26px 80px rgba(255,121,198,.18)) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.28) inset,
+    0 28px 95px rgba(94,231,255,.26),
+    0 28px 95px rgba(255,121,198,.22) !important;
+  filter: saturate(1.18) contrast(1.05) !important;
 }
 .hero::after {
   content: "SONARA\A INTERFACE" !important;
   white-space: pre !important;
   position: absolute !important;
-  right: clamp(18px, 6vw, 78px) !important;
+  right: clamp(18px, 6vw, 84px) !important;
   bottom: clamp(18px, 5vw, 70px) !important;
-  z-index: -1 !important;
-  color: rgba(255,255,255,.14) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  color: rgba(255,255,255,.18) !important;
   font-size: clamp(38px, 7vw, 104px) !important;
   line-height: .78 !important;
   font-weight: 1000 !important;
@@ -244,7 +248,7 @@ footer {
 
 @media (max-width: 900px) {
   .hero { min-height: auto !important; padding-bottom: 360px !important; }
-  .hero::before { right: 50% !important; top: auto !important; bottom: 26px !important; width: min(72vw, 360px) !important; transform: translateX(50%) rotate(-8deg) !important; }
+  .hero::before { right: 50% !important; top: auto !important; bottom: 28px !important; width: min(74vw, 380px) !important; transform: translateX(50%) rotate(-8deg) !important; }
   .hero::after { right: 24px !important; bottom: 42px !important; font-size: clamp(34px, 13vw, 70px) !important; }
 }
 
