@@ -263,3 +263,4 @@ fs.writeFileSync(cssPath, css);
 
 console.log("SONARA homepage hard interface DOM patch applied.");
 
+
