@@ -1280,9 +1280,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css">
-    <script defer src="/sonara-experience.js"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-hero-20260623">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-hero-20260623">
+    <script defer src="/sonara-experience.js?v=interface-hero-20260623"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
