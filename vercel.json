@@ -2,8 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": null,
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build",
+  "installCommand": "npm install",
+  "buildCommand": "npm run vercel-build",
   "rewrites": [
     {
       "source": "/(.*)",
