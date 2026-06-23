@@ -80,6 +80,8 @@ No external project should be added to customer-facing production until:
 |---|---|---|---|---|
 | Mobile AI app builder onboarding pattern | User-provided Emergent ad/reference screenshot | Mobile-first signup/onboarding pattern: big promise, social auth, email/phone path, legal consent, social proof, single CTA | `approved_reference` | Pattern only; do not copy branding |
 | 3D interactive hero pattern | User-provided 3D site ad/reference screenshot | Bright, high-impact 3D object hero for SONARA public pages and Creator Studio previews | `review_required` | Progressive visual layer only |
+| Free developer stack directory | `free-for.dev` / user-provided reference screenshot | Searchable free-tier software directory pattern for a SONARA Free Launch Stack page covering hosting, databases, email, storage, analytics, design, code repos, APIs, AI, security, and operations tools | `approved_reference` | Pattern/content system only |
+| Bright gradient developer promo pattern | User-provided free-for.dev reel/reference screenshot | High-saturation gradient visual language for social ads, launch videos, and friendly premium landing sections | `approved_reference` | Pattern only; do not copy branding |
 | Clone Wars | `github.com/GorvGoyl/Clone-Wars` | UI/product pattern reference only | `do_not_integrate_directly` | Reference only |
 | Stripe-style UI patterns | Stripe public site/docs inspiration | Pricing, docs, trust hierarchy, checkout clarity | `approved_reference` | Pattern only |
 | Spotify-style dashboard patterns | Spotify public UI inspiration | Dark dashboard, cards, media-library feel | `approved_reference` | Pattern only |
@@ -100,6 +102,22 @@ No external project should be added to customer-facing production until:
 |---|---|---|---|---|
 | NVIDIA Cosmos | `github.com/NVIDIA/cosmos` | Video/world model research candidate for future Creator Studio visual tools | `review_required` | Research/GPU worker only |
 
+## Free Launch Stack product pattern
+
+SONARA should include a customer-facing Free Launch Stack concept inspired by the free-tier directory pattern:
+
+- free hosting and deployment options
+- free database and storage options
+- free email/contact tools
+- free analytics and monitoring options
+- free design and media tools
+- free code repository and CI/CD options
+- free AI/API tool options
+- free security and compliance checklists
+- free business operations templates
+
+This should become a guided resource page for low-budget founders, creators, and small operators. It must recommend tools as patterns and workflows, not silently affiliate-link or overpromise functionality. Every recommendation should show what is free, what has limits, what becomes paid, and what SONARA can automate.
+
 ## Integration architecture
 
 External technologies must flow through this architecture:
@@ -119,19 +137,22 @@ External technologies must flow through this architecture:
 
 Do not integrate everything at once. That is not ambition; that is a distributed systems tantrum.
 
-1. Fix frontend proxy/build stability.
-2. CrewAI Admin Launch Readiness Crew.
-3. Storage bucket readiness visualizer.
-4. Stripe webhook proof visualizer.
-5. Resend sender/domain visualizer.
-6. Creator Studio audio-job queue.
-7. Claude Video style reel/hook analyzer proof of concept.
-8. Nemotron ASR transcription worker proof of concept.
-9. Demucs/librosa audio analysis worker proof of concept.
-10. MotionBricks-style 3D/motion research demo.
-11. OpenCut/OBS workflow documentation for Creator Studio.
-12. Business Builder ERP prompt packs and inventory/vendor/recipe assistants.
-13. Growth Studio campaign/lead follow-up assistant.
+1. Fix public redesign class names so tests pass without banned placeholder words.
+2. Complete the hard homepage interface DOM patch.
+3. Verify asset cache-busting loads the new visual system.
+4. CrewAI Admin Launch Readiness Crew.
+5. Storage bucket readiness visualizer.
+6. Stripe webhook proof visualizer.
+7. Resend sender/domain visualizer.
+8. Free Launch Stack guided resource page.
+9. Creator Studio audio-job queue.
+10. Claude Video style reel/hook analyzer proof of concept.
+11. Nemotron ASR transcription worker proof of concept.
+12. Demucs/librosa audio analysis worker proof of concept.
+13. MotionBricks-style 3D/motion research demo.
+14. OpenCut/OBS workflow documentation for Creator Studio.
+15. Business Builder ERP prompt packs and inventory/vendor/recipe assistants.
+16. Growth Studio campaign/lead follow-up assistant.
 
 ## Security rules
 
