@@ -53,3 +53,5 @@ supabase_schema_backup.sql
 
 # Output of npm pack
 *.tgz
+
+frontend/tsconfig.tsbuildinfo
