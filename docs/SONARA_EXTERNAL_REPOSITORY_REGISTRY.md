@@ -34,9 +34,12 @@ No external project should be added to customer-facing production until:
 | Project | Source | SONARA fit | Status | Integration placement |
 |---|---|---|---|---|
 | NVIDIA Nemotron ASR Streaming 0.6B | `huggingface.co/nvidia/nemotron-3.5-asr-streaming-0.6b` | Speech-to-text/transcription for Creator Studio, support recordings, audio notes | `worker_candidate` | GPU/CPU worker, never browser direct |
+| NVIDIA MotionBricks | `nvlabs.github.io/motionbricks` / research paper | Real-time motion generation research for future 3D previews, avatars, and robotics-style interaction demos | `review_required` | Research/GPU worker only |
+| Claude Video / watch | `github.com/bradautomates/claude-video` | Video/reel/frame/transcript analysis pattern for Creator Studio viral hook analysis, ad review, and screen-recording bug review | `worker_candidate` | Worker only with ffmpeg/yt-dlp controls |
 | OpenCut | `github.com/OpenCut-app/OpenCut` | Video editor workflow reference for Creator Studio | `review_required` | Reference or controlled adapter |
 | OBS Studio | OBS Project | Creator broadcast/recording workflow reference | `approved_reference` | External tool guidance, not bundled |
 | FFmpeg | FFmpeg project | Audio/video conversion jobs | `worker_candidate` | Worker/container |
+| yt-dlp | yt-dlp project | Video metadata/caption retrieval for approved URLs and owned/public content analysis | `worker_candidate` | Worker/container with policy controls |
 | MusicGen / AudioCraft | Meta AudioCraft ecosystem | Music generation research and worker job inspiration | `review_required` | Worker only |
 | Demucs | Music source separation | Stem separation for Creator Studio audio jobs | `worker_candidate` | Worker/container only |
 | Amphion | Audio/music/speech generation toolkit | Advanced audio generation research | `review_required` | Worker only |
@@ -50,6 +53,7 @@ No external project should be added to customer-facing production until:
 
 | Project | Source | SONARA fit | Status | Integration placement |
 |---|---|---|---|---|
+| ERP AI prompt playbooks | User-provided operations workflow reference | Business Builder prompt packs for financial close, procurement, vendor management, inventory, production operations, ERP data cleanup, reporting, AP/AR, and forecasting | `approved_reference` | Pattern/content system only |
 | Odoo | `github.com/odoo/odoo` | ERP/CRM/inventory/accounting workflow reference | `approved_reference` | Reference, do not copy directly |
 | CockroachDB | `github.com/cockroachdb/cockroach` | Distributed SQL architecture reference | `approved_reference` | Reference only; Supabase/Postgres remains current core |
 | Chef | `github.com/chef/chef` | Infrastructure automation reference | `review_required` | Ops reference |
@@ -61,6 +65,7 @@ No external project should be added to customer-facing production until:
 
 | Project | Source | SONARA fit | Status | Integration placement |
 |---|---|---|---|---|
+| Viral hook video analysis | User-provided Claude Video pattern | Analyze competitor reels, ad creatives, content structure, first-frame hooks, captions, and timestamped calls to action | `worker_candidate` | Creator/Growth worker with content policy limits |
 | OmniParse | discussed in chats | Document parsing/OCR workflow reference | `review_required` | Worker only |
 | ECC | discussed in chats | Research/security/encoding candidate from prior chats | `review_required` | Research first |
 | gemini-business2api | discussed in chats | Business automation/API bridge reference | `review_required` | Review first |
@@ -73,6 +78,8 @@ No external project should be added to customer-facing production until:
 
 | Project | Source | SONARA fit | Status | Integration placement |
 |---|---|---|---|---|
+| Mobile AI app builder onboarding pattern | User-provided Emergent ad/reference screenshot | Mobile-first signup/onboarding pattern: big promise, social auth, email/phone path, legal consent, social proof, single CTA | `approved_reference` | Pattern only; do not copy branding |
+| 3D interactive hero pattern | User-provided 3D site ad/reference screenshot | Bright, high-impact 3D object hero for SONARA public pages and Creator Studio previews | `review_required` | Progressive visual layer only |
 | Clone Wars | `github.com/GorvGoyl/Clone-Wars` | UI/product pattern reference only | `do_not_integrate_directly` | Reference only |
 | Stripe-style UI patterns | Stripe public site/docs inspiration | Pricing, docs, trust hierarchy, checkout clarity | `approved_reference` | Pattern only |
 | Spotify-style dashboard patterns | Spotify public UI inspiration | Dark dashboard, cards, media-library feel | `approved_reference` | Pattern only |
@@ -112,16 +119,19 @@ External technologies must flow through this architecture:
 
 Do not integrate everything at once. That is not ambition; that is a distributed systems tantrum.
 
-1. CrewAI Admin Launch Readiness Crew.
-2. Storage bucket readiness visualizer.
-3. Stripe webhook proof visualizer.
-4. Resend sender/domain visualizer.
-5. Creator Studio audio-job queue shell.
-6. Nemotron ASR transcription worker proof of concept.
-7. Demucs/librosa audio analysis worker proof of concept.
-8. OpenCut/OBS workflow documentation for Creator Studio.
-9. Business Builder inventory/vendor/recipe automation assistants.
-10. Growth Studio campaign/lead follow-up assistant.
+1. Fix frontend proxy/build stability.
+2. CrewAI Admin Launch Readiness Crew.
+3. Storage bucket readiness visualizer.
+4. Stripe webhook proof visualizer.
+5. Resend sender/domain visualizer.
+6. Creator Studio audio-job queue.
+7. Claude Video style reel/hook analyzer proof of concept.
+8. Nemotron ASR transcription worker proof of concept.
+9. Demucs/librosa audio analysis worker proof of concept.
+10. MotionBricks-style 3D/motion research demo.
+11. OpenCut/OBS workflow documentation for Creator Studio.
+12. Business Builder ERP prompt packs and inventory/vendor/recipe assistants.
+13. Growth Studio campaign/lead follow-up assistant.
 
 ## Security rules
 
