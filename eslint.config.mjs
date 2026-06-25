@@ -50,6 +50,15 @@ const nodeGlobals = {
   fetch: "readonly"
 };
 
+const mochaGlobals = {
+  describe: "readonly",
+  it: "readonly",
+  beforeEach: "readonly",
+  afterEach: "readonly",
+  before: "readonly",
+  after: "readonly"
+};
+
 export default [
   {
     ignores: [
@@ -67,11 +76,26 @@ export default [
     ]
   },
   {
-    files: ["server.js", "api/**/*.js", "routes/**/*.cjs", "lib/**/*.cjs", "scripts/**/*.cjs", "tests/**/*.js"],
+    files: ["server.js", "api/**/*.js", "routes/**/*.cjs", "lib/**/*.cjs", "scripts/**/*.cjs"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "commonjs",
       globals: nodeGlobals
+    },
+    rules: {
+      "no-undef": "error",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
+    }
+  },
+  {
+    files: ["tests/**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "commonjs",
+      globals: {
+        ...nodeGlobals,
+        ...mochaGlobals
+      }
     },
     rules: {
       "no-undef": "error",

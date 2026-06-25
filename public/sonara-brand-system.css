@@ -102,7 +102,7 @@ header {
   -webkit-mask: url('/brand/sonara-mark.svg') center / 78% 78% no-repeat, linear-gradient(#000 0 0);
 }
 .brand::after {
-  content: "SONARA OS™";
+  content: "SONARA Industries";
   display: block;
   color: var(--sonara-text);
 }

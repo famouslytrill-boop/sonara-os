@@ -34,7 +34,7 @@ const newHero = [
   '          </div>',
   '          <div class="sonara-device-card">',
   '            <div class="sonara-device-bar"><span></span><span></span><span></span></div>',
-  '            <strong>SONARA OS</strong>',
+  '            <strong>SONARA Industries</strong>',
   '            <p>One bright command interface for Business Builder, Creator Studio, and Growth Studio.</p>',
   '            <div class="sonara-module-strip"><span>Business</span><span>Creator</span><span>Growth</span></div>',
   '          </div>',

@@ -79,7 +79,7 @@ header {
   background: conic-gradient(from 160deg, #ffd166, #ff7a66, #b693ff, #5ee7ff, #ffd166) !important;
   box-shadow: 0 16px 38px rgba(255,209,102,.28) !important;
 }
-.brand::after { content: "SONARA OS" !important; font-weight: 950 !important; }
+.brand::after { content: "SONARA Industries" !important; font-weight: 950 !important; }
 
 nav { gap: 12px !important; }
 nav a,

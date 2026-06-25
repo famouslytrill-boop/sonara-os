@@ -1,9 +1,9 @@
-const CACHE_NAME = "sonara-shell-v1";
+const CACHE_NAME = "sonara-stage-v1";
 const OFFLINE_URL = "/offline";
-const PUBLIC_SHELL = ["/", OFFLINE_URL, "/manifest.webmanifest"];
+const PUBLIC_STAGE = ["/", OFFLINE_URL, "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PUBLIC_SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(PUBLIC_STAGE)));
   self.skipWaiting();
 });
 
