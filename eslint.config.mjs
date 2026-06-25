@@ -20,6 +20,20 @@ const browserGlobals = {
   HTMLElement: "readonly"
 };
 
+const serviceWorkerGlobals = {
+  self: "readonly",
+  caches: "readonly",
+  clients: "readonly",
+  registration: "readonly",
+  skipWaiting: "readonly",
+  fetch: "readonly",
+  Request: "readonly",
+  Response: "readonly",
+  URL: "readonly",
+  URLSearchParams: "readonly",
+  Promise: "readonly"
+};
+
 const nodeGlobals = {
   console: "readonly",
   process: "readonly",
@@ -65,7 +79,20 @@ export default [
     }
   },
   {
+    files: ["public/sw.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "script",
+      globals: serviceWorkerGlobals
+    },
+    rules: {
+      "no-undef": "error",
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }]
+    }
+  },
+  {
     files: ["public/**/*.js"],
+    ignores: ["public/sw.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "script",
