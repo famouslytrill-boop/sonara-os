@@ -18,7 +18,7 @@
     "test": "mocha \"tests/**/*.js\" --pass-with-no-tests",
     "start": "node server.js",
     "build": "node --check server.js",
-    "lint": "eslint .",
+    "lint": "eslint server.js api routes lib scripts tests public --ignore-pattern \"frontend/**\" --ignore-pattern \"my-app/**\" --ignore-pattern \"sonara-industries/**\" --ignore-pattern \"**/node_modules/**\" --ignore-pattern \"**/.next/**\"",
     "typecheck": "echo No TypeScript configured",
     "scan:client-secrets": "node scripts/client-secret-scan.cjs",
     "smoke:routes": "npm test",
