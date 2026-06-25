@@ -6,11 +6,7 @@
   "buildCommand": "npm run vercel-build",
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "public/**",
-        "routes/**",
-        "lib/**"
-      ]
+      "includeFiles": "{public/**,routes/**,lib/**}"
     }
   },
   "rewrites": [
