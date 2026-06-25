@@ -4,6 +4,15 @@
   "framework": null,
   "installCommand": "npm install",
   "buildCommand": "npm run vercel-build",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": [
+        "public/**",
+        "routes/**",
+        "lib/**"
+      ]
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
