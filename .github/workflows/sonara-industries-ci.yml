@@ -58,24 +58,13 @@ jobs:
           echo "configured=true" >> "$GITHUB_OUTPUT"
           echo "Supabase preview secrets are configured."
 
-      - uses: pnpm/action-setup@v4
+      - uses: supabase/setup-cli@v1
         if: steps.supabase-secrets.outputs.configured == 'true'
         with:
-          run_install: false
-
-      - uses: actions/setup-node@v4
-        if: steps.supabase-secrets.outputs.configured == 'true'
-        with:
-          node-version: "22"
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Install dependencies for Supabase preview
-        if: steps.supabase-secrets.outputs.configured == 'true'
-        run: pnpm install --frozen-lockfile
+          version: 2.101.0
 
       - name: Validate Supabase CLI and migrations
         if: steps.supabase-secrets.outputs.configured == 'true'
         run: |
-          pnpm exec supabase --version
+          supabase --version
           test -d supabase/migrations

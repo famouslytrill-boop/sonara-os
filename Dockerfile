@@ -8,7 +8,7 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN corepack enable \
   && corepack prepare pnpm@11.1.1 --activate \
   && pnpm install --prod --frozen-lockfile
