@@ -47,9 +47,16 @@ create table if not exists public.organization_memberships (
   organization_id uuid references public.organizations(id) on delete cascade,
   user_id uuid references auth.users(id) on delete cascade,
   role text check (role in ('customer','paid_customer','owner','admin','founder')),
+  status text not null default 'active',
   created_at timestamptz default now(),
   unique(organization_id, user_id)
 );
+
+-- Migration 010 creates this shared table without lifecycle state. Functions
+-- in migration 019 require status, so normalize it before those functions are
+-- replayed on a fresh preview branch.
+alter table public.organization_memberships
+  add column if not exists status text not null default 'active';
 
 create table if not exists public.stripe_customers (
   id uuid primary key default gen_random_uuid(),
