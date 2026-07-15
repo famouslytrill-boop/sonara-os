@@ -1,41 +1,29 @@
 # SONARA Accessibility Report
 
-Date: 2026-07-14. Practical WCAG-oriented review of the rebuilt interface.
+Date: 2026-07-15
 
-## Verified in this rebuild
+## Verified in this release
 
-- **Keyboard navigation**: every control is a native `<a>`, `<button>`,
-  `<input>`, or `<select>`. The command palette opens with Ctrl+K, closes
-  with Escape, restores focus to the invoking element, and its rows are
-  real links. No custom key traps.
-- **Focus visibility**: `:focus-visible` outlines (3px cyan) on nav links,
-  quick-bar links, actions, and palette rows (engine CSS).
-- **Semantic structure**: one `<h1>` per page (hero heading), cards use
-  `<h2>`/`<h3>`, landmarks are native (`header`, `nav` with `aria-label`,
-  `main`, `footer`), quick bar is a labeled `nav`.
-- **Forms**: every input is wrapped in a `<label>`; validation errors return
-  plain-language messages; required fields are marked `required`.
-- **Contrast**: near-white text (#fffaf0/#f4eefc) on deep surfaces; gold
-  primary buttons use dark ink text (#221631); status chips pair color dots
-  with text labels — no color-only communication.
-- **Reduced motion**: `prefers-reduced-motion: reduce` disables the canvas
-  layer, orb animations, button transitions, skeletons, pulses, and
-  haptics (checked in both CSS and JS; enforced by tests).
-- **Touch targets**: nav pills/actions/buttons min 44px (50px on mobile,
-  measured live); quick-bar rows 44px+; palette rows 44px.
-- **Screen readers**: brand mark and decorative canvas are `aria-hidden`/
-  empty-alt; palette is `role="dialog"` `aria-modal="true"` with a labeled
-  search input; active navigation exposed via `aria-current="page"`;
-  haptics toggle uses `aria-pressed`.
-- **No clipped text**: hero headings wrap (`sonara-hero-clip-fix`),
-  verified live at 375×812 and by test.
+- Semantic banner, navigation, main, complementary, article, footer, dialog, searchbox, and listbox roles appear in the real browser accessibility snapshot.
+- The command palette moves focus to its search field and closes with Escape.
+- System, light, and dark appearances are supported; light mode received an explicit final-cascade contrast pass.
+- Mobile quick actions have a measured minimum height of 44px and no longer clip the fourth item.
+- `prefers-reduced-motion` disables continuous or decorative movement.
+- Haptics are optional, device-local, disabled for reduced-motion users, and now off by default.
+- Status chips include text labels; state is not communicated by color alone.
+- Password-recovery status uses a live status element and keeps submit disabled until a recovery token is present.
 
-## Known gaps / follow-ups
+## Browser evidence
 
-1. Palette lacks arrow-key row navigation (Tab/Enter work); add roving
-   tabindex in a future pass.
-2. Status chip CSS classes exist for all ten lifecycle states, but list
-   pages currently render statuses as text within cards — chips can be
-   adopted page-by-page.
-3. A full screen-reader pass (NVDA/VoiceOver) on the authenticated flows
-   remains a manual step.
+- 390 by 844 light viewport: readable dark text, complete quick bar, one accessible brand label.
+- 1440 by 1000 dark viewport: visible focus on the command-palette search field.
+- No browser console warnings or errors on the verified product page.
+
+## Remaining manual audit
+
+- Run a full keyboard traversal on every form family.
+- Test with NVDA, VoiceOver, or another screen reader.
+- Measure WCAG contrast for each product/accent state with a dedicated tool.
+- Validate zoom/reflow at 200% and 400% across account, checkout, admin tables, and long localized strings.
+
+This report does not claim formal WCAG conformance or third-party certification.

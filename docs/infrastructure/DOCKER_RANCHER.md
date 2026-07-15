@@ -7,7 +7,7 @@ a deliberate future migration only.
 
 ## Image
 
-- `Dockerfile` — node:20-alpine, production deps only, runtime codemods baked
+- `Dockerfile` - node:22-alpine, frozen pnpm production install, runtime codemods baked
   at build (same chain as `vercel-build`), non-root `node` user,
   `HEALTHCHECK` against `/api/health`, port from `PORT` (default 3000).
 - `.dockerignore` keeps `.env*`, `node_modules`, git history, legacy app
