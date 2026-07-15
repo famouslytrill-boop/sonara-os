@@ -52,9 +52,9 @@ if (!server.includes('data-sonara-interface="live"')) {
 }
 
 server = server
-  .replace(/href="\/sonara-brand-system\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-brand-system.css?v=interface-dom-20260714"')
-  .replace(/href="\/sonara-friendly-premium\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-friendly-premium.css?v=interface-dom-20260714"')
-  .replace(/src="\/sonara-experience\.js(?:\?v=[^"]*)?"/g, 'src="/sonara-experience.js?v=interface-dom-20260714"');
+  .replace(/href="\/sonara-brand-system\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-brand-system.css?v=interface-dom-20260715"')
+  .replace(/href="\/sonara-friendly-premium\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-friendly-premium.css?v=interface-dom-20260715"')
+  .replace(/src="\/sonara-experience\.js(?:\?v=[^"]*)?"/g, 'src="/sonara-experience.js?v=interface-dom-20260715"');
 
 fs.writeFileSync(serverPath, server);
 

@@ -9,6 +9,7 @@ const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs"
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
+const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -200,6 +201,33 @@ registerServiceLifecycleRoutes(app, {
   buildCampaignPlan,
   isUuid,
   splitList
+});
+
+registerRouteRegistryRoutes(app, {
+  layout,
+  brandCard,
+  actionCard,
+  linkAction,
+  responsePage,
+  escapeHtml,
+  requireCustomer,
+  requireWorkspaceAccess,
+  requireAdmin,
+  wantsJson,
+  getSupabaseAuthConfig,
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  getPublicAppUrl,
+  getCustomerPrimaryOrganization,
+  getReadiness,
+  displayStatus,
+  accountNoticeCard,
+  logoutAction,
+  adminActions,
+  adminRowsPage,
+  recordAdminAuditEvent,
+  getDeploymentInfo,
+  safeListTable
 });
 
 app.get("/", (req, res) => {
@@ -678,14 +706,15 @@ app.get("/settings", requireCustomer, (req, res) => {
       title: "Settings",
       eyebrow: "Account readiness",
       heading: "Settings",
-      body: "Language and unit preferences are prepared for profile-backed storage after account sessions are enabled.",
+      body: "Choose device-level presentation settings here, or save account preferences for use across signed-in devices.",
       sections: [
-        brandCard("Language preference", "Default: English. Recommended implementation: persist a locale field on profile_settings and apply translations through a dedicated i18n layer."),
-        brandCard("Unit preference", "Default: US customary where relevant. Store metric or imperial preference in profile_settings when customer profiles are active."),
-        brandCard("Session requirement", "Preferences are not persisted until account sessions are configured and owner-tested."),
-        `<article class="card"><h2>Haptic feedback</h2><p>Light vibration after meaningful actions on supported devices. It never runs for reduced-motion users, is never required, and the setting stays on this device only.</p><button type="button" data-sonara-haptics-toggle aria-pressed="true">Haptics: On</button></article>`
+        `<article class="card"><h2>Appearance</h2><p>Use your system theme, light mode, or dark mode. This device applies the choice immediately.</p><label>Theme<select data-sonara-appearance-select><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></article>`,
+        `<article class="card"><h2>Visual quality</h2><p>Automatic mode respects reduced motion, data saving, and lower-power devices. Reduced and Off decrease ambient effects.</p><label>Quality<select data-sonara-quality-select><option value="auto">Automatic</option><option value="full">Full</option><option value="reduced">Reduced</option><option value="off">Off</option></select></label></article>`,
+        brandCard("Language preference", "English is the current interface language. Save a supported account language for localization-ready workflows."),
+        brandCard("Account preferences", "Language, units, time zone, appearance, and notification preferences can be saved to your signed-in account."),
+        `<article class="card"><h2>Haptic feedback</h2><p>Optional light vibration after meaningful actions on supported devices. It stays off by default and never runs for reduced-motion users.</p><button type="button" data-sonara-haptics-toggle aria-pressed="false">Haptics: Off</button></article>`
       ],
-      actions: [linkAction("/account", "Account"), linkAction("/", "Home"), logoutAction()]
+      actions: [linkAction("/account/preferences", "Account preferences"), linkAction("/account", "Account"), linkAction("/", "Home"), logoutAction()]
     })
   );
 });
@@ -1542,11 +1571,11 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260714">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260714">
-    <link rel="stylesheet" href="/sonara-interface-engine.css?v=interface-dom-20260714">
-    <script defer src="/sonara-experience.js?v=interface-dom-20260714"></script>
-    <script defer src="/sonara-interface-engine.js?v=interface-dom-20260714"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260715">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260715">
+    <link rel="stylesheet" href="/sonara-interface-engine.css?v=interface-dom-20260715">
+    <script defer src="/sonara-experience.js?v=interface-dom-20260715"></script>
+    <script defer src="/sonara-interface-engine.js?v=interface-dom-20260715"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
@@ -4277,19 +4306,23 @@ async function recordAdminAuditEvent(req, action, metadata = {}) {
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false };
   const user = req.sonaraAdmin?.user;
-  const response = await fetch(`${config.url}/rest/v1/admin_audit_events`, {
+  const {
+    target_type: targetType = "route",
+    target_id: targetId = req.path,
+    ...eventMetadata
+  } = metadata;
+  const response = await fetch(`${config.url}/rest/v1/admin_audit_logs`, {
     method: "POST",
     headers: supabaseHeaders(config),
     body: JSON.stringify({
-      actor_user_id: user?.id || null,
-      actor_email: user?.email || null,
+      actor_id: user?.id || null,
       action,
-      target_type: "route",
-      target_id: req.path,
+      target_type: String(targetType).slice(0, 120),
+      target_id: String(targetId).slice(0, 240),
       metadata: {
         method: req.method,
         auth_method: req.sonaraAdmin?.method || "unknown",
-        ...metadata
+        ...eventMetadata
       }
     })
   }).catch(() => undefined);
@@ -4376,6 +4409,3 @@ function redactSensitiveText(value) {
 function escapeHtml(value) {
   return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
-
-
-

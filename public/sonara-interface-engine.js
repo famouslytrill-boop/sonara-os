@@ -39,6 +39,86 @@
   }
 
   // ---------------------------------------------------------------------
+  // Appearance and quality: system theme by default, device-local choice.
+  // Reduced motion always takes precedence over a visual quality selection.
+  // ---------------------------------------------------------------------
+
+  var APPEARANCE_KEY = "sonara-appearance";
+  var QUALITY_KEY = "sonara-quality";
+
+  function storedChoice(key, allowed, fallback) {
+    try {
+      var value = window.localStorage.getItem(key);
+      return allowed.indexOf(value) !== -1 ? value : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  function appearanceChoice() {
+    return storedChoice(APPEARANCE_KEY, ["system", "light", "dark"], "system");
+  }
+
+  function resolvedAppearance(choice) {
+    if (choice === "light" || choice === "dark") return choice;
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+
+  function applyAppearance(choice) {
+    var resolved = resolvedAppearance(choice);
+    document.documentElement.setAttribute("data-sonara-appearance", choice);
+    document.documentElement.setAttribute("data-sonara-theme", resolved);
+    var themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute("content", resolved === "light" ? "#f5f1e8" : "#11101a");
+  }
+
+  function bindAppearance() {
+    var choice = appearanceChoice();
+    applyAppearance(choice);
+    var selects = document.querySelectorAll("[data-sonara-appearance-select]");
+    for (var index = 0; index < selects.length; index += 1) {
+      selects[index].value = choice;
+      selects[index].addEventListener("change", function onAppearance(event) {
+        var next = event.currentTarget.value;
+        try {
+          window.localStorage.setItem(APPEARANCE_KEY, next);
+        } catch {
+          // The selected appearance still applies for this page.
+        }
+        applyAppearance(next);
+      });
+    }
+    if (window.matchMedia) {
+      var colorScheme = window.matchMedia("(prefers-color-scheme: light)");
+      var onSystemAppearance = function onSystemAppearance() {
+        if (appearanceChoice() === "system") applyAppearance("system");
+      };
+      if (colorScheme.addEventListener) colorScheme.addEventListener("change", onSystemAppearance);
+    }
+  }
+
+  function qualityChoice() {
+    return storedChoice(QUALITY_KEY, ["auto", "full", "reduced", "off"], "auto");
+  }
+
+  function bindQuality() {
+    var choice = qualityChoice();
+    document.documentElement.setAttribute("data-sonara-quality", choice);
+    var selects = document.querySelectorAll("[data-sonara-quality-select]");
+    for (var index = 0; index < selects.length; index += 1) {
+      selects[index].value = choice;
+      selects[index].addEventListener("change", function onQuality(event) {
+        try {
+          window.localStorage.setItem(QUALITY_KEY, event.currentTarget.value);
+        } catch {
+          // Storage can be unavailable in restricted browser modes.
+        }
+        window.location.reload();
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------
   // Haptics: optional, brief, meaningful actions only. Device-local setting.
   // ---------------------------------------------------------------------
 
@@ -47,7 +127,7 @@
   function hapticsEnabled() {
     try {
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-      return window.localStorage.getItem(HAPTICS_KEY) !== "off";
+      return window.localStorage.getItem(HAPTICS_KEY) === "on";
     } catch {
       return false;
     }
@@ -109,6 +189,11 @@
     { label: "Support", href: "/support" },
     { label: "Account", href: "/account" },
     { label: "Account setup", href: "/account/setup" },
+    { label: "Account preferences", href: "/account/preferences" },
+    { label: "Notifications", href: "/notifications" },
+    { label: "Products", href: "/products" },
+    { label: "Free tools", href: "/free-tools" },
+    { label: "Tutorials", href: "/tutorials" },
     { label: "Pricing", href: "/pricing" },
     { label: "Contact", href: "/contact" },
     { label: "Platform readiness", href: "/readiness" },
@@ -257,7 +342,9 @@
     var stage = document.querySelector(".sonara-face-orb");
     if (!stage || stage.querySelector(".sonara-engine-canvas")) return;
     document.documentElement.setAttribute("data-sonara-engine", "static");
-    if (prefersReducedMotion() || isLowPowerContext()) return;
+    var quality = qualityChoice();
+    if (prefersReducedMotion() || quality === "off" || quality === "reduced") return;
+    if (quality === "auto" && isLowPowerContext()) return;
 
     var canvas = document.createElement("canvas");
     canvas.className = "sonara-engine-canvas";
@@ -341,6 +428,8 @@
     frameHandle = window.requestAnimationFrame(draw);
   }
 
+  safe(bindAppearance);
+  safe(bindQuality);
   safe(markNavigationState);
   safe(bindHaptics);
   safe(bindPalette);
