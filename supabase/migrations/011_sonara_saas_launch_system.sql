@@ -31,6 +31,17 @@ create table if not exists public.organizations (
   updated_at timestamptz default now()
 );
 
+-- Migration 010 creates the shared organizations table first. Reconcile the
+-- launch-specific ownership fields when upgrading that earlier table instead
+-- of relying on CREATE TABLE IF NOT EXISTS to add them.
+alter table public.organizations
+  add column if not exists slug text,
+  add column if not exists owner_id uuid references auth.users(id) on delete set null;
+
+create unique index if not exists organizations_slug_key
+  on public.organizations (slug)
+  where slug is not null;
+
 create table if not exists public.organization_memberships (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid references public.organizations(id) on delete cascade,
