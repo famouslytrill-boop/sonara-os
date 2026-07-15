@@ -1,4 +1,5 @@
 ﻿const express = require("express");
+const path = require("node:path");
 const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
@@ -101,7 +102,7 @@ const STRIPE_PLANS = {
     mode: "payment"
   }
 };
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
@@ -1520,7 +1521,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
     </style>
     <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260714">
     <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260714">
+    <link rel="stylesheet" href="/sonara-interface-engine.css?v=interface-dom-20260714">
     <script defer src="/sonara-experience.js?v=interface-dom-20260714"></script>
+    <script defer src="/sonara-interface-engine.js?v=interface-dom-20260714"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
@@ -1562,9 +1565,14 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
             <strong>SONARA Industries</strong>
             <p>One bright command interface for Business Builder, Creator Studio, and Growth Studio.</p>
             <div class="sonara-module-strip"><span>Business</span><span>Creator</span><span>Growth</span></div>
+            <div class="sonara-panel-tiles" aria-label="Product workspaces">
+              <a href="/business-builder/dashboard">Business<span>Open workspace</span></a>
+              <a href="/creator-studio/dashboard">Creator<span>Open workspace</span></a>
+              <a href="/growth-studio/dashboard">Growth<span>Open workspace</span></a>
+            </div>
             ${renderInterfaceStatusPanel(getReadiness())}
           </div>
-          <div class="sonara-proof-pill">Mobile-ready &middot; paid-gated &middot; operator-controlled</div>
+          <div class="sonara-proof-pill">Mobile-ready &bull; Paid-ready &bull; Operator-controlled</div>
         </aside>
       </section>
       <section class="grid">${sections.join("")}</section>
@@ -1575,6 +1583,12 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
         ${legalPages().map((page) => `<a href="${escapeHtml(page.href)}">${escapeHtml(page.title)}</a>`).join("")}
       </nav>
     </footer>
+    <nav class="sonara-quick-bar" aria-label="Quick actions">
+      <a href="/dashboard">Dashboard</a>
+      <a href="/requests">Requests</a>
+      <a href="/support">Support</a>
+      <a href="/account">Account</a>
+    </nav>
     <script>
       document.querySelectorAll("[data-toggle-password]").forEach((button) => {
         button.addEventListener("click", () => {
