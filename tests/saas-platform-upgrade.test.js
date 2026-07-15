@@ -96,6 +96,13 @@ describe("software-in-a-service platform upgrade", () => {
       }
       assert.match(sql, /create table if not exists public\.support_email_delivery_attempts/);
       assert.match(sql, /enable row level security/);
+
+      const rlsSql = fs.readFileSync(
+        path.join(__dirname, "..", "supabase", "migrations", "20260603090000_production_auth_workspace_rls.sql"),
+        "utf8"
+      );
+      assert.match(rlsSql, /is_org_member\(target_organization_id uuid\)/);
+      assert.match(rlsSql, /has_org_role\(target_organization_id uuid, allowed_roles text\[\]\)/);
     });
   });
 
