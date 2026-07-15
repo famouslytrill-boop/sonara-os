@@ -454,4 +454,213 @@ footer {
   }
 }
 
+/* Launch MVP interaction depth and mobile hardening */
+header {
+  max-width: calc(100vw - 24px) !important;
+}
 
+nav {
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-inline: contain !important;
+  scrollbar-width: thin !important;
+}
+
+nav a,
+.action,
+button {
+  min-width: max-content !important;
+}
+
+.sonara-hero-stage {
+  overflow: hidden !important;
+}
+
+.sonara-hero-copy h1 {
+  max-width: 11ch !important;
+  font-size: clamp(44px, 7.4vw, 86px) !important;
+  line-height: .96 !important;
+  letter-spacing: -.045em !important;
+  overflow-wrap: normal !important;
+  word-break: keep-all !important;
+}
+
+.sonara-interface-face {
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.sonara-face-orb {
+  max-width: 100% !important;
+}
+
+.sonara-action-card {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+.card-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin-top: auto !important;
+}
+
+.card-actions .action {
+  min-height: 44px !important;
+  padding: 11px 14px !important;
+  font-size: 14px !important;
+}
+
+.sonara-status-panel {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+}
+
+.sonara-status-chip {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px !important;
+  min-height: 38px !important;
+  border-radius: 14px !important;
+  padding: 8px 10px !important;
+  border: 1px solid rgba(255,255,255,.18) !important;
+  background: rgba(255,255,255,.08) !important;
+  color: #fffdf7 !important;
+}
+
+.sonara-status-chip b,
+.sonara-status-chip em {
+  font-style: normal !important;
+  font-size: 12px !important;
+  line-height: 1.2 !important;
+}
+
+.sonara-status-chip em {
+  color: rgba(255,253,247,.76) !important;
+  text-align: right !important;
+}
+
+.sonara-status-chip.is-ready {
+  border-color: rgba(143,247,184,.42) !important;
+  background: rgba(143,247,184,.12) !important;
+}
+
+.sonara-status-chip.is-review {
+  border-color: rgba(255,209,102,.44) !important;
+  background: rgba(255,209,102,.12) !important;
+}
+
+.sonara-status-chip.is-setup {
+  border-color: rgba(255,122,102,.44) !important;
+  background: rgba(255,122,102,.12) !important;
+}
+
+@media (max-width: 900px) {
+  header {
+    gap: 14px !important;
+  }
+
+  .brand {
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100% !important;
+  }
+
+  nav {
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+    padding-bottom: 4px !important;
+  }
+
+  .sonara-hero-copy h1 {
+    max-width: 12ch !important;
+    font-size: clamp(42px, 10.6vw, 66px) !important;
+  }
+
+  .sonara-device-card {
+    max-width: min(92vw, 330px) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  header {
+    margin-top: 10px !important;
+    padding: 12px !important;
+  }
+
+  .brand {
+    min-height: 52px !important;
+    padding-left: 56px !important;
+  }
+
+  .brand::before {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .sonara-hero-stage {
+    min-height: auto !important;
+    padding: 28px 16px 24px !important;
+    gap: 18px !important;
+    border-radius: 28px !important;
+  }
+
+  .sonara-hero-copy h1 {
+    max-width: 100% !important;
+    font-size: clamp(38px, 12vw, 52px) !important;
+    letter-spacing: -.035em !important;
+  }
+
+  .lede {
+    font-size: 17px !important;
+  }
+
+  .sonara-interface-face {
+    min-height: 390px !important;
+    place-items: start center !important;
+  }
+
+  .sonara-face-orb {
+    width: min(82vw, 310px) !important;
+    min-width: 0 !important;
+  }
+
+  .sonara-device-card {
+    left: 50% !important;
+    bottom: 4px !important;
+    transform: translateX(-50%) !important;
+    width: min(92vw, 318px) !important;
+  }
+
+  .sonara-proof-pill {
+    position: relative !important;
+    inset: auto !important;
+    margin-top: 10px !important;
+    width: fit-content !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sonara-face-orb,
+  .sonara-orb-ring,
+  .sonara-orb-node {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+
+
+/* SONARA LAUNCH FIX 20260714 (guard: sonara-hero-clip-fix)
+   Long single-word headings (Infrastructure, Monetization Readiness, Automations)
+   must wrap inside the hero copy column instead of being clipped by overflow. */
+.sonara-hero-copy h1 {
+  overflow-wrap: break-word !important;
+  word-break: normal !important;
+  hyphens: auto !important;
+}

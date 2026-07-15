@@ -3,7 +3,7 @@
 const { INFRASTRUCTURE_SERVICES, PIPELINE_LAYERS, MOBILE_EXPERIENCE_CHECKS, envReadiness } = require("../lib/sonara-infrastructure-manifest.cjs");
 
 function registerSonaraInfrastructureRoutes(app, deps) {
-  const { layout, brandCard, linkAction, escapeHtml, requireAdmin } = deps;
+  const { layout, brandCard, linkAction, requireAdmin } = deps;
 
   app.get("/api/infrastructure/manifest", (req, res) => {
     res.status(200).json({

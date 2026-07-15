@@ -1,4 +1,4 @@
-﻿const fs = require("node:fs");
+const fs = require("node:fs");
 const path = require("node:path");
 
 const serverPath = path.join(process.cwd(), "server.js");
@@ -52,9 +52,9 @@ if (!server.includes('data-sonara-interface="live"')) {
 }
 
 server = server
-  .replace(/href="\/sonara-brand-system\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-brand-system.css?v=interface-dom-20260623"')
-  .replace(/href="\/sonara-friendly-premium\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-friendly-premium.css?v=interface-dom-20260623"')
-  .replace(/src="\/sonara-experience\.js(?:\?v=[^"]*)?"/g, 'src="/sonara-experience.js?v=interface-dom-20260623"');
+  .replace(/href="\/sonara-brand-system\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-brand-system.css?v=interface-dom-20260714"')
+  .replace(/href="\/sonara-friendly-premium\.css(?:\?v=[^"]*)?"/g, 'href="/sonara-friendly-premium.css?v=interface-dom-20260714"')
+  .replace(/src="\/sonara-experience\.js(?:\?v=[^"]*)?"/g, 'src="/sonara-experience.js?v=interface-dom-20260714"');
 
 fs.writeFileSync(serverPath, server);
 
@@ -262,5 +262,3 @@ if (!css.includes("FORCED HOMEFACE DOM REDESIGN")) {
 fs.writeFileSync(cssPath, css);
 
 console.log("SONARA homepage hard interface DOM patch applied.");
-
-

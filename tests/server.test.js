@@ -13,7 +13,18 @@ describe("public site", () => {
     assert.match(res.text, /Business Builder/);
     assert.match(res.text, /Creator Studio/);
     assert.match(res.text, /Growth Studio/);
+    assert.match(res.text, /data-sonara-interface="live"/);
+    assert.match(res.text, /sonara-hero-stage/);
+    assert.match(res.text, /sonara-status-panel/);
+    assert.match(res.text, /href="\/business-builder\/dashboard"/);
+    assert.match(res.text, /href="\/business-builder\/intake"/);
+    assert.match(res.text, /href="\/creator-studio\/assets"/);
+    assert.match(res.text, /href="\/creator-studio\/music-system"/);
+    assert.match(res.text, /href="\/growth-studio\/campaigns"/);
+    assert.match(res.text, /href="\/growth-studio\/leads"/);
+    assert.match(res.text, /Setup required|setup-required|setup required/i);
     assert.doesNotMatch(res.text, /Express service is online/);
+    assert.doesNotMatch(res.text, /â€¢|BusinessCreatorGrowth/);
   });
 
   for (const route of [
@@ -42,6 +53,7 @@ describe("public site", () => {
       assert.doesNotMatch(res.text, /shell/i);
       assert.doesNotMatch(res.text, /lorem/i);
       assert.doesNotMatch(res.text, /href="#"/i);
+      assert.doesNotMatch(res.text, /â€¢|BusinessCreatorGrowth/);
     });
   }
 
@@ -59,6 +71,14 @@ describe("public site", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /Launch Setup Checklist/);
     assert.doesNotMatch(res.text, /Setup checklist/);
+  });
+
+  it("account setup includes a real organization setup action", async function() {
+    const res = await request(app).get("/account/setup").set("Accept", "text/html");
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Create or attach organization/);
+    assert.match(res.text, /action="\/account\/setup\/organization"/);
+    assert.match(res.text, /profiles, organizations, and organization_memberships/);
   });
 
   it("business builder landing does not duplicate Launch Setup Checklist CTAs", async function() {
@@ -147,6 +167,15 @@ describe("icon assets", () => {
     assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-192.png"));
     assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-512.png"));
   });
+
+  for (const route of ["/sonara-brand-system.css", "/sonara-friendly-premium.css", "/sonara-experience.js"]) {
+    it(`GET ${route} returns public launch asset`, async function() {
+      const res = await request(app).get(route);
+      assert.equal(res.status, 200);
+      assert.match(res.type, /css|javascript|ecmascript/);
+      assert.doesNotMatch(res.text, /â€¢|BusinessCreatorGrowth/);
+    });
+  }
 
   for (const route of ["/icons/icon-192.png", "/icons/icon-512.png"]) {
     it(`GET ${route} returns png`, async function() {
@@ -718,6 +747,43 @@ describe("product module APIs", () => {
     assert.equal(JSON.parse(insert.body).organization_id, organizationId);
   });
 
+  it("POST /api/business-builder/offers returns HTML confirmation for browser forms", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000109", email: "customer@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/module_outputs") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "module-output-2" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/business-builder/offers")
+      .set("Authorization", "Bearer customer-session")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({
+        serviceType: "mobile detailing",
+        audience: "busy local drivers",
+        priceIdea: "$99",
+        deliverables: "wash, wax, interior",
+        proofPoints: "insured, local"
+      });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.type, "text/html");
+    assert.match(res.text, /Business offer recorded/);
+    assert.match(res.text, /Reference ID: module-output-2/);
+  });
+
   it("POST /api/business-builder/intake writes intake requests and activity when configured", async function() {
     configureSupabase();
     const calls = [];
@@ -799,9 +865,89 @@ describe("product module APIs", () => {
     assert.equal(res.status, 400);
   });
 
+  it("POST /api/creator-studio/assets writes creator_assets when configured", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000110", email: "creator@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/creator_assets") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "creator-asset-1" }] };
+      }
+      if (String(url).includes("/module_outputs") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "module-output-asset-1" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .post("/api/creator-studio/assets")
+      .set("Authorization", "Bearer customer-session")
+      .send({ title: "Launch photo set", type: "image", platform: "site", status: "ready", rightsNotes: "owned" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.equal(res.body.saved, true);
+    assert.equal(res.body.domainRecordSaved, true);
+    assert.equal(res.body.domainTable, "creator_assets");
+    const insert = calls.find((call) => call.url.includes("/creator_assets") && call.method === "POST");
+    assert.ok(insert);
+    assert.equal(JSON.parse(insert.body).organization_id, organizationId);
+  });
+
   it("POST /api/growth-studio/campaigns validates input", async function() {
     const res = await request(app).post("/api/growth-studio/campaigns").send({});
     assert.equal(res.status, 400);
+  });
+
+  it("POST /api/growth-studio/campaigns and leads write growth tables when configured", async function() {
+    configureSupabase();
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      calls.push({ url: String(url), method: options.method || "GET", body: options.body });
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000111", email: "growth@example.com" }) };
+      }
+      if (String(url).includes("/organization_members")) {
+        return { ok: true, json: async () => [{ organization_id: organizationId }] };
+      }
+      if (String(url).includes("/growth_campaigns") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "growth-campaign-1" }] };
+      }
+      if (String(url).includes("/growth_leads") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "growth-lead-1" }] };
+      }
+      if (String(url).includes("/module_outputs") && options.method === "POST") {
+        return { ok: true, json: async () => [{ id: "module-output-growth-1" }] };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const campaign = await request(app)
+      .post("/api/growth-studio/campaigns")
+      .set("Authorization", "Bearer customer-session")
+      .send({ goal: "book consults", audience: "local owners", offer: "audit", channel: "email", timeline: "14 days" });
+    const lead = await request(app)
+      .post("/api/growth-studio/leads")
+      .set("Authorization", "Bearer customer-session")
+      .send({ name: "Alex", email: "alex@example.com", source: "website", consentStatus: "explicit" });
+
+    global.fetch = originalFetch;
+
+    assert.equal(campaign.status, 200);
+    assert.equal(campaign.body.domainTable, "growth_campaigns");
+    assert.equal(lead.status, 200);
+    assert.equal(lead.body.domainTable, "growth_leads");
+    assert.ok(calls.some((call) => call.url.includes("/growth_campaigns") && call.method === "POST"));
+    assert.ok(calls.some((call) => call.url.includes("/growth_leads") && call.method === "POST"));
   });
 
   it("GET /api/business-builder/records stays locked without paid billing state", async function() {
@@ -1585,11 +1731,13 @@ describe("auth and admin", () => {
 
     assert.equal(res.status, 200);
     assert.match(res.text, /Protected founder operations/);
-    assert.match(res.text, /Users and customers/);
-    assert.match(res.text, /Orders and subscriptions/);
-    assert.match(res.text, /Contact messages/);
-    assert.match(res.text, /Product catalog status/);
-    assert.match(res.text, /System status/);
+    assert.match(res.text, /Users and roles/);
+    assert.match(res.text, /Billing and webhooks/);
+    assert.match(res.text, /Support queue/);
+    assert.match(res.text, /Product catalog/);
+    assert.match(res.text, /System and storage/);
+    assert.match(res.text, /href="\/admin\/database"/);
+    assert.match(res.text, /href="\/admin\/storage"/);
     assert.match(res.text, /Logout/);
     assert.doesNotMatch(res.text, /owner-session/);
     assert.ok(mock.calls.some((call) => call.url.includes("/user_roles")));
@@ -1615,6 +1763,8 @@ describe("auth and admin", () => {
       "/admin/support",
       "/admin/catalog",
       "/admin/system",
+      "/admin/database",
+      "/admin/storage",
       "/admin/business-builder",
       "/admin/creator-studio",
       "/admin/growth-studio"
@@ -1783,6 +1933,8 @@ describe("auth and admin", () => {
     const mock = installAdminFetchMock();
     const overview = await request(app).get("/api/admin/overview").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
     const env = await request(app).get("/api/admin/env-status").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    const database = await request(app).get("/api/admin/database-readiness").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
+    const storage = await request(app).get("/api/admin/storage-readiness").set("Authorization", "Bearer owner-session").set("Accept", "application/json");
     mock.restore();
 
     assert.equal(overview.status, 200);
@@ -1791,7 +1943,15 @@ describe("auth and admin", () => {
     assert.equal(env.status, 200);
     assert.equal(env.body.ok, true);
     assert.ok(Array.isArray(env.body.checks));
+    assert.equal(database.status, 200);
+    assert.ok(Array.isArray(database.body.tables));
+    assert.ok(database.body.tables.some((item) => item.table === "creator_assets"));
+    assert.equal(storage.status, 200);
+    assert.ok(Array.isArray(storage.body.buckets));
+    assert.ok(storage.body.buckets.some((item) => item.bucket === "creator-assets"));
     assert.doesNotMatch(JSON.stringify(env.body), /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+    assert.doesNotMatch(JSON.stringify(database.body), /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
+    assert.doesNotMatch(JSON.stringify(storage.body), /service-role-value-that-must-not-render|sk_test_value_that_must_not_render|whsec_value_that_must_not_render/);
   });
 });
 describe("legal pages", () => {

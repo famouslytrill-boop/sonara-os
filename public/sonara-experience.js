@@ -1,6 +1,7 @@
 (() => {
   const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const params = new URLSearchParams(window.location.search);
+  const canVibrate = typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function';
 
   function notify(title, message) {
     const toast = document.createElement('div');
@@ -32,6 +33,18 @@
       }, 70 + index * 38);
     });
   }
+
+  document.addEventListener('pointerup', (event) => {
+    const target = event.target && event.target.closest && event.target.closest('a.action, button');
+    if (!target || !canVibrate || reduceMotion) return;
+    try {
+      navigator.vibrate(8);
+    } catch {
+      // Haptics are optional progressive enhancement only.
+    }
+  });
+
+  document.documentElement.classList.add('sonara-js-ready');
 
   function clean(value) {
     return String(value || '').replace(/[&<>]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[char]));

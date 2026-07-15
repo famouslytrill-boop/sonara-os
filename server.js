@@ -7,6 +7,7 @@ const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
+const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -14,6 +15,51 @@ const CUSTOMER_SESSION_COOKIE = "sonara_customer_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
+const REQUIRED_OPERATION_TABLES = [
+  "profiles",
+  "organizations",
+  "organization_memberships",
+  "user_roles",
+  "billing_webhook_events",
+  "billing_subscriptions",
+  "support_requests",
+  "module_outputs",
+  "service_catalog_items",
+  "service_requests",
+  "service_request_events",
+  "service_deliverables",
+  "service_comments",
+  "customer_records",
+  "order_records",
+  "business_employee_invites",
+  "business_memberships",
+  "business_locations",
+  "inventory_items",
+  "vendor_accounts",
+  "vendor_invoices",
+  "recipe_cards",
+  "menu_items",
+  "creator_assets",
+  "creator_releases",
+  "creator_artist_systems",
+  "creator_song_blueprints",
+  "creator_prompt_packs",
+  "creator_release_packages",
+  "growth_campaigns",
+  "growth_leads",
+  "sonara_formula_groups",
+  "sonara_formula_definitions",
+  "sonara_formula_results"
+];
+const REQUIRED_STORAGE_BUCKETS = [
+  "avatars",
+  "business-assets",
+  "creator-assets",
+  "music-stems",
+  "release-packages",
+  "support-attachments",
+  "exports"
+];
 const STRIPE_PLANS = {
   free: {
     name: "Free",
@@ -117,6 +163,44 @@ registerLastNineHoursRoutes(app, {
   getSupabaseServerConfig
 });
 
+registerServiceLifecycleRoutes(app, {
+  layout,
+  brandCard,
+  actionCard,
+  linkAction,
+  responsePage,
+  checklistCard,
+  escapeHtml,
+  requireCustomer,
+  requireWorkspaceAccess,
+  requireAdmin,
+  wantsJson,
+  requireFields,
+  sendValidationFailure,
+  saveModuleOutput,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  insertActivityEvent,
+  safeListTable,
+  getReadiness,
+  readinessCards,
+  displayStatus,
+  adminActions,
+  adminRowsPage,
+  normalizeSupportRequest,
+  saveSupportRequest,
+  logoutAction,
+  accessCard,
+  recordAdminAuditEvent,
+  getProductPageDefinitions,
+  legalPages,
+  buildBusinessOffer,
+  buildCampaignPlan,
+  isUuid,
+  splitList
+});
+
 app.get("/", (req, res) => {
   return res.status(200).type("html").send(
     layout({
@@ -124,13 +208,43 @@ app.get("/", (req, res) => {
       eyebrow: "LAUNCH OPERATING SYSTEM",
       heading: "SONARA Industries",
       body:
-        "Launch infrastructure for small businesses, creators, and growth teams. Start with free planning tools, then upgrade when payment-backed records and operations are needed.",
+        "The Software-in-a-Service launch platform for small businesses, creators, and growth teams. Use the software yourself with free planning tools, request done-for-you services with tracked deliverables, and upgrade when payment-backed records and operations are needed.",
       sections: [
-        brandCard("Business Builder", "Launch-ready service business infrastructure: proof, offers, intake, payments, and operating rhythm."),
-        brandCard("Creator Studio", "Creator monetization systems for assets, media, catalogs, launch offers, and owned audience workflows."),
-        brandCard("Growth Studio", "Consent-safe campaign planning, customer follow-up, experiments, and operator-grade growth routines."),
-        brandCard("Free access", "Logged-in users can use free planning tools without a paid plan. Saving records depends on account database setup."),
-        brandCard("Paid access", "Paid workspaces unlock only after Stripe payment updates record active access in the account database.")
+        actionCard("Software-in-a-Service", "Use the free tools yourself, or request done-for-you services from the catalog. Every request gets a reference ID with tracked status, deliverables, billing, and support.", [
+          linkAction("/start", "How it works"),
+          linkAction("/service-catalog", "Service catalog"),
+          linkAction("/requests", "My requests"),
+          linkAction("/deliverables", "Deliverables")
+        ]),
+        actionCard("Business Builder", "Launch-ready service business infrastructure: proof, offers, intake, payments, and operating rhythm.", [
+          linkAction("/business-builder/dashboard", "Dashboard"),
+          linkAction("/business-builder/intake", "Intake"),
+          linkAction("/business-builder/launch-readiness", "Checklist"),
+          linkAction("/business-builder/billing", "Billing")
+        ]),
+        actionCard("Creator Studio", "Creator monetization systems for assets, media, catalogs, launch offers, and owned audience workflows.", [
+          linkAction("/creator-studio/dashboard", "Dashboard"),
+          linkAction("/creator-studio/assets", "Assets"),
+          linkAction("/creator-studio/offers/free", "Offer draft"),
+          linkAction("/creator-studio/music-system", "Music system")
+        ]),
+        actionCard("Growth Studio", "Consent-safe campaign planning, customer follow-up, experiments, and operator-grade growth routines.", [
+          linkAction("/growth-studio/dashboard", "Dashboard"),
+          linkAction("/growth-studio/campaigns", "Campaigns"),
+          linkAction("/growth-studio/leads", "Leads"),
+          linkAction("/growth-studio/checklist", "Consent checklist")
+        ]),
+        actionCard("Account and database states", "If account login, organization membership, tables, or storage are missing, SONARA shows setup-required next actions instead of fake records.", [
+          linkAction("/account/setup", "Account setup"),
+          linkAction("/admin/env-readiness", "Env readiness"),
+          linkAction("/admin/database", "Database"),
+          linkAction("/admin/storage", "Storage")
+        ]),
+        actionCard("Paid access", "Paid workspaces unlock only after Stripe payment updates record active access in the account database. Checkout redirects alone do not unlock tools.", [
+          linkAction("/pricing", "Pricing"),
+          linkAction("/admin/billing", "Billing proof"),
+          linkAction("/admin/webhooks", "Webhook proof")
+        ])
       ],
       actions: [
         linkAction("/signup", "Start Free"),
@@ -413,19 +527,55 @@ app.get("/account/setup", (req, res) => {
   );
 });
 
-app.get("/dashboard", requireAppAccess, (req, res) => {
+app.post("/account/setup/organization", requireCustomer, async (req, res) => {
+  const result = await createOrAttachOrganization(req);
+  if (wantsJson(req)) return res.status(result.status).json(result.body);
+  return res.status(result.status).type("html").send(
+    responsePage(result.body.ok ? "Organization ready" : "Organization setup required", result.body.message || result.body.code, [
+      linkAction("/account/setup", "Account setup"),
+      linkAction(result.body.nextPath || "/dashboard", "Continue"),
+      linkAction("/contact", "Request help")
+    ])
+  );
+});
+
+app.get("/dashboard", requireAppAccess, async (req, res) => {
+  const summary = await getCommandCenterSummary(req);
   return res.status(200).type("html").send(
     layout({
       title: "Dashboard",
-      eyebrow: "Workspace",
+      eyebrow: "Command center",
       heading: "Dashboard",
-      body: "Choose a SONARA product workspace. Owner/admin access is for operations; customer access follows free and paid plan rules.",
+      body: "Your SONARA command center: product workspaces, free tools, service requests, deliverables, billing state, and support in one place.",
       sections: [
         accountNoticeCard(req),
         accessCard(req.sonaraAccess),
-        brandCard("Business Builder", "Offer, intake, customer, and payment readiness workspace."),
-        brandCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace."),
-        brandCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace."),
+        summary.workspaceCard,
+        actionCard("Business Builder", "Offer, intake, customer, and payment readiness workspace.", [
+          linkAction("/business-builder/dashboard", "Dashboard"),
+          linkAction("/business-builder/tools", "Tools"),
+          linkAction("/business-builder/intake", "Intake"),
+          linkAction("/business-builder/billing", "Billing")
+        ]),
+        actionCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace.", [
+          linkAction("/creator-studio/dashboard", "Dashboard"),
+          linkAction("/creator-studio/tools", "Tools"),
+          linkAction("/creator-studio/assets", "Assets"),
+          linkAction("/creator-studio/music-system", "Music system")
+        ]),
+        actionCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace.", [
+          linkAction("/growth-studio/dashboard", "Dashboard"),
+          linkAction("/growth-studio/tools", "Tools"),
+          linkAction("/growth-studio/campaigns", "Campaigns"),
+          linkAction("/growth-studio/leads", "Leads")
+        ]),
+        actionCard("Service requests", summary.requestsSummary, [linkAction("/requests", "My requests"), linkAction("/service-catalog", "Service catalog")]),
+        actionCard("Deliverables", summary.deliverablesSummary, [linkAction("/deliverables", "Deliverables")]),
+        actionCard("Billing status", summary.billingSummary, [linkAction("/billing", "Billing"), linkAction("/pricing", "Pricing")]),
+        actionCard("Support", summary.supportSummary, [linkAction("/support", "Support center"), linkAction("/contact", "Contact")]),
+        summary.blockersCard,
+        actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
+        ...(summary.adminCard ? [summary.adminCard] : []),
         brandCard("Free access", "Logged-in users can use public readiness checklists and basic planning outputs without a paid plan."),
         brandCard("Paid access", "Paid workspaces stay locked until payment updates confirm an active or trialing plan.")
       ],
@@ -433,6 +583,7 @@ app.get("/dashboard", requireAppAccess, (req, res) => {
         linkAction("/business-builder/dashboard", "Business Builder dashboard"),
         linkAction("/creator-studio/dashboard", "Creator Studio dashboard"),
         linkAction("/growth-studio/dashboard", "Growth Studio dashboard"),
+        linkAction("/requests", "Requests"),
         logoutAction()
       ]
     })
@@ -612,22 +763,22 @@ app.post("/business-builder/invite/accept", async (req, res) => {
 
 app.post("/api/business-builder/offers", async (req, res) => {
   const validation = requireFields(req.body, ["serviceType", "audience", "priceIdea", "deliverables"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/business-builder/offers/free");
   return requireWorkspaceAccess("business_builder")(req, res, async () => {
     const output = buildBusinessOffer(req.body);
-    return res.status(200).json(await saveModuleOutput(req, "business_builder", "offer_builder", req.body, output));
+    return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "business_builder", "offer_builder", req.body, output), "Business offer recorded", "/business-builder/offers/free");
   });
 });
 
 app.post("/api/business-builder/intake", requireWorkspaceAccess("business_builder"), async (req, res) => {
   const validation = requireFields(req.body, ["name", "email", "message", "serviceInterest"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/business-builder/intake");
   const output = {
     referenceId: randomUUID(),
     summary: `${req.body.name} requested ${req.body.serviceInterest}.`,
     nextAction: "Review request and follow up through the support queue."
   };
-  return res.status(200).json(await saveBusinessBuilderIntake(req, output));
+  return sendWorkspacePostResult(req, res, await saveBusinessBuilderIntake(req, output), "Business intake recorded", "/business-builder/intake");
 });
 
 app.get("/api/business-builder/records", requirePaidOrOwnerAccess("business_builder"), async (req, res) => res.status(200).json(await readModuleRecords(req, "business_builder")));
@@ -651,23 +802,23 @@ app.delete("/api/business-builder/checklist", requireWorkspaceAccess("business_b
 
 app.post("/api/creator-studio/assets", async (req, res) => {
   const validation = requireFields(req.body, ["title", "type", "platform", "status", "rightsNotes"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/creator-studio/assets");
   return requireWorkspaceAccess("creator_studio")(req, res, async () => {
     const output = {
       title: String(req.body.title),
       rightsReview: "Rights notes captured for owner review.",
       nextAction: "Add platform, status, and release checklist before monetization."
     };
-    return res.status(200).json(await saveModuleOutput(req, "creator_studio", "asset_catalog", req.body, output));
+    return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "creator_studio", "asset_catalog", req.body, output), "Creator asset recorded", "/creator-studio/assets");
   });
 });
 
 app.post("/api/creator-studio/offers", async (req, res) => {
   const validation = requireFields(req.body, ["offerType", "audience", "deliverables", "priceIdea"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/creator-studio/offers/free");
   return requireWorkspaceAccess("creator_studio")(req, res, async () => {
     const output = buildCreatorOffer(req.body);
-    return res.status(200).json(await saveModuleOutput(req, "creator_studio", "creator_offers", req.body, output));
+    return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "creator_studio", "creator_offers", req.body, output), "Creator offer recorded", "/creator-studio/offers/free");
   });
 });
 
@@ -676,22 +827,22 @@ app.get("/api/creator-studio/readiness", (req, res) => res.status(200).json(prod
 
 app.post("/api/growth-studio/campaigns", async (req, res) => {
   const validation = requireFields(req.body, ["goal", "audience", "offer", "channel", "timeline"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/growth-studio/campaigns");
   return requireWorkspaceAccess("growth_studio")(req, res, async () => {
     const output = buildCampaignPlan(req.body);
-    return res.status(200).json(await saveModuleOutput(req, "growth_studio", "campaign_workspace", req.body, output));
+    return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "growth_studio", "campaign_workspace", req.body, output), "Growth campaign recorded", "/growth-studio/campaigns");
   });
 });
 
 app.post("/api/growth-studio/leads", async (req, res) => {
   const validation = requireFields(req.body, ["name", "email", "source", "consentStatus"]);
-  if (!validation.ok) return res.status(400).json(validation);
+  if (!validation.ok) return sendValidationFailure(req, res, validation, "/growth-studio/leads");
   return requireWorkspaceAccess("growth_studio")(req, res, async () => {
     const output = {
       followUpPlan: "Confirm consent, use truthful subject/from lines, include unsubscribe language for commercial email, and keep audience source notes.",
       nextAction: "Review lead before any outreach."
     };
-    return res.status(200).json(await saveModuleOutput(req, "growth_studio", "lead_follow_up", req.body, output));
+    return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "growth_studio", "lead_follow_up", req.body, output), "Growth lead recorded", "/growth-studio/leads");
   });
 });
 
@@ -969,6 +1120,50 @@ app.get("/admin/system", requireAdmin, async (req, res) => {
   );
 });
 
+app.get("/api/admin/database-readiness", requireAdmin, async (req, res) => {
+  await recordAdminAuditEvent(req, "api.admin.database_readiness.view", { path: req.path });
+  return res.status(200).json(await getDatabaseTableReadiness());
+});
+
+app.get("/api/admin/storage-readiness", requireAdmin, async (req, res) => {
+  await recordAdminAuditEvent(req, "api.admin.storage_readiness.view", { path: req.path });
+  return res.status(200).json(await getStorageBucketReadiness());
+});
+
+app.get("/admin/database", requireAdmin, async (req, res) => {
+  const readiness = await getDatabaseTableReadiness();
+  await recordAdminAuditEvent(req, "admin.database.view", { path: req.path });
+  return res.status(200).type("html").send(
+    layout({
+      title: "Database readiness",
+      eyebrow: "Founder operations",
+      heading: "Database readiness",
+      body: readiness.ok
+        ? "Required account, billing, support, product, and formula tables are checked through server-side Supabase access."
+        : "Setup required: connect Supabase service-role server access and apply migrations before database-backed product records can be trusted.",
+      sections: databaseReadinessCards(readiness),
+      actions: [linkAction("/api/admin/database-readiness", "Database JSON"), linkAction("/admin", "Admin"), adminLogoutAction()]
+    })
+  );
+});
+
+app.get("/admin/storage", requireAdmin, async (req, res) => {
+  const readiness = await getStorageBucketReadiness();
+  await recordAdminAuditEvent(req, "admin.storage.view", { path: req.path });
+  return res.status(200).type("html").send(
+    layout({
+      title: "Storage readiness",
+      eyebrow: "Founder operations",
+      heading: "Storage readiness",
+      body: readiness.ok
+        ? "Storage buckets are checked through server-side Supabase access. Private buckets remain private by default."
+        : "Setup required: connect Supabase service-role server access and create the required storage buckets before file workflows are trusted.",
+      sections: storageReadinessCards(readiness),
+      actions: [linkAction("/api/admin/storage-readiness", "Storage JSON"), linkAction("/admin", "Admin"), adminLogoutAction()]
+    })
+  );
+});
+
 app.get("/admin/business-builder", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "business-builder")));
 app.get("/admin/creator-studio", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "creator-studio")));
 app.get("/admin/growth-studio", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "growth-studio")));
@@ -1091,6 +1286,7 @@ function getProductPageDefinitions(slug) {
       ],
       paid: [
         { path: "/business-builder/customers", label: "Customers", title: "Customer Records", module: "customers", body: "Paid customer records unlock after billing state confirms plan access." },
+        { path: "/business-builder/records", label: "Records", title: "Business Records", module: "records", body: "Paid business records unlock after billing state confirms plan access." },
         { path: "/business-builder/offers", label: "Offers", title: "Offer Records", module: "offers", body: "Paid offer records unlock after billing state confirms plan access." },
         { path: "/business-builder/orders", label: "Orders", title: "Orders", module: "orders", body: "Order operations require payment setup and account database records." },
         { path: "/business-builder/payments", label: "Payments", title: "Payments", module: "payments", body: "Payment operations require configured checkout, webhook delivery, and confirmed billing records." },
@@ -1144,8 +1340,32 @@ function productLandingActions(slug) {
   if (slug === "business-builder") {
     return [
       linkAction("/business-builder/dashboard", "Open dashboard"),
+      linkAction("/business-builder/tools", "All tools"),
       linkAction("/business-builder/intake", "Intake"),
       linkAction("/business-builder/launch-readiness", "Launch checklist"),
+      linkAction("/business-builder/billing", "Billing"),
+      linkAction("/pricing", "Pricing"),
+      linkAction("/login", "Login")
+    ];
+  }
+  if (slug === "creator-studio") {
+    return [
+      linkAction("/creator-studio/dashboard", "Open dashboard"),
+      linkAction("/creator-studio/tools", "All tools"),
+      linkAction("/creator-studio/assets", "Assets"),
+      linkAction("/creator-studio/offers/free", "Offer draft"),
+      linkAction("/creator-studio/music-system", "Music system"),
+      linkAction("/pricing", "Pricing"),
+      linkAction("/login", "Login")
+    ];
+  }
+  if (slug === "growth-studio") {
+    return [
+      linkAction("/growth-studio/dashboard", "Open dashboard"),
+      linkAction("/growth-studio/tools", "All tools"),
+      linkAction("/growth-studio/campaigns", "Campaigns"),
+      linkAction("/growth-studio/leads", "Leads"),
+      linkAction("/growth-studio/checklist", "Consent checklist"),
       linkAction("/pricing", "Pricing"),
       linkAction("/login", "Login")
     ];
@@ -1165,6 +1385,24 @@ function productDashboardActions(slug) {
       linkAction("/business-builder/launch-readiness", "Launch checklist"),
       linkAction("/business-builder/billing", "Billing"),
       linkAction("/contact", "Support"),
+      logoutAction()
+    ];
+  }
+  if (slug === "creator-studio") {
+    return [
+      linkAction("/creator-studio/assets", "Assets"),
+      linkAction("/creator-studio/offers/free", "Offer draft"),
+      linkAction("/creator-studio/checklist", "Checklist"),
+      linkAction("/creator-studio/music-system", "Music system"),
+      logoutAction()
+    ];
+  }
+  if (slug === "growth-studio") {
+    return [
+      linkAction("/growth-studio/campaigns", "Campaigns"),
+      linkAction("/growth-studio/leads", "Leads"),
+      linkAction("/growth-studio/checklist", "Consent checklist"),
+      linkAction("/pricing", "Pricing"),
       logoutAction()
     ];
   }
@@ -1280,17 +1518,19 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260623">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260623">
-    <script defer src="/sonara-experience.js?v=interface-dom-20260623"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260714">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260714">
+    <script defer src="/sonara-experience.js?v=interface-dom-20260714"></script>
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
       <a class="brand" href="/">SONARA Industries</a>
       <nav aria-label="Primary">
+        <a href="/start">Start</a>
         <a href="/business-builder">Business Builder</a>
         <a href="/creator-studio">Creator Studio</a>
         <a href="/growth-studio">Growth Studio</a>
+        <a href="/service-catalog">Services</a>
         <a href="/contact">Contact</a>
         <a href="/pricing">Pricing</a>
         <a href="/login">Login</a>
@@ -1322,8 +1562,9 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
             <strong>SONARA Industries</strong>
             <p>One bright command interface for Business Builder, Creator Studio, and Growth Studio.</p>
             <div class="sonara-module-strip"><span>Business</span><span>Creator</span><span>Growth</span></div>
+            ${renderInterfaceStatusPanel(getReadiness())}
           </div>
-          <div class="sonara-proof-pill">Mobile-ready &bull; Paid-ready &bull; Operator-controlled</div>
+          <div class="sonara-proof-pill">Mobile-ready &middot; paid-gated &middot; operator-controlled</div>
         </aside>
       </section>
       <section class="grid">${sections.join("")}</section>
@@ -1377,6 +1618,27 @@ function renderHead(title) {
     <title>${escapeHtml(title)} | SONARA Industries</title>`;
 }
 
+function renderInterfaceStatusPanel(readiness) {
+  const items = [
+    { label: "Products", value: "Routes live", status: "ready" },
+    { label: "Database", value: displayStatus(readiness.services.accountDatabase), status: readiness.services.accountDatabase },
+    { label: "Payments", value: displayStatus(readiness.services.checkout), status: readiness.services.checkout },
+    {
+      label: "Support queue",
+      value: readiness.services.accountDatabase === "configured" ? "Database-backed" : "Setup required",
+      status: readiness.services.accountDatabase
+    },
+    { label: "Admin", value: displayStatus(readiness.services.founderAccess), status: readiness.services.founderAccess }
+  ];
+  return `<div class="sonara-status-panel" aria-label="Operational status">${items.map((item) => `<span class="sonara-status-chip ${escapeHtml(readinessStatusClass(item.status))}"><b>${escapeHtml(item.label)}</b><em>${escapeHtml(item.value)}</em></span>`).join("")}</div>`;
+}
+
+function readinessStatusClass(status) {
+  if (["ready", "configured", "enabled"].includes(String(status))) return "is-ready";
+  if (String(status) === "review_required") return "is-review";
+  return "is-setup";
+}
+
 function accountNoticeCard(req) {
   const account = String(req.query?.account || "");
   if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");
@@ -1390,12 +1652,13 @@ function responsePage(title, body, actions) {
 function adminPage(title, body, readiness, metrics = {}) {
   const operations = [
     deploymentCard(),
-    brandCard("Users and customers", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed.")),
-    brandCard("Orders and subscriptions", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid.")),
-    brandCard("Payment updates", metrics.webhookEvents || (readiness.services.supabase === "configured" ? "Webhook audit table is available after migrations are applied." : "Setup required: connect the account database before payment updates can be listed.")),
-    brandCard("Contact messages", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references.")),
-    brandCard("Product catalog status", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas."),
-    brandCard("System status", "Health and readiness checks are available without exposing secret values.")
+    actionCard("Readiness", "Live setup state for account database, checkout, email delivery, Google sign-in, and founder access.", [linkAction("/admin/env-readiness", "Environment"), linkAction("/api/readiness", "Readiness JSON")]),
+    actionCard("Users and roles", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed."), [linkAction("/admin/users", "Users"), linkAction("/admin/roles", "Roles")]),
+    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
+    actionCard("Billing and webhooks", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."), [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates"), linkAction("/pricing", "Pricing")]),
+    actionCard("Product catalog", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas.", [linkAction("/admin/catalog", "Catalog"), linkAction("/business-builder", "Business"), linkAction("/creator-studio", "Creator"), linkAction("/growth-studio", "Growth")]),
+    actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
+    actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/ai-gateway", "AI gateway")])
   ];
   return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: adminActions() });
 }
@@ -1415,6 +1678,8 @@ function adminActions() {
     linkAction("/admin/support", "Support queue"),
     linkAction("/admin/catalog", "Catalog"),
     linkAction("/admin/system", "System"),
+    linkAction("/admin/database", "Database"),
+    linkAction("/admin/storage", "Storage"),
     linkAction("/admin/formulas", "Formulas"),
     linkAction("/admin/ecosystem", "Ecosystem"),
     linkAction("/admin/infrastructure", "Infrastructure"),
@@ -1486,9 +1751,10 @@ async function getProductModuleCatalogCards() {
 
 function getRouteMapCards() {
   return [
-    brandCard("Public routes", "/, /pricing, /contact, /login, /signup, /help, /docs, /security"),
-    brandCard("Workspace routes", "/business-builder, /creator-studio, /growth-studio, each with dashboard, free tools, and paid tools"),
-    brandCard("Admin routes", "/admin/users, /admin/roles, /admin/subscriptions, /admin/webhooks, /admin/support, /admin/catalog, /admin/system")
+    brandCard("Public routes", "/, /start, /service-catalog, /readiness, /support, /legal, /pricing, /contact, /login, /signup, /help, /docs, /security"),
+    brandCard("Workspace routes", "/business-builder, /creator-studio, /growth-studio, each with dashboard, start, tools, free tools, paid tools, deliverables, and support"),
+    brandCard("Service lifecycle routes", "/requests, /deliverables, /service-catalog, POST /service-requests, POST /support/request"),
+    brandCard("Admin routes", "/admin/users, /admin/roles, /admin/subscriptions, /admin/webhooks, /admin/support, /admin/requests, /admin/deliverables, /admin/workspaces, /admin/catalog, /admin/system, /admin/database, /admin/storage, /admin/ai-gateway")
   ];
 }
 
@@ -1506,6 +1772,10 @@ function displayStatus(value) {
 
 function brandCard(title, body) {
   return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p></article>`;
+}
+
+function actionCard(title, body, actions = []) {
+  return `<article class="card sonara-action-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p>${actions.length ? `<div class="card-actions">${actions.join("")}</div>` : ""}</article>`;
 }
 
 function accessCard(access) {
@@ -1554,6 +1824,65 @@ function workspaceActivityCard(summary) {
 
 function countLabel(result) {
   return result?.ok ? String(result.count) : "unavailable";
+}
+
+async function getCommandCenterSummary(req) {
+  const readiness = getReadiness();
+  const organization = req.sonaraUser ? await getCustomerPrimaryOrganization(req.sonaraUser) : { ok: false, code: "customer_auth_required" };
+  const hasOrg = organization.ok;
+
+  const workspaceCard = hasOrg
+    ? actionCard("Workspace", "Your organization membership is active. Saved records are scoped to this workspace.", [linkAction("/account", "Account"), linkAction("/account/setup", "Workspace settings")])
+    : actionCard("Create your workspace", "No organization membership found. Create or attach an organization so records can be saved. Free tools stay available either way.", [linkAction("/account/setup", "Account setup")]);
+
+  let requestsSummary = "Setup required: the account database is not configured, so request tracking uses safe fallbacks.";
+  let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
+  let billingSummary = readiness.services.checkout === "enabled"
+    ? "Checkout is configured. Paid access unlocks only after payment updates record an active or trialing plan."
+    : "Setup required: checkout is not fully configured yet. Paid access stays locked until payment updates are recorded.";
+  const supportSummary = readiness.services.supabase === "configured"
+    ? "Support requests are recorded in the account database with reference IDs."
+    : "Setup required: support requests use the safe fallback queue with reference IDs.";
+
+  let openRequestCount = null;
+  if (hasOrg) {
+    const requests = await safeListTable("service_requests", `?select=id,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=20`);
+    if (requests.ok) {
+      const open = requests.rows.filter((row) => !["delivered", "closed"].includes(row.status));
+      openRequestCount = open.length;
+      requestsSummary = requests.rows.length
+        ? `${open.length} open of ${requests.rows.length} recent service requests.`
+        : "No service requests yet. Browse the catalog to submit the first one.";
+    } else {
+      requestsSummary = "Setup required: the service_requests table is not available yet.";
+    }
+    const deliverables = await safeListTable("service_deliverables", `?select=id,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=updated_at.desc&limit=20`);
+    if (deliverables.ok) {
+      deliverablesSummary = deliverables.rows.length ? `${deliverables.rows.length} recent deliverables on record.` : "No deliverables yet. They appear when an operator publishes work.";
+    } else {
+      deliverablesSummary = "Setup required: the service_deliverables table is not available yet.";
+    }
+    const billing = await getBillingPanelSummary(organization.organizationId);
+    billingSummary = `${billing.status} Paid access unlocks only after payment updates record an active or trialing plan.`;
+  }
+
+  const blockers = Object.entries(readiness.services)
+    .filter(([, value]) => ["setup_required", "missing", "invalid"].some((flag) => String(value).includes(flag)))
+    .map(([key]) => formatLabel(key));
+  const blockersCard = blockers.length
+    ? actionCard("Setup blockers", `Needs attention: ${blockers.join(", ")}.`, [linkAction("/readiness", "Readiness"), linkAction("/account/setup", "Account setup")])
+    : brandCard("Setup blockers", "No blocking setup items detected in live readiness checks.");
+
+  let nextBestAction = { message: "Open a free tool and generate your first output.", href: "/business-builder/tools", label: "Open tools" };
+  if (!hasOrg) nextBestAction = { message: "Create or attach your organization so records can be saved.", href: "/account/setup", label: "Account setup" };
+  else if (openRequestCount === 0) nextBestAction = { message: "Browse the service catalog and submit your first service request.", href: "/service-catalog", label: "Service catalog" };
+  else if (openRequestCount > 0) nextBestAction = { message: "Review your open service requests and deliverables.", href: "/requests", label: "My requests" };
+
+  const adminCard = req.sonaraAccess?.ownerOverride
+    ? actionCard("Operator notice", "You have owner/admin access. Founder operations cover service requests, deliverables, and workspaces.", [linkAction("/admin", "Admin console"), linkAction("/admin/requests", "Service requests")])
+    : null;
+
+  return { workspaceCard, requestsSummary, deliverablesSummary, billingSummary, supportSummary, blockersCard, nextBestAction, adminCard };
 }
 
 function checklistCard(title, items) {
@@ -1776,13 +2105,204 @@ function authForm(label, action) {
 
 function accountSetupCards() {
   return [
-    brandCard("Organization name", "Required after account access is configured."),
+    organizationSetupForm(),
+    actionCard("Create or attach organization", "Logged-in users need an organization membership before saved records and product workspaces can be trusted. If the required tables are missing, this action returns setup-required with the table checklist.", [
+      linkAction("/api/readiness", "Readiness JSON"),
+      linkAction("/admin/database", "Database readiness")
+    ]),
+    brandCard("Required tables", "profiles, organizations, and organization_memberships must be migrated and exposed to server-side Supabase access before organization setup can complete."),
     brandCard("Product path", "Choose Business Builder, Creator Studio, Growth Studio, or all three."),
     brandCard("First offer", "Draft the first offer before checkout activation."),
     brandCard("Contact email", "Confirm the support and customer contact address."),
     brandCard("Payment readiness", "Connect Stripe to enable checkout."),
     brandCard("Support preference", "Connect the account database and email delivery to enable the support queue.")
   ];
+}
+
+function organizationSetupForm() {
+  return `<article class="card">
+    <h2>Create or attach organization</h2>
+    <form method="post" action="/account/setup/organization">
+      <label>Organization name<input name="organizationName" type="text" minlength="2" maxlength="120" required></label>
+      <label>Product path<select name="productPath" required>
+        <option value="business-builder">Business Builder</option>
+        <option value="creator-studio">Creator Studio</option>
+        <option value="growth-studio">Growth Studio</option>
+        <option value="dashboard">All workspaces</option>
+      </select></label>
+      <p class="fine">This uses server-side Supabase access only. It never exposes service-role credentials to the browser.</p>
+      <button type="submit">Create organization</button>
+    </form>
+  </article>`;
+}
+
+async function createOrAttachOrganization(req) {
+  const user = req.sonaraUser;
+  if (!user?.id) return { status: 401, body: { ok: false, code: "authentication_required", message: "Login is required before organization setup." } };
+
+  const organizationName = String(req.body.organizationName || req.body.organization_name || "").trim();
+  const productPath = normalizeProductSetupPath(req.body.productPath || req.body.product_path);
+  if (organizationName.length < 2 || organizationName.length > 120) {
+    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter an organization name between 2 and 120 characters." } };
+  }
+
+  const config = getSupabaseAdminClient();
+  if (!config.ok) {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        code: "setup_required",
+        service: "supabase",
+        message: "Setup required: Supabase service-role server access is not configured. Add server-only Supabase environment variables in Vercel.",
+        nextPath: "/account/setup"
+      }
+    };
+  }
+
+  const profile = await upsertSetupProfile(config, user);
+  if (!profile.ok) {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        code: "setup_required",
+        service: "profiles",
+        message: "Setup required: the profiles table is unavailable or not migrated.",
+        nextPath: "/account/setup"
+      }
+    };
+  }
+
+  const existing = await getCustomerPrimaryOrganization(user);
+  if (existing.ok) {
+    return {
+      status: 200,
+      body: {
+        ok: true,
+        code: "organization_exists",
+        organizationId: existing.organizationId,
+        message: "Organization membership already exists. Continue to the selected workspace.",
+        nextPath: setupPathToRoute(productPath)
+      }
+    };
+  }
+
+  const organization = await insertSetupOrganization(config, user, organizationName, productPath);
+  if (!organization.ok) {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        code: "setup_required",
+        service: "organizations",
+        message: "Setup required: the organizations table is unavailable or missing compatible columns.",
+        nextPath: "/account/setup"
+      }
+    };
+  }
+
+  const membership = await insertSetupMembership(config, user.id, organization.id);
+  if (!membership.ok) {
+    return {
+      status: 503,
+      body: {
+        ok: false,
+        code: "setup_required",
+        service: "organization_memberships",
+        message: "Setup required: the organization_memberships table is unavailable or missing compatible columns.",
+        nextPath: "/account/setup"
+      }
+    };
+  }
+
+  await insertActivityEvent(organization.id, user.id, "account.organization_created", { product_path: productPath });
+  return {
+    status: 200,
+    body: {
+      ok: true,
+      code: "organization_created",
+      organizationId: organization.id,
+      message: "Organization created and owner membership recorded.",
+      nextPath: setupPathToRoute(productPath)
+    }
+  };
+}
+
+async function upsertSetupProfile(config, user) {
+  const records = [
+    { id: user.id, email: user.email || null, display_name: user.email || null, metadata: { source: "account_setup" } },
+    { id: user.id, email: user.email || null },
+    { id: user.id }
+  ];
+  for (const record of records) {
+    const response = await fetch(`${config.url}/rest/v1/profiles?on_conflict=id`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
+      body: JSON.stringify(record)
+    }).catch(() => undefined);
+    if (response?.ok) return { ok: true };
+  }
+  return { ok: false };
+}
+
+async function insertSetupOrganization(config, user, organizationName, productPath) {
+  const slugBase = slugify(`${organizationName}-${user.id.slice(0, 8)}`);
+  const records = [
+    { name: organizationName, slug: slugBase, owner_id: user.id, owner_user_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
+    { name: organizationName, slug: slugBase, owner_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
+    { name: organizationName, metadata: { source: "account_setup", product_path: productPath } },
+    { name: organizationName }
+  ];
+  for (const record of records) {
+    const response = await fetch(`${config.url}/rest/v1/organizations`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "return=representation" }),
+      body: JSON.stringify(record)
+    }).catch(() => undefined);
+    if (response?.ok) {
+      const rows = await response.json().catch(() => []);
+      const id = rows[0]?.id;
+      if (id) return { ok: true, id };
+    }
+  }
+  return { ok: false };
+}
+
+async function insertSetupMembership(config, userId, organizationId) {
+  const records = [
+    { organization_id: organizationId, user_id: userId, role: "owner", status: "active" },
+    { organization_id: organizationId, user_id: userId, role: "owner" }
+  ];
+  for (const record of records) {
+    const response = await fetch(`${config.url}/rest/v1/organization_memberships?on_conflict=organization_id,user_id`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates,return=representation" }),
+      body: JSON.stringify(record)
+    }).catch(() => undefined);
+    if (response?.ok) return { ok: true };
+  }
+  return { ok: false };
+}
+
+function normalizeProductSetupPath(value) {
+  const normalized = String(value || "dashboard").trim().toLowerCase();
+  return ["business-builder", "creator-studio", "growth-studio", "dashboard"].includes(normalized) ? normalized : "dashboard";
+}
+
+function setupPathToRoute(value) {
+  if (value === "business-builder") return "/business-builder/dashboard";
+  if (value === "creator-studio") return "/creator-studio/dashboard";
+  if (value === "growth-studio") return "/growth-studio/dashboard";
+  return "/dashboard";
+}
+
+function slugify(value) {
+  return String(value || "organization")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 72) || `organization-${randomUUID().slice(0, 8)}`;
 }
 
 function legalPage(res, title, points) {
@@ -2092,7 +2612,6 @@ function getAdminEnvReadiness() {
   const supabaseAuth = getSupabaseAuthReadinessStatus();
   const adminSource = getAdminAuthorizationSourceStatus();
   const serviceRole = getSecretValueStatus("SUPABASE_SERVICE_ROLE_KEY");
-  const resend = getResendStatus();
   return [
     readinessItem("SUPABASE_AUTH", "Supabase email login", supabaseAuth.status, "Supabase auth is not configured."),
     readinessItem("ADMIN_ACCESS_SOURCE", "Founder email allowlist or user_roles", adminSource.status, "Configure an admin/founder email allowlist or the service role key for user_roles lookup."),
@@ -2352,6 +2871,91 @@ async function safeInsertModuleOutput(organizationId, productKey, moduleKey, inp
   return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
 }
 
+async function safeInsertDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
+  const config = getSupabaseAdminClient();
+  if (!config.ok || !organizationId) return { ok: false, code: "setup_required" };
+  const domain = buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output);
+  if (!domain) return { ok: false, code: "not_applicable" };
+  const response = await fetch(`${config.url}/rest/v1/${domain.table}`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { prefer: "return=representation" }),
+    body: JSON.stringify(domain.record)
+  }).catch(() => undefined);
+  return { ok: Boolean(response?.ok), table: domain.table, rows: response?.ok ? await response.json().catch(() => []) : [] };
+}
+
+function buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
+  if (productKey === "creator_studio" && moduleKey === "asset_catalog") {
+    const assetType = normalizeAssetType(input.type || input.assetType);
+    return {
+      table: "creator_assets",
+      record: {
+        organization_id: organizationId,
+        user_id: userId || null,
+        title: String(input.title || "Untitled asset").trim(),
+        asset_type: assetType,
+        status: normalizeCreatorAssetStatus(input.status),
+        metadata: {
+          platform: String(input.platform || "").trim() || null,
+          rights_notes: String(input.rightsNotes || input.rights_notes || "").trim() || null,
+          source: "creator_studio_asset_form",
+          output
+        }
+      }
+    };
+  }
+  if (productKey === "growth_studio" && moduleKey === "campaign_workspace") {
+    return {
+      table: "growth_campaigns",
+      record: {
+        organization_id: organizationId,
+        user_id: userId || null,
+        name: String(input.goal || "Growth campaign").trim(),
+        goal: String(input.goal || "").trim() || null,
+        channel: String(input.channel || "").trim() || null,
+        status: "draft",
+        metadata: {
+          audience: String(input.audience || "").trim() || null,
+          offer: String(input.offer || "").trim() || null,
+          timeline: String(input.timeline || "").trim() || null,
+          source: "growth_studio_campaign_form",
+          output
+        }
+      }
+    };
+  }
+  if (productKey === "growth_studio" && moduleKey === "lead_follow_up") {
+    return {
+      table: "growth_leads",
+      record: {
+        organization_id: organizationId,
+        user_id: userId || null,
+        name: String(input.name || "").trim() || null,
+        email: String(input.email || "").trim() || null,
+        source: String(input.source || "").trim() || null,
+        status: "new",
+        metadata: {
+          consent_status: String(input.consentStatus || input.consent_status || "").trim() || null,
+          compliance_warning: "Phone, SMS, and voicemail outreach may be regulated. Confirm valid consent and honor opt-outs before contacting anyone.",
+          source: "growth_studio_lead_form",
+          output
+        }
+      }
+    };
+  }
+  return null;
+}
+
+function normalizeAssetType(value) {
+  const normalized = String(value || "file").trim().toLowerCase().replace(/\s+/g, "_");
+  return ["image", "video", "audio", "document", "link", "file", "other"].includes(normalized) ? normalized : "other";
+}
+
+function normalizeCreatorAssetStatus(value) {
+  const normalized = String(value || "draft").trim().toLowerCase().replace(/\s+/g, "_");
+  return ["draft", "ready", "published", "archived"].includes(normalized) ? normalized : "draft";
+}
+
 async function safeReadOrganizationScopedRecords(organizationId, productKey) {
   const config = getSupabaseAdminClient();
   if (!config.ok) return { ok: false, code: "setup_required", records: [] };
@@ -2365,15 +2969,50 @@ async function safeReadOrganizationScopedRecords(organizationId, productKey) {
 
 async function saveModuleOutput(req, productKey, moduleKey, input, output) {
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+  if (!organization.ok) {
+    return {
+      ok: true,
+      saved: false,
+      code: "setup_required",
+      service: organization.code || "customer_organization",
+      productKey,
+      moduleKey,
+      referenceId: randomUUID(),
+      output
+    };
+  }
   const saved = await safeInsertModuleOutput(organization.organizationId, productKey, moduleKey, input, output);
+  const domain = await safeInsertDomainModuleRecord(organization.organizationId, req.sonaraUser?.id, productKey, moduleKey, input, output);
+  const anySaved = saved.ok || domain.ok;
+  const referenceId = saved.rows?.[0]?.id || domain.rows?.[0]?.id || randomUUID();
   return {
     ok: true,
-    saved: saved.ok,
-    code: saved.ok ? "saved" : "setup_required",
+    saved: anySaved,
+    code: anySaved ? "saved" : "setup_required",
     productKey,
     moduleKey,
+    referenceId,
+    moduleOutputSaved: saved.ok,
+    domainRecordSaved: domain.ok,
+    domainTable: domain.ok ? domain.table : null,
     output
   };
+}
+
+function sendValidationFailure(req, res, validation, backHref) {
+  if (wantsJson(req)) return res.status(400).json(validation);
+  const missing = validation.missing?.length ? validation.missing.join(", ") : "required fields";
+  return res.status(400).type("html").send(responsePage("Required fields missing", `Please complete: ${missing}.`, [linkAction(backHref, "Return to form")]));
+}
+
+function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
+  if (wantsJson(req)) return res.status(200).json(result);
+  const reference = result.referenceId || result.intakeRequestId || result.output?.referenceId || "not recorded";
+  const title = result.saved ? successTitle : "Setup required";
+  const message = result.saved
+    ? `Record saved. Reference ID: ${reference}.`
+    : `Setup required: ${displayStatus(result.service || result.code || "account_database")} is not ready. Reference ID: ${reference}.`;
+  return res.status(200).type("html").send(responsePage(title, message, [linkAction(backHref, "Return to workspace"), linkAction("/dashboard", "Dashboard"), linkAction("/contact", "Support")]));
 }
 
 async function readModuleRecords(req, productKey) {
@@ -3021,10 +3660,6 @@ function getAdminEmailSet() {
   return new Set(splitList([getEnv("ADMIN_EMAILS"), getEnv("ADMIN_EMAIL"), getEnv("FOUNDER_EMAILS")].filter(Boolean).join(",")).map((email) => email.toLowerCase()));
 }
 
-function hasAdminAuthorizationSource() {
-  return getAdminEmailSet().size > 0 || Boolean(getEnv("SUPABASE_SERVICE_ROLE_KEY"));
-}
-
 async function isBusinessManagerUser(user, workspaceId) {
   const userId = String(user?.id || "").trim();
   if (!userId) return { ok: false };
@@ -3347,19 +3982,21 @@ async function listSupportRequests() {
 async function getAdminMetrics() {
   const config = getSupabaseServerConfig();
   if (!config.ok) return {};
-  const [users, subscriptions, webhookEvents, supportRequests, catalog] = await Promise.all([
+  const [users, subscriptions, webhookEvents, supportRequests, catalog, serviceRequests] = await Promise.all([
     safeCountTable(config, "profiles"),
     safeCountTable(config, "billing_subscriptions"),
     safeCountTable(config, "billing_webhook_events"),
     safeCountTable(config, "support_requests"),
-    safeCountTable(config, "product_modules")
+    safeCountTable(config, "product_modules"),
+    safeCountTable(config, "service_requests")
   ]);
   return {
     users: formatMetric("Profiles", users),
     subscriptions: formatMetric("Subscription records", subscriptions),
     webhookEvents: formatMetric("Webhook events", webhookEvents),
     supportRequests: formatMetric("Support requests", supportRequests),
-    catalog: formatMetric("Product modules", catalog)
+    catalog: formatMetric("Product modules", catalog),
+    serviceRequests: formatMetric("Service requests", serviceRequests)
   };
 }
 
@@ -3490,6 +4127,80 @@ async function safeCountTable(config, table) {
 function formatMetric(label, result) {
   if (!result?.ok) return `${label}: unavailable until Supabase tables are migrated.`;
   return `${label}: ${result.count}`;
+}
+
+async function getDatabaseTableReadiness() {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return {
+      ok: false,
+      code: "setup_required",
+      message: "Supabase server access is not configured.",
+      tables: REQUIRED_OPERATION_TABLES.map((table) => ({ table, ok: false, count: null, status: "setup_required" }))
+    };
+  }
+  const checks = await Promise.all(REQUIRED_OPERATION_TABLES.map(async (table) => {
+    const result = await safeCountTable(config, table);
+    return { table, ok: result.ok, count: result.ok ? result.count : null, status: result.ok ? "ready" : "setup_required" };
+  }));
+  return {
+    ok: checks.every((item) => item.ok),
+    code: checks.every((item) => item.ok) ? "ready" : "setup_required",
+    tables: checks,
+    missing: checks.filter((item) => !item.ok).map((item) => item.table)
+  };
+}
+
+function databaseReadinessCards(readiness) {
+  const summary = readiness.ok
+    ? "All required tables responded to server-side readiness checks."
+    : `Setup required: ${readiness.missing?.length ? readiness.missing.join(", ") : "Supabase server access"} needs attention.`;
+  return [
+    actionCard("Database summary", summary, [linkAction("/api/admin/database-readiness", "Database JSON"), linkAction("/docs", "Docs")]),
+    ...readiness.tables.map((item) => brandCard(item.table, item.ok ? `Ready. Count: ${item.count}.` : "Setup required: table unavailable, not migrated, or not exposed to server-side REST."))
+  ];
+}
+
+async function getStorageBucketReadiness() {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) {
+    return {
+      ok: false,
+      code: "setup_required",
+      message: "Supabase server access is not configured.",
+      buckets: REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: false, status: "setup_required" }))
+    };
+  }
+  const response = await fetch(`${config.url}/storage/v1/bucket`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (!response?.ok) {
+    return {
+      ok: false,
+      code: "setup_required",
+      message: "Storage buckets could not be listed with server-side Supabase access.",
+      buckets: REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: false, status: "setup_required" }))
+    };
+  }
+  const rows = await response.json().catch(() => []);
+  const names = new Set((Array.isArray(rows) ? rows : []).map((bucket) => bucket.name || bucket.id).filter(Boolean));
+  const checks = REQUIRED_STORAGE_BUCKETS.map((bucket) => ({ bucket, ok: names.has(bucket), status: names.has(bucket) ? "ready" : "setup_required" }));
+  return {
+    ok: checks.every((item) => item.ok),
+    code: checks.every((item) => item.ok) ? "ready" : "setup_required",
+    buckets: checks,
+    missing: checks.filter((item) => !item.ok).map((item) => item.bucket)
+  };
+}
+
+function storageReadinessCards(readiness) {
+  const summary = readiness.ok
+    ? "All required buckets were returned by server-side storage readiness checks."
+    : `Setup required: ${readiness.missing?.length ? readiness.missing.join(", ") : "Supabase storage access"} needs attention.`;
+  return [
+    actionCard("Storage summary", summary, [linkAction("/api/admin/storage-readiness", "Storage JSON"), linkAction("/admin/database", "Database")]),
+    ...readiness.buckets.map((item) => brandCard(item.bucket, item.ok ? "Ready. Keep private buckets private by default." : "Setup required: create this bucket in Supabase Storage and keep private unless explicitly published."))
+  ];
 }
 
 async function updateUserRole(req) {

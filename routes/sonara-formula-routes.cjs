@@ -23,7 +23,6 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
   const linkAction = deps.linkAction || link;
-  const escapeHtml = deps.escapeHtml || esc;
   const requireAdmin = typeof deps.requireAdmin === "function" ? deps.requireAdmin : pass;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
   const safeListTable = typeof deps.safeListTable === "function" ? deps.safeListTable : undefined;
