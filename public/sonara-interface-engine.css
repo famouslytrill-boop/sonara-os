@@ -132,3 +132,200 @@ header nav a:focus-visible,
     padding-bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
+
+/* === SONARA APP FRAME v2 (guard: sonara-app-frame-v2) =====================
+   Sticky command bar, brand mark, command palette, button system, motion
+   micro-feedback, and lifecycle status chips. Reduced-motion users get a
+   fully static experience for every rule in this block. */
+
+/* Sticky top command bar (floats as a card; wins over the relative rule in
+   sonara-friendly-premium.css because this sheet loads later) */
+header {
+  position: sticky !important;
+  top: 10px !important;
+  z-index: 50 !important;
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sonara-brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: block;
+}
+
+.sonara-command-button {
+  width: auto !important;
+  min-height: 44px;
+  border-radius: var(--sonara-radius-pill, 999px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: var(--sonara-muted, #beb8cd) !important;
+  font-weight: 600 !important;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.sonara-command-button:hover,
+.sonara-command-button:focus-visible {
+  border-color: var(--sonara-gold, #ffd166);
+  color: #fffaf0 !important;
+}
+
+/* Command palette */
+.sonara-command-palette {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: rgba(5, 4, 10, 0.66);
+  backdrop-filter: blur(6px);
+}
+
+.sonara-command-palette[hidden] {
+  display: none;
+}
+
+.sonara-command-panel {
+  width: min(560px, 100%);
+  border-radius: var(--sonara-radius-lg, 18px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(20, 17, 32, 0.97);
+  box-shadow: var(--sonara-elev-3, 0 28px 90px rgba(0, 0, 0, 0.42));
+  padding: 14px;
+}
+
+.sonara-command-panel input {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(9, 9, 15, 0.9);
+  color: #fffaf0;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.sonara-command-panel ul {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  max-height: 44vh;
+  overflow-y: auto;
+}
+
+.sonara-command-panel li a {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: #f4eefc;
+  text-decoration: none;
+}
+
+.sonara-command-panel li a:hover,
+.sonara-command-panel li a:focus-visible {
+  border-color: var(--sonara-gold, #ffd166);
+  background: rgba(255, 209, 102, 0.12);
+}
+
+.sonara-command-empty {
+  color: var(--sonara-muted, #beb8cd);
+  padding: 10px 12px;
+}
+
+/* Button motion micro-feedback */
+.action,
+button {
+  transition: transform var(--sonara-motion-fast, 140ms) var(--sonara-ease, ease),
+    box-shadow var(--sonara-motion-fast, 140ms) var(--sonara-ease, ease);
+}
+
+.action:active,
+button:active {
+  transform: scale(0.97);
+}
+
+@keyframes sonara-success-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(114, 244, 169, 0.55); }
+  100% { box-shadow: 0 0 0 14px rgba(114, 244, 169, 0); }
+}
+
+.sonara-success-pulse {
+  animation: sonara-success-pulse 600ms var(--sonara-ease, ease) 1;
+}
+
+@keyframes sonara-skeleton-sheen {
+  0% { background-position: -160px 0; }
+  100% { background-position: 240px 0; }
+}
+
+.sonara-skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.14) 40%, rgba(255, 255, 255, 0.06) 55%);
+  background-size: 400px 100%;
+  animation: sonara-skeleton-sheen 1.4s linear infinite;
+  min-height: 16px;
+}
+
+/* Lifecycle status chips (no color-only communication: text is the label) */
+.sonara-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: var(--sonara-radius-pill, 999px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sonara-status-chip::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--sonara-status-neutral, #beb8cd);
+}
+
+.sonara-status-ready::before,
+.sonara-status-complete::before,
+.sonara-status-delivered::before { background: var(--sonara-status-ready, #72f4a9); }
+.sonara-status-warning::before,
+.sonara-status-blocked::before,
+.sonara-status-setup_required::before { background: var(--sonara-status-warning, #f4c56f); }
+.sonara-status-critical::before { background: var(--sonara-status-critical, #ff6b5e); }
+.sonara-status-info::before,
+.sonara-status-in_progress::before,
+.sonara-status-in_review::before { background: var(--sonara-status-info, #5ee7ff); }
+
+@media (prefers-reduced-motion: reduce) {
+  .action,
+  button {
+    transition: none !important;
+  }
+
+  .action:active,
+  button:active {
+    transform: none !important;
+  }
+
+  .sonara-skeleton,
+  .sonara-success-pulse {
+    animation: none !important;
+  }
+}

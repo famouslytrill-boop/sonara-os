@@ -220,3 +220,39 @@ footer {
   .card { min-height: 0 !important; }
 }
 
+
+/* === SONARA DESIGN TOKENS v2 (guard: sonara-tokens-v2) ===================
+   Canonical scales consumed by the app frame. Product body classes above
+   override --product-accent/--product-gradient; these stay global. */
+:root {
+  --sonara-cream: #fdf8ef;
+  --sonara-blue: #4d9fff;
+  --sonara-space-1: 4px;
+  --sonara-space-2: 8px;
+  --sonara-space-3: 12px;
+  --sonara-space-4: 16px;
+  --sonara-space-5: 24px;
+  --sonara-space-6: 32px;
+  --sonara-space-7: 48px;
+  --sonara-space-8: 72px;
+  --sonara-radius-sm: 10px;
+  --sonara-radius-md: 14px;
+  --sonara-radius-lg: 18px;
+  --sonara-radius-pill: 999px;
+  --sonara-elev-1: 0 8px 24px rgba(0, 0, 0, 0.28);
+  --sonara-elev-2: 0 18px 48px rgba(0, 0, 0, 0.36);
+  --sonara-elev-3: 0 28px 90px rgba(0, 0, 0, 0.42);
+  --sonara-motion-fast: 140ms;
+  --sonara-motion-base: 220ms;
+  --sonara-motion-slow: 420ms;
+  --sonara-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --sonara-status-ready: #72f4a9;
+  --sonara-status-warning: #f4c56f;
+  --sonara-status-critical: #ff6b5e;
+  --sonara-status-info: #5ee7ff;
+  --sonara-status-neutral: #beb8cd;
+}
+.sonara-admin {
+  --product-accent: #f4c56f;
+  --product-accent-2: #ff6b5e;
+}

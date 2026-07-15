@@ -13,20 +13,41 @@ const PRODUCTS = [
   { slug: "growth-studio", productKey: "growth_studio", name: "Growth Studio" }
 ];
 
-const SERVICE_REQUEST_STATUSES = ["submitted", "in_review", "approved", "in_progress", "delivered", "closed"];
-const DELIVERABLE_STATUSES = ["preparing", "in_progress", "review", "delivered", "accepted"];
+const SERVICE_LIFECYCLE_STATUSES = [
+  "draft",
+  "submitted",
+  "in_review",
+  "needs_customer_info",
+  "approved",
+  "in_progress",
+  "delivered",
+  "complete",
+  "blocked",
+  "setup_required"
+];
+const SERVICE_REQUEST_STATUSES = SERVICE_LIFECYCLE_STATUSES;
+const DELIVERABLE_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 
 const DEFAULT_SERVICE_CATALOG = [
-  { productKey: "business_builder", name: "Launch Website Setup", summary: "Service website structure, offer pages, intake, and payment-ready checkout wiring.", priceNote: "Scoped after intake review." },
-  { productKey: "business_builder", name: "Offer and Pricing Setup", summary: "Offer definition, package structure, and pricing positioned from your real cost inputs.", priceNote: "Scoped after intake review." },
-  { productKey: "business_builder", name: "Operations Records Setup", summary: "Customer, order, and checklist records configured in your account database.", priceNote: "Requires account database setup." },
-  { productKey: "creator_studio", name: "Release Package Preparation", summary: "Release checklist, asset validation, and distribution-ready package assembly.", priceNote: "Scoped after intake review." },
-  { productKey: "creator_studio", name: "Asset Catalog Setup", summary: "Creator asset records with rights notes and catalog organization.", priceNote: "Requires account database setup." },
-  { productKey: "creator_studio", name: "Music System Setup", summary: "Music-system blueprint configuration for song planning and prompt packs.", priceNote: "Scoped after intake review." },
-  { productKey: "growth_studio", name: "Campaign Setup", summary: "Consent-safe campaign plan, offer angles, and follow-up scripts prepared for launch.", priceNote: "Scoped after intake review." },
-  { productKey: "growth_studio", name: "Lead Follow-Up System", summary: "Lead records, follow-up scripts, and consent checklist configured for your workspace.", priceNote: "Requires account database setup." },
-  { productKey: "growth_studio", name: "Growth Readiness Audit", summary: "Readiness scoring across consent, offer, tracking, and follow-up foundations.", priceNote: "Scoped after intake review." }
+  { slug: "launch-offer-builder", productKey: "business_builder", name: "Launch Offer Builder", summary: "Operator-built launch offer: positioning, package structure, and pricing from your real inputs.", tier: "paid", inputs: "Service type, audience, price idea, proof points", turnaround: "3-5 business days", deliverableType: "Offer document and workspace records", priceNote: "Scoped after intake review." },
+  { slug: "customer-intake-setup", productKey: "business_builder", name: "Customer Intake Setup", summary: "Working customer intake path with request records, confirmation email, and review queue.", tier: "paid", inputs: "Business profile, services offered, contact address", turnaround: "3-5 business days", deliverableType: "Configured intake workflow", priceNote: "Requires account database setup." },
+  { slug: "payment-readiness-review", productKey: "business_builder", name: "Payment Readiness Review", summary: "Checkout, webhook, and plan configuration reviewed end to end with an action list.", tier: "paid", inputs: "Stripe account state, plan structure", turnaround: "2-3 business days", deliverableType: "Readiness report with fixes", priceNote: "Scoped after intake review." },
+  { slug: "creator-offer-builder", productKey: "creator_studio", name: "Creator Offer Builder", summary: "Creator product offer: package, pricing posture, and rights-safe positioning.", tier: "paid", inputs: "Offer type, audience, deliverables, price idea", turnaround: "3-5 business days", deliverableType: "Offer document and catalog records", priceNote: "Scoped after intake review." },
+  { slug: "release-readiness-checklist", productKey: "creator_studio", name: "Release Readiness Checklist", summary: "Release-specific checklist with dates, platform specs, and completion tracking.", tier: "free", inputs: "Release title, type, date, platforms", turnaround: "Immediate output; review in 2 days", deliverableType: "Tracked release checklist", priceNote: "Free tool; operator review is paid." },
+  { slug: "music-system-blueprint", productKey: "creator_studio", name: "Music System Blueprint", summary: "Song planning blueprint: structure, production notes, prompts, and quality checks.", tier: "free", inputs: "Working title, genre, mood, references", turnaround: "Immediate output; setup in 3 days", deliverableType: "Blueprint plus music-system records", priceNote: "Free tool; system setup is paid." },
+  { slug: "campaign-setup", productKey: "growth_studio", name: "Campaign Setup", summary: "Consent-safe campaign configured with plan, angles, follow-up scripts, and tracking sheet.", tier: "paid", inputs: "Goal, audience, offer, channel, timeline, consent posture", turnaround: "3-5 business days", deliverableType: "Campaign package", priceNote: "Scoped after intake review." },
+  { slug: "lead-followup-plan", productKey: "growth_studio", name: "Lead Follow-Up Plan", summary: "Three-touch follow-up system with consent rules and lead records.", tier: "paid", inputs: "Lead list state, service, consent status", turnaround: "2-4 business days", deliverableType: "Follow-up scripts and lead records", priceNote: "Requires account database setup." },
+  { slug: "consent-safe-outreach-checklist", productKey: "growth_studio", name: "Consent-Safe Outreach Checklist", summary: "Outreach reviewed against consent, sender truthfulness, and opt-out requirements.", tier: "free", inputs: "Audience source, message drafts", turnaround: "Immediate output; review in 2 days", deliverableType: "Reviewed checklist", priceNote: "Free tool; operator review is paid." }
 ];
+
+function catalogCardBody(item) {
+  const parts = [item.summary];
+  if (item.inputs) parts.push(`Inputs: ${item.inputs}.`);
+  if (item.turnaround) parts.push(`Turnaround: ${item.turnaround}.`);
+  if (item.deliverableType) parts.push(`Deliverable: ${item.deliverableType}.`);
+  parts.push(`Access: ${item.tier === "free" ? "Free tool" : "Paid service"}. Pricing: ${item.priceNote}`);
+  return parts.join(" ");
+}
 
 module.exports = function registerServiceLifecycleRoutes(app, deps) {
   const {
@@ -668,11 +689,11 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     const rows = await safeListTable("service_catalog_items", "?select=id,product_key,name,summary,price_note,status&status=eq.active&order=name.asc&limit=50");
     const usingDatabase = rows.ok && rows.rows.length > 0;
     const items = usingDatabase
-      ? rows.rows.map((row) => ({ productKey: row.product_key, name: row.name, summary: row.summary, priceNote: row.price_note || "Scoped after intake review." }))
+      ? rows.rows.map((row) => ({ productKey: row.product_key, name: row.name, summary: row.summary, tier: "paid", priceNote: row.price_note || "Scoped after intake review." }))
       : DEFAULT_SERVICE_CATALOG;
     const sections = items.map((item) => {
       const product = productByKey(item.productKey);
-      return actionCard(item.name, `${item.summary} Pricing: ${item.priceNote}`, [
+      return actionCard(item.name, catalogCardBody(item), [
         linkAction("/requests", "Request this service"),
         product ? linkAction(`/${product.slug}`, product.name) : linkAction("/start", "Start")
       ]);
@@ -999,9 +1020,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         const rows = await safeListTable("service_catalog_items", `?select=id,product_key,name,summary,price_note,status&status=eq.active&product_key=eq.${encodeURIComponent(product.productKey)}&order=name.asc&limit=50`);
         const usingDatabase = rows.ok && rows.rows.length > 0;
         const items = usingDatabase
-          ? rows.rows.map((row) => ({ name: row.name, summary: row.summary, priceNote: row.price_note || "Scoped after intake review." }))
+          ? rows.rows.map((row) => ({ name: row.name, summary: row.summary, tier: "paid", priceNote: row.price_note || "Scoped after intake review." }))
           : DEFAULT_SERVICE_CATALOG.filter((item) => item.productKey === product.productKey);
-        const sections = items.map((item) => actionCard(item.name, `${item.summary} Pricing: ${item.priceNote}`, [linkAction("/requests", "Request this service")]));
+        const sections = items.map((item) => actionCard(item.name, catalogCardBody(item), [linkAction("/requests", "Request this service")]));
         if (!usingDatabase) {
           sections.push(brandCard("Catalog records", rows.ok ? "No catalog records are published in the account database yet, so the standard catalog is shown." : "Setup required: the service_catalog_items table is not available yet, so the standard catalog is shown."));
         }
@@ -1045,6 +1066,87 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             actionCard("More help", "General support, contact, and help resources.", [linkAction("/support", "Support center"), linkAction("/contact", "Contact"), linkAction("/help", "Help")])
           ],
           actions: [linkAction(`/${product.slug}`, product.name), linkAction(`/${product.slug}/dashboard`, "Product dashboard"), linkAction("/", "Home")]
+        })
+      );
+    });
+
+    app.get(`/${product.slug}/requests`, requireWorkspaceAccess(product.productKey), async (req, res) => {
+      const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+      const sections = [accessCard(req.sonaraAccess)];
+      if (!organization.ok) {
+        sections.push(actionCard("Create your workspace", "Your workspace has not been created yet. Create or attach an organization to submit and track service requests.", [linkAction("/account/setup", "Create workspace"), linkAction(`/${product.slug}/tools`, "Continue with free tools")]));
+      } else {
+        const rows = await safeListTable("service_requests", `?select=id,service_name,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&product_key=eq.${encodeURIComponent(product.productKey)}&order=created_at.desc&limit=20`);
+        if (!rows.ok) {
+          sections.push(brandCard("Setup required", "Request tracking is temporarily unavailable because the service_requests table is not ready in the account database. Submitted requests still return a reference ID."));
+        } else if (!rows.rows.length) {
+          sections.push(brandCard("No requests yet", `No ${product.name} service requests yet. Browse the catalog and submit the first one.`));
+        } else {
+          sections.push(...rows.rows.map((row) => brandCard(
+            `${row.service_name || "Service request"} - ${displayStatus(row.status || "submitted")}`,
+            `Submitted: ${row.created_at || "not returned"}. Reference ID: ${row.id}.`
+          )));
+        }
+      }
+      sections.push(actionCard("Submit a request", "New requests go through the shared request center so every request gets a reference ID and tracked status.", [linkAction("/requests", "New service request"), linkAction("/service-catalog", "Service catalog")]));
+      res.status(200).type("html").send(
+        layout({
+          title: `${product.name} Requests`,
+          eyebrow: "Workspace",
+          heading: `${product.name} requests`,
+          body: "Service requests scoped to this product area.",
+          sections,
+          actions: [linkAction(`/${product.slug}/deliverables`, "Deliverables"), linkAction(`/${product.slug}/dashboard`, "Product dashboard"), linkAction("/dashboard", "Dashboard"), logoutAction()]
+        })
+      );
+    });
+
+    if (product.slug !== "business-builder") {
+      const contentCards = product.slug === "creator-studio"
+        ? [
+            actionCard("Basic Content Plan", "Two weeks of content planned from your niche, cadence, platforms, and pillars.", [linkAction("/creator-studio/tools/content-plan", "Open tool")]),
+            actionCard("Prompt and Brief Builder", "Structured creative briefs for every piece of content.", [linkAction("/creator-studio/tools/brief", "Open tool")]),
+            actionCard("Releases", "Release checklists and packaging for launches.", [linkAction("/creator-studio/releases", "Open releases"), linkAction("/creator-studio/tools/release-checklist", "Checklist builder")])
+          ]
+        : [
+            actionCard("Campaign Outline", "Consent-safe campaign plans from real goal, audience, offer, and channel inputs.", [linkAction("/growth-studio/tools/campaign", "Open tool")]),
+            actionCard("Offer Angle Generator", "Five truthful angles to test against the same audience.", [linkAction("/growth-studio/tools/offer-angles", "Open tool")]),
+            actionCard("Paid content planning", "The full content plan workspace unlocks with a confirmed plan or owner access.", [linkAction("/growth-studio/content-plan", "Content plan"), linkAction("/pricing", "View pricing")])
+          ];
+      app.get(`/${product.slug}/content`, (req, res) => {
+        res.status(200).type("html").send(
+          layout({
+            title: `${product.name} Content`,
+            eyebrow: "Content planning",
+            heading: `${product.name} content`,
+            body: "Plan content with free tools now; paid plans add saved calendars and operator review.",
+            sections: contentCards,
+            actions: [linkAction(`/${product.slug}/tools`, "All tools"), linkAction(`/${product.slug}/dashboard`, "Product dashboard"), linkAction("/pricing", "Pricing")]
+          })
+        );
+      });
+    }
+  }
+
+  const BUSINESS_OPERATIONS_PAGES = [
+    { path: "/business-builder/inventory", title: "Inventory", table: "inventory_items", ownerPath: "/business-builder/owner/inventory", body: "Track stock items, counts, and reorder notes for your business workspace." },
+    { path: "/business-builder/vendors", title: "Vendors", table: "vendor_accounts", ownerPath: "/business-builder/owner/vendors", body: "Track vendor accounts, terms, and invoices for your business workspace." },
+    { path: "/business-builder/locations", title: "Locations", table: "business_locations", ownerPath: "/business-builder/owner/locations", body: "Track business locations used for scheduling, staffing, and operations." }
+  ];
+  for (const operationsPage of BUSINESS_OPERATIONS_PAGES) {
+    app.get(operationsPage.path, requireWorkspaceAccess("business_builder"), (req, res) => {
+      res.status(200).type("html").send(
+        layout({
+          title: `Business ${operationsPage.title}`,
+          eyebrow: "Business operations",
+          heading: `Business ${operationsPage.title.toLowerCase()}`,
+          body: operationsPage.body,
+          sections: [
+            accessCard(req.sonaraAccess),
+            brandCard(`${operationsPage.title} records`, `Records are stored in the ${operationsPage.table} table, scoped to your organization, and managed through the owner operations area. If the table is not migrated yet, pages show setup-required instead of fake data.`),
+            actionCard(`Manage ${operationsPage.title.toLowerCase()}`, "Owner and manager accounts manage these records in the operations area. Employees see only what their role allows.", [linkAction(operationsPage.ownerPath, "Open operations area"), linkAction("/business-builder/employees", "Team access")])
+          ],
+          actions: [linkAction("/business-builder/dashboard", "Product dashboard"), linkAction("/business-builder/tools", "All tools"), linkAction("/dashboard", "Dashboard"), logoutAction()]
         })
       );
     });
@@ -1183,6 +1285,30 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }));
   });
 
+  app.get("/admin/integrations", requireAdmin, async (req, res) => {
+    await recordAdminAuditEvent(req, "admin.integrations.view", { path: req.path });
+    const services = getReadiness().services || {};
+    const gateway = getOptionalAiGatewayReadiness();
+    const serviceState = (key) => displayStatus(services[key] || "unknown");
+    return res.status(200).type("html").send(
+      layout({
+        title: "Integrations",
+        eyebrow: "Founder operations",
+        heading: "Integration status",
+        body: "Live state of every external integration. Secret values are never displayed.",
+        sections: [
+          actionCard("Payments (Stripe)", `Checkout: ${serviceState("checkout")}. Secret key: ${serviceState("stripe")}. Payment updates are recorded only from verified webhook events.`, [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates")]),
+          actionCard("Account database (Supabase)", `Database access: ${serviceState("supabase")}. Tables and storage buckets are checked live.`, [linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage")]),
+          actionCard("Email delivery (Resend)", `Email delivery: ${serviceState("emailDelivery")}. Notifications degrade to safe queued states when unconfigured.`, [linkAction("/admin/support", "Support queue")]),
+          actionCard("Google sign-in", `Status: ${serviceState("googleSignIn")}. Email and password login works independently.`, [linkAction("/admin/env-readiness", "Environment")]),
+          actionCard("Optional AI gateway", `Status: ${displayStatus(gateway.status)}. Operator/development use only; never customer-facing.`, [linkAction("/admin/ai-gateway", "AI gateway")]),
+          actionCard("System map", "Formula library, ecosystem manifest, and infrastructure manifest are part of the operational surface.", [linkAction("/admin/formulas", "Formulas"), linkAction("/admin/ecosystem", "Ecosystem"), linkAction("/admin/infrastructure", "Infrastructure")])
+        ],
+        actions: adminActions()
+      })
+    );
+  });
+
   app.get("/admin/ai-gateway", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.ai_gateway.view", { path: req.path });
     const readiness = getOptionalAiGatewayReadiness();
@@ -1196,7 +1322,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           brandCard("Status", displayStatus(readiness.status)),
           brandCard("Base URL", readiness.enabled ? `Configured host: ${readiness.baseUrlHost}` : "Not configured. The platform runs fully without it."),
           brandCard("API key", readiness.keyConfigured ? "Configured (value never displayed)." : "Not configured. Optional for local gateways."),
-          brandCard("Environment names", `Base URL: ${AI_GATEWAY_ENV_KEYS.baseUrl.join(" or ")}. API key: ${AI_GATEWAY_ENV_KEYS.apiKey.join(" or ")}.`),
+          brandCard("Model", `Requested model: ${escapeHtml(readiness.model || "auto")}. Model routing happens inside the gateway only.`),
+          brandCard("Environment names", `Enabled flag: ${AI_GATEWAY_ENV_KEYS.enabled.join(" or ")}. Base URL: ${AI_GATEWAY_ENV_KEYS.baseUrl.join(" or ")}. API key: ${AI_GATEWAY_ENV_KEYS.apiKey.join(" or ")}. Model: ${AI_GATEWAY_ENV_KEYS.model.join(" or ")}.`),
           brandCard("Safety rules", "Never route customer data through a local AI gateway. Never expose gateway keys to the browser. Keep the gateway off in production unless owner-approved."),
           actionCard("Documentation", "Setup, environment names, and safety rules are documented in the repository.", [linkAction("/docs", "Docs"), linkAction("/admin/system", "System")])
         ],

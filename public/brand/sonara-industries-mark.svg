@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Industries mark">
+  <title>SONARA Industries</title>
+  <defs>
+    <radialGradient id="si-bg" cx="30%" cy="22%" r="90%">
+      <stop offset="0%" stop-color="#3d2c52"/>
+      <stop offset="55%" stop-color="#161226"/>
+      <stop offset="100%" stop-color="#0a0812"/>
+    </radialGradient>
+    <linearGradient id="si-wave" x1="20" y1="88" x2="108" y2="40">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="50%" stop-color="#ff7a66"/>
+      <stop offset="100%" stop-color="#b693ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#si-bg)"/>
+  <circle cx="64" cy="64" r="42" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5"/>
+  <path d="M30 78 C46 60 52 92 64 74 C76 56 82 88 98 50" fill="none"
+        stroke="url(#si-wave)" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="30" cy="78" r="6" fill="#72f4a9"/>
+  <circle cx="64" cy="74" r="6" fill="#ff5db8"/>
+  <circle cx="98" cy="50" r="6" fill="#48e1ff"/>
+</svg>

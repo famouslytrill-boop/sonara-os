@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Industries monochrome mark">
+  <title>SONARA Industries</title>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="none" stroke="currentColor" stroke-width="6"/>
+  <circle cx="64" cy="64" r="42" fill="none" stroke="currentColor" stroke-width="2.5" opacity="0.45"/>
+  <path d="M30 78 C46 60 52 92 64 74 C76 56 82 88 98 50" fill="none"
+        stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="30" cy="78" r="6" fill="currentColor"/>
+  <circle cx="64" cy="74" r="6" fill="currentColor"/>
+  <circle cx="98" cy="50" r="6" fill="currentColor"/>
+</svg>

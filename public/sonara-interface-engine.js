@@ -8,6 +8,8 @@
 //   4. navigator.gpu present            -> same Canvas 2D visuals at a higher
 //      particle tier. WebGPU is a QUALITY HINT only; no adapter is requested
 //      and the page never waits on the GPU.
+// Also provides: aria-current navigation state, a keyboard command palette
+// (Ctrl+K), and safe optional haptics with a device-local disable setting.
 (function sonaraInterfaceEngine() {
   "use strict";
 
@@ -20,6 +22,10 @@
     }
   }
 
+  // ---------------------------------------------------------------------
+  // Navigation state
+  // ---------------------------------------------------------------------
+
   function markNavigationState() {
     var path = window.location.pathname.replace(/\/+$/, "") || "/";
     var links = document.querySelectorAll("header nav a, .sonara-quick-bar a");
@@ -31,6 +37,198 @@
       }
     }
   }
+
+  // ---------------------------------------------------------------------
+  // Haptics: optional, brief, meaningful actions only. Device-local setting.
+  // ---------------------------------------------------------------------
+
+  var HAPTICS_KEY = "sonara-haptics";
+
+  function hapticsEnabled() {
+    try {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+      return window.localStorage.getItem(HAPTICS_KEY) !== "off";
+    } catch {
+      return false;
+    }
+  }
+
+  function vibrate(pattern) {
+    try {
+      if (!hapticsEnabled()) return;
+      if (typeof navigator.vibrate === "function") navigator.vibrate(pattern);
+    } catch {
+      // Vibration is never required.
+    }
+  }
+
+  function bindHaptics() {
+    document.addEventListener("click", function onActionClick(event) {
+      var target = event.target && event.target.closest
+        ? event.target.closest('button[type="submit"], [data-haptic]')
+        : null;
+      if (target) vibrate(10);
+    });
+
+    var toggles = document.querySelectorAll("[data-sonara-haptics-toggle]");
+    for (var index = 0; index < toggles.length; index += 1) {
+      var toggle = toggles[index];
+      syncHapticsToggle(toggle);
+      toggle.addEventListener("click", function onToggle(event) {
+        var button = event.currentTarget;
+        try {
+          var next = hapticsEnabled() ? "off" : "on";
+          window.localStorage.setItem(HAPTICS_KEY, next);
+        } catch {
+          // Storage unavailable: leave default behavior.
+        }
+        syncHapticsToggle(button);
+        vibrate(8);
+      });
+    }
+  }
+
+  function syncHapticsToggle(button) {
+    var enabled = hapticsEnabled();
+    button.setAttribute("aria-pressed", String(enabled));
+    button.textContent = enabled ? "Haptics: On" : "Haptics: Off";
+  }
+
+  // ---------------------------------------------------------------------
+  // Command palette (Ctrl+K / button). Static destination list; navigation
+  // only — no data access, no network calls.
+  // ---------------------------------------------------------------------
+
+  var DESTINATIONS = [
+    { label: "Dashboard", href: "/dashboard" },
+    { label: "Start guide", href: "/start" },
+    { label: "Service catalog", href: "/service-catalog" },
+    { label: "Service requests", href: "/requests" },
+    { label: "Deliverables", href: "/deliverables" },
+    { label: "Billing", href: "/billing" },
+    { label: "Support", href: "/support" },
+    { label: "Account", href: "/account" },
+    { label: "Account setup", href: "/account/setup" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Contact", href: "/contact" },
+    { label: "Platform readiness", href: "/readiness" },
+    { label: "Legal center", href: "/legal" },
+    { label: "Business Builder", href: "/business-builder" },
+    { label: "Business Builder dashboard", href: "/business-builder/dashboard" },
+    { label: "Business Builder tools", href: "/business-builder/tools" },
+    { label: "Creator Studio", href: "/creator-studio" },
+    { label: "Creator Studio dashboard", href: "/creator-studio/dashboard" },
+    { label: "Creator Studio tools", href: "/creator-studio/tools" },
+    { label: "Growth Studio", href: "/growth-studio" },
+    { label: "Growth Studio dashboard", href: "/growth-studio/dashboard" },
+    { label: "Growth Studio tools", href: "/growth-studio/tools" },
+    { label: "Admin console", href: "/admin" },
+    { label: "Login", href: "/login" },
+    { label: "Create account", href: "/signup" }
+  ];
+
+  var palette = null;
+  var paletteInput = null;
+  var paletteList = null;
+  var paletteOpen = false;
+  var lastFocused = null;
+
+  function buildPalette() {
+    palette = document.createElement("div");
+    palette.className = "sonara-command-palette";
+    palette.setAttribute("role", "dialog");
+    palette.setAttribute("aria-modal", "true");
+    palette.setAttribute("aria-label", "Go to page");
+    palette.hidden = true;
+
+    var panel = document.createElement("div");
+    panel.className = "sonara-command-panel";
+    paletteInput = document.createElement("input");
+    paletteInput.type = "search";
+    paletteInput.placeholder = "Type a destination...";
+    paletteInput.setAttribute("aria-label", "Search destinations");
+    paletteList = document.createElement("ul");
+    paletteList.setAttribute("role", "listbox");
+    panel.appendChild(paletteInput);
+    panel.appendChild(paletteList);
+    palette.appendChild(panel);
+    document.body.appendChild(palette);
+
+    paletteInput.addEventListener("input", function onFilter() {
+      renderPaletteItems(paletteInput.value);
+    });
+    paletteInput.addEventListener("keydown", function onKey(event) {
+      if (event.key === "Enter") {
+        var first = paletteList.querySelector("a");
+        if (first) first.click();
+      }
+    });
+    palette.addEventListener("click", function onBackdrop(event) {
+      if (event.target === palette) closePalette();
+    });
+    document.addEventListener("keydown", function onEscape(event) {
+      if (paletteOpen && event.key === "Escape") closePalette();
+    });
+  }
+
+  function renderPaletteItems(query) {
+    var needle = String(query || "").trim().toLowerCase();
+    var matches = DESTINATIONS.filter(function match(destination) {
+      return !needle || destination.label.toLowerCase().indexOf(needle) !== -1 || destination.href.indexOf(needle) !== -1;
+    }).slice(0, 9);
+    paletteList.textContent = "";
+    for (var index = 0; index < matches.length; index += 1) {
+      var item = document.createElement("li");
+      var link = document.createElement("a");
+      link.href = matches[index].href;
+      link.textContent = matches[index].label;
+      item.appendChild(link);
+      paletteList.appendChild(item);
+    }
+    if (!matches.length) {
+      var empty = document.createElement("li");
+      empty.className = "sonara-command-empty";
+      empty.textContent = "No matching destination.";
+      paletteList.appendChild(empty);
+    }
+  }
+
+  function openPalette() {
+    if (!palette) buildPalette();
+    lastFocused = document.activeElement;
+    palette.hidden = false;
+    paletteOpen = true;
+    paletteInput.value = "";
+    renderPaletteItems("");
+    paletteInput.focus();
+  }
+
+  function closePalette() {
+    if (!palette) return;
+    palette.hidden = true;
+    paletteOpen = false;
+    if (lastFocused && lastFocused.focus) lastFocused.focus();
+  }
+
+  function bindPalette() {
+    document.addEventListener("keydown", function onShortcut(event) {
+      if ((event.ctrlKey || event.metaKey) && String(event.key).toLowerCase() === "k") {
+        event.preventDefault();
+        if (paletteOpen) closePalette();
+        else openPalette();
+      }
+    });
+    var buttons = document.querySelectorAll("[data-sonara-command]");
+    for (var index = 0; index < buttons.length; index += 1) {
+      buttons[index].addEventListener("click", function onOpen() {
+        openPalette();
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Ambient canvas layer
+  // ---------------------------------------------------------------------
 
   function prefersReducedMotion() {
     return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -144,5 +342,7 @@
   }
 
   safe(markNavigationState);
+  safe(bindHaptics);
+  safe(bindPalette);
   safe(startAmbientLayer);
 })();

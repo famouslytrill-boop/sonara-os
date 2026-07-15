@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Creator Studio mark">
+  <title>Creator Studio</title>
+  <defs>
+    <radialGradient id="cs-bg" cx="30%" cy="22%" r="90%">
+      <stop offset="0%" stop-color="#3a1440"/>
+      <stop offset="60%" stop-color="#1e0d2b"/>
+      <stop offset="100%" stop-color="#120716"/>
+    </radialGradient>
+    <linearGradient id="cs-wave" x1="24" y1="88" x2="104" y2="40">
+      <stop offset="0%" stop-color="#ff5db8"/>
+      <stop offset="55%" stop-color="#7b61ff"/>
+      <stop offset="100%" stop-color="#48e1ff"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#cs-bg)"/>
+  <circle cx="64" cy="64" r="42" fill="none" stroke="rgba(255,93,184,0.3)" stroke-width="2.5"/>
+  <path d="M34 64 L34 64 M34 78 L34 50 M50 88 L50 40 M66 76 L66 52 M82 92 L82 36 M98 72 L98 56"
+        stroke="url(#cs-wave)" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="98" cy="40" r="6" fill="#48e1ff"/>
+</svg>

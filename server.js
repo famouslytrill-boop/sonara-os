@@ -209,13 +209,35 @@ app.get("/", (req, res) => {
       eyebrow: "LAUNCH OPERATING SYSTEM",
       heading: "SONARA Industries",
       body:
-        "The Software-in-a-Service launch platform for small businesses, creators, and growth teams. Use the software yourself with free planning tools, request done-for-you services with tracked deliverables, and upgrade when payment-backed records and operations are needed.",
+        "SONARA turns business, creator, and growth work into guided software workflows with free tools, paid services, saved records, deliverables, billing, and operator support.",
       sections: [
         actionCard("Software-in-a-Service", "Use the free tools yourself, or request done-for-you services from the catalog. Every request gets a reference ID with tracked status, deliverables, billing, and support.", [
           linkAction("/start", "How it works"),
           linkAction("/service-catalog", "Service catalog"),
           linkAction("/requests", "My requests"),
           linkAction("/deliverables", "Deliverables")
+        ]),
+        checklistCard("How SONARA works", [
+          "Create a free account",
+          "Pick a product workspace",
+          "Use the free tools right away",
+          "Create your organization so records can be saved",
+          "Request done-for-you services from the catalog",
+          "Track requests, deliverables, billing, and support in one place"
+        ]),
+        actionCard("Free tools preview", "Fifteen working tools across the three products: offer outlines, pricing and KPI calculators, readiness scores, briefs, release checklists, follow-up scripts, and more. Logged-in users run them without paying.", [
+          linkAction("/business-builder/tools", "Business tools"),
+          linkAction("/creator-studio/tools", "Creator tools"),
+          linkAction("/growth-studio/tools", "Growth tools")
+        ]),
+        actionCard("Paid workflows preview", "Paid plans add saved workspaces, operator review, deliverable tracking, premium templates, and exports. Paid access unlocks only from real billing records, never from a checkout redirect.", [
+          linkAction("/pricing", "View pricing"),
+          linkAction("/billing", "Billing status")
+        ]),
+        actionCard("Trust and readiness", "Live platform state is public: what is configured, what still needs setup, and exactly which dependency is missing. No fake buttons, no pretend saves.", [
+          linkAction("/readiness", "Platform readiness"),
+          linkAction("/security", "Security"),
+          linkAction("/legal", "Legal center")
         ]),
         actionCard("Business Builder", "Launch-ready service business infrastructure: proof, offers, intake, payments, and operating rhythm.", [
           linkAction("/business-builder/dashboard", "Dashboard"),
@@ -660,7 +682,8 @@ app.get("/settings", requireCustomer, (req, res) => {
       sections: [
         brandCard("Language preference", "Default: English. Recommended implementation: persist a locale field on profile_settings and apply translations through a dedicated i18n layer."),
         brandCard("Unit preference", "Default: US customary where relevant. Store metric or imperial preference in profile_settings when customer profiles are active."),
-        brandCard("Session requirement", "Preferences are not persisted until account sessions are configured and owner-tested.")
+        brandCard("Session requirement", "Preferences are not persisted until account sessions are configured and owner-tested."),
+        `<article class="card"><h2>Haptic feedback</h2><p>Light vibration after meaningful actions on supported devices. It never runs for reduced-motion users, is never required, and the setting stays on this device only.</p><button type="button" data-sonara-haptics-toggle aria-pressed="true">Haptics: On</button></article>`
       ],
       actions: [linkAction("/account", "Account"), linkAction("/", "Home"), logoutAction()]
     })
@@ -1527,7 +1550,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
   </head>
   <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
     <header>
-      <a class="brand" href="/">SONARA Industries</a>
+      <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="30" height="30"> SONARA Industries</a>
       <nav aria-label="Primary">
         <a href="/start">Start</a>
         <a href="/business-builder">Business Builder</a>
@@ -1542,6 +1565,7 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
         <a href="/help">Help</a>
         <a href="/security">Security</a>
       </nav>
+      <button type="button" class="sonara-command-button" data-sonara-command aria-haspopup="dialog" aria-label="Open quick navigation (Control K)">Go to&hellip; Ctrl K</button>
     </header>
     <main>
       <section class="hero sonara-hero-stage" data-sonara-interface="live">
@@ -1672,7 +1696,7 @@ function adminPage(title, body, readiness, metrics = {}) {
     actionCard("Billing and webhooks", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."), [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates"), linkAction("/pricing", "Pricing")]),
     actionCard("Product catalog", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas.", [linkAction("/admin/catalog", "Catalog"), linkAction("/business-builder", "Business"), linkAction("/creator-studio", "Creator"), linkAction("/growth-studio", "Growth")]),
     actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
-    actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/ai-gateway", "AI gateway")])
+    actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/integrations", "Integrations"), linkAction("/admin/ai-gateway", "AI gateway")])
   ];
   return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: adminActions() });
 }
@@ -1847,7 +1871,12 @@ async function getCommandCenterSummary(req) {
 
   const workspaceCard = hasOrg
     ? actionCard("Workspace", "Your organization membership is active. Saved records are scoped to this workspace.", [linkAction("/account", "Account"), linkAction("/account/setup", "Workspace settings")])
-    : actionCard("Create your workspace", "No organization membership found. Create or attach an organization so records can be saved. Free tools stay available either way.", [linkAction("/account/setup", "Account setup")]);
+    : actionCard("Create your workspace", "Your workspace has not been created yet. Create or attach an organization so records can be saved. Free tools stay available either way.", [
+        linkAction("/account/setup", "Create workspace"),
+        linkAction("/business-builder/tools", "Continue with free tools"),
+        linkAction("/pricing", "View pricing"),
+        linkAction("/support", "Contact support")
+      ]);
 
   let requestsSummary = "Setup required: the account database is not configured, so request tracking uses safe fallbacks.";
   let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
@@ -1862,7 +1891,7 @@ async function getCommandCenterSummary(req) {
   if (hasOrg) {
     const requests = await safeListTable("service_requests", `?select=id,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=20`);
     if (requests.ok) {
-      const open = requests.rows.filter((row) => !["delivered", "closed"].includes(row.status));
+      const open = requests.rows.filter((row) => !["delivered", "complete", "closed"].includes(row.status));
       openRequestCount = open.length;
       requestsSummary = requests.rows.length
         ? `${open.length} open of ${requests.rows.length} recent service requests.`

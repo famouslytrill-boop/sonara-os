@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA admin systems mark">
+  <title>SONARA Admin</title>
+  <defs>
+    <radialGradient id="ad-bg" cx="30%" cy="22%" r="90%">
+      <stop offset="0%" stop-color="#2c2618"/>
+      <stop offset="60%" stop-color="#191510"/>
+      <stop offset="100%" stop-color="#0c0a07"/>
+    </radialGradient>
+    <linearGradient id="ad-shield" x1="34" y1="30" x2="94" y2="102">
+      <stop offset="0%" stop-color="#ffd166"/>
+      <stop offset="100%" stop-color="#d7b46a"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#ad-bg)"/>
+  <path d="M64 24 L98 38 V66 C98 88 84 100 64 108 C44 100 30 88 30 66 V38 Z"
+        fill="none" stroke="url(#ad-shield)" stroke-width="7" stroke-linejoin="round"/>
+  <circle cx="64" cy="64" r="14" fill="none" stroke="#ffd166" stroke-width="6"/>
+  <circle cx="64" cy="64" r="4" fill="#ff6b5e"/>
+</svg>
