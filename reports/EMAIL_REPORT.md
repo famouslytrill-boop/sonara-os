@@ -8,6 +8,7 @@ Date: 2026-07-15
 - Support/contact persistence does not pretend delivery succeeded when Resend is unavailable.
 - Administrator readiness exposes only configured/missing/invalid state.
 - Password-reset delivery is requested through Supabase Auth; the application never exposes the recovery access token to server logs.
+- Support submissions now persist against the normalized support schema, and delivery outcomes are recorded in server-only `support_email_delivery_attempts` rows with sanitized errors.
 
 ## Release status
 

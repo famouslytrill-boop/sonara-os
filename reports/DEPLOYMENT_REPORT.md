@@ -16,7 +16,7 @@ Branch: `launch/sonara-complete-platform-upgrade`
 
 - Frozen install passes.
 - Dependency audit reports no known vulnerabilities.
-- Build, type/syntax checks, lint, 246 tests, secret scan, route smoke, launch-config verification, and route-registry verification pass.
+- Build, type/syntax checks, lint, 248 tests, secret scan, route smoke, launch-config verification, and route-registry verification pass.
 - 124 required GET routes are registered; 343 total method/path registrations have no duplicates.
 
 ## Release status

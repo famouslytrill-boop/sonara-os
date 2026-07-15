@@ -2443,14 +2443,25 @@ async function saveSupportRequest(request) {
   const referenceId = randomUUID();
   let stored = false;
   let supportRequestId;
+  const category = {
+    contact: "general_question",
+    support: "technical_support",
+    billing: "billing_refund",
+    feedback: "general_question"
+  }[request.category] || "general_question";
 
   const insert = await safeInsertSupportRequest({
     reference_id: referenceId,
-    category: request.category === "billing" ? "support" : request.category,
-    requester_email: request.email,
-    message_preview: redactSensitiveText(`${request.name} - ${request.subject}: ${request.message}`).slice(0, 280),
+    category,
+    name: request.name,
+    email: request.email,
+    subject: request.subject,
+    message: redactSensitiveText(request.message).slice(0, 4000),
+    urgency: "normal",
+    status: "new",
+    source_path: "/support",
     consent_accepted: true,
-    metadata: { source: "express_contact", subject: request.subject, name: request.name }
+    metadata: { source: "express_contact", submitted_category: request.category }
   });
 
   if (insert.ok) {

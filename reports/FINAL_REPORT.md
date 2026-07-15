@@ -39,7 +39,7 @@ Architecture selected: Path A, the existing Express/Vercel MVP, with `server.js`
 | Formula modules | Preserved and verified | Existing formula catalog/results routes and tests remain green; no fake formulas added |
 | Free tools | Locally available | Free authenticated tools do not require a paid entitlement |
 | Paid tools | Locally protected | Active/trialing persisted billing state or authorized owner override required |
-| Database | Migration ready | Existing schema reused; preference migration not applied to production |
+| Database | Migration ready | Existing schema reused; support-delivery and preference migrations not applied to production |
 | Storage | Readiness only | Seven required buckets documented and checked; production buckets/policies unverified |
 | Stripe/webhooks | Code and fixtures verified | Checkout, Portal, signatures, idempotency, access sync; no live charge/webhook proof |
 | Resend | Code verified | Server-only adapter and honest fallback; domain/sender/delivery unverified |
@@ -61,7 +61,7 @@ Architecture selected: Path A, the existing Express/Vercel MVP, with `server.js`
 ## Files changed
 
 - Runtime/config: `server.js`, `Dockerfile`, `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `vercel.json`.
-- Routes/data: `lib/sonara-route-registry.cjs`, `routes/sonara-route-registry-routes.cjs`, `supabase/migrations/20260715120000_user_preferences_appearance_notifications.sql`.
+- Routes/data: `lib/sonara-route-registry.cjs`, `routes/sonara-route-registry-routes.cjs`, `supabase/migrations/20260715110223_support_delivery_state.sql`, `supabase/migrations/20260715120000_user_preferences_appearance_notifications.sql`.
 - Interface/PWA: `public/sonara-interface-engine.css`, `public/sonara-interface-engine.js`, `public/sonara-auth-recovery.js`, `public/sw.js`, `scripts/apply-homeface-local.cjs`.
 - Verification: `scripts/smoke-routes.cjs`, `scripts/verify-launch-config.mjs`, `scripts/verify-route-registry.cjs`, `tests/premium-application.test.js`, `tests/route-registry.test.js`.
 - Documentation/evidence: four `docs/SONARA_*` release documents, storage/Rancher updates, all reports in this directory, and two Playwright screenshots.
@@ -72,7 +72,7 @@ Architecture selected: Path A, the existing Express/Vercel MVP, with `server.js`
 pnpm install --frozen-lockfile   PASS
 pnpm audit                       PASS - no known vulnerabilities
 pnpm run verify:launch           PASS
-tests                            246 passing
+tests                            248 passing
 lint                             PASS
 client secret scan               PASS
 route smoke                      PASS

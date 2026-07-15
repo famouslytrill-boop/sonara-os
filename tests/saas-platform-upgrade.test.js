@@ -85,6 +85,18 @@ describe("software-in-a-service platform upgrade", () => {
         assert.match(sql, new RegExp(`create table if not exists public\\.${table}`), `${table} missing from migration`);
       }
     });
+
+    it("support delivery migration matches the server-side email audit contract", function() {
+      const sql = fs.readFileSync(
+        path.join(__dirname, "..", "supabase", "migrations", "20260715110223_support_delivery_state.sql"),
+        "utf8"
+      );
+      for (const field of ["reference_id", "consent_accepted", "email_delivery_status", "email_error_summary", "email_retry_count"]) {
+        assert.match(sql, new RegExp(`add column if not exists ${field}`), `${field} missing from support delivery migration`);
+      }
+      assert.match(sql, /create table if not exists public\.support_email_delivery_attempts/);
+      assert.match(sql, /enable row level security/);
+    });
   });
 
   describe("public software-in-a-service pages", () => {
@@ -340,6 +352,49 @@ describe("software-in-a-service platform upgrade", () => {
         assert.ok(res.body.referenceId);
         assert.match(res.body.message, /Reference ID/);
       } finally {
+        restoreEnv(snapshot);
+      }
+    });
+
+    it("POST /support/request writes the normalized support schema and delivery audit state", async function() {
+      const keys = [...SUPABASE_KEYS, "RESEND_API_KEY", "RESEND_FROM_EMAIL", "SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"];
+      const snapshot = snapshotEnv(keys);
+      const originalFetch = global.fetch;
+      let saved;
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon_support_status_key_1234567890";
+      process.env.SUPABASE_SERVICE_ROLE_KEY = "service_role_support_status_key_1234567890";
+      delete process.env.RESEND_API_KEY;
+      delete process.env.RESEND_FROM_EMAIL;
+      delete process.env.SUPPORT_TO_EMAIL;
+      delete process.env.CONTACT_TO_EMAIL;
+      global.fetch = customerFetchMock({
+        "/rest/v1/support_requests": (address, options) => {
+          if (options.method === "POST") {
+            saved = JSON.parse(options.body);
+            return { ok: true, json: async () => [{ id: "00000000-0000-0000-0000-00000000ef01" }] };
+          }
+          return { ok: true, json: async () => [] };
+        },
+        "/rest/v1/support_email_delivery_attempts": () => ({ ok: true, json: async () => [] })
+      });
+      try {
+        const res = await request(app)
+          .post("/support/request")
+          .set("Accept", "application/json")
+          .send({ name: "Casey Customer", email: "casey@example.com", subject: "Access question", message: "I need help understanding workspace setup.", category: "support", consent: "yes" });
+        assert.equal(res.status, 200);
+        assert.equal(saved.category, "technical_support");
+        assert.equal(saved.name, "Casey Customer");
+        assert.equal(saved.email, "casey@example.com");
+        assert.equal(saved.subject, "Access question");
+        assert.equal(saved.status, "new");
+        assert.equal(saved.consent_accepted, true);
+        assert.ok(saved.reference_id);
+        assert.equal(saved.requester_email, undefined);
+        assert.equal(saved.message_preview, undefined);
+      } finally {
+        global.fetch = originalFetch;
         restoreEnv(snapshot);
       }
     });

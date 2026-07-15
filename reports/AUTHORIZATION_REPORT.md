@@ -21,7 +21,7 @@ Date: 2026-07-15
 
 ## Local proof
 
-The full 246-test suite covers customer/admin guards, paid access, missing provider states, invalid sessions, checkout, and webhook behavior. Route-registry verification also proves that protected records are excluded from the public sitemap.
+The full 248-test suite covers customer/admin guards, paid access, missing provider states, invalid sessions, checkout, webhook behavior, and normalized support-delivery persistence. Route-registry verification also proves that protected records are excluded from the public sitemap.
 
 ## Production proof still required
 
