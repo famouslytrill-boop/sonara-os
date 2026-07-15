@@ -2,6 +2,19 @@
 -- Schema-only migration. No seed users, real emails, passwords, tokens, API keys, webhook secrets, or provider credentials.
 -- Durable roles remain assigned by server-side/admin processes only.
 
+-- Fresh Supabase preview branches replay migrations from an empty public schema.
+-- Create the role table here because this migration constrains it before the
+-- later consolidated runtime migration verifies the same table definition.
+create table if not exists public.user_roles (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  role text not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, role)
+);
+
+alter table public.user_roles enable row level security;
+
 do $$
 begin
   if exists (

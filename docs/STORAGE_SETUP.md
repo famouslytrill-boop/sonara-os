@@ -2,12 +2,17 @@
 
 Storage should use Supabase Storage or a compatible signed URL provider. Private buckets must not be public.
 
-## Buckets
+## Required Buckets
 
-- `public-assets` - intentionally public brand/static assets only.
-- `sonara-user-assets` - private user-owned files.
-- `sonara-organization-assets` - private organization/business files.
-- `sonara-releases` - existing private launch export bucket.
+- `avatars` - user profile images; private unless an owner deliberately publishes one.
+- `business-assets` - private organization/business files.
+- `creator-assets` - private creator source files.
+- `music-stems` - private music project stems.
+- `release-packages` - private launch and delivery exports.
+- `support-attachments` - private support-case attachments.
+- `exports` - private generated exports.
+
+Static brand assets ship with the application and do not require a public customer-upload bucket.
 
 ## File Limits
 

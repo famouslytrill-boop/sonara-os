@@ -31,6 +31,25 @@ create table if not exists public.support_requests (
   metadata jsonb not null default '{}'::jsonb
 );
 
+-- The earlier SaaS migration creates a smaller support_requests table. Add
+-- every field used by this migration before creating indexes and policies so
+-- a fresh branch and an upgraded database converge on the same shape.
+alter table public.support_requests
+  add column if not exists created_at timestamptz not null default now(),
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists name text,
+  add column if not exists email text,
+  add column if not exists organization_name text,
+  add column if not exists category text,
+  add column if not exists subject text,
+  add column if not exists message text,
+  add column if not exists urgency text not null default 'normal',
+  add column if not exists status text not null default 'new',
+  add column if not exists source_path text,
+  add column if not exists user_id uuid references auth.users(id) on delete set null,
+  add column if not exists organization_id uuid,
+  add column if not exists metadata jsonb not null default '{}'::jsonb;
+
 create table if not exists public.feedback_reports (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),

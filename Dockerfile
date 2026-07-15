@@ -1,15 +1,17 @@
 # SONARA OS Express runtime.
 # No secrets are baked into this image; configuration comes from environment
 # variables at run time (see .env.example for names).
-FROM node:20-alpine
+FROM node:22-alpine
 
 ENV NODE_ENV=production \
     PORT=3000
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm install --omit=dev --no-audit --no-fund
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable \
+  && corepack prepare pnpm@11.1.1 --activate \
+  && pnpm install --prod --frozen-lockfile
 
 COPY server.js vercel.json ./
 COPY api ./api

@@ -83,7 +83,7 @@ end $$;
 create index if not exists organization_memberships_user_status_idx
   on public.organization_memberships (user_id, status);
 
-create or replace function public.is_org_member(_org_id uuid)
+create or replace function public.is_org_member(target_organization_id uuid)
 returns boolean
 language sql
 stable
@@ -93,13 +93,13 @@ as $$
   select exists (
     select 1
     from public.organization_memberships memberships
-    where memberships.organization_id = _org_id
+    where memberships.organization_id = target_organization_id
       and memberships.user_id = auth.uid()
       and memberships.status = 'active'
   );
 $$;
 
-create or replace function public.has_org_role(_org_id uuid, _allowed_roles text[])
+create or replace function public.has_org_role(target_organization_id uuid, allowed_roles text[])
 returns boolean
 language sql
 stable
@@ -109,10 +109,10 @@ as $$
   select exists (
     select 1
     from public.organization_memberships memberships
-    where memberships.organization_id = _org_id
+    where memberships.organization_id = target_organization_id
       and memberships.user_id = auth.uid()
       and memberships.status = 'active'
-      and memberships.role = any(_allowed_roles)
+      and memberships.role = any(allowed_roles)
   );
 $$;
 
