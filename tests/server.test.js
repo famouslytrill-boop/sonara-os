@@ -168,7 +168,7 @@ describe("icon assets", () => {
     assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-512.png"));
   });
 
-  for (const route of ["/sonara-brand-system.css", "/sonara-friendly-premium.css", "/sonara-experience.js"]) {
+  for (const route of ["/sonara-brand-system.css", "/sonara-friendly-premium.css", "/sonara-launch-ui.css", "/sonara-experience.js"]) {
     it(`GET ${route} returns public launch asset`, async function() {
       const res = await request(app).get(route);
       assert.equal(res.status, 200);

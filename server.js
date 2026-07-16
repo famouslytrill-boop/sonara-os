@@ -236,74 +236,14 @@ app.get("/", (req, res) => {
       title: "SONARA Industries",
       eyebrow: "LAUNCH OPERATING SYSTEM",
       heading: "SONARA Industries",
+      variant: "home",
       body:
         "SONARA turns business, creator, and growth work into guided software workflows with free tools, paid services, saved records, deliverables, billing, and operator support.",
-      sections: [
-        actionCard("Software-in-a-Service", "Use the free tools yourself, or request done-for-you services from the catalog. Every request gets a reference ID with tracked status, deliverables, billing, and support.", [
-          linkAction("/start", "How it works"),
-          linkAction("/service-catalog", "Service catalog"),
-          linkAction("/requests", "My requests"),
-          linkAction("/deliverables", "Deliverables")
-        ]),
-        checklistCard("How SONARA works", [
-          "Create a free account",
-          "Pick a product workspace",
-          "Use the free tools right away",
-          "Create your organization so records can be saved",
-          "Request done-for-you services from the catalog",
-          "Track requests, deliverables, billing, and support in one place"
-        ]),
-        actionCard("Free tools preview", "Fifteen working tools across the three products: offer outlines, pricing and KPI calculators, readiness scores, briefs, release checklists, follow-up scripts, and more. Logged-in users run them without paying.", [
-          linkAction("/business-builder/tools", "Business tools"),
-          linkAction("/creator-studio/tools", "Creator tools"),
-          linkAction("/growth-studio/tools", "Growth tools")
-        ]),
-        actionCard("Paid workflows preview", "Paid plans add saved workspaces, operator review, deliverable tracking, premium templates, and exports. Paid access unlocks only from real billing records, never from a checkout redirect.", [
-          linkAction("/pricing", "View pricing"),
-          linkAction("/billing", "Billing status")
-        ]),
-        actionCard("Trust and readiness", "Live platform state is public: what is configured, what still needs setup, and exactly which dependency is missing. No fake buttons, no pretend saves.", [
-          linkAction("/readiness", "Platform readiness"),
-          linkAction("/security", "Security"),
-          linkAction("/legal", "Legal center")
-        ]),
-        actionCard("Business Builder", "Launch-ready service business infrastructure: proof, offers, intake, payments, and operating rhythm.", [
-          linkAction("/business-builder/dashboard", "Dashboard"),
-          linkAction("/business-builder/intake", "Intake"),
-          linkAction("/business-builder/launch-readiness", "Checklist"),
-          linkAction("/business-builder/billing", "Billing")
-        ]),
-        actionCard("Creator Studio", "Creator monetization systems for assets, media, catalogs, launch offers, and owned audience workflows.", [
-          linkAction("/creator-studio/dashboard", "Dashboard"),
-          linkAction("/creator-studio/assets", "Assets"),
-          linkAction("/creator-studio/offers/free", "Offer draft"),
-          linkAction("/creator-studio/music-system", "Music system")
-        ]),
-        actionCard("Growth Studio", "Consent-safe campaign planning, customer follow-up, experiments, and operator-grade growth routines.", [
-          linkAction("/growth-studio/dashboard", "Dashboard"),
-          linkAction("/growth-studio/campaigns", "Campaigns"),
-          linkAction("/growth-studio/leads", "Leads"),
-          linkAction("/growth-studio/checklist", "Consent checklist")
-        ]),
-        actionCard("Account and database states", "If account login, organization membership, tables, or storage are missing, SONARA shows setup-required next actions instead of fake records.", [
-          linkAction("/account/setup", "Account setup"),
-          linkAction("/admin/env-readiness", "Env readiness"),
-          linkAction("/admin/database", "Database"),
-          linkAction("/admin/storage", "Storage")
-        ]),
-        actionCard("Paid access", "Paid workspaces unlock only after Stripe payment updates record active access in the account database. Checkout redirects alone do not unlock tools.", [
-          linkAction("/pricing", "Pricing"),
-          linkAction("/admin/billing", "Billing proof"),
-          linkAction("/admin/webhooks", "Webhook proof")
-        ])
-      ],
+      sections: [renderHomepageContent(getReadiness())],
       actions: [
         linkAction("/signup", "Start Free"),
-        linkAction("/pricing", "View pricing"),
-        linkAction("/login", "Login"),
-        linkAction("/business-builder", "Business Builder"),
-        linkAction("/creator-studio", "Creator Studio"),
-        linkAction("/growth-studio", "Growth Studio")
+        linkAction("/free-tools", "Try a free tool"),
+        linkAction("/pricing", "View pricing")
       ]
     })
   );
@@ -1536,7 +1476,116 @@ function workspaceRecordSections(page) {
   return [brandCard("Record access", `Saved records are read from ${page.api}. Free users can create planning outputs; paid records unlock only after confirmed plan access.`)];
 }
 
-function layout({ title, eyebrow, heading, body, sections, actions }) {
+function renderHomepageContent(readiness) {
+  const products = [
+    {
+      number: "01",
+      name: "Business Builder",
+      descriptor: "Operations",
+      className: "is-business",
+      mark: "/brand/business-builder-mark.svg",
+      body: "Shape the offer, capture intake, verify launch readiness, and keep business records organized.",
+      actions: [
+        ["/business-builder/dashboard", "Dashboard"],
+        ["/business-builder/intake", "Intake"],
+        ["/business-builder/launch-readiness", "Launch checklist"],
+        ["/business-builder/billing", "Billing"]
+      ]
+    },
+    {
+      number: "02",
+      name: "Creator Studio",
+      descriptor: "Media",
+      className: "is-creator",
+      mark: "/brand/creator-studio-mark.svg",
+      body: "Organize assets, build offers, plan releases, and manage creator deliverables in one workspace.",
+      actions: [
+        ["/creator-studio/dashboard", "Dashboard"],
+        ["/creator-studio/assets", "Assets"],
+        ["/creator-studio/offers/free", "Offer draft"],
+        ["/creator-studio/music-system", "Music system"]
+      ]
+    },
+    {
+      number: "03",
+      name: "Growth Studio",
+      descriptor: "Campaigns",
+      className: "is-growth",
+      mark: "/brand/growth-studio-mark.svg",
+      body: "Plan consent-safe campaigns, track leads, and turn customer follow-up into a reviewable routine.",
+      actions: [
+        ["/growth-studio/dashboard", "Dashboard"],
+        ["/growth-studio/campaigns", "Campaigns"],
+        ["/growth-studio/leads", "Leads"],
+        ["/growth-studio/checklist", "Consent checklist"]
+      ]
+    }
+  ];
+
+  return `<div class="sonara-home-content">
+    <section class="sonara-home-section" aria-labelledby="products-title">
+      <div class="sonara-section-heading">
+        <div><span class="eyebrow">Three focused products</span><h2 id="products-title">Choose the workspace that fits the work.</h2></div>
+        <p>Each product has its own tools and records while account, billing, support, and security stay connected.</p>
+      </div>
+      <div class="sonara-product-grid">
+        ${products.map((product) => `<article class="sonara-product-card ${product.className}">
+          <div class="sonara-product-card-head">
+            <img src="${product.mark}" width="42" height="42" alt="">
+            <span>${product.number} &middot; ${product.descriptor}</span>
+          </div>
+          <h3>${product.name}</h3>
+          <p>${product.body}</p>
+          <div class="sonara-product-links">${product.actions.map(([href, label]) => `<a href="${href}">${label}</a>`).join("")}</div>
+        </article>`).join("")}
+      </div>
+    </section>
+
+    <section class="sonara-workflow-band" aria-labelledby="workflow-title">
+      <div>
+        <span class="eyebrow">How SONARA works</span>
+        <h2 id="workflow-title">From a scattered idea to a delivered outcome.</h2>
+        <p>Use free tools yourself or request operator-supported work. Every saved request, payment state, and deliverable follows a visible path.</p>
+        <div class="card-actions">${linkAction("/start", "See how it works")}${linkAction("/service-catalog", "Service catalog")}${linkAction("/requests", "My requests")}${linkAction("/deliverables", "Deliverables")}</div>
+      </div>
+      <ol>
+        <li><span>01</span><strong>Choose the outcome</strong><small>Pick a workspace, free tool, or service.</small></li>
+        <li><span>02</span><strong>Create useful work</strong><small>Generate an output or submit validated intake.</small></li>
+        <li><span>03</span><strong>Review real status</strong><small>See setup, billing, and delivery state without simulated success.</small></li>
+        <li><span>04</span><strong>Track delivery</strong><small>Keep references, requests, and deliverables together.</small></li>
+      </ol>
+    </section>
+
+    <section class="sonara-home-section" aria-labelledby="today-title">
+      <div class="sonara-section-heading compact">
+        <div><span class="eyebrow">What works today</span><h2 id="today-title">Useful before you pay. Clear when setup is required.</h2></div>
+      </div>
+      <div class="sonara-capability-grid">
+        ${actionCard("Free tools preview", "Fifteen deterministic tools cover offers, readiness, pricing, briefs, releases, campaigns, and KPIs. They do not pretend to save unless the database insert succeeds.", [linkAction("/free-tools", "Open free tools")])}
+        ${actionCard("Paid workflows preview", "Saved workspaces, operator review, deliverable tracking, premium templates, and exports unlock only from confirmed billing records.", [linkAction("/pricing", "View pricing"), linkAction("/billing", "Billing status")])}
+        ${actionCard("Trust and readiness", "Public readiness shows what is configured and what still needs attention. Private admin proof remains protected.", [linkAction("/readiness", "Platform readiness"), linkAction("/security", "Security")])}
+        ${actionCard("Account and database states", "Login, organization membership, storage, and provider gaps produce a specific next action instead of a blank screen.", [linkAction("/account/setup", "Account setup"), linkAction("/support", "Get support")])}
+      </div>
+    </section>
+
+    <section class="sonara-readiness-band" aria-labelledby="readiness-title">
+      <div>
+        <span class="eyebrow">Operational proof</span>
+        <h2 id="readiness-title">A launch interface that tells the truth.</h2>
+        <p>Software-in-a-Service with payment-backed access, database-scoped records, a support queue, and protected founder operations.</p>
+      </div>
+      ${renderInterfaceStatusPanel(readiness)}
+      <div class="card-actions">${linkAction("/readiness", "Review readiness")}${linkAction("/admin", "Founder operations")}</div>
+    </section>
+
+    <section class="sonara-launch-cta" aria-label="Start using SONARA">
+      <div><span class="eyebrow">Start with a real outcome</span><h2>Use a free tool now. Upgrade when saved work and support matter.</h2></div>
+      <div class="card-actions">${linkAction("/signup", "Start Free")}${linkAction("/free-tools", "Try a free tool")}${linkAction("/pricing", "View pricing")}</div>
+    </section>
+  </div>`;
+}
+
+function layout({ title, eyebrow, heading, body, sections, actions, variant = "standard" }) {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -1571,28 +1620,26 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
       footer nav { margin-top: 16px; }
       @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=interface-dom-20260715">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=interface-dom-20260715">
-    <link rel="stylesheet" href="/sonara-interface-engine.css?v=interface-dom-20260715">
-    <script defer src="/sonara-experience.js?v=interface-dom-20260715"></script>
-    <script defer src="/sonara-interface-engine.js?v=interface-dom-20260715"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=launch-ui-20260716">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=launch-ui-20260716">
+    <link rel="stylesheet" href="/sonara-interface-engine.css?v=launch-ui-20260716">
+    <link rel="stylesheet" href="/sonara-launch-ui.css?v=launch-ui-20260716">
+    <script defer src="/sonara-experience.js?v=launch-ui-20260716"></script>
+    <script defer src="/sonara-interface-engine.js?v=launch-ui-20260716"></script>
   </head>
-  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))}">
+  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
     <header>
       <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="30" height="30"> SONARA Industries</a>
       <nav aria-label="Primary">
-        <a href="/start">Start</a>
+        <a href="/start">Platform</a>
         <a href="/business-builder">Business Builder</a>
         <a href="/creator-studio">Creator Studio</a>
         <a href="/growth-studio">Growth Studio</a>
-        <a href="/service-catalog">Services</a>
-        <a href="/contact">Contact</a>
+        <a href="/free-tools">Free tools</a>
         <a href="/pricing">Pricing</a>
-        <a href="/login">Login</a>
-        <a href="/dashboard">Dashboard</a>
-        <a href="/admin">Admin</a>
-        <a href="/help">Help</a>
-        <a href="/security">Security</a>
+        <a href="/support">Support</a>
+        <a href="/login">Log in</a>
+        <a class="sonara-nav-primary" href="/signup">Start Free</a>
       </nav>
       <button type="button" class="sonara-command-button" data-sonara-command aria-haspopup="dialog" aria-label="Open quick navigation (Control K)">Go to&hellip; Ctrl K</button>
     </header>
@@ -1604,29 +1651,21 @@ function layout({ title, eyebrow, heading, body, sections, actions }) {
           <p class="lede">${escapeHtml(body)}</p>
           <div class="actions">${actions.join("")}</div>
         </div>
-        <aside class="sonara-interface-face" aria-label="SONARA interface preview">
-          <div class="sonara-face-orb" aria-hidden="true">
-            <span class="sonara-orb-core"></span>
-            <span class="sonara-orb-ring ring-a"></span>
-            <span class="sonara-orb-ring ring-b"></span>
-            <span class="sonara-orb-node node-a"></span>
-            <span class="sonara-orb-node node-b"></span>
-            <span class="sonara-orb-node node-c"></span>
-          </div>
+        ${variant === "home" ? `<aside class="sonara-interface-face" aria-label="SONARA launch command center">
           <div class="sonara-device-card">
-            <div class="sonara-device-bar"><span></span><span></span><span></span></div>
-            <strong>SONARA Industries</strong>
-            <p>One bright command interface for Business Builder, Creator Studio, and Growth Studio.</p>
-            <div class="sonara-module-strip"><span>Business</span><span>Creator</span><span>Growth</span></div>
+            <div class="sonara-device-bar"><span></span><span></span><span></span><em>Live configuration</em></div>
+            <strong>Launch command center</strong>
+            <p>Open a product workspace or review the current provider state before relying on a paid workflow.</p>
             <div class="sonara-panel-tiles" aria-label="Product workspaces">
               <a href="/business-builder/dashboard">Business<span>Open workspace</span></a>
               <a href="/creator-studio/dashboard">Creator<span>Open workspace</span></a>
               <a href="/growth-studio/dashboard">Growth<span>Open workspace</span></a>
             </div>
             ${renderInterfaceStatusPanel(getReadiness())}
+            <div class="sonara-command-actions"><a href="/dashboard">Open dashboard</a><a href="/readiness">Review readiness</a></div>
           </div>
-          <div class="sonara-proof-pill">Mobile-ready &bull; Paid-ready &bull; Operator-controlled</div>
-        </aside>
+          <div class="sonara-proof-pill">Mobile-ready &bull; Payment-gated &bull; Operator-controlled</div>
+        </aside>` : ""}
       </section>
       <section class="grid">${sections.join("")}</section>
     </main>
@@ -1669,12 +1708,13 @@ function pageBrandClass(title, heading, eyebrow) {
 }
 
 function renderHead(title) {
+  const pageTitle = title === "SONARA Industries" ? title : `${title} | SONARA Industries`;
   return `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#11101a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SONARA">
-    <meta property="og:title" content="${escapeHtml(title)} | SONARA Industries">
+    <meta property="og:title" content="${escapeHtml(pageTitle)}">
     <meta property="og:site_name" content="SONARA Industries">
     <meta property="og:type" content="website">
     <meta property="og:image" content="/og-image.png">
@@ -1682,7 +1722,7 @@ function renderHead(title) {
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icons/icon-180.png">
     <link rel="manifest" href="/site.webmanifest">
-    <title>${escapeHtml(title)} | SONARA Industries</title>`;
+    <title>${escapeHtml(pageTitle)}</title>`;
 }
 
 function renderInterfaceStatusPanel(readiness) {

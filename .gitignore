@@ -18,6 +18,9 @@ coverage/
 .npm/
 .eslintcache
 .pnpm-store/
+.playwright-cli/
+output/playwright/
+package-lock.json
 
 # Dependency directories
 node_modules/
