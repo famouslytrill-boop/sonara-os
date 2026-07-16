@@ -18,7 +18,7 @@ const routes = [
   "/legal/terms",
 ];
 
-const allowedRedirects = new Set(["/login", "/onboarding"]);
+const allowedRedirects = new Set(["/login", "/onboarding", "/feedback", "/trust", "/research-lab"]);
 const failures = [];
 
 for (const route of routes) {

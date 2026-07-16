@@ -57,6 +57,19 @@ describe("public site", () => {
     });
   }
 
+  for (const [route, destination] of [
+    ["/onboarding", "/account/setup"],
+    ["/feedback", "/contact?topic=feedback"],
+    ["/trust", "/security"],
+    ["/research-lab", "/ecosystem"]
+  ]) {
+    it(`GET ${route} redirects to ${destination}`, async function() {
+      const res = await request(app).get(route).redirects(0);
+      assert.equal(res.status, 303);
+      assert.equal(res.headers.location, destination);
+    });
+  }
+
   it("homepage includes mobile and PWA metadata", async function() {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.match(res.text, /name="viewport"/);

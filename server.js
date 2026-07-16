@@ -852,6 +852,17 @@ app.get("/api/health", (req, res) => res.status(200).json({
 
 app.get("/api/readiness", (req, res) => res.status(200).json(getReadiness()));
 
+const publicCompatibilityRoutes = {
+  "/onboarding": "/account/setup",
+  "/feedback": "/contact?topic=feedback",
+  "/trust": "/security",
+  "/research-lab": "/ecosystem"
+};
+
+for (const [source, destination] of Object.entries(publicCompatibilityRoutes)) {
+  app.get(source, (req, res) => res.redirect(303, destination));
+}
+
 app.get("/api/admin/overview", requireAdmin, async (req, res) => {
   await recordAdminAuditEvent(req, "api.admin.overview.view", { path: req.path });
   return res.status(200).json({ ok: true, metrics: await getAdminOverviewJson() });
