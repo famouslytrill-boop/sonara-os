@@ -1,17 +1,9 @@
 import { spawnSync } from "node:child_process";
 
 const commands = [
-  ["pnpm", ["run", "build"]],
-  ["pnpm", ["run", "lint"]],
-  ["pnpm", ["run", "typecheck"]],
-  ["pnpm", ["run", "scan:secrets"]],
-  ["pnpm", ["run", "verify:security"]],
-  ["pnpm", ["run", "verify:db"]],
-  ["pnpm", ["run", "verify:heartbeat"]],
-  ["pnpm", ["run", "verify:entity-security"]],
-  ["pnpm", ["run", "verify:brand"]],
-  ["pnpm", ["run", "verify:env"]],
-  ["pnpm", ["run", "verify:stripe"]],
+  ["pnpm", ["run", "verify:launch"]],
+  ["pnpm", ["run", "test:docs"]],
+  ["pnpm", ["run", "smoke:live"]],
   ["pnpm", ["run", "workers:smoke"]],
 ];
 
