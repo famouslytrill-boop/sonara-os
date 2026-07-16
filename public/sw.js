@@ -3,7 +3,7 @@
 // sync with the ?v= asset token) discards every previous cache on activate.
 // Navigations are network-first with an offline fallback; same-origin static
 // assets are stale-while-revalidate so updates land on the next visit.
-const VERSION = "interface-dom-20260715";
+const VERSION = "launch-ui-20260716";
 const CACHE_NAME = "sonara-stage-" + VERSION;
 const OFFLINE_URL = "/offline";
 const PUBLIC_STAGE = ["/", OFFLINE_URL, "/manifest.webmanifest"];

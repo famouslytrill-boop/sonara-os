@@ -19,9 +19,12 @@ describe("premium interface layer", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /sonara-interface-engine\.css/);
     assert.match(res.text, /sonara-interface-engine\.js/);
+    assert.match(res.text, /sonara-launch-ui\.css/);
     assert.match(res.text, /data-sonara-interface="live"/);
     assert.match(res.text, /sonara-hero-stage/);
     assert.match(res.text, /sonara-panel-tiles/);
+    assert.match(res.text, /sonara-home-content/);
+    assert.match(res.text, /sonara-workflow-band/);
     assert.match(res.text, /sonara-quick-bar/);
   });
 
@@ -45,7 +48,7 @@ describe("premium interface layer", () => {
 
   it("proof pill uses clean readable separators", async function() {
     const res = await request(app).get("/").set("Accept", "text/html");
-    assert.match(res.text, /Mobile-ready &bull; Paid-ready &bull; Operator-controlled/);
+    assert.match(res.text, /Mobile-ready &bull; Payment-gated &bull; Operator-controlled/);
     assert.doesNotMatch(res.text, /â€¢/);
   });
 
@@ -58,6 +61,15 @@ describe("premium interface layer", () => {
     assert.match(engine, /visibilitychange/, "hidden-tab pause missing");
     assert.match(engine, /devicePixelRatio/, "pixel ratio cap missing");
     assert.doesNotMatch(engine, /requestAdapter/, "engine must never request a WebGPU adapter at page load");
+  });
+
+  it("launch stylesheet keeps the handoff renderer scoped and responsive", async function() {
+    const styles = await request(app).get("/sonara-launch-ui.css");
+    assert.equal(styles.status, 200);
+    assert.match(styles.headers["content-type"], /css/);
+    assert.match(styles.text, /sonara-home-v3/);
+    assert.match(styles.text, /@media \(max-width: 760px\)/);
+    assert.match(styles.text, /min-height: 44px/);
   });
 
   it("interface engine styles freeze motion for reduced-motion users", function() {

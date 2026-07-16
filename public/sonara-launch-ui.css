@@ -1,0 +1,788 @@
+/* SONARA paid-launch interface, scoped to the production Express renderer.
+   This file intentionally loads last so the current handoff can replace the
+   earlier experimental visual layers without disturbing route behavior. */
+
+:root {
+  --launch-bg: #faf8f4;
+  --launch-bg-alt: #f2efe8;
+  --launch-surface: #ffffff;
+  --launch-ink: #1a1f33;
+  --launch-muted: #5b6276;
+  --launch-line: rgba(18, 22, 42, 0.13);
+  --launch-navy: #10162b;
+  --launch-blue: #3d5bf5;
+  --launch-violet: #7156da;
+  --launch-business: #2e9e6b;
+  --launch-creator: #7156da;
+  --launch-growth: #1d8eaa;
+  --launch-danger: #b84f3e;
+  --launch-radius: 8px;
+  --launch-shadow: 0 14px 36px rgba(18, 22, 42, 0.11);
+}
+
+body.sonara-home-v3,
+body.sonara-standard-page:not(.sonara-admin) {
+  color-scheme: light !important;
+  background: var(--launch-bg) !important;
+  color: var(--launch-ink) !important;
+}
+
+body.sonara-home-v3 p,
+body.sonara-standard-page:not(.sonara-admin) p,
+body.sonara-home-v3 footer,
+body.sonara-standard-page:not(.sonara-admin) footer {
+  color: var(--launch-muted) !important;
+}
+
+header {
+  top: 0 !important;
+  width: min(1360px, 100%) !important;
+  max-width: 100% !important;
+  min-height: 64px !important;
+  margin: 0 auto !important;
+  padding: 10px clamp(16px, 3vw, 36px) !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--launch-line) !important;
+  border-radius: 0 !important;
+  background: rgba(250, 248, 244, 0.96) !important;
+  box-shadow: none !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+.sonara-admin header {
+  background: rgba(12, 17, 34, 0.96) !important;
+  border-bottom-color: rgba(244, 242, 236, 0.12) !important;
+}
+
+.brand {
+  flex: 0 0 auto !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  gap: 10px !important;
+  color: var(--launch-ink) !important;
+  font-size: 13px !important;
+  font-weight: 750 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.brand::before,
+.brand::after {
+  display: none !important;
+}
+
+.brand .sonara-brand-mark {
+  display: block !important;
+  width: 34px !important;
+  height: 34px !important;
+  object-fit: contain !important;
+}
+
+header nav {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  justify-content: center !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+
+header nav::-webkit-scrollbar {
+  display: none;
+}
+
+header nav a,
+.sonara-command-button {
+  min-height: 44px !important;
+  padding: 0 10px !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--launch-muted) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  letter-spacing: 0 !important;
+}
+
+header nav a:hover,
+header nav a:focus-visible,
+.sonara-command-button:hover,
+.sonara-command-button:focus-visible {
+  background: rgba(18, 22, 42, 0.055) !important;
+  color: var(--launch-ink) !important;
+}
+
+header nav .sonara-nav-primary {
+  padding-inline: 14px !important;
+  background: var(--launch-navy) !important;
+  color: #f7f5ef !important;
+}
+
+.sonara-command-button {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  border: 1px solid var(--launch-line) !important;
+}
+
+main,
+footer {
+  width: min(1240px, calc(100% - 40px)) !important;
+}
+
+.sonara-home-v3 .sonara-hero-stage {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr) !important;
+  align-items: center !important;
+  gap: clamp(40px, 6vw, 76px) !important;
+  min-height: 650px !important;
+  padding: 72px 0 64px !important;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.sonara-home-v3 .sonara-hero-stage::before,
+.sonara-home-v3 .sonara-hero-stage::after,
+.sonara-home-v3 .sonara-interface-face::before {
+  display: none !important;
+}
+
+.sonara-home-v3 .sonara-hero-copy {
+  align-self: center !important;
+}
+
+.sonara-home-v3 .eyebrow,
+.sonara-home-section .eyebrow,
+.sonara-workflow-band .eyebrow,
+.sonara-readiness-band .eyebrow,
+.sonara-launch-cta .eyebrow {
+  color: var(--launch-blue) !important;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+}
+
+.sonara-home-v3 .sonara-hero-copy h1 {
+  max-width: 12ch !important;
+  margin: 16px 0 20px !important;
+  color: var(--launch-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(46px, 5.4vw, 72px) !important;
+  font-weight: 600 !important;
+  line-height: 1.04 !important;
+  letter-spacing: 0 !important;
+  overflow: visible !important;
+}
+
+.sonara-home-v3 .lede {
+  max-width: 660px !important;
+  margin: 0 !important;
+  color: var(--launch-muted) !important;
+  font-size: clamp(17px, 1.6vw, 20px) !important;
+  line-height: 1.65 !important;
+}
+
+.sonara-home-v3 .sonara-hero-copy .actions {
+  margin-top: 28px !important;
+}
+
+.action,
+.card-actions .action,
+.sonara-home-v3 .sonara-hero-copy .actions .action {
+  min-height: 44px !important;
+  padding: 10px 16px !important;
+  border: 1px solid var(--launch-line) !important;
+  border-radius: 8px !important;
+  background: var(--launch-surface) !important;
+  color: var(--launch-ink) !important;
+  box-shadow: none !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+}
+
+.sonara-home-v3 .sonara-hero-copy .actions .action:first-child,
+.sonara-launch-cta .card-actions .action:first-child {
+  border-color: var(--launch-navy) !important;
+  background: var(--launch-navy) !important;
+  color: #f7f5ef !important;
+  box-shadow: none !important;
+}
+
+.sonara-home-v3 .sonara-interface-face {
+  display: block !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.sonara-home-v3 .sonara-device-card {
+  position: relative !important;
+  inset: auto !important;
+  max-width: none !important;
+  min-height: 500px !important;
+  padding: clamp(24px, 4vw, 36px) !important;
+  border: 1px solid rgba(244, 242, 236, 0.12) !important;
+  border-radius: var(--launch-radius) !important;
+  background: linear-gradient(160deg, #10162b 0%, #191634 100%) !important;
+  box-shadow: 0 24px 55px rgba(18, 22, 42, 0.22) !important;
+  color: #f4f2ec !important;
+  transform: none !important;
+}
+
+.sonara-device-bar {
+  align-items: center !important;
+  margin-bottom: 26px !important;
+}
+
+.sonara-device-bar span {
+  width: 8px !important;
+  height: 8px !important;
+  background: #6f7891 !important;
+}
+
+.sonara-device-bar em {
+  margin-left: auto !important;
+  color: #a9afc4 !important;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
+  font-size: 10px !important;
+  font-style: normal !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.sonara-home-v3 .sonara-device-card strong {
+  color: #f4f2ec !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(28px, 3vw, 38px) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+}
+
+.sonara-home-v3 .sonara-device-card > p {
+  color: #a9afc4 !important;
+  font-size: 14px !important;
+  line-height: 1.55 !important;
+}
+
+.sonara-home-v3 .sonara-panel-tiles {
+  gap: 8px !important;
+  margin-top: 22px !important;
+}
+
+.sonara-home-v3 .sonara-panel-tiles a {
+  min-height: 76px !important;
+  padding: 12px !important;
+  border-radius: 8px !important;
+  background: rgba(244, 242, 236, 0.055) !important;
+  color: #f4f2ec !important;
+  letter-spacing: 0 !important;
+}
+
+.sonara-home-v3 .sonara-status-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  margin-top: 18px !important;
+}
+
+.sonara-home-v3 .sonara-status-chip {
+  min-height: 48px !important;
+  border-radius: 8px !important;
+  background: rgba(244, 242, 236, 0.045) !important;
+}
+
+.sonara-home-v3 .sonara-status-chip.is-ready {
+  border-color: rgba(94, 204, 150, 0.42) !important;
+}
+
+.sonara-home-v3 .sonara-status-chip.is-setup {
+  border-color: rgba(240, 131, 115, 0.48) !important;
+}
+
+.sonara-home-v3 .sonara-status-chip.is-review {
+  border-color: rgba(232, 176, 75, 0.48) !important;
+}
+
+.sonara-command-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 18px !important;
+}
+
+.sonara-command-actions a {
+  min-height: 44px !important;
+  padding: 11px 14px !important;
+  border: 1px solid rgba(244, 242, 236, 0.14) !important;
+  border-radius: 8px !important;
+  color: #f4f2ec !important;
+  text-decoration: none !important;
+}
+
+.sonara-home-v3 .sonara-proof-pill {
+  position: static !important;
+  width: fit-content !important;
+  margin: 12px 0 0 auto !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: var(--launch-muted) !important;
+  font-size: 11px !important;
+  font-weight: 650 !important;
+}
+
+.sonara-home-v3 main > .grid {
+  display: block !important;
+  margin: 0 !important;
+}
+
+.sonara-home-content {
+  display: grid;
+  gap: 72px;
+  padding-bottom: 88px;
+}
+
+.sonara-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
+  gap: 44px;
+  align-items: end;
+  margin-bottom: 24px;
+}
+
+.sonara-section-heading.compact {
+  grid-template-columns: minmax(0, 720px);
+}
+
+.sonara-section-heading h2,
+.sonara-workflow-band h2,
+.sonara-readiness-band h2,
+.sonara-launch-cta h2 {
+  margin: 10px 0 0 !important;
+  color: var(--launch-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(30px, 3.4vw, 46px) !important;
+  font-weight: 600 !important;
+  line-height: 1.12 !important;
+  letter-spacing: 0 !important;
+}
+
+.sonara-section-heading > p {
+  margin: 0 !important;
+  font-size: 15px !important;
+}
+
+.sonara-product-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sonara-product-card {
+  display: flex;
+  min-width: 0;
+  min-height: 320px;
+  flex-direction: column;
+  padding: 24px;
+  border: 1px solid var(--launch-line);
+  border-top: 4px solid var(--product-color);
+  border-radius: var(--launch-radius);
+  background: var(--launch-surface);
+  box-shadow: 0 1px 2px rgba(18, 22, 42, 0.05);
+}
+
+.sonara-product-card.is-business { --product-color: var(--launch-business); }
+.sonara-product-card.is-creator { --product-color: var(--launch-creator); }
+.sonara-product-card.is-growth { --product-color: var(--launch-growth); }
+
+.sonara-product-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sonara-product-card-head img {
+  width: 42px;
+  height: 42px;
+}
+
+.sonara-product-card-head span {
+  color: var(--launch-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sonara-product-card h3 {
+  margin: 24px 0 10px;
+  color: var(--launch-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.sonara-product-card p {
+  margin: 0;
+  font-size: 14px !important;
+}
+
+.sonara-product-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: auto;
+  padding-top: 22px;
+}
+
+.sonara-product-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--product-color);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.sonara-workflow-band,
+.sonara-readiness-band,
+.sonara-launch-cta {
+  border-radius: var(--launch-radius);
+  background: linear-gradient(160deg, #10162b 0%, #191634 100%);
+  color: #f4f2ec;
+  box-shadow: var(--launch-shadow);
+}
+
+.sonara-workflow-band {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(440px, 1.2fr);
+  gap: 54px;
+  padding: clamp(30px, 5vw, 56px);
+}
+
+.sonara-workflow-band h2,
+.sonara-readiness-band h2,
+.sonara-launch-cta h2 {
+  color: #f4f2ec !important;
+}
+
+.sonara-workflow-band p,
+.sonara-readiness-band p {
+  color: #a9afc4 !important;
+}
+
+.sonara-workflow-band .action,
+.sonara-readiness-band .action,
+.sonara-launch-cta .action {
+  border-color: rgba(244, 242, 236, 0.16) !important;
+  background: rgba(244, 242, 236, 0.06) !important;
+  color: #f4f2ec !important;
+}
+
+.sonara-workflow-band ol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sonara-workflow-band li {
+  display: grid;
+  gap: 7px;
+  min-height: 144px;
+  padding: 18px;
+  border: 1px solid rgba(244, 242, 236, 0.1);
+  border-radius: var(--launch-radius);
+  background: rgba(244, 242, 236, 0.045);
+}
+
+.sonara-workflow-band li span {
+  color: #8fa0ff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11px;
+}
+
+.sonara-workflow-band li small {
+  color: #a9afc4;
+  line-height: 1.45;
+}
+
+.sonara-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sonara-capability-grid .card,
+body.sonara-standard-page:not(.sonara-admin) .card {
+  min-height: 0 !important;
+  padding: 24px !important;
+  border: 1px solid var(--launch-line) !important;
+  border-radius: var(--launch-radius) !important;
+  background: var(--launch-surface) !important;
+  box-shadow: 0 1px 2px rgba(18, 22, 42, 0.05) !important;
+  backdrop-filter: none !important;
+}
+
+.sonara-capability-grid .card::before,
+body.sonara-standard-page:not(.sonara-admin) .card::before {
+  display: none !important;
+}
+
+.sonara-capability-grid .card h2,
+body.sonara-standard-page:not(.sonara-admin) .card h2 {
+  padding: 0 !important;
+  color: var(--launch-ink) !important;
+  font-size: 19px !important;
+  letter-spacing: 0 !important;
+}
+
+.sonara-capability-grid .card p,
+body.sonara-standard-page:not(.sonara-admin) .card p {
+  color: var(--launch-muted) !important;
+}
+
+.sonara-readiness-band {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 34px;
+  align-items: center;
+  padding: clamp(30px, 5vw, 48px);
+}
+
+.sonara-readiness-band .sonara-status-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  margin: 0 !important;
+}
+
+.sonara-readiness-band .sonara-status-chip {
+  min-height: 50px !important;
+  border-radius: 8px !important;
+}
+
+.sonara-readiness-band .card-actions {
+  grid-column: 1 / -1;
+}
+
+.sonara-launch-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 34px 40px;
+}
+
+.sonara-launch-cta h2 {
+  max-width: 760px;
+  font-size: clamp(26px, 3vw, 38px) !important;
+}
+
+body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage {
+  display: block !important;
+  min-height: 0 !important;
+  padding: 58px 0 36px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage::before,
+body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage::after {
+  display: none !important;
+}
+
+body.sonara-standard-page:not(.sonara-admin) .sonara-hero-copy h1 {
+  max-width: 20ch !important;
+  color: var(--launch-ink) !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: clamp(38px, 5vw, 62px) !important;
+  line-height: 1.08 !important;
+  letter-spacing: 0 !important;
+}
+
+body.sonara-standard-page:not(.sonara-admin) .lede {
+  color: var(--launch-muted) !important;
+}
+
+body.sonara-standard-page:not(.sonara-admin) input,
+body.sonara-standard-page:not(.sonara-admin) textarea,
+body.sonara-standard-page:not(.sonara-admin) select {
+  border-color: var(--launch-line) !important;
+  background: #ffffff !important;
+  color: var(--launch-ink) !important;
+}
+
+footer {
+  border-top-color: var(--launch-line) !important;
+  background: transparent !important;
+}
+
+@media (max-width: 1080px) {
+  header {
+    flex-wrap: wrap !important;
+  }
+
+  header nav {
+    order: 3 !important;
+    width: 100% !important;
+    justify-content: flex-start !important;
+  }
+
+  .sonara-home-v3 .sonara-hero-stage {
+    grid-template-columns: 1fr !important;
+    min-height: 0 !important;
+  }
+
+  .sonara-home-v3 .sonara-interface-face {
+    width: 100% !important;
+  }
+
+  .sonara-product-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sonara-product-card:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .sonara-workflow-band {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  header {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 8px 12px !important;
+  }
+
+  .brand {
+    min-height: 44px !important;
+    padding: 0 !important;
+  }
+
+  .brand .sonara-brand-mark {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .sonara-command-button {
+    min-width: 44px !important;
+    max-width: 88px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  header nav {
+    flex: 1 0 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, max-content) !important;
+    justify-content: start !important;
+    gap: 4px !important;
+  }
+
+  header nav a:nth-child(2),
+  header nav a:nth-child(3),
+  header nav a:nth-child(4),
+  header nav a:nth-child(7) {
+    display: none !important;
+  }
+
+  main,
+  footer {
+    width: min(100% - 24px, 1240px) !important;
+  }
+
+  .sonara-home-v3 .sonara-hero-stage {
+    gap: 28px !important;
+    padding: 46px 0 48px !important;
+  }
+
+  .sonara-home-v3 .sonara-hero-copy h1 {
+    max-width: 100% !important;
+    font-size: clamp(40px, 13vw, 56px) !important;
+  }
+
+  .sonara-home-v3 .sonara-device-card {
+    min-height: 0 !important;
+    padding: 22px !important;
+  }
+
+  .sonara-home-v3 .sonara-panel-tiles,
+  .sonara-home-v3 .sonara-status-panel,
+  .sonara-readiness-band .sonara-status-panel {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sonara-home-content {
+    gap: 52px;
+    padding-bottom: 54px;
+  }
+
+  .sonara-section-heading,
+  .sonara-product-grid,
+  .sonara-capability-grid,
+  .sonara-readiness-band {
+    grid-template-columns: 1fr;
+  }
+
+  .sonara-product-card:last-child {
+    grid-column: auto;
+  }
+
+  .sonara-workflow-band {
+    padding: 26px 20px;
+  }
+
+  .sonara-workflow-band ol {
+    grid-template-columns: 1fr;
+  }
+
+  .sonara-workflow-band li {
+    min-height: 0;
+  }
+
+  .sonara-readiness-band {
+    padding: 26px 20px;
+  }
+
+  .sonara-launch-cta {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 28px 20px;
+  }
+
+  .sonara-launch-cta .card-actions,
+  .sonara-hero-copy .actions {
+    width: 100%;
+  }
+
+  .sonara-launch-cta .action,
+  .sonara-hero-copy .actions .action {
+    flex: 1 1 150px;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sonara-product-card,
+  .action,
+  header nav a {
+    transition: none !important;
+  }
+}

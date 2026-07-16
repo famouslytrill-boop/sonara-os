@@ -209,7 +209,7 @@ describe("premium application rebuild", () => {
     it("service worker uses a versioned cache with stale-asset replacement", async function() {
       const res = await request(app).get("/sw.js");
       assert.equal(res.status, 200);
-      assert.match(res.text, /interface-dom-20260715/);
+      assert.match(res.text, /launch-ui-20260716/);
       assert.match(res.text, /stale-while-revalidate/i);
       assert.match(res.text, /caches\.delete/);
     });
@@ -274,6 +274,19 @@ describe("premium application rebuild", () => {
       assert.match(sql, /create table if not exists public\.user_notifications/);
       assert.match(sql, /create table if not exists public\.integration_statuses/);
       assert.match(sql, /enable row level security/);
+    });
+
+    it("launch storage migration keeps every customer bucket private and scoped", function() {
+      const sql = fs.readFileSync(
+        path.join(__dirname, "..", "supabase", "migrations", "20260716130000_launch_storage_buckets.sql"),
+        "utf8"
+      );
+      for (const bucket of ["avatars", "business-assets", "creator-assets", "music-stems", "release-packages", "support-attachments", "exports"]) {
+        assert.match(sql, new RegExp(`'${bucket}'`), `${bucket} missing from storage migration`);
+      }
+      assert.doesNotMatch(sql, /'[^']+',\s*'[^']+',\s*true/);
+      assert.match(sql, /public\.is_org_member/);
+      assert.match(sql, /auth\.uid\(\)::text = \(storage\.foldername\(name\)\)\[2\]/);
     });
   });
 });
