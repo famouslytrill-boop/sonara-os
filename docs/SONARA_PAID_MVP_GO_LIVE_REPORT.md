@@ -33,7 +33,7 @@ Code readiness is estimated at 88%. The production Express runtime, customer pat
 
 ## Provider status
 
-- Supabase host: reachable; authenticated database/schema proof pending credentials
+- Supabase host: reachable; authenticated database/schema proof pending credentials; GitHub App project reference must be changed from `negegqiequrclmxuvsuy` to the supplied `yqncsonkxgwhcxedgevk`
 - Stripe: code complete; live product, price, checkout, and webhook proof pending
 - Resend: code complete; sender domain and delivery proof pending
 - Vercel: current production deployment is healthy; this change requires preview verification after push

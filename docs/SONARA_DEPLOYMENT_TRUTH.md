@@ -31,6 +31,8 @@ Supabase preview/migration automation also needs `SUPABASE_ACCESS_TOKEN`, `SUPAB
 
 ## Supabase production steps
 
+The Supabase GitHub App currently reports preview checks against project reference `negegqiequrclmxuvsuy`. The supplied launch project reference is `yqncsonkxgwhcxedgevk`. Reconnect or reconfigure the Supabase GitHub integration before treating preview success as proof for the launch project.
+
 1. Confirm the project reference is `yqncsonkxgwhcxedgevk` in Supabase Dashboard, Project Settings, General.
 2. Set `NEXT_PUBLIC_SUPABASE_URL` to the API Project URL shown in Project Settings, API.
 3. Add the anon key as public-safe configuration and the service-role key as server-only configuration.

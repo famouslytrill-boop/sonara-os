@@ -168,9 +168,3 @@ create policy "asset owners can delete launch assets"
       end
     )
   );
-
-comment on policy "organization members can read launch assets" on storage.objects is
-  'Private organization assets. First path segment must be an active organization membership.';
-
-comment on policy "organization members can create owned launch assets" on storage.objects is
-  'Private organization assets. Second path segment must match the authenticated uploader.';
