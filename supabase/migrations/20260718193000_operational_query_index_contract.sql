@@ -15,7 +15,7 @@ create index if not exists organization_memberships_active_user_created_idx
   where status = 'active';
 
 create index if not exists business_memberships_active_manager_lookup_idx
-  on public.business_memberships (user_id, workspace_id, created_at)
+  on public.business_memberships (user_id, created_at, workspace_id)
   where status = 'active' and role in ('owner', 'manager');
 
 create index if not exists billing_subscriptions_active_org_plan_idx
@@ -42,7 +42,7 @@ create index if not exists business_employee_invites_pending_workspace_created_i
 comment on index public.organization_memberships_active_user_created_idx is
   'Supports deterministic active customer-organization resolution by authenticated user.';
 comment on index public.business_memberships_active_manager_lookup_idx is
-  'Supports active Business Builder owner/manager authorization with optional workspace scope.';
+  'Supports deterministic active Business Builder owner/manager authorization, with optional workspace filtering.';
 comment on index public.billing_subscriptions_active_org_plan_idx is
   'Supports persisted active/trialing paid-entitlement checks by organization and plan.';
 comment on index public.service_catalog_items_active_product_name_idx is
