@@ -1597,48 +1597,91 @@ function renderHomepageContent(readiness) {
 }
 
 function layout({ title, eyebrow, heading, body, sections, actions, variant = "standard" }) {
+  const brandClass = pageBrandClass(title, heading, eyebrow);
   return `<!doctype html>
 <html lang="en">
   <head>
-    ${renderHead(title)}
+    ${renderHead(title, brandClass === "sonara-admin" ? "#0C1122" : "#FAF8F4")}
     <style>
-      :root { color-scheme: dark; --bg: #07070a; --panel: #111119; --line: #2b2b38; --text: #f7f3ee; --muted: #aaa3b5; --gold: #d7b46a; }
+      :root {
+        color-scheme: light;
+        --bg: #FAF8F4; --bg-2: #F3F0E9; --surface: #FFFFFF;
+        --navy: #10162B; --navy-2: #171F3A; --violet-deep: #191634; --ink: #12162A;
+        --text: #1A1F33; --text-2: #565D74; --text-3: #8A90A3;
+        --on-dark: #F4F2EC; --on-dark-2: #A9AFC4;
+        --blue: #3D5BF5; --violet: #7B5BF2; --coral: #EE6A54; --green: #2E9E6B; --cyan: #1D9FBF; --gold: #C9963C; --magenta: #C24FBC; --teal: #1FA88F;
+        --accent: var(--blue); --accent-2: var(--violet); --accent-soft: #E9EDFE;
+        --border: rgba(18,22,42,.10); --border-strong: rgba(18,22,42,.16); --border-dark: rgba(244,242,236,.12);
+        --r-panel: 16px; --r-card: 12px; --r-btn: 10px;
+        --sh-1: 0 1px 2px rgba(18,22,42,.05); --sh-2: 0 2px 8px rgba(18,22,42,.07); --sh-3: 0 12px 40px -12px rgba(18,22,42,.18);
+        --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+        --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--blue);
+      }
       * { box-sizing: border-box; }
-      body { margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: radial-gradient(circle at top left, #27202f 0, #07070a 38rem); color: var(--text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body { margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14.5px; line-height: 1.55; -webkit-font-smoothing: antialiased; max-width: 100vw; overflow-x: clip; }
       a { color: inherit; }
-      header, main, footer { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
-      header { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 28px 0; }
-      nav { display: flex; flex-wrap: wrap; gap: 14px; }
-      nav a, .action { border: 1px solid var(--line); border-radius: 999px; padding: 12px 16px; min-height: 44px; display: inline-flex; align-items: center; text-decoration: none; color: var(--muted); background: rgba(255,255,255,0.03); }
-      nav a:hover, .action:hover { border-color: var(--gold); color: var(--text); }
-      .brand { letter-spacing: .16em; text-transform: uppercase; font-size: 13px; color: var(--gold); }
-      .hero { padding: 72px 0 52px; }
-      .eyebrow { color: var(--gold); letter-spacing: .22em; text-transform: uppercase; font-size: 12px; }
-      h1 { font-size: clamp(44px, 8vw, 92px); line-height: .95; margin: 18px 0; letter-spacing: -0.04em; }
-      h2 { margin: 0 0 10px; }
-      p { color: var(--muted); line-height: 1.7; font-size: 17px; }
-      .lede { max-width: 760px; font-size: 20px; }
+      a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--focus); }
+      header, main, footer { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+      header { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 14px 0; position: sticky; top: 0; z-index: 40; background: rgba(250,248,244,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); width: 100%; max-width: none; padding-left: max(20px, calc((100% - 1180px) / 2)); padding-right: max(20px, calc((100% - 1180px) / 2)); }
+      nav { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+      nav a { padding: 8px 12px; min-height: 40px; display: inline-flex; align-items: center; border-radius: 8px; text-decoration: none; color: var(--text-2); font-weight: 500; font-size: 13.5px; }
+      nav a:hover { color: var(--text); background: rgba(18,22,42,.05); }
+      nav a[aria-current="page"] { color: var(--text); background: rgba(18,22,42,.06); }
+      .action { border: 1px solid var(--border-strong); border-radius: var(--r-btn); padding: 0 16px; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--surface); font-weight: 600; font-size: 13.5px; cursor: pointer; transition: transform .12s, box-shadow .12s, background .12s; }
+      .action:hover { background: var(--bg-2); box-shadow: var(--sh-1); }
+      .action:active { transform: scale(.98); }
+      .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -.01em; color: var(--text); text-decoration: none; white-space: nowrap; flex-shrink: 0; }
+      main { min-width: 0; }
+      .hero { padding: 64px 0 44px; }
+      .eyebrow { color: var(--accent); font-family: var(--mono); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; font-weight: 500; }
+      h1 { font-family: var(--serif); font-size: clamp(38px, 4.5vw, 62px); line-height: 1.08; margin: 16px 0 0; letter-spacing: -.015em; font-weight: 600; }
+      h2 { font-family: var(--serif); font-size: 24px; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 10px; font-weight: 600; }
+      p { color: var(--text-2); line-height: 1.65; font-size: 15px; margin: 12px 0 0; }
+      .lede { max-width: 620px; font-size: 17px; }
       .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 28px 0 44px; align-items: stretch; }
-      .card { min-width: 0; min-height: 190px; border: 1px solid var(--line); border-radius: 18px; padding: 22px; background: rgba(17,17,25,.82); box-shadow: 0 24px 80px rgba(0,0,0,.32); overflow-wrap: anywhere; word-break: break-word; }
-      .card h2 { overflow-wrap: anywhere; word-break: break-word; }
-      .card p { overflow-wrap: anywhere; word-break: break-word; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+      .card { min-width: 0; border: 1px solid var(--border); border-radius: var(--r-card); padding: 22px; background: var(--surface); box-shadow: var(--sh-1); overflow-wrap: anywhere; word-break: break-word; }
+      .card h2 { font-family: var(--font); font-size: 16px; letter-spacing: -.01em; overflow-wrap: anywhere; word-break: break-word; }
+      .card p { overflow-wrap: anywhere; word-break: break-word; font-size: 13.5px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
       form { display: grid; gap: 14px; }
-      input, textarea, select, button { width: 100%; min-height: 44px; border-radius: 12px; border: 1px solid var(--line); background: #09090f; color: var(--text); padding: 12px 14px; font: inherit; }
-      button { cursor: pointer; background: var(--gold); color: #111; font-weight: 700; }
-      .fine { font-size: 13px; color: var(--muted); }
-      footer { border-top: 1px solid var(--line); padding: 28px 0 44px; color: var(--muted); }
-      footer nav { margin-top: 16px; }
-      @media (max-width: 760px) { header { align-items: flex-start; flex-direction: column; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 42px; } }
+      input, textarea, select, button { width: 100%; min-height: 44px; border-radius: var(--r-btn); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 10px 14px; font: inherit; font-size: 14px; }
+      input:focus-within, textarea:focus-within, select:focus-within { border-color: var(--blue); }
+      button { cursor: pointer; background: var(--navy); color: var(--on-dark); font-weight: 600; border-color: var(--navy); transition: transform .12s, background .12s; }
+      button:hover { background: #1B2445; }
+      button:active { transform: scale(.98); }
+      label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+      .fine { font-size: 12.5px; color: var(--text-3); }
+      footer { border-top: 1px solid var(--border); padding: 32px 0 96px; color: var(--text-3); font-size: 13px; }
+      footer nav { margin-top: 14px; gap: 2px 14px; }
+      footer nav a { padding: 4px 0; min-height: 0; color: var(--text-2); font-weight: 400; font-size: 12.5px; }
+      footer nav a:hover { background: none; color: var(--text); }
+      table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+      th { text-align: left; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 10px 14px; border-bottom: 1px solid var(--border); }
+      td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+      body.sonara-admin { color-scheme: dark; --bg: #0C1122; --bg-2: #131A30; --surface: #131A30; --text: #EEF0F6; --text-2: #AAB0C4; --text-3: #767D93; --border: rgba(244,242,236,.10); --border-strong: rgba(244,242,236,.16); --accent-soft: rgba(123,91,242,.18); --sh-1: 0 1px 2px rgba(0,0,0,.3); --sh-2: 0 2px 10px rgba(0,0,0,.35); --sh-3: 0 14px 44px -12px rgba(0,0,0,.6); --focus: 0 0 0 2px var(--bg), 0 0 0 4px #6E86FF; }
+      body.sonara-admin header { background: rgba(12,17,34,.92); }
+      body.sonara-admin .action { background: rgba(244,242,236,.06); color: var(--on-dark); border-color: var(--border-dark); }
+      body.sonara-admin .action:hover { background: rgba(244,242,236,.12); }
+      body.sonara-admin button { background: #EEF0F6; color: #12162A; border-color: transparent; }
+      body.sonara-admin button:hover { background: #fff; }
+      body.sonara-admin input, body.sonara-admin textarea, body.sonara-admin select { background: #0E1426; color: var(--text); }
+      @media (max-width: 760px) { header { align-items: stretch; flex-direction: column; padding-top: 10px; padding-bottom: 10px; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 36px; } h1 { font-size: clamp(32px, 9vw, 44px); } }
+      @media (prefers-reduced-motion: reduce) { .action, button { transition: none; } }
     </style>
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=launch-ui-20260716">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=launch-ui-20260716">
-    <link rel="stylesheet" href="/sonara-interface-engine.css?v=launch-ui-20260716">
-    <link rel="stylesheet" href="/sonara-launch-ui.css?v=launch-ui-20260716">
-    <script defer src="/sonara-experience.js?v=launch-ui-20260716"></script>
-    <script defer src="/sonara-interface-engine.js?v=launch-ui-20260716"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=clark-ui-20260717">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=clark-ui-20260717">
+    <link rel="stylesheet" href="/sonara-interface-engine.css?v=clark-ui-20260717">
+    <link rel="stylesheet" href="/sonara-launch-ui.css?v=clark-ui-20260717">
+    <script defer src="/sonara-experience.js?v=clark-ui-20260717"></script>
+    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260717"></script>
   </head>
-  <body class="${escapeHtml(pageBrandClass(title, heading, eyebrow))} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
+  <body class="${escapeHtml(brandClass)} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
+    <a class="sonara-skip" href="#sonara-main">Skip to content</a>
     <header>
       <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="30" height="30"> SONARA Industries</a>
       <nav aria-label="Primary">
@@ -1654,7 +1697,7 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
       </nav>
       <button type="button" class="sonara-command-button" data-sonara-command aria-haspopup="dialog" aria-label="Open quick navigation (Control K)">Go to&hellip; Ctrl K</button>
     </header>
-    <main>
+    <main id="sonara-main">
       <section class="hero sonara-hero-stage" data-sonara-interface="live">
         <div class="sonara-hero-copy">
           <div class="eyebrow">${escapeHtml(eyebrow)}</div>
@@ -1681,7 +1724,22 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
       <section class="grid">${sections.join("")}</section>
     </main>
     <footer>
-      SONARA Industries builds launch infrastructure for Business Builder, Creator Studio, and Growth Studio.
+      <div class="sonara-footer-grid">
+        <div class="sonara-footer-brand">
+          <span class="brand"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="24" height="24"> SONARA Industries</span>
+          <p>SONARA Industries builds launch infrastructure for Business Builder, Creator Studio, and Growth Studio.</p>
+        </div>
+        <nav aria-label="Products and support">
+          <a href="/business-builder">Business Builder</a>
+          <a href="/creator-studio">Creator Studio</a>
+          <a href="/growth-studio">Growth Studio</a>
+          <a href="/pricing">Pricing</a>
+          <a href="/free-tools">Free tools</a>
+          <a href="/support">Support</a>
+          <a href="/contact">Contact</a>
+          <a href="/security">Security</a>
+        </nav>
+      </div>
       <nav aria-label="Legal">
         ${legalPages().map((page) => `<a href="${escapeHtml(page.href)}">${escapeHtml(page.title)}</a>`).join("")}
       </nav>
@@ -1718,11 +1776,11 @@ function pageBrandClass(title, heading, eyebrow) {
   return "sonara-platform";
 }
 
-function renderHead(title) {
+function renderHead(title, themeColor = "#FAF8F4") {
   const pageTitle = title === "SONARA Industries" ? title : `${title} | SONARA Industries`;
   return `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#11101a">
+    <meta name="theme-color" content="${escapeHtml(themeColor)}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SONARA">
     <meta property="og:title" content="${escapeHtml(pageTitle)}">

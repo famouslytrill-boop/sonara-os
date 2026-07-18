@@ -209,7 +209,7 @@ describe("premium application rebuild", () => {
     it("service worker uses a versioned cache with stale-asset replacement", async function() {
       const res = await request(app).get("/sw.js");
       assert.equal(res.status, 200);
-      assert.match(res.text, /launch-ui-20260716/);
+      assert.match(res.text, /clark-ui-20260717/);
       assert.match(res.text, /stale-while-revalidate/i);
       assert.match(res.text, /caches\.delete/);
     });

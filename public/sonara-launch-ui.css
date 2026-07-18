@@ -1,788 +1,334 @@
-/* SONARA paid-launch interface, scoped to the production Express renderer.
-   This file intentionally loads last so the current handoff can replace the
-   earlier experimental visual layers without disturbing route behavior. */
+/* SONARA launch interface — master component layer.
+   Layer role: page components for public, customer, and admin routes on the
+   warm-light editorial system. Tokens come from the shared layout <style> and
+   sonara-brand-system.css. Loads last; no body-level !important overrides —
+   the base theme is light by design, and admin is dark via body.sonara-admin. */
 
-:root {
-  --launch-bg: #faf8f4;
-  --launch-bg-alt: #f2efe8;
-  --launch-surface: #ffffff;
-  --launch-ink: #1a1f33;
-  --launch-muted: #5b6276;
-  --launch-line: rgba(18, 22, 42, 0.13);
-  --launch-navy: #10162b;
-  --launch-blue: #3d5bf5;
-  --launch-violet: #7156da;
-  --launch-business: #2e9e6b;
-  --launch-creator: #7156da;
-  --launch-growth: #1d8eaa;
-  --launch-danger: #b84f3e;
-  --launch-radius: 8px;
-  --launch-shadow: 0 14px 36px rgba(18, 22, 42, 0.11);
-}
-
-body.sonara-home-v3,
-body.sonara-standard-page:not(.sonara-admin) {
-  color-scheme: light !important;
-  background: var(--launch-bg) !important;
-  color: var(--launch-ink) !important;
-}
-
-body.sonara-home-v3 p,
-body.sonara-standard-page:not(.sonara-admin) p,
-body.sonara-home-v3 footer,
-body.sonara-standard-page:not(.sonara-admin) footer {
-  color: var(--launch-muted) !important;
-}
-
-header {
-  top: 0 !important;
-  width: min(1360px, 100%) !important;
-  max-width: 100% !important;
-  min-height: 64px !important;
-  margin: 0 auto !important;
-  padding: 10px clamp(16px, 3vw, 36px) !important;
-  border: 0 !important;
-  border-bottom: 1px solid var(--launch-line) !important;
-  border-radius: 0 !important;
-  background: rgba(250, 248, 244, 0.96) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(16px) !important;
-}
-
-.sonara-admin header {
-  background: rgba(12, 17, 34, 0.96) !important;
-  border-bottom-color: rgba(244, 242, 236, 0.12) !important;
-}
-
-.brand {
-  flex: 0 0 auto !important;
-  min-height: 44px !important;
-  padding: 0 !important;
-  gap: 10px !important;
-  color: var(--launch-ink) !important;
-  font-size: 13px !important;
-  font-weight: 750 !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-}
-
-.brand::before,
-.brand::after {
-  display: none !important;
-}
-
-.brand .sonara-brand-mark {
-  display: block !important;
-  width: 34px !important;
-  height: 34px !important;
-  object-fit: contain !important;
-}
-
-header nav {
-  display: flex !important;
-  flex: 1 1 auto !important;
-  justify-content: center !important;
-  align-items: center !important;
-  flex-wrap: nowrap !important;
-  gap: 4px !important;
-  padding: 0 !important;
-  overflow-x: auto !important;
-  scrollbar-width: none !important;
-}
-
-header nav::-webkit-scrollbar {
-  display: none;
-}
-
-header nav a,
-.sonara-command-button {
-  min-height: 44px !important;
-  padding: 0 10px !important;
-  border: 0 !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  color: var(--launch-muted) !important;
-  font-size: 13px !important;
-  font-weight: 650 !important;
-  letter-spacing: 0 !important;
-}
-
-header nav a:hover,
-header nav a:focus-visible,
-.sonara-command-button:hover,
-.sonara-command-button:focus-visible {
-  background: rgba(18, 22, 42, 0.055) !important;
-  color: var(--launch-ink) !important;
-}
-
-header nav .sonara-nav-primary {
-  padding-inline: 14px !important;
-  background: var(--launch-navy) !important;
-  color: #f7f5ef !important;
-}
-
-.sonara-command-button {
-  flex: 0 0 auto !important;
-  width: auto !important;
-  border: 1px solid var(--launch-line) !important;
-}
-
-main,
-footer {
-  width: min(1240px, calc(100% - 40px)) !important;
-}
-
-.sonara-home-v3 .sonara-hero-stage {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(420px, 0.9fr) !important;
-  align-items: center !important;
-  gap: clamp(40px, 6vw, 76px) !important;
-  min-height: 650px !important;
-  padding: 72px 0 64px !important;
-  overflow: visible !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.sonara-home-v3 .sonara-hero-stage::before,
-.sonara-home-v3 .sonara-hero-stage::after,
-.sonara-home-v3 .sonara-interface-face::before {
-  display: none !important;
-}
-
-.sonara-home-v3 .sonara-hero-copy {
-  align-self: center !important;
-}
-
-.sonara-home-v3 .eyebrow,
-.sonara-home-section .eyebrow,
-.sonara-workflow-band .eyebrow,
-.sonara-readiness-band .eyebrow,
-.sonara-launch-cta .eyebrow {
-  color: var(--launch-blue) !important;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.12em !important;
-}
-
-.sonara-home-v3 .sonara-hero-copy h1 {
-  max-width: 12ch !important;
-  margin: 16px 0 20px !important;
-  color: var(--launch-ink) !important;
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: clamp(46px, 5.4vw, 72px) !important;
-  font-weight: 600 !important;
-  line-height: 1.04 !important;
-  letter-spacing: 0 !important;
-  overflow: visible !important;
-}
-
-.sonara-home-v3 .lede {
-  max-width: 660px !important;
-  margin: 0 !important;
-  color: var(--launch-muted) !important;
-  font-size: clamp(17px, 1.6vw, 20px) !important;
-  line-height: 1.65 !important;
-}
-
-.sonara-home-v3 .sonara-hero-copy .actions {
-  margin-top: 28px !important;
-}
-
-.action,
-.card-actions .action,
-.sonara-home-v3 .sonara-hero-copy .actions .action {
-  min-height: 44px !important;
-  padding: 10px 16px !important;
-  border: 1px solid var(--launch-line) !important;
-  border-radius: 8px !important;
-  background: var(--launch-surface) !important;
-  color: var(--launch-ink) !important;
-  box-shadow: none !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0 !important;
-}
-
-.sonara-home-v3 .sonara-hero-copy .actions .action:first-child,
-.sonara-launch-cta .card-actions .action:first-child {
-  border-color: var(--launch-navy) !important;
-  background: var(--launch-navy) !important;
-  color: #f7f5ef !important;
-  box-shadow: none !important;
-}
-
-.sonara-home-v3 .sonara-interface-face {
-  display: block !important;
-  min-height: 0 !important;
-  max-width: 100% !important;
-  overflow: visible !important;
-}
-
-.sonara-home-v3 .sonara-device-card {
-  position: relative !important;
-  inset: auto !important;
-  max-width: none !important;
-  min-height: 500px !important;
-  padding: clamp(24px, 4vw, 36px) !important;
-  border: 1px solid rgba(244, 242, 236, 0.12) !important;
-  border-radius: var(--launch-radius) !important;
-  background: linear-gradient(160deg, #10162b 0%, #191634 100%) !important;
-  box-shadow: 0 24px 55px rgba(18, 22, 42, 0.22) !important;
-  color: #f4f2ec !important;
-  transform: none !important;
-}
-
-.sonara-device-bar {
-  align-items: center !important;
-  margin-bottom: 26px !important;
-}
-
-.sonara-device-bar span {
-  width: 8px !important;
-  height: 8px !important;
-  background: #6f7891 !important;
-}
-
-.sonara-device-bar em {
-  margin-left: auto !important;
-  color: #a9afc4 !important;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace !important;
-  font-size: 10px !important;
-  font-style: normal !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-}
-
-.sonara-home-v3 .sonara-device-card strong {
-  color: #f4f2ec !important;
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: clamp(28px, 3vw, 38px) !important;
-  font-weight: 600 !important;
-  letter-spacing: 0 !important;
-}
-
-.sonara-home-v3 .sonara-device-card > p {
-  color: #a9afc4 !important;
-  font-size: 14px !important;
-  line-height: 1.55 !important;
-}
-
-.sonara-home-v3 .sonara-panel-tiles {
-  gap: 8px !important;
-  margin-top: 22px !important;
-}
-
-.sonara-home-v3 .sonara-panel-tiles a {
-  min-height: 76px !important;
-  padding: 12px !important;
-  border-radius: 8px !important;
-  background: rgba(244, 242, 236, 0.055) !important;
-  color: #f4f2ec !important;
-  letter-spacing: 0 !important;
-}
-
-.sonara-home-v3 .sonara-status-panel {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  gap: 8px !important;
-  margin-top: 18px !important;
-}
-
-.sonara-home-v3 .sonara-status-chip {
-  min-height: 48px !important;
-  border-radius: 8px !important;
-  background: rgba(244, 242, 236, 0.045) !important;
-}
-
-.sonara-home-v3 .sonara-status-chip.is-ready {
-  border-color: rgba(94, 204, 150, 0.42) !important;
-}
-
-.sonara-home-v3 .sonara-status-chip.is-setup {
-  border-color: rgba(240, 131, 115, 0.48) !important;
-}
-
-.sonara-home-v3 .sonara-status-chip.is-review {
-  border-color: rgba(232, 176, 75, 0.48) !important;
-}
-
-.sonara-command-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-  margin-top: 18px !important;
-}
-
-.sonara-command-actions a {
-  min-height: 44px !important;
-  padding: 11px 14px !important;
-  border: 1px solid rgba(244, 242, 236, 0.14) !important;
-  border-radius: 8px !important;
-  color: #f4f2ec !important;
-  text-decoration: none !important;
-}
-
-.sonara-home-v3 .sonara-proof-pill {
-  position: static !important;
-  width: fit-content !important;
-  margin: 12px 0 0 auto !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: var(--launch-muted) !important;
-  font-size: 11px !important;
-  font-weight: 650 !important;
-}
-
-.sonara-home-v3 main > .grid {
-  display: block !important;
-  margin: 0 !important;
-}
-
+/* ── Page rhythm ─────────────────────────────────────────────────────────── */
+body.sonara-home-v3 main > .grid:empty { display: none; }
 .sonara-home-content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 72px;
-  padding-bottom: 88px;
+  padding-bottom: 72px;
 }
+.sonara-home-section { min-width: 0; }
 
-.sonara-section-heading {
+/* ── Hero stage ──────────────────────────────────────────────────────────── */
+.sonara-hero-stage {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.7fr);
-  gap: 44px;
-  align-items: end;
-  margin-bottom: 24px;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 56px;
+  align-items: center;
 }
+.sonara-hero-stage > * { min-width: 0; }
+body.sonara-standard-page .sonara-hero-stage { grid-template-columns: 1fr; }
+body.sonara-standard-page .hero { padding-bottom: 8px; }
 
-.sonara-section-heading.compact {
-  grid-template-columns: minmax(0, 720px);
-}
-
-.sonara-section-heading h2,
-.sonara-workflow-band h2,
-.sonara-readiness-band h2,
-.sonara-launch-cta h2 {
-  margin: 10px 0 0 !important;
-  color: var(--launch-ink) !important;
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: clamp(30px, 3.4vw, 46px) !important;
-  font-weight: 600 !important;
-  line-height: 1.12 !important;
-  letter-spacing: 0 !important;
-}
-
-.sonara-section-heading > p {
-  margin: 0 !important;
-  font-size: 15px !important;
-}
-
+/* ── Product trio ────────────────────────────────────────────────────────── */
 .sonara-product-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 36px;
 }
-
 .sonara-product-card {
-  display: flex;
   min-width: 0;
-  min-height: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
+  border-radius: var(--r-card);
+  box-shadow: var(--sh-1);
+  padding: 26px;
+  display: flex;
   flex-direction: column;
-  padding: 24px;
-  border: 1px solid var(--launch-line);
-  border-top: 4px solid var(--product-color);
-  border-radius: var(--launch-radius);
-  background: var(--launch-surface);
-  box-shadow: 0 1px 2px rgba(18, 22, 42, 0.05);
+  gap: 12px;
+  transition: transform .15s, box-shadow .15s;
 }
-
-.sonara-product-card.is-business { --product-color: var(--launch-business); }
-.sonara-product-card.is-creator { --product-color: var(--launch-creator); }
-.sonara-product-card.is-growth { --product-color: var(--launch-growth); }
-
+.sonara-product-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--sh-3);
+}
+.sonara-product-card.is-business { border-top-color: #2E9E6B; }
+.sonara-product-card.is-creator { border-top-color: #7B5BF2; }
+.sonara-product-card.is-growth { border-top-color: #1D9FBF; }
 .sonara-product-card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
-
-.sonara-product-card-head img {
-  width: 42px;
-  height: 42px;
-}
-
 .sonara-product-card-head span {
-  color: var(--launch-muted);
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
 }
-
 .sonara-product-card h3 {
-  margin: 24px 0 10px;
-  color: var(--launch-ink);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 26px;
-  line-height: 1.15;
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -.01em;
 }
-
 .sonara-product-card p {
   margin: 0;
-  font-size: 14px !important;
+  font-size: 13.5px;
+  flex: 1;
 }
-
 .sonara-product-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 14px;
-  margin-top: auto;
-  padding-top: 22px;
+  gap: 4px 14px;
 }
-
 .sonara-product-links a {
-  min-height: 44px;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--blue);
+  min-height: 32px;
   display: inline-flex;
   align-items: center;
-  color: var(--product-color);
-  font-size: 13px;
-  font-weight: 750;
-  text-decoration: none;
 }
+.sonara-product-card.is-business .sonara-product-links a { color: #1E7A50; }
+.sonara-product-card.is-creator .sonara-product-links a { color: #5F41D6; }
+.sonara-product-card.is-growth .sonara-product-links a { color: #157A94; }
+.sonara-product-links a:hover { text-decoration: underline; }
 
+/* ── Dark bands (workflow, readiness, CTA) ───────────────────────────────── */
 .sonara-workflow-band,
-.sonara-readiness-band,
-.sonara-launch-cta {
-  border-radius: var(--launch-radius);
-  background: linear-gradient(160deg, #10162b 0%, #191634 100%);
-  color: #f4f2ec;
-  box-shadow: var(--launch-shadow);
-}
-
-.sonara-workflow-band {
+.sonara-readiness-band {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--violet-deep) 100%);
+  border: 1px solid rgba(244, 242, 236, .08);
+  border-radius: var(--r-panel);
+  color: var(--on-dark);
+  box-shadow: var(--sh-3);
+  padding: 48px;
   display: grid;
-  grid-template-columns: minmax(0, 0.8fr) minmax(440px, 1.2fr);
-  gap: 54px;
-  padding: clamp(30px, 5vw, 56px);
+  grid-template-columns: 1fr 1.1fr;
+  gap: 48px;
+  align-items: center;
 }
-
+.sonara-workflow-band > *,
+.sonara-readiness-band > * { min-width: 0; }
 .sonara-workflow-band h2,
-.sonara-readiness-band h2,
-.sonara-launch-cta h2 {
-  color: #f4f2ec !important;
+.sonara-readiness-band h2 {
+  color: var(--on-dark);
+  font-size: clamp(24px, 3vw, 32px);
+  margin: 12px 0 0;
 }
-
 .sonara-workflow-band p,
 .sonara-readiness-band p {
-  color: #a9afc4 !important;
+  color: var(--on-dark-2);
+  font-size: 14px;
 }
-
-.sonara-workflow-band .action,
-.sonara-readiness-band .action,
-.sonara-launch-cta .action {
-  border-color: rgba(244, 242, 236, 0.16) !important;
-  background: rgba(244, 242, 236, 0.06) !important;
-  color: #f4f2ec !important;
-}
-
+.sonara-workflow-band .eyebrow,
+.sonara-readiness-band .eyebrow { color: #8FA0FF; }
 .sonara-workflow-band ol {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-
-.sonara-workflow-band li {
+.sonara-workflow-band ol li {
   display: grid;
-  gap: 7px;
-  min-height: 144px;
-  padding: 18px;
-  border: 1px solid rgba(244, 242, 236, 0.1);
-  border-radius: var(--launch-radius);
-  background: rgba(244, 242, 236, 0.045);
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  background: rgba(244, 242, 236, .04);
 }
-
-.sonara-workflow-band li span {
-  color: #8fa0ff;
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 11px;
+.sonara-workflow-band ol li > * { min-width: 0; overflow-wrap: break-word; }
+.sonara-workflow-band ol li span {
+  grid-row: 1 / 3;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: #8FA0FF;
+  padding-top: 3px;
 }
-
-.sonara-workflow-band li small {
-  color: #a9afc4;
-  line-height: 1.45;
+.sonara-workflow-band ol li strong {
+  font-size: 14px;
+  letter-spacing: -.01em;
 }
-
-.sonara-capability-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+.sonara-workflow-band ol li small {
+  color: var(--on-dark-2);
+  font-size: 12.5px;
 }
-
-.sonara-capability-grid .card,
-body.sonara-standard-page:not(.sonara-admin) .card {
-  min-height: 0 !important;
-  padding: 24px !important;
-  border: 1px solid var(--launch-line) !important;
-  border-radius: var(--launch-radius) !important;
-  background: var(--launch-surface) !important;
-  box-shadow: 0 1px 2px rgba(18, 22, 42, 0.05) !important;
-  backdrop-filter: none !important;
-}
-
-.sonara-capability-grid .card::before,
-body.sonara-standard-page:not(.sonara-admin) .card::before {
-  display: none !important;
-}
-
-.sonara-capability-grid .card h2,
-body.sonara-standard-page:not(.sonara-admin) .card h2 {
-  padding: 0 !important;
-  color: var(--launch-ink) !important;
-  font-size: 19px !important;
-  letter-spacing: 0 !important;
-}
-
-.sonara-capability-grid .card p,
-body.sonara-standard-page:not(.sonara-admin) .card p {
-  color: var(--launch-muted) !important;
-}
-
-.sonara-readiness-band {
-  display: grid;
-  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
-  gap: 34px;
-  align-items: center;
-  padding: clamp(30px, 5vw, 48px);
-}
-
-.sonara-readiness-band .sonara-status-panel {
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  margin: 0 !important;
-}
-
-.sonara-readiness-band .sonara-status-chip {
-  min-height: 50px !important;
-  border-radius: 8px !important;
-}
-
-.sonara-readiness-band .card-actions {
-  grid-column: 1 / -1;
-}
+.sonara-readiness-band .sonara-status-panel { grid-column: 2; grid-row: 1 / 3; }
+.sonara-readiness-band { grid-template-rows: auto auto; }
+.sonara-readiness-band .card-actions { grid-column: 1; }
 
 .sonara-launch-cta {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  padding: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 30px;
-  padding: 34px 40px;
+  gap: 32px;
+  flex-wrap: wrap;
 }
-
 .sonara-launch-cta h2 {
-  max-width: 760px;
-  font-size: clamp(26px, 3vw, 38px) !important;
+  font-size: clamp(22px, 2.6vw, 30px);
+  margin: 10px 0 0;
+  max-width: 560px;
 }
 
-body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage {
-  display: block !important;
-  min-height: 0 !important;
-  padding: 58px 0 36px !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+/* ── Capability + generic card grids ─────────────────────────────────────── */
+.sonara-capability-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
 }
-
-body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage::before,
-body.sonara-standard-page:not(.sonara-admin) .sonara-hero-stage::after {
-  display: none !important;
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
 }
-
-body.sonara-standard-page:not(.sonara-admin) .sonara-hero-copy h1 {
-  max-width: 20ch !important;
-  color: var(--launch-ink) !important;
-  font-family: Georgia, "Times New Roman", serif !important;
-  font-size: clamp(38px, 5vw, 62px) !important;
-  line-height: 1.08 !important;
-  letter-spacing: 0 !important;
+.card-actions .action { min-height: 44px; }
+.sonara-workflow-band .card-actions .action,
+.sonara-readiness-band .card-actions .action {
+  background: rgba(244, 242, 236, .06);
+  border-color: var(--border-dark);
+  color: var(--on-dark);
 }
-
-body.sonara-standard-page:not(.sonara-admin) .lede {
-  color: var(--launch-muted) !important;
+.sonara-workflow-band .card-actions .action:hover,
+.sonara-readiness-band .card-actions .action:hover {
+  background: rgba(244, 242, 236, .12);
+  box-shadow: none;
 }
+.sonara-action-card { display: flex; flex-direction: column; }
+.sonara-action-card .card-actions { margin-top: auto; padding-top: 16px; }
 
-body.sonara-standard-page:not(.sonara-admin) input,
-body.sonara-standard-page:not(.sonara-admin) textarea,
-body.sonara-standard-page:not(.sonara-admin) select {
-  border-color: var(--launch-line) !important;
-  background: #ffffff !important;
-  color: var(--launch-ink) !important;
+/* ── Pricing ─────────────────────────────────────────────────────────────── */
+.sonara-price-note {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-3);
 }
-
-footer {
-  border-top-color: var(--launch-line) !important;
-  background: transparent !important;
+.card form button[type="submit"] {
+  background: var(--navy);
+  color: var(--on-dark);
 }
+.card form button[type="submit"]:hover { background: #1B2445; }
+body.sonara-admin .card form button[type="submit"] {
+  background: #EEF0F6;
+  color: #12162A;
+}
+body.sonara-admin .card form button[type="submit"]:hover { background: #fff; }
 
+/* ── Admin console: dense, calm, dark, operational ───────────────────────── */
+body.sonara-admin { font-size: 13.5px; }
+body.sonara-admin .hero { padding: 28px 0 8px; }
+body.sonara-admin h1 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.15;
+}
+body.sonara-admin .lede { font-size: 14px; max-width: 720px; }
+body.sonara-admin .grid { gap: 12px; margin: 20px 0 32px; }
+body.sonara-admin .card {
+  background: #131A30;
+  border-color: rgba(244, 242, 236, .10);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: none;
+}
+body.sonara-admin .card h2 {
+  font-size: 13px;
+  margin: 0 0 6px;
+  color: #EEF0F6;
+}
+body.sonara-admin .card p {
+  font-size: 12.5px;
+  font-family: var(--mono);
+  color: #AAB0C4;
+  margin: 0;
+}
+body.sonara-admin .actions .action,
+body.sonara-admin .card-actions .action { min-height: 36px; font-size: 12.5px; }
+body.sonara-admin footer { color: #767D93; }
+body.sonara-admin footer nav a { color: #AAB0C4; }
+body.sonara-admin .eyebrow { color: #C9BAFF; }
+
+/* ── Forms / auth ────────────────────────────────────────────────────────── */
+form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.card form { margin-top: 12px; }
+.card form input,
+.card form textarea,
+.card form select { min-height: 44px; }
+
+/* ── Tables stay inside their cards on small screens ─────────────────────── */
+.card table { display: block; overflow-x: auto; }
+
+/* ── Responsive: tablet ──────────────────────────────────────────────────── */
 @media (max-width: 1080px) {
-  header {
-    flex-wrap: wrap !important;
-  }
-
-  header nav {
-    order: 3 !important;
-    width: 100% !important;
-    justify-content: flex-start !important;
-  }
-
-  .sonara-home-v3 .sonara-hero-stage {
-    grid-template-columns: 1fr !important;
-    min-height: 0 !important;
-  }
-
-  .sonara-home-v3 .sonara-interface-face {
-    width: 100% !important;
-  }
-
-  .sonara-product-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .sonara-product-card:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .sonara-workflow-band {
-    grid-template-columns: 1fr;
-  }
+  .sonara-hero-stage { grid-template-columns: 1fr; gap: 36px; }
+  .sonara-product-grid { grid-template-columns: 1fr; }
+  .sonara-workflow-band,
+  .sonara-readiness-band { grid-template-columns: 1fr; padding: 36px; }
+  .sonara-readiness-band .sonara-status-panel { grid-column: 1; grid-row: auto; }
+  .sonara-launch-cta { padding: 36px; }
 }
 
+/* ── Responsive: mobile ──────────────────────────────────────────────────── */
 @media (max-width: 760px) {
-  header {
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    padding: 8px 12px !important;
+  .sonara-home-content { gap: 48px; padding-bottom: 48px; }
+  .sonara-workflow-band,
+  .sonara-readiness-band { padding: 26px 20px; gap: 28px; }
+  .sonara-launch-cta { padding: 26px 20px; }
+  .sonara-product-card { padding: 20px; }
+  .sonara-section-heading { flex-direction: column; align-items: flex-start; }
+  .actions .action,
+  .card-actions .action,
+  .sonara-product-links a,
+  nav a {
+    min-height: 44px;
   }
-
-  .brand {
-    min-height: 44px !important;
-    padding: 0 !important;
-  }
-
-  .brand .sonara-brand-mark {
-    width: 32px !important;
-    height: 32px !important;
-  }
-
-  .sonara-command-button {
-    min-width: 44px !important;
-    max-width: 88px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-
-  header nav {
-    flex: 1 0 100% !important;
-    display: grid !important;
-    grid-template-columns: repeat(5, max-content) !important;
-    justify-content: start !important;
-    gap: 4px !important;
-  }
-
-  header nav a:nth-child(2),
-  header nav a:nth-child(3),
-  header nav a:nth-child(4),
-  header nav a:nth-child(7) {
-    display: none !important;
-  }
-
-  main,
-  footer {
-    width: min(100% - 24px, 1240px) !important;
-  }
-
-  .sonara-home-v3 .sonara-hero-stage {
-    gap: 28px !important;
-    padding: 46px 0 48px !important;
-  }
-
-  .sonara-home-v3 .sonara-hero-copy h1 {
-    max-width: 100% !important;
-    font-size: clamp(40px, 13vw, 56px) !important;
-  }
-
-  .sonara-home-v3 .sonara-device-card {
-    min-height: 0 !important;
-    padding: 22px !important;
-  }
-
-  .sonara-home-v3 .sonara-panel-tiles,
-  .sonara-home-v3 .sonara-status-panel,
-  .sonara-readiness-band .sonara-status-panel {
-    grid-template-columns: 1fr !important;
-  }
-
-  .sonara-home-content {
-    gap: 52px;
-    padding-bottom: 54px;
-  }
-
-  .sonara-section-heading,
-  .sonara-product-grid,
-  .sonara-capability-grid,
-  .sonara-readiness-band {
-    grid-template-columns: 1fr;
-  }
-
-  .sonara-product-card:last-child {
-    grid-column: auto;
-  }
-
-  .sonara-workflow-band {
-    padding: 26px 20px;
-  }
-
-  .sonara-workflow-band ol {
-    grid-template-columns: 1fr;
-  }
-
-  .sonara-workflow-band li {
-    min-height: 0;
-  }
-
-  .sonara-readiness-band {
-    padding: 26px 20px;
-  }
-
-  .sonara-launch-cta {
-    align-items: flex-start;
-    flex-direction: column;
-    padding: 28px 20px;
-  }
-
-  .sonara-launch-cta .card-actions,
-  .sonara-hero-copy .actions {
-    width: 100%;
-  }
-
-  .sonara-launch-cta .action,
-  .sonara-hero-copy .actions .action {
-    flex: 1 1 150px;
-    justify-content: center;
-  }
+  header nav { gap: 2px; }
+  header nav a { padding: 8px 10px; }
+  .sonara-command-button { display: none; }
+  body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  footer { padding-bottom: 40px; }
 }
 
+/* ── Footer grid ─────────────────────────────────────────────────────────── */
+.sonara-footer-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 32px;
+  align-items: start;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.sonara-footer-grid > * { min-width: 0; }
+.sonara-footer-brand p {
+  font-size: 13px;
+  max-width: 420px;
+  margin: 10px 0 0;
+}
+.sonara-footer-grid nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  margin: 0;
+}
+@media (max-width: 760px) {
+  .sonara-footer-grid { grid-template-columns: 1fr; gap: 20px; }
+}
+
+/* ── Motion discipline ───────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .sonara-product-card,
-  .action,
-  header nav a {
-    transition: none !important;
-  }
+  .sonara-product-card:hover { transform: none; transition: none; }
 }

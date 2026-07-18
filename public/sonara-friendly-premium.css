@@ -1,666 +1,101 @@
-﻿/* SONARA interface-face visual system. Loaded after server.js inline styles. */
-:root {
-  --sonara-ink: #fffaf1;
-  --sonara-muted: #ece2ff;
-  --sonara-gold: #ffd166;
-  --sonara-coral: #ff7a66;
-  --sonara-violet: #b693ff;
-  --sonara-cyan: #5ee7ff;
-  --sonara-green: #8ff7b8;
-  --sonara-rose: #ff79c6;
+/* SONARA editorial typography layer.
+   Layer role: type refinement and content readability on the warm-light system.
+   Tokens come from the shared layout <style> + sonara-brand-system.css. */
+
+/* Editorial display type. */
+.sonara-hero-copy h1 em,
+h1 .sonara-grad {
+  background: linear-gradient(100deg, var(--blue), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: italic;
 }
 
-html,
-body {
-  min-height: 100% !important;
-  color: var(--sonara-ink) !important;
-  background:
-    radial-gradient(circle at 12% 4%, rgba(255,209,102,.48), transparent 22rem),
-    radial-gradient(circle at 86% 10%, rgba(94,231,255,.34), transparent 24rem),
-    radial-gradient(circle at 50% 108%, rgba(255,121,198,.27), transparent 30rem),
-    linear-gradient(135deg, #2b1647 0%, #1d234d 44%, #080b18 100%) !important;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+.sonara-hero-copy .lede {
+  max-width: 560px;
 }
 
-body::before {
-  content: "" !important;
-  position: fixed !important;
-  inset: 0 !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  opacity: .95 !important;
-  background:
-    linear-gradient(115deg, rgba(255,255,255,.14), transparent 26%, rgba(255,209,102,.13) 46%, transparent 70%),
-    linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px) !important;
-  background-size: auto, 54px 54px, 54px 54px !important;
+/* Long titles must wrap instead of clipping on narrow screens. */
+.sonara-hero-clip-fix,
+.sonara-hero-copy h1,
+.sonara-section-heading h2,
+.card h2 {
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
-header,
-main,
-footer {
-  position: relative !important;
-  z-index: 2 !important;
-  width: min(1240px, calc(100% - 32px)) !important;
+/* Section headings: mono eyebrow over serif title with supporting copy. */
+.sonara-section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 32px;
+  max-width: 100%;
+}
+.sonara-section-heading h2 {
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.15;
+  margin: 10px 0 0;
+}
+.sonara-section-heading > div {
+  max-width: 560px;
+}
+.sonara-section-heading p {
+  max-width: 420px;
+  font-size: 14px;
+  margin: 0;
+}
+.sonara-section-heading.compact p {
+  max-width: 560px;
 }
 
-header {
-  margin-top: 18px !important;
-  padding: 18px !important;
-  border-radius: 30px !important;
-  border: 1px solid rgba(255,255,255,.20) !important;
-  background: rgba(24,18,48,.78) !important;
-  box-shadow: 0 28px 90px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.16) !important;
-  backdrop-filter: blur(24px) saturate(1.3) !important;
+/* Content defaults. */
+main ul,
+main ol {
+  color: var(--text-2);
+  line-height: 1.65;
+}
+small {
+  color: var(--text-3);
 }
 
-.brand {
-  min-width: 198px !important;
-  min-height: 58px !important;
-  padding: 13px 16px 13px 62px !important;
-  border-radius: 24px !important;
-  position: relative !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  text-transform: none !important;
-  letter-spacing: .02em !important;
-  color: #fff4d8 !important;
-  border: 1px solid rgba(255,209,102,.40) !important;
-  background: linear-gradient(135deg, rgba(255,209,102,.26), rgba(182,147,255,.14)), rgba(255,255,255,.08) !important;
-  box-shadow: 0 18px 42px rgba(255,209,102,.13) !important;
+/* Skip link for keyboard users. */
+.sonara-skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--navy);
+  color: var(--on-dark);
+  padding: 10px 16px;
+  border-radius: 0 0 10px 0;
+  font-weight: 600;
+  text-decoration: none;
 }
-.brand::before {
-  content: "" !important;
-  position: absolute !important;
-  left: 12px !important;
-  width: 40px !important;
-  height: 40px !important;
-  border-radius: 15px !important;
-  background: conic-gradient(from 160deg, #ffd166, #ff7a66, #b693ff, #5ee7ff, #ffd166) !important;
-  box-shadow: 0 16px 38px rgba(255,209,102,.28) !important;
-}
-.brand::after { content: "SONARA Industries" !important; font-weight: 950 !important; }
-
-nav { gap: 12px !important; }
-nav a,
-.action,
-button {
-  min-height: 48px !important;
-  padding: 13px 18px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,.22) !important;
-  background: rgba(255,255,255,.105) !important;
-  color: #fffdf7 !important;
-  font-weight: 850 !important;
-  text-decoration: none !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 14px 34px rgba(0,0,0,.22) !important;
-  backdrop-filter: blur(18px) saturate(1.15) !important;
+.sonara-skip:focus {
+  left: 0;
 }
 
-.hero {
-  position: relative !important;
-  isolation: isolate !important;
-  min-height: 74vh !important;
-  display: grid !important;
-  align-content: center !important;
-  padding: clamp(58px, 8vw, 120px) clamp(22px, 5vw, 64px) !important;
-  margin: 30px 0 24px !important;
-  border-radius: clamp(30px, 5vw, 56px) !important;
-  border: 1px solid rgba(255,255,255,.20) !important;
-  overflow: hidden !important;
-  background:
-    linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.04)),
-    radial-gradient(circle at 20% 12%, rgba(255,209,102,.24), transparent 24rem),
-    radial-gradient(circle at 88% 42%, rgba(94,231,255,.20), transparent 26rem) !important;
-  box-shadow: 0 42px 120px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.16) !important;
-  backdrop-filter: blur(20px) saturate(1.2) !important;
+/* Password visibility toggle reads as a quiet utility, not a primary action. */
+form button[data-toggle-password] {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-strong);
+  font-weight: 500;
+}
+form button[data-toggle-password]:hover {
+  background: var(--bg-2);
+  color: var(--text);
+}
+body.sonara-admin form button[data-toggle-password] {
+  background: transparent;
+  color: var(--text-2);
 }
 
-.hero > * {
-  position: relative !important;
-  z-index: 3 !important;
-  max-width: 760px !important;
-}
-
-/* FORCED VISIBLE SONARA INTERFACE FACE */
-.hero::before {
-  content: "" !important;
-  position: absolute !important;
-  right: clamp(8px, 5vw, 80px) !important;
-  top: 50% !important;
-  width: clamp(310px, 40vw, 560px) !important;
-  aspect-ratio: 1 !important;
-  transform: translateY(-50%) rotate(-8deg) !important;
-  border-radius: 44% 56% 48% 52% / 48% 42% 58% 52% !important;
-  z-index: 1 !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
-  background:
-    radial-gradient(circle at 34% 38%, rgba(255,255,255,1) 0 3.5%, transparent 4.5%),
-    radial-gradient(circle at 61% 36%, rgba(255,255,255,1) 0 3.5%, transparent 4.5%),
-    radial-gradient(ellipse at 49% 64%, rgba(8,10,22,.90) 0 10%, transparent 11%),
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.42), transparent 33%),
-    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.42) 0 1px, transparent 2px 9px),
-    conic-gradient(from 210deg, #ffd166, #ff7a66, #ff79c6, #b693ff, #5ee7ff, #8ff7b8, #ffd166) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.28) inset,
-    0 28px 95px rgba(94,231,255,.26),
-    0 28px 95px rgba(255,121,198,.22) !important;
-  filter: saturate(1.18) contrast(1.05) !important;
-}
-.hero::after {
-  content: "SONARA\A INTERFACE" !important;
-  white-space: pre !important;
-  position: absolute !important;
-  right: clamp(18px, 6vw, 84px) !important;
-  bottom: clamp(18px, 5vw, 70px) !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-  color: rgba(255,255,255,.18) !important;
-  font-size: clamp(38px, 7vw, 104px) !important;
-  line-height: .78 !important;
-  font-weight: 1000 !important;
-  letter-spacing: -.08em !important;
-  text-align: right !important;
-}
-
-.eyebrow {
-  width: max-content !important;
-  max-width: 100% !important;
-  padding: 10px 14px !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,209,102,.44) !important;
-  background: rgba(255,209,102,.14) !important;
-  color: #ffd166 !important;
-  font-size: 12px !important;
-  font-weight: 950 !important;
-  letter-spacing: .22em !important;
-}
-h1 {
-  margin: 22px 0 18px !important;
-  max-width: 780px !important;
-  font-size: clamp(58px, 9vw, 116px) !important;
-  line-height: .88 !important;
-  letter-spacing: -.085em !important;
-  font-weight: 1000 !important;
-  background: linear-gradient(100deg, #fffdf7 0%, #fff4d8 28%, #ffd166 52%, #ff79c6 78%, #5ee7ff 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  filter: drop-shadow(0 24px 74px rgba(255,209,102,.20)) !important;
-}
-.lede {
-  max-width: 700px !important;
-  color: rgba(255,253,247,.92) !important;
-  font-size: clamp(20px, 2.2vw, 28px) !important;
-  line-height: 1.55 !important;
-  font-weight: 650 !important;
-}
-.actions { gap: 14px !important; margin-top: 28px !important; }
-.actions .action:first-child,
-button[type="submit"] {
-  background: linear-gradient(135deg, #ffd166, #ff7a66) !important;
-  color: #15101f !important;
-  border-color: rgba(255,209,102,.75) !important;
-}
-
-.grid {
-  width: 100% !important;
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)) !important;
-  gap: 20px !important;
-  margin: 20px 0 70px !important;
-}
-.card {
-  min-height: 220px !important;
-  padding: 28px !important;
-  border-radius: 30px !important;
-  border: 1px solid rgba(255,255,255,.18) !important;
-  background:
-    linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.065)),
-    radial-gradient(circle at 18% 0%, rgba(255,209,102,.20), transparent 22rem) !important;
-  box-shadow: 0 30px 90px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.18) !important;
-  backdrop-filter: blur(24px) saturate(1.28) !important;
-}
-.card::before {
-  content: "" !important;
-  display: block !important;
-  width: 58px !important;
-  height: 7px !important;
-  margin-bottom: 22px !important;
-  border-radius: 999px !important;
-  background: linear-gradient(90deg, #ffd166, #ff7a66, #b693ff, #5ee7ff) !important;
-}
-.card h2 { color: #fffdf7 !important; font-size: 26px !important; letter-spacing: -.04em !important; }
-.card p { color: rgba(255,253,247,.85) !important; font-size: 17px !important; }
-
-.sonara-business-builder { background: radial-gradient(circle at 10% 5%, rgba(143,247,184,.50), transparent 24rem), radial-gradient(circle at 82% 12%, rgba(255,209,102,.28), transparent 26rem), linear-gradient(135deg, #0b2419 0%, #183d29 48%, #111427 100%) !important; }
-.sonara-creator-studio { background: radial-gradient(circle at 10% 5%, rgba(255,121,198,.48), transparent 24rem), radial-gradient(circle at 82% 12%, rgba(94,231,255,.24), transparent 26rem), linear-gradient(135deg, #2c1231 0%, #262752 48%, #111427 100%) !important; }
-.sonara-growth-studio { background: radial-gradient(circle at 10% 5%, rgba(94,231,255,.48), transparent 24rem), radial-gradient(circle at 82% 12%, rgba(143,247,184,.25), transparent 26rem), linear-gradient(135deg, #082538 0%, #153b52 48%, #111427 100%) !important; }
-
-footer {
-  margin-bottom: 26px !important;
-  padding: 26px !important;
-  border-radius: 28px !important;
-  border: 1px solid rgba(255,255,255,.14) !important;
-  background: rgba(255,255,255,.065) !important;
-}
-
-@media (max-width: 900px) {
-  .hero { min-height: auto !important; padding-bottom: 360px !important; }
-  .hero::before { right: 50% !important; top: auto !important; bottom: 28px !important; width: min(74vw, 380px) !important; transform: translateX(50%) rotate(-8deg) !important; }
-  .hero::after { right: 24px !important; bottom: 42px !important; font-size: clamp(34px, 13vw, 70px) !important; }
-}
-
-@media (max-width: 760px) {
-  header, main, footer { width: min(100% - 20px, 1240px) !important; }
-  header { border-radius: 22px !important; }
-  nav a, .action, button { min-height: 50px !important; }
-  h1 { font-size: clamp(52px, 17vw, 78px) !important; }
-  .lede { font-size: 19px !important; }
-  .grid { grid-template-columns: 1fr !important; }
-}
-
-
-/* FORCED HOMEFACE DOM REDESIGN */
-.sonara-hero-stage {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 520px) !important;
-  gap: clamp(24px, 5vw, 70px) !important;
-  align-items: center !important;
-  min-height: 78vh !important;
-  padding: clamp(48px, 7vw, 92px) !important;
-  background:
-    radial-gradient(circle at 18% 12%, rgba(255, 209, 102, .34), transparent 28rem),
-    radial-gradient(circle at 78% 34%, rgba(94, 231, 255, .32), transparent 30rem),
-    linear-gradient(135deg, rgba(255,255,255,.18), rgba(255,255,255,.055)) !important;
-}
-
-.sonara-hero-stage::before,
-.sonara-hero-stage::after {
-  display: none !important;
-}
-
-.sonara-hero-copy {
-  position: relative !important;
-  z-index: 5 !important;
-}
-
-.sonara-interface-face {
-  position: relative !important;
-  z-index: 4 !important;
-  min-height: 560px !important;
-  display: grid !important;
-  place-items: center !important;
-  isolation: isolate !important;
-}
-
-.sonara-interface-face::before {
-  content: "SONARA\\A INTERFACE" !important;
-  white-space: pre !important;
-  position: absolute !important;
-  inset: auto 0 30px auto !important;
-  font-size: clamp(46px, 7vw, 104px) !important;
-  line-height: .78 !important;
-  font-weight: 1000 !important;
-  letter-spacing: -.08em !important;
-  text-align: right !important;
-  color: rgba(255,255,255,.18) !important;
-  z-index: 0 !important;
-}
-
-.sonara-face-orb {
-  width: min(42vw, 470px) !important;
-  min-width: 330px !important;
-  aspect-ratio: 1 !important;
-  position: relative !important;
-  z-index: 2 !important;
-  border-radius: 44% 56% 48% 52% / 48% 42% 58% 52% !important;
-  background:
-    radial-gradient(circle at 34% 38%, rgba(255,255,255,1) 0 3.5%, transparent 4.8%),
-    radial-gradient(circle at 61% 36%, rgba(255,255,255,1) 0 3.5%, transparent 4.8%),
-    radial-gradient(ellipse at 49% 64%, rgba(8,10,22,.92) 0 10%, transparent 11%),
-    radial-gradient(circle at 50% 50%, rgba(255,255,255,.44), transparent 33%),
-    repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.40) 0 1px, transparent 2px 9px),
-    conic-gradient(from 210deg, #ffd166, #ff7a66, #ff79c6, #b693ff, #5ee7ff, #8ff7b8, #ffd166) !important;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.35) inset,
-    0 34px 110px rgba(94,231,255,.32),
-    0 34px 110px rgba(255,121,198,.28) !important;
-  transform: rotate(-8deg) !important;
-}
-
-.sonara-orb-core,
-.sonara-orb-ring,
-.sonara-orb-node {
-  position: absolute !important;
-  display: block !important;
-  pointer-events: none !important;
-}
-
-.sonara-orb-core {
-  inset: 25% !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,.36) !important;
-  background: radial-gradient(circle, rgba(255,255,255,.28), transparent 62%) !important;
-}
-
-.sonara-orb-ring {
-  inset: 9% !important;
-  border-radius: 999px !important;
-  border: 1px solid rgba(255,255,255,.26) !important;
-}
-
-.ring-b {
-  inset: 17% !important;
-  transform: rotate(32deg) !important;
-  border-color: rgba(255,209,102,.35) !important;
-}
-
-.sonara-orb-node {
-  width: 14px !important;
-  height: 14px !important;
-  border-radius: 999px !important;
-  background: #fff !important;
-  box-shadow: 0 0 22px rgba(255,255,255,.85) !important;
-}
-
-.node-a { left: 14%; top: 36%; }
-.node-b { right: 14%; top: 28%; }
-.node-c { right: 28%; bottom: 16%; }
-
-.sonara-device-card {
-  position: absolute !important;
-  left: -4% !important;
-  bottom: 2% !important;
-  z-index: 3 !important;
-  max-width: 310px !important;
-  padding: 22px !important;
-  border-radius: 26px !important;
-  border: 1px solid rgba(255,255,255,.26) !important;
-  background: rgba(14, 13, 28, .72) !important;
-  backdrop-filter: blur(22px) saturate(1.3) !important;
-  box-shadow: 0 28px 80px rgba(0,0,0,.38) !important;
-}
-
-.sonara-device-bar {
-  display: flex !important;
-  gap: 7px !important;
-  margin-bottom: 16px !important;
-}
-
-.sonara-device-bar span {
-  width: 10px !important;
-  height: 10px !important;
-  border-radius: 999px !important;
-  background: #ffd166 !important;
-}
-
-.sonara-device-card strong {
-  display: block !important;
-  font-size: 28px !important;
-  letter-spacing: -.05em !important;
-  color: #fffdf7 !important;
-}
-
-.sonara-device-card p {
-  margin: 8px 0 14px !important;
-  color: rgba(255,253,247,.80) !important;
-}
-
-.sonara-module-strip {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px !important;
-}
-
-.sonara-module-strip span,
-.sonara-proof-pill {
-  border: 1px solid rgba(255,255,255,.22) !important;
-  border-radius: 999px !important;
-  padding: 8px 10px !important;
-  color: #fffdf7 !important;
-  background: rgba(255,255,255,.10) !important;
-  font-size: 12px !important;
-  font-weight: 850 !important;
-}
-
-.sonara-proof-pill {
-  position: absolute !important;
-  right: 0 !important;
-  top: 8% !important;
-  z-index: 4 !important;
-  background: linear-gradient(135deg, rgba(255,209,102,.26), rgba(94,231,255,.18)) !important;
-}
-
-@media (max-width: 980px) {
-  .sonara-hero-stage {
-    grid-template-columns: 1fr !important;
-    padding-bottom: 38px !important;
-  }
-
-  .sonara-interface-face {
-    min-height: 440px !important;
-  }
-
-  .sonara-face-orb {
-    width: min(78vw, 390px) !important;
-    min-width: 280px !important;
-  }
-
-  .sonara-device-card {
-    left: 4% !important;
-    bottom: 0 !important;
-  }
-}
-
-/* Launch MVP interaction depth and mobile hardening */
-header {
-  max-width: calc(100vw - 24px) !important;
-}
-
-nav {
-  max-width: 100% !important;
-  overflow-x: auto !important;
-  overscroll-behavior-inline: contain !important;
-  scrollbar-width: thin !important;
-}
-
-nav a,
-.action,
-button {
-  min-width: max-content !important;
-}
-
-.sonara-hero-stage {
-  overflow: hidden !important;
-}
-
-.sonara-hero-copy h1 {
-  max-width: 11ch !important;
-  font-size: clamp(44px, 7.4vw, 86px) !important;
-  line-height: .96 !important;
-  letter-spacing: -.045em !important;
-  overflow-wrap: normal !important;
-  word-break: keep-all !important;
-}
-
-.sonara-interface-face {
-  max-width: 100% !important;
-  overflow: hidden !important;
-}
-
-.sonara-face-orb {
-  max-width: 100% !important;
-}
-
-.sonara-action-card {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 14px !important;
-}
-
-.card-actions {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
-  margin-top: auto !important;
-}
-
-.card-actions .action {
-  min-height: 44px !important;
-  padding: 11px 14px !important;
-  font-size: 14px !important;
-}
-
-.sonara-status-panel {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 8px !important;
-  margin-top: 16px !important;
-}
-
-.sonara-status-chip {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 12px !important;
-  min-height: 38px !important;
-  border-radius: 14px !important;
-  padding: 8px 10px !important;
-  border: 1px solid rgba(255,255,255,.18) !important;
-  background: rgba(255,255,255,.08) !important;
-  color: #fffdf7 !important;
-}
-
-.sonara-status-chip b,
-.sonara-status-chip em {
-  font-style: normal !important;
-  font-size: 12px !important;
-  line-height: 1.2 !important;
-}
-
-.sonara-status-chip em {
-  color: rgba(255,253,247,.76) !important;
-  text-align: right !important;
-}
-
-.sonara-status-chip.is-ready {
-  border-color: rgba(143,247,184,.42) !important;
-  background: rgba(143,247,184,.12) !important;
-}
-
-.sonara-status-chip.is-review {
-  border-color: rgba(255,209,102,.44) !important;
-  background: rgba(255,209,102,.12) !important;
-}
-
-.sonara-status-chip.is-setup {
-  border-color: rgba(255,122,102,.44) !important;
-  background: rgba(255,122,102,.12) !important;
-}
-
-@media (max-width: 900px) {
-  header {
-    gap: 14px !important;
-  }
-
-  .brand {
-    min-width: 0 !important;
-    width: auto !important;
-    max-width: 100% !important;
-  }
-
-  nav {
-    width: 100% !important;
-    flex-wrap: nowrap !important;
-    padding-bottom: 4px !important;
-  }
-
-  .sonara-hero-copy h1 {
-    max-width: 12ch !important;
-    font-size: clamp(42px, 10.6vw, 66px) !important;
-  }
-
-  .sonara-device-card {
-    max-width: min(92vw, 330px) !important;
-  }
-}
-
-@media (max-width: 520px) {
-  header {
-    margin-top: 10px !important;
-    padding: 12px !important;
-  }
-
-  .brand {
-    min-height: 52px !important;
-    padding-left: 56px !important;
-  }
-
-  .brand::before {
-    width: 36px !important;
-    height: 36px !important;
-  }
-
-  .sonara-hero-stage {
-    min-height: auto !important;
-    padding: 28px 16px 24px !important;
-    gap: 18px !important;
-    border-radius: 28px !important;
-  }
-
-  .sonara-hero-copy h1 {
-    max-width: 100% !important;
-    font-size: clamp(38px, 12vw, 52px) !important;
-    letter-spacing: -.035em !important;
-  }
-
-  .lede {
-    font-size: 17px !important;
-  }
-
-  .sonara-interface-face {
-    min-height: 390px !important;
-    place-items: start center !important;
-  }
-
-  .sonara-face-orb {
-    width: min(82vw, 310px) !important;
-    min-width: 0 !important;
-  }
-
-  .sonara-device-card {
-    left: 50% !important;
-    bottom: 4px !important;
-    transform: translateX(-50%) !important;
-    width: min(92vw, 318px) !important;
-  }
-
-  .sonara-proof-pill {
-    position: relative !important;
-    inset: auto !important;
-    margin-top: 10px !important;
-    width: fit-content !important;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sonara-face-orb,
-  .sonara-orb-ring,
-  .sonara-orb-node {
-    animation: none !important;
-    transform: none !important;
-  }
-}
-
-
-
-/* SONARA LAUNCH FIX 20260714 (guard: sonara-hero-clip-fix)
-   Long single-word headings (Infrastructure, Monetization Readiness, Automations)
-   must wrap inside the hero copy column instead of being clipped by overflow. */
-.sonara-hero-copy h1 {
-  overflow-wrap: break-word !important;
-  word-break: normal !important;
-  hyphens: auto !important;
+/* Print: keep documents readable. */
+@media print {
+  header, footer, .sonara-quick-bar, .sonara-command-button { display: none !important; }
+  body { background: #fff; color: #000; }
 }
