@@ -1,13 +1,10 @@
 # Locks
 
 Active:
-- LOCK: `.ai/shared/CURRENT_STATE.md`, `.ai/shared/TASK_BOARD.md`, `.ai/shared/HANDOFF_LOG.md`, `.ai/shared/CHANGELOG_AI.md`, `.ai/shared/RISKS.md`, `.ai/shared/TEST_MATRIX.md`
-- OWNER: Codex (Agent A)
-- PURPOSE: record PR #23 merge and exact-SHA Vercel production release evidence
-- STARTED: 2026-07-18
-- BRANCH: `codex/pwa-release-handoff`
+- None.
 
 History:
+- RELEASED: PR #23 merge and exact-SHA Vercel production handoff — Codex, completed 2026-07-18 after shared current-state, task, test, risk, changelog, and handoff reconciliation.
 - RELEASED: canonical manifest, public-only service-worker registration, cache privacy, executable PWA tests, and shared handoff — Codex, completed 2026-07-18 in PR #23 after application CI, dependency, Docker, Supabase validation, and Vercel preview passed.
 - RELEASED: PR #21 merge/production verification and credential-rotation handoff — Codex, completed 2026-07-18 after green main checks, exact-SHA Vercel production proof, route smoke, runtime-error inspection, and read-only DNS inventory.
 - RELEASED: canonical Supabase database/agent contract, safe local/read-only MCP config, service-only metadata RPC, protected runtime readiness, verification/tests/docs/shared handoff — Codex, completed 2026-07-18 after rollback-only PostgreSQL execution, local Supabase lint, and full launch gates. Production migrations 40/41 remain owner-dependent.
