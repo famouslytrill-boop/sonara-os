@@ -4,7 +4,7 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 ## In progress
 
-- Release-evidence reconciliation for merged PR #23 only. No product files are locked.
+- [Codex] Audit runtime PostgREST access patterns against the 71-table contract and current Supabase/Postgres guidance; add only evidence-backed operational indexes and query consolidation. Repository migration and verification only—no hosted apply without owner credentials and approval.
 
 ## Blocked / owner-dependent
 
