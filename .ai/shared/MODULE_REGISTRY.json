@@ -1,0 +1,5 @@
+{
+  "note": "Server-side module/catalog truth lives in server.js STRIPE_PLANS + product_modules table + /service-catalog. Codex to expand.",
+  "products": ["business_builder", "creator_studio", "growth_studio"],
+  "plans": ["free", "starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]
+}

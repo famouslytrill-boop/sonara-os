@@ -61,15 +61,15 @@
 
   function resolvedAppearance(choice) {
     if (choice === "light" || choice === "dark") return choice;
-    return window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   }
 
   function applyAppearance(choice) {
     var resolved = resolvedAppearance(choice);
     document.documentElement.setAttribute("data-sonara-appearance", choice);
-    document.documentElement.setAttribute("data-sonara-theme", resolved);
+    document.documentElement.setAttribute("data-theme", resolved);
     var themeColor = document.querySelector('meta[name="theme-color"]');
-    if (themeColor) themeColor.setAttribute("content", resolved === "light" ? "#f5f1e8" : "#11101a");
+    if (themeColor) themeColor.setAttribute("content", resolved === "light" ? "#FAF8F4" : "#0C1122");
   }
 
   function bindAppearance() {
@@ -89,7 +89,7 @@
       });
     }
     if (window.matchMedia) {
-      var colorScheme = window.matchMedia("(prefers-color-scheme: light)");
+      var colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
       var onSystemAppearance = function onSystemAppearance() {
         if (appearanceChoice() === "system") applyAppearance("system");
       };

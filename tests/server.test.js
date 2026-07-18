@@ -2,6 +2,11 @@ const request = require("supertest");
 const assert = require("assert");
 const crypto = require("node:crypto");
 const { URLSearchParams } = require("node:url");
+const {
+  DATABASE_FUNCTIONS,
+  DATABASE_SCHEMAS,
+  DATABASE_TABLES
+} = require("../lib/sonara-database-contract.cjs");
 const app = require("../server");
 
 describe("public site", () => {
@@ -1717,6 +1722,16 @@ describe("auth and admin", () => {
           : { ok: false, json: async () => ({}) };
       }
       if (requestUrl.includes("/user_roles")) return { ok: true, json: async () => roles.map((role) => ({ role })) };
+      if (requestUrl.includes("/rpc/sonara_database_contract_snapshot")) {
+        return {
+          ok: true,
+          json: async () => ({
+            schemas: DATABASE_SCHEMAS.map((name) => ({ name, available: true })),
+            tables: DATABASE_TABLES.map((name) => ({ name, available: true, rls_enabled: true })),
+            functions: DATABASE_FUNCTIONS.map((signature) => ({ signature, available: true }))
+          })
+        };
+      }
       if (requestUrl.includes("/rest/v1/")) return { ok: true, headers: { get: () => "0-0/1" }, json: async () => [] };
       return { ok: true, json: async () => [] };
     };
@@ -1957,8 +1972,16 @@ describe("auth and admin", () => {
     assert.equal(env.body.ok, true);
     assert.ok(Array.isArray(env.body.checks));
     assert.equal(database.status, 200);
+    assert.equal(database.body.ok, true);
+    assert.equal(database.body.source, "database_contract_rpc");
     assert.ok(Array.isArray(database.body.tables));
     assert.ok(database.body.tables.some((item) => item.table === "creator_assets"));
+    assert.ok(database.body.tables.some((item) => item.table === "entity_agent_runs" && item.rlsEnabled === true));
+    assert.ok(Array.isArray(database.body.functions));
+    assert.ok(database.body.functions.some((item) => item.function === "public.sonara_database_contract_snapshot()" && item.ok));
+    assert.ok(Array.isArray(database.body.schemas));
+    assert.ok(database.body.schemas.some((item) => item.schema === "storage" && item.ok));
+    assert.equal(database.body.agentFoundation.execution, "approval_gated_disabled");
     assert.equal(storage.status, 200);
     assert.ok(Array.isArray(storage.body.buckets));
     assert.ok(storage.body.buckets.some((item) => item.bucket === "creator-assets"));

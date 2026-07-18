@@ -1,0 +1,836 @@
+openapi: 3.1.0
+info:
+  title: SONARA One Runtime API
+  version: 0.1.0
+  summary: Canonical contract for the API surface registered by the production Express runtime.
+  license:
+    name: MIT
+    identifier: MIT
+  description: |
+    This contract describes the current API without changing response shapes. JSON errors use
+    `{ ok: false, code, message?, service?, missing? }`. Some browser form requests negotiate
+    HTML redirects or confirmation pages; JSON clients should send `Accept: application/json`.
+servers:
+  - url: /
+    description: Same-origin production runtime
+security: []
+tags:
+  - name: Platform
+    description: Health, readiness, support, and route inventory.
+  - name: Billing
+    description: Stripe checkout, portal, status, and signed webhook operations.
+  - name: Administration
+    description: Owner-only environment, database, storage, and operational summaries.
+  - name: Business Builder
+    description: Workspace offers, intake, records, employee invitations, and launch checklist.
+  - name: Creator Studio
+    description: Creator assets, offers, records, and music project operations.
+  - name: Growth Studio
+    description: Campaign, lead, record, and readiness operations.
+  - name: Formulas
+    description: Deterministic formula discovery, evaluation, and persisted results.
+  - name: Ecosystem
+    description: SONARA ecosystem manifest and data readiness.
+  - name: Infrastructure
+    description: Declared infrastructure manifest and readiness.
+  - name: Operations
+    description: Authenticated business, location, motion, and time-entry records.
+  - name: Integrations
+    description: Provider metadata and auditable integration jobs.
+  - name: Sensory
+    description: Opt-in sound and haptic configuration records.
+paths:
+  /api/health:
+    get:
+      operationId: getHealth
+      tags: [Platform]
+      summary: Return process and deployment health metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/readiness:
+    get:
+      operationId: getReadiness
+      tags: [Platform]
+      summary: Return non-secret service configuration readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/support/status:
+    get:
+      operationId: getSupportStatus
+      tags: [Platform]
+      summary: Return the configured support channel state.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/routes/public:
+    get:
+      operationId: getPublicRouteRegistry
+      tags: [Platform]
+      summary: Return the public route registry used by verification.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/checkout/session:
+    get:
+      operationId: getCheckoutSessionMethodNotice
+      tags: [Billing]
+      summary: Explain that checkout session creation requires POST.
+      responses:
+        "405": { $ref: "#/components/responses/MethodNotAllowed" }
+    post:
+      operationId: createCheckoutSession
+      tags: [Billing]
+      summary: Create a Stripe Checkout session for an allowed plan.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: Browser form redirect to login or Stripe Checkout. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/billing/create-checkout-session:
+    post:
+      operationId: createBillingCheckoutSession
+      tags: [Billing]
+      summary: Compatibility endpoint for creating a Stripe Checkout session.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: Browser form redirect to login or Stripe Checkout. }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/billing/create-portal-session:
+    post:
+      operationId: createBillingPortalSession
+      tags: [Billing]
+      summary: Create a Stripe customer portal session.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: Browser form redirect to login or the customer portal. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/billing/status:
+    get:
+      operationId: getBillingStatus
+      tags: [Billing]
+      summary: Return non-secret checkout readiness and an unverified paid-state marker.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/webhooks/stripe:
+    post:
+      operationId: receiveStripeWebhook
+      tags: [Billing]
+      summary: Receive and verify a raw Stripe webhook event.
+      security: [{ stripeSignature: [] }]
+      requestBody: { $ref: "#/components/requestBodies/StripeEvent" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/stripe/webhook:
+    post:
+      operationId: receiveStripeWebhookAlias
+      tags: [Billing]
+      summary: Compatibility endpoint for verified raw Stripe events.
+      security: [{ stripeSignature: [] }]
+      requestBody: { $ref: "#/components/requestBodies/StripeEvent" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/overview:
+    get:
+      operationId: getAdminOverview
+      tags: [Administration]
+      summary: Return the owner-only operational overview.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/admin/env-status:
+    get:
+      operationId: getAdminEnvironmentStatus
+      tags: [Administration]
+      summary: Return owner-only non-secret environment readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/admin/database-readiness:
+    get:
+      operationId: getAdminDatabaseReadiness
+      tags: [Administration]
+      summary: Return owner-only database readiness checks.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/admin/storage-readiness:
+    get:
+      operationId: getAdminStorageReadiness
+      tags: [Administration]
+      summary: Return owner-only private storage bucket readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/business-builder/employees/invite:
+    post:
+      operationId: inviteBusinessBuilderEmployee
+      tags: [Business Builder]
+      summary: Record a manager-controlled employee invitation without accepting a password.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/business-builder/offers:
+    post:
+      operationId: createBusinessBuilderOffer
+      tags: [Business Builder]
+      summary: Build and save a Business Builder offer.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/business-builder/intake:
+    post:
+      operationId: createBusinessBuilderIntake
+      tags: [Business Builder]
+      summary: Save a Business Builder intake request and activity record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/business-builder/records:
+    get:
+      operationId: listBusinessBuilderRecords
+      tags: [Business Builder]
+      summary: List records after paid-or-owner entitlement checks.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/business-builder/readiness:
+    get:
+      operationId: getBusinessBuilderReadiness
+      tags: [Business Builder]
+      summary: Return Business Builder product readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/checklist:
+    get:
+      operationId: listBusinessBuilderChecklist
+      tags: [Business Builder]
+      summary: List launch checklist items for the active workspace.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    post:
+      operationId: createBusinessBuilderChecklistItem
+      tags: [Business Builder]
+      summary: Create a launch checklist item.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    patch:
+      operationId: updateBusinessBuilderChecklistItem
+      tags: [Business Builder]
+      summary: Update a launch checklist item by request-body id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    delete:
+      operationId: deleteBusinessBuilderChecklistItem
+      tags: [Business Builder]
+      summary: Delete a launch checklist item by request-body id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/assets:
+    post:
+      operationId: createCreatorStudioAsset
+      tags: [Creator Studio]
+      summary: Validate and save a creator asset record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/offers:
+    post:
+      operationId: createCreatorStudioOffer
+      tags: [Creator Studio]
+      summary: Build and save a Creator Studio offer.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/records:
+    get:
+      operationId: listCreatorStudioRecords
+      tags: [Creator Studio]
+      summary: List records after paid-or-owner entitlement checks.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/readiness:
+    get:
+      operationId: getCreatorStudioReadiness
+      tags: [Creator Studio]
+      summary: Return Creator Studio product readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/creator/music-system/readiness:
+    get:
+      operationId: getCreatorMusicSystemReadiness
+      tags: [Creator Studio]
+      summary: Return protected Creator Music System table and field readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/growth-studio/campaigns:
+    post:
+      operationId: createGrowthStudioCampaign
+      tags: [Growth Studio]
+      summary: Build and save a campaign plan.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/leads:
+    post:
+      operationId: createGrowthStudioLead
+      tags: [Growth Studio]
+      summary: Save a consent-aware lead follow-up record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/records:
+    get:
+      operationId: listGrowthStudioRecords
+      tags: [Growth Studio]
+      summary: List records after paid-or-owner entitlement checks.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/readiness:
+    get:
+      operationId: getGrowthStudioReadiness
+      tags: [Growth Studio]
+      summary: Return Growth Studio product readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/formulas/readiness:
+    get:
+      operationId: getFormulaReadiness
+      tags: [Formulas]
+      summary: Return formula registry and persistence readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/formulas/definitions:
+    get:
+      operationId: listFormulaDefinitions
+      tags: [Formulas]
+      summary: Return registered deterministic formula definitions.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/formulas/evaluate:
+    post:
+      operationId: evaluateFormula
+      tags: [Formulas]
+      summary: Evaluate a registered formula without persistence.
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/formulas/results:
+    post:
+      operationId: saveFormulaResult
+      tags: [Formulas]
+      summary: Evaluate and save a formula result in its mapped workspace.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/ecosystem/manifest:
+    get:
+      operationId: getEcosystemManifest
+      tags: [Ecosystem]
+      summary: Return the SONARA ecosystem manifest.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/readiness:
+    get:
+      operationId: getEcosystemReadiness
+      tags: [Ecosystem]
+      summary: Return truthful ecosystem table readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/infrastructure/manifest:
+    get:
+      operationId: getInfrastructureManifest
+      tags: [Infrastructure]
+      summary: Return the declared infrastructure manifest.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/infrastructure/readiness:
+    get:
+      operationId: getInfrastructureReadiness
+      tags: [Infrastructure]
+      summary: Return truthful infrastructure service readiness.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/last9/readiness:
+    get:
+      operationId: getOperationsReadiness
+      tags: [Operations]
+      summary: Return the operational table readiness set.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/integrations/providers:
+    get:
+      operationId: listIntegrationProviders
+      tags: [Integrations]
+      summary: List configured integration provider metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/business/locations:
+    get:
+      operationId: listBusinessLocations
+      tags: [Operations]
+      summary: List business locations for a manager workspace.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessLocation
+      tags: [Operations]
+      summary: Create a business location for a manager workspace.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/services:
+    get:
+      operationId: listBusinessServices
+      tags: [Operations]
+      summary: List business service catalog records.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessService
+      tags: [Operations]
+      summary: Create a business service catalog record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/bookings:
+    get:
+      operationId: listBusinessBookings
+      tags: [Operations]
+      summary: List business booking records.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessBooking
+      tags: [Operations]
+      summary: Create a business booking record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/staff:
+    get:
+      operationId: listBusinessStaff
+      tags: [Operations]
+      summary: List business staff profiles.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessStaffProfile
+      tags: [Operations]
+      summary: Create a business staff profile.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/schedules:
+    get:
+      operationId: listBusinessSchedules
+      tags: [Operations]
+      summary: List employee schedules.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessSchedule
+      tags: [Operations]
+      summary: Create an employee schedule.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/vendors:
+    get:
+      operationId: listBusinessVendors
+      tags: [Operations]
+      summary: List vendor accounts.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessVendor
+      tags: [Operations]
+      summary: Create a vendor account.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/invoices:
+    get:
+      operationId: listBusinessInvoices
+      tags: [Operations]
+      summary: List vendor invoices.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessInvoice
+      tags: [Operations]
+      summary: Create a vendor invoice.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/inventory:
+    get:
+      operationId: listBusinessInventory
+      tags: [Operations]
+      summary: List inventory items.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessInventoryItem
+      tags: [Operations]
+      summary: Create an inventory item.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recipes:
+    get:
+      operationId: listBusinessRecipes
+      tags: [Operations]
+      summary: List recipe cards.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessRecipe
+      tags: [Operations]
+      summary: Create a recipe card.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/menu-items:
+    get:
+      operationId: listBusinessMenuItems
+      tags: [Operations]
+      summary: List menu items.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessMenuItem
+      tags: [Operations]
+      summary: Create a menu item.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/vehicles:
+    get:
+      operationId: listBusinessVehicles
+      tags: [Operations]
+      summary: List vehicle records.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessVehicle
+      tags: [Operations]
+      summary: Create a vehicle record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/maintenance:
+    get:
+      operationId: listBusinessMaintenance
+      tags: [Operations]
+      summary: List maintenance logs.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessMaintenanceLog
+      tags: [Operations]
+      summary: Create a maintenance log.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/waste:
+    get:
+      operationId: listBusinessWaste
+      tags: [Operations]
+      summary: List waste logs.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessWasteLog
+      tags: [Operations]
+      summary: Create a waste log.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/music-projects:
+    get:
+      operationId: listCreatorMusicProjects
+      tags: [Creator Studio]
+      summary: List creator music projects.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorMusicProject
+      tags: [Creator Studio]
+      summary: Create a creator music project.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/integrations/jobs:
+    get:
+      operationId: listIntegrationJobs
+      tags: [Integrations]
+      summary: List integration jobs.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createIntegrationJob
+      tags: [Integrations]
+      summary: Create an auditable integration job record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/sensory/profiles:
+    get:
+      operationId: listSensoryProfiles
+      tags: [Sensory]
+      summary: List sensory feedback profiles.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createSensoryProfile
+      tags: [Sensory]
+      summary: Create a sensory feedback profile.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/sensory/sound-cues:
+    get:
+      operationId: listSensorySoundCues
+      tags: [Sensory]
+      summary: List opt-in sound cue records.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createSensorySoundCue
+      tags: [Sensory]
+      summary: Create an opt-in sound cue record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/sensory/haptic-patterns:
+    get:
+      operationId: listSensoryHapticPatterns
+      tags: [Sensory]
+      summary: List opt-in haptic pattern records.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createSensoryHapticPattern
+      tags: [Sensory]
+      summary: Create an opt-in haptic pattern record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/location/zones:
+    get:
+      operationId: listLocationZones
+      tags: [Operations]
+      summary: List approved business location zones.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createLocationZone
+      tags: [Operations]
+      summary: Create an approved business location zone.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/time-entries/start:
+    post:
+      operationId: startBusinessTimeEntry
+      tags: [Operations]
+      summary: Start an authenticated employee time entry.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/time-entries/stop:
+    post:
+      operationId: stopBusinessTimeEntry
+      tags: [Operations]
+      summary: Stop an authenticated employee time entry by id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/location/events:
+    post:
+      operationId: createLocationEvent
+      tags: [Operations]
+      summary: Save a permission-gated authenticated location event.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/motion/events:
+    post:
+      operationId: createMotionEvent
+      tags: [Operations]
+      summary: Save a permission-gated authenticated device motion event.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase access token resolved server-side and authorized by workspace role.
+    stripeSignature:
+      type: apiKey
+      in: header
+      name: Stripe-Signature
+      description: Stripe webhook signature verified against the configured endpoint secret.
+  requestBodies:
+    JsonBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/JsonObject" }
+    JsonOrFormBody:
+      required: true
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/JsonObject" }
+        application/x-www-form-urlencoded:
+          schema: { $ref: "#/components/schemas/JsonObject" }
+    StripeEvent:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+  responses:
+    Success:
+      description: "Operation-specific HTTP success object; readiness payloads may use ok=false to report an unavailable dependency without changing the HTTP result."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/SuccessResponse" }
+    BadRequest:
+      description: Request validation or signature verification failed.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Unauthorized:
+      description: A valid customer session is required.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Forbidden:
+      description: The authenticated principal lacks the required role or entitlement.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    SetupRequired:
+      description: A required external service or persisted resource is not configured.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    MethodNotAllowed:
+      description: The registered compatibility method is intentionally unavailable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+  schemas:
+    JsonObject:
+      type: object
+      additionalProperties: true
+    SuccessResponse:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean }
+      additionalProperties: true
+    ErrorResponse:
+      type: object
+      required: [ok, code]
+      properties:
+        ok: { const: false }
+        code: { type: string }
+        message: { type: string }
+        service: { type: string }
+        missing:
+          type: array
+          items: { type: string }
+      additionalProperties: true

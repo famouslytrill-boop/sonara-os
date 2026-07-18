@@ -3,9 +3,156 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 const request = require("supertest");
 const app = require("../server");
 const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES } = require("../lib/sonara-route-registry.cjs");
+
+function runThemePrepaint(source, { storedAppearance, prefersDark }) {
+  const attributes = {};
+  const sandbox = {
+    document: {
+      documentElement: {
+        setAttribute(name, value) {
+          attributes[name] = value;
+        }
+      }
+    },
+    window: {
+      localStorage: {
+        getItem() {
+          return storedAppearance ?? null;
+        }
+      },
+      matchMedia(query) {
+        return { matches: query === "(prefers-color-scheme: dark)" && prefersDark };
+      }
+    }
+  };
+  vm.runInNewContext(source, sandbox);
+  return attributes;
+}
+
+function runInterfaceEngine({ storedAppearance, haptics, prefersDark = false, reducedMotion = false }) {
+  const source = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-interface-engine.js"), "utf8");
+  const attributes = {};
+  const vibrationCalls = [];
+  const documentListeners = {};
+  const appearanceListeners = {};
+  const stored = new Map();
+  if (storedAppearance) stored.set("sonara-appearance", storedAppearance);
+  if (haptics) stored.set("sonara-haptics", haptics);
+
+  const appearanceSelect = {
+    value: "",
+    addEventListener(type, handler) {
+      appearanceListeners[type] = handler;
+    }
+  };
+  const themeColor = {
+    setAttribute(name, value) {
+      attributes[`meta-${name}`] = value;
+    }
+  };
+  const matchMedia = (query) => ({
+    matches: query === "(prefers-reduced-motion: reduce)" ? reducedMotion : query === "(prefers-color-scheme: dark)" && prefersDark,
+    addEventListener() {}
+  });
+  const document = {
+    documentElement: {
+      setAttribute(name, value) {
+        attributes[name] = value;
+      }
+    },
+    querySelectorAll(selector) {
+      if (selector === "[data-sonara-appearance-select]") return [appearanceSelect];
+      return [];
+    },
+    querySelector(selector) {
+      if (selector === 'meta[name="theme-color"]') return themeColor;
+      return null;
+    },
+    addEventListener(type, handler) {
+      documentListeners[type] = documentListeners[type] || [];
+      documentListeners[type].push(handler);
+    }
+  };
+  const window = {
+    location: { pathname: "/settings" },
+    localStorage: {
+      getItem(key) {
+        return stored.get(key) ?? null;
+      },
+      setItem(key, value) {
+        stored.set(key, value);
+      }
+    },
+    matchMedia,
+    addEventListener() {},
+    requestAnimationFrame() {
+      return 1;
+    },
+    cancelAnimationFrame() {},
+    devicePixelRatio: 1
+  };
+  const navigator = {
+    vibrate(pattern) {
+      vibrationCalls.push(pattern);
+      return true;
+    }
+  };
+
+  vm.runInNewContext(source, { document, window, navigator });
+
+  return {
+    appearanceSelect,
+    attributes,
+    stored,
+    vibrationCalls,
+    changeAppearance(value) {
+      appearanceListeners.change({ currentTarget: { value } });
+    },
+    submitAction() {
+      for (const handler of documentListeners.click || []) {
+        handler({ target: { closest: () => ({}) } });
+      }
+    }
+  };
+}
+
+function runExperiencePointerAction() {
+  const source = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-experience.js"), "utf8");
+  const listeners = {};
+  const vibrationCalls = [];
+  const document = {
+    documentElement: { classList: { add() {} } },
+    querySelectorAll() {
+      return [];
+    },
+    addEventListener(type, handler) {
+      listeners[type] = listeners[type] || [];
+      listeners[type].push(handler);
+    }
+  };
+  const window = {
+    location: { search: "", pathname: "/" },
+    matchMedia() {
+      return { matches: false };
+    },
+    setTimeout() {}
+  };
+  const navigator = {
+    vibrate(pattern) {
+      vibrationCalls.push(pattern);
+      return true;
+    }
+  };
+  vm.runInNewContext(source, { document, history: {}, navigator, URLSearchParams, window });
+  for (const handler of listeners.pointerup || []) {
+    handler({ target: { closest: () => ({}) } });
+  }
+  return vibrationCalls;
+}
 
 describe("SONARA route registry and account completion", () => {
   it("registers every required GET route exactly once", () => {
@@ -50,12 +197,53 @@ describe("SONARA route registry and account completion", () => {
     assert.doesNotMatch(helper, /console\.(?:log|info|debug)/);
   });
 
-  it("keeps optional haptics off by default and exposes theme and quality settings", () => {
-    const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-interface-engine.js"), "utf8");
-    assert.match(engine, /getItem\(HAPTICS_KEY\) === "on"/);
-    assert.match(engine, /data-sonara-appearance-select/);
-    assert.match(engine, /data-sonara-quality-select/);
-    assert.match(engine, /prefers-color-scheme: light/);
+  it("initializes the canonical theme before styles and follows stored or system appearance", async () => {
+    const response = await request(app).get("/").set("Accept", "text/html");
+    const match = response.text.match(/<script data-sonara-theme-prepaint>([\s\S]*?)<\/script>/);
+    assert.ok(match, "pre-paint theme initializer missing");
+    assert.ok(response.text.indexOf("data-sonara-theme-prepaint") < response.text.indexOf("sonara-brand-system.css"));
+    assert.deepEqual(runThemePrepaint(match[1], { storedAppearance: "dark", prefersDark: false }), {
+      "data-sonara-appearance": "dark",
+      "data-theme": "dark"
+    });
+    assert.deepEqual(runThemePrepaint(match[1], { storedAppearance: "light", prefersDark: true }), {
+      "data-sonara-appearance": "light",
+      "data-theme": "light"
+    });
+    assert.deepEqual(runThemePrepaint(match[1], { prefersDark: true }), {
+      "data-sonara-appearance": "system",
+      "data-theme": "dark"
+    });
+  });
+
+  it("applies appearance changes to the same theme attribute consumed by CSS", () => {
+    const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-brand-system.css"), "utf8");
+    const harness = runInterfaceEngine({ storedAppearance: "dark" });
+    assert.equal(harness.attributes["data-theme"], "dark");
+    assert.equal(harness.attributes["data-sonara-appearance"], "dark");
+    assert.match(styles, /html\[data-theme="dark"\] body:not\(\.sonara-admin\)/);
+
+    harness.changeAppearance("light");
+    assert.equal(harness.attributes["data-theme"], "light");
+    assert.equal(harness.attributes["data-sonara-appearance"], "light");
+    assert.equal(harness.stored.get("sonara-appearance"), "light");
+    assert.equal(harness.attributes["meta-content"], "#FAF8F4");
+  });
+
+  it("keeps every haptic path silent before opt-in and under reduced motion", () => {
+    const defaultHarness = runInterfaceEngine({});
+    defaultHarness.submitAction();
+    assert.deepEqual(defaultHarness.vibrationCalls, []);
+
+    const reducedHarness = runInterfaceEngine({ haptics: "on", reducedMotion: true });
+    reducedHarness.submitAction();
+    assert.deepEqual(reducedHarness.vibrationCalls, []);
+
+    const enabledHarness = runInterfaceEngine({ haptics: "on" });
+    enabledHarness.submitAction();
+    assert.deepEqual(enabledHarness.vibrationCalls, [10]);
+
+    assert.deepEqual(runExperiencePointerAction(), []);
   });
 
   it("writes audit events to the table and actor column defined by migrations", () => {

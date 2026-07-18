@@ -1,0 +1,38 @@
+{
+  "updated": "2026-07-18",
+  "runtime": {
+    "entry": "api/index.js",
+    "server": "server.js",
+    "host": "vercel",
+    "rewrite": "/(.*) -> /api",
+    "bundledDirs": ["public/**", "routes/**", "lib/**"]
+  },
+  "renderer": {
+    "kind": "server-rendered-express",
+    "layoutHelper": "layout() in server.js",
+    "cssLayers": [
+      "layout() inline tokens",
+      "public/sonara-brand-system.css",
+      "public/sonara-friendly-premium.css",
+      "public/sonara-interface-engine.css",
+      "public/sonara-launch-ui.css"
+    ],
+    "assetVersion": "clark-ui-20260717",
+    "serviceWorker": "public/sw.js"
+  },
+  "providers": {
+    "supabase": { "ref": "yqncsonkxgwhcxedgevk", "status": "configured" },
+    "stripe": { "status": "configured", "webhook": "configured", "checkout": "enabled" },
+    "resend": { "domain": "sonaraindustries.com", "domainStatus": "verified", "envStatus": "invalid: RESEND_FROM_EMAIL placeholder" },
+    "googleOAuth": { "status": "deferred" }
+  },
+  "verification": {
+    "tests": 262,
+    "requiredGetRoutes": 124,
+    "routeRegistrations": 347,
+    "repositoryMigrations": 40,
+    "productionAppliedMigrations": 39,
+    "requiredTables": 15,
+    "privateBuckets": 7
+  }
+}

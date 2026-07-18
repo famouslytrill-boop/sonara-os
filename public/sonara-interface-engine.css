@@ -1,14 +1,12 @@
 /* SONARA interface engine styles.
-   Loads after sonara-brand-system.css and sonara-friendly-premium.css so it
-   can refine the app frame: ambient canvas layer, navigation state, product
-   command panel tiles, primary CTA emphasis, and the mobile quick bar.
-   Reduced-motion users get a fully static interface. */
+   Layer role: live-interface furniture — the dark command-center preview panel,
+   readiness status chips, the ambient canvas layer, the command palette, and
+   the mobile quick bar. Reduced-motion users get a fully static interface. */
 
-/* Ambient canvas layer (inserted by sonara-interface-engine.js) */
+/* Ambient canvas layer (inserted by sonara-interface-engine.js). */
 .sonara-face-orb {
   position: relative;
 }
-
 .sonara-engine-canvas {
   position: absolute;
   inset: 0;
@@ -18,502 +16,344 @@
   z-index: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .sonara-engine-canvas {
-    display: none !important;
-  }
-
-  .sonara-orb-ring,
-  .sonara-orb-node,
-  .sonara-orb-core {
-    animation: none !important;
-    transition: none !important;
-  }
+/* ── Hero command-center preview: dark panel with product tiles + status. ── */
+.sonara-interface-face {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
 }
-
-/* Appearance is resolved by the progressive enhancement script. The server
-   remains dark-first when scripts are unavailable, while system/light choices
-   get a complete readable surface when enhancement is available. */
-[data-sonara-theme="light"] {
-  color-scheme: light;
-  --sonara-ink: #191622;
-  --sonara-muted: #625d6c;
-  --sonara-panel: #fffdf8;
-  --sonara-line: rgba(39, 31, 49, 0.2);
+.sonara-device-card {
+  background: linear-gradient(160deg, var(--navy) 0%, var(--violet-deep) 100%);
+  border: 1px solid rgba(244, 242, 236, .08);
+  border-radius: var(--r-panel);
+  color: var(--on-dark);
+  box-shadow: var(--sh-3);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
-
-[data-sonara-theme="light"] body {
-  background: radial-gradient(circle at top left, #fff8df 0, #f5f1e8 38rem);
-  color: #191622;
+.sonara-device-card > strong {
+  font-size: 17px;
+  letter-spacing: -.01em;
 }
-
-[data-sonara-theme="light"] p,
-[data-sonara-theme="light"] footer,
-[data-sonara-theme="light"] nav a,
-[data-sonara-theme="light"] .action {
-  color: #625d6c;
+.sonara-device-card > p {
+  color: var(--on-dark-2);
+  font-size: 13px;
+  margin: 0;
 }
-
-[data-sonara-theme="light"] .card,
-[data-sonara-theme="light"] .sonara-device-card,
-[data-sonara-theme="light"] .sonara-command-panel {
-  background: rgba(255, 253, 248, 0.94);
-  border-color: rgba(39, 31, 49, 0.2);
-  box-shadow: 0 24px 70px rgba(71, 57, 31, 0.14);
+.sonara-device-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-
-[data-sonara-theme="light"] input,
-[data-sonara-theme="light"] textarea,
-[data-sonara-theme="light"] select {
-  background: #ffffff;
-  color: #191622;
-  border-color: rgba(39, 31, 49, 0.28);
+.sonara-device-bar span {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(244, 242, 236, .22);
 }
-
-[data-sonara-theme="light"] nav a,
-[data-sonara-theme="light"] .action,
-[data-sonara-theme="light"] .sonara-command-button,
-[data-sonara-theme="light"] .sonara-quick-bar {
-  background: rgba(255, 253, 248, 0.88);
-  border-color: rgba(39, 31, 49, 0.2);
+.sonara-device-bar em {
+  margin-left: auto;
+  font-style: normal;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--on-dark-2);
+  background: rgba(244, 242, 236, .1);
+  border-radius: 99px;
+  padding: 3px 9px;
 }
-
-[data-sonara-quality="off"] .sonara-face-orb,
-[data-sonara-quality="reduced"] .sonara-engine-canvas {
-  animation: none !important;
-}
-
-/* Navigation: say where you are */
-header nav a[aria-current="page"],
-.sonara-quick-bar a[aria-current="page"] {
-  border-color: var(--sonara-gold, #ffd166) !important;
-  color: #1c1526 !important;
-  background: linear-gradient(135deg, #ffd166, #ffb866) !important;
-  font-weight: 700;
-}
-
-header nav a:focus-visible,
-.sonara-quick-bar a:focus-visible,
-.action:focus-visible {
-  outline: 3px solid var(--sonara-cyan, #5ee7ff);
-  outline-offset: 2px;
-}
-
-/* One loud thing per screen: first hero action is the primary action */
-.sonara-hero-copy .actions .action:first-child {
-  background: linear-gradient(135deg, #ffd166, #ff9e66) !important;
-  border-color: transparent !important;
-  color: #221631 !important;
-  font-weight: 800 !important;
-  box-shadow: 0 14px 34px rgba(255, 178, 102, 0.35);
-}
-
-/* Product command panel tiles inside the hero device card */
 .sonara-panel-tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 12px;
 }
-
 .sonara-panel-tiles a {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-height: 56px;
-  justify-content: center;
-  padding: 8px 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.08);
+  gap: 4px;
+  padding: 12px;
+  min-height: 44px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  border-radius: 10px;
+  border: 1px solid var(--border-dark);
+  background: rgba(244, 242, 236, .05);
+  color: var(--on-dark);
   text-decoration: none;
-  color: inherit;
+  font-weight: 600;
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  transition: background .15s;
 }
-
+.sonara-panel-tiles a:hover {
+  background: rgba(244, 242, 236, .12);
+}
 .sonara-panel-tiles a span {
-  font-size: 11px;
-  font-weight: 500;
-  opacity: 0.75;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--on-dark-2);
 }
-
-.sonara-panel-tiles a:hover,
-.sonara-panel-tiles a:focus-visible {
-  border-color: var(--sonara-gold, #ffd166);
-  background: rgba(255, 209, 102, 0.16);
-}
-
-/* Mobile quick bar: the core loop under the thumb */
-.sonara-quick-bar {
-  display: none !important;
-}
-
-@media (max-width: 760px) {
-  .sonara-quick-bar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 60;
-    display: grid !important;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
-    background: rgba(12, 10, 18, 0.92);
-    backdrop-filter: blur(14px);
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-  }
-
-  .sonara-quick-bar a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    background: rgba(255, 255, 255, 0.05);
-    color: #f4eefc;
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 600;
-  }
-
-  body {
-    padding-bottom: calc(76px + env(safe-area-inset-bottom));
-  }
-}
-
-/* === SONARA APP FRAME v2 (guard: sonara-app-frame-v2) =====================
-   Sticky command bar, brand mark, command palette, button system, motion
-   micro-feedback, and lifecycle status chips. Reduced-motion users get a
-   fully static experience for every rule in this block. */
-
-/* Sticky top command bar (floats as a card; wins over the relative rule in
-   sonara-friendly-premium.css because this sheet loads later) */
-header {
-  position: sticky !important;
-  top: 10px !important;
-  z-index: 50 !important;
-  backdrop-filter: blur(18px) saturate(1.2);
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
+.sonara-command-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
-
-.sonara-brand-mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  display: block;
+.sonara-command-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-dark);
+  background: rgba(244, 242, 236, .06);
+  color: var(--on-dark);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+.sonara-command-actions a:hover {
+  background: rgba(244, 242, 236, .12);
+}
+.sonara-proof-pill {
+  align-self: flex-start;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--text-3);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 99px;
+  padding: 7px 13px;
+}
+.sonara-status-chip { min-width: 0; max-width: 100%; }
+@media (max-width: 480px) {
+  .sonara-panel-tiles { grid-template-columns: 1fr; }
+  .sonara-device-card { padding: 16px; }
 }
 
+/* ── Readiness status chips: text + dot, never color-only. ── */
+.sonara-status-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sonara-status-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--border-dark);
+  background: rgba(244, 242, 236, .05);
+  min-width: 0;
+}
+.sonara-status-chip b {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--on-dark-2);
+}
+.sonara-status-chip em {
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--on-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sonara-status-chip em::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: currentColor;
+}
+.sonara-status-chip.is-ready em { color: var(--sonara-status-ready-dark); }
+.sonara-status-chip.is-review em { color: var(--sonara-status-review-dark); }
+.sonara-status-chip.is-setup em { color: var(--sonara-status-critical-dark); }
+
+/* Light-surface variant when chips render outside a dark band. */
+.card .sonara-status-chip,
+.sonara-status-panel.on-light .sonara-status-chip {
+  border-color: var(--border);
+  background: var(--bg-2);
+}
+.card .sonara-status-chip b,
+.sonara-status-panel.on-light .sonara-status-chip b { color: var(--text-3); }
+.card .sonara-status-chip em,
+.sonara-status-panel.on-light .sonara-status-chip em { color: var(--text); }
+.card .sonara-status-chip.is-ready em,
+.sonara-status-panel.on-light .sonara-status-chip.is-ready em { color: #1E7A50; }
+.card .sonara-status-chip.is-review em,
+.sonara-status-panel.on-light .sonara-status-chip.is-review em { color: #96690F; }
+.card .sonara-status-chip.is-setup em,
+.sonara-status-panel.on-light .sonara-status-chip.is-setup em { color: #C64A36; }
+
+/* ── Command button + palette (Ctrl+K). ── */
 .sonara-command-button {
-  width: auto !important;
-  min-height: 44px;
-  border-radius: var(--sonara-radius-pill, 999px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06) !important;
-  color: var(--sonara-muted, #beb8cd) !important;
-  font-weight: 600 !important;
-  padding: 10px 16px;
+  width: auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
 }
-
-.sonara-command-button:hover,
-.sonara-command-button:focus-visible {
-  border-color: var(--sonara-gold, #ffd166);
-  color: #fffaf0 !important;
+.sonara-command-button:hover {
+  color: var(--text);
+  background: var(--bg-2);
 }
-
-/* Command palette */
+body.sonara-admin .sonara-command-button {
+  background: rgba(244, 242, 236, .06);
+  border-color: var(--border-dark);
+  color: #AAB0C4;
+}
+body.sonara-admin .sonara-command-button:hover {
+  color: #EEF0F6;
+  background: rgba(244, 242, 236, .12);
+}
 .sonara-command-palette {
   position: fixed;
   inset: 0;
   z-index: 90;
+  background: rgba(18, 22, 42, .45);
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 12vh 16px 16px;
-  background: rgba(5, 4, 10, 0.66);
-  backdrop-filter: blur(6px);
 }
-
-.sonara-command-palette[hidden] {
-  display: none;
-}
-
 .sonara-command-panel {
   width: min(560px, 100%);
-  border-radius: var(--sonara-radius-lg, 18px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(20, 17, 32, 0.97);
-  box-shadow: var(--sonara-elev-3, 0 28px 90px rgba(0, 0, 0, 0.42));
-  padding: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--r-panel);
+  box-shadow: var(--sh-3);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-
-.sonara-command-panel input {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(9, 9, 15, 0.9);
-  color: #fffaf0;
-  padding: 12px 14px;
-  font: inherit;
+.sonara-command-panel input[type="search"] {
+  min-height: 44px;
+  border-radius: 10px;
 }
-
 .sonara-command-panel ul {
   list-style: none;
-  margin: 10px 0 0;
+  margin: 0;
   padding: 0;
-  display: grid;
-  gap: 6px;
-  max-height: 44vh;
+  max-height: 40vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-
 .sonara-command-panel li a {
   display: flex;
-  min-height: 44px;
   align-items: center;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  color: #f4eefc;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--text-2);
   text-decoration: none;
+  font-weight: 500;
+  font-size: 13.5px;
 }
-
 .sonara-command-panel li a:hover,
 .sonara-command-panel li a:focus-visible {
-  border-color: var(--sonara-gold, #ffd166);
-  background: rgba(255, 209, 102, 0.12);
+  background: var(--accent-soft);
+  color: var(--text);
 }
-
 .sonara-command-empty {
-  color: var(--sonara-muted, #beb8cd);
-  padding: 10px 12px;
+  padding: 12px;
+  color: var(--text-3);
+  font-size: 13px;
 }
 
-/* Button motion micro-feedback */
-.action,
-button {
-  transition: transform var(--sonara-motion-fast, 140ms) var(--sonara-ease, ease),
-    box-shadow var(--sonara-motion-fast, 140ms) var(--sonara-ease, ease);
+/* ── Mobile quick bar: app-like bottom navigation. ── */
+.sonara-quick-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: none;
+  gap: 2px;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, .94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
 }
-
-.action:active,
-button:active {
-  transform: scale(0.97);
-}
-
-@keyframes sonara-success-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(114, 244, 169, 0.55); }
-  100% { box-shadow: 0 0 0 14px rgba(114, 244, 169, 0); }
-}
-
-.sonara-success-pulse {
-  animation: sonara-success-pulse 600ms var(--sonara-ease, ease) 1;
-}
-
-@keyframes sonara-skeleton-sheen {
-  0% { background-position: -160px 0; }
-  100% { background-position: 240px 0; }
-}
-
-.sonara-skeleton {
-  border-radius: 10px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06) 25%, rgba(255, 255, 255, 0.14) 40%, rgba(255, 255, 255, 0.06) 55%);
-  background-size: 400px 100%;
-  animation: sonara-skeleton-sheen 1.4s linear infinite;
-  min-height: 16px;
-}
-
-/* Lifecycle status chips (no color-only communication: text is the label) */
-.sonara-status-chip {
+.sonara-quick-bar { flex-wrap: nowrap; }
+.sonara-quick-bar a {
+  flex: 1;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 28px;
-  padding: 4px 12px;
-  border-radius: var(--sonara-radius-pill, 999px);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  font-size: 13px;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 10px;
+  color: var(--text-2);
+  text-decoration: none;
   font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sonara-quick-bar a:hover {
+  background: rgba(18, 22, 42, .05);
+  color: var(--text);
+}
+.sonara-quick-bar a[aria-current="page"] {
+  background: var(--navy);
+  color: var(--on-dark);
+}
+body.sonara-admin .sonara-quick-bar {
+  background: rgba(12, 17, 34, .94);
+}
+body.sonara-admin .sonara-quick-bar a[aria-current="page"] {
+  background: rgba(123, 91, 242, .25);
+  color: #C9BAFF;
+}
+header nav a[aria-current="page"] {
+  color: var(--text);
+  background: rgba(18, 22, 42, .06);
+}
+@media (max-width: 760px) {
+  .sonara-quick-bar {
+    display: flex;
+  }
 }
 
-.sonara-status-chip::before {
-  content: "";
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--sonara-status-neutral, #beb8cd);
-}
-
-.sonara-status-ready::before,
-.sonara-status-complete::before,
-.sonara-status-delivered::before { background: var(--sonara-status-ready, #72f4a9); }
-.sonara-status-warning::before,
-.sonara-status-blocked::before,
-.sonara-status-setup_required::before { background: var(--sonara-status-warning, #f4c56f); }
-.sonara-status-critical::before { background: var(--sonara-status-critical, #ff6b5e); }
-.sonara-status-info::before,
-.sonara-status-in_progress::before,
-.sonara-status-in_review::before { background: var(--sonara-status-info, #5ee7ff); }
-
+/* Reduced motion: freeze every enhancement. */
 @media (prefers-reduced-motion: reduce) {
-  .action,
-  button {
+  .sonara-engine-canvas {
+    display: none !important;
+  }
+  .sonara-quick-bar a,
+  .sonara-panel-tiles a,
+  .sonara-command-actions a {
     transition: none !important;
   }
-
-  .action:active,
-  button:active {
-    transform: none !important;
-  }
-
-  .sonara-skeleton,
-  .sonara-success-pulse {
-    animation: none !important;
-  }
-}
-
-/* Appearance and identity corrections. These rules intentionally come last:
-   the premium brand layer uses !important declarations, so theme variants
-   must win the final cascade instead of only changing unused variables. */
-.brand::before,
-.brand::after {
-  content: none !important;
-  display: none !important;
-}
-
-.brand {
-  min-width: 0 !important;
-  padding-left: 16px !important;
-}
-
-[data-sonara-theme="light"],
-[data-sonara-theme="light"] body {
-  color-scheme: light !important;
-  color: #191622 !important;
-  background:
-    radial-gradient(circle at 12% 4%, rgba(255, 209, 102, 0.28), transparent 22rem),
-    radial-gradient(circle at 86% 10%, rgba(94, 231, 255, 0.18), transparent 24rem),
-    linear-gradient(145deg, #fffdf8 0%, #f5f1e8 56%, #ebe5f4 100%) !important;
-}
-
-[data-sonara-theme="light"] body::before {
-  opacity: 0.45 !important;
-  background:
-    linear-gradient(115deg, rgba(255, 255, 255, 0.5), transparent 32%, rgba(215, 180, 106, 0.12) 62%, transparent),
-    linear-gradient(rgba(35, 28, 43, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(35, 28, 43, 0.03) 1px, transparent 1px) !important;
-  background-size: auto, 54px 54px, 54px 54px !important;
-}
-
-[data-sonara-theme="light"] header,
-[data-sonara-theme="light"] .card,
-[data-sonara-theme="light"] .sonara-device-card,
-[data-sonara-theme="light"] .sonara-command-panel {
-  color: #191622 !important;
-  background: rgba(255, 253, 248, 0.9) !important;
-  border-color: rgba(39, 31, 49, 0.2) !important;
-  box-shadow: 0 24px 70px rgba(71, 57, 31, 0.14) !important;
-}
-
-[data-sonara-theme="light"] .hero {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(250, 244, 232, 0.68)),
-    radial-gradient(circle at 20% 12%, rgba(255, 209, 102, 0.3), transparent 24rem),
-    radial-gradient(circle at 88% 42%, rgba(94, 231, 255, 0.22), transparent 26rem) !important;
-  border-color: rgba(39, 31, 49, 0.17) !important;
-  box-shadow: 0 34px 90px rgba(71, 57, 31, 0.16) !important;
-}
-
-[data-sonara-theme="light"] h1,
-[data-sonara-theme="light"] h2,
-[data-sonara-theme="light"] .card h2,
-[data-sonara-theme="light"] .sonara-device-card strong {
-  color: #191622 !important;
-}
-
-[data-sonara-theme="light"] h1 {
-  background: linear-gradient(100deg, #191622 0%, #312a3c 34%, #8a5b14 58%, #8c315f 80%, #176273 100%) !important;
-  -webkit-background-clip: text !important;
-  background-clip: text !important;
-}
-
-[data-sonara-theme="light"] .brand {
-  color: #312a3c !important;
-}
-
-[data-sonara-theme="light"] .eyebrow {
-  color: #755a10 !important;
-}
-
-[data-sonara-theme="light"] p,
-[data-sonara-theme="light"] .card p,
-[data-sonara-theme="light"] .sonara-device-card p,
-[data-sonara-theme="light"] footer {
-  color: #625d6c !important;
-}
-
-[data-sonara-theme="light"] nav a,
-[data-sonara-theme="light"] .action,
-[data-sonara-theme="light"] button,
-[data-sonara-theme="light"] .sonara-command-button {
-  color: #312a3c !important;
-  background: rgba(255, 255, 255, 0.78) !important;
-  border-color: rgba(39, 31, 49, 0.22) !important;
-  box-shadow: inset 0 1px 0 #ffffff, 0 10px 24px rgba(71, 57, 31, 0.1) !important;
-}
-
-[data-sonara-theme="light"] .sonara-panel-tiles a,
-[data-sonara-theme="light"] .sonara-status-chip {
-  color: #312a3c !important;
-  background: rgba(255, 255, 255, 0.68) !important;
-  border-color: rgba(39, 31, 49, 0.2) !important;
-}
-
-[data-sonara-theme="light"] .sonara-status-chip em {
-  color: #625d6c !important;
-}
-
-[data-sonara-theme="light"] input,
-[data-sonara-theme="light"] textarea,
-[data-sonara-theme="light"] select {
-  color: #191622 !important;
-  background: #ffffff !important;
-  border-color: rgba(39, 31, 49, 0.28) !important;
-}
-
-@media (max-width: 760px) {
-  [data-sonara-theme="light"] .sonara-quick-bar {
-    background: rgba(255, 253, 248, 0.96) !important;
-    border-color: rgba(39, 31, 49, 0.18) !important;
-    box-shadow: 0 -12px 34px rgba(71, 57, 31, 0.12) !important;
-  }
-
-  [data-sonara-theme="light"] .sonara-quick-bar a {
-    color: #312a3c !important;
-    background: rgba(245, 241, 232, 0.92) !important;
-    border-color: rgba(39, 31, 49, 0.18) !important;
-  }
-
-  .sonara-quick-bar a {
-    min-width: 0 !important;
-    padding-inline: 4px !important;
-  }
-
-  header nav {
-    scroll-snap-type: x proximity;
-  }
-
-  header nav a {
-    scroll-snap-align: start;
+  * {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
