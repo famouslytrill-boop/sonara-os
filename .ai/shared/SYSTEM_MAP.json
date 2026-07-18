@@ -17,22 +17,44 @@
       "public/sonara-interface-engine.css",
       "public/sonara-launch-ui.css"
     ],
-    "assetVersion": "clark-ui-20260717",
-    "serviceWorker": "public/sw.js"
+    "serviceWorker": "public/sw.js",
+    "pwaBoundary": "public navigation and static assets only"
   },
   "providers": {
-    "supabase": { "ref": "yqncsonkxgwhcxedgevk", "status": "configured" },
-    "stripe": { "status": "configured", "webhook": "configured", "checkout": "enabled" },
-    "resend": { "domain": "sonaraindustries.com", "domainStatus": "verified", "envStatus": "invalid: RESEND_FROM_EMAIL placeholder" },
+    "supabase": {
+      "ref": "yqncsonkxgwhcxedgevk",
+      "status": "configured",
+      "migrationLedger": "42/42 verified",
+      "linkedSchemaLint": "passed"
+    },
+    "stripe": {
+      "status": "configured",
+      "webhook": "configured",
+      "checkout": "enabled",
+      "paidUnlock": "persisted active/trialing state or owner/admin only",
+      "lifecycleProof": "pending"
+    },
+    "resend": {
+      "domain": "sonaraindustries.com",
+      "domainStatus": "verified",
+      "validator": "friendly-name sender repaired in PR #27",
+      "deliveryProof": "pending"
+    },
     "googleOAuth": { "status": "deferred" }
   },
+  "commercial": {
+    "pricingApproval": "owner_approved",
+    "prices": ["$0", "$7/month", "$19/month", "$39/month", "one-time setup"],
+    "legalOwnerApproval": "owner_approved",
+    "legalReview": "qualified review required; not attorney-reviewed"
+  },
   "verification": {
-    "tests": 262,
-    "requiredGetRoutes": 124,
-    "routeRegistrations": 347,
-    "repositoryMigrations": 40,
-    "productionAppliedMigrations": 39,
-    "requiredTables": 15,
-    "privateBuckets": 7
+    "repositoryMigrations": 42,
+    "productionAppliedMigrations": 42,
+    "canonicalTables": 71,
+    "contractFunctions": 10,
+    "operationalIndexes": 8,
+    "privateBuckets": 7,
+    "latestImplementationCI": "passed at 32cdd6656fcbad98b179ccacfbc32b38fd366fd6"
   }
 }
