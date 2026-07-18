@@ -14,67 +14,69 @@ Updated: 2026-07-18 by Codex (Agent A)
 - `pnpm run test:docs`
 - `git diff --check`
 
-`verify:launch` runs deterministic runtime asset application, build, tests, client-secret scan, lint, route smoke, repository database verification, launch configuration and public-route registry verification, and OpenAPI drift verification.
+`verify:launch` runs deterministic runtime application, build, tests, client-secret scan, lint, route smoke, repository database verification, launch configuration/route-registry verification, and OpenAPI drift verification.
 
-## Contract and inventory gates
+## Production database evidence
 
-- `pnpm run verify:api`: every registered Express `/api` method and path must match `openapi/sonara.yaml` bidirectionally; operation IDs must be unique.
-- `pnpm run verify:config`: launch configuration plus the required public route registry.
-- `pnpm run verify:db`: migration inventory, launch baseline, canonical database and function contract, eight operational indexes, private storage declarations, and privilege assertions.
-- `pnpm run verify:supabase-contract`: canonical schema, table, function, operational-index, and bucket inventory; service-only readiness contract; safe local config; and credential-free read-only MCP config.
-- `pnpm run scan:client-secrets`: browser-delivered secret-pattern gate.
+A guarded one-time workflow completed against exact project `yqncsonkxgwhcxedgevk`:
 
-## Operational database query coverage
+- exact project-ref and required credential-presence check: pass
+- linked migration list: pass
+- `supabase db push --linked --dry-run --include-all`: pass
+- unexpected pending-migration rejection: pass
+- production migration application: pass
+- remote ledger verification for `20260718064853`, `20260718071148`, and `20260718193000`: pass
+- `supabase db lint --linked --level error --fail-on error`: pass
+- final CLI state: remote database up to date; no schema errors found
 
-- `tests/database-query-contract.test.js` runs the database query patch twice and requires idempotent success.
-- Active organization and Business Builder compatibility membership lookups must use deterministic creation-time and UUID ordering before `limit=1`.
-- Business Builder manager lookup must use deterministic creation-time and workspace ordering.
-- Paid entitlement and subscription candidate filtering must occur in PostgREST by organization, allowed key, and active state.
-- Unknown product entitlement mappings must fail closed before issuing an empty Data API `in.()` filter.
-- The canonical operational-index list must contain eight unique indexes that reference canonical tables.
-- The operational-index migration must create and assert every declared index, add no tables or grants, and never disable RLS.
+The temporary migration workflow was removed after success.
+
+## Billing schema and query coverage
+
+- Canonical/compatibility membership resolution is deterministic before `limit=1`.
+- Paid entitlement and subscription filtering occurs in PostgREST by organization, allowed key, and active state.
+- Unknown product mappings fail closed.
+- Migration 42 additively reconciles all current `billing_subscriptions` fields and asserts their existence.
+- Legacy Stripe customer/subscription and plan identifiers are preserved when compatible source columns exist.
+- Unique `(provider, provider_subscription_ref)` upsert support is declared and asserted.
+- Eight operational indexes reference canonical tables, are asserted valid/ready, add no tables or grants, and do not disable RLS.
+
+## Paid-launch finalization coverage
+
+- The runtime patch is idempotent.
+- Resend friendly-name senders are accepted.
+- Placeholder addresses inside friendly-name syntax remain rejected.
+- Readiness exposes pricing owner approval and legal owner approval separately from required qualified review.
+- Every legal page keeps `qualified legal review`, `not legal advice`, and non-attorney-review wording.
+- Pricing remains Free, $7, $19, $39, and one-time.
+- Stripe, webhook, all plan prices, and checkout can report configured/enabled without changing `paidStatus: not_verified`.
+- Client-secret scan remains mandatory.
+
+## Final branch evidence before shared-memory reconciliation
+
+Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed:
+
+- SONARA Industries CI
+- dependency scan
+- Docker Image CI
+- frozen-lockfile install
+- dependency audit at moderate threshold
+- typecheck
+- lint
+- complete Mocha suite
+- build
+- Supabase preview/migration validation
 
 ## PWA executable coverage
 
-- `tests/pwa-contract.test.js` executes the shipped `public/sonara-experience.js` in a VM.
-- Public pages register the service worker; `/dashboard`, `/account`, and `/admin` do not.
-- Non-local insecure contexts do not register; localhost development may register.
-- `/site.webmanifest` is canonical; `/manifest.webmanifest` redirects permanently.
-- Every manifest and shortcut icon resolves through the Express app.
-- The service worker leaves private application navigation outside its response path and excludes private, no-store, cookie-bearing, and opaque responses from cache writes.
-- The service-worker cache version remains synchronized with the rendered asset query token.
+- Public pages register the service worker only in allowed secure/local contexts.
+- `/dashboard`, `/account`, `/admin`, APIs, private/no-store/cookie-bearing/opaque responses remain outside cache handling.
+- Manifest, icons, shortcuts, cache version, and legacy redirect remain regression-tested.
 
-## Existing suites
+## Evidence boundaries
 
-Server routes, authentication and admin, pricing and legal truthfulness, billing and webhook behavior, frontend markers, tokens, preferences, service worker, route registry, SaaS workflows, formulas, ecosystem, launch readiness, entity security, creator music configuration, database privileges, and OpenAPI drift.
-
-## PR #25 and production evidence
-
-- Final PR head `b96bd14cbe4275da2c27a841eed959f3cab39c46`:
-  - SONARA Industries CI: pass.
-  - `pnpm install --frozen-lockfile`: pass.
-  - `pnpm audit --audit-level moderate`: pass.
-  - Typecheck: pass.
-  - Lint: pass.
-  - Test suite, including database query contract regressions: pass.
-  - Build: pass.
-  - Supabase CLI and migration validation: pass.
-  - Dependency scan: pass.
-  - Docker Image CI: pass.
-  - Vercel preview: success.
-- Merge commit `9ca3487d38050322ab2b51a91f98bc92553fb3ac` merged successfully to `main`.
-- Vercel production status succeeded for the exact PR #25 merge SHA.
-- The deployed source update changed deterministic and selective query behavior and registered the operational-index migration. It did not apply that migration to the hosted Supabase database.
-- No hosted database apply, storage mutation, provider setting, payment action, Data API grant, RLS policy change, or secret exposure was part of the release.
-
-## PR #23 and prior production evidence
-
-- Final PR #23 head `a108e19019604983b67e11dd5a727c119128d592` passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase repository migration and config validation, and Vercel preview.
-- Merge commit `277c3bb6c58bfe29399265a0dae52830c02d1d99` merged successfully to `main`; Vercel production status succeeded for the exact SHA.
-- The first PWA CI attempt exposed assertions tied to a superseded duplicate manifest and legacy icon contract. The branch corrected the contract and assertions rather than skipping tests; the subsequent run passed.
-
-## Production evidence boundary
-
-- Production database remains last verified at 39 applied migrations; repository migrations 40, 41, and 42 remain pending approved application in timestamp order.
-- Existing multi-viewport redesign and focused preference browser evidence remains recorded in the reports directory.
-- PWA installation, update prompting, offline fallback, private-route non-interception in a live browser, and physical vibration still require reproducible post-merge browser or device proof before they can be called production-verified.
+- Production database migration completion is proven.
+- Resend code/configuration readiness is regression-tested; a real production delivery remains pending.
+- Stripe/checkout configuration is proven; the end-to-end payment/cancellation lifecycle remains pending.
+- Legal owner approval is recorded, but attorney review is not claimed.
+- PWA install/update/offline and physical vibration remain pending real-browser/device evidence.
