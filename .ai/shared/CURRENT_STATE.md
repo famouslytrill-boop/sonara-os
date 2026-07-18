@@ -1,4 +1,15 @@
-# Current State - updated 2026-07-18T07:20:09Z by Codex (Agent A)
+# Current State - updated 2026-07-18T07:35:16Z by Codex (Agent A)
+
+## PR #21 merge and production deployment - 2026-07-18T07:35:16Z
+
+- PR #21 merged the 14-commit redesign/security/database-contract branch into `main` as merge commit `4dccd10994656573ce18adcc4e4b30805cbac3f1`.
+- Main-branch GitHub Actions passed: SONARA Industries CI, dependency scans, and Docker Image CI. The repository Supabase job passed; it validates configuration only and does not apply production migrations.
+- Vercel production deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK` is `READY` and `/api/health` reports the exact merge commit, branch `main`, environment `production`.
+- Live smoke passed for 15 public/auth/legal/product routes on `sonaraindustries.com`. Vercel reported no runtime errors in the inspected one-hour window.
+- Cloudflare reports the `sonaraindustries.com` zone active and unpaused with Vercel, MX, DKIM, DMARC, Resend, and verification record types present. This is DNS inventory evidence, not email-delivery proof.
+- Supabase's managed PR Preview was removed after the PR merged and later reported `Resource has been removed`; this is stale preview cleanup, not production migration evidence. Production remains last verified at 39 migrations, with migrations 40/41 pending owner application.
+- A server-side Supabase secret was disclosed in chat during the release request. It was not used, stored, logged, or deployed by Codex and must be revoked/rotated before paid launch. Public project configuration was not hardcoded.
+- Production readiness remains truthful: Supabase, Stripe, webhook, founder access, and checkout report configured; Resend remains invalid because `RESEND_FROM_EMAIL` is invalid; Google OAuth is deferred; legal pages remain review-required.
 
 ## Canonical Supabase runtime contract - 2026-07-18T07:20:09Z
 
@@ -43,7 +54,7 @@
 - No push, merge, deploy, provider configuration, database migration, or secret change was performed. Untracked `debug-session.cjs` remains untouched.
 
 ## Production
-- origin/main advanced to b9e341e (PR #20: Codex's expanded launch docs — supersedes Claude's doc commits, content-reconciled). Production deploy of b9e341e assumed in-flight/ready via Vercel main auto-deploy; last directly verified live commit was c3fcc9b.
+- `github/main` and Vercel production are directly verified at merge commit `4dccd10994656573ce18adcc4e4b30805cbac3f1` from PR #21.
 - /api/readiness: supabase/stripe/webhook/admin configured, checkout enabled,
   resend INVALID (only RESEND_FROM_EMAIL is a placeholder — owner must set it
   in Vercel), googleOAuth deferred, legalPages review_required.
@@ -65,8 +76,6 @@
 - Claude's 3 earlier doc commits DROPPED — superseded by merged PR #20.
 - Remote branch ref now exists (created at c3fcc9b); push being attempted.
 
-## Launch recommendation (unchanged)
-NOT CLEARED FOR PAID LAUNCH. Remaining: RESEND_FROM_EMAIL env, Stripe
-test-mode end-to-end proof, live smoke from unrestricted network, owner
-approvals (legal/privacy, pricing/refund, provider config, live payments).
+## Launch recommendation
+NOT CLEARED FOR PAID LAUNCH. Unrestricted live smoke now passes. Remaining: revoke/rotate the disclosed Supabase server secret, apply and verify migrations 40/41, configure a valid `RESEND_FROM_EMAIL`, complete Stripe test-mode end-to-end proof, and obtain owner approvals (legal/privacy, pricing/refund, provider config, live payments).
 Full evidence: docs/SONARA_PAID_LAUNCH_VERIFICATION_2026-07-16.md.

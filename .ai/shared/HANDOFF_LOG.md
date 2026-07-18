@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-07-18T07:35:16Z - Codex (Agent A) - PR #21 merge and production verification
+
+- Re-ran frozen pnpm install, moderate audit, `verify:all` with 265 tests, docs checks, and diff checks before release. Did not install `@supabase/server`: the deployed Express runtime uses its existing server-side REST contract, the separate frontend already uses `@supabase/ssr`/`supabase-js`, and the requested package has no Express peer integration.
+- Pushed `codex/integrate-clark-redesign`, opened PR #21, and observed it merge to `main` as `4dccd10994656573ce18adcc4e4b30805cbac3f1`. Main GitHub CI, dependency scans, Docker, and Vercel statuses passed.
+- Vercel production deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK` is `READY`; `/api/health` reports the exact merge SHA. Fifteen-route unrestricted live smoke passed, and Vercel reported no runtime errors in the inspected hour.
+- Supabase's managed PR Preview was removed after merge and later failed with `Resource has been removed`. The repository preview-validation job passed, but production migrations 40/41 remain unapplied and require owner credentials/review.
+- Cloudflare read-only inspection found the zone active/unpaused with Vercel and mail-related DNS record types. This does not prove Resend delivery; production readiness still marks `RESEND_FROM_EMAIL` invalid.
+- A server-side Supabase secret disclosed in chat was treated as compromised. Codex did not use, store, print, configure, or deploy it. Owner must revoke/rotate it and update any external server-only reference before paid launch.
+- Preserved unrelated untracked `debug-session.cjs`; no Cloudflare, Supabase, Stripe, Resend, or Vercel environment value was mutated.
+
 ## 2026-07-18T07:20:09Z - Codex (Agent A) - canonical Supabase database and agent contract
 
 - Read every shared contract and the Supabase/Postgres skills, then inventoried all migration-defined schemas, tables, authorization functions, storage buckets, and existing agent primitives. Preserved unrelated `debug-session.cjs`.

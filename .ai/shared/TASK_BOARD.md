@@ -1,15 +1,15 @@
 # Shared Task Board
 
-Updated: 2026-07-18T07:20:09Z by Codex (Agent A)
+Updated: 2026-07-18T07:35:16Z by Codex (Agent A)
 
 ## In progress
 
-- None after the current membership/shared-memory coordination commit completes.
+- Post-merge release handoff only; no product files locked.
 
 ## Blocked / owner-dependent
 
-- [Shared] Paid launch: valid `RESEND_FROM_EMAIL`, Stripe test-mode lifecycle proof, unrestricted live smoke, and owner legal/pricing/refund/provider approvals.
-- [Shared] Push, PR, merge, and deployment of `codex/integrate-clark-redesign` remain owner-directed; branch and browser evidence are local only.
+- [Owner, immediate] Revoke/rotate the server-side Supabase secret disclosed in chat. Replace the corresponding server-only provider/Vercel value if it was deployed anywhere, then redeploy and rerun readiness. Never send the replacement through chat or commit it.
+- [Shared] Paid launch: valid `RESEND_FROM_EMAIL`, Stripe test-mode lifecycle proof, and owner legal/pricing/refund/provider approvals. Unrestricted live route smoke is now complete.
 - [Owner + Codex] Review and apply `20260718064853_data_api_privilege_hardening.sql` to the hosted Supabase project, then rerun database/security advisors and positive/negative RLS checks. Production remains on 39 migrations until this occurs.
 - [Owner + Codex] Authorize the read-only project-scoped Supabase MCP or provide CLI credentials outside the repo; review and apply migrations 40 and 41 in order, then verify the 71-table/10-function contract through `/api/admin/database-readiness`. No production apply occurred in the current task.
 
@@ -28,6 +28,7 @@ Updated: 2026-07-18T07:20:09Z by Codex (Agent A)
 
 ## Done
 
+- [Codex] PR #21 merged to `main` as `4dccd109`; GitHub main CI/dependency/Docker checks passed; Vercel production is `READY` on that exact SHA; 15-route live smoke passed; Vercel reported no recent runtime errors; Cloudflare DNS zone/record-type inventory passed. No Supabase production migration or secret mutation occurred.
 - [Codex] Commit `5d333b1` added the canonical 71-table, 10-function, 3-schema, 7-private-bucket Supabase contract; safe local config and read-only project-scoped MCP config; append-only service-role metadata readiness RPC; admin runtime integration; static/SQL/route regressions; and operator documentation. Rollback-only PostgreSQL execution and all 265-test launch gates pass. Production application remains owner-dependent.
 - [Codex] Added append-only Data API/default-privilege hardening, corrected global-admin authorization to use `user_roles`, locked authorization helper search paths, revoked anonymous helper RPC execution, and added executable positive/negative regression gates in commit `4acb355`. Local SQL and all launch gates pass; production application remains owner-dependent.
 - [Agent B] Preference safety/theme correctness in `af18a6f`: pre-paint canonical theme, opt-in/reduced-motion haptics, synchronized cache token, behavioral tests, and local 390/1440 Chrome proof.

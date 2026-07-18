@@ -1,9 +1,9 @@
 # Risks
 
-1. **Integrated but undeployed:** the Clark redesign, API contract, and preference repair are local on `codex/integrate-clark-redesign`; they are not production evidence until pushed, reviewed, merged, deployed, and verified by exact SHA.
-2. **Paid launch blocked:** email delivery remains unavailable until `RESEND_FROM_EMAIL` is valid; Stripe lifecycle proof, unrestricted live smoke, and owner approvals are still pending.
+1. **Disclosed server credential:** a Supabase server secret was disclosed in chat. Codex did not use or deploy it. It must be revoked/rotated, and any provider/Vercel reference must be replaced before paid launch.
+2. **Paid launch blocked:** email delivery remains unavailable until `RESEND_FROM_EMAIL` is valid; Stripe lifecycle proof and owner approvals are still pending. Unrestricted route smoke is complete.
 3. **PWA drift:** two manifest files and a service worker exist, but the production renderer does not register the service worker. Do not call offline/install behavior operational; never cache authenticated/private responses while repairing it.
-4. **Stale broad frontend evidence:** older screenshots, accessibility, PWA, and performance reports predate the redesign. The preference repair has current focused evidence, but broader claims still need refreshed reproducible checks.
+4. **Browser evidence depth:** the redesign is deployed and public routes pass, but broader current accessibility, PWA, mobile interaction, and performance evidence still needs a reproducible production browser run.
 5. **Physical-device boundary:** haptics consent behavior is regression-tested, but physical vibration hardware was not tested and must not be claimed.
 6. **Membership compatibility:** `business_memberships.workspace_id` has no repository-declared foreign key to `business_workspaces`, and legacy organization lookup fallbacks remain. Do not add constraints or remove fallbacks without live inventory, cleanup, and cross-tenant tests.
 7. **OpenAPI schema depth:** method/path/auth/error coverage is canonical, but several heterogeneous success/request payloads still use generic object schemas. Tighten them incrementally without changing runtime shapes.
