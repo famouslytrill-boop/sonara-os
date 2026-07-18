@@ -1,0 +1,8 @@
+{
+  "supabase": { "role": "auth+database+storage", "status": "configured", "serverOnly": ["SUPABASE_SERVICE_ROLE_KEY"] },
+  "stripe": { "role": "billing", "status": "configured", "proofPending": "test-mode end-to-end (CODEX-1)" },
+  "resend": { "role": "transactional email", "status": "env-invalid (RESEND_FROM_EMAIL)", "domainVerified": true },
+  "vercel": { "role": "hosting", "status": "READY at c3fcc9b" },
+  "googleOAuth": { "role": "auth provider", "status": "deferred" },
+  "omniroute": { "role": "optional AI gateway", "status": "disabled by default; docs/infrastructure/OPTIONAL_AI_GATEWAY.md" }
+}
