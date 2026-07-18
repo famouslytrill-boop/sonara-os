@@ -48,9 +48,9 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 Server routes, authentication and admin, pricing and legal truthfulness, billing and webhook behavior, frontend markers, tokens, preferences, service worker, route registry, SaaS workflows, formulas, ecosystem, launch readiness, entity security, creator music configuration, database privileges, and OpenAPI drift.
 
-## PR #25 evidence
+## PR #25 and production evidence
 
-- Implementation head `41ddf5cc26a72c423e7ddbef06bb40a34a5941e3`:
+- Final PR head `b96bd14cbe4275da2c27a841eed959f3cab39c46`:
   - SONARA Industries CI: pass.
   - `pnpm install --frozen-lockfile`: pass.
   - `pnpm audit --audit-level moderate`: pass.
@@ -62,9 +62,12 @@ Server routes, authentication and admin, pricing and legal truthfulness, billing
   - Dependency scan: pass.
   - Docker Image CI: pass.
   - Vercel preview: success.
-- No hosted database apply, storage mutation, provider setting, payment action, or RLS change was part of this verification.
+- Merge commit `9ca3487d38050322ab2b51a91f98bc92553fb3ac` merged successfully to `main`.
+- Vercel production status succeeded for the exact PR #25 merge SHA.
+- The deployed source update changed deterministic and selective query behavior and registered the operational-index migration. It did not apply that migration to the hosted Supabase database.
+- No hosted database apply, storage mutation, provider setting, payment action, Data API grant, RLS policy change, or secret exposure was part of the release.
 
-## PR #23 and production evidence
+## PR #23 and prior production evidence
 
 - Final PR #23 head `a108e19019604983b67e11dd5a727c119128d592` passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase repository migration and config validation, and Vercel preview.
 - Merge commit `277c3bb6c58bfe29399265a0dae52830c02d1d99` merged successfully to `main`; Vercel production status succeeded for the exact SHA.
@@ -72,6 +75,6 @@ Server routes, authentication and admin, pricing and legal truthfulness, billing
 
 ## Production evidence boundary
 
-- Production database remains last verified at 39 applied migrations; repository migrations 40, 41, and 42 remain pending approved application.
+- Production database remains last verified at 39 applied migrations; repository migrations 40, 41, and 42 remain pending approved application in timestamp order.
 - Existing multi-viewport redesign and focused preference browser evidence remains recorded in the reports directory.
 - PWA installation, update prompting, offline fallback, private-route non-interception in a live browser, and physical vibration still require reproducible post-merge browser or device proof before they can be called production-verified.
