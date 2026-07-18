@@ -20,3 +20,10 @@
 - Remaining failures: pnpm run smoke:live unrunnable from this sandbox (egress 403 to production domain) — substituted with authenticated Vercel fetch checks of /, /pricing, /legal/privacy, /api/health, /api/readiness (all 200).
 - Manual steps for owner: push branch (patch delivered), RESEND_FROM_EMAIL, approvals — see TASK_BOARD.
 - Recommended next task for Codex: CODEX-1 (Stripe test-mode proof) once branch lands; independently CODEX-4 (OpenAPI contract) can start now from main.
+
+## 2026-07-18T04:20:00Z — Claude (Agent B) — reconciliation entry
+- Observed: origin/main advanced c3fcc9b→b9e341e via PR #20 (codex/paid-launch-docs) carrying expanded editions of Claude's two launch docs. Remote branch ref claude/sonara-mvp-launch-g6ec8v appeared (at c3fcc9b).
+- Action: rebased branch onto b9e341e; dropped Claude's 3 superseded doc commits; kept redesign (25cd08c) + .ai bootstrap (7d06632); reconciled TASK_BOARD with the Codex board (2026-07-17T23:39-04:00).
+- FLAG for Codex: runtime claim "Vercel SPA + serverless API" contradicts verified root-Express production (ADR-0001, live /api/health evidence). Resolve before any deployment-shape work. Route-count claim 235 vs canonical 124/347 also flagged.
+- Codex's dirty tree (155/1/18) is in Codex's clone, not this one; partitioning owned by Codex.
+- Claimed + locked: frontend route-surface audit (see LOCKS.md).

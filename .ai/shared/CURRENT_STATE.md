@@ -1,7 +1,7 @@
-# Current State — updated 2026-07-18T03:30:00Z by Claude (Agent B)
+# Current State — updated 2026-07-18T04:20:00Z by Claude (Agent B)
 
 ## Production
-- Live commit: c3fcc9b951ea69f9c208b1382561c8dea1b7a83a (Vercel READY; /api/health matches).
+- origin/main advanced to b9e341e (PR #20: Codex's expanded launch docs — supersedes Claude's doc commits, content-reconciled). Production deploy of b9e341e assumed in-flight/ready via Vercel main auto-deploy; last directly verified live commit was c3fcc9b.
 - /api/readiness: supabase/stripe/webhook/admin configured, checkout enabled,
   resend INVALID (only RESEND_FROM_EMAIL is a placeholder — owner must set it
   in Vercel), googleOAuth deferred, legalPages review_required.
@@ -14,18 +14,14 @@
   buckets private with 8 org/owner-scoped policies; anon reads return 0 rows.
 - DO NOT re-apply or edit these migrations.
 
-## Branch claude/sonara-mvp-launch-g6ec8v (local, UNPUSHED — see Risks)
-- a753dc9 docs: paid-launch verification report
-- 0562edc docs: migrations applied + report update
-- 6c46ea9 docs: runbook reconciliation
-- 0791c75 frontend: Clark visual redesign (warm editorial light system + dark
+## Branch claude/sonara-mvp-launch-g6ec8v (rebased onto b9e341e)
+- 25cd08c frontend: Clark visual redesign (warm editorial light system + dark
   admin console; 4 CSS layers consolidated net −1,236 lines; layout() token
   base; SW version clark-ui-20260717; 255 tests green; 65-browser-check QA,
   zero overflow/console errors at 360/390/414/768/1440)
-- All 4 commits are signed (gpgsig present) with Claude <noreply@anthropic.com>.
-- Push blocked: session GitHub token is read-only (403 on git push AND GitHub
-  API writes). Owner has the full branch as a git patch
-  (sonara-branch-all-commits.patch) + QA screenshots.
+- 7d06632 .ai/shared canonical bootstrap (+ this reconciliation commit)
+- Claude's 3 earlier doc commits DROPPED — superseded by merged PR #20.
+- Remote branch ref now exists (created at c3fcc9b); push being attempted.
 
 ## Launch recommendation (unchanged)
 NOT CLEARED FOR PAID LAUNCH. Remaining: RESEND_FROM_EMAIL env, Stripe
