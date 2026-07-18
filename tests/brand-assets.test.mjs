@@ -18,13 +18,24 @@ for (const asset of assets) {
   assert.match(readFileSync(path, "utf8"), /<svg[\s>]/, `${asset} must be SVG`);
 }
 
-const manifestPath = join(root, "public/manifest.webmanifest");
+const manifestPath = join(root, "public/site.webmanifest");
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 assert.equal(manifest.name, "SONARA Industries");
+assert.equal(manifest.id, "/");
+assert.equal(manifest.start_url, "/");
+assert.equal(manifest.scope, "/");
 
 for (const icon of manifest.icons ?? []) {
   const iconPath = join(root, "public", icon.src.replace(/^\//, ""));
   assert.equal(existsSync(iconPath), true, `manifest icon ${icon.src} must exist`);
+}
+
+for (const shortcut of manifest.shortcuts ?? []) {
+  assert.match(shortcut.url, /^\/(business-builder|creator-studio|growth-studio)$/);
+  for (const icon of shortcut.icons ?? []) {
+    const iconPath = join(root, "public", icon.src.replace(/^\//, ""));
+    assert.equal(existsSync(iconPath), true, `shortcut icon ${icon.src} must exist`);
+  }
 }
 
 console.log("Brand assets test passed.");

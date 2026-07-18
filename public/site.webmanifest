@@ -1,21 +1,31 @@
 {
+  "id": "/",
   "name": "SONARA Industries",
   "short_name": "SONARA",
+  "description": "Business, creator, and growth tools with guided workflows, saved records, billing, support, and deliverables.",
+  "lang": "en-US",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#11101a",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#FAF8F4",
   "theme_color": "#11101a",
+  "categories": ["business", "productivity", "music", "marketing"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icons/maskable-192.png",
@@ -28,6 +38,35 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    },
+    {
+      "src": "/brand/sonara-industries-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Business Builder",
+      "short_name": "Business",
+      "description": "Open Business Builder tools and operations.",
+      "url": "/business-builder",
+      "icons": [{ "src": "/brand/business-builder-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Creator Studio",
+      "short_name": "Creator",
+      "description": "Open Creator Studio assets, releases, and creator tools.",
+      "url": "/creator-studio",
+      "icons": [{ "src": "/brand/creator-studio-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Growth Studio",
+      "short_name": "Growth",
+      "description": "Open Growth Studio campaigns, leads, and growth tools.",
+      "url": "/growth-studio",
+      "icons": [{ "src": "/brand/growth-studio-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }
