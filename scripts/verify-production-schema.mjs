@@ -49,6 +49,37 @@ if (!migrations.includes(storageMigrationName)) {
   if (/values\s*\([^)]*,\s*true\s*[,)]/s.test(storageSql)) failures.push("storage migration contains a public bucket");
 }
 
+const privilegeMigrationName = "20260718064853_data_api_privilege_hardening.sql";
+if (!migrations.includes(privilegeMigrationName)) {
+  failures.push(`missing Data API privilege hardening migration: ${privilegeMigrationName}`);
+} else {
+  const privilegeSql = readFileSync(join(migrationDir, privilegeMigrationName), "utf8").toLowerCase();
+  const requiredPrivilegeRules = [
+    "alter default privileges for role postgres in schema public",
+    "revoke select, insert, update, delete on tables from anon, authenticated, service_role",
+    "revoke execute on functions from anon, authenticated, service_role",
+    "revoke execute on functions from public",
+    "revoke execute on function public.set_updated_at() from public, anon, authenticated, service_role",
+    "revoke execute on function public.is_org_member(uuid) from public, anon",
+    "grant execute on function public.is_org_member(uuid) to authenticated, service_role",
+    "alter function public.is_org_member(uuid) set search_path = ''",
+    "alter function public.is_entity_member(uuid) set search_path = ''",
+    "security invoker",
+    "from public.user_roles roles"
+  ];
+
+  for (const rule of requiredPrivilegeRules) {
+    if (!privilegeSql.includes(rule)) failures.push(`Data API privilege hardening is missing: ${rule}`);
+  }
+
+  if (/grant\s+execute\s+on\s+function[\s\S]*?\s+to\s+anon\b/.test(privilegeSql)) {
+    failures.push("Data API privilege hardening grants anonymous function execution");
+  }
+  if (/from\s+public\.organization_memberships\b/.test(privilegeSql)) {
+    failures.push("platform admin helper still derives global access from organization membership");
+  }
+}
+
 if (failures.length) {
   console.error("Production schema verification failed:");
   for (const failure of failures) console.error(`- ${failure}`);
