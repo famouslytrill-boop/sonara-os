@@ -1,6 +1,7 @@
 # Locks
 
 History:
+- RELEASED: PR #21 merge/production verification and disclosed Supabase-secret rotation handoff - Codex, completed 2026-07-18T03:35-04:00 after green main checks, exact-SHA Vercel production proof, 15-route live smoke, no recent runtime errors, and read-only Cloudflare DNS inventory.
 - RELEASED: canonical Supabase database/agent contract, safe local/read-only MCP config, service-only metadata RPC, protected runtime readiness, verification/tests/docs/shared handoff - Codex, completed 2026-07-18T03:20-04:00 after rollback-only 3/71/10 PostgreSQL execution, local Supabase lint, 265 tests, and the full launch gate passed. Production migrations 40/41 remain owner-dependent.
 - RELEASED: Supabase Data API privilege hardening migration/verifier/tests and database/security handoff contracts - Codex, completed 2026-07-18T02:56-04:00 in commit `4acb355` after rollback-only local Postgres execution, 262 tests, and the full launch gate passed. Production application remains owner-dependent.
 - RELEASED: preference safety renderer/assets/tests/report - Agent B frontend subagent, completed 2026-07-18T02:28-04:00 in commit af18a6f after behavioral tests, full gates, and local 390/1440 Chrome checks passed.

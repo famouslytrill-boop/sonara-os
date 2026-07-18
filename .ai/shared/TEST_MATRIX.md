@@ -1,6 +1,6 @@
 # Test Matrix
 
-Updated: 2026-07-18T07:20:09Z by Codex (Agent A)
+Updated: 2026-07-18T07:35:16Z by Codex (Agent A)
 
 ## Required repository gates
 
@@ -59,3 +59,12 @@ Server routes, auth/admin, pricing/legal truthfulness, billing/webhook behavior,
 - `pnpm run verify:all`: pass; 265 tests, build, lint, client-secret scan, route smoke, 41-migration database gate, 124/347 route registry, and 85/62 OpenAPI gate.
 - `pnpm run test:docs`: pass.
 - Production apply: not run; required Supabase operator credentials are absent from this session.
+
+## PR #21 and production evidence
+
+- PR head `67e9208`: GitHub CI, dependency scans, Docker, repository Supabase validation, and Vercel preview passed. Supabase's managed preview resource was removed after merge and later reported `Resource has been removed`; no migration error was reported and this is not counted as production database proof.
+- Main merge `4dccd109`: SONARA Industries CI, dependency scans, Docker Image CI, and Vercel production status passed.
+- Vercel deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK`: `READY`, production target, exact merge SHA confirmed through `/api/health`.
+- `pnpm run smoke:live`: pass for 15 public/auth/legal/product routes on `https://sonaraindustries.com`.
+- Vercel runtime error scan, last hour: no errors found.
+- Cloudflare read-only inventory: zone active/unpaused; expected Vercel and mail-related DNS record types present. Email delivery remains unproven and readiness still marks `RESEND_FROM_EMAIL` invalid.

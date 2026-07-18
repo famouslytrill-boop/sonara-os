@@ -1,5 +1,7 @@
 # AI Changelog
 
+- 2026-07-18 Codex - Pushed and merged PR #21, verified green main GitHub checks, exact-SHA Vercel production readiness, 15-route live smoke, no recent runtime errors, and active Cloudflare DNS inventory. Recorded that the disclosed Supabase server secret must be rotated and that production migrations 40/41 remain unapplied.
+
 - 2026-07-18 Codex `5d333b1` - Added the canonical Supabase application contract, safe local and read-only MCP configuration, service-only database readiness RPC, protected admin runtime integration, contract verifier, SQL/route tests, and operator documentation. All local gates pass; production migrations remain owner-dependent.
 
 - 2026-07-18 Codex `4acb355` - Added append-only Supabase Data API privilege hardening, corrected global admin authorization to use `user_roles`, locked helper search paths, removed anonymous RPC access, and added local SQL plus repository regression gates. Production application remains pending owner review.

@@ -11,6 +11,8 @@ Durable facts both agents must not re-derive. Update only with evidence.
 - Resend domain `sonaraindustries.com`: verified, sending enabled.
 - Package manager: pnpm@11.1.1 ONLY. Never npm, never package-lock.json.
 - Canonical Supabase runtime inventory: `lib/sonara-database-contract.cjs` (3 schemas, 71 tables, 10 functions, 7 private buckets). Production remains last verified at 39 migrations until pending migrations 40/41 are owner-applied.
+- PR #21 merged the redesign/security/database contract into `main` at `4dccd10994656573ce18adcc4e4b30805cbac3f1`; Vercel production deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK` is directly verified `READY` at that SHA.
+- A Supabase server secret disclosed in chat on 2026-07-18 must be treated as compromised and rotated. Never copy it into files, commands, Vercel, CI, or another handoff.
 
 ## Production runtime (verified 2026-07-16/18 — see ADR-0001)
 - Root Express app in `server.js` (~4.5k lines), exported by `api/index.js`.
