@@ -54,11 +54,19 @@ function executeExperience(pathname, { secure = true, hostname = "sonaraindustri
   return registrations;
 }
 
+function parseManifestResponse(response) {
+  if (response.body && !Buffer.isBuffer(response.body) && Object.keys(response.body).length) {
+    return response.body;
+  }
+  const source = response.text || (Buffer.isBuffer(response.body) ? response.body.toString("utf8") : "");
+  return JSON.parse(source);
+}
+
 describe("canonical PWA contract", () => {
   it("serves one canonical install manifest and redirects the legacy path", async function() {
     const canonical = await request(app).get("/site.webmanifest");
     assert.equal(canonical.status, 200);
-    const manifest = JSON.parse(canonical.text);
+    const manifest = parseManifestResponse(canonical);
     assert.equal(manifest.name, "SONARA Industries");
     assert.equal(manifest.id, "/");
     assert.equal(manifest.start_url, "/");
@@ -70,6 +78,14 @@ describe("canonical PWA contract", () => {
     for (const icon of manifest.icons) {
       const iconResponse = await request(app).get(icon.src);
       assert.equal(iconResponse.status, 200, `${icon.src} should exist`);
+    }
+
+    for (const shortcut of manifest.shortcuts || []) {
+      assert.match(shortcut.url, /^\/(business-builder|creator-studio|growth-studio)$/);
+      for (const icon of shortcut.icons || []) {
+        const iconResponse = await request(app).get(icon.src);
+        assert.equal(iconResponse.status, 200, `${icon.src} should exist`);
+      }
     }
 
     const legacy = await request(app).get("/manifest.webmanifest");
