@@ -1,7 +1,7 @@
 # Locks
 
 Active:
-- None.
+- LOCKED: paid-launch finalization — Codex (Agent A), branch `codex/finalize-paid-launch`, started 2026-07-18. Scope: Resend sender validation, owner-approved pricing/legal launch markers, Stripe/checkout verification, one-time Supabase migration runner, tests, reports, and overlapping shared-memory files. Do not edit these areas until released.
 
 History:
 - RELEASED: operational database index contract, deterministic membership and manager resolution, selective paid-access queries, migration verifiers, regressions, research, report, and shared handoff — Codex, completed 2026-07-18 in PR #25 after application CI, dependency scan, Docker, Supabase preview and migration validation, and Vercel preview passed. Hosted migration 42 remains approval-dependent after migrations 40 and 41.
