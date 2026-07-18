@@ -9,9 +9,9 @@
 --
 -- Migrations 40 and 41 are already present in the production ledger. The first
 -- guarded production attempt of this migration proved that an older
--- billing_subscriptions table predated the canonical CREATE TABLE IF NOT EXISTS
--- definition and lacked organization_id. Reconcile only the additive columns
--- required by the current server contract before creating operational indexes.
+-- billing_subscriptions table predated the canonical table-definition migration
+-- and lacked organization_id. Reconcile only the additive columns required by
+-- the current server contract before creating operational indexes.
 -- This migration creates no new table, user, provider connection, public grant,
 -- RLS bypass, seed account, or autonomous executor.
 
