@@ -1,5 +1,8 @@
 # Shared Task Board
 
+## Codex integration update - 2026-07-18
+- DONE: Applied and verified the owner-supplied rebased Clark redesign patch on `codex/integrate-clark-redesign` from `github/main` (`b9e341e`). Integrated commit range `8058878..6d8346e`; all local launch gates are green. Push/PR/deploy remain owner-directed.
+
 Updated: 2026-07-18T04:20:00Z by Claude (reconciled with Codex board of 2026-07-17T23:39-04:00)
 
 ## In progress

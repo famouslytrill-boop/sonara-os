@@ -1,5 +1,12 @@
 # Current State — updated 2026-07-18T04:20:00Z by Claude (Agent B)
 
+## Codex patch integration update - 2026-07-18T04:10:00Z
+- Correct target confirmed as the root Express production repository, not the separate pnpm monorepo checkout.
+- Started from `github/main` at `b9e341e`; integrated owner patch SHA-256 `514503D71EDB1E95C092F49F0194081B349DCB4BBA4C9C4F5331AE9326D0963D` on branch `codex/integrate-clark-redesign`.
+- Integrated commits: `8058878`, `0bb664a`, `c19a19d`, `6d8346e`.
+- Verification is green: frozen pnpm install, moderate audit, `verify:launch` (255 passing), docs checks, `git diff --check`, and served HTTP checks for the homepage, pricing, all three products, and four redesigned CSS assets.
+- No push, merge, deploy, provider configuration, database migration, or secret change was performed. Untracked `debug-session.cjs` remains untouched.
+
 ## Production
 - origin/main advanced to b9e341e (PR #20: Codex's expanded launch docs — supersedes Claude's doc commits, content-reconciled). Production deploy of b9e341e assumed in-flight/ready via Vercel main auto-deploy; last directly verified live commit was c3fcc9b.
 - /api/readiness: supabase/stripe/webhook/admin configured, checkout enabled,
