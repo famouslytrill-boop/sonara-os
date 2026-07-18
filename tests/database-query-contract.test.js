@@ -54,6 +54,36 @@ describe("database query contract", () => {
     );
   });
 
+  it("reconciles the live billing subscription shape additively", function() {
+    const sql = read(migrationPath);
+    for (const column of [
+      "organization_id",
+      "provider",
+      "provider_customer_ref",
+      "provider_subscription_ref",
+      "plan_slug",
+      "status",
+      "current_period_end",
+      "cancel_at_period_end",
+      "metadata",
+      "created_at",
+      "updated_at"
+    ]) {
+      assert.match(sql, new RegExp(`add column if not exists ${column}\\b`, "i"), `${column} must be reconciled additively`);
+      assert.match(sql, new RegExp(`'${column}'`), `${column} must be asserted after migration`);
+    }
+
+    assert.match(sql, /stripe_subscription_id where provider_subscription_ref is null/i);
+    assert.match(sql, /stripe_customer_id where provider_customer_ref is null/i);
+    assert.match(sql, /plan_key where plan_slug is null/i);
+    assert.match(sql, /tier where plan_slug is null/i);
+    assert.match(
+      sql,
+      /create unique index if not exists billing_subscriptions_provider_subscription_key\s+on public\.billing_subscriptions \(provider, provider_subscription_ref\)/i
+    );
+    assert.match(sql, /'billing_subscriptions_provider_subscription_key'/);
+  });
+
   it("declares only evidence-backed operational indexes", function() {
     const sql = read(migrationPath);
     const { DATABASE_INDEXES, DATABASE_TABLES } = require("../lib/sonara-database-contract.cjs");
