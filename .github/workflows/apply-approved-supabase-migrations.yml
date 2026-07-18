@@ -9,6 +9,14 @@ on:
       - supabase/migrations/20260718064853_data_api_privilege_hardening.sql
       - supabase/migrations/20260718071148_connect_database_contract.sql
       - supabase/migrations/20260718193000_operational_query_index_contract.sql
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-approved-supabase-migrations.yml
+      - supabase/migrations/20260718064853_data_api_privilege_hardening.sql
+      - supabase/migrations/20260718071148_connect_database_contract.sql
+      - supabase/migrations/20260718193000_operational_query_index_contract.sql
 
 permissions:
   contents: read
@@ -19,6 +27,7 @@ concurrency:
 
 jobs:
   apply-approved-migrations:
+    if: github.event_name == 'push' || github.head_ref == 'codex/finalize-paid-launch'
     name: Apply migrations 40-42
     runs-on: ubuntu-latest
     timeout-minutes: 20
