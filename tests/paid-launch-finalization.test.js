@@ -77,7 +77,7 @@ describe("paid launch finalization", () => {
     const response = await request(app).get("/legal/terms").set("Accept", "text/html");
     assert.equal(response.status, 200);
     assert.match(response.text, /Owner-approved launch baseline/);
-    assert.match(response.text, /Qualified legal review remains required/);
+    assert.match(response.text, /qualified legal review remains required/);
     assert.match(response.text, /not represented as attorney-reviewed/);
     assert.match(response.text, /not legal advice/);
     assert.doesNotMatch(response.text, /Owner-review-required draft/);
