@@ -24,13 +24,13 @@ function replaceRequired(label, oldValue, newValue) {
 replaceRequired(
   "owner-approved legal and pricing readiness",
   '    legalPages: "review_required",\n    checkout: enabledPlanCount ? "enabled" : "setup_required",',
-  '    legalPages: "owner_approved",\n    pricingCatalog: "owner_approved",\n    legalReviewBoundary: "not_attorney_reviewed",\n    checkout: enabledPlanCount ? "enabled" : "setup_required",'
+  '    legalPages: "review_required",\n    ownerLegalApproval: "owner_approved",\n    pricingCatalog: "owner_approved",\n    legalReviewBoundary: "not_attorney_reviewed",\n    checkout: enabledPlanCount ? "enabled" : "setup_required",'
 );
 
 replaceRequired(
   "owner-approved legal page disclosure",
   '      body: "Owner-review-required draft for SONARA Industries production launch. This page requires qualified legal review before paid public launch and is not legal advice.",',
-  '      body: "Owner-approved launch baseline for SONARA Industries. These terms are not legal advice and are not represented as attorney-reviewed; they remain subject to applicable law and future revision.",'
+  '      body: "Owner-approved launch baseline for SONARA Industries. Qualified legal review remains required; these terms are not legal advice and are not represented as attorney-reviewed. They remain subject to applicable law and future revision.",'
 );
 
 replaceRequired(
