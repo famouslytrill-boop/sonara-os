@@ -67,11 +67,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "Current linked migration history:"
-          supabase migration list --linked
-
+          supabase migration list --linked > migration-ledger-before.log 2>&1
           dry_run="$(supabase db push --linked --dry-run --include-all 2>&1)"
-          printf '%s\n' "$dry_run"
+          printf '%s\n' "$dry_run" > migration-dry-run.log
 
           pending="$(printf '%s\n' "$dry_run" | grep -oE '20[0-9]{12}_[A-Za-z0-9_.-]+\.sql' | sort -u || true)"
           while IFS= read -r migration; do
@@ -97,17 +95,22 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Apply approved migrations
+        id: apply
         shell: bash
         run: |
-          set -euo pipefail
-          supabase db push --linked --include-all
+          set +e
+          supabase db push --linked --include-all > migration-apply.log 2>&1
+          status=$?
+          set -e
+          cat migration-apply.log
+          exit "$status"
 
       - name: Verify remote migration ledger
         shell: bash
         run: |
           set -euo pipefail
           ledger="$(supabase migration list --linked 2>&1)"
-          printf '%s\n' "$ledger"
+          printf '%s\n' "$ledger" | tee migration-ledger-after.log
           for version in 20260718064853 20260718071148 20260718193000; do
             line="$(printf '%s\n' "$ledger" | grep "$version" || true)"
             occurrences="$(printf '%s' "$line" | grep -o "$version" | wc -l | tr -d ' ')"
@@ -122,5 +125,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase db lint --linked --level error --fail-on error
+          supabase db lint --linked --level error --fail-on error 2>&1 | tee migration-lint.log
           echo "Linked production schema lint passed at error level." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload sanitized migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-supabase-migration-diagnostics-${{ github.run_attempt }}
+          path: |
+            migration-ledger-before.log
+            migration-dry-run.log
+            migration-apply.log
+            migration-ledger-after.log
+            migration-lint.log
+          if-no-files-found: ignore
+          retention-days: 3
