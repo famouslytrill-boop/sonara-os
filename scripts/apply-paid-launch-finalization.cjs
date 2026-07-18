@@ -30,7 +30,7 @@ replaceRequired(
 replaceRequired(
   "owner-approved legal page disclosure",
   '      body: "Owner-review-required draft for SONARA Industries production launch. This page requires qualified legal review before paid public launch and is not legal advice.",',
-  '      body: "Owner-approved launch baseline for SONARA Industries. Qualified legal review remains required; these terms are not legal advice and are not represented as attorney-reviewed. They remain subject to applicable law and future revision.",'
+  '      body: "Owner-approved launch baseline for SONARA Industries; qualified legal review remains required. These terms are not legal advice and are not represented as attorney-reviewed. They remain subject to applicable law and future revision.",'
 );
 
 replaceRequired(
