@@ -12,6 +12,12 @@ PURPOSE: Initialize the dual-agent repository memory, contracts, registries, ADR
 STARTED: 2026-07-17T23:39:04-04:00
 RELEASED: 2026-07-17 session close after focused validation passed.
 
+LOCK: `.ai/shared/CURRENT_STATE.md`, `.ai/shared/HANDOFF_LOG.md`, `.ai/shared/CHANGELOG_AI.md`, `.ai/shared/LOCKS.md`
+OWNER: Codex
+PURPOSE: Record the exact shared-contract commit SHA and final handoff metadata.
+STARTED: 2026-07-17 session close
+RELEASED: 2026-07-17 immediately after metadata update.
+
 ## Rules
 
 - Record a lock before changing a shared or high-conflict area.
