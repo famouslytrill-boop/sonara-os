@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-07-18T21:12:00Z - Codex (Agent A) - PR #25 merge and production deployment
+
+- PR #25 merged to `main` as `9ca3487d38050322ab2b51a91f98bc92553fb3ac` after final head `b96bd14cbe4275da2c27a841eed959f3cab39c46` passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase preview and migration validation, and Vercel preview.
+- Vercel reported production success for the exact merge commit.
+- The deployed source-code release makes tenant and Business Builder manager selection deterministic, filters paid candidates inside PostgREST, fails closed for unmapped product entitlements, and adds repository support for eight operational indexes.
+- The hosted Supabase schema was not changed by the merge. Production remains last verified at 39 applied migrations; migrations 40, 41, and 42 remain approval-dependent.
+- No RLS policy, Data API grant, storage policy, provider setting, payment action, customer row, or autonomous execution was changed.
+- Shared state, integration registry, task board, contracts, tests, risks, open questions, research, reports, and lock history now reflect the merged release.
+- Next Agent A work is the approved hosted migration sequence, Stripe lifecycle proof, or email-delivery proof. Next Agent B work is the repository-owned browser harness and bounded authenticated application-shell expansion.
+
 ## 2026-07-18T21:05:00Z - Codex (Agent A) - PR #25 operational database query contract
 
 - Read the shared memory, database and security contracts, runtime query helpers, service lifecycle routes, canonical schema inventory, migration history, verifiers, tests, and current Supabase and Postgres guidance before editing.
