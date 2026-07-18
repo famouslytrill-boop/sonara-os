@@ -1,11 +1,14 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 
+const require = createRequire(import.meta.url);
 const root = process.cwd();
 const migrationDir = join(root, "supabase", "migrations");
 const migrations = readdirSync(migrationDir).filter((name) => name.endsWith(".sql")).sort();
 const versions = new Map();
 const failures = [];
+const { DATABASE_INDEXES } = require(join(root, "lib", "sonara-database-contract.cjs"));
 
 for (const name of migrations) {
   const version = name.split("_")[0];
@@ -80,10 +83,26 @@ if (!migrations.includes(privilegeMigrationName)) {
   }
 }
 
+const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
+if (!migrations.includes(operationalIndexMigrationName)) {
+  failures.push(`missing operational query index migration: ${operationalIndexMigrationName}`);
+} else {
+  const operationalSql = readFileSync(join(migrationDir, operationalIndexMigrationName), "utf8").toLowerCase();
+  for (const index of DATABASE_INDEXES) {
+    if (!operationalSql.includes(`create index if not exists ${index.name}`)) failures.push(`missing operational index declaration: ${index.name}`);
+    if (!operationalSql.includes(`'${index.name}'`)) failures.push(`missing operational index assertion: ${index.name}`);
+  }
+  for (const required of ["pg_index", "indisvalid", "indisready", "notify pgrst, 'reload schema'"]) {
+    if (!operationalSql.includes(required)) failures.push(`operational index migration is missing: ${required}`);
+  }
+  if (/create\s+table/i.test(operationalSql)) failures.push("operational index migration adds a speculative table");
+  if (/grant\s+/i.test(operationalSql)) failures.push("operational index migration changes Data API grants");
+}
+
 if (failures.length) {
   console.error("Production schema verification failed:");
   for (const failure of failures) console.error(`- ${failure}`);
   process.exit(1);
 }
 
-console.log(`Production schema verification passed: ${migrations.length} migrations, ${requiredTables.length} required tables, 7 private buckets.`);
+console.log(`Production schema verification passed: ${migrations.length} migrations, ${requiredTables.length} required tables, ${DATABASE_INDEXES.length} operational indexes, 7 private buckets.`);
