@@ -4,7 +4,7 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 ## In progress
 
-- PR #23 review/merge decision for the verified public-only PWA contract. No product files remain locked after this handoff.
+- Release-evidence reconciliation for merged PR #23 only. No product files are locked.
 
 ## Blocked / owner-dependent
 
@@ -19,18 +19,19 @@ Updated: 2026-07-18 by Codex (Agent A)
 2. After sender configuration is corrected, verify readiness transition and one approved delivery.
 3. Tighten the highest-risk generic OpenAPI payloads without changing deployed response shapes.
 4. Measure membership fallback usage and Business Builder referential integrity before proposing additional constraints.
-5. After PR #23 review, verify the merged production PWA manifest, public registration, offline fallback, and private-route non-interception on a real browser.
+5. Verify post-merge PWA production headers/routes after Agent B supplies a reproducible browser harness.
 
 ## Ready for Agent B
 
 1. Add a repository-owned browser harness for mobile/desktop PWA, accessibility, overflow, console, theme, and command-palette checks.
-2. Perform post-merge install/update/offline browser proof without caching authenticated/private responses.
+2. Verify production install/update/offline behavior at merge `277c3bb6c58bfe29399265a0dae52830c02d1d99` without caching authenticated/private responses.
 3. Keep authenticated application-frame expansion, Canvas product scenes, sound, maps, and physical-device validation as separate bounded tasks.
 
 ## Done
 
-- [Codex] PR #23 PWA convergence implementation: one canonical manifest, public-only secure service-worker registration, public navigation allowlist, private-cache exclusion, product shortcuts, and executable contract tests. Implementation head `a616aa604b5e298ad19d24a060bc9da067b1d314` passed application CI, dependency scan, Docker, Supabase repository validation, and Vercel preview.
-- [Codex] PR #21 merged to `main`; GitHub checks, Vercel production, live route smoke, and runtime-error inspection passed at the recorded release SHA.
+- [Codex] PR #23 merged to `main` as `277c3bb6`; Vercel production status succeeded for the exact SHA. It delivers one canonical manifest, public-only secure service-worker registration, public navigation allowlisting, private-cache exclusion, product shortcuts, executable PWA tests, and synchronized shared contracts.
+- [Codex] Final PR head `a108e190` passed application CI, dependency scan, Docker, Supabase repository validation, and Vercel preview before merge.
+- [Codex] PR #21 merged the redesign/security/database contract; GitHub checks, Vercel production, live route smoke, and runtime-error inspection passed at the recorded release SHA.
 - [Codex] Canonical 71-table/10-function/3-schema/7-bucket Supabase contract and protected readiness integration completed; production application remains owner-dependent.
 - [Codex] Supabase Data API privilege hardening and authorization regressions completed; production application remains owner-dependent.
 - [Agent B] Theme and haptics preference safety completed with executable tests and local browser proof.

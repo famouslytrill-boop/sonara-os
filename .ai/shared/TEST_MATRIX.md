@@ -38,24 +38,26 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 Server routes, authentication/admin, pricing/legal truthfulness, billing/webhook behavior, frontend markers/tokens/preferences/service worker, route registry, SaaS workflows, formulas, ecosystem, launch readiness, entity security, creator music configuration, database privileges, and OpenAPI drift.
 
-## Current branch evidence
+## PR #23 and production evidence
 
-- Implementation head `a616aa604b5e298ad19d24a060bc9da067b1d314`:
+- Final PR head `a108e19019604983b67e11dd5a727c119128d592`:
   - SONARA Industries CI: pass.
   - Dependency scan: pass.
   - Docker Image CI: pass.
   - Supabase repository migration/config validation: pass.
   - Vercel preview: ready.
-- The first CI attempt exposed existing assertions tied to the superseded duplicate manifest and legacy icon contract. The branch corrected those assertions/contracts rather than skipping tests; the subsequent run passed.
-- No hosted database apply, storage-policy mutation, provider setting, payment action, or production deployment was part of this PWA verification.
+- Merge commit `277c3bb6c58bfe29399265a0dae52830c02d1d99`:
+  - PR merged successfully to `main`.
+  - Vercel production status: success for the exact SHA.
+- The first CI attempt exposed assertions tied to the superseded duplicate manifest and legacy icon contract. The branch corrected the contract and assertions rather than skipping tests; the subsequent run passed.
+- No hosted database apply, storage-policy mutation, provider setting, payment action, or billing/auth API change was part of the PWA release.
 
 ## Prior production evidence
 
-- Main merge `4dccd10994656573ce18adcc4e4b30805cbac3f1`: main CI, dependency, Docker, and Vercel production checks passed.
-- Production route smoke passed for the recorded public/auth/legal/product set.
+- Main merge `4dccd10994656573ce18adcc4e4b30805cbac3f1`: main CI, dependency, Docker, Vercel production, route smoke, and recorded runtime-error inspection passed.
 - Production database remains last verified at 39 applied migrations; repository migrations 40/41 remain pending approved application.
 
 ## Browser evidence boundary
 
 - Existing multi-viewport redesign and focused preference browser evidence remains recorded in the reports directory.
-- PWA install/update/offline behavior and physical vibration still require reproducible post-merge browser/device proof before they can be called production-verified.
+- PWA installation, update prompting, offline fallback, private-route non-interception in a live browser, and physical vibration still require reproducible post-merge browser/device proof before they can be called production-verified.
