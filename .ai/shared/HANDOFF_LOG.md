@@ -1,5 +1,14 @@
 # Handoff Log
 
+## 2026-07-18T07:20:09Z - Codex (Agent A) - canonical Supabase database and agent contract
+
+- Read every shared contract and the Supabase/Postgres skills, then inventoried all migration-defined schemas, tables, authorization functions, storage buckets, and existing agent primitives. Preserved unrelated `debug-session.cjs`.
+- Commit `5d333b1` adds `lib/sonara-database-contract.cjs` as the canonical 3-schema/71-table/10-function/7-bucket inventory. Existing `entity_*`, workflow, memory, approval, automation, connector, job, and audit tables remain the agent foundation; autonomous execution remains disabled.
+- Added safe `supabase/config.toml`, credential-free read-only project-scoped `.mcp.json`, append-only migration `20260718071148_connect_database_contract.sql`, service-only metadata readiness RPC, protected admin readiness integration, static verifier, and route/SQL regression tests.
+- SQL evidence: migration 41 executed against local Supabase Postgres inside a transaction with a full RLS fixture, returned 3 schema/71 table/10 function checks with every table ready, then rolled back cleanly. Local Supabase schema lint reported no errors.
+- Full evidence: frozen pnpm install, moderate audit, `verify:supabase-contract`, `verify:db`, `verify:all` with 265 tests, secret scan, lint, route smoke, config/registry/OpenAPI gates, docs check, and `git diff --check` all pass.
+- Production remains last verified at 39 migrations. This session has no Supabase access token/database password, so migrations 40/41 were not pushed and the MCP still requires operator OAuth/client restart. No hosted mutation, push, merge, deploy, or secret occurred.
+
 ## 2026-07-18T06:56:00Z - Codex (Agent A) - Supabase Data API privilege hardening
 
 - Read the dual-agent directive, all shared contracts, migration history, Supabase skills, and current official Supabase Data API/function guidance before editing. Preserved unrelated `debug-session.cjs`.

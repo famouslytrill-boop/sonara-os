@@ -10,6 +10,7 @@ Durable facts both agents must not re-derive. Update only with evidence.
 - Supabase project ref: `yqncsonkxgwhcxedgevk` (us-east-2, ACTIVE_HEALTHY).
 - Resend domain `sonaraindustries.com`: verified, sending enabled.
 - Package manager: pnpm@11.1.1 ONLY. Never npm, never package-lock.json.
+- Canonical Supabase runtime inventory: `lib/sonara-database-contract.cjs` (3 schemas, 71 tables, 10 functions, 7 private buckets). Production remains last verified at 39 migrations until pending migrations 40/41 are owner-applied.
 
 ## Production runtime (verified 2026-07-16/18 — see ADR-0001)
 - Root Express app in `server.js` (~4.5k lines), exported by `api/index.js`.

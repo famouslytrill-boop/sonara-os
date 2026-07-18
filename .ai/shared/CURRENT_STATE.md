@@ -1,4 +1,14 @@
-# Current State - updated 2026-07-18T06:56:00Z by Codex (Agent A)
+# Current State - updated 2026-07-18T07:20:09Z by Codex (Agent A)
+
+## Canonical Supabase runtime contract - 2026-07-18T07:20:09Z
+
+- Commit `5d333b1` adds one canonical application inventory in `lib/sonara-database-contract.cjs`: three schemas, 71 existing application tables, 10 authorization/readiness functions, and seven private storage buckets.
+- Append-only migration `20260718071148_connect_database_contract.sql` requires every contract table and RLS state, makes service-role object access explicit, and adds the metadata-only `sonara_database_contract_snapshot()` RPC. RPC execution is revoked from `PUBLIC`, `anon`, and `authenticated` and granted only to `service_role`.
+- The existing entity agents, runs, memory, tools, approvals, automations, connectors, workflows, jobs, and audit logs are the accepted agent foundation. No autonomous production executor, shell access, outbound action, or customer-data bypass was added.
+- `/api/admin/database-readiness` now reports schema, table/RLS, function, product-group, and agent-foundation state from the service-only RPC. Before migration 41 is applied it falls back to legacy REST checks and remains `setup_required`.
+- `supabase/config.toml` defines safe local defaults and seven private buckets. `.mcp.json` is project-scoped, read-only, credential-free, and requires operator OAuth/client restart.
+- Rollback-only local PostgreSQL execution passed with 3/71/10 readiness counts and no residual function. Local `supabase db lint --level error`, frozen install, moderate audit, docs, and full `verify:all` pass with 265 tests and 41 repository migrations.
+- Production is still last verified at 39 migrations. Migrations 40 and 41 remain pending because this session has no `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, or `DATABASE_URL`. No hosted database, push, deploy, or secret changed.
 
 ## Supabase Data API privilege hardening - 2026-07-18T06:56:00Z
 

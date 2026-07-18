@@ -1,6 +1,6 @@
 # Shared Task Board
 
-Updated: 2026-07-18T06:56:00Z by Codex (Agent A)
+Updated: 2026-07-18T07:20:09Z by Codex (Agent A)
 
 ## In progress
 
@@ -11,6 +11,7 @@ Updated: 2026-07-18T06:56:00Z by Codex (Agent A)
 - [Shared] Paid launch: valid `RESEND_FROM_EMAIL`, Stripe test-mode lifecycle proof, unrestricted live smoke, and owner legal/pricing/refund/provider approvals.
 - [Shared] Push, PR, merge, and deployment of `codex/integrate-clark-redesign` remain owner-directed; branch and browser evidence are local only.
 - [Owner + Codex] Review and apply `20260718064853_data_api_privilege_hardening.sql` to the hosted Supabase project, then rerun database/security advisors and positive/negative RLS checks. Production remains on 39 migrations until this occurs.
+- [Owner + Codex] Authorize the read-only project-scoped Supabase MCP or provide CLI credentials outside the repo; review and apply migrations 40 and 41 in order, then verify the 71-table/10-function contract through `/api/admin/database-readiness`. No production apply occurred in the current task.
 
 ## Ready for Codex (Agent A)
 
@@ -27,6 +28,7 @@ Updated: 2026-07-18T06:56:00Z by Codex (Agent A)
 
 ## Done
 
+- [Codex] Commit `5d333b1` added the canonical 71-table, 10-function, 3-schema, 7-private-bucket Supabase contract; safe local config and read-only project-scoped MCP config; append-only service-role metadata readiness RPC; admin runtime integration; static/SQL/route regressions; and operator documentation. Rollback-only PostgreSQL execution and all 265-test launch gates pass. Production application remains owner-dependent.
 - [Codex] Added append-only Data API/default-privilege hardening, corrected global-admin authorization to use `user_roles`, locked authorization helper search paths, revoked anonymous helper RPC execution, and added executable positive/negative regression gates in commit `4acb355`. Local SQL and all launch gates pass; production application remains owner-dependent.
 - [Agent B] Preference safety/theme correctness in `af18a6f`: pre-paint canonical theme, opt-in/reduced-motion haptics, synchronized cache token, behavioral tests, and local 390/1440 Chrome proof.
 - [Codex] ADR-0010 membership compatibility decision and source inventory; no migration or runtime behavior change.
