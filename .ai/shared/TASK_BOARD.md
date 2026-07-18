@@ -10,6 +10,7 @@ Updated: 2026-07-17T23:39:04-04:00
 
 - [Shared] Product code work is blocked from safe dual-agent parallelism until ownership of the 155 modified, 1 deleted, and 18 untracked pre-existing paths is established or committed in logical groups.
 - [Shared] Live provider proof is blocked pending authenticated dashboard/provider access and explicit production approval.
+- [Codex] Inspect/apply `sonara-branch-all-commits.patch` after the actual file is attached or an absolute local path is provided. Before application, verify patch format, source/base commits, affected paths, secret exposure, binary payloads, and `git apply --check` against the dirty worktree.
 
 ## Ready for Codex
 

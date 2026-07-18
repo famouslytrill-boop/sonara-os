@@ -10,4 +10,5 @@
 8. Are Cloudflare DNS/email routing, GitLab mirror, Docker/Rancher workers, or Expo native builds active or documentation-only?
 9. Should `/admin/*` and `/app/admin/*` remain parallel route families, or should one become a compatibility redirect after parity review?
 10. Which generated files under `.playwright-cli/` and `output/` should be retained as evidence versus ignored?
-
+11. Where is `sonara-branch-all-commits.patch`, what commit range produced it, and is it a mailbox/format-patch series or a raw unified diff?
+12. Is the patch intended for this monorepo checkout and current branch, or for the older `famouslytrill-project` Express checkout?

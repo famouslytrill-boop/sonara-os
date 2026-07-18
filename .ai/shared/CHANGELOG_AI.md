@@ -2,6 +2,7 @@
 
 ## 2026-07-17
 
+- Recorded a blocked intake for `sonara-branch-all-commits.patch`; the reported upload was unavailable in the attachment cache, so no patch content or product code was changed.
 - Added repository-based dual-agent shared memory under `.ai/shared/`.
 - Recorded the actual current runtime: pnpm monorepo, static web artifact in `packages/web/dist`, Vercel API functions under `api/`, and SPA fallback routing.
 - Added initial route, module, integration, database, frontend, API, security, design, and test contracts.

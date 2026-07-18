@@ -48,3 +48,4 @@ Snapshot: 2026-07-17T23:39:04-04:00
 - Shared-memory initialization lock released at session close.
 - No existing product/backend/frontend file was changed by this initialization task.
 - Next code session must claim a task and lock its exact paths before editing.
+- Patch intake pending: the user reported `sonara-branch-all-commits.patch` (176.5 KB), but the file was not present in the workspace, Downloads, or Codex attachment cache during inspection. No patch content was applied.
