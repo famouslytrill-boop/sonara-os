@@ -1,5 +1,14 @@
 # Handoff Log
 
+## 2026-07-18T06:56:00Z - Codex (Agent A) - Supabase Data API privilege hardening
+
+- Read the dual-agent directive, all shared contracts, migration history, Supabase skills, and current official Supabase Data API/function guidance before editing. Preserved unrelated `debug-session.cjs`.
+- Found a cross-tenant authorization defect in the legacy `is_admin_or_founder()` helper: owner/admin membership in any customer organization could satisfy platform-wide legacy policies. Commit `4acb355` redefines the helper as a security-invoker lookup of the caller's own `user_roles` owner/admin record.
+- Added append-only migration `20260718064853_data_api_privilege_hardening.sql`: future Data API objects are grant-opt-in, all authorization helper search paths are locked to empty, anonymous helper RPC execution is removed, required signed-in/service execution is explicit, and the trigger helper is not directly callable by Data API roles.
+- The migration contains positive/negative privilege assertions and executed successfully in local Supabase Postgres inside a transaction followed by `ROLLBACK`; no local or hosted database state was changed.
+- Added `tests/supabase-privilege-hardening.test.js` and strengthened `scripts/verify-production-schema.mjs`. Verification: frozen install pass; moderate audit clean; typecheck/lint/docs/build pass; `pnpm test` and `verify:launch` pass with 262 tests; secret scan, route smoke, 40/15/7 database declaration checks, 124/347 route registry, and 85/62 OpenAPI checks pass; `git diff --check` clean before shared-memory edits.
+- Production is still verified at 39 applied migrations. Owner action: review/apply migration 40, rerun Supabase advisors plus positive/negative role checks, and record exact production evidence. No push, deploy, secret, provider, or production mutation occurred.
+
 ## 2026-07-18T06:30:00Z - Codex (Agent A) + Agent B - preference safety and membership compatibility
 
 - Agent B implemented commit `af18a6f`: canonical `data-theme` initialization before styles, stored/system light-dark resolution, removal of unconditional vibration, opt-in/reduced-motion haptics, synchronized `clark-ui-20260718-preferences` asset/service-worker tokens, and executable regression tests.

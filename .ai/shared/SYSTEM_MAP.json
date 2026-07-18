@@ -27,10 +27,11 @@
     "googleOAuth": { "status": "deferred" }
   },
   "verification": {
-    "tests": 255,
+    "tests": 262,
     "requiredGetRoutes": 124,
     "routeRegistrations": 347,
-    "migrations": 39,
+    "repositoryMigrations": 40,
+    "productionAppliedMigrations": 39,
     "requiredTables": 15,
     "privateBuckets": 7
   }

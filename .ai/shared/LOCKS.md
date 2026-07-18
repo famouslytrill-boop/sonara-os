@@ -3,6 +3,7 @@
 No active locks.
 
 History:
+- RELEASED: Supabase Data API privilege hardening migration/verifier/tests and database/security handoff contracts - Codex, completed 2026-07-18T02:56-04:00 in commit `4acb355` after rollback-only local Postgres execution, 262 tests, and the full launch gate passed. Production application remains owner-dependent.
 - RELEASED: preference safety renderer/assets/tests/report - Agent B frontend subagent, completed 2026-07-18T02:28-04:00 in commit af18a6f after behavioral tests, full gates, and local 390/1440 Chrome checks passed.
 - RELEASED: ADR-0010 membership compatibility inventory and shared contract/handoff reconciliation - Codex, completed 2026-07-18T02:28-04:00 in commit 0182d32 after full local verification.
 - RELEASED: Agent A Phase 0/1 backend audit, OpenAPI/runtime contract, accepted database/auth baselines, and shared handoff files - Codex, completed 2026-07-18T02:14-04:00 in commit 61dae0a after all required local gates passed.

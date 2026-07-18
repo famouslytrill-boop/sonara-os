@@ -8,7 +8,8 @@ Last verified: 2026-07-18 repository gate; live-provider evidence remains dated 
 
 - `supabase/migrations/**` is append-only history. Never edit or replay an applied migration to make a new change.
 - Create future migrations with the Supabase CLI, review the generated version, and test locally before any production push.
-- `pnpm run verify:db` currently verifies 39 SQL migration files, 15 required launch tables, seven declared private storage buckets, organization membership checks, and absence of public bucket declarations.
+- `pnpm run verify:db` currently verifies 40 SQL migration files, 15 required launch tables, seven declared private storage buckets, organization membership checks, absence of public bucket declarations, and the Data API privilege hardening contract.
+- Production was last verified at 39 applied migrations. `20260718064853_data_api_privilege_hardening.sql` is repository-verified but must not be described as applied until owner-approved production execution and post-apply checks complete.
 - The hosted project reference recorded for operational use is `yqncsonkxgwhcxedgevk`; credentials remain outside this repository.
 
 ## Tenancy and authorization
@@ -18,6 +19,9 @@ Last verified: 2026-07-18 repository gate; live-provider evidence remains dated 
 - Membership naming is not normalized: organization, workspace, business, and entity membership concepts coexist. A compatibility ADR and data inventory are required before renaming tables, columns, roles, or API fields.
 - ADR-0010 defines the compatibility baseline: `organization_memberships` is canonical customer tenancy; generic `workspace_memberships` language maps to it; `business_memberships` and `entity_memberships` remain separate narrower authorization domains; `user_roles` remains a global override.
 - Service-role access is server-only and bypasses RLS; every use must preserve the authenticated organization/user boundary explicitly.
+- Global platform owner/admin authorization derives from `user_roles`, never from ownership or administration of an individual customer organization.
+- Public-schema Data API exposure is opt-in for future objects: migrations must explicitly grant the minimum table/sequence/function privileges to `anon`, `authenticated`, and/or `service_role`; RLS still determines which rows an otherwise privileged caller may access.
+- Authorization helper functions are not anonymous RPC endpoints. Helpers used by authenticated RLS policies must have an empty locked search path, schema-qualified relations, and explicit authenticated/service-role execution; trigger helpers receive no Data API execution grant.
 
 ## Billing, support, and storage truths
 

@@ -1,6 +1,6 @@
 # Shared Task Board
 
-Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
+Updated: 2026-07-18T06:56:00Z by Codex (Agent A)
 
 ## In progress
 
@@ -10,6 +10,7 @@ Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 
 - [Shared] Paid launch: valid `RESEND_FROM_EMAIL`, Stripe test-mode lifecycle proof, unrestricted live smoke, and owner legal/pricing/refund/provider approvals.
 - [Shared] Push, PR, merge, and deployment of `codex/integrate-clark-redesign` remain owner-directed; branch and browser evidence are local only.
+- [Owner + Codex] Review and apply `20260718064853_data_api_privilege_hardening.sql` to the hosted Supabase project, then rerun database/security advisors and positive/negative RLS checks. Production remains on 39 migrations until this occurs.
 
 ## Ready for Codex (Agent A)
 
@@ -17,7 +18,6 @@ Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 2. After the owner configures `RESEND_FROM_EMAIL`, verify the readiness transition and one approved test delivery. Update the email report.
 3. Convert the highest-risk generic OpenAPI payloads to endpoint-specific schemas, beginning with checkout, webhook errors, authorization errors, and entitlement-gated records.
 4. Measure membership fallback usage and live Business Builder referential integrity before proposing any ADR-0010 hardening migration.
-5. Verify and address Supabase advisor findings with append-only migrations and positive/negative RLS tests.
 
 ## Ready for Agent B
 
@@ -27,6 +27,7 @@ Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 
 ## Done
 
+- [Codex] Added append-only Data API/default-privilege hardening, corrected global-admin authorization to use `user_roles`, locked authorization helper search paths, revoked anonymous helper RPC execution, and added executable positive/negative regression gates in commit `4acb355`. Local SQL and all launch gates pass; production application remains owner-dependent.
 - [Agent B] Preference safety/theme correctness in `af18a6f`: pre-paint canonical theme, opt-in/reduced-motion haptics, synchronized cache token, behavioral tests, and local 390/1440 Chrome proof.
 - [Codex] ADR-0010 membership compatibility decision and source inventory; no migration or runtime behavior change.
 - [Codex] Canonical OpenAPI baseline for 85 operations / 62 paths plus `verify:api` launch gate; no response-shape changes.

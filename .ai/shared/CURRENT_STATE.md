@@ -1,4 +1,12 @@
-# Current State - updated 2026-07-18T06:30:00Z by Codex (Agent A)
+# Current State - updated 2026-07-18T06:56:00Z by Codex (Agent A)
+
+## Supabase Data API privilege hardening - 2026-07-18T06:56:00Z
+
+- Commit `4acb355` adds append-only migration `20260718064853_data_api_privilege_hardening.sql`, repository verification, and five executable regressions.
+- The migration fixes a legacy authorization defect: `is_admin_or_founder()` previously treated owner/admin membership in any customer organization as platform-wide access. It now derives global owner/admin status only from the caller's own `user_roles` row.
+- Authorization helpers now use locked empty search paths; anonymous RPC execution is revoked; authenticated/service-role execution required by RLS is explicit; trigger helpers are not Data API RPCs; and future public tables, sequences, and functions require explicit grants.
+- The SQL executed successfully against local Supabase Postgres in a transaction, including positive/negative privilege assertions, and rolled back cleanly. Full gates pass with 262 tests, 40 repository migrations, 15 required tables, and seven private buckets.
+- Production remains at the previously verified 39 applied migrations. Migration 40 is committed but unapplied; owner review, production application, and an advisor rerun remain required. No secret, provider, push, deploy, or production database change occurred.
 
 ## Preference safety and membership compatibility - 2026-07-18T06:30:00Z
 
@@ -30,8 +38,8 @@
   resend INVALID (only RESEND_FROM_EMAIL is a placeholder — owner must set it
   in Vercel), googleOAuth deferred, legalPages review_required.
 
-## Database (verified live via Supabase MCP 2026-07-16)
-- Migration ledger = 39, matches supabase/migrations/** exactly.
+## Database (verified live via Supabase MCP 2026-07-16; repository advanced 2026-07-18)
+- Verified production migration ledger = 39. The repository now contains 40 migrations; `20260718064853_data_api_privilege_hardening.sql` is pending owner review and production application.
 - The 5 previously-pending migrations were APPLIED with owner approval
   (20260714120000, 20260714150000, 20260715110223, 20260715120000,
   20260716130000). Support/contact persistence works; all 7 launch storage

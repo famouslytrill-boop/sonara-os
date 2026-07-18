@@ -1,6 +1,6 @@
 # Test Matrix
 
-Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
+Updated: 2026-07-18T06:56:00Z by Codex (Agent A)
 
 ## Required repository gates
 
@@ -8,7 +8,7 @@ Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 - `pnpm audit --audit-level moderate`
 - `pnpm run typecheck`
 - `pnpm run lint`
-- `pnpm test` (current baseline: 257 Mocha tests)
+- `pnpm test` (current baseline: 262 Mocha tests)
 - `pnpm run build`
 - `pnpm run verify:launch`
 - `pnpm run test:docs`
@@ -20,7 +20,7 @@ Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 
 - `pnpm run verify:api`: 85 documented operations across 62 paths must exactly match the registered Express `/api` stack; operation IDs must be unique.
 - `pnpm run verify:config`: launch configuration plus 124 required GET / 347 total registration public-route registry.
-- `pnpm run verify:db`: 39 migration files, 15 required launch tables, seven private storage bucket declarations.
+- `pnpm run verify:db`: 40 migration files, 15 required launch tables, seven private storage bucket declarations, and Data API privilege hardening assertions.
 - `pnpm run scan:client-secrets`: browser-delivered secret-pattern gate.
 
 ## Existing suites
@@ -41,9 +41,11 @@ Server routes, auth/admin, pricing/legal truthfulness, billing/webhook behavior,
 - `pnpm run typecheck`: pass.
 - `pnpm run lint`: pass.
 - Targeted preference suites: pass; 36 tests covering pre-paint resolution, runtime theme changes, default-off/reduced-motion haptics, and positive opt-in control.
-- `pnpm test`: pass; 257 tests.
+- Targeted Supabase privilege suite: pass; five tests covering opt-in default grants, anonymous denial, signed-in/service execution, locked search paths, and global-admin source.
+- Rollback-only migration execution against local Supabase Postgres: pass, including migration-native privilege assertions; transaction rolled back and left no fixture state.
+- `pnpm test`: pass; 262 tests.
 - `pnpm run build`: pass.
-- `pnpm run verify:launch`: pass, including 257 tests, secret scan, route smoke, 39/15/7 database declaration checks, 124/347 public route registry, and 85/62 OpenAPI drift check.
+- `pnpm run verify:launch`: pass, including 262 tests, secret scan, route smoke, 40/15/7 database declaration checks, 124/347 public route registry, and 85/62 OpenAPI drift check.
 - `pnpm run test:docs`: pass.
 - External `redocly lint openapi/sonara.yaml`: valid OpenAPI document; recommendation-level notices remain for public operations that intentionally have no modeled 4xx response and for the registered GET checkout method that intentionally returns 405 only.
 - `git diff --check`: pass before coordination commit; rerun after lock release.

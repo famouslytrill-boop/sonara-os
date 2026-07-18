@@ -1,5 +1,7 @@
 # AI Changelog
 
+- 2026-07-18 Codex `4acb355` - Added append-only Supabase Data API privilege hardening, corrected global admin authorization to use `user_roles`, locked helper search paths, removed anonymous RPC access, and added local SQL plus repository regression gates. Production application remains pending owner review.
+
 - 2026-07-18 Agent B `af18a6f` - Repaired system/light/dark initialization and haptics consent, synchronized service-worker assets, added executable preference regressions, and verified local mobile/desktop rendering. No backend/provider/schema change.
 - 2026-07-18 Codex - Accepted ADR-0010: organization membership is canonical customer tenancy; Business Builder workforce and internal entity memberships remain separate domains. No migration or runtime change.
 
