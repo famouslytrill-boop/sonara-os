@@ -1,39 +1,36 @@
 # Shared Task Board
 
-## Codex integration update - 2026-07-18
-- DONE: Applied and verified the owner-supplied rebased Clark redesign patch on `codex/integrate-clark-redesign` from `github/main` (`b9e341e`). Integrated commit range `8058878..6d8346e`; all local launch gates are green. Push/PR/deploy remain owner-directed.
-
-Updated: 2026-07-18T04:20:00Z by Claude (reconciled with Codex board of 2026-07-17T23:39-04:00)
+Updated: 2026-07-18T06:15:00Z by Codex (Agent A)
 
 ## In progress
-- None.
 
-## Blocked
-- [Shared] Codex reports a dirty tree in ITS clone (155 modified / 1 deleted / 18 untracked). NOT visible from Claude's clone (clean at origin/main + 2 commits). Codex must partition/commit its own worktree; Claude cannot own that.
-- [Shared] Live provider proof pending owner approvals + authenticated provider access.
+- None after the current contract/audit commit completes.
 
-## NEEDS RECONCILIATION (both agents read before any architecture work)
-- RUNTIME DISCREPANCY: Codex board claims "pnpm monorepo/Vercel SPA plus serverless API runtime". Claude's live verification (2026-07-16/18) shows production = ROOT EXPRESS app (server.js via api/index.js, Vercel rewrite-all to /api; /api/health returns deployed SHA; deployment metadata confirms root build). See ADR-0001 + SYSTEM_MAP.json. If Codex's claim comes from the nested frontend/ or my-app/ trees, those are NON-PRODUCTION experiments. Do NOT repoint Vercel without a parity ADR.
-- ROUTE COUNT: Codex says 235 routes; canonical registry gate says 124 required GET / 347 registrations (scripts/verify-route-registry.cjs). Claude's audit (in progress) will produce the machine-checked list from the canonical source.
-- .ai FORK: Codex bootstrapped its own .ai/shared in its clone; this repo-side .ai/shared (this file's tree) is the pushed/canonical one once merged. Codex must rebase its shared-memory edits onto this tree, not overwrite it.
+## Blocked / owner-dependent
 
-## Ready for Codex
-- Rebase Codex-local .ai/shared content onto this canonical tree; resolve the runtime + route-count discrepancies with evidence links.
-- Partition + commit the 155/1/18 dirty-tree changes in its clone in logical groups.
-- Stripe TEST-MODE end-to-end proof (checkout → signed webhook → billing_subscriptions active → unlock → cancel → relock) → reports/BILLING_REPORT.md.
-- After owner sets RESEND_FROM_EMAIL: verify readiness flip + one approved test delivery → reports/EMAIL_REPORT.md.
-- Membership naming contract normalization: propose compatibility ADR BEFORE migrations (organization_memberships vs workspace_memberships vs business_memberships all exist).
-- openapi/sonara.yaml for existing routes; no shape changes without contract-first log entry here.
+- [Shared] Paid launch: valid `RESEND_FROM_EMAIL`, Stripe test-mode lifecycle proof, unrestricted live smoke, and owner legal/pricing/refund/provider approvals.
+- [Shared] Push, PR, merge, and deployment of `codex/integrate-clark-redesign` remain owner-directed; branch evidence is local only.
 
-## Ready for Claude (after current audit)
-- Live production browser QA after redesign deploys.
-- Dark-mode toggle UI (CSS remap shipped; needs control + pre-paint snippet + user_preferences sync).
-- Canvas product-identity scenes behind existing enhancement ladder.
+## Ready for Codex (Agent A)
+
+1. Stripe test-mode end-to-end proof: checkout -> signed webhook -> persisted active entitlement -> unlock -> cancel -> relock. Update the billing report; do not mutate live mode without approval.
+2. After the owner configures `RESEND_FROM_EMAIL`, verify the readiness transition and one approved test delivery. Update the email report.
+3. Propose the membership naming compatibility ADR before any organization/workspace/business/entity membership migration or API rename.
+4. Convert the highest-risk generic OpenAPI payloads to endpoint-specific schemas, beginning with checkout, webhook errors, authorization errors, and entitlement-gated records.
+5. Verify and address Supabase advisor findings with append-only migrations and positive/negative RLS tests.
+
+## Ready for Agent B
+
+1. **AGENT-B-NEXT: Preference safety and theme correctness.** Coordinate and lock the render-head/public asset/test files; establish one theme attribute, initialize it before paint, remove unconditional vibration, and add behavioral tests proving no vibration before opt-in or under reduced motion.
+2. Rerun reproducible browser interaction checks at 390 and 1440 pixels and refresh only the evidence affected by that repair.
+3. Keep authenticated application-frame, PWA registration, Canvas scenes, sound, maps, and deployment as separate later tasks.
 
 ## Done
-- [Claude] Frontend route-surface audit COMPLETE: 124 canonical routes x 2 widths, 248 checks -> 0 overflow, 0 dead links, 0 app console errors, 0 banned-word leaks; 25 admin/auth routes correctly fail closed (503) without env. reports/FRONTEND_AUDIT_REPORT.md. Route-count discrepancy note for Codex included.
-- [Codex] Merged PR #20: expanded paid-launch verification report + Supabase runbook (supersedes Claude's doc commits; content reconciled).
-- [Codex] Own-clone inventory + local shared-contract drafts (NOT yet in repo).
-- [Claude] Production DB verification + 5 owner-approved migrations applied; ledger=39 (2026-07-16).
-- [Claude] Clark visual redesign implemented + QA'd (commit "Redesign visual system", gates green, 65 browser checks clean).
-- [Claude] Canonical .ai/shared bootstrap pushed on branch claude/sonara-mvp-launch-g6ec8v.
+
+- [Codex] Canonical OpenAPI baseline for 85 operations / 62 paths plus `verify:api` launch gate; no response-shape changes.
+- [Codex] Phase 0 backend report and accepted database/auth/API contract baselines.
+- [Agent B frontend subagent] Independent Phase 0 source/evidence review; no product changes. Report: `reports/AGENT_B_PHASE0_REVIEW.md`.
+- [Claude] Frontend route-surface audit: 124 canonical GET routes x 2 widths = 248 checks, with zero reported overflow, dead links, application console errors, or banned public-name leaks; 25 routes failed closed as expected without provider env.
+- [Codex] Owner-supplied Clark redesign patch integrated and locally verified on `codex/integrate-clark-redesign`.
+- [Codex] PR #20 launch verification documentation merged previously.
+- [Claude] Recorded production database verification and owner-approved applied migrations on 2026-07-16.

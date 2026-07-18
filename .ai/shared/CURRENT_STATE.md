@@ -1,4 +1,13 @@
-# Current State — updated 2026-07-18T04:20:00Z by Claude (Agent B)
+# Current State - updated 2026-07-18T06:15:00Z by Codex (Agent A)
+
+## Phase 0/1 contract update - 2026-07-18T06:15:00Z
+
+- Agent A completed a source, contract, test, migration, security, and runtime audit without changing API behavior, provider configuration, secrets, or the database.
+- `openapi/sonara.yaml` now documents all 85 registered `/api` operations across 62 paths. `pnpm run verify:api` compares the contract with the loaded Express stack bidirectionally and is included in `verify:launch`.
+- `API_CONTRACT.md`, `DATABASE_CONTRACT.md`, ADR-0003, ADR-0004, and ADR-0009 now record the accepted existing baseline instead of Agent A stubs.
+- Current Agent A findings are in `reports/BACKEND_REPORT.md`. The independent frontend review is in `reports/AGENT_B_PHASE0_REVIEW.md`.
+- Agent B identified a theme attribute mismatch and unconditional legacy vibration path. No frontend product code changed in this task; the next bounded frontend task is preference-safety repair with behavioral coverage.
+- The branch remains local/unpushed and is not production evidence. Paid-launch status remains NOT CLEARED.
 
 ## Codex patch integration update - 2026-07-18T04:10:00Z
 - Correct target confirmed as the root Express production repository, not the separate pnpm monorepo checkout.

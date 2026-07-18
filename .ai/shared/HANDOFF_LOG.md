@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-07-18T06:15:00Z - Codex (Agent A) - Phase 0/1 backend and contract baseline
+
+- Read every file under `.ai/shared/`, `AGENTS.md`, relevant runtime/tests/migrations/reports, and recent Git history before implementation. Preserved unrelated `debug-session.cjs`.
+- Added `openapi/sonara.yaml` for all 85 registered API operations across 62 paths. Added `scripts/verify-openapi-contract.mjs`, `pnpm run verify:api`, and included it in `verify:launch`.
+- Preserved the deployed JSON error style and browser form negotiation; no route, handler, auth, billing, provider, secret, or database behavior changed.
+- Replaced Agent A API/database/auth stubs with accepted existing baselines and added ADR-0009 for runtime-to-OpenAPI drift enforcement.
+- Added `reports/BACKEND_REPORT.md` and reconciled the independent `reports/AGENT_B_PHASE0_REVIEW.md`.
+- Agent B review found a non-functional dark-theme selector contract and an unconditional vibration bypass. These remain unmodified and are assigned as one bounded frontend correctness task.
+- Verification evidence and final Git status are recorded in `TEST_MATRIX.md`. Branch remains unpushed and undeployed.
+
 ## 2026-07-18T04:10:00Z - Codex (Agent A) - patch integration
 - Target: `C:\Users\AXPAY\famouslytrill-project`, verified root Express production runtime per ADR-0001.
 - Branch/base: `codex/integrate-clark-redesign` from `github/main` at `b9e341e`.
