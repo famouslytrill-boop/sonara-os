@@ -2,7 +2,7 @@
 
 1. **Credential rotation:** a previously disclosed Supabase server credential must be rotated outside chat before paid launch. Do not place its replacement in repository files, reports, commands, or handoffs.
 2. **Paid launch blocked:** email delivery proof, Stripe lifecycle proof, migrations 40/41, and owner legal/pricing/provider approvals remain incomplete.
-3. **PWA production proof:** PR #23 implements and repository-tests a public-only service worker, but install/update/offline behavior is not production evidence until the PR is merged and verified with a real browser. Authenticated/private responses must remain outside the worker response path.
+3. **PWA browser proof:** the public-only PWA contract is merged and Vercel reports production success at `277c3bb6c58bfe29399265a0dae52830c02d1d99`, but install/update/offline behavior still needs a reproducible real-browser check. Authenticated/private responses must remain outside the worker response path.
 4. **Browser evidence depth:** broader current accessibility, mobile interaction, PWA, and performance proof needs a reproducible repository-owned browser harness.
 5. **Physical-device boundary:** haptics consent behavior is regression-tested, but physical vibration hardware was not tested and must not be claimed.
 6. **Membership compatibility:** `business_memberships.workspace_id` has no repository-declared foreign key to `business_workspaces`, and legacy organization lookup fallbacks remain. Do not add constraints or remove fallbacks without live inventory, cleanup, and cross-tenant tests.
