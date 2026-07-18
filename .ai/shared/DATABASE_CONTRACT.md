@@ -16,6 +16,7 @@ Last verified: 2026-07-18 repository gate; live-provider evidence remains dated 
 - Organization/workspace ownership is enforced server-side and through RLS for private data.
 - The verified live snapshot recorded on 2026-07-16 showed RLS enabled for scoped/private tables and anonymous reads returning no rows for support requests, service requests, billing subscriptions, and organizations.
 - Membership naming is not normalized: organization, workspace, business, and entity membership concepts coexist. A compatibility ADR and data inventory are required before renaming tables, columns, roles, or API fields.
+- ADR-0010 defines the compatibility baseline: `organization_memberships` is canonical customer tenancy; generic `workspace_memberships` language maps to it; `business_memberships` and `entity_memberships` remain separate narrower authorization domains; `user_roles` remains a global override.
 - Service-role access is server-only and bypasses RLS; every use must preserve the authenticated organization/user boundary explicitly.
 
 ## Billing, support, and storage truths

@@ -1,4 +1,12 @@
-# Current State - updated 2026-07-18T06:15:00Z by Codex (Agent A)
+# Current State - updated 2026-07-18T06:30:00Z by Codex (Agent A)
+
+## Preference safety and membership compatibility - 2026-07-18T06:30:00Z
+
+- Commit `af18a6f` repaired the frontend preference contract: canonical pre-paint `data-theme`, stored/system light-dark resolution, removal of unconditional legacy vibration, explicit opt-in/reduced-motion haptics, and synchronized `clark-ui-20260718-preferences` asset/cache tokens.
+- Behavioral VM tests now execute shipped preference code. The suite baseline is 257 tests.
+- Local Chrome checks passed at 390x844 and 1440x900 under system-dark: correct computed dark background, no horizontal overflow, no framework overlay, no console warnings/errors, and working command-palette focus. This is local branch evidence, not production evidence.
+- ADR-0010 makes `organization_memberships` canonical for customer tenancy. `business_memberships`, `entity_memberships`, and `user_roles` remain separate authorization domains; generic `workspace_memberships` language maps to organization membership.
+- No provider, API shape, production schema, secret, push, deploy, or physical-device vibration change/proof occurred.
 
 ## Phase 0/1 contract update - 2026-07-18T06:15:00Z
 

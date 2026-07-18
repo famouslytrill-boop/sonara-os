@@ -19,4 +19,5 @@ Google Fonts with Georgia/system-ui/ui-monospace fallbacks.
 - Dark bands (workflow/readiness/CTA/device panel) use navy→violet-deep
   gradient panels with translucent light borders.
 - Cards ≤12px radius, no nested cards, no decorative gradient blobs.
-- Dark mode = token remap via [data-theme="dark"], never inversion.
+- Dark mode = token remap via `html[data-theme="dark"]`, never inversion. The canonical attribute is set before styles by `renderHead()` and updated by the interface engine.
+- Haptics are an optional explicit preference, never default interaction feedback, and are suppressed under reduced motion.

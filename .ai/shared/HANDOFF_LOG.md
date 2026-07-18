@@ -1,5 +1,14 @@
 # Handoff Log
 
+## 2026-07-18T06:30:00Z - Codex (Agent A) + Agent B - preference safety and membership compatibility
+
+- Agent B implemented commit `af18a6f`: canonical `data-theme` initialization before styles, stored/system light-dark resolution, removal of unconditional vibration, opt-in/reduced-motion haptics, synchronized `clark-ui-20260718-preferences` asset/service-worker tokens, and executable regression tests.
+- Rendered local Chrome evidence at 390x844 and 1440x900 passed under system-dark with the expected computed background, no overflow/overlay/console errors or warnings, and correct command-palette focus. No authenticated session or physical-device vibration was fabricated.
+- Codex inventoried membership schemas, RLS helpers, server lookups, and compatibility fallbacks. ADR-0010 makes `organization_memberships` canonical customer tenancy while preserving Business Builder workforce, internal entity, and global override domains.
+- No API shape, provider configuration, secret, production schema, push, deploy, or production-domain verification occurred. `debug-session.cjs` remains untouched.
+- Parent verification: frozen install pass; moderate audit clean; typecheck/lint/build/docs pass; targeted preference suites 36 passing; `pnpm test` and `verify:launch` 257 passing; 39/15/7 database declarations, 124/347 route registry, and 85/62 OpenAPI gates pass.
+- Next Agent B task: bounded PWA manifest/service-worker registration convergence with offline/update privacy proof. Next Agent A owner-independent task: endpoint-specific OpenAPI schemas or read-only membership/security inventory; provider proofs remain owner-dependent.
+
 ## 2026-07-18T06:15:00Z - Codex (Agent A) - Phase 0/1 backend and contract baseline
 
 - Read every file under `.ai/shared/`, `AGENTS.md`, relevant runtime/tests/migrations/reports, and recent Git history before implementation. Preserved unrelated `debug-session.cjs`.

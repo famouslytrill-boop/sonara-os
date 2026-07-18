@@ -1,6 +1,6 @@
 # Test Matrix
 
-Updated: 2026-07-18T06:15:00Z by Codex (Agent A)
+Updated: 2026-07-18T06:30:00Z by Codex (Agent A)
 
 ## Required repository gates
 
@@ -8,7 +8,7 @@ Updated: 2026-07-18T06:15:00Z by Codex (Agent A)
 - `pnpm audit --audit-level moderate`
 - `pnpm run typecheck`
 - `pnpm run lint`
-- `pnpm test` (current baseline: 255 Mocha tests)
+- `pnpm test` (current baseline: 257 Mocha tests)
 - `pnpm run build`
 - `pnpm run verify:launch`
 - `pnpm run test:docs`
@@ -31,7 +31,8 @@ Server routes, auth/admin, pricing/legal truthfulness, billing/webhook behavior,
 
 - The committed frontend audit reports 124 canonical routes at 390 and 1440 pixels (248 checks), with zero application overflow, dead links, console errors, or retired-name leaks.
 - The audit harness is not committed and is not currently reproducible from this repository. Treat it as dated local evidence, not production evidence.
-- After frontend preference repairs, Agent B must run a reproducible interaction loop covering theme activation and haptics no-op before opt-in and under reduced motion.
+- Preference repair browser proof: local Chrome at 390x844 and 1440x900 under system-dark resolved canonical `data-theme=dark`, computed the expected dark surface, showed no horizontal overflow/framework overlay/console warnings or errors, and preserved command-palette focus.
+- Preference behavior is repository-reproducible through executable VM tests; physical-device vibration remains untested.
 
 ## Current-run results
 
@@ -39,9 +40,10 @@ Server routes, auth/admin, pricing/legal truthfulness, billing/webhook behavior,
 - `pnpm audit --audit-level moderate`: pass; no known vulnerabilities.
 - `pnpm run typecheck`: pass.
 - `pnpm run lint`: pass.
-- `pnpm test`: pass; 255 tests.
+- Targeted preference suites: pass; 36 tests covering pre-paint resolution, runtime theme changes, default-off/reduced-motion haptics, and positive opt-in control.
+- `pnpm test`: pass; 257 tests.
 - `pnpm run build`: pass.
-- `pnpm run verify:launch`: pass, including 255 tests, secret scan, route smoke, 39/15/7 database declaration checks, 124/347 public route registry, and 85/62 OpenAPI drift check.
+- `pnpm run verify:launch`: pass, including 257 tests, secret scan, route smoke, 39/15/7 database declaration checks, 124/347 public route registry, and 85/62 OpenAPI drift check.
 - `pnpm run test:docs`: pass.
 - External `redocly lint openapi/sonara.yaml`: valid OpenAPI document; recommendation-level notices remain for public operations that intentionally have no modeled 4xx response and for the registered GET checkout method that intentionally returns 405 only.
-- `git diff --check`: pass before commit; rerun after lock release.
+- `git diff --check`: pass before coordination commit; rerun after lock release.
