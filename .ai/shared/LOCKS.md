@@ -24,6 +24,12 @@ PURPOSE: Record patch-intake blocker for `sonara-branch-all-commits.patch` witho
 STARTED: 2026-07-17 patch-intake session
 RELEASED: 2026-07-17 immediately after coordination update.
 
+LOCK: `.ai/shared/HANDOFF_LOG.md`, `.ai/shared/LOCKS.md`
+OWNER: Codex
+PURPOSE: Record the exact patch-intake coordination commit SHA.
+STARTED: 2026-07-17 patch-intake session close
+RELEASED: 2026-07-17 immediately after metadata update.
+
 ## Rules
 
 - Record a lock before changing a shared or high-conflict area.
