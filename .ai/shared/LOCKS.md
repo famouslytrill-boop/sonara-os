@@ -1,5 +1,12 @@
 # Locks
 
+Active:
+- LOCK: `server.js`, `public/site.webmanifest`, `public/manifest.webmanifest`, `public/sw.js`, PWA registration/tests/shared handoff files
+- OWNER: Codex (Agent A)
+- PURPOSE: Canonical PWA manifest, safe public-only service-worker registration, cache/update convergence, and reproducible contract tests
+- STARTED: 2026-07-18
+- BRANCH: `codex/pwa-contract-convergence`
+
 History:
 - RELEASED: PR #21 merge/production verification and disclosed Supabase-secret rotation handoff - Codex, completed 2026-07-18T03:35-04:00 after green main checks, exact-SHA Vercel production proof, 15-route live smoke, no recent runtime errors, and read-only Cloudflare DNS inventory.
 - RELEASED: canonical Supabase database/agent contract, safe local/read-only MCP config, service-only metadata RPC, protected runtime readiness, verification/tests/docs/shared handoff - Codex, completed 2026-07-18T03:20-04:00 after rollback-only 3/71/10 PostgreSQL execution, local Supabase lint, 265 tests, and the full launch gate passed. Production migrations 40/41 remain owner-dependent.
