@@ -110,8 +110,9 @@ body.sonara-admin .sonara-nav-primary:hover {
 }
 
 /* Optional user-selected dark theme: token re-mapping, not inversion.
-   Applied via data-theme="dark" on <html>; admin pages are dark by default. */
-[data-theme="dark"] body:not(.sonara-admin) {
+   The pre-paint initializer and interface engine both apply data-theme to
+   <html>; admin pages remain dark by default. */
+html[data-theme="dark"] body:not(.sonara-admin) {
   color-scheme: dark;
   --bg: #0C1122;
   --bg-2: #131A30;
@@ -127,17 +128,17 @@ body.sonara-admin .sonara-nav-primary:hover {
   --sh-3: 0 14px 44px -12px rgba(0, 0, 0, .6);
   --focus: 0 0 0 2px var(--bg), 0 0 0 4px #6E86FF;
 }
-[data-theme="dark"] body:not(.sonara-admin) header {
+html[data-theme="dark"] body:not(.sonara-admin) header {
   background: rgba(12, 17, 34, .92);
 }
-[data-theme="dark"] body:not(.sonara-admin) button {
+html[data-theme="dark"] body:not(.sonara-admin) button {
   background: #EEF0F6;
   color: #12162A;
   border-color: transparent;
 }
-[data-theme="dark"] body:not(.sonara-admin) input,
-[data-theme="dark"] body:not(.sonara-admin) textarea,
-[data-theme="dark"] body:not(.sonara-admin) select {
+html[data-theme="dark"] body:not(.sonara-admin) input,
+html[data-theme="dark"] body:not(.sonara-admin) textarea,
+html[data-theme="dark"] body:not(.sonara-admin) select {
   background: #0E1426;
   color: var(--text);
 }

@@ -1673,12 +1673,12 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=clark-ui-20260717">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=clark-ui-20260717">
-    <link rel="stylesheet" href="/sonara-interface-engine.css?v=clark-ui-20260717">
-    <link rel="stylesheet" href="/sonara-launch-ui.css?v=clark-ui-20260717">
-    <script defer src="/sonara-experience.js?v=clark-ui-20260717"></script>
-    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260717"></script>
+    <link rel="stylesheet" href="/sonara-brand-system.css?v=clark-ui-20260718-preferences">
+    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=clark-ui-20260718-preferences">
+    <link rel="stylesheet" href="/sonara-interface-engine.css?v=clark-ui-20260718-preferences">
+    <link rel="stylesheet" href="/sonara-launch-ui.css?v=clark-ui-20260718-preferences">
+    <script defer src="/sonara-experience.js?v=clark-ui-20260718-preferences"></script>
+    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>
   </head>
   <body class="${escapeHtml(brandClass)} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
     <a class="sonara-skip" href="#sonara-main">Skip to content</a>
@@ -1780,6 +1780,22 @@ function renderHead(title, themeColor = "#FAF8F4") {
   const pageTitle = title === "SONARA Industries" ? title : `${title} | SONARA Industries`;
   return `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script data-sonara-theme-prepaint>
+      (function initializeSonaraTheme() {
+        var choice = "system";
+        try {
+          var stored = window.localStorage.getItem("sonara-appearance");
+          if (stored === "light" || stored === "dark") choice = stored;
+        } catch {}
+        var prefersDark = false;
+        try {
+          prefersDark = Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        } catch {}
+        var resolved = choice === "system" ? (prefersDark ? "dark" : "light") : choice;
+        document.documentElement.setAttribute("data-sonara-appearance", choice);
+        document.documentElement.setAttribute("data-theme", resolved);
+      })();
+    </script>
     <meta name="theme-color" content="${escapeHtml(themeColor)}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SONARA">
