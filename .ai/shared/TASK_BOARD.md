@@ -3,7 +3,7 @@
 Updated: 2026-07-18T04:20:00Z by Claude (reconciled with Codex board of 2026-07-17T23:39-04:00)
 
 ## In progress
-- [Claude] LOCKED frontend audit: 235/124-route surface audit (visual duplication, dead ends, setup states, mobile overflow, a11y, route-to-renderer parity). Lock in LOCKS.md.
+- None.
 
 ## Blocked
 - [Shared] Codex reports a dirty tree in ITS clone (155 modified / 1 deleted / 18 untracked). NOT visible from Claude's clone (clean at origin/main + 2 commits). Codex must partition/commit its own worktree; Claude cannot own that.
@@ -28,6 +28,7 @@ Updated: 2026-07-18T04:20:00Z by Claude (reconciled with Codex board of 2026-07-
 - Canvas product-identity scenes behind existing enhancement ladder.
 
 ## Done
+- [Claude] Frontend route-surface audit COMPLETE: 124 canonical routes x 2 widths, 248 checks -> 0 overflow, 0 dead links, 0 app console errors, 0 banned-word leaks; 25 admin/auth routes correctly fail closed (503) without env. reports/FRONTEND_AUDIT_REPORT.md. Route-count discrepancy note for Codex included.
 - [Codex] Merged PR #20: expanded paid-launch verification report + Supabase runbook (supersedes Claude's doc commits; content reconciled).
 - [Codex] Own-clone inventory + local shared-contract drafts (NOT yet in repo).
 - [Claude] Production DB verification + 5 owner-approved migrations applied; ledger=39 (2026-07-16).
