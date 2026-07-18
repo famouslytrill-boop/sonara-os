@@ -1,8 +1,18 @@
 {
-  "supabase": { "role": "auth+database+storage", "status": "configured; disclosed server secret must be rotated", "serverOnly": ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"], "repositoryContract": "3 schemas / 71 tables / 10 functions / 7 private buckets", "productionContractMigrations": "40 and 41 pending owner application" },
+  "supabase": {
+    "role": "auth+database+storage",
+    "status": "configured; secure server credential replacement remains required before paid launch",
+    "serverOnly": ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"],
+    "repositoryContract": "3 schemas / 71 tables / 10 functions / 8 operational indexes / 7 private buckets",
+    "productionContractMigrations": "40, 41, and 42 pending approved hosted application"
+  },
   "stripe": { "role": "billing", "status": "configured", "proofPending": "test-mode end-to-end (CODEX-1)" },
   "resend": { "role": "transactional email", "status": "env-invalid (RESEND_FROM_EMAIL)", "domainVerified": true },
-  "vercel": { "role": "hosting", "status": "READY at 4dccd10994656573ce18adcc4e4b30805cbac3f1", "deployment": "dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK" },
+  "vercel": {
+    "role": "hosting",
+    "status": "READY at 9ca3487d38050322ab2b51a91f98bc92553fb3ac",
+    "deployment": "production status success for exact merge SHA"
+  },
   "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery not proven" },
   "googleOAuth": { "role": "auth provider", "status": "deferred" },
   "omniroute": { "role": "optional AI gateway", "status": "disabled by default; docs/infrastructure/OPTIONAL_AI_GATEWAY.md" }
