@@ -1,6 +1,6 @@
 # Test Matrix
 
-Updated: 2026-07-18T07:35:16Z by Codex (Agent A)
+Updated: 2026-07-18 by Codex (Agent A)
 
 ## Required repository gates
 
@@ -8,63 +8,54 @@ Updated: 2026-07-18T07:35:16Z by Codex (Agent A)
 - `pnpm audit --audit-level moderate`
 - `pnpm run typecheck`
 - `pnpm run lint`
-- `pnpm test` (current baseline: 265 Mocha tests)
+- `pnpm test`
 - `pnpm run build`
 - `pnpm run verify:launch`
 - `pnpm run test:docs`
 - `git diff --check`
 
-`verify:launch` now runs: deterministic runtime asset application, build, tests, client-secret scan, lint, route smoke, repository database verification, launch configuration/public-route registry verification, and OpenAPI drift verification.
+`verify:launch` runs deterministic runtime asset application, build, tests, client-secret scan, lint, route smoke, repository database verification, launch configuration/public-route registry verification, and OpenAPI drift verification.
 
 ## Contract and inventory gates
 
-- `pnpm run verify:api`: 85 documented operations across 62 paths must exactly match the registered Express `/api` stack; operation IDs must be unique.
-- `pnpm run verify:config`: launch configuration plus 124 required GET / 347 total registration public-route registry.
-- `pnpm run verify:db`: 41 migration files, legacy 15-table launch checks, the canonical 71-table/10-function/3-schema contract, seven private storage bucket declarations, and Data API/readiness privilege assertions.
-- `pnpm run verify:supabase-contract`: canonical inventory, historical table/function definitions, service-only readiness RPC, safe local config, private bucket limits, and read-only credential-free MCP config.
+- `pnpm run verify:api`: every registered Express `/api` method/path must match `openapi/sonara.yaml` bidirectionally; operation IDs must be unique.
+- `pnpm run verify:config`: launch configuration plus the required public route registry.
+- `pnpm run verify:db`: migration inventory, launch baseline, canonical database/function contract, private storage declarations, and privilege assertions.
+- `pnpm run verify:supabase-contract`: canonical schema/table/function/bucket inventory, service-only readiness contract, safe local config, and credential-free read-only MCP config.
 - `pnpm run scan:client-secrets`: browser-delivered secret-pattern gate.
+
+## PWA executable coverage
+
+- `tests/pwa-contract.test.js` executes the shipped `public/sonara-experience.js` in a VM.
+- Public pages register the service worker; `/dashboard`, `/account`, and `/admin` do not.
+- Non-local insecure contexts do not register; localhost development may register.
+- `/site.webmanifest` is canonical; `/manifest.webmanifest` redirects permanently.
+- Every manifest and shortcut icon resolves through the Express app.
+- The service worker leaves private application navigation outside its response path and excludes private/no-store/cookie-bearing/opaque responses from cache writes.
+- The service-worker cache version remains synchronized with the rendered asset query token.
 
 ## Existing suites
 
-Server routes, auth/admin, pricing/legal truthfulness, billing/webhook behavior, frontend markers/tokens/service-worker version, route registry, SaaS upgrade behavior, formulas, ecosystem, launch readiness, entity security smoke, and creator music configuration.
+Server routes, authentication/admin, pricing/legal truthfulness, billing/webhook behavior, frontend markers/tokens/preferences/service worker, route registry, SaaS workflows, formulas, ecosystem, launch readiness, entity security, creator music configuration, database privileges, and OpenAPI drift.
 
-## Browser evidence
+## Current branch evidence
 
-- The committed frontend audit reports 124 canonical routes at 390 and 1440 pixels (248 checks), with zero application overflow, dead links, console errors, or retired-name leaks.
-- The audit harness is not committed and is not currently reproducible from this repository. Treat it as dated local evidence, not production evidence.
-- Preference repair browser proof: local Chrome at 390x844 and 1440x900 under system-dark resolved canonical `data-theme=dark`, computed the expected dark surface, showed no horizontal overflow/framework overlay/console warnings or errors, and preserved command-palette focus.
-- Preference behavior is repository-reproducible through executable VM tests; physical-device vibration remains untested.
+- Implementation head `a616aa604b5e298ad19d24a060bc9da067b1d314`:
+  - SONARA Industries CI: pass.
+  - Dependency scan: pass.
+  - Docker Image CI: pass.
+  - Supabase repository migration/config validation: pass.
+  - Vercel preview: ready.
+- The first CI attempt exposed existing assertions tied to the superseded duplicate manifest and legacy icon contract. The branch corrected those assertions/contracts rather than skipping tests; the subsequent run passed.
+- No hosted database apply, storage-policy mutation, provider setting, payment action, or production deployment was part of this PWA verification.
 
-## Current-run results
+## Prior production evidence
 
-- `pnpm install --frozen-lockfile`: pass; lockfile already current under pnpm 11.1.1.
-- `pnpm audit --audit-level moderate`: pass; no known vulnerabilities.
-- `pnpm run typecheck`: pass.
-- `pnpm run lint`: pass.
-- Targeted preference suites: pass; 36 tests covering pre-paint resolution, runtime theme changes, default-off/reduced-motion haptics, and positive opt-in control.
-- Targeted Supabase privilege suite: pass; five tests covering opt-in default grants, anonymous denial, signed-in/service execution, locked search paths, and global-admin source.
-- Rollback-only migration execution against local Supabase Postgres: pass, including migration-native privilege assertions; transaction rolled back and left no fixture state.
-- `pnpm test`: pass; 262 tests.
-- `pnpm run build`: pass.
-- `pnpm run verify:launch`: pass, including 262 tests, secret scan, route smoke, 40/15/7 database declaration checks, 124/347 public route registry, and 85/62 OpenAPI drift check.
-- `pnpm run test:docs`: pass.
-- External `redocly lint openapi/sonara.yaml`: valid OpenAPI document; recommendation-level notices remain for public operations that intentionally have no modeled 4xx response and for the registered GET checkout method that intentionally returns 405 only.
-- `git diff --check`: pass before coordination commit; rerun after lock release.
+- Main merge `4dccd10994656573ce18adcc4e4b30805cbac3f1`: main CI, dependency, Docker, and Vercel production checks passed.
+- Production route smoke passed for the recorded public/auth/legal/product set.
+- Production database remains last verified at 39 applied migrations; repository migrations 40/41 remain pending approved application.
 
-## Supabase contract current-run evidence
+## Browser evidence boundary
 
-- `pnpm run verify:supabase-contract`: pass; 3 schemas, 71 tables, 10 functions, 7 private buckets, and 19 approval-gated agent/automation tables.
-- Rollback-only PostgreSQL execution of migration 41: pass; snapshot returned 3/71/10 checks, every fixture table was available with RLS, and rollback removed the function.
-- `pnpm exec supabase db lint --local --level error`: pass; no schema errors.
-- `pnpm run verify:all`: pass; 265 tests, build, lint, client-secret scan, route smoke, 41-migration database gate, 124/347 route registry, and 85/62 OpenAPI gate.
-- `pnpm run test:docs`: pass.
-- Production apply: not run; required Supabase operator credentials are absent from this session.
-
-## PR #21 and production evidence
-
-- PR head `67e9208`: GitHub CI, dependency scans, Docker, repository Supabase validation, and Vercel preview passed. Supabase's managed preview resource was removed after merge and later reported `Resource has been removed`; no migration error was reported and this is not counted as production database proof.
-- Main merge `4dccd109`: SONARA Industries CI, dependency scans, Docker Image CI, and Vercel production status passed.
-- Vercel deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK`: `READY`, production target, exact merge SHA confirmed through `/api/health`.
-- `pnpm run smoke:live`: pass for 15 public/auth/legal/product routes on `https://sonaraindustries.com`.
-- Vercel runtime error scan, last hour: no errors found.
-- Cloudflare read-only inventory: zone active/unpaused; expected Vercel and mail-related DNS record types present. Email delivery remains unproven and readiness still marks `RESEND_FROM_EMAIL` invalid.
+- Existing multi-viewport redesign and focused preference browser evidence remains recorded in the reports directory.
+- PWA install/update/offline behavior and physical vibration still require reproducible post-merge browser/device proof before they can be called production-verified.
