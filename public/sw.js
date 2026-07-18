@@ -1,6 +1,7 @@
 // SONARA public-site service worker.
 // The cache version stays aligned with the rendered ?v= asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.
+// Static assets use stale-while-revalidate; public navigations use network-first.
 const VERSION = "clark-ui-20260718-preferences";
 const CACHE_PREFIX = "sonara-public-";
 const CACHE_NAME = CACHE_PREFIX + VERSION;
