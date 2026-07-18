@@ -10,6 +10,13 @@ const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
+const {
+  DATABASE_FUNCTIONS,
+  DATABASE_SCHEMAS,
+  DATABASE_TABLE_GROUPS,
+  DATABASE_TABLES,
+  STORAGE_BUCKETS
+} = require("./lib/sonara-database-contract.cjs");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -17,51 +24,8 @@ const CUSTOMER_SESSION_COOKIE = "sonara_customer_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
-const REQUIRED_OPERATION_TABLES = [
-  "profiles",
-  "organizations",
-  "organization_memberships",
-  "user_roles",
-  "billing_webhook_events",
-  "billing_subscriptions",
-  "support_requests",
-  "module_outputs",
-  "service_catalog_items",
-  "service_requests",
-  "service_request_events",
-  "service_deliverables",
-  "service_comments",
-  "customer_records",
-  "order_records",
-  "business_employee_invites",
-  "business_memberships",
-  "business_locations",
-  "inventory_items",
-  "vendor_accounts",
-  "vendor_invoices",
-  "recipe_cards",
-  "menu_items",
-  "creator_assets",
-  "creator_releases",
-  "creator_artist_systems",
-  "creator_song_blueprints",
-  "creator_prompt_packs",
-  "creator_release_packages",
-  "growth_campaigns",
-  "growth_leads",
-  "sonara_formula_groups",
-  "sonara_formula_definitions",
-  "sonara_formula_results"
-];
-const REQUIRED_STORAGE_BUCKETS = [
-  "avatars",
-  "business-assets",
-  "creator-assets",
-  "music-stems",
-  "release-packages",
-  "support-attachments",
-  "exports"
-];
+const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
+const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
 const STRIPE_PLANS = {
   free: {
     name: "Free",
@@ -4340,32 +4304,128 @@ function formatMetric(label, result) {
 async function getDatabaseTableReadiness() {
   const config = getSupabaseServerConfig();
   if (!config.ok) {
-    return {
-      ok: false,
-      code: "setup_required",
-      message: "Supabase server access is not configured.",
-      tables: REQUIRED_OPERATION_TABLES.map((table) => ({ table, ok: false, count: null, status: "setup_required" }))
-    };
+    return buildDatabaseReadinessResult({ message: "Supabase server access is not configured." });
   }
+
+  const snapshot = await getDatabaseContractSnapshot(config);
+  if (snapshot.ok) {
+    return buildDatabaseReadinessResult({ snapshot: snapshot.value, source: "database_contract_rpc" });
+  }
+
   const checks = await Promise.all(REQUIRED_OPERATION_TABLES.map(async (table) => {
     const result = await safeCountTable(config, table);
-    return { table, ok: result.ok, count: result.ok ? result.count : null, status: result.ok ? "ready" : "setup_required" };
+    return {
+      table,
+      group: databaseGroupForTable(table),
+      ok: result.ok,
+      available: result.ok,
+      rlsEnabled: null,
+      count: result.ok ? result.count : null,
+      status: result.ok ? "ready" : "setup_required"
+    };
   }));
-  return {
-    ok: checks.every((item) => item.ok),
-    code: checks.every((item) => item.ok) ? "ready" : "setup_required",
+  return buildDatabaseReadinessResult({
+    source: "legacy_rest_fallback",
+    message: "The database contract readiness RPC is not available. Apply the pending Supabase migrations after review.",
     tables: checks,
-    missing: checks.filter((item) => !item.ok).map((item) => item.table)
+    forceSetupRequired: true
+  });
+}
+
+async function getDatabaseContractSnapshot(config) {
+  const response = await fetch(`${config.url}/rest/v1/rpc/sonara_database_contract_snapshot`, {
+    method: "POST",
+    headers: supabaseHeaders(config, { "content-type": "application/json" }),
+    body: "{}"
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const payload = await response.json().catch(() => undefined);
+  const value = Array.isArray(payload) ? payload[0] : payload;
+  return value && typeof value === "object" ? { ok: true, value } : { ok: false };
+}
+
+function databaseGroupForTable(table) {
+  return Object.entries(DATABASE_TABLE_GROUPS).find(([, tables]) => tables.includes(table))?.[0] || "unclassified";
+}
+
+function buildDatabaseReadinessResult(options = {}) {
+  const tableMetadata = new Map((options.snapshot?.tables || []).map((item) => [item.name, item]));
+  const functionMetadata = new Map((options.snapshot?.functions || []).map((item) => [item.signature, item]));
+  const schemaMetadata = new Map((options.snapshot?.schemas || []).map((item) => [item.name, item]));
+  const tables = options.tables || REQUIRED_OPERATION_TABLES.map((table) => {
+    const item = tableMetadata.get(table);
+    const available = item?.available === true;
+    const rlsEnabled = item?.rls_enabled === true;
+    return {
+      table,
+      group: databaseGroupForTable(table),
+      ok: available && rlsEnabled,
+      available,
+      rlsEnabled,
+      count: null,
+      status: available && rlsEnabled ? "ready" : "setup_required"
+    };
+  });
+  const functions = DATABASE_FUNCTIONS.map((signature) => {
+    const available = functionMetadata.get(signature)?.available === true;
+    return { function: signature, ok: available, available, status: available ? "ready" : "setup_required" };
+  });
+  const schemas = DATABASE_SCHEMAS.map((name) => {
+    const available = schemaMetadata.get(name)?.available === true;
+    return { schema: name, ok: available, available, status: available ? "ready" : "setup_required" };
+  });
+  const groups = Object.entries(DATABASE_TABLE_GROUPS).map(([group, expectedTables]) => {
+    const groupTables = tables.filter((item) => item.group === group);
+    const readyCount = groupTables.filter((item) => item.ok).length;
+    return {
+      group,
+      expectedCount: expectedTables.length,
+      readyCount,
+      ok: readyCount === expectedTables.length,
+      status: readyCount === expectedTables.length ? "ready" : "setup_required"
+    };
+  });
+  const allChecksReady = tables.every((item) => item.ok) && functions.every((item) => item.ok) && schemas.every((item) => item.ok);
+  const ok = !options.forceSetupRequired && allChecksReady;
+  return {
+    ok,
+    code: ok ? "ready" : "setup_required",
+    source: options.source || "not_configured",
+    message: options.message,
+    schemas,
+    tables,
+    functions,
+    groups,
+    missing: tables.filter((item) => !item.ok).map((item) => item.table),
+    missingFunctions: functions.filter((item) => !item.ok).map((item) => item.function),
+    missingSchemas: schemas.filter((item) => !item.ok).map((item) => item.schema),
+    agentFoundation: {
+      ok: groups.find((item) => item.group === "agentsAndAutomation")?.ok === true,
+      execution: "approval_gated_disabled",
+      message: "Agent tables, memory, tools, workflows, approvals, and audit records are checked. Autonomous production execution remains disabled."
+    }
   };
 }
 
 function databaseReadinessCards(readiness) {
   const summary = readiness.ok
-    ? "All required tables responded to server-side readiness checks."
-    : `Setup required: ${readiness.missing?.length ? readiness.missing.join(", ") : "Supabase server access"} needs attention.`;
+    ? `${readiness.tables.length} required tables, ${readiness.functions.length} authorization functions, and ${readiness.schemas.length} schemas passed the server-side database contract check.`
+    : readiness.message || `Setup required: ${readiness.missing?.length ? readiness.missing.join(", ") : "Supabase server access"} needs attention.`;
+  const missingTableCards = readiness.tables.filter((item) => !item.ok).map((item) => brandCard(
+    item.table,
+    item.available === false
+      ? "Setup required: table is missing. Apply the reviewed append-only migrations."
+      : item.rlsEnabled === false
+        ? "Setup required: table exists but RLS is not enabled."
+        : "Setup required: table is unavailable to the server-side readiness check."
+  ));
   return [
-    actionCard("Database summary", summary, [linkAction("/api/admin/database-readiness", "Database JSON"), linkAction("/docs", "Docs")]),
-    ...readiness.tables.map((item) => brandCard(item.table, item.ok ? `Ready. Count: ${item.count}.` : "Setup required: table unavailable, not migrated, or not exposed to server-side REST."))
+    actionCard("Database summary", `${summary} Source: ${readiness.source}.`, [linkAction("/api/admin/database-readiness", "Database JSON"), linkAction("/docs", "Docs")]),
+    ...readiness.groups.map((item) => brandCard(item.group, `${item.readyCount}/${item.expectedCount} required tables ready.`)),
+    brandCard("Authorization functions", `${readiness.functions.filter((item) => item.ok).length}/${readiness.functions.length} required functions ready.`),
+    brandCard("Database schemas", `${readiness.schemas.filter((item) => item.ok).length}/${readiness.schemas.length} required schemas ready.`),
+    brandCard("Agent foundation", `${readiness.agentFoundation.message} Execution state: ${readiness.agentFoundation.execution}.`),
+    ...missingTableCards
   ];
 }
 
