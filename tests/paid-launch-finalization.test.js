@@ -73,15 +73,18 @@ describe("paid launch finalization", () => {
     }
   });
 
-  it("records owner approval while preserving the legal-review boundary", async function() {
+  it("records owner approval while preserving the legal-review gate", async function() {
     const response = await request(app).get("/legal/terms").set("Accept", "text/html");
     assert.equal(response.status, 200);
     assert.match(response.text, /Owner-approved launch baseline/);
+    assert.match(response.text, /Qualified legal review remains required/);
     assert.match(response.text, /not represented as attorney-reviewed/);
+    assert.match(response.text, /not legal advice/);
     assert.doesNotMatch(response.text, /Owner-review-required draft/);
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
-    assert.equal(readiness.body.services.legalPages, "owner_approved");
+    assert.equal(readiness.body.services.legalPages, "review_required");
+    assert.equal(readiness.body.services.ownerLegalApproval, "owner_approved");
     assert.equal(readiness.body.services.pricingCatalog, "owner_approved");
     assert.equal(readiness.body.services.legalReviewBoundary, "not_attorney_reviewed");
   });
