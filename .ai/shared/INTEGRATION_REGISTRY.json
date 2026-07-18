@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-17T23:39:04-04:00",
+  "integrations": [
+    {
+      "name": "Supabase",
+      "purpose": "Auth, Postgres, RLS, storage",
+      "codeStatus": "implemented scaffold",
+      "liveStatus": "unverified",
+      "secretBoundary": "server-only service role; public URL and anon key only in browser"
+    },
+    {
+      "name": "Stripe",
+      "purpose": "Checkout, portal, webhooks, entitlements",
+      "codeStatus": "API and package implementation present",
+      "liveStatus": "unverified",
+      "secretBoundary": "server-only secret and webhook keys"
+    },
+    {
+      "name": "Resend",
+      "purpose": "Transactional support/contact email",
+      "codeStatus": "contact API implementation present",
+      "liveStatus": "unverified",
+      "secretBoundary": "server-only API key"
+    },
+    {
+      "name": "Vercel",
+      "purpose": "Static SPA and serverless API deployment",
+      "codeStatus": "vercel.json configured",
+      "liveStatus": "unverified",
+      "secretBoundary": "environment values managed outside source"
+    },
+    {
+      "name": "GitHub",
+      "purpose": "Primary source and CI",
+      "codeStatus": "origin and workflows present",
+      "liveStatus": "remote checks not verified this session",
+      "secretBoundary": "tokens never stored in registry"
+    },
+    {
+      "name": "Cloudflare",
+      "purpose": "DNS and optional inbound email routing",
+      "codeStatus": "documentation/provider planning",
+      "liveStatus": "unverified",
+      "secretBoundary": "provider credentials remain external"
+    },
+    {
+      "name": "GitLab",
+      "purpose": "Optional mirror and secondary CI",
+      "codeStatus": "planned",
+      "liveStatus": "unverified",
+      "secretBoundary": "no token in source"
+    },
+    {
+      "name": "Docker/Rancher",
+      "purpose": "Optional workers and heavy jobs",
+      "codeStatus": "planned/documented",
+      "liveStatus": "unverified",
+      "secretBoundary": "no registry or cluster credentials in source"
+    },
+    {
+      "name": "Expo",
+      "purpose": "Future native/mobile delivery path",
+      "codeStatus": "not a core runtime dependency",
+      "liveStatus": "not configured",
+      "secretBoundary": "mobile signing credentials remain external"
+    },
+    {
+      "name": "HyperFrames",
+      "purpose": "Video-rendering research/reference",
+      "codeStatus": "reference only",
+      "liveStatus": "not integrated",
+      "secretBoundary": "no provider credentials in source"
+    }
+  ]
+}
+

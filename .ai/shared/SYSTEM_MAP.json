@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-17T23:39:04-04:00",
+  "repository": {
+    "remote": "https://github.com/famouslytrill-boop/sonara-os.git",
+    "primaryBranch": "main",
+    "packageManager": "pnpm@11.1.1",
+    "node": "22.x"
+  },
+  "runtime": {
+    "webSource": "packages/web/src",
+    "webArtifact": "packages/web/dist",
+    "localServer": "scripts/start.mjs",
+    "vercelConfig": "vercel.json",
+    "apiSource": "api",
+    "spaFallback": "/index.html"
+  },
+  "canonicalSources": {
+    "routes": "packages/web/src/routes/route-manifest.ts",
+    "rendering": "packages/web/src/app.ts",
+    "database": "supabase/migrations",
+    "billing": ["packages/payments/src", "api/stripe"],
+    "contact": ["api/contact.js", "api/admin/contact-requests.js"],
+    "deployment": ["vercel.json", "scripts/build.mjs", "scripts/start.mjs"]
+  },
+  "dataFlow": [
+    "Browser -> Vercel static SPA",
+    "Browser -> /api/* Vercel functions",
+    "API functions -> Supabase/Stripe/Resend when configured",
+    "Stripe webhook -> signature verification -> billing database state",
+    "Frontend access -> authenticated membership and database-backed entitlement state"
+  ],
+  "externalSystems": [
+    "GitHub",
+    "Vercel",
+    "Supabase",
+    "Stripe",
+    "Resend",
+    "Cloudflare DNS/email routing",
+    "GitLab mirror/secondary CI",
+    "Docker/Rancher workers",
+    "Expo/mobile future path"
+  ]
+}
+

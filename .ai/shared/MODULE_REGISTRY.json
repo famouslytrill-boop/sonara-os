@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-17T23:39:04-04:00",
+  "canonicalRoot": "packages",
+  "platform": [
+    "auth",
+    "core",
+    "database",
+    "routes",
+    "runtime",
+    "security",
+    "ui",
+    "web"
+  ],
+  "agentsAndAI": [
+    "agent-context-layer",
+    "agent-orchestration-guard",
+    "ai-cost-control",
+    "autopilot",
+    "prompt-playbook-center",
+    "provider-gateway",
+    "recommendation-transparency",
+    "spec-driven-build-system"
+  ],
+  "operations": [
+    "api-provider-registry",
+    "deployment-sync",
+    "github-update-watcher",
+    "open-source-intake",
+    "owner-confirmation-lock",
+    "reliability-center"
+  ],
+  "productAndExperience": [
+    "brand-experience-system",
+    "export",
+    "market-pattern-lab",
+    "notification-sound-system",
+    "payments",
+    "profitability-dashboard"
+  ],
+  "changeRule": "Package ownership follows PROJECT_MEMORY.md; package API changes require tests and affected contract updates."
+}
+
