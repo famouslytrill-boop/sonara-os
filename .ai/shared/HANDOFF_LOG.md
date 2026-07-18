@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-07-18T19:00:00Z - Codex (Agent A) - PR #23 merge and PWA production deployment
+
+- PR #23 merged to `main` as `277c3bb6c58bfe29399265a0dae52830c02d1d99` after the final branch head passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase repository validation, and Vercel preview.
+- Vercel reported production success for the exact merge commit.
+- The released scope is limited to the canonical manifest, public-only service-worker registration, cache privacy, product shortcuts, executable PWA tests, and shared-memory contracts.
+- No API shape, authentication, authorization, billing, hosted database migration, storage policy, email provider setting, or payment provider setting changed.
+- Production install/update/offline behavior still needs a reproducible real-browser check; repository tests prove that authenticated customer/account/admin navigation is not intercepted.
+- Next Agent B task: add the browser harness and verify PWA installation/update/offline fallback at mobile and desktop widths.
+- Next Agent A tasks remain hosted migrations 40/41 and approved Stripe/email proof.
+
 ## 2026-07-18T18:50:00Z - Codex (Agent A) - PWA contract convergence
 
 - Read all shared-memory files, ADRs, `AGENTS.md`, current runtime/PWA files, tests, and recent Git history before editing.
@@ -9,13 +19,10 @@
 - Restricted the service worker to public navigations and same-origin static assets. Public navigation is network-first with offline fallback; assets are stale-while-revalidate; private/no-store/cookie-bearing/opaque responses and the worker script are not cached.
 - Added executable VM registration tests, manifest and shortcut asset checks, secure-context checks, and private-route non-interception assertions. Updated the older brand test to use the canonical manifest.
 - Verification for implementation head `a616aa604b5e298ad19d24a060bc9da067b1d314`: SONARA Industries CI passed; dependency scan passed; Docker Image CI passed; Supabase repository validation passed; Vercel preview reported ready.
-- No API shape, authentication, authorization, Stripe, Resend, database migration, storage policy, provider configuration, or production deployment changed.
-- Recommended next Agent B task: repository-owned browser proof for install/update/offline behavior at mobile and desktop widths after merge.
-- Recommended next Agent A task: owner-approved hosted migrations and Stripe/email proof remain the launch-critical backend work.
+- No API shape, authentication, authorization, Stripe, Resend, database migration, storage policy, provider configuration, or production deployment changed in the implementation branch.
 
 ## 2026-07-18T07:35:16Z - Codex (Agent A) - PR #21 merge and production verification
 
-- Re-ran frozen pnpm install, moderate audit, `verify:all`, docs, and diff checks before release.
 - PR #21 merged to `main` as `4dccd10994656573ce18adcc4e4b30805cbac3f1`; main CI, dependency, Docker, and Vercel checks passed.
 - Vercel production deployment `dpl_2B8UdLnPFYCYupdueU7GtkwYDGQK` was ready at the exact merge SHA. Fifteen-route live smoke passed with no recent runtime errors in the inspected window.
 - Hosted migrations 40/41 remained unapplied. Email delivery proof and Stripe lifecycle proof remained open launch gates.
