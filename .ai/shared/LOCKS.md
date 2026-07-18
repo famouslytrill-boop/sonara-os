@@ -1,7 +1,7 @@
 # Locks
 
 Active:
-- None.
+- LOCKED: operational database index contract, membership and billing query optimization, migration/test/report/shared-memory files — Codex (Agent A), branch `codex/database-query-contract`, started 2026-07-18. Do not edit `server.js` membership/entitlement query helpers, `lib/sonara-database-contract.cjs`, `scripts/verify-supabase-contract.mjs`, `scripts/verify-production-schema.mjs`, the new operational-index migration/tests/report, or overlapping `.ai/shared/` contracts until released.
 
 History:
 - RELEASED: PR #23 merge and exact-SHA Vercel production handoff — Codex, completed 2026-07-18 after shared current-state, task, test, risk, changelog, and handoff reconciliation.
