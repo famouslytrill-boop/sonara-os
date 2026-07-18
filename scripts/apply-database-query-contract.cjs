@@ -24,19 +24,19 @@ function replaceRequired(label, oldValue, newValue) {
 replaceRequired(
   "deterministic organization membership lookup",
   "organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1",
-  "organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc,organization_id.asc&limit=1"
+  "organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1"
 );
 
 replaceRequired(
   "deterministic business membership fallback",
   "business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1",
-  "business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc,organization_id.asc&limit=1"
+  "business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1"
 );
 
 replaceRequired(
   "server-side entitlement filter declaration",
   "  const allowedKeys = getPaidEntitlementKeys(productKey);\n  const entitlementResponse = await fetch",
-  "  const allowedKeys = getPaidEntitlementKeys(productKey);\n  const entitlementFilter = allowedKeys.map((key) => encodeURIComponent(key)).join(\",\");\n  const entitlementResponse = await fetch"
+  "  const allowedKeys = getPaidEntitlementKeys(productKey);\n  if (!allowedKeys.length) {\n    return {\n      ok: false,\n      status: 402,\n      code: \"upgrade_required\",\n      reason: \"product_entitlement_unmapped\",\n      message: \"Paid access is not configured for this product.\"\n    };\n  }\n  const entitlementFilter = allowedKeys.map((key) => encodeURIComponent(key)).join(\",\");\n  const entitlementResponse = await fetch"
 );
 
 replaceRequired(
@@ -66,7 +66,7 @@ replaceRequired(
 replaceRequired(
   "deterministic business manager lookup",
   "    \"role=in.(owner,manager)\",\n    \"limit=1\"",
-  "    \"role=in.(owner,manager)\",\n    \"order=created_at.asc\",\n    \"limit=1\""
+  "    \"role=in.(owner,manager)\",\n    \"order=created_at.asc.nullslast,workspace_id.asc\",\n    \"limit=1\""
 );
 
 fs.writeFileSync(serverPath, source);
