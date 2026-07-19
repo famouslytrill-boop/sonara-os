@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-<title id="title">SONARA Trinity Loop</title>
-<desc id="desc">Three connected ribbons form an S around a central point, representing Build, Create, and Grow connected by one trusted system.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SONARA Trinity Loop">
+<title>SONARA Trinity Loop</title>
+<desc>Three connected ribbons form an S around a central point, representing Build, Create, and Grow connected by one trusted system.</desc>
 <defs>
   <linearGradient id="v" x1="42" y1="28" x2="172" y2="121" gradientUnits="userSpaceOnUse"><stop stop-color="#6657F5"/><stop offset="1" stop-color="#9A55F7"/></linearGradient>
   <linearGradient id="c" x1="72" y1="92" x2="212" y2="173" gradientUnits="userSpaceOnUse"><stop stop-color="#FF5B7F"/><stop offset="1" stop-color="#FF8A57"/></linearGradient>
