@@ -52,6 +52,24 @@ jobs:
 
       - run: pnpm run build
 
+      - name: Scan public code for client-exposed secrets
+        run: pnpm run scan:client-secrets
+
+      - name: Verify registered route behavior
+        run: pnpm run smoke:routes
+
+      - name: Verify database and storage contracts
+        run: pnpm run verify:db
+
+      - name: Verify launch configuration and route registry
+        run: pnpm run verify:config
+
+      - name: Verify OpenAPI drift contract
+        run: pnpm run verify:api
+
+      - name: Verify documentation links
+        run: pnpm run test:docs
+
   supabase-preview:
     runs-on: ubuntu-latest
     steps:
