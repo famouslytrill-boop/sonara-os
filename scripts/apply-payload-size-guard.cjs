@@ -3,6 +3,8 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+require("./apply-readiness-display-contract.cjs");
+
 const serverPath = path.join(process.cwd(), "server.js");
 const STRUCTURED_BODY_LIMIT = "1mb";
 const STRUCTURED_BODY_MAX_BYTES = 1024 * 1024;

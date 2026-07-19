@@ -1,98 +1,28 @@
 # Handoff Log
 
-## 2026-07-19 - Codex (Agent A) - Payload-size production release
+## 2026-07-19 - Readiness Preview UI repair
 
-- PR #30 exact head `06215268470bfb5e9c7c64e3816e0810e6607b7a` passed SONARA Industries CI, dependency scan, Docker Image CI, full tests/build, Supabase preview/migration validation, and Vercel preview.
-- PR #30 merged to `main` as `af25aabd73a2df94a5c30bd157a8e1bbd1fc6c6f`.
-- Vercel production deployment `dpl_3S2YokV2p4Bn9UY7k1Xidp5PQG8f` is READY and aliases `sonaraindustries.com`.
-- Live `/api/health` reports the exact merge SHA, branch `main`, environment `production`, and the Express runtime.
-- Live `/api/readiness` remains configured for Supabase, Stripe, Stripe webhook, Resend, admin/founder protection, checkout, email delivery, and every approved checkout plan.
-- The root Express structured-body limit moved from 64 KiB to 1 MiB. Requests above 1 MiB now return HTTP `413`, `code=payload_too_large`, and `maxBytes=1048576` instead of surfacing as an HTTP 400 wrapper.
-- Executable tests prove a 96 KiB JSON object clears the former limit and an object above 1 MiB receives the stable 413 contract.
-- File bytes, base64 media, archives, audio, and video remain outside general JSON routes and must use approved signed direct-to-private-storage uploads.
-- Stripe raw-body webhook verification remains unchanged.
-- No Supabase migration, bucket/RLS policy, provider configuration, pricing, legal content, paid-access rule, secret, or customer data changed.
+- The supplied screenshot came from Preview deployment `dpl_4zWpZ54t762xCsD2gUx3pdPY29WX`, not the production domain.
+- The page rendered every internal compatibility field, producing duplicate cards for database, payments, payment updates, email, Google sign-in, and founder/admin readiness.
+- Two different founder/admin checks were assigned the same visible label, creating the contradictory Missing/Configured cards shown in the screenshot.
+- Branch `codex/fix-readiness-preview-ui` adds a canonical display list, uses the fail-closed aggregate Founder/Admin protection result, and adds deployment environment, commit, and branch context.
+- The JSON readiness endpoint keeps its compatibility fields; this is a presentation repair.
+- Regression coverage recreates the screenshot condition, requires every canonical card exactly once, checks Preview labeling, and verifies that private configuration details are not rendered.
+- Production remains healthy and unchanged. Preview integration with data services remains a separate owner-dependent task using an isolated non-production environment followed by a new deployment.
 
-## 2026-07-19 - Codex (Agent A) - Retry after Claude model outage / Exit 144
+## 2026-07-19 - Recent verified releases
 
-- The requested local repository path `/home/user/sonara-os` was not mounted in this execution environment. The initial lightweight inspection command therefore did not run; no prior Bash invocation was treated as complete.
-- Re-read every current `.ai/shared/` file from GitHub `main`: 20 top-level shared files plus ADR-0001 through ADR-0010.
-- Treated the previous selected-model outage and Exit 144 as execution-environment failures, not application failures.
-- Verified current GitHub `main` at `68bab71c5b98ad16692285a87549a3a09d10e492`.
-- Verified exact PR #27 head `01296554209837961ca8765bc2182902cda3313b` has successful SONARA Industries CI, dependency-scan, and Docker Image CI runs.
-- Verified current Vercel production deployment `dpl_zBcP14sv6UumFxagChpFYSG15LjJ` is READY for exact SHA `68bab71c5b98ad16692285a87549a3a09d10e492`.
-- Live `/api/health` reports that exact SHA, branch `main`, environment `production`, and the Express runtime.
-- Live `/api/readiness` reports Supabase, Stripe, Stripe webhook, Resend, admin/founder protection, checkout, email delivery, and all approved plans configured; Google OAuth remains deferred; legal pages remain review-required and not attorney-reviewed.
-- Vercel production observability reported no runtime error clusters in the prior 24 hours.
-- No Chromium, Playwright, Node server, or background process was started because no local checkout/memory baseline existed and no browser failure was reproduced.
-- No production code, migration, provider configuration, pricing, legal text, RLS policy, or customer data was changed.
-- Confirmed and corrected shared-state drift: `SECURITY_CONTRACT.md` still described migration 40 as pending, and production-state records still pointed at the older PR #27 deployment instead of the current PR #28 docs-only deployment.
-- Remaining gates are unchanged: one real Resend delivery with persisted provider evidence, the authenticated Stripe lifecycle through cancellation/relock, qualified legal review, replacement of previously disclosed Supabase server access outside chat, and reproducible PWA/device evidence.
+- PR #30 merged the 1 MiB structured-body and stable HTTP 413 repair as `af25aabd73a2df94a5c30bd157a8e1bbd1fc6c6f`; production deployment `dpl_3S2YokV2p4Bn9UY7k1Xidp5PQG8f` is READY.
+- PR #29 reconciled retry evidence after the missing local mount and model/Exit 144 failure were correctly classified as execution-environment failures.
+- PR #27 completed paid-launch application/database finalization with 42/42 migrations and linked schema lint passed.
+- PR #25 completed deterministic membership, paid-access query hardening, and reviewed operational indexes.
+- PR #23 completed the canonical PWA and private-cache contract.
+- Earlier detailed handoff history remains available in repository history.
 
-## 2026-07-19T00:52:00Z - Codex (Agent A) - PR #27 merge and production verification
+## Outstanding launch gates
 
-- Re-read every discovered file under `.ai/shared/`, ADR-0001 through ADR-0010, `AGENTS.md`, and recent Git history before continuing after the other agent's resource/model failure.
-- PR #27 was marked ready and merged with an exact-head guard as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`.
-- Vercel production deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg` is `READY` and identifies that exact GitHub merge SHA on branch `main`.
-- Live `/api/health` reports the exact merge SHA, Express runtime, `main`, and `production`.
-- Live `/api/readiness` reports Supabase, Stripe, Stripe webhook, Resend, admin protection, founder access, and every approved paid checkout plan configured; checkout and email delivery report enabled.
-- Live commercial/legal state is explicit: pricing catalog owner-approved, legal owner approval recorded, legal pages still review-required, and no attorney-review claim.
-- Paid access remains fail-closed on persisted active/trialing billing state or documented owner/admin authorization; no redirect-based unlock was introduced.
-- Database proof remains 42/42 production migrations with linked schema lint passed.
-- Remaining launch gates are one real Resend delivery with persisted provider evidence, the authenticated Stripe lifecycle through cancellation/relock, qualified legal review, and replacement of previously disclosed server access outside chat.
-- Shared current state, task board, integration registry, system map, test matrix, project memory, and changelog were updated on `codex/pr27-production-handoff` for merge after verification.
-
-## 2026-07-18T22:25:00Z - Codex (Agent A) - PR #27 paid-launch finalization
-
-- Read every discovered `.ai/shared/` contract and ADR before editing.
-- Audited live Vercel readiness: Supabase, Stripe secret, Stripe webhook, all configured plan prices, and checkout were configured; Resend alone reported invalid because `RESEND_FROM_EMAIL` used a valid display-name format rejected by local validation.
-- Added an idempotent runtime patch that accepts `Display Name <address@domain>` while retaining malformed/placeholder rejection.
-- Recorded unchanged Free/$7/$19/$39/one-time pricing as owner-approved.
-- Recorded legal pages as owner-approved launch baseline while keeping `legalPages=review_required`, qualified legal review required, not legal advice, and not attorney-reviewed.
-- Created a guarded one-time production migration workflow with exact-project validation, dry-run allowlisting, remote-ledger verification, linked schema lint, and no credential-value output.
-- The first migration-42 attempt failed safely because the live `billing_subscriptions` table lacked canonical organization/provider fields. Migrations 40 and 41 were already confirmed remote.
-- Corrected unapplied migration 42 to reconcile the live billing table additively, preserve compatible legacy identifiers, create the provider/subscription upsert key, and assert canonical columns plus reviewed indexes. No organization relationship was guessed.
-- The second guarded run succeeded: migration apply passed, remote ledger confirmed 40–42, linked schema lint passed, and the remote database reported up to date with no schema errors.
-- Removed the one-time migration workflow after success.
-- Added paid-launch and billing-schema regressions. Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase preview/migration validation, full tests, and build.
-- Added `reports/PAID_LAUNCH_FINALIZATION_2026-07-18.md` and synchronized current state, database contract, project memory, system map, integration registry, task board, tests, risks, questions, and changelog.
-- Evidence boundaries: production database 42/42 is proven; Resend real delivery and Stripe full lifecycle remain pending; legal owner approval is not attorney approval; previously disclosed production access still requires replacement outside chat.
-
-## 2026-07-18T21:12:00Z - Codex (Agent A) - PR #25 merge and production deployment
-
-- PR #25 merged as `9ca3487d38050322ab2b51a91f98bc92553fb3ac` after application CI, dependency scan, Docker, Supabase preview, and Vercel preview passed.
-- Vercel reported production success for the exact merge commit.
-- The release made membership/manager selection deterministic, filtered paid candidates inside PostgREST, failed closed for unmapped product entitlements, and registered reviewed operational indexes.
-
-## 2026-07-18T19:00:00Z - Codex (Agent A) - PR #23 PWA production deployment
-
-- PR #23 merged as `277c3bb6c58bfe29399265a0dae52830c02d1d99` after CI, dependency, Docker, Supabase validation, and Vercel preview passed.
-- Delivered one canonical manifest, public-only secure service-worker registration, public navigation allowlisting, private-cache exclusions, product shortcuts, and executable PWA tests.
-- Real-browser install/update/offline proof remains a bounded follow-up.
-
-## 2026-07-18T07:35:16Z - Codex (Agent A) - PR #21 production verification
-
-- PR #21 merged as `4dccd10994656573ce18adcc4e4b30805cbac3f1`; main CI, dependency, Docker, Vercel, route smoke, and runtime-error checks passed.
-- Recorded provider, legal, and credential-replacement gates.
-
-## 2026-07-18T07:20:09Z - Codex (Agent A) - canonical Supabase contract
-
-- Added the canonical 3-schema/71-table/10-function/7-bucket inventory, safe local/read-only MCP config, service-only readiness snapshot, protected admin integration, verifiers, tests, and documentation.
-
-## 2026-07-18T06:56:00Z - Codex (Agent A) - Data API privilege hardening
-
-- Added migration 40, corrected global admin derivation, locked function search paths, removed anonymous helper RPC access, and added positive/negative authorization assertions.
-
-## 2026-07-18T06:30:00Z - Codex + Agent B - preference and membership contracts
-
-- Agent B implemented theme/haptics preference safety and local browser proof.
-- Codex accepted ADR-0010: organization membership is canonical tenancy; business/entity membership and global roles remain separate authorization domains.
-
-## 2026-07-18T06:15:00Z - Codex (Agent A) - backend/OpenAPI baseline
-
-- Audited runtime, tests, migrations, and contracts; added registered-runtime OpenAPI drift verification without changing deployed response shapes.
-
-## 2026-07-18T03:30:00Z - Claude (Agent B) - visual redesign and route audit
-
-- Rebuilt the root Express presentation layer into the Clark visual system without changing route/business behavior.
-- Recorded responsive route audits with expected fail-closed admin behavior.
+- One real production email delivery with persisted provider evidence.
+- The authenticated payment → persisted entitlement → cancellation → relock lifecycle.
+- Qualified legal review.
+- Replacement of previously disclosed production access outside chat.
+- Reproducible PWA/browser and physical-device evidence.
