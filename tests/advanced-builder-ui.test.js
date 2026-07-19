@@ -35,7 +35,7 @@ describe("advanced builder presentation", () => {
     assert.match(res.text, /href="\/account\/setup"/);
     assert.match(res.text, /href="\/readiness"/);
     assert.doesNotMatch(res.text, /\b12 customers\b/i);
-    assert.doesNotMatch(res.text, /guaranteed revenue/i);
+    assert.match(res.text, /No fake customer counts, no guaranteed revenue/i);
   });
 
   it("serves the builder assets across public routes", async () => {
