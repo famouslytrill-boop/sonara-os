@@ -26,3 +26,30 @@ jobs:
       - name: Build the Docker image
         if: steps.dockerfile.outputs.exists == 'true'
         run: docker build -t sonara-os:ci .
+
+      - name: Smoke test the built image
+        if: steps.dockerfile.outputs.exists == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name sonara-os-ci --publish 3000:3000 sonara-os:ci
+          cleanup() {
+            docker logs sonara-os-ci || true
+            docker rm --force sonara-os-ci >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/health > /tmp/sonara-health.json; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = "true"
+
+          curl --fail --silent --show-error http://127.0.0.1:3000/ > /tmp/sonara-home.html
+          grep --quiet 'sonara-builder-2027.css' /tmp/sonara-home.html
+          grep --quiet 'data-sonara-builder' /tmp/sonara-home.html
+          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-builder-2027.css > /dev/null
