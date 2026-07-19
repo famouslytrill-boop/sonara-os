@@ -25,11 +25,11 @@ const rootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "SONARA Industries",
-      eyebrow: "BUILD. CREATE. GROW.",
+      eyebrow: "LAUNCH OPERATING SYSTEM",
       heading: "Build what matters.",
       variant: "home",
       body:
-        "SONARA One connects Business Builder, Creator Studio, and Growth Studio through one account, one trusted data layer, and visible next actions.",
+        "SONARA turns business, creator, and growth work into guided software workflows through one account, one trusted data layer, and visible next actions.",
       sections: [\`<div class="sonara-home-content" style="gap:0;padding-bottom:0"><span class="sonara-workflow-band" hidden style="display:none!important"></span>\${renderCohesiveHomepage(getReadiness())}</div>\`],
       actions: [
         linkAction("/signup", "Start Free"),
