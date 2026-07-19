@@ -1,10 +1,10 @@
 # Shared Task Board
 
-Updated: 2026-07-18 by Codex (Agent A)
+Updated: 2026-07-19 by Codex (Agent A)
 
 ## In progress
 
-- [Codex] Finalize PR #27, deploy the Resend, legal, and pricing runtime correction, verify the exact production SHA, and inspect live readiness.
+- None.
 
 ## Blocked / owner-dependent
 
@@ -16,12 +16,11 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 ## Ready for Codex (Agent A)
 
-1. Verify PR #27 production readiness after merge: Resend configured/enabled, owner pricing approval, legal-review boundary, Stripe/webhook/checkout configured, and no fabricated paid state.
-2. Run the approved Stripe lifecycle when an authenticated test customer is available.
-3. Verify one approved Resend delivery and persistence audit.
-4. Review hosted query/index telemetry after production workload accumulates.
-5. Tighten the highest-risk generic OpenAPI payloads without changing deployed shapes.
-6. Measure membership fallback usage and Business Builder referential integrity before proposing constraints.
+1. Run the approved Stripe lifecycle when an authenticated test customer is available.
+2. Verify one approved Resend delivery and persistence audit.
+3. Review hosted query/index telemetry after production workload accumulates.
+4. Tighten the highest-risk generic OpenAPI payloads without changing deployed shapes.
+5. Measure membership fallback usage and Business Builder referential integrity before proposing constraints.
 
 ## Ready for Agent B
 
@@ -32,7 +31,10 @@ Updated: 2026-07-18 by Codex (Agent A)
 
 ## Done
 
-- [Codex] Production Supabase ledger now confirms 42/42 repository migrations; linked production schema lint passed.
+- [Codex] PR #27 merged as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`; Vercel production deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg` is READY for the exact SHA.
+- [Codex] Live health reports PR #27 on `main` in production.
+- [Codex] Live readiness reports Resend configured/enabled; Stripe, webhook, every approved checkout plan, admin protection, and founder access configured; pricing and legal owner approval exposed separately from qualified legal review.
+- [Codex] Production Supabase ledger confirms 42/42 repository migrations; linked production schema lint passed.
 - [Codex] Reconciled the legacy live `billing_subscriptions` table additively with the current Stripe webhook/query contract; no organization mapping was fabricated.
 - [Codex] Removed the one-time production migration workflow after success.
 - [Codex] Resend friendly-name sender validation repaired with placeholder and malformed-address regressions.

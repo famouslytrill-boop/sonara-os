@@ -9,13 +9,13 @@
   },
   "stripe": {
     "role": "billing",
-    "status": "configured; webhook and all approved checkout prices enabled",
+    "status": "live readiness configured; webhook and all approved checkout prices enabled",
     "accessRule": "persisted active/trialing entitlement or owner/admin only",
     "proofPending": "authenticated test-mode checkout through cancellation and relock"
   },
   "resend": {
     "role": "transactional email",
-    "status": "friendly-name sender validator repaired; deployment pending PR #27",
+    "status": "live readiness configured; email delivery enabled after friendly-name sender validation repair",
     "domainVerified": true,
     "proofPending": "one approved production delivery with persisted provider result"
   },
@@ -26,11 +26,14 @@
   "legal": {
     "ownerApproval": "owner_approved",
     "qualifiedReview": "required",
-    "attorneyReviewed": false
+    "attorneyReviewed": false,
+    "liveReadiness": "legalPages=review_required; legalReviewBoundary=not_attorney_reviewed"
   },
   "vercel": {
     "role": "hosting",
-    "status": "current production READY at f72056e0ddb7a788c8fcd540d99fe8d564c777bc; PR #27 deployment pending"
+    "status": "READY in production at 88ee2d5dbf359972fc5eee64b322fed17192cbdf",
+    "deploymentId": "dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg",
+    "healthVerified": true
   },
   "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery proof pending" },
   "googleOAuth": { "role": "auth provider", "status": "deferred" },
