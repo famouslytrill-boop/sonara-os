@@ -1,6 +1,6 @@
 # Test Matrix
 
-Updated: 2026-07-18 by Codex (Agent A)
+Updated: 2026-07-19 by Codex (Agent A)
 
 ## Required repository gates
 
@@ -52,9 +52,9 @@ The temporary migration workflow was removed after success.
 - Stripe, webhook, all plan prices, and checkout can report configured/enabled without changing `paidStatus: not_verified`.
 - Client-secret scan remains mandatory.
 
-## Final branch evidence before shared-memory reconciliation
+## PR #27 branch and production evidence
 
-Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed:
+Exact PR head `01296554209837961ca8765bc2182902cda3313b` passed:
 
 - SONARA Industries CI
 - dependency scan
@@ -66,6 +66,28 @@ Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed:
 - complete Mocha suite
 - build
 - Supabase preview/migration validation
+- Vercel preview
+
+PR #27 then merged as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`.
+
+Production verification:
+
+- Vercel deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg`: `READY`
+- deployment target: production
+- deployment Git SHA: exact merge SHA
+- `/api/health`: 200; Express runtime; branch `main`; environment `production`; exact merge SHA
+- `/api/readiness`: 200
+- Supabase: configured
+- Stripe secret: configured
+- Stripe webhook: configured
+- every approved paid checkout plan: enabled/configured
+- Resend: configured
+- email delivery: enabled
+- pricing catalog: owner-approved
+- legal owner approval: owner-approved
+- legal pages: review-required
+- legal review boundary: not attorney-reviewed
+- invalid Resend fields: none
 
 ## PWA executable coverage
 
@@ -75,8 +97,8 @@ Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed:
 
 ## Evidence boundaries
 
-- Production database migration completion is proven.
-- Resend code/configuration readiness is regression-tested; a real production delivery remains pending.
-- Stripe/checkout configuration is proven; the end-to-end payment/cancellation lifecycle remains pending.
-- Legal owner approval is recorded, but attorney review is not claimed.
+- Production database migration completion and exact-SHA deployment are proven.
+- Resend code and live configuration readiness are proven; a real production delivery with persisted provider evidence remains pending.
+- Stripe/webhook/checkout configuration is proven; the authenticated payment/cancellation lifecycle remains pending.
+- Legal owner approval is recorded, but attorney review is not claimed and qualified review remains required.
 - PWA install/update/offline and physical vibration remain pending real-browser/device evidence.
