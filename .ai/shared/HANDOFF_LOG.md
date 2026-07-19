@@ -1,5 +1,18 @@
 # Handoff Log
 
+## 2026-07-19T00:52:00Z - Codex (Agent A) - PR #27 merge and production verification
+
+- Re-read every discovered file under `.ai/shared/`, ADR-0001 through ADR-0010, `AGENTS.md`, and recent Git history before continuing after the other agent's resource/model failure.
+- PR #27 was marked ready and merged with an exact-head guard as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`.
+- Vercel production deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg` is `READY` and identifies that exact GitHub merge SHA on branch `main`.
+- Live `/api/health` reports the exact merge SHA, Express runtime, `main`, and `production`.
+- Live `/api/readiness` reports Supabase, Stripe, Stripe webhook, Resend, admin protection, founder access, and every approved paid checkout plan configured; checkout and email delivery report enabled.
+- Live commercial/legal state is explicit: pricing catalog owner-approved, legal owner approval recorded, legal pages still review-required, and no attorney-review claim.
+- Paid access remains fail-closed on persisted active/trialing billing state or documented owner/admin authorization; no redirect-based unlock was introduced.
+- Database proof remains 42/42 production migrations with linked schema lint passed.
+- Remaining launch gates are one real Resend delivery with persisted provider evidence, the authenticated Stripe lifecycle through cancellation/relock, qualified legal review, and replacement of previously disclosed server access outside chat.
+- Shared current state, task board, integration registry, system map, test matrix, project memory, and changelog were updated on `codex/pr27-production-handoff` for merge after verification.
+
 ## 2026-07-18T22:25:00Z - Codex (Agent A) - PR #27 paid-launch finalization
 
 - Read every discovered `.ai/shared/` contract and ADR before editing.
@@ -15,7 +28,6 @@
 - Added paid-launch and billing-schema regressions. Implementation head `32cdd6656fcbad98b179ccacfbc32b38fd366fd6` passed SONARA Industries CI, dependency scan, Docker Image CI, Supabase preview/migration validation, full tests, and build.
 - Added `reports/PAID_LAUNCH_FINALIZATION_2026-07-18.md` and synchronized current state, database contract, project memory, system map, integration registry, task board, tests, risks, questions, and changelog.
 - Evidence boundaries: production database 42/42 is proven; Resend real delivery and Stripe full lifecycle remain pending; legal owner approval is not attorney approval; previously disclosed production access still requires replacement outside chat.
-- Next Codex action: merge/deploy PR #27, verify exact-SHA Vercel production, inspect live readiness, then perform one approved email delivery and authenticated Stripe lifecycle when the required user/provider interactions are available.
 
 ## 2026-07-18T21:12:00Z - Codex (Agent A) - PR #25 merge and production deployment
 
