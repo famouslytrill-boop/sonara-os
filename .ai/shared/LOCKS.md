@@ -1,7 +1,7 @@
 # Locks
 
 Active:
-- None.
+- `server.js` structured body parser/error boundary, `scripts/apply-payload-size-guard.cjs`, `package.json`, `tests/payload-size-guard.test.js`, and related shared contracts — Codex on `codex/fix-payload-too-large` until required CI, Vercel preview, merge, and production verification complete.
 
 History:
 - RELEASED: retry verification and shared-state reconciliation — Codex, completed 2026-07-19 after all 30 current `.ai/shared/` files were read, the absent local mount and prior model/Exit 144 failure were classified correctly, exact PR #27 workflow success and current Vercel production evidence were verified, stale security/deployment records were corrected, and no production code or migration was changed.
