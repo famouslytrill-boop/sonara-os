@@ -12,3 +12,4 @@
 10. **OpenAPI schema depth:** method/path/auth/error coverage is canonical, while several heterogeneous payloads remain generic and should be tightened without runtime-shape changes.
 11. **Service-worker asset coupling:** cached asset changes must synchronize worker version, rendered query tokens, manifest expectations, and tests.
 12. **Unrelated local work:** previously recorded untracked operator files must remain untouched and uncommitted.
+13. **Execution-environment evidence:** agent runners may lack the expected `/home/user/sonara-os` mount or may terminate because of model/resource failures such as Exit 144. A missing mount, unavailable model, or terminated command must never be classified as an application failure or assumed complete; require a valid checkout plus reproducible commands, or corroborating GitHub CI/Vercel evidence, before changing production code.
