@@ -1,36 +1,49 @@
-# GitHub Repo Health
+# GitHub Repository Health
 
-Checked locally with GitHub CLI.
+Last reviewed: 2026-07-19
 
-## Local Git
+## Authoritative repository
 
-- Current branch: `main`
-- Remote: `origin https://github.com/famouslytrill-boop/sonara-os.git`
-- Latest local commit before this working tree: `c8c2a39 Complete production auth billing and launch readiness`
-- Working tree has uncommitted launch-readiness changes.
+- Repository: `famouslytrill-boop/sonara-os`
+- Default branch: `main`
+- Package manager: `pnpm@11.1.1`
+- Primary runtime: Node.js 22 with Express
+- Deployment: Vercel
+- Container runtime: Docker
+- Data platform: Supabase
+- Billing provider: Stripe
+- Email provider: Resend
 
-## Pull Requests
+The connected GitHub installation exposes one SONARA production repository. External open-source projects are governed references or controlled integration candidates. They are not silently copied into the production tree.
 
-- Open PRs: none returned by `gh pr list --state open`.
-- Recent closed PRs are merged release-readiness PRs, including PR 15, PR 14, and PR 13.
+## Active redesign pull request
 
-## Workflows
+PR #38 on `codex/advanced-builder-redesign` contains the advanced-builder redesign and infrastructure hardening. The previous exact head passed the main application CI, Supabase preview validation, Docker image build, dependency scan, and production-connectivity checks.
 
-Active workflows:
+The remaining deployment status was caused by Vercel's temporary build-rate limit. Production must remain unmerged until the current exact head receives a successful Vercel Preview.
 
-- `dependency-scan`
-- `Docker Image CI`
-- `.github/workflows/sonara-industries-ci.yml`
+## Corrected repository issues
 
-Latest observed runs on `main`:
+1. The Dockerfile now runs the same deterministic `apply:runtime` and build chain as Vercel.
+2. Docker CI now starts the image and verifies the health endpoint, redesigned homepage marker, and advanced-builder stylesheet.
+3. A registry validator now checks external repository records, package source policy, pinned Python packages, and safety metadata.
+4. A scheduled workflow checks registered GitHub repositories for availability.
+5. Backend CI now checks installed package compatibility, audits the pinned Python dependency set, imports FastAPI, and confirms required routes.
+6. The software requirements matrix now reflects the actual Express and pnpm production runtime.
 
-- Docker Image CI: success
-- dependency-scan: success
-- SONARA Industries CI: failure at startup, no log found for run `26902142716`
+## Required merge gate
 
-## Recommended Manual Actions
+Before merging, require the exact pull-request head to pass:
 
-1. Push the current branch only after local checks pass.
-2. Rerun GitHub Actions.
-3. Inspect the first real SONARA Industries CI failure if it still exits immediately.
-4. Do not merge or disable checks until CI is understood.
+```bash
+pnpm install --frozen-lockfile
+pnpm audit --audit-level moderate
+pnpm run verify:all
+pnpm run test:docs
+pnpm run verify:open-source
+
+docker build -t sonara-os:verify .
+docker run --rm -p 3000:3000 sonara-os:verify
+```
+
+Also require a READY Vercel Preview, clean review status, successful container verification, and production verification after merge.

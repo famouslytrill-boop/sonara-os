@@ -1,0 +1,28 @@
+name: External Repository Health
+
+on:
+  pull_request:
+    paths:
+      - "data/open-source-tools.ts"
+      - "docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md"
+      - "backend/requirements.txt"
+      - "package.json"
+      - "scripts/verify-open-source-registry.mjs"
+      - ".github/workflows/external-repository-health.yml"
+  schedule:
+    - cron: "23 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-external-repositories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate registry policy and remote repository health
+        run: node scripts/verify-open-source-registry.mjs --network

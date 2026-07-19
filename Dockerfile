@@ -17,16 +17,15 @@ COPY server.js vercel.json ./
 COPY api ./api
 COPY routes ./routes
 COPY lib ./lib
+COPY config ./config
 COPY scripts ./scripts
 COPY public ./public
 
-# Bake the runtime route codemods the same way vercel-build does.
-RUN node scripts/apply-last9-routes.cjs \
-  && node scripts/apply-creator-music-readonly.cjs \
-  && node scripts/apply-formula-routes.cjs \
-  && node scripts/apply-ecosystem-routes.cjs \
-  && node scripts/apply-premium-brand-system.cjs \
-  && node --check server.js
+# Apply the exact same deterministic runtime patch chain used by Vercel, then
+# verify that the production entry point parses and starts without importing
+# development-only packages.
+RUN pnpm run apply:runtime \
+  && pnpm run build
 
 RUN chown -R node:node /app
 USER node

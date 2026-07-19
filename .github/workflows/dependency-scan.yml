@@ -29,11 +29,15 @@ jobs:
       - name: Audit root dependencies
         run: pnpm audit --audit-level moderate
 
+      - name: Validate open-source dependency and repository policy
+        run: pnpm run verify:open-source
+
       - name: Typecheck root app
         run: pnpm run typecheck
 
       - name: Build root app
         run: pnpm run build
+
   backend-dependencies:
     runs-on: ubuntu-latest
     defaults:
@@ -46,4 +50,13 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
-      - run: python -m py_compile main.py
+      - name: Verify installed Python dependency compatibility
+        run: python -m pip check
+      - name: Audit pinned Python dependencies
+        run: |
+          python -m pip install pip-audit
+          pip-audit -r requirements.txt
+      - name: Compile and import the FastAPI backend
+        run: |
+          python -m py_compile main.py app/main.py
+          python -c 'from app.main import app; paths = {route.path for route in app.routes}; assert "/health" in paths and "/brands" in paths'
