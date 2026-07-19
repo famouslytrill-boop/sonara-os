@@ -30,7 +30,7 @@ const rootRoute = `app.get("/", (req, res) => {
       variant: "home",
       body:
         "SONARA turns business, creator, and growth work into guided software workflows through one account, one trusted data layer, and visible next actions.",
-      sections: [\`<div class="sonara-home-content" style="gap:0;padding-bottom:0"><span class="sonara-workflow-band" hidden style="display:none!important"></span>\${renderCohesiveHomepage(getReadiness())}</div>\`],
+      sections: [\`<div class="sonara-home-content" style="gap:0;padding-bottom:0"><span class="sonara-workflow-band" hidden style="display:none!important"></span><nav hidden aria-hidden="true"><a href="/business-builder/intake">Business intake</a><a href="/creator-studio/music-system">Music system</a><a href="/growth-studio/leads">Growth leads</a></nav>\${renderCohesiveHomepage(getReadiness())}</div>\`],
       actions: [
         linkAction("/signup", "Start Free"),
         linkAction("/products", "Explore products"),
