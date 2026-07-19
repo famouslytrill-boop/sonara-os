@@ -16,6 +16,19 @@ Updated: 2026-07-19 by Codex (Agent A)
 
 `verify:launch` runs deterministic runtime application, build, tests, client-secret scan, lint, route smoke, repository database verification, launch configuration/route-registry verification, and OpenAPI drift verification.
 
+## Retry verification after Claude model outage / Exit 144
+
+- The requested local mount `/home/user/sonara-os` was absent in this execution environment. The initial lightweight Git command bundle did not run and was not assumed complete.
+- Every current file under `.ai/shared/` was read from GitHub `main`: 20 top-level files plus ADR-0001 through ADR-0010.
+- The previous selected-model outage and Exit 144 were classified as execution-environment failures, not application failures.
+- Exact PR #27 head `01296554209837961ca8765bc2182902cda3313b` has successful SONARA Industries CI, dependency-scan, and Docker Image CI workflow runs.
+- Pre-reconciliation production deployment `dpl_zBcP14sv6UumFxagChpFYSG15LjJ` was `READY` for exact `main` SHA `68bab71c5b98ad16692285a87549a3a09d10e492`.
+- Live `/api/health`: 200; Express runtime; exact SHA `68bab71c5b98ad16692285a87549a3a09d10e492`; branch `main`; environment `production`.
+- Live `/api/readiness`: 200; Supabase, Stripe, webhook, Resend, admin/founder protection, checkout, email delivery, and all approved plan prices configured; Google OAuth deferred; legal review boundary remains not attorney-reviewed.
+- Vercel production observability reported no runtime error clusters in the preceding 24 hours.
+- No Chromium, Playwright, Node server, or background process was started because no local checkout/memory baseline was available and no browser failure was reproduced.
+- No production application code or migration changed. The retry repair is limited to stale shared security/deployment evidence.
+
 ## Production database evidence
 
 A guarded one-time workflow completed against exact project `yqncsonkxgwhcxedgevk`:
@@ -70,7 +83,7 @@ Exact PR head `01296554209837961ca8765bc2182902cda3313b` passed:
 
 PR #27 then merged as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`.
 
-Production verification:
+Production verification at the PR #27 application release:
 
 - Vercel deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg`: `READY`
 - deployment target: production

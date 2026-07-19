@@ -6,9 +6,11 @@
     "host": "vercel",
     "rewrite": "/(.*) -> /api",
     "bundledDirs": ["public/**", "routes/**", "lib/**"],
-    "productionCommit": "88ee2d5dbf359972fc5eee64b322fed17192cbdf",
-    "productionDeployment": "dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg",
-    "productionState": "READY"
+    "applicationBaselineCommit": "88ee2d5dbf359972fc5eee64b322fed17192cbdf",
+    "lastVerifiedProductionCommit": "68bab71c5b98ad16692285a87549a3a09d10e492",
+    "lastVerifiedProductionDeployment": "dpl_zBcP14sv6UumFxagChpFYSG15LjJ",
+    "lastVerifiedProductionState": "READY",
+    "verificationBoundary": "last verified before the retry documentation-only reconciliation; later documentation merges do not change runtime behavior"
   },
   "renderer": {
     "kind": "server-rendered-express",
@@ -62,7 +64,11 @@
     "operationalIndexes": 8,
     "privateBuckets": 7,
     "pr27HeadCI": "passed at 01296554209837961ca8765bc2182902cda3313b",
-    "productionHealth": "exact merge SHA verified",
-    "productionReadiness": "live provider and commercial states verified"
+    "productionHealth": "exact last-verified SHA confirmed",
+    "productionReadiness": "live provider and commercial states verified",
+    "productionRuntimeErrors24h": "none observed at retry verification",
+    "retrySharedFilesRead": 30,
+    "retryLocalCheckoutAvailable": false,
+    "retryProductionCodeChanged": false
   }
 }
