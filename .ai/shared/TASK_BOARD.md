@@ -31,8 +31,12 @@ Updated: 2026-07-19 by Codex (Agent A)
 
 ## Done
 
-- [Codex] PR #27 merged as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`; Vercel production deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg` is READY for the exact SHA.
-- [Codex] Live health reports PR #27 on `main` in production.
+- [Codex] Retried after the prior Claude selected-model outage and Exit 144 without assuming the failed invocation completed or treating it as an application failure.
+- [Codex] Confirmed the requested local mount was unavailable in this runner, then read all 30 current `.ai/shared/` files from GitHub `main`, including ADR-0001 through ADR-0010, before making changes.
+- [Codex] Verified exact PR #27 head CI, dependency scan, and Docker workflow success; verified the current pre-reconciliation production deployment at `68bab71c5b98ad16692285a87549a3a09d10e492`, live health/readiness, and no Vercel runtime error clusters in the prior 24 hours.
+- [Codex] Corrected stale shared security and deployment evidence only; no production application code, migration, provider configuration, price, legal text, RLS policy, or customer data changed.
+- [Codex] PR #27 merged as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`; Vercel production deployment `dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg` was READY for the exact SHA.
+- [Codex] Live health reports the deployed `main` SHA in production.
 - [Codex] Live readiness reports Resend configured/enabled; Stripe, webhook, every approved checkout plan, admin protection, and founder access configured; pricing and legal owner approval exposed separately from qualified legal review.
 - [Codex] Production Supabase ledger confirms 42/42 repository migrations; linked production schema lint passed.
 - [Codex] Reconciled the legacy live `billing_subscriptions` table additively with the current Stripe webhook/query contract; no organization mapping was fabricated.
