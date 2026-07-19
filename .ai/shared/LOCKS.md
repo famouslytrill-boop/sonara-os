@@ -1,7 +1,7 @@
 # Locks
 
 Active:
-- None.
+- Production connectivity hardening — Codex, branch `codex/production-connectivity-hardening`. Scope: automated public-route, readiness, PWA, protected-boundary, database-contract, OpenAPI, configuration, and client-secret verification. No migration, RLS, provider secret, billing authorization, customer-data, or legal-content changes.
 
 History:
 - RELEASED: cohesive 2027 public frontend, canonical runtime registry, production deployment, and live readiness-backed database presentation — Codex, PR #34, merge `988afc643b4c4633c1843e4d854b899782a8669a`, deployment `dpl_Gaa2kkogk3mPkFkUE6QcaM7TH1sG`, 2026-07-19.

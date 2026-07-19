@@ -1,0 +1,64 @@
+name: SONARA Production Connectivity
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+  pull_request:
+    branches: [main]
+    paths:
+      - "server.js"
+      - "api/**"
+      - "routes/**"
+      - "lib/**"
+      - "public/**"
+      - "scripts/smoke-live-routes.mjs"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/production-connectivity.yml"
+      - ".github/workflows/sonara-industries-ci.yml"
+  workflow_run:
+    workflows: ["SONARA Industries CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-connectivity-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  production-connectivity:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Wait for the exact main deployment
+        if: github.event_name == 'workflow_run'
+        shell: bash
+        run: |
+          echo "EXPECTED_COMMIT_SHA=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_ENV"
+          echo "WAIT_FOR_DEPLOYMENT_SECONDS=600" >> "$GITHUB_ENV"
+
+      - name: Verify production routes, providers, PWA, and access boundaries
+        env:
+          BASE_URL: https://sonaraindustries.com
+          REQUEST_TIMEOUT_MS: "20000"
+        run: pnpm run smoke:live

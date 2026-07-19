@@ -4,7 +4,7 @@ Updated: 2026-07-19 by Codex (Agent A)
 
 ## In progress
 
-- None for the cohesive frontend release.
+- Validate and merge automated production connectivity hardening: complete CI contract suite, exact-SHA deployment wait, public-route/PWA/provider smoke, protected-boundary checks, safe negative POST probes, scheduled checks, and production runtime-error inspection.
 
 ## Blocked / owner-dependent
 

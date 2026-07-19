@@ -1,61 +1,89 @@
 # Post Deploy Verification
 
-Run local checks first:
+## Automated verification
+
+Install the locked dependencies and run the complete local contract suite:
 
 ```bash
-npm run build
-npm run lint
-npm run typecheck
-npm run scan:secrets
-npm run verify:security
-npm run verify:db
-npm run verify:heartbeat
-npm run verify:entity-security
-npm run verify:brand
-npm run verify:env
-npm run verify:stripe
-npm run verify:all
-npm run verify:postdeploy
+pnpm install --frozen-lockfile
+pnpm run verify:launch
+pnpm run test:docs
 ```
+
+Verify the deployed public system, provider-readiness flags, PWA assets, protected-route boundaries, and safe negative POST behavior:
+
+```bash
+BASE_URL=https://sonaraindustries.com pnpm run smoke:live
+```
+
+To verify that Vercel is serving one exact Git commit, include the expected SHA and allow time for deployment propagation:
+
+```bash
+EXPECTED_COMMIT_SHA=<full-git-sha> \
+WAIT_FOR_DEPLOYMENT_SECONDS=600 \
+BASE_URL=https://sonaraindustries.com \
+pnpm run smoke:live
+```
+
+`SONARA Production Connectivity` runs this smoke automatically after successful `main` CI, on relevant pull requests, on demand, and every six hours.
 
 ## Supabase
 
-- `supabase migration list`
-- Confirm `007_platform_infrastructure_ops.sql` and `008_entity_agent_operations.sql` applied.
-- Run RLS tests from `docs/RLS_MANUAL_TESTS.md`.
-- Run entity membership/manual RLS tests from `docs/RLS_MANUAL_TESTS.md`.
-- Confirm storage buckets exist.
-- Confirm no public reads on private buckets.
+Automated/static checks:
+
+```bash
+pnpm run verify:db
+pnpm run verify:supabase-contract
+```
+
+Authorized operator checks:
+
+```bash
+pnpm exec supabase migration list --linked
+pnpm exec supabase db lint --linked --level error
+pnpm exec supabase db push --linked --dry-run
+```
+
+Manual proof gates:
+
+- Run the authenticated organization-creation smoke against the deployed hosted-compatible schema.
+- Run the tenant-isolation and membership tests in `docs/RLS_MANUAL_TESTS.md`.
+- Confirm all required storage buckets exist and remain private.
+- Test signed private upload/download, unrelated-user denial, and delete policy.
+- Confirm the latest database backup and restore-test schedule.
 
 ## Stripe
 
-- Confirm checkout opens for each paid tier.
-- Confirm webhook endpoint receives signed events.
-- Confirm replayed events do not duplicate subscription state.
-- Confirm canceled and failed-payment states are reflected.
+Automated checks verify non-secret readiness, plan allowlist status, webhook configuration, and fail-closed unauthenticated checkout behavior.
 
-## Storage
+Manual proof gates:
 
-- Test public upload/download.
-- Test private signed upload/download.
-- Test unrelated user cannot access private files.
-- Test delete policy.
+- Open checkout for every paid plan with an authenticated organization.
+- Confirm the signed webhook is received and persisted once.
+- Replay the provider event and confirm idempotency.
+- Complete cancellation and failed-payment tests and confirm entitlement relock.
 
-## PWA
+## Email
 
-- Confirm `/manifest.webmanifest` loads.
-- Confirm app name, icons, display mode, start URL, theme, and background colors.
-- Confirm `/offline` renders.
+Automated checks verify that Resend and the database-backed support queue report configured without exposing credentials.
 
-## Backups
+Manual proof gate:
 
-- Confirm latest database backup exists.
-- Confirm storage backup plan exists.
-- Confirm restore test schedule exists.
+- Send one approved production message and verify provider delivery plus the persisted delivery/audit record.
 
-## Environment Checklist
+## PWA and devices
 
-- Vercel env vars set.
-- Supabase secrets only in server/CI/local secret stores.
-- Stripe secret and webhook secret server-only.
-- `SUPABASE_DB_URL` not exposed to frontend.
+Automated checks verify the canonical manifest, legacy redirect, icons, service worker, offline page, public assets, and service-worker privacy boundary.
+
+Manual proof gates:
+
+- Install the PWA on a physical Android device and supported desktop browser.
+- Verify online/offline behavior, update behavior, safe-area layout, touch targets, and authenticated-route privacy.
+
+## Environment and security
+
+- Vercel environment variables must remain server-scoped where required.
+- Supabase service-role, Stripe secret/webhook, Resend, and administrator secrets must never be exposed to public assets or API responses.
+- `SUPABASE_DB_URL` must not be present in frontend bundles.
+- Google sign-in remains deferred until `GOOGLE_REDIRECT_URI` is configured and verified.
+- Qualified legal review remains an owner-dependent launch gate.
