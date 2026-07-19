@@ -2,37 +2,31 @@
 
 Updated: 2026-07-19 by Codex (Agent A)
 
-## Required gates
+## Readiness Preview UI
 
-- frozen-lockfile install
-- dependency audit
-- typecheck
-- lint
-- complete tests
-- build
-- route and contract verification
-- database migration preview validation
-- Vercel preview
+- Readiness display patch applies idempotently: pass.
+- Canonical launch-readiness cards render once each: pass.
+- Contradictory Founder access cards are removed: pass.
+- One fail-closed Founder/Admin protection card remains: pass.
+- Preview/Production environment, commit, and branch context render without private values: pass.
+- JSON readiness compatibility fields remain unchanged: pass.
+- Full test suite and build: pass.
+- Dependency scan: pass.
+- Docker build: pass.
+- Database preview/migration validation: pass.
+- Exact-head Vercel Preview `dpl_4kcjEB6x9qUDGHAjtsTN6Y4NfB1a`: READY.
 
-## Readiness Preview UI coverage
+## Existing production evidence
 
-- The readiness display patch applies twice without changing the result.
-- The Business Builder launch-readiness page renders one Deployment environment card.
-- It renders one card each for Account database, Payment connection, Payment updates, Email delivery, Google sign-in, Founder/Admin protection, Checkout, Owner legal approval, Pricing catalog, Legal pages, and Legal review boundary.
-- A Preview environment with a valid founder source but unavailable account services shows one fail-closed Founder/Admin protection result and no contradictory Founder access cards.
-- The deployment card identifies Preview versus Production and includes sanitized commit and branch context.
-- The page does not render private configuration names or values.
-- The JSON readiness endpoint retains its compatibility fields.
-- Production behavior and database migrations remain unchanged.
+- Production runtime health: pass.
+- Production migration ledger: 42/42.
+- Structured request limit and stable HTTP 413 regressions: pass.
+- Paid access remains fail-closed.
 
-## Existing release evidence
+## Pending evidence
 
-- Production remains on verified runtime merge `af25aabd73a2df94a5c30bd157a8e1bbd1fc6c6f`, deployment `dpl_3S2YokV2p4Bn9UY7k1Xidp5PQG8f`.
-- Production database evidence remains 42/42 migrations with linked schema lint passed.
-- The 1 MiB structured-body and HTTP 413 regressions remain active.
-
-## Evidence boundaries
-
-- Readiness Preview UI code is pending exact-head branch gates.
-- Preview backend connectivity remains unproven until an isolated Preview environment is configured and a new deployment is tested.
-- Email-delivery proof, the authenticated payment lifecycle, qualified legal review, access replacement, PWA install/offline proof, and physical-device vibration remain pending.
+- Isolated Preview backend connectivity.
+- Real production email delivery.
+- Authenticated payment lifecycle through cancellation/relock.
+- Qualified legal review.
+- PWA/browser and physical-device verification.
