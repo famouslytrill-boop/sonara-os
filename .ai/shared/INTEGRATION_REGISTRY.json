@@ -1,19 +1,38 @@
 {
   "supabase": {
     "role": "auth+database+storage",
-    "status": "configured; secure server credential replacement remains required before paid launch",
+    "status": "configured; production ledger 42/42 and linked schema lint passed",
     "serverOnly": ["SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SECRET_KEY"],
     "repositoryContract": "3 schemas / 71 tables / 10 functions / 8 operational indexes / 7 private buckets",
-    "productionContractMigrations": "40, 41, and 42 pending approved hosted application"
+    "productionContractMigrations": "40, 41, and 42 applied and remote-ledger verified",
+    "credentialBoundary": "previously disclosed server access still requires replacement outside chat"
   },
-  "stripe": { "role": "billing", "status": "configured", "proofPending": "test-mode end-to-end (CODEX-1)" },
-  "resend": { "role": "transactional email", "status": "env-invalid (RESEND_FROM_EMAIL)", "domainVerified": true },
+  "stripe": {
+    "role": "billing",
+    "status": "configured; webhook and all approved checkout prices enabled",
+    "accessRule": "persisted active/trialing entitlement or owner/admin only",
+    "proofPending": "authenticated test-mode checkout through cancellation and relock"
+  },
+  "resend": {
+    "role": "transactional email",
+    "status": "friendly-name sender validator repaired; deployment pending PR #27",
+    "domainVerified": true,
+    "proofPending": "one approved production delivery with persisted provider result"
+  },
+  "pricing": {
+    "status": "owner_approved",
+    "catalog": ["free:$0", "starter:$7/month", "core:$19/month", "pro:$39/month", "business-builder-setup:one-time"]
+  },
+  "legal": {
+    "ownerApproval": "owner_approved",
+    "qualifiedReview": "required",
+    "attorneyReviewed": false
+  },
   "vercel": {
     "role": "hosting",
-    "status": "READY at 9ca3487d38050322ab2b51a91f98bc92553fb3ac",
-    "deployment": "production status success for exact merge SHA"
+    "status": "current production READY at f72056e0ddb7a788c8fcd540d99fe8d564c777bc; PR #27 deployment pending"
   },
-  "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery not proven" },
+  "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery proof pending" },
   "googleOAuth": { "role": "auth provider", "status": "deferred" },
   "omniroute": { "role": "optional AI gateway", "status": "disabled by default; docs/infrastructure/OPTIONAL_AI_GATEWAY.md" }
 }
