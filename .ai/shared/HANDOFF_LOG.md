@@ -1,5 +1,21 @@
 # Handoff Log
 
+## 2026-07-19 - Codex (Agent A) - Retry after Claude model outage / Exit 144
+
+- The requested local repository path `/home/user/sonara-os` was not mounted in this execution environment. The initial lightweight inspection command therefore did not run; no prior Bash invocation was treated as complete.
+- Re-read every current `.ai/shared/` file from GitHub `main`: 20 top-level shared files plus ADR-0001 through ADR-0010.
+- Treated the previous selected-model outage and Exit 144 as execution-environment failures, not application failures.
+- Verified current GitHub `main` at `68bab71c5b98ad16692285a87549a3a09d10e492`.
+- Verified exact PR #27 head `01296554209837961ca8765bc2182902cda3313b` has successful SONARA Industries CI, dependency-scan, and Docker Image CI runs.
+- Verified current Vercel production deployment `dpl_zBcP14sv6UumFxagChpFYSG15LjJ` is READY for exact SHA `68bab71c5b98ad16692285a87549a3a09d10e492`.
+- Live `/api/health` reports that exact SHA, branch `main`, environment `production`, and the Express runtime.
+- Live `/api/readiness` reports Supabase, Stripe, Stripe webhook, Resend, admin/founder protection, checkout, email delivery, and all approved plans configured; Google OAuth remains deferred; legal pages remain review-required and not attorney-reviewed.
+- Vercel production observability reported no runtime error clusters in the prior 24 hours.
+- No Chromium, Playwright, Node server, or background process was started because no local checkout/memory baseline existed and no browser failure was reproduced.
+- No production code, migration, provider configuration, pricing, legal text, RLS policy, or customer data was changed.
+- Confirmed and corrected shared-state drift: `SECURITY_CONTRACT.md` still described migration 40 as pending, and production-state records still pointed at the older PR #27 deployment instead of the current PR #28 docs-only deployment.
+- Remaining gates are unchanged: one real Resend delivery with persisted provider evidence, the authenticated Stripe lifecycle through cancellation/relock, qualified legal review, replacement of previously disclosed Supabase server access outside chat, and reproducible PWA/device evidence.
+
 ## 2026-07-19T00:52:00Z - Codex (Agent A) - PR #27 merge and production verification
 
 - Re-read every discovered file under `.ai/shared/`, ADR-0001 through ADR-0010, `AGENTS.md`, and recent Git history before continuing after the other agent's resource/model failure.
