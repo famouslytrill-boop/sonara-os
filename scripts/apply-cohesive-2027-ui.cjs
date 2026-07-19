@@ -52,10 +52,11 @@ if (!rootPattern.test(source)) {
 
 source = source
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-cohesive-2027\.css(?:\?v=[^"]+)?">/g, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-cohesive-2027-base\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script defer src="\/sonara-cohesive-2027\.js(?:\?v=[^"]+)?"><\/script>/g, "");
 
 const assetVersion = "cohesive-ui-20260719";
-const assetMarkup = `    <link rel="stylesheet" href="/sonara-cohesive-2027.css?v=${assetVersion}">\n    <script defer src="/sonara-cohesive-2027.js?v=${assetVersion}"></script>`;
+const assetMarkup = `    <link rel="stylesheet" href="/sonara-cohesive-2027.css?v=${assetVersion}">\n    <link rel="stylesheet" href="/sonara-cohesive-2027-base.css?v=${assetVersion}">\n    <script defer src="/sonara-cohesive-2027.js?v=${assetVersion}"></script>`;
 const interfaceAnchor = '    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>\n  </head>';
 if (source.includes(interfaceAnchor)) {
   source = source.replace(interfaceAnchor, `    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>\n${assetMarkup}\n  </head>`);
