@@ -2,6 +2,18 @@
 
 Updated: 2026-07-19 by Codex (Agent A)
 
+## Production connectivity hardening — in progress
+
+- Main CI runs typecheck, lint, complete tests, build, client-secret scan, local route smoke, database/storage contract verification, launch configuration and route-registry verification, OpenAPI drift verification, and documentation-link checks.
+- Production smoke waits for the exact expected Git SHA after successful `main` CI before testing the deployed domain.
+- Live public pages return HTTP 200 with real main content and no placeholders, dead `href=#` links, or secret patterns.
+- Compatibility redirects return their exact documented status and destination.
+- `/api/health`, `/api/readiness`, and `/api/support/status` return valid non-secret JSON with production deployment, provider, database, support, checkout, and access states.
+- Customer and admin routes fail closed without authentication.
+- Invalid contact, organization-setup, and checkout POST probes fail without creating provider sessions or records.
+- Canonical manifest, legacy redirect, icons, service worker, offline page, cohesive assets, and Trinity Loop mark load successfully.
+- Scheduled production connectivity verification runs every six hours and can also be started manually.
+
 ## Cohesive 2027 frontend integration — passed
 
 - Runtime patch applies twice without changing output.
@@ -35,5 +47,7 @@ Updated: 2026-07-19 by Codex (Agent A)
 
 ## Pending evidence
 
+- Exact-head CI and live production smoke for the connectivity-hardening branch.
+- Exact-SHA production deployment and post-merge scheduled workflow evidence.
 - Authenticated deployed organization-creation smoke test.
 - Remaining owner-dependent launch gates recorded in TASK_BOARD.md.
