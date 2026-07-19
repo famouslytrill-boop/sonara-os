@@ -2,31 +2,23 @@
 
 Updated: 2026-07-19 by Codex (Agent A)
 
-## Readiness Preview UI
+## Organization setup compatibility
 
-- Readiness display patch applies idempotently: pass.
-- Canonical launch-readiness cards render once each: pass.
-- Contradictory Founder access cards are removed: pass.
-- One fail-closed Founder/Admin protection card remains: pass.
-- Preview/Production environment, commit, and branch context render without private values: pass.
-- JSON readiness compatibility fields remain unchanged: pass.
-- Full test suite and build: pass.
-- Dependency scan: pass.
-- Docker build: pass.
-- Database preview/migration validation: pass.
-- Exact-head Vercel Preview `dpl_4kcjEB6x9qUDGHAjtsTN6Y4NfB1a`: READY.
+- Runtime patch must apply twice without changing output.
+- Authenticated setup must create an organization when the hosted table requires company_key and created_by.
+- The write must include owner_id and a deterministic slug and must not include owner_user_id.
+- Canonical organization_memberships ownership must be recorded.
+- Retrying after a partial write must reuse the slug and avoid duplicate organizations.
+- Failure logs may contain HTTP status and database error code only.
+- Full tests, typecheck, lint, build, dependency scan, Docker, database validation, and Vercel Preview are required before merge.
 
-## Existing production evidence
+## Existing evidence
 
-- Production runtime health: pass.
-- Production migration ledger: 42/42.
-- Structured request limit and stable HTTP 413 regressions: pass.
-- Paid access remains fail-closed.
+- Production logs show HTTP 503 for the organization setup route.
+- The database connection is configured.
+- The migration ledger remains 42/42; this repair adds no migration.
 
 ## Pending evidence
 
-- Isolated Preview backend connectivity.
-- Real production email delivery.
-- Authenticated payment lifecycle through cancellation/relock.
-- Qualified legal review.
-- PWA/browser and physical-device verification.
+- Deployed authenticated organization setup smoke test.
+- Remaining launch gates recorded in TASK_BOARD.md.

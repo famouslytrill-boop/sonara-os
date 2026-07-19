@@ -1,27 +1,24 @@
 # Handoff Log
 
+## 2026-07-19 - Organization setup schema compatibility
+
+- User evidence showed `Organization setup required` while the non-secret readiness endpoint reported `accountDatabase=configured`.
+- Vercel production logs confirmed two HTTP 503 responses for `POST /account/setup/organization`.
+- Repository migration evidence explains the contradiction: migration 010 created `organizations.company_key` as required, migration 011 added `slug` and `owner_id`, and the current application insert supplied neither the required legacy `company_key` nor `created_by`.
+- The application also attempted `owner_user_id`, which is not defined by the accepted repository migrations.
+- Prepared an idempotent runtime compatibility patch that first looks up the deterministic slug, writes the shared hosted-schema shape, keeps canonical `organization_memberships`, retries membership safely, and logs only sanitized PostgREST status/code evidence on failure.
+- Added regressions for legacy-required organization creation and partial-create retry recovery.
+- No production schema migration or data mutation is included. Exact-head CI, Preview deployment, and authenticated production smoke evidence remain mandatory before the incident is closed.
+
 ## 2026-07-19 - Readiness Preview UI repair
 
 - The supplied screenshot came from a Vercel Preview deployment, not Production.
 - Root cause: the page rendered every internal compatibility field, duplicating database, payment, email, Google, and founder/admin concepts.
-- Two different founder/admin checks shared the visible label “Founder access,” creating contradictory Missing/Configured cards.
-- Implemented one canonical human-facing card list, one aggregate Founder/Admin protection result, and a Deployment environment card with sanitized commit/branch context.
-- Preserved the JSON readiness compatibility fields.
-- Added tests that reproduce the screenshot condition and require each canonical card exactly once.
-- Implementation head `94e60952922c732b2fbec0b75dee872427416ec1` passed application CI, full tests/build, dependency scan, Docker, and database preview validation.
-- Vercel Preview `dpl_4kcjEB6x9qUDGHAjtsTN6Y4NfB1a` is READY for the exact implementation head; build logs confirm the patch executed.
-- Production remains healthy and unchanged. Preview backend connectivity remains a separate owner-dependent task using an isolated non-production environment.
-
-## Recent verified releases
-
-- PR #30: 1 MiB structured request support and stable HTTP 413 handling, deployed READY.
-- PR #29: retry evidence reconciliation.
-- PR #27: paid-launch and production database finalization, 42/42 migrations.
-- PR #25: deterministic membership and paid-access query hardening.
-- PR #23: canonical PWA and private-cache contract.
+- Implemented one canonical human-facing card list, one aggregate Founder/Admin protection result, and Deployment environment context while preserving the JSON compatibility fields.
 
 ## Outstanding launch gates
 
+- Organization setup exact-head verification and authenticated deployed smoke test.
 - Isolated Preview backend configuration and verification.
 - One real production email delivery with persistence evidence.
 - Authenticated payment lifecycle through cancellation and relock.
