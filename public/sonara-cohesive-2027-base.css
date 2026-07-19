@@ -1,0 +1,5 @@
+/* Base scope for the cohesive public system. Kept separate to preserve the public no-shell wording contract. */
+.sonara-cohesive-system { width: 100%; min-width: 0; color: var(--cohesive-text); }
+.sonara-cohesive-system *, .sonara-cohesive-system *::before, .sonara-cohesive-system *::after { box-sizing: border-box; }
+.sonara-cohesive-system h2, .sonara-cohesive-system h3 { margin: 0; color: var(--cohesive-text); }
+.sonara-cohesive-system p { color: var(--cohesive-muted); }
