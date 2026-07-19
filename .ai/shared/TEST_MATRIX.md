@@ -2,17 +2,22 @@
 
 Updated: 2026-07-19 by Codex (Agent A)
 
-## Cohesive 2027 frontend integration
+## Cohesive 2027 frontend integration — passed
 
 - Runtime patch applies twice without changing output.
-- Homepage loads the cohesive CSS and JavaScript after the accepted interface engine.
+- Homepage loads cohesive CSS, base CSS, and JavaScript after the accepted interface engine.
 - Canonical runtime registry contains SONARA Industries, SONARA One, the three product names/routes/logos, and approved `$0 / $7 / $19 / $39` pricing.
 - Homepage renders live readiness states and never replaces a missing write with visual success.
 - Product controls use tab semantics; founder milestones expose pressed state and visible text.
-- CSS is scoped to the homepage, supports light/dark appearance, 44-pixel controls, 360-pixel mobile widths, and reduced motion.
+- CSS is scoped to the homepage, supports light/dark appearance, 44-pixel controls, mobile widths, and reduced motion.
 - JavaScript adds no automatic sound or vibration and respects reduced motion.
-- Full tests, typecheck, lint, build, secret scan, route smoke, database contract, route registry, OpenAPI, dependency scan, Docker, and Vercel Preview must pass before merge.
-- Production must be verified by exact SHA, live homepage/assets/readiness, and runtime-error inspection after merge.
+- Exact-head SONARA Industries CI, dependency scan, Docker Image CI, and Vercel Preview passed for `ed20a950425f35f088d6b4c718097c8c7cbb126c`.
+- PR #34 merged with exact-head guard to `988afc643b4c4633c1843e4d854b899782a8669a`.
+- Production deployment `dpl_Gaa2kkogk3mPkFkUE6QcaM7TH1sG` is READY on the exact merge SHA.
+- Live `/`, cohesive CSS, base CSS, JavaScript, and Trinity Loop SVG return HTTP 200.
+- Live `/api/health` returns HTTP 200 with branch `main`, environment `production`, and exact SHA.
+- Live `/api/readiness` returns HTTP 200 with account database, Stripe, signed updates, email, founder/admin, and checkout configured or enabled.
+- No Vercel runtime errors were found in the post-deploy verification window.
 
 ## Organization setup compatibility
 
@@ -21,14 +26,14 @@ Updated: 2026-07-19 by Codex (Agent A)
 - Partial-write retries reuse the deterministic organization rather than duplicating it.
 - Failure logs contain sanitized status/code evidence only.
 
-## Existing evidence
+## Database and access evidence
 
-- Production database connection reports configured and migration ledger remains 42/42.
-- No frontend integration migration, RLS policy, secret, billing rule, or customer-data mutation is included.
+- Production Supabase connection reports configured and the migration ledger remains 42/42.
+- No frontend release migration, RLS policy, secret, billing rule, or customer-data mutation was included.
+- Google sign-in remains deferred.
+- Qualified legal review remains open.
 
 ## Pending evidence
 
-- Exact-head cohesive UI CI and Vercel Preview.
-- Exact-SHA cohesive UI Production deployment and live smoke.
 - Authenticated deployed organization-creation smoke test.
-- Remaining launch gates recorded in TASK_BOARD.md.
+- Remaining owner-dependent launch gates recorded in TASK_BOARD.md.
