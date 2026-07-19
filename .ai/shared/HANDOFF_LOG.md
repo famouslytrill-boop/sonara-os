@@ -1,14 +1,17 @@
 # Handoff Log
 
-## 2026-07-19 - Codex (Agent A) - Payload-size repair
+## 2026-07-19 - Codex (Agent A) - Payload-size production release
 
-- Reproduced the repository-side cause: the root Express runtime limited JSON bodies to `64kb`.
-- Added an idempotent runtime patch that raises structured JSON and URL-encoded bodies to 1 MiB.
-- Added a final error boundary that returns HTTP `413`, `code=payload_too_large`, and `maxBytes=1048576` instead of a misleading HTTP 400 wrapper.
-- Added tests proving a 96 KiB JSON object clears the former limit and a body above 1 MiB fails with the stable 413 response.
-- File bytes and base64 media remain outside general JSON routes; approved large uploads must go directly to private storage through signed URLs.
-- No database migration, storage policy, billing rule, provider configuration, pricing, legal content, secret, or customer data changed.
-- Branch: `codex/fix-payload-too-large`; release evidence is pending required CI, Vercel preview, merge, and production verification.
+- PR #30 exact head `06215268470bfb5e9c7c64e3816e0810e6607b7a` passed SONARA Industries CI, dependency scan, Docker Image CI, full tests/build, Supabase preview/migration validation, and Vercel preview.
+- PR #30 merged to `main` as `af25aabd73a2df94a5c30bd157a8e1bbd1fc6c6f`.
+- Vercel production deployment `dpl_3S2YokV2p4Bn9UY7k1Xidp5PQG8f` is READY and aliases `sonaraindustries.com`.
+- Live `/api/health` reports the exact merge SHA, branch `main`, environment `production`, and the Express runtime.
+- Live `/api/readiness` remains configured for Supabase, Stripe, Stripe webhook, Resend, admin/founder protection, checkout, email delivery, and every approved checkout plan.
+- The root Express structured-body limit moved from 64 KiB to 1 MiB. Requests above 1 MiB now return HTTP `413`, `code=payload_too_large`, and `maxBytes=1048576` instead of surfacing as an HTTP 400 wrapper.
+- Executable tests prove a 96 KiB JSON object clears the former limit and an object above 1 MiB receives the stable 413 contract.
+- File bytes, base64 media, archives, audio, and video remain outside general JSON routes and must use approved signed direct-to-private-storage uploads.
+- Stripe raw-body webhook verification remains unchanged.
+- No Supabase migration, bucket/RLS policy, provider configuration, pricing, legal content, paid-access rule, secret, or customer data changed.
 
 ## 2026-07-19 - Codex (Agent A) - Retry after Claude model outage / Exit 144
 
