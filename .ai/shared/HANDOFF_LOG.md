@@ -1,5 +1,15 @@
 # Handoff Log
 
+## 2026-07-19 - Codex (Agent A) - Payload-size repair
+
+- Reproduced the repository-side cause: the root Express runtime limited JSON bodies to `64kb`.
+- Added an idempotent runtime patch that raises structured JSON and URL-encoded bodies to 1 MiB.
+- Added a final error boundary that returns HTTP `413`, `code=payload_too_large`, and `maxBytes=1048576` instead of a misleading HTTP 400 wrapper.
+- Added tests proving a 96 KiB JSON object clears the former limit and a body above 1 MiB fails with the stable 413 response.
+- File bytes and base64 media remain outside general JSON routes; approved large uploads must go directly to private storage through signed URLs.
+- No database migration, storage policy, billing rule, provider configuration, pricing, legal content, secret, or customer data changed.
+- Branch: `codex/fix-payload-too-large`; release evidence is pending required CI, Vercel preview, merge, and production verification.
+
 ## 2026-07-19 - Codex (Agent A) - Retry after Claude model outage / Exit 144
 
 - The requested local repository path `/home/user/sonara-os` was not mounted in this execution environment. The initial lightweight inspection command therefore did not run; no prior Bash invocation was treated as complete.
