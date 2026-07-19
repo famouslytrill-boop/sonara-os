@@ -4,12 +4,13 @@
 
 - PR #27 merged the paid-launch application/database finalization to `main` as `88ee2d5dbf359972fc5eee64b322fed17192cbdf`.
 - PR #28 merged shared production evidence as the documentation-only commit `68bab71c5b98ad16692285a87549a3a09d10e492`.
-- Current Vercel production deployment `dpl_zBcP14sv6UumFxagChpFYSG15LjJ` is `READY` for exact `main` SHA `68bab71c5b98ad16692285a87549a3a09d10e492`.
-- Live `/api/health` reports commit `68bab71c5b98ad16692285a87549a3a09d10e492`, branch `main`, environment `production`, and the Express runtime.
-- The deployed runtime/application behavior remains the PR #27 baseline; PR #28 changed shared documentation only.
-- Live `/api/readiness` reports Supabase, Stripe, Stripe webhook, Resend, admin protection, founder access, and every approved checkout plan configured; checkout and email delivery report enabled.
-- Live readiness also reports `ownerLegalApproval=owner_approved`, `pricingCatalog=owner_approved`, `legalPages=review_required`, and `legalReviewBoundary=not_attorney_reviewed`.
-- Vercel production observability reports no runtime error clusters in the last 24 hours at the time of this retry verification.
+- Immediately before this retry documentation reconciliation, Vercel production deployment `dpl_zBcP14sv6UumFxagChpFYSG15LjJ` was independently verified `READY` for exact `main` SHA `68bab71c5b98ad16692285a87549a3a09d10e492`.
+- Live `/api/health` at that verification reported commit `68bab71c5b98ad16692285a87549a3a09d10e492`, branch `main`, environment `production`, and the Express runtime.
+- The runtime-bearing application behavior remains the PR #27 baseline; PR #28 and this retry reconciliation change shared documentation only.
+- Live `/api/readiness` reported Supabase, Stripe, Stripe webhook, Resend, admin protection, founder access, and every approved checkout plan configured; checkout and email delivery reported enabled.
+- Live readiness also reported `ownerLegalApproval=owner_approved`, `pricingCatalog=owner_approved`, `legalPages=review_required`, and `legalReviewBoundary=not_attorney_reviewed`.
+- Vercel production observability reported no runtime error clusters in the preceding 24 hours at the time of retry verification.
+- Any later documentation-only merge will create a newer deployment SHA without changing the runtime-bearing application contract; verify that exact deployment separately rather than treating a documentation SHA as new application behavior.
 
 ## Production database and access contract
 
@@ -31,7 +32,7 @@
 
 ## Launch evidence boundary
 
-- Database migration completion, current exact-SHA deployment, live health/readiness, and absence of recent Vercel runtime errors are proven.
+- Database migration completion, the last independently verified exact-SHA deployment, live health/readiness, and absence of recent Vercel runtime errors are proven.
 - Resend code and live configuration readiness are proven; one real production delivery with a persisted provider result remains required before delivery is called operationally proven.
 - Stripe, webhook, prices, and checkout configuration are proven; the full authenticated test-mode checkout → signed webhook → persisted entitlement → unlock → cancel → relock lifecycle remains unproven.
 - Legal content is owner-approved but not attorney-reviewed; qualified legal review remains required.
