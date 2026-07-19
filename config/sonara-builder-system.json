@@ -1,0 +1,52 @@
+{
+  "version": "2027.1",
+  "name": "SONARA Adaptive Editorial Workspace",
+  "sourceOfTruth": {
+    "design": "Figma",
+    "code": "GitHub",
+    "deployment": "Vercel",
+    "database": "Supabase Postgres",
+    "billing": "Stripe",
+    "email": "Resend"
+  },
+  "builders": {
+    "figma": "design tokens, responsive frames, prototypes, design review",
+    "builderCompatible": "component slots and content schemas remain portable to Builder.io or Plasmic",
+    "base44": "isolated prototypes only; never authoritative production data",
+    "splineRive": "optional deferred visual enhancement only"
+  },
+  "principles": [
+    "one authoritative database",
+    "one primary action per viewport",
+    "editorial hierarchy before feature inventory",
+    "product-specific accents on shared foundations",
+    "motion communicates state and preserves context",
+    "core workflows remain usable without animation or WebGL",
+    "public claims are backed by live readiness or explicit owner approval"
+  ],
+  "tokens": {
+    "canvas": "#F2F4F8",
+    "surface": "#FFFFFF",
+    "ink": "#12172A",
+    "muted": "#5E6579",
+    "violet": "#6D5DF6",
+    "coral": "#F0646E",
+    "cyan": "#1AAFC5",
+    "mint": "#2FBD88",
+    "amber": "#D99A32",
+    "radiusPanel": "24px",
+    "radiusControl": "14px",
+    "maxWidth": "1440px"
+  },
+  "products": {
+    "business-builder": { "accent": "violet", "message": "Launch and operate" },
+    "creator-studio": { "accent": "coral", "message": "Create and release" },
+    "growth-studio": { "accent": "cyan", "message": "Understand and grow" }
+  },
+  "routeFamilies": {
+    "marketing": ["/", "/products", "/pricing", "/free-tools", "/security", "/support"],
+    "access": ["/login", "/signup", "/admin/login"],
+    "workspace": ["/dashboard", "/business-builder/*", "/creator-studio/*", "/growth-studio/*"],
+    "operations": ["/admin/*", "/owner/*", "/readiness"]
+  }
+}
