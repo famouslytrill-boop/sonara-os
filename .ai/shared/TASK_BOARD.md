@@ -4,8 +4,7 @@ Updated: 2026-07-19 by Codex (Agent A)
 
 ## In progress
 
-- Verify the cohesive 2027 frontend through full CI, database contract checks, route registry checks, exact-head Vercel Preview, guarded merge, and exact-SHA Production deployment.
-- Verify live homepage assets, canonical registry prices/routes, readiness-backed database states, and runtime errors after deployment.
+- None for the cohesive frontend release.
 
 ## Blocked / owner-dependent
 
@@ -13,13 +12,17 @@ Updated: 2026-07-19 by Codex (Agent A)
 - Configure an isolated non-production backend for complete Preview account testing.
 - Complete one authenticated payment lifecycle through cancellation and relock.
 - Complete one approved production email delivery and verify persistence.
+- Configure Google sign-in only after an approved `GOOGLE_REDIRECT_URI` is available.
 - Obtain qualified legal review.
 - Complete PWA/browser and physical-device verification.
 
 ## Done
 
+- Merged PR #34 and deployed the cohesive 2027 frontend to Production deployment `dpl_Gaa2kkogk3mPkFkUE6QcaM7TH1sG` on exact SHA `988afc643b4c4633c1843e4d854b899782a8669a`.
+- Verified full CI, dependency scan, Docker, exact-head Preview, guarded merge, exact-SHA Production, live homepage/assets, health/readiness, and zero recent runtime errors.
+- Updated the canonical runtime registry for SONARA Industries, SONARA One, Business Builder, Creator Studio, Growth Studio, routes, marks, and approved `$0 / $7 / $19 / $39` pricing.
+- Connected the public presentation to live non-secret readiness while keeping Supabase Postgres authoritative.
 - Merged organization setup compatibility with deterministic slug recovery and canonical organization membership.
-- Built the cohesive Express-integrated public frontend, runtime brand registry, readiness-backed status presentation, logo family, progressive enhancement, and regressions without changing the production database schema.
 - Readiness Preview UI repair: canonical cards, aggregate Founder/Admin protection, and deployment context.
 - Payload-size request handling and stable HTTP 413 release.
 - Production database migration and paid-launch baseline verification.
