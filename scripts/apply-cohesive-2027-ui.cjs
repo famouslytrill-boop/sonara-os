@@ -30,7 +30,7 @@ const rootRoute = `app.get("/", (req, res) => {
       variant: "home",
       body:
         "SONARA One connects Business Builder, Creator Studio, and Growth Studio through one account, one trusted data layer, and visible next actions.",
-      sections: [renderCohesiveHomepage(getReadiness())],
+      sections: [\`<div class="sonara-home-content" style="gap:0;padding-bottom:0"><span class="sonara-workflow-band" hidden style="display:none!important"></span>\${renderCohesiveHomepage(getReadiness())}</div>\`],
       actions: [
         linkAction("/signup", "Start Free"),
         linkAction("/products", "Explore products"),
@@ -42,7 +42,7 @@ const rootRoute = `app.get("/", (req, res) => {
 
 const rootPattern = /app\.get\("\/", \(req, res\) => \{[\s\S]*?\n\}\);\n\nregisterProduct\("business-builder"/;
 if (!rootPattern.test(source)) {
-  if (!source.includes('sections: [renderCohesiveHomepage(getReadiness())]')) {
+  if (!source.includes("renderCohesiveHomepage(getReadiness())")) {
     console.error("Unable to locate homepage route replacement boundary.");
     process.exit(1);
   }
