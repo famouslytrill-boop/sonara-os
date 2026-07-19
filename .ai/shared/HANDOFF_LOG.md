@@ -1,5 +1,17 @@
 # Handoff Log
 
+## 2026-07-19 - Cohesive 2027 frontend, registry, deployment, and database connection
+
+- User requested the approved cohesive visual system be merged into the current repository, registry, deployment, and connected database state.
+- Preserved the accepted root Express runtime and `layout()` contract; no SPA migration was introduced.
+- Added a canonical runtime brand registry for SONARA Industries, SONARA One, Business Builder, Creator Studio, Growth Studio, real routes/logo assets, and the owner-approved `$0 / $7 / $19 / $39` plan prices.
+- Added a server-rendered homepage that consumes the live non-secret readiness object so account database, payment, signed updates, email, founder/admin, and legal-review states are rendered honestly.
+- Added scoped cohesive styles and progressive product/milestone interaction without automatic sound or haptics.
+- Replaced the parent and product SVG marks with the cohesive symbolic family.
+- Added an idempotent final runtime patch and regressions for registry, readiness rendering, assets, accessibility semantics, reduced motion, consent-safe enhancement, and patch stability.
+- Supabase Postgres remains authoritative and already reports configured. No migration, RLS policy, secret, billing authorization, customer record, or legal content was changed.
+- Exact-head CI, Vercel Preview, guarded merge, exact-SHA Production deployment, live smoke, and runtime-error inspection remain required before release completion is claimed.
+
 ## 2026-07-19 - Organization setup schema compatibility
 
 - User evidence showed `Organization setup required` while the non-secret readiness endpoint reported `accountDatabase=configured`.
@@ -18,7 +30,8 @@
 
 ## Outstanding launch gates
 
-- Organization setup exact-head verification and authenticated deployed smoke test.
+- Cohesive frontend exact-head Preview and Production verification.
+- Authenticated deployed organization-creation smoke test.
 - Isolated Preview backend configuration and verification.
 - One real production email delivery with persistence evidence.
 - Authenticated payment lifecycle through cancellation and relock.

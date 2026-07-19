@@ -1,22 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Industries mark">
-  <title>SONARA Industries</title>
-  <defs>
-    <radialGradient id="si-bg" cx="30%" cy="22%" r="90%">
-      <stop offset="0%" stop-color="#3d2c52"/>
-      <stop offset="55%" stop-color="#161226"/>
-      <stop offset="100%" stop-color="#0a0812"/>
-    </radialGradient>
-    <linearGradient id="si-wave" x1="20" y1="88" x2="108" y2="40">
-      <stop offset="0%" stop-color="#ffd166"/>
-      <stop offset="50%" stop-color="#ff7a66"/>
-      <stop offset="100%" stop-color="#b693ff"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#si-bg)"/>
-  <circle cx="64" cy="64" r="42" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5"/>
-  <path d="M30 78 C46 60 52 92 64 74 C76 56 82 88 98 50" fill="none"
-        stroke="url(#si-wave)" stroke-width="8" stroke-linecap="round"/>
-  <circle cx="30" cy="78" r="6" fill="#72f4a9"/>
-  <circle cx="64" cy="74" r="6" fill="#ff5db8"/>
-  <circle cx="98" cy="50" r="6" fill="#48e1ff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SONARA Trinity Loop">
+<title>SONARA Trinity Loop</title>
+<desc>Three connected ribbons form an S around a central point, representing Build, Create, and Grow connected by one trusted system.</desc>
+<defs>
+  <linearGradient id="v" x1="42" y1="28" x2="172" y2="121" gradientUnits="userSpaceOnUse"><stop stop-color="#6657F5"/><stop offset="1" stop-color="#9A55F7"/></linearGradient>
+  <linearGradient id="c" x1="72" y1="92" x2="212" y2="173" gradientUnits="userSpaceOnUse"><stop stop-color="#FF5B7F"/><stop offset="1" stop-color="#FF8A57"/></linearGradient>
+  <linearGradient id="g" x1="38" y1="145" x2="183" y2="224" gradientUnits="userSpaceOnUse"><stop stop-color="#18BBD0"/><stop offset="1" stop-color="#36C98E"/></linearGradient>
+  <filter id="s" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="11" stdDeviation="12" flood-color="#343754" flood-opacity=".18"/></filter>
+</defs>
+<g fill="none" stroke-linecap="round" filter="url(#s)">
+  <path d="M188 58C164 31 120 26 84 42C52 57 37 83 49 105C61 127 92 128 126 128" stroke="url(#v)" stroke-width="30"/>
+  <path d="M126 128C160 128 195 128 207 151C219 174 203 200 171 215C135 232 91 227 67 199" stroke="url(#g)" stroke-width="30"/>
+  <path d="M68 199C45 176 44 151 62 137C78 125 101 128 126 128C150 128 177 126 190 108C201 93 201 74 188 58" stroke="url(#c)" stroke-width="18"/>
+</g>
+<circle cx="126" cy="128" r="13" fill="#FFFFFF" stroke="#20243A" stroke-width="6"/>
 </svg>
