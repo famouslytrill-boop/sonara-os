@@ -13,6 +13,7 @@ const browserGlobals = {
   clearTimeout: "readonly",
   requestAnimationFrame: "readonly",
   cancelAnimationFrame: "readonly",
+  IntersectionObserver: "readonly",
   URL: "readonly",
   URLSearchParams: "readonly",
   Event: "readonly",
