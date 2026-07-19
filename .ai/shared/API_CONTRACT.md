@@ -2,7 +2,7 @@
 
 Owner: Codex (Agent A)
 Status: accepted baseline
-Last verified: 2026-07-18
+Last verified: 2026-07-19
 
 ## Canonical sources
 
@@ -18,6 +18,13 @@ Last verified: 2026-07-18
 3. Browser form requests may negotiate `303` redirects or HTML confirmation/error pages. JSON clients should send `Accept: application/json`.
 4. Setup and provider failures must remain explicit (`setup_required`, `503`, or the documented provider-specific error); clients must not infer configured or paid state from navigation.
 5. Adding, removing, or changing an API method/path requires updating `openapi/sonara.yaml`, affected tests, this contract when semantics change, and the shared handoff log in the same logical commit.
+
+## Structured payload contract
+
+- JSON and URL-encoded request bodies are limited to 1 MiB (`1,048,576` bytes), replacing the previous 64 KiB parser ceiling.
+- Requests above that boundary return HTTP `413` with `{ ok: false, code: "payload_too_large", message, maxBytes: 1048576 }`; they must not be wrapped or mislabeled as HTTP 400.
+- File bytes, base64 media, archives, audio, and video must not travel through a Vercel function JSON body. Clients must request an approved signed upload URL and upload directly to private object storage.
+- The 1 MiB limit applies only to structured application data. It is not a storage-bucket file-size limit and does not override provider/global storage limits.
 
 ## Security boundaries
 
