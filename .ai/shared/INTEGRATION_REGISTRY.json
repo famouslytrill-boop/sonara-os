@@ -31,9 +31,11 @@
   },
   "vercel": {
     "role": "hosting",
-    "status": "READY in production at 88ee2d5dbf359972fc5eee64b322fed17192cbdf",
-    "deploymentId": "dpl_DL1TXnuFjVZfT46pUPsEJT51XLAg",
-    "healthVerified": true
+    "lastVerifiedProductionStatus": "READY at 68bab71c5b98ad16692285a87549a3a09d10e492 before this documentation-only reconciliation",
+    "lastVerifiedProductionDeploymentId": "dpl_zBcP14sv6UumFxagChpFYSG15LjJ",
+    "runtimeApplicationBaselineCommit": "88ee2d5dbf359972fc5eee64b322fed17192cbdf",
+    "healthVerified": true,
+    "runtimeErrors24h": "none observed at retry verification"
   },
   "cloudflare": { "role": "DNS and inbound email routing records", "status": "active zone; record types verified; delivery proof pending" },
   "googleOAuth": { "role": "auth provider", "status": "deferred" },
