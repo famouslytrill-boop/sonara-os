@@ -25,9 +25,10 @@ describe("canonical responsive application interface", () => {
   it("renders one clean homepage shell without retired visual systems", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=application-ui-20260720-v3/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=application-ui-20260720-v4/);
     assert.equal(countMatches(res.text, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(res.text, LEGACY_ASSET_PATTERN);
+    assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.match(res.text, /class="sonara-site-header"/);
     assert.match(res.text, /class="sonara-mobile-menu"/);
     assert.match(res.text, /Build what matters\./);
@@ -70,7 +71,7 @@ describe("canonical responsive application interface", () => {
   it("applies the canonical runtime patch idempotently", () => {
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-application-ui-"));
     fs.mkdirSync(path.join(temp, "scripts"), { recursive: true });
-    const sample = `const path = require("node:path");\nconst app = { use() {} };\napp.use(express.static(path.join(__dirname, "public")));\n\napp.get("/", (req, res) => {\n  return res.status(200).type("html").send(layout({ title: "Old", sections: [] }));\n});\n\nregisterProduct("business-builder", {});\n\nfunction layout() { return \`<!doctype html>\n<html><head>\n<link rel="stylesheet" href="/sonara-builder-2027.css?v=old">\n<script defer src="/sonara-builder-2027.js?v=old"></script>\n  </head><body>\n<header><a class="brand" href="/">Old</a><button class="sonara-command-button">Menu</button></header>\n<main><aside class="sonara-interface-face">Old device</aside></main>\n<nav class="sonara-quick-bar" aria-label="Quick actions"><a href="/dashboard">Dashboard</a></nav>\n</body></html>\`; }\n`;
+    const sample = `const path = require("node:path");\nconst app = { use() {} };\napp.use(express.static(path.join(__dirname, "public")));\n\napp.get("/", (req, res) => {\n  return res.status(200).type("html").send(layout({ title: "Old", sections: [] }));\n});\n\nregisterProduct("business-builder", {});\n\nfunction layout() { return \`<!doctype html>\n<html><head>\n<style>header{border-radius:30px}</style>\n<link rel="stylesheet" href="/sonara-builder-2027.css?v=old">\n<script defer src="/sonara-builder-2027.js?v=old"></script>\n  </head><body>\n<header><a class="brand" href="/">Old</a><button class="sonara-command-button">Menu</button></header>\n<main><aside class="sonara-interface-face">Old device</aside></main>\n<nav class="sonara-quick-bar" aria-label="Quick actions"><a href="/dashboard">Dashboard</a></nav>\n</body></html>\`; }\n`;
     fs.writeFileSync(path.join(temp, "server.js"), sample);
     fs.copyFileSync(path.join(__dirname, "..", "scripts", "apply-premium-ui-final.cjs"), path.join(temp, "scripts", "apply-premium-ui-final.cjs"));
     const run = () => execFileSync(process.execPath, [path.join(temp, "scripts", "apply-premium-ui-final.cjs")], { cwd: temp });
@@ -81,6 +82,7 @@ describe("canonical responsive application interface", () => {
     assert.equal(second, first);
     assert.equal(countMatches(second, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(second, LEGACY_ASSET_PATTERN);
+    assert.doesNotMatch(second, /<style[\s>]/i);
     assert.match(second, /sonara-mobile-menu/);
     assert.doesNotMatch(second, /sonara-command-button/);
     assert.doesNotMatch(second, /sonara-interface-face/);
