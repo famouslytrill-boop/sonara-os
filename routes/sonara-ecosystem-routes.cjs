@@ -2,6 +2,8 @@
 
 const { getManifest, getAllManifestTables } = require("../lib/sonara-ecosystem-manifest.cjs");
 
+const LIVE_PROBE_TIMEOUT_MS = 800;
+
 module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
   const brandCard = deps.brandCard || card;
@@ -34,7 +36,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
 
   app.get("/admin/ecosystem", requireAdmin, async (req, res) => {
     const manifest = getManifest();
-    const readiness = await getEcosystemReadiness(safeListTable);
+    const readiness = await getEcosystemReadiness(safeListTable, { probe: true });
     const missingCount = readiness.tables.filter((item) => !item.ok).length;
     return res.status(200).type("html").send(layout({
       title: "Ecosystem control plane",
@@ -62,34 +64,73 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
     res.status(200).json({ ok: true, manifest: getManifest() });
   });
 
-  app.get("/api/ecosystem/readiness", async (req, res) => {
-    res.status(200).json(await getEcosystemReadiness(safeListTable));
+  // Public readiness is intentionally static and fast. It describes the
+  // required contract without making a request fan-out to production Supabase.
+  // Live table probes remain available only inside the protected admin view.
+  app.get("/api/ecosystem/readiness", (req, res) => {
+    res.status(200).json(getStaticEcosystemReadiness());
   });
 };
 
-async function getEcosystemReadiness(safeListTable) {
+function getStaticEcosystemReadiness() {
   const manifest = getManifest();
   const tableNames = unique(getAllManifestTables()).filter((table) => !table.includes("."));
-  if (!safeListTable) {
-    return {
-      ok: true,
-      mode: "static",
-      companies: manifest.currentCompanies.map((company) => ({ key: company.key, name: company.name, moduleCount: company.modules.length })),
-      tables: tableNames.map((table) => ({ table, ok: false, status: "setup_required" }))
-    };
-  }
+  return {
+    ok: true,
+    mode: "static",
+    companies: manifest.currentCompanies.map((company) => ({
+      key: company.key,
+      name: company.name,
+      appCount: company.apps.length,
+      moduleCount: company.modules.length
+    })),
+    serviceCount: manifest.infrastructure.requiredServices.length,
+    tables: tableNames.map((table) => ({ table, ok: false, status: "setup_required" }))
+  };
+}
 
+async function getEcosystemReadiness(safeListTable, options = {}) {
+  if (!safeListTable || options.probe !== true) return getStaticEcosystemReadiness();
+
+  const manifest = getManifest();
+  const tableNames = unique(getAllManifestTables()).filter((table) => !table.includes("."));
   const tables = await Promise.all(tableNames.map(async (table) => {
-    const result = await safeListTable(table, "?select=id&limit=1");
-    return { table, ok: Boolean(result.ok), status: result.ok ? "ready" : "setup_required" };
+    const result = await boundedProbe(() => safeListTable(table, "?select=id&limit=1"), LIVE_PROBE_TIMEOUT_MS);
+    return {
+      table,
+      ok: Boolean(result.ok),
+      status: result.ok ? "ready" : "setup_required",
+      reason: result.code === "timeout" ? "timeout" : undefined
+    };
   }));
 
   return {
     ok: true,
-    companies: manifest.currentCompanies.map((company) => ({ key: company.key, name: company.name, appCount: company.apps.length, moduleCount: company.modules.length })),
+    mode: "live_bounded",
+    probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS,
+    companies: manifest.currentCompanies.map((company) => ({
+      key: company.key,
+      name: company.name,
+      appCount: company.apps.length,
+      moduleCount: company.modules.length
+    })),
     serviceCount: manifest.infrastructure.requiredServices.length,
     tables
   };
+}
+
+async function boundedProbe(run, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(run).catch(() => ({ ok: false, code: "unavailable" })),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve({ ok: false, code: "timeout" }), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 function unique(values) {
