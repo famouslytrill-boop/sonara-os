@@ -10,7 +10,7 @@ if (!fs.existsSync(serverPath)) {
 }
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "sonara-nexus-20260720-v5";
+const version = "sonara-nexus-20260720-v6";
 
 const cleanRootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(
@@ -57,6 +57,9 @@ source = source.replace(/<header(?:\s[^>]*)?>[\s\S]*?<\/header>/, cleanHeader);
 
 source = source
   .replace(/var choice = "system";/, 'var choice = "dark";')
+  .replace(/window\.localStorage\.getItem\("sonara-appearance"\)/, 'window.localStorage.getItem("sonara-theme")')
+  .replace(/document\.documentElement\.setAttribute\("data-sonara-appearance", choice\);/, 'document.documentElement.setAttribute("data-sonara-theme", choice);')
+  .replace(/<meta name="theme-color" content="[^"]+">/, '<meta name="theme-color" content="#070910">')
   .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
   .replace(/\n\s*<link rel="preconnect" href="https:\/\/fonts\.(?:googleapis|gstatic)\.com"(?: crossorigin)?>/g, "")
   .replace(/\n\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^"]+">/g, "")
