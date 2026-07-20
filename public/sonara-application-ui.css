@@ -1,334 +1,591 @@
-/* SONARA single-source responsive interface system.
-   Legacy glass, floating shell, duplicate hero and fixed mobile navigation are removed at runtime. */
+/* SONARA canonical responsive interface.
+   One stylesheet controls public, product, account, workspace, and admin routes. */
 
 :root {
+  color-scheme: light;
   --app-bg: #f7f8fb;
   --app-surface: #ffffff;
   --app-surface-alt: #f1f3f7;
-  --app-text: #151927;
-  --app-muted: #60687a;
+  --app-text: #171b29;
+  --app-muted: #5f6778;
   --app-border: #dfe3eb;
-  --app-border-strong: #cbd1dc;
-  --app-accent: #6048e8;
-  --app-accent-hover: #4f39cf;
+  --app-border-strong: #c8ced9;
+  --app-accent: #5c45dc;
+  --app-accent-hover: #4933c6;
+  --app-danger: #b4233d;
+  --app-success: #147a52;
   --app-radius: 10px;
   --app-radius-small: 7px;
-  --app-shadow: 0 1px 2px rgba(21, 25, 39, .05);
   --app-content: 1160px;
+  --app-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --app-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --app-shadow: 0 1px 2px rgba(23, 27, 41, .06);
+  --app-focus: 0 0 0 3px rgba(92, 69, 220, .24);
 }
 
-html[data-theme="dark"] {
+html[data-theme="dark"],
+body.sonara-admin {
+  color-scheme: dark;
   --app-bg: #0f1320;
   --app-surface: #171c2b;
-  --app-surface-alt: #1d2334;
-  --app-text: #f1f3f8;
-  --app-muted: #a8afbf;
+  --app-surface-alt: #1e2434;
+  --app-text: #f3f5f9;
+  --app-muted: #aab1c0;
   --app-border: #303749;
-  --app-border-strong: #444c60;
+  --app-border-strong: #454d60;
   --app-accent: #9b8cff;
-  --app-accent-hover: #b2a7ff;
+  --app-accent-hover: #b0a5ff;
+  --app-shadow: 0 1px 2px rgba(0, 0, 0, .28);
 }
 
-* { box-sizing: border-box; }
-html { scroll-padding-top: 110px; }
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-  background: var(--app-bg) !important;
-  background-image: none !important;
-  color: var(--app-text) !important;
-  overflow-x: hidden !important;
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  scroll-padding-top: 76px;
+  -webkit-text-size-adjust: 100%;
 }
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  background: var(--app-bg);
+  background-image: none;
+  color: var(--app-text);
+  font-family: var(--app-font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
 body::before,
 body::after,
 .sonara-home-v3 .sonara-hero-copy h1::after,
 .sonara-home-v3 .sonara-hero-stage::before,
-.sonara-cohesive-final::after { display: none !important; }
-
-header {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 100 !important;
-  width: 100% !important;
-  max-width: none !important;
-  min-height: 64px !important;
-  margin: 0 !important;
-  padding: 10px max(20px, calc((100% - var(--app-content)) / 2)) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 18px !important;
-  border: 0 !important;
-  border-bottom: 1px solid var(--app-border) !important;
-  border-radius: 0 !important;
-  background: var(--app-surface) !important;
-  box-shadow: none !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-header .brand {
-  flex: 0 0 auto !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 9px !important;
-  font-size: 15px !important;
-  font-weight: 700 !important;
-  color: var(--app-text) !important;
-}
-header .sonara-brand-mark { width: 30px !important; height: 30px !important; }
-header nav[aria-label="Primary"] {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  justify-content: flex-end !important;
-  gap: 2px !important;
-  min-width: 0 !important;
-}
-header nav[aria-label="Primary"] a {
-  min-height: 38px !important;
-  padding: 8px 10px !important;
-  border-radius: var(--app-radius-small) !important;
-  color: var(--app-muted) !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  white-space: nowrap !important;
-}
-header nav[aria-label="Primary"] a:hover,
-header nav[aria-label="Primary"] a[aria-current="page"] {
-  color: var(--app-text) !important;
-  background: var(--app-surface-alt) !important;
-}
-.sonara-command-button,
-.sonara-quick-bar,
+.sonara-cohesive-final::after,
 .sonara-interface-face,
-.sonara-proof-pill { display: none !important; }
+.sonara-proof-pill,
+.sonara-quick-bar,
+.sonara-command-button { display: none !important; }
+
+img,
+svg,
+video,
+canvas { max-width: 100%; }
+
+img { height: auto; }
+
+a { color: inherit; }
+
+a:focus-visible,
+button:focus-visible,
+summary:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: var(--app-focus);
+}
+
+.sonara-site-header,
+header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  max-width: none;
+  min-height: 64px;
+  margin: 0;
+  padding: 10px max(20px, calc((100% - var(--app-content)) / 2));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  border-radius: 0;
+  background: var(--app-surface);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.brand {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--app-text);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sonara-brand-mark {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+
+.sonara-desktop-nav {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+.sonara-desktop-nav a,
+.sonara-mobile-menu nav a {
+  min-height: 40px;
+  padding: 9px 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--app-radius-small);
+  color: var(--app-muted);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sonara-desktop-nav a:hover,
+.sonara-desktop-nav a[aria-current="page"],
+.sonara-mobile-menu nav a:hover,
+.sonara-mobile-menu nav a[aria-current="page"] {
+  color: var(--app-text);
+  background: var(--app-surface-alt);
+}
+
+.sonara-desktop-nav .sonara-nav-primary,
+.sonara-mobile-menu .sonara-nav-primary {
+  color: #fff;
+  background: var(--app-accent);
+}
+
+.sonara-desktop-nav .sonara-nav-primary:hover,
+.sonara-mobile-menu .sonara-nav-primary:hover {
+  color: #fff;
+  background: var(--app-accent-hover);
+}
+
+.sonara-mobile-menu { display: none; }
+
+.sonara-mobile-menu summary {
+  min-height: 42px;
+  padding: 9px 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-small);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.sonara-mobile-menu summary::-webkit-details-marker { display: none; }
 
 main,
 footer {
-  width: min(var(--app-content), calc(100% - 40px)) !important;
-  margin-inline: auto !important;
+  width: min(var(--app-content), calc(100% - 40px));
+  margin-inline: auto;
 }
-main { min-width: 0 !important; }
 
-.hero.sonara-hero-stage {
-  display: block !important;
-  min-height: auto !important;
-  padding: 72px 0 48px !important;
+main { min-width: 0; }
+
+.hero.sonara-hero-stage,
+.hero {
+  display: block;
+  min-height: auto;
+  padding: 72px 0 48px;
 }
-.sonara-hero-copy { max-width: 760px !important; }
+
+.sonara-hero-copy { max-width: 760px; }
+
 .eyebrow {
-  color: var(--app-accent) !important;
-  font-family: var(--mono), ui-monospace, monospace !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: .12em !important;
-  text-transform: uppercase !important;
+  color: var(--app-accent);
+  font-family: var(--app-mono);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
+
 h1,
 h2,
-h3,
-.sonara-home-v3 .sonara-hero-copy h1 {
-  font-family: var(--font), ui-sans-serif, system-ui, sans-serif !important;
-  color: var(--app-text) !important;
-  font-style: normal !important;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-  text-wrap: pretty !important;
+h3 {
+  margin-top: 0;
+  color: var(--app-text);
+  font-family: var(--app-font);
+  font-style: normal;
+  text-wrap: pretty;
+  overflow-wrap: normal;
+  word-break: normal;
 }
+
 h1,
 .sonara-home-v3 .sonara-hero-copy h1 {
-  max-width: 760px !important;
-  margin: 14px 0 0 !important;
-  font-size: clamp(42px, 5vw, 66px) !important;
-  line-height: 1.02 !important;
-  letter-spacing: -.04em !important;
+  max-width: 760px;
+  margin: 14px 0 0;
+  font-size: clamp(42px, 5vw, 66px);
+  line-height: 1.02;
+  letter-spacing: -.04em;
 }
-h2 { font-size: clamp(28px, 3.2vw, 42px) !important; line-height: 1.1 !important; letter-spacing: -.03em !important; }
-h3 { font-size: clamp(22px, 2.1vw, 30px) !important; line-height: 1.16 !important; letter-spacing: -.02em !important; }
+
+h2 {
+  font-size: clamp(28px, 3.2vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -.03em;
+}
+
+h3 {
+  font-size: clamp(22px, 2.1vw, 30px);
+  line-height: 1.16;
+  letter-spacing: -.02em;
+}
+
 p,
 li,
 label,
-dd { color: var(--app-muted) !important; }
-p { line-height: 1.65 !important; }
-.lede { max-width: 680px !important; font-size: 17px !important; }
+dd,
+small { color: var(--app-muted); }
+
+p {
+  margin: 12px 0 0;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.lede {
+  max-width: 680px;
+  font-size: 17px;
+}
 
 .actions,
 .card-actions,
 .sonara-product-links {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 10px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
+
+.actions { margin-top: 24px; }
+
 .action,
 button,
 .button,
 [class*="btn"],
 input[type="submit"],
 input[type="button"] {
-  min-height: 42px !important;
-  padding: 10px 15px !important;
-  border: 1px solid var(--app-border-strong) !important;
-  border-radius: var(--app-radius-small) !important;
-  background: var(--app-surface) !important;
-  background-image: none !important;
-  color: var(--app-text) !important;
-  box-shadow: none !important;
-  transform: none !important;
-  font-weight: 650 !important;
+  min-height: 42px;
+  padding: 10px 15px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-small);
+  background: var(--app-surface);
+  background-image: none;
+  color: var(--app-text);
+  box-shadow: none;
+  transform: none;
+  font: inherit;
+  font-weight: 700;
 }
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
 .action:first-child,
 .actions .action:first-child,
 button[type="submit"] {
-  border-color: var(--app-accent) !important;
-  background: var(--app-accent) !important;
-  color: #fff !important;
+  border-color: var(--app-accent);
+  background: var(--app-accent);
+  color: #fff;
 }
+
 .action:first-child:hover,
-button[type="submit"]:hover { background: var(--app-accent-hover) !important; }
+button[type="submit"]:hover { background: var(--app-accent-hover); }
 
 .grid {
-  display: block !important;
-  margin: 0 0 56px !important;
+  display: block;
+  margin: 0 0 56px;
 }
+
 .sonara-home-content,
 .sonara-home-section,
 .sonara-workflow-band,
 .sonara-readiness-band,
-.sonara-launch-cta { width: 100% !important; }
+.sonara-launch-cta { width: 100%; }
+
 .sonara-home-section,
 .sonara-workflow-band,
 .sonara-readiness-band,
-.sonara-launch-cta { padding: 48px 0 !important; }
+.sonara-launch-cta { margin: 0 0 28px; }
+
 .sonara-section-heading {
-  display: grid !important;
-  grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr) !important;
-  gap: 28px !important;
-  align-items: end !important;
-  margin-bottom: 22px !important;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr);
+  gap: 28px;
+  align-items: end;
+  margin-bottom: 22px;
 }
+
 .sonara-product-grid,
 .sonara-capability-grid {
-  display: grid !important;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 16px !important;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
-.sonara-capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+.sonara-capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .card,
-article,
 .sonara-product-card,
 .sonara-workflow-band,
 .sonara-readiness-band,
 .sonara-launch-cta,
 [class*="panel"],
 [class*="console"] {
-  border: 1px solid var(--app-border) !important;
-  border-radius: var(--app-radius) !important;
-  background: var(--app-surface) !important;
-  background-image: none !important;
-  box-shadow: var(--app-shadow) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  min-width: 0;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  background: var(--app-surface);
+  background-image: none;
+  box-shadow: var(--app-shadow);
+  backdrop-filter: none;
 }
+
 .card,
-.sonara-product-card { padding: 22px !important; }
+.sonara-product-card { padding: 22px; }
+
 .sonara-workflow-band,
 .sonara-readiness-band,
-.sonara-launch-cta { padding: 30px !important; }
-.sonara-product-card h3 { margin: 18px 0 8px !important; }
-.sonara-product-card-head { display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important; }
-.sonara-product-links a { color: var(--app-accent) !important; font-weight: 650 !important; text-decoration: none !important; }
+.sonara-launch-cta { padding: 30px; }
+
+.sonara-product-card h3 { margin: 18px 0 8px; }
+
+.sonara-product-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sonara-product-card-head span {
+  color: var(--app-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.sonara-product-links { margin-top: 18px; }
+
+.sonara-product-links a {
+  color: var(--app-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.sonara-status-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.sonara-status-chip {
+  min-width: 0;
+  padding: 12px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-small);
+  background: var(--app-surface-alt);
+}
+
+.sonara-status-chip b { color: var(--app-text); }
+.sonara-status-chip em { color: var(--app-muted); font-style: normal; font-size: 12px; }
+
+form {
+  display: grid;
+  gap: 14px;
+}
 
 input,
 textarea,
 select {
-  border: 1px solid var(--app-border-strong) !important;
-  border-radius: var(--app-radius-small) !important;
-  background: var(--app-surface) !important;
-  color: var(--app-text) !important;
-  box-shadow: none !important;
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--app-radius-small);
+  background: var(--app-surface);
+  color: var(--app-text);
+  box-shadow: none;
+  font: inherit;
 }
-table {
-  width: 100% !important;
-  border: 1px solid var(--app-border) !important;
-  border-radius: var(--app-radius) !important;
-  background: var(--app-surface) !important;
-  box-shadow: none !important;
-  overflow: hidden !important;
-}
-footer { padding: 36px 0 48px !important; }
 
-@media (max-width: 900px) {
-  html { scroll-padding-top: 124px; }
+textarea { min-height: 120px; resize: vertical; }
+
+label { font-size: 13px; font-weight: 700; }
+
+table {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius);
+  border-collapse: collapse;
+  background: var(--app-surface);
+}
+
+th,
+td {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--app-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  color: var(--app-muted);
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+footer {
+  padding: 36px 0 48px;
+  border-top: 1px solid var(--app-border);
+}
+
+footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 14px;
+}
+
+footer nav a {
+  color: var(--app-muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+@media (max-width: 920px) {
+  html { scroll-padding-top: 68px; }
+
+  .sonara-site-header,
   header {
-    align-items: flex-start !important;
-    flex-wrap: wrap !important;
-    gap: 8px 14px !important;
-    padding: 9px 16px !important;
+    min-height: 60px;
+    padding: 8px 16px;
   }
-  header nav[aria-label="Primary"] {
-    order: 2 !important;
-    width: 100% !important;
-    flex-wrap: nowrap !important;
-    justify-content: flex-start !important;
-    overflow-x: auto !important;
-    padding-bottom: 2px !important;
-    scrollbar-width: thin !important;
+
+  .sonara-desktop-nav { display: none; }
+  .sonara-mobile-menu { display: block; }
+
+  .sonara-mobile-menu nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 10px 16px 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    border-bottom: 1px solid var(--app-border);
+    background: var(--app-surface);
+    box-shadow: var(--app-shadow);
   }
-  .sonara-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+
+  .sonara-mobile-menu nav a {
+    width: 100%;
+    min-height: 44px;
+    white-space: normal;
+  }
+
+  .sonara-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
-  html { scroll-padding-top: 116px; }
   main,
-  footer { width: min(100% - 28px, 680px) !important; }
-  header .brand { font-size: 14px !important; }
-  header .sonara-brand-mark { width: 28px !important; height: 28px !important; }
-  header nav[aria-label="Primary"] a { min-height: 36px !important; padding: 7px 9px !important; font-size: 12px !important; }
+  footer { width: min(100% - 24px, 680px); }
 
-  .hero.sonara-hero-stage { padding: 42px 0 30px !important; }
+  .brand { font-size: 14px; }
+  .sonara-brand-mark { width: 28px; height: 28px; }
+
+  .hero.sonara-hero-stage,
+  .hero { padding: 40px 0 30px; }
+
   h1,
   .sonara-home-v3 .sonara-hero-copy h1 {
-    font-size: clamp(36px, 10vw, 48px) !important;
-    line-height: 1.04 !important;
+    font-size: clamp(36px, 10vw, 48px);
+    line-height: 1.04;
   }
-  h2 { font-size: clamp(27px, 8vw, 36px) !important; }
-  h3 { font-size: clamp(22px, 6.5vw, 28px) !important; }
-  .lede { font-size: 16px !important; }
+
+  h2 { font-size: clamp(27px, 8vw, 36px); }
+  h3 { font-size: clamp(22px, 6.5vw, 28px); }
+  .lede { font-size: 16px; }
 
   .actions,
   .card-actions,
   .sonara-product-links {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
+    display: grid;
+    grid-template-columns: 1fr;
   }
+
   .action,
   .actions .action,
-  .card-actions .action { width: 100% !important; justify-content: center !important; text-align: center !important; }
+  .card-actions .action {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
 
   .sonara-section-heading,
   .sonara-product-grid,
-  .sonara-capability-grid {
-    grid-template-columns: 1fr !important;
-  }
-  .sonara-home-section,
-  .sonara-workflow-band,
-  .sonara-readiness-band,
-  .sonara-launch-cta { padding: 34px 0 !important; }
-  .sonara-workflow-band,
-  .sonara-readiness-band,
-  .sonara-launch-cta { padding: 22px !important; }
+  .sonara-capability-grid { grid-template-columns: 1fr; }
+
   .card,
-  .sonara-product-card { padding: 20px !important; }
+  .sonara-product-card,
+  .sonara-workflow-band,
+  .sonara-readiness-band,
+  .sonara-launch-cta { padding: 20px; }
+
+  .sonara-status-panel { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 420px) {
   main,
-  footer { width: calc(100% - 22px) !important; }
-  header { padding-inline: 11px !important; }
+  footer { width: calc(100% - 20px); }
+
+  .sonara-site-header,
+  header { padding-inline: 10px; }
+
+  .sonara-mobile-menu nav {
+    padding-inline: 10px;
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: .01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
