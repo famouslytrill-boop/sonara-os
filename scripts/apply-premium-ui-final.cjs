@@ -10,9 +10,8 @@ if (!fs.existsSync(serverPath)) {
 }
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "application-ui-20260720-v2";
+const version = "application-ui-20260720-v3";
 
-// Restore the stable, simple homepage renderer after older build patches have run.
 const cleanRootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(
     layout({
@@ -35,18 +34,38 @@ if (rootPattern.test(source)) {
   source = source.replace(rootPattern, `${cleanRootRoute}\n\nregisterProduct("business-builder"`);
 }
 
-// Remove every retired visual stylesheet and behavior script. The application now has one UI authority.
+const navigationLinks = `
+        <a href="/start">Platform</a>
+        <a href="/business-builder">Business Builder</a>
+        <a href="/creator-studio">Creator Studio</a>
+        <a href="/growth-studio">Growth Studio</a>
+        <a href="/free-tools">Free tools</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/support">Support</a>
+        <a href="/login">Log in</a>
+        <a class="sonara-nav-primary" href="/signup">Start Free</a>`;
+
+const cleanHeader = `<header class="sonara-site-header">
+      <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="30" height="30"> SONARA Industries</a>
+      <nav class="sonara-desktop-nav" aria-label="Primary">${navigationLinks}
+      </nav>
+      <details class="sonara-mobile-menu">
+        <summary aria-label="Open navigation">Menu</summary>
+        <nav aria-label="Mobile primary">${navigationLinks}
+        </nav>
+      </details>
+    </header>`;
+source = source.replace(/<header>[\s\S]*?<\/header>/, cleanHeader);
+
 source = source
   .replace(/\n\s*<link rel="stylesheet" href="\/(?:sonara-brand-system|sonara-friendly-premium|sonara-interface-engine|sonara-launch-ui|sonara-cohesive-2027|sonara-cohesive-2027-base|sonara-builder-2027|sonara-premium-mobile-fix|sonara-premium-access-2027|sonara-premium-ux|sonara-premium-mobile-final|sonara-application-ui)\.css(?:\?v=[^"]+)?">/g, "")
-  .replace(/\n\s*<script defer src="\/(?:sonara-experience|sonara-interface-engine|sonara-cohesive-2027|sonara-builder-2027)\.js(?:\?v=[^"]+)?"><\/script>/g, "");
+  .replace(/\n\s*<script defer src="\/(?:sonara-experience|sonara-interface-engine|sonara-cohesive-2027|sonara-builder-2027)\.js(?:\?v=[^"]+)?"><\/script>/g, "")
+  .replace(/ data-sonara-interface="live"/g, "");
 
-// Remove the retired floating controls and decorative home device from the shared layout markup.
 source = source
-  .replace(/\n\s*<button type="button" class="sonara-command-button"[\s\S]*?<\/button>/, "")
   .replace(/\n\s*\$\{variant === "home" \? `<aside class="sonara-interface-face"[\s\S]*?<\/aside>` : ""\}/, "")
   .replace(/\n\s*<nav class="sonara-quick-bar" aria-label="Quick actions">[\s\S]*?<\/nav>/, "");
 
-// Prevent stale document shells from surviving a deployment in mobile browser caches.
 const staticAnchor = 'app.use(express.static(path.join(__dirname, "public")));';
 const noStoreMiddleware = `${staticAnchor}\napp.use((req, res, next) => {\n  if (req.method === "GET" && !path.extname(req.path)) {\n    res.set("Cache-Control", "no-store, max-age=0");\n  }\n  next();\n});`;
 if (source.includes(staticAnchor) && !source.includes('Cache-Control", "no-store, max-age=0')) {
@@ -62,4 +81,4 @@ if (!source.includes(headClose)) {
 source = source.replace(headClose, `${finalStyles}\n${headClose}`);
 
 fs.writeFileSync(serverPath, source);
-console.log("SONARA legacy visual systems removed; one responsive application shell is active.");
+console.log("SONARA canonical responsive shell applied; legacy UI generation is disabled.");
