@@ -21,14 +21,15 @@ describe("SONARA Nexus product experience", () => {
       request(app).get("/brand/creator-studio-mark.svg"),
       request(app).get("/brand/growth-studio-mark.svg")
     ]);
+    const bodies = assets.map((asset) => asset.body.toString("utf8"));
     for (const asset of assets) {
       assert.equal(asset.status, 200);
       assert.match(asset.headers["content-type"], /svg/);
     }
-    assert.match(assets[0].text, /SONARA Prism Wave/);
-    assert.match(assets[1].text, /SONARA Forge mark/);
-    assert.match(assets[2].text, /SONARA Canvas mark/);
-    assert.match(assets[3].text, /SONARA Signal mark/);
+    assert.match(bodies[0], /SONARA Prism Wave/);
+    assert.match(bodies[1], /SONARA Forge mark/);
+    assert.match(bodies[2], /SONARA Canvas mark/);
+    assert.match(bodies[3], /SONARA Signal mark/);
   });
 
   it("keeps original sound and haptics optional", async () => {
@@ -41,7 +42,7 @@ describe("SONARA Nexus product experience", () => {
     assert.doesNotMatch(engine.text, /\.mp3|\.wav|\.ogg/i);
   });
 
-  it("provides localized shell dictionaries and accessible settings", async () => {
+  it("provides localized interface dictionaries and accessible settings", async () => {
     const [page, engine] = await Promise.all([request(app).get("/"), request(app).get("/sonara-nexus.js")]);
     for (const language of ["en", "es", "fr", "de"]) assert.match(engine.text, new RegExp(`${language}:\\{`));
     for (const value of ["en", "es", "fr", "de"]) assert.match(page.text, new RegExp(`<option value="${value}"`));
