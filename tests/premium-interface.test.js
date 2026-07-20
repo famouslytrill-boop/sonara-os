@@ -15,6 +15,8 @@ describe("responsive interface QA", () => {
   it("renders a standard header and native mobile menu", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
+    assert.match(res.text, /sonara-application-ui\.css\?v=application-ui-20260720-v4/);
+    assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.match(res.text, /<header class="sonara-site-header">/);
     assert.match(res.text, /<nav class="sonara-desktop-nav" aria-label="Primary">/);
     assert.match(res.text, /<details class="sonara-mobile-menu">/);
