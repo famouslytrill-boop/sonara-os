@@ -54,10 +54,11 @@ if (rootPattern.test(source)) {
 
 source = source
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-builder-2027\.css(?:\?v=[^"]+)?">/g, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-premium-mobile-fix\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script defer src="\/sonara-builder-2027\.js(?:\?v=[^"]+)?"><\/script>/g, "");
 
-const assetVersion = "advanced-builder-20260719";
-const assetMarkup = `    <link rel="stylesheet" href="/sonara-builder-2027.css?v=${assetVersion}">\n    <script defer src="/sonara-builder-2027.js?v=${assetVersion}"></script>`;
+const assetVersion = "advanced-builder-20260719-mobile-fix-1";
+const assetMarkup = `    <link rel="stylesheet" href="/sonara-builder-2027.css?v=${assetVersion}">\n    <link rel="stylesheet" href="/sonara-premium-mobile-fix.css?v=${assetVersion}">\n    <script defer src="/sonara-builder-2027.js?v=${assetVersion}"></script>`;
 const cohesiveAnchor = '    <script defer src="/sonara-cohesive-2027.js?v=cohesive-ui-20260719"></script>\n  </head>';
 if (source.includes(cohesiveAnchor)) {
   source = source.replace(cohesiveAnchor, `    <script defer src="/sonara-cohesive-2027.js?v=cohesive-ui-20260719"></script>\n${assetMarkup}\n  </head>`);
@@ -71,4 +72,4 @@ if (source.includes(cohesiveAnchor)) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("SONARA advanced builder presentation applied after the accepted runtime and cohesive compatibility layer.");
+console.log("SONARA advanced builder presentation and mobile repair layer applied after the accepted runtime and cohesive compatibility layer.");

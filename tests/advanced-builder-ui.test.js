@@ -22,8 +22,9 @@ describe("advanced builder presentation", () => {
   it("renders the redesigned homepage while preserving live readiness and compatibility contracts", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-builder-2027\.css\?v=advanced-builder-20260719/);
-    assert.match(res.text, /sonara-builder-2027\.js\?v=advanced-builder-20260719/);
+    assert.match(res.text, /sonara-builder-2027\.css\?v=advanced-builder-20260719-mobile-fix-1/);
+    assert.match(res.text, /sonara-premium-mobile-fix\.css\?v=advanced-builder-20260719-mobile-fix-1/);
+    assert.match(res.text, /sonara-builder-2027\.js\?v=advanced-builder-20260719-mobile-fix-1/);
     assert.match(res.text, /data-sonara-builder/);
     assert.match(res.text, /data-sonara-cohesive/);
     assert.match(res.text, /A clearer way to build, create, and grow\./);
@@ -39,7 +40,7 @@ describe("advanced builder presentation", () => {
   });
 
   it("serves the builder assets across public routes", async () => {
-    for (const asset of ["/sonara-builder-2027.css", "/sonara-builder-2027.js"]) {
+    for (const asset of ["/sonara-builder-2027.css", "/sonara-premium-mobile-fix.css", "/sonara-builder-2027.js"]) {
       const response = await request(app).get(asset);
       assert.equal(response.status, 200, `${asset} missing`);
     }
@@ -47,6 +48,7 @@ describe("advanced builder presentation", () => {
       const response = await request(app).get(route).set("Accept", "text/html");
       assert.equal(response.status, 200, `${route} unavailable`);
       assert.match(response.text, /sonara-builder-2027\.css/);
+      assert.match(response.text, /sonara-premium-mobile-fix\.css/);
       assert.match(response.text, /sonara-builder-2027\.js/);
     }
   });
@@ -54,6 +56,7 @@ describe("advanced builder presentation", () => {
   it("keeps enhancement code consent-safe, keyboard-aware, and reduced-motion aware", () => {
     const script = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-builder-2027.js"), "utf8");
     const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-builder-2027.css"), "utf8");
+    const mobileStyles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-premium-mobile-fix.css"), "utf8");
     assert.match(script, /prefers-reduced-motion/);
     assert.match(script, /ArrowRight/);
     assert.match(script, /aria-expanded/);
@@ -63,6 +66,10 @@ describe("advanced builder presentation", () => {
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
     assert.match(styles, /@container/);
     assert.match(styles, /view-transition-name/);
+    assert.match(mobileStyles, /max-width: 620px/);
+    assert.match(mobileStyles, /word-break: normal/);
+    assert.match(mobileStyles, /height: 60px/);
+    assert.match(mobileStyles, /sonara-quick-bar/);
   });
 
   it("renders non-color-only readiness markers", () => {
@@ -94,6 +101,7 @@ describe("advanced builder presentation", () => {
     assert.equal(second, first);
     assert.equal((second.match(/renderAdvancedBuilderHomepage/g) || []).length, 2);
     assert.equal((second.match(/sonara-builder-2027\.css/g) || []).length, 1);
+    assert.equal((second.match(/sonara-premium-mobile-fix\.css/g) || []).length, 1);
     assert.equal((second.match(/sonara-builder-2027\.js/g) || []).length, 1);
   });
 });

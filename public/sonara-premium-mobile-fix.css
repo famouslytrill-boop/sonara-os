@@ -1,0 +1,93 @@
+/* SONARA mobile layout repair. */
+@media (max-width: 620px) {
+  body.sonara-platform, body.sonara-admin { padding-top: 76px; overflow-x: clip; }
+  body.sonara-platform > header, body.sonara-admin > header {
+    position: fixed !important;
+    inset: max(8px, env(safe-area-inset-top)) 9px auto 9px !important;
+    width: auto !important;
+    height: 60px !important;
+    min-height: 60px !important;
+    max-height: 60px !important;
+    margin: 0 !important;
+    padding: 7px 8px 7px 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    overflow: visible !important;
+    border-radius: 18px !important;
+    z-index: 240 !important;
+  }
+  body.sonara-platform > header .brand, body.sonara-admin > header .brand {
+    min-width: 0 !important;
+    max-width: calc(100% - 58px) !important;
+    flex: 1 1 auto !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+  body.sonara-platform > header nav, body.sonara-admin > header nav,
+  body.sonara-platform > header .sonara-command-button, body.sonara-admin > header .sonara-command-button { display: none !important; }
+  body.sonara-platform > header .sonara-builder-menu-toggle, body.sonara-admin > header .sonara-builder-menu-toggle {
+    display: grid !important;
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    place-content: center !important;
+  }
+  body.sonara-platform > header[data-builder-menu-open="true"] nav, body.sonara-admin > header[data-builder-menu-open="true"] nav {
+    position: fixed !important;
+    top: calc(max(8px, env(safe-area-inset-top)) + 68px) !important;
+    left: 9px !important;
+    right: 9px !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    max-height: calc(100dvh - 92px) !important;
+    overflow-y: auto !important;
+    padding: 10px !important;
+    border: 1px solid var(--builder-line) !important;
+    border-radius: 18px !important;
+    background: var(--builder-surface) !important;
+    box-shadow: var(--builder-shadow-deep) !important;
+  }
+  body.sonara-platform main, body.sonara-admin main, body.sonara-platform footer, body.sonara-admin footer {
+    width: calc(100% - 32px) !important;
+    max-width: 100% !important;
+    margin-inline: auto !important;
+  }
+  body.sonara-platform h1, body.sonara-admin h1, .sonara-home-v3 .sonara-hero-copy h1,
+  .sonara-builder-opening h2, .sonara-builder-positioning h2, .sonara-builder-section-heading h2,
+  .sonara-builder-product-copy h3, .sonara-builder-step-panel h3, .sonara-builder-authority h3, .sonara-builder-final h2 {
+    max-width: 100% !important;
+    font-size: clamp(34px, 11vw, 52px) !important;
+    line-height: 1.01 !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    hyphens: none !important;
+    text-wrap: balance !important;
+  }
+  .sonara-home-v3 .sonara-hero-stage { min-height: auto !important; padding-top: 24px !important; }
+  .sonara-builder-opening, .sonara-builder-positioning, .sonara-builder-section-heading,
+  .sonara-builder-product-panel, .sonara-builder-step-panel, .sonara-builder-trust-layout, .sonara-builder-final {
+    min-width: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .sonara-builder-product-panel, .sonara-builder-live-canvas, .sonara-builder-workspace-preview,
+  .sonara-builder-launch-console, .sonara-builder-authority, .sonara-builder-final {
+    width: 100% !important;
+    max-width: 100% !important;
+    transform: none !important;
+  }
+  .sonara-builder-canvas-layout { min-height: auto !important; display: block !important; }
+  .sonara-builder-canvas-layout > nav { display: none !important; }
+  .sonara-builder-canvas-main { width: 100% !important; padding: 14px !important; }
+  .sonara-builder-canvas-metrics { grid-template-columns: 1fr 1fr !important; }
+  .sonara-builder-canvas-metrics article:last-child { grid-column: 1 / -1 !important; }
+  .sonara-builder-canvas-focus, .sonara-builder-preview-summary { grid-template-columns: 1fr !important; padding: 18px !important; }
+  .sonara-builder-plan-track { grid-template-columns: 1fr !important; }
+  body.sonara-platform .sonara-quick-bar, body.sonara-admin .sonara-quick-bar {
+    width: calc(100% - 18px) !important;
+    bottom: max(8px, env(safe-area-inset-bottom)) !important;
+  }
+}
