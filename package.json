@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.1.1",
   "main": "server.js",
   "scripts": {
-    "vercel-build": "pnpm run apply:runtime && pnpm run build",
+    "vercel-build": "pnpm run apply:runtime && pnpm exec mocha --file tests/setup-env.cjs \"tests/**/*.js\" --pass-with-no-tests && pnpm run build",
     "apply:last9": "node scripts/apply-last9-routes.cjs",
     "apply:creator-music": "node scripts/apply-creator-music-readonly.cjs",
     "apply:formulas": "node scripts/apply-formula-routes.cjs",
