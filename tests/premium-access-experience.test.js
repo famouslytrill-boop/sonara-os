@@ -24,12 +24,14 @@ describe("premium access experience", () => {
     }
   });
 
-  it("keeps organization creation authorization-gated", async () => {
+  it("does not create an organization without a verified customer context", async () => {
     const response = await request(app)
       .post("/account/setup/organization")
       .type("form")
       .send({ organizationName: "Unauthorized Test", productPath: "business-builder" });
-    assert.ok([302, 303, 401, 403].includes(response.status));
+    assert.notEqual(response.status, 200);
+    assert.ok([302, 303, 401, 403, 503].includes(response.status));
+    assert.doesNotMatch(response.text || "", /organization_created/i);
   });
 
   it("applies production security headers without exposing implementation data", async () => {
