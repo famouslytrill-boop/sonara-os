@@ -123,17 +123,18 @@ button, input, textarea, select { font: inherit; }
   box-shadow: var(--nx-focus);
 }
 
-/* Loading and route progress */
+/* Loading and route progress. The overlay is fail-safe: it only appears when prepaint JS opts in. */
 .nexus-loader {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: grid;
+  display: none;
   place-items: center;
   background: #070a12;
   color: #fff;
   transition: opacity 260ms ease, visibility 260ms ease;
 }
+.nexus-loading .nexus-loader { display: grid; }
 .nexus-loader[hidden], .nexus-ready .nexus-loader { opacity: 0; visibility: hidden; pointer-events: none; }
 .nexus-loader__core { display: grid; place-items: center; gap: 18px; }
 .nexus-loader__mark { width: 78px; height: 78px; animation: nx-loader-float 1.8s var(--nx-ease) infinite alternate; }
