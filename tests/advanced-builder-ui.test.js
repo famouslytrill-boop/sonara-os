@@ -31,7 +31,8 @@ describe("application-wide route presentation", () => {
     for (const route of ["/", "/business-builder", "/creator-studio", "/growth-studio", "/login", "/pricing", "/support"]) {
       const response = await request(app).get(route).set("Accept", "text/html");
       assert.equal(response.status, 200, `${route} unavailable`);
-      assert.match(response.text, /sonara-application-ui\.css\?v=application-ui-20260720-v3/);
+      assert.match(response.text, /sonara-application-ui\.css\?v=application-ui-20260720-v4/);
+      assert.doesNotMatch(response.text, /<style[\s>]/i);
       assert.match(response.text, /class="sonara-site-header"/);
       assert.match(response.text, /class="sonara-mobile-menu"/);
       assert.doesNotMatch(response.text, LEGACY_ASSET_PATTERN);
