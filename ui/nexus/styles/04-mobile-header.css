@@ -1,0 +1,3 @@
+/* Final phone contract: brand, command, and menu stay on one compact row. */
+@media(max-width:920px){.sonara-site-header{grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto}.nexus-header-tools{grid-column:2;grid-row:1}.sonara-mobile-menu{grid-column:3;grid-row:1;align-self:center}}
+@media(max-width:480px){.nexus-header-tools [data-nexus-settings]{display:none}.sonara-site-header{grid-template-columns:minmax(0,1fr) auto auto}}
