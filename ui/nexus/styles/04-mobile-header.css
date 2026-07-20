@@ -1,0 +1,30 @@
+/* Final compact mobile header contract: brand, two icon tools, and menu stay on one row. */
+@media (max-width: 920px) {
+  .sonara-site-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto;
+    gap: 7px;
+  }
+  .nexus-header-tools {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 4px;
+  }
+  .sonara-mobile-menu {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+  }
+  .nexus-icon-button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+  .nexus-tool-label,
+  .nexus-key { display: none; }
+}
+
+@media (max-width: 480px) {
+  .nexus-header-tools [data-nexus-settings] { display: none; }
+  .sonara-site-header { grid-template-columns: minmax(0, 1fr) auto auto; }
+}
