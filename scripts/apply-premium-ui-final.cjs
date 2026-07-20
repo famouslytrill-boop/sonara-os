@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const root = process.cwd();
 const serverPath = path.join(root, "server.js");
-const version = "nexus-ui-20260720-v2";
+const version = "nexus-ui-20260720-v3";
 
 function fail(message) {
   console.error(message);
@@ -32,9 +32,9 @@ let source = fs.readFileSync(serverPath, "utf8");
 
 const nav = `
         <a href="/start" data-i18n="platform">Platform</a>
-        <a href="/business-builder" data-i18n="forge">SONARA Forge</a>
-        <a href="/creator-studio" data-i18n="canvas">SONARA Canvas</a>
-        <a href="/growth-studio" data-i18n="signal">SONARA Signal</a>
+        <a href="/business-builder" data-i18n="businessBuilder">Business Builder</a>
+        <a href="/creator-studio" data-i18n="creatorStudio">Creator Studio</a>
+        <a href="/growth-studio" data-i18n="growthStudio">Growth Studio</a>
         <a href="/free-tools" data-i18n="tools">Free tools</a>
         <a href="/pricing" data-i18n="pricing">Pricing</a>
         <a href="/support" data-i18n="support">Support</a>
@@ -42,7 +42,7 @@ const nav = `
         <a class="sonara-nav-primary" href="/signup" data-i18n="start">Start Free</a>`;
 
 const header = `<header class="sonara-site-header">
-      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="36" height="36"><span class="nexus-brand-copy"><strong>SONARA</strong><small>Nexus</small></span></a>
+      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="36" height="36"><span class="nexus-brand-copy"><strong>SONARA Industries</strong><small>Nexus</small></span></a>
       <nav class="sonara-desktop-nav" aria-label="Primary">${nav}
       </nav>
       <div class="nexus-header-tools">
@@ -54,24 +54,24 @@ const header = `<header class="sonara-site-header">
     </header>`;
 
 const homeContent = `<div class="nexus-home">
-  <section class="nexus-section"><div class="nexus-section-head"><div><span class="nexus-kicker" data-i18n="productsKicker">Three operating modes</span><h2 data-i18n="productsHeading">One system. Three ways to move.</h2></div><p data-i18n="productsBody">Each workspace has its own rhythm, records, and tools while identity, billing, support, and delivery remain connected.</p></div>
+  <section class="nexus-section"><div class="nexus-section-head"><div><span class="nexus-kicker" data-i18n="productsKicker">Three connected companies</span><h2 data-i18n="productsHeading">One operating layer. Three focused workspaces.</h2></div><p data-i18n="productsBody">Business Builder, Creator Studio, and Growth Studio keep their own tools and records while identity, billing, support, and delivery stay connected through SONARA Nexus.</p></div>
     <div class="nexus-product-grid">
-      <article class="nexus-product nexus-product--forge"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/business-builder-mark.svg" alt=""><span class="nexus-product-index">01 · OPERATE</span></div><h3>SONARA Forge</h3><p>Shape the offer, customer path, records, payment readiness, and operating rhythm.</p><a href="/business-builder/dashboard">Open Forge</a></article>
-      <article class="nexus-product nexus-product--canvas"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/creator-studio-mark.svg" alt=""><span class="nexus-product-index">02 · CREATE</span></div><h3>SONARA Canvas</h3><p>Organize assets, rights, releases, media systems, offers, and monetization.</p><a href="/creator-studio/dashboard">Open Canvas</a></article>
-      <article class="nexus-product nexus-product--signal"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/growth-studio-mark.svg" alt=""><span class="nexus-product-index">03 · REACH</span></div><h3>SONARA Signal</h3><p>Plan campaigns, manage leads, protect consent, and learn from real outcomes.</p><a href="/growth-studio/dashboard">Open Signal</a></article>
+      <article class="nexus-product nexus-product--forge"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/business-builder-mark.svg" alt=""><span class="nexus-product-index">FORGE MODE · OPERATE</span></div><h3>Business Builder</h3><p>Shape the offer, customer path, records, payment readiness, and operating rhythm.</p><a href="/business-builder/dashboard">Open Business Builder</a></article>
+      <article class="nexus-product nexus-product--canvas"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/creator-studio-mark.svg" alt=""><span class="nexus-product-index">CANVAS MODE · CREATE</span></div><h3>Creator Studio</h3><p>Organize assets, rights, releases, media systems, offers, and monetization.</p><a href="/creator-studio/dashboard">Open Creator Studio</a></article>
+      <article class="nexus-product nexus-product--signal"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/growth-studio-mark.svg" alt=""><span class="nexus-product-index">SIGNAL MODE · REACH</span></div><h3>Growth Studio</h3><p>Plan campaigns, manage leads, protect consent, and learn from real outcomes.</p><a href="/growth-studio/dashboard">Open Growth Studio</a></article>
     </div>
   </section>
-  <section class="nexus-section nexus-flow"><div class="nexus-flow-copy"><span class="nexus-kicker" data-i18n="flowKicker">Designed for momentum</span><h2 data-i18n="flowHeading">From intent to outcome without losing context.</h2><p>Every next action, saved record, payment state, request, and deliverable stays connected and evidence-backed.</p><div class="card-actions"><a class="action" href="/start">See the operating model</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/requests">Track requests</a><a class="action" href="/deliverables">Deliverables</a></div></div><div class="nexus-flow-list"><div class="nexus-flow-step"><strong>Choose the outcome</strong><small>Start from a product, free tool, or supported service.</small></div><div class="nexus-flow-step"><strong>Create useful work</strong><small>Complete one focused step with clear inputs.</small></div><div class="nexus-flow-step"><strong>Confirm the truth</strong><small>Billing, database, and delivery states remain real.</small></div><div class="nexus-flow-step"><strong>Keep momentum</strong><small>Return without rebuilding context.</small></div></div></section>
+  <section class="nexus-section nexus-flow"><div class="nexus-flow-copy"><span class="nexus-kicker" data-i18n="flowKicker">Designed for momentum</span><h2 data-i18n="flowHeading">From intent to outcome without losing context.</h2><p>SONARA is Software-in-a-Service built around evidence-backed next actions, saved records, payments, requests, and deliverables.</p><div class="card-actions"><a class="action" href="/start">See the operating model</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/requests">Track requests</a><a class="action" href="/deliverables">Deliverables</a></div></div><div class="nexus-flow-list"><div class="nexus-flow-step"><strong>Choose the outcome</strong><small>Start from a company, free tool, or supported service.</small></div><div class="nexus-flow-step"><strong>Create useful work</strong><small>Complete one focused step with clear inputs.</small></div><div class="nexus-flow-step"><strong>Confirm the truth</strong><small>Billing, database, and delivery states remain real.</small></div><div class="nexus-flow-step"><strong>Keep momentum</strong><small>Return without rebuilding context.</small></div></div></section>
   <section class="nexus-cta"><div><span class="nexus-kicker" data-i18n="ctaKicker">Start with the next useful action</span><h2 data-i18n="ctaHeading">Build something real before adding complexity.</h2><p>Explore for free. Upgrade when saved work, deeper records, and support become valuable.</p></div><div class="card-actions"><a class="action" href="/signup">Start Free</a><a class="action" href="/free-tools">Try a free tool</a><a class="action" href="/pricing">See plans</a></div></section>
 </div>`;
 
 const rootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(layout({
     title: "SONARA Industries",
-    eyebrow: "Adaptive operating system",
+    eyebrow: "LAUNCH OPERATING SYSTEM",
     heading: "Make work move.",
     variant: "home",
-    body: "Shape the business, create the release, reach the audience, and keep every next action connected through one fast operating layer.",
+    body: "Business Builder, Creator Studio, and Growth Studio connect through one fast operating layer for founders, creators, and small teams.",
     sections: [${JSON.stringify(homeContent)}],
     actions: [linkAction("/start", "Enter SONARA Nexus"), linkAction("/free-tools", "Explore free tools"), linkAction("/pricing", "See plans")]
   }));
@@ -80,10 +80,10 @@ const rootRoute = `app.get("/", (req, res) => {
 source = source
   .replace(/\n\s*<div id="nexus-loader"[\s\S]*?<div class="nexus-route-progress"[^>]*><\/div>/g, "")
   .replace(/\n\s*<dialog id="nexus-command-dialog"[\s\S]*?<div id="nexus-live"[^>]*><\/div>/g, "")
-  .replace(/\n\s*\$\{variant === "home" \? `<aside class="sonara-interface-face"[\s\S]*?<\/aside>` : ""\}/g, "")
-  .replace(/\n\s*<aside class="sonara-interface-face"[\s\S]*?<\/aside>/g, "")
-  .replace(/\n\s*<nav class="sonara-quick-bar"[\s\S]*?<\/nav>/g, "")
-  .replace(/\n\s*<button[^>]*class="[^"]*sonara-command-button[^"]*"[\s\S]*?<\/button>/g, "")
+  .replace(/\s*\$\{variant === "home" \? `<aside class="sonara-interface-face"[\s\S]*?<\/aside>` : ""\}/g, "")
+  .replace(/\s*<aside class="sonara-interface-face"[\s\S]*?<\/aside>/g, "")
+  .replace(/\s*<nav class="sonara-quick-bar"[\s\S]*?<\/nav>/g, "")
+  .replace(/\s*<button[^>]*class="[^"]*sonara-command-button[^"]*"[\s\S]*?<\/button>/g, "")
   .replace(/ data-sonara-interface="live"/g, "");
 
 source = source.replace(/app\.get\("\/", \(req, res\) => \{[\s\S]*?\n\}\);\n\nregisterProduct\("business-builder"/, `${rootRoute}\n\nregisterProduct("business-builder"`);
@@ -93,10 +93,7 @@ source = source
   .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-[^"]+\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script(?: defer)? src="\/sonara-[^"]+\.js(?:\?v=[^"]+)?"><\/script>/g, "")
-  .replace(/\n\s*<script>\s*document\.querySelectorAll\("\[data-toggle-password\]"\)[\s\S]*?<\/script>/, "")
-  .replace(/\bBusiness Builder\b/g, "SONARA Forge")
-  .replace(/\bCreator Studio\b/g, "SONARA Canvas")
-  .replace(/\bGrowth Studio\b/g, "SONARA Signal");
+  .replace(/\n\s*<script>\s*document\.querySelectorAll\("\[data-toggle-password\]"\)[\s\S]*?<\/script>/, "");
 
 source = source
   .replace('<div class="eyebrow">${escapeHtml(eyebrow)}</div>', '<div class="eyebrow"${variant === "home" ? \' data-i18n="heroEyebrow"\' : ""}>${escapeHtml(eyebrow)}</div>')
