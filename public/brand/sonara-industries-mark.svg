@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">SONARA Prism Wave</title>
-  <desc id="desc">Three original luminous ribbons converge into an open S-shaped wave, representing Forge, Canvas, and Signal moving through one connected system.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SONARA Prism Wave">
+  <title>SONARA Prism Wave</title>
+  <desc>Three original luminous ribbons converge into an open S-shaped wave, representing Forge, Canvas, and Signal moving through one connected system.</desc>
   <defs>
     <linearGradient id="violet" x1="35" y1="38" x2="203" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
     <linearGradient id="coral" x1="55" y1="87" x2="215" y2="170" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient>
