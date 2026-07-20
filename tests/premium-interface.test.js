@@ -21,9 +21,11 @@ describe("SONARA Nexus interface QA", () => {
   it("renders a responsive brand shell with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260720-v1/);
-    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260720-v1/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260720-v2/);
+    assert.match(res.text, /sonara-prepaint\.js\?v=nexus-ui-20260720-v2/);
+    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260720-v2/);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
+    assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);
     assert.match(res.text, /<nav class="sonara-desktop-nav" aria-label="Primary">/);
     assert.match(res.text, /<details class="sonara-mobile-menu">/);
