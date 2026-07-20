@@ -10,7 +10,7 @@ if (!fs.existsSync(serverPath)) {
 }
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "application-ui-20260720-v3";
+const version = "application-ui-20260720-v4";
 
 const cleanRootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(
@@ -55,9 +55,12 @@ const cleanHeader = `<header class="sonara-site-header">
         </nav>
       </details>
     </header>`;
-source = source.replace(/<header>[\s\S]*?<\/header>/, cleanHeader);
+source = source.replace(/<header(?:\s[^>]*)?>[\s\S]*?<\/header>/, cleanHeader);
 
+// The canonical stylesheet is the only visual authority. Remove the original inline design block,
+// all retired visual assets, and the old enhancement scripts before adding the current stylesheet.
 source = source
+  .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
   .replace(/\n\s*<link rel="stylesheet" href="\/(?:sonara-brand-system|sonara-friendly-premium|sonara-interface-engine|sonara-launch-ui|sonara-cohesive-2027|sonara-cohesive-2027-base|sonara-builder-2027|sonara-premium-mobile-fix|sonara-premium-access-2027|sonara-premium-ux|sonara-premium-mobile-final|sonara-application-ui)\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script defer src="\/(?:sonara-experience|sonara-interface-engine|sonara-cohesive-2027|sonara-builder-2027)\.js(?:\?v=[^"]+)?"><\/script>/g, "")
   .replace(/ data-sonara-interface="live"/g, "");
@@ -81,4 +84,4 @@ if (!source.includes(headClose)) {
 source = source.replace(headClose, `${finalStyles}\n${headClose}`);
 
 fs.writeFileSync(serverPath, source);
-console.log("SONARA canonical responsive shell applied; legacy UI generation is disabled.");
+console.log("SONARA canonical responsive shell applied; inline and external legacy UI systems are disabled.");
