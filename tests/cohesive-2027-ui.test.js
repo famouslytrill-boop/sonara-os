@@ -26,7 +26,8 @@ describe("cohesive 2027 public presentation", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /sonara-cohesive-2027\.css\?v=(?:cohesive-ui-20260719|premium-ux-20260720)/);
     assert.match(res.text, /sonara-cohesive-2027\.js\?v=(?:cohesive-ui-20260719|premium-ux-20260720)/);
-    assert.match(res.text, /sonara-premium-ux\.css\?v=premium-ux-20260720/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=application-ui-20260720-v1/);
+    assert.doesNotMatch(res.text, /sonara-premium-mobile-final\.css/);
     assert.match(res.text, /data-sonara-cohesive/);
     assert.match(res.text, /Build what matters\./);
     assert.match(res.text, /Keep it moving\./);
@@ -38,7 +39,7 @@ describe("cohesive 2027 public presentation", () => {
   });
 
   it("serves the cohesive assets and semantic product controls", async () => {
-    for (const asset of ["/sonara-cohesive-2027.css", "/sonara-cohesive-2027.js", "/sonara-premium-ux.css", "/brand/sonara-industries-mark.svg", "/brand/business-builder-mark.svg", "/brand/creator-studio-mark.svg", "/brand/growth-studio-mark.svg"]) {
+    for (const asset of ["/sonara-cohesive-2027.css", "/sonara-cohesive-2027.js", "/sonara-application-ui.css", "/brand/sonara-industries-mark.svg", "/brand/business-builder-mark.svg", "/brand/creator-studio-mark.svg", "/brand/growth-studio-mark.svg"]) {
       const response = await request(app).get(asset);
       assert.equal(response.status, 200, `${asset} missing`);
     }
