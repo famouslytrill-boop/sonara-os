@@ -10,7 +10,7 @@ if (!fs.existsSync(serverPath)) {
 }
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "nexus-ui-20260720-v1";
+const version = "nexus-ui-20260720-v2";
 
 function assembleAsset(sourceDirectory, outputPath) {
   const directory = path.join(process.cwd(), sourceDirectory);
@@ -30,6 +30,12 @@ function assembleAsset(sourceDirectory, outputPath) {
 
 assembleAsset("ui/nexus/styles", path.join(process.cwd(), "public", "sonara-application-ui.css"));
 assembleAsset("ui/nexus/scripts", path.join(process.cwd(), "public", "sonara-nexus.js"));
+const prepaintPath = path.join(process.cwd(), "ui", "nexus", "prepaint.js");
+if (!fs.existsSync(prepaintPath)) {
+  console.error("Missing Nexus prepaint source.");
+  process.exit(1);
+}
+fs.copyFileSync(prepaintPath, path.join(process.cwd(), "public", "sonara-prepaint.js"));
 
 const homepageRenderer = `function renderNexusHomepage(readiness) {
   const proofItems = [
@@ -106,8 +112,8 @@ const nexusHeader = `<header class="sonara-site-header">
       <nav class="sonara-desktop-nav" aria-label="Primary">${navigationLinks}
       </nav>
       <div class="nexus-header-tools">
-        <button type="button" class="nexus-icon-button" data-nexus-command aria-haspopup="dialog" aria-controls="nexus-command-dialog"><span data-i18n="command">Command</span><kbd class="nexus-key">⌘K</kbd></button>
-        <button type="button" class="nexus-icon-button" data-nexus-settings aria-haspopup="dialog" aria-controls="nexus-settings-dialog" data-i18n="experience">Experience</button>
+        <button type="button" class="nexus-icon-button" data-nexus-command aria-haspopup="dialog" aria-controls="nexus-command-dialog" aria-label="Open command navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m14.5 14.5 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="nexus-tool-label" data-i18n="command">Command</span><kbd class="nexus-key">⌘K</kbd></button>
+        <button type="button" class="nexus-icon-button" data-nexus-settings aria-haspopup="dialog" aria-controls="nexus-settings-dialog" aria-label="Open experience settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M8 12h8M6 17h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="2" fill="var(--nx-bg-elevated)" stroke="currentColor" stroke-width="1.5"/><circle cx="14" cy="12" r="2" fill="var(--nx-bg-elevated)" stroke="currentColor" stroke-width="1.5"/><circle cx="11" cy="17" r="2" fill="var(--nx-bg-elevated)" stroke="currentColor" stroke-width="1.5"/></svg><span class="nexus-tool-label" data-i18n="experience">Experience</span></button>
       </div>
       <details class="sonara-mobile-menu">
         <summary aria-label="Open navigation" data-i18n="menu">Menu</summary>
@@ -115,9 +121,28 @@ const nexusHeader = `<header class="sonara-site-header">
         </nav>
       </details>
     </header>`;
+const layoutAnchor = 'function layout({ title, eyebrow, heading, body, sections, actions, variant = "standard" }) {\n  const brandClass = pageBrandClass(title, heading, eyebrow);';
+const nexusLayoutStart = `function rebrandNexusCopy(value) {
+  return String(value ?? "")
+    .replace(/\bBusiness Builder\b/g, "SONARA Forge")
+    .replace(/\bCreator Studio\b/g, "SONARA Canvas")
+    .replace(/\bGrowth Studio\b/g, "SONARA Signal");
+}
+
+function layout({ title, eyebrow, heading, body, sections, actions, variant = "standard" }) {
+  const brandClass = pageBrandClass(title, heading, eyebrow);
+  title = rebrandNexusCopy(title);
+  eyebrow = rebrandNexusCopy(eyebrow);
+  heading = rebrandNexusCopy(heading);
+  body = rebrandNexusCopy(body);
+  sections = (sections || []).map(rebrandNexusCopy);
+  actions = (actions || []).map(rebrandNexusCopy);`;
+if (source.includes(layoutAnchor) && !source.includes("function rebrandNexusCopy(value)")) source = source.replace(layoutAnchor, nexusLayoutStart);
+
 source = source.replace(/<header(?:\s[^>]*)?>[\s\S]*?<\/header>/, nexusHeader);
 
 source = source
+  .replace(/\n\s*<script data-sonara-theme-prepaint>[\s\S]*?<\/script>/, "")
   .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
   .replace(/\n\s*<link rel="stylesheet" href="\/(?:sonara-brand-system|sonara-friendly-premium|sonara-interface-engine|sonara-launch-ui|sonara-cohesive-2027|sonara-cohesive-2027-base|sonara-builder-2027|sonara-premium-mobile-fix|sonara-premium-access-2027|sonara-premium-ux|sonara-premium-mobile-final|sonara-application-ui)\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script defer src="\/(?:sonara-experience|sonara-interface-engine|sonara-cohesive-2027|sonara-builder-2027|sonara-nexus)\.js(?:\?v=[^"]+)?"><\/script>/g, "")
@@ -136,7 +161,9 @@ source = source.replace(/(<body class="\$\{escapeHtml\(brandClass\)\} \$\{varian
 const dialogsMarkup = `<dialog id="nexus-command-dialog" class="nexus-dialog" aria-labelledby="nexus-command-title"><div class="nexus-dialog__head"><strong id="nexus-command-title" data-i18n="command">Command</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-command-input"><label for="nexus-command-search">Navigate</label><input id="nexus-command-search" type="search" autocomplete="off" data-i18n="searchPlaceholder" placeholder="Search pages and actions"></div><ul class="nexus-command-list"></ul></dialog>
     <dialog id="nexus-settings-dialog" class="nexus-dialog" aria-labelledby="nexus-settings-title"><div class="nexus-dialog__head"><strong id="nexus-settings-title" data-i18n="settingsTitle">Experience settings</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-settings"><label class="nexus-setting-row"><span><b data-i18n="language">Language</b><small data-i18n="languageHelp">Updates the interface shell and core product language.</small></span><select data-nexus-preference="language" aria-label="Language"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option><option value="fr" lang="fr">Français</option><option value="de" lang="de">Deutsch</option></select></label><label class="nexus-setting-row"><span><b data-i18n="appearance">Appearance</b><small data-i18n="appearanceHelp">Follow your device or choose light or dark.</small></span><select data-nexus-preference="theme" aria-label="Appearance"><option value="system" data-i18n="system">System</option><option value="light" data-i18n="light">Light</option><option value="dark" data-i18n="dark">Dark</option></select></label><label class="nexus-setting-row"><span><b data-i18n="motion">Motion</b><small data-i18n="motionHelp">Purposeful transitions, never required to understand status.</small></span><input class="nexus-toggle" type="checkbox" data-nexus-preference="motion" aria-label="Motion"></label><label class="nexus-setting-row"><span><b data-i18n="sound">Sound feedback</b><small data-i18n="soundHelp">Original synthesized SONARA tones. Off by default.</small></span><input class="nexus-toggle" type="checkbox" data-nexus-preference="sound" aria-label="Sound feedback"></label><label class="nexus-setting-row"><span><b data-i18n="haptics">Tactile feedback</b><small data-i18n="hapticsHelp">Uses device vibration only where the browser supports it.</small></span><input class="nexus-toggle" type="checkbox" data-nexus-preference="haptics" aria-label="Tactile feedback"></label></div></dialog>
     <div id="nexus-live" class="nexus-live" aria-live="polite" aria-atomic="true"></div>`;
-source = source.replace(/\n\s*<script>\n\s*document\.querySelectorAll\("\[data-toggle-password\]"\)/, `\n    ${dialogsMarkup}\n    <script>\n      document.querySelectorAll("[data-toggle-password]")`);
+source = source
+  .replace(/\n\s*<script>\s*document\.querySelectorAll\("\[data-toggle-password\]"\)[\s\S]*?<\/script>/, "")
+  .replace(/\n\s*<\/body>/, `\n    ${dialogsMarkup}\n  </body>`);
 
 source = source
   .replace(/SONARA Industries builds launch infrastructure for Business Builder, Creator Studio, and Growth Studio\./g, "SONARA Industries connects SONARA Forge, SONARA Canvas, and SONARA Signal through one adaptive operating layer.")
@@ -148,7 +175,7 @@ const staticAnchor = 'app.use(express.static(path.join(__dirname, "public")));';
 const noStoreMiddleware = `${staticAnchor}\napp.use((req, res, next) => {\n  if (req.method === "GET" && !path.extname(req.path)) {\n    res.set("Cache-Control", "no-store, max-age=0");\n  }\n  next();\n});`;
 if (source.includes(staticAnchor) && !source.includes('Cache-Control", "no-store, max-age=0')) source = source.replace(staticAnchor, noStoreMiddleware);
 
-const assets = `    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-nexus.js?v=${version}"></script>`;
+const assets = `    <script src="/sonara-prepaint.js?v=${version}"></script>\n    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-nexus.js?v=${version}"></script>`;
 const headClose = "  </head>";
 if (!source.includes(headClose)) {
   console.error("Unable to locate document head close tag.");
