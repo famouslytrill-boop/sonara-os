@@ -10,13 +10,14 @@ if (!fs.existsSync(serverPath)) {
 }
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "premium-mobile-final-20260720";
+const version = "application-ui-20260720-v1";
 
 source = source
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-premium-ux\.css(?:\?v=[^"]+)?">/g, "")
-  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-premium-mobile-final\.css(?:\?v=[^"]+)?">/g, "");
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-premium-mobile-final\.css(?:\?v=[^"]+)?">/g, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-application-ui\.css(?:\?v=[^"]+)?">/g, "");
 
-const finalStyles = `    <link rel="stylesheet" href="/sonara-premium-ux.css?v=${version}">\n    <link rel="stylesheet" href="/sonara-premium-mobile-final.css?v=${version}">`;
+const finalStyles = `    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">`;
 const headClose = "  </head>";
 
 if (!source.includes(headClose)) {
@@ -26,4 +27,4 @@ if (!source.includes(headClose)) {
 
 source = source.replace(headClose, `${finalStyles}\n${headClose}`);
 fs.writeFileSync(serverPath, source);
-console.log("SONARA premium UX styles moved to the final cascade position.");
+console.log("SONARA application-wide interface system loaded last; retired glass and floating mobile layers removed.");
