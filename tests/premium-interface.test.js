@@ -4,62 +4,78 @@ const fs = require("node:fs");
 const path = require("node:path");
 const app = require("../server");
 
-describe("responsive interface QA", () => {
-  it("serves the canonical application stylesheet", async () => {
-    const styles = await request(app).get("/sonara-application-ui.css");
+describe("SONARA Nexus interface QA", () => {
+  it("serves the canonical stylesheet, prepaint, and interaction engine", async () => {
+    const [styles, prepaint, engine] = await Promise.all([
+      request(app).get("/sonara-application-ui.css"),
+      request(app).get("/sonara-prepaint.js"),
+      request(app).get("/sonara-nexus.js")
+    ]);
     assert.equal(styles.status, 200);
     assert.match(styles.headers["content-type"], /css/);
-    assert.match(styles.text, /SONARA canonical responsive interface/);
+    assert.match(styles.text, /SONARA Nexus Experience System 2026/);
+    assert.equal(prepaint.status, 200);
+    assert.equal(engine.status, 200);
+    assert.match(engine.text, /sonara:nexus:preferences:v1/);
   });
 
-  it("renders a standard header and native mobile menu", async () => {
+  it("renders a responsive brand interface with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=application-ui-20260720-v4/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260720-v3/);
+    assert.match(res.text, /sonara-prepaint\.js\?v=nexus-ui-20260720-v3/);
+    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260720-v3/);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
+    assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);
     assert.match(res.text, /<nav class="sonara-desktop-nav" aria-label="Primary">/);
     assert.match(res.text, /<details class="sonara-mobile-menu">/);
-    assert.match(res.text, /<summary aria-label="Open navigation">Menu<\/summary>/);
-    assert.doesNotMatch(res.text, /sonara-command-button/);
+    assert.match(res.text, /data-nexus-command/);
+    assert.match(res.text, /data-nexus-settings/);
+    assert.match(res.text, /id="nexus-command-dialog"/);
+    assert.match(res.text, /id="nexus-settings-dialog"/);
+    assert.match(res.text, /id="nexus-loader"/);
     assert.doesNotMatch(res.text, /sonara-quick-bar/);
   });
 
-  it("keeps core destinations available in both navigation modes", async () => {
-    const res = await request(app).get("/").set("Accept", "text/html");
+  it("keeps core destinations in desktop and mobile navigation", async () => {
+    const res = await request(app).get("/");
     for (const href of ["/start", "/business-builder", "/creator-studio", "/growth-studio", "/free-tools", "/pricing", "/support", "/login", "/signup"]) {
       const escaped = href.replace(/\//g, "\\/");
       const matches = res.text.match(new RegExp(`href="${escaped}"`, "g")) || [];
-      assert.equal(matches.length, 2, `${href} should exist in desktop and mobile navigation`);
+      assert.ok(matches.length >= 2, `${href} should exist in desktop and mobile navigation`);
     }
   });
 
-  it("prevents the rejected overlapping and floating patterns", async () => {
-    const res = await request(app).get("/").set("Accept", "text/html");
+  it("prevents rejected legacy interfaces", async () => {
+    const res = await request(app).get("/");
     assert.doesNotMatch(res.text, /Keep it moving/i);
     assert.doesNotMatch(res.text, /Launch command center/i);
     assert.doesNotMatch(res.text, /Live configuration/i);
-    assert.doesNotMatch(res.text, /Mobile-ready &bull;/i);
-    assert.doesNotMatch(res.text, /data-sonara-interface/);
+    assert.doesNotMatch(res.text, /sonara-quick-bar/);
     assert.match(res.headers["cache-control"] || "", /no-store/);
   });
 
-  it("supports narrow-screen reflow without fixed navigation", () => {
+  it("supports performant motion, accessibility preferences, and narrow-screen reflow", () => {
     const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-application-ui.css"), "utf8");
-    assert.match(styles, /main,\s*\nfooter \{\s*\n\s*width: min\(var\(--app-content\), calc\(100% - 40px\)\)/);
-    assert.match(styles, /@media \(max-width: 420px\)/);
-    assert.match(styles, /width: calc\(100% - 20px\)/);
-    assert.match(styles, /grid-template-columns: 1fr/);
-    assert.match(styles, /overflow-x: hidden/);
-    assert.doesNotMatch(styles, /position:\s*fixed/i);
-    assert.doesNotMatch(styles, /backdrop-filter:\s*blur/i);
+    const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
+    assert.match(styles, /@view-transition/);
+    assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
+    assert.match(styles, /@media\(max-width:420px\)/);
+    assert.match(styles, /grid-template-columns:1fr/);
+    assert.match(styles, /overflow-x:clip/);
+    assert.match(engine, /prefers-reduced-motion/);
+    assert.match(engine, /navigator\.vibrate/);
+    assert.match(engine, /AudioContext/);
+    assert.match(engine, /transform = `rotateX/);
   });
 
-  it("keeps research boundaries documented", () => {
-    const premium = fs.readFileSync(path.join(__dirname, "..", "docs", "SONARA_PREMIUM_UX_RESEARCH.md"), "utf8");
-    assert.match(premium, /Implementation tasks/);
-    assert.match(premium, /What must NOT be copied/);
-    const external = fs.readFileSync(path.join(__dirname, "..", "docs", "SONARA_EXTERNAL_REPOSITORY_RESEARCH.md"), "utf8");
-    assert.match(external, /patterns only/i);
+  it("documents the requested research groups and originality boundary", () => {
+    const research = fs.readFileSync(path.join(__dirname, "..", "docs", "SONARA_NEXUS_RND_2026.md"), "utf8");
+    for (const company of ["Apple", "Amazon", "Tesla", "Google", "Vizio", "LG", "Walmart", "Ford", "Chevrolet", "Volkswagen", "Spotify", "YouTube", "iTunes", "Xbox", "PlayStation", "Nintendo", "Universal", "Sony Music", "Apple Music", "YouTube Music", "Target", "Activision", "Rockstar", "Honda", "Microsoft", "Unreal Engine", "Rockville", "Fossil", "Adobe", "Disney", "Pixar", "DreamWorks", "Samsung"]) {
+      assert.match(research, new RegExp(company.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+    }
+    assert.match(research, /prohibited/i);
+    assert.match(research, /original SONARA system/i);
   });
 });

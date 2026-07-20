@@ -67,36 +67,47 @@ describe("premium application rebuild", () => {
       assert.match(body, /fav-wave/);
     });
 
-    it("header shows the brand mark on every page", async function() {
+    it("header shows the Prism Wave mark on every page", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.match(res.text, /sonara-brand-mark/);
       assert.match(res.text, /\/brand\/sonara-industries-mark\.svg/);
+      assert.match(res.text, /SONARA Industries/);
+      assert.match(res.text, /Nexus/);
     });
   });
 
-  describe("app frame v2", () => {
-    it("homepage tells the Software-in-a-Service story in plain words", async function() {
+  describe("Nexus application frame", () => {
+    it("homepage tells the company story in plain outcome language", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.equal(res.status, 200);
-      assert.match(res.text, /SONARA turns business, creator, and growth work into guided software workflows/);
-      assert.match(res.text, /How SONARA works/);
-      assert.match(res.text, /Free tools preview/);
-      assert.match(res.text, /Paid workflows preview/);
-      assert.match(res.text, /Trust and readiness/);
+      assert.match(res.text, /Make work move\./);
+      assert.match(res.text, /One operating layer\. Three focused workspaces\./);
+      assert.match(res.text, /Business Builder/);
+      assert.match(res.text, /Creator Studio/);
+      assert.match(res.text, /Growth Studio/);
+      assert.match(res.text, /FORGE MODE/);
+      assert.match(res.text, /CANVAS MODE/);
+      assert.match(res.text, /SIGNAL MODE/);
+      assert.match(res.text, /href="\/service-catalog"/);
+      assert.match(res.text, /href="\/requests"/);
+      assert.match(res.text, /href="\/deliverables"/);
     });
 
-    it("header exposes the command palette trigger", async function() {
+    it("header exposes command navigation and experience preferences", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
-      assert.match(res.text, /data-sonara-command/);
-      assert.match(res.text, /sonara-command-button/);
+      assert.match(res.text, /data-nexus-command/);
+      assert.match(res.text, /data-nexus-settings/);
+      assert.match(res.text, /id="nexus-command-dialog"/);
+      assert.match(res.text, /id="nexus-settings-dialog"/);
     });
 
-    it("interface engine ships palette, haptics, and safety guards", function() {
-      const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-interface-engine.js"), "utf8");
-      assert.match(engine, /sonara-command-palette/);
+    it("experience engine ships command navigation, haptics, localization, and safety guards", function() {
+      const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
+      assert.match(engine, /nexus-command-dialog/);
       assert.match(engine, /navigator\.vibrate/);
       assert.match(engine, /localStorage/);
       assert.match(engine, /prefers-reduced-motion/);
+      assert.match(engine, /language:"en"/);
       assert.doesNotMatch(engine, /requestAdapter/);
     });
 
@@ -116,11 +127,12 @@ describe("premium application rebuild", () => {
       }
     });
 
-    it("design tokens v2 exist in the brand system stylesheet", function() {
-      const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-brand-system.css"), "utf8");
-      assert.match(styles, /sonara-tokens-v2/);
-      assert.match(styles, /--sonara-motion-base/);
-      assert.match(styles, /--sonara-status-critical/);
+    it("canonical Nexus design tokens exist in the application stylesheet", function() {
+      const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-application-ui.css"), "utf8");
+      assert.match(styles, /--nx-bg:/);
+      assert.match(styles, /--nx-ease:/);
+      assert.match(styles, /--nx-focus:/);
+      assert.match(styles, /--nx-radius:/);
     });
   });
 
@@ -155,7 +167,7 @@ describe("premium application rebuild", () => {
   });
 
   describe("product isolation routes", () => {
-    it("product request views are scoped per product", async function() {
+    it("product request views are scoped per approved company", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
@@ -176,7 +188,7 @@ describe("premium application rebuild", () => {
       }
     });
 
-    it("content planning pages exist for creator and growth studios", async function() {
+    it("content planning pages exist for Creator Studio and Growth Studio", async function() {
       for (const route of ["/creator-studio/content", "/growth-studio/content"]) {
         const res = await request(app).get(route).set("Accept", "text/html");
         assert.equal(res.status, 200);
@@ -267,20 +279,14 @@ describe("premium application rebuild", () => {
     });
 
     it("notifications and integrations migration exists", function() {
-      const sql = fs.readFileSync(
-        path.join(__dirname, "..", "supabase", "migrations", "20260714150000_sonara_notifications_and_integrations.sql"),
-        "utf8"
-      );
+      const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20260714150000_sonara_notifications_and_integrations.sql"), "utf8");
       assert.match(sql, /create table if not exists public\.user_notifications/);
       assert.match(sql, /create table if not exists public\.integration_statuses/);
       assert.match(sql, /enable row level security/);
     });
 
     it("launch storage migration keeps every customer bucket private and scoped", function() {
-      const sql = fs.readFileSync(
-        path.join(__dirname, "..", "supabase", "migrations", "20260716130000_launch_storage_buckets.sql"),
-        "utf8"
-      );
+      const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20260716130000_launch_storage_buckets.sql"), "utf8");
       for (const bucket of ["avatars", "business-assets", "creator-assets", "music-stems", "release-packages", "support-attachments", "exports"]) {
         assert.match(sql, new RegExp(`'${bucket}'`), `${bucket} missing from storage migration`);
       }

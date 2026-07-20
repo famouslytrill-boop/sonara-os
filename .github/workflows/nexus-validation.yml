@@ -1,0 +1,82 @@
+name: Nexus Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/nexus-experience-engine]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, test, and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.1.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate final runtime
+        run: pnpm run apply:runtime
+
+      - name: Run full test suite
+        id: tests
+        shell: bash
+        run: |
+          set +e
+          pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/nexus-tests.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-test-diagnostics
+          path: /tmp/nexus-tests.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Verify server build
+        run: pnpm run build
+
+      - name: Lint
+        id: lint
+        shell: bash
+        run: |
+          set +e
+          pnpm run lint > /tmp/nexus-lint.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload lint diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-lint-diagnostics
+          path: /tmp/nexus-lint.log
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Scan client bundle for secrets
+        run: pnpm run scan:client-secrets

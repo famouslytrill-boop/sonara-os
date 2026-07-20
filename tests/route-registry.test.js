@@ -9,28 +9,26 @@ const app = require("../server");
 const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES } = require("../lib/sonara-route-registry.cjs");
 
 function runThemePrepaint(source, { storedAppearance, prefersDark }) {
-  const attributes = {};
+  const dataset = {};
   const sandbox = {
-    document: {
-      documentElement: {
-        setAttribute(name, value) {
-          attributes[name] = value;
-        }
+    document: { documentElement: { dataset, classList: { add() {}, remove() {} } } },
+    localStorage: {
+      getItem(key) {
+        if (key === "sonara:nexus:preferences:v1" && storedAppearance) return JSON.stringify({ theme: storedAppearance });
+        if (key === "sonara-appearance") return storedAppearance ?? null;
+        return null;
       }
     },
-    window: {
-      localStorage: {
-        getItem() {
-          return storedAppearance ?? null;
-        }
-      },
-      matchMedia(query) {
-        return { matches: query === "(prefers-color-scheme: dark)" && prefersDark };
-      }
-    }
+    matchMedia(query) {
+      return { matches: query === "(prefers-color-scheme: dark)" && prefersDark };
+    },
+    setTimeout() {}
   };
   vm.runInNewContext(source, sandbox);
-  return attributes;
+  return {
+    "data-sonara-appearance": dataset.sonaraAppearance,
+    "data-theme": dataset.theme
+  };
 }
 
 function runInterfaceEngine({ storedAppearance, haptics, prefersDark = false, reducedMotion = false }) {
@@ -199,18 +197,22 @@ describe("SONARA route registry and account completion", () => {
 
   it("initializes the canonical theme before styles and follows stored or system appearance", async () => {
     const response = await request(app).get("/").set("Accept", "text/html");
-    const match = response.text.match(/<script data-sonara-theme-prepaint>([\s\S]*?)<\/script>/);
-    assert.ok(match, "pre-paint theme initializer missing");
-    assert.ok(response.text.indexOf("data-sonara-theme-prepaint") < response.text.indexOf("sonara-brand-system.css"));
-    assert.deepEqual(runThemePrepaint(match[1], { storedAppearance: "dark", prefersDark: false }), {
+    const prepaintSource = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-prepaint.js"), "utf8");
+    const scriptIndex = response.text.indexOf("sonara-prepaint.js");
+    const styleIndex = response.text.indexOf("sonara-application-ui.css");
+    assert.ok(scriptIndex >= 0, "external prepaint script missing");
+    assert.ok(styleIndex >= 0, "canonical stylesheet missing");
+    assert.ok(scriptIndex < styleIndex, "prepaint must load before the canonical stylesheet");
+    assert.doesNotMatch(response.text, /<script data-sonara-theme-prepaint>/);
+    assert.deepEqual(runThemePrepaint(prepaintSource, { storedAppearance: "dark", prefersDark: false }), {
       "data-sonara-appearance": "dark",
       "data-theme": "dark"
     });
-    assert.deepEqual(runThemePrepaint(match[1], { storedAppearance: "light", prefersDark: true }), {
+    assert.deepEqual(runThemePrepaint(prepaintSource, { storedAppearance: "light", prefersDark: true }), {
       "data-sonara-appearance": "light",
       "data-theme": "light"
     });
-    assert.deepEqual(runThemePrepaint(match[1], { prefersDark: true }), {
+    assert.deepEqual(runThemePrepaint(prepaintSource, { prefersDark: true }), {
       "data-sonara-appearance": "system",
       "data-theme": "dark"
     });
