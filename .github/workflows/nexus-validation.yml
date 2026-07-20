@@ -38,7 +38,13 @@ jobs:
         run: pnpm run apply:runtime
 
       - name: Run full test suite
-        run: pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests
+        shell: bash
+        run: |
+          set +e
+          pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/nexus-tests.log 2>&1
+          status=$?
+          tail -n 180 /tmp/nexus-tests.log
+          exit $status
 
       - name: Verify server build
         run: pnpm run build
