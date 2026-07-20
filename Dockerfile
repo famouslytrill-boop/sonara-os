@@ -19,6 +19,7 @@ COPY routes ./routes
 COPY lib ./lib
 COPY config ./config
 COPY scripts ./scripts
+COPY ui ./ui
 COPY public ./public
 
 # Apply the exact same deterministic runtime patch chain used by Vercel, then

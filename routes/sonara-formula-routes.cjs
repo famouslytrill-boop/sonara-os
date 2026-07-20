@@ -8,6 +8,8 @@ const {
   productAreaToWorkspace
 } = require("../lib/sonara-formula-library.cjs");
 
+const LIVE_PROBE_TIMEOUT_MS = 800;
+
 const FORMULA_GROUP_LABELS = {
   business_revenue: "Business and revenue",
   restaurant_margin: "Restaurant and service margin",
@@ -48,7 +50,7 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
   });
 
   app.get("/admin/formulas", requireAdmin, async (req, res) => {
-    const readiness = await getFormulaReadiness(safeListTable);
+    const readiness = await getFormulaReadiness(safeListTable, { probe: true });
     const definitions = listFormulaDefinitions();
     const statusText = readiness.tables.map((item) => `${item.table}: ${item.ok ? "ready" : "setup required"}`).join(" / ");
     return res.status(200).type("html").send(layout({
@@ -70,8 +72,10 @@ module.exports = function registerSonaraFormulaRoutes(app, deps = {}) {
     }));
   });
 
-  app.get("/api/formulas/readiness", async (req, res) => {
-    return res.status(200).json(await getFormulaReadiness(safeListTable));
+  // Public readiness describes the required formula-table contract without
+  // contacting production Supabase. Live bounded probes remain admin-only.
+  app.get("/api/formulas/readiness", (req, res) => {
+    return res.status(200).json(getStaticFormulaReadiness());
   });
 
   app.get("/api/formulas/definitions", (req, res) => {
@@ -108,20 +112,50 @@ function selectFormulaWorkspace(requireWorkspaceAccess) {
   };
 }
 
-async function getFormulaReadiness(safeListTable) {
-  if (!safeListTable) {
-    return {
-      ok: true,
-      mode: "static",
-      tables: FORMULA_TABLES.map((table) => ({ table, ok: false, status: "setup_required" })),
-      formulaCount: listFormulaDefinitions().length
-    };
-  }
+function getStaticFormulaReadiness() {
+  return {
+    ok: true,
+    mode: "static",
+    tables: FORMULA_TABLES.map((table) => ({ table, ok: false, status: "setup_required", count: null })),
+    formulaCount: listFormulaDefinitions().length
+  };
+}
+
+async function getFormulaReadiness(safeListTable, options = {}) {
+  if (!safeListTable || options.probe !== true) return getStaticFormulaReadiness();
+
   const tables = await Promise.all(FORMULA_TABLES.map(async (table) => {
-    const result = await safeListTable(table, "?select=id&limit=1");
-    return { table, ok: Boolean(result.ok), status: result.ok ? "ready" : "setup_required", count: Array.isArray(result.rows) ? result.rows.length : null };
+    const result = await boundedProbe(() => safeListTable(table, "?select=id&limit=1"), LIVE_PROBE_TIMEOUT_MS);
+    return {
+      table,
+      ok: Boolean(result.ok),
+      status: result.ok ? "ready" : "setup_required",
+      count: Array.isArray(result.rows) ? result.rows.length : null,
+      reason: result.code === "timeout" ? "timeout" : undefined
+    };
   }));
-  return { ok: true, tables, formulaCount: listFormulaDefinitions().length };
+
+  return {
+    ok: true,
+    mode: "live_bounded",
+    probeTimeoutMs: LIVE_PROBE_TIMEOUT_MS,
+    tables,
+    formulaCount: listFormulaDefinitions().length
+  };
+}
+
+async function boundedProbe(run, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      Promise.resolve().then(run).catch(() => ({ ok: false, code: "unavailable" })),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve({ ok: false, code: "timeout" }), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 async function saveFormulaResult({ evaluated, req, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders, insertActivityEvent }) {
@@ -175,7 +209,7 @@ function formatLabel(value) {
 }
 
 function pass(req, res, next) { next(); }
-function esc(value) { return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
+function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
 function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }

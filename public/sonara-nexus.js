@@ -2,231 +2,261 @@
 
 (() => {
   const root = document.documentElement;
-  const storage = {
-    get(key, fallback) {
-      try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
-    },
-    set(key, value) {
-      try { localStorage.setItem(key, value); } catch {}
-    }
+  const preferenceKey = "sonara:nexus:preferences:v1";
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+  const defaults = {
+    language: "en",
+    theme: "system",
+    motion: reducedMotion ? "off" : "on",
+    sound: "off",
+    haptics: "on"
   };
 
-  const settings = {
-    theme: storage.get("sonara-theme", "dark"),
-    motion: storage.get("sonara-motion", "full"),
-    sound: storage.get("sonara-sound", "off"),
-    haptics: storage.get("sonara-haptics", "off"),
-    language: storage.get("sonara-language", "en")
-  };
-
-  const labels = {
+  const dictionaries = {
     en: {
-      platform: "Platform", forge: "SONARA Forge", canvas: "SONARA Canvas", signal: "SONARA Signal",
+      platform: "Platform", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Free tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Start Free",
-      search: "Search SONARA", preferences: "Experience settings", close: "Close", theme: "Appearance",
-      motion: "Motion", sound: "Interface sound", haptics: "Haptic feedback", language: "Language",
-      dark: "Dark", light: "Light", system: "System", full: "Full", reduced: "Reduced", on: "On", off: "Off"
+      menu: "Menu", command: "Command", experience: "Experience", heroEyebrow: "Launch operating system",
+      heroHeading: "Make work move.", heroBody: "Business Builder, Creator Studio, and Growth Studio connect through one fast operating layer for founders, creators, and small teams.",
+      primaryAction: "Enter SONARA Nexus", secondaryAction: "Explore free tools", tertiaryAction: "See plans",
+      productsKicker: "Three connected companies", productsHeading: "One operating layer. Three focused workspaces.",
+      productsBody: "Business Builder, Creator Studio, and Growth Studio keep their own tools and records while identity, billing, support, and delivery stay connected through SONARA Nexus.",
+      flowKicker: "Designed for momentum", flowHeading: "From intent to outcome without losing context.",
+      ctaKicker: "Start with the next useful action", ctaHeading: "Build something real before adding complexity.",
+      searchPlaceholder: "Search pages and actions", settingsTitle: "Experience settings", language: "Language",
+      languageHelp: "Updates the interface and core product language.", appearance: "Appearance",
+      appearanceHelp: "Follow your device or choose light or dark.", motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"
     },
     es: {
-      platform: "Plataforma", forge: "SONARA Forge", canvas: "SONARA Canvas", signal: "SONARA Signal",
+      platform: "Plataforma", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Herramientas gratis", pricing: "Precios", support: "Soporte", login: "Iniciar sesión", start: "Comenzar gratis",
-      search: "Buscar en SONARA", preferences: "Ajustes de experiencia", close: "Cerrar", theme: "Apariencia",
-      motion: "Movimiento", sound: "Sonido de interfaz", haptics: "Respuesta háptica", language: "Idioma",
-      dark: "Oscuro", light: "Claro", system: "Sistema", full: "Completo", reduced: "Reducido", on: "Activado", off: "Desactivado"
+      menu: "Menú", command: "Comandos", experience: "Experiencia", heroEyebrow: "Sistema operativo de lanzamiento",
+      heroHeading: "Haz que el trabajo avance.", heroBody: "Business Builder, Creator Studio y Growth Studio se conectan mediante una capa operativa rápida.",
+      primaryAction: "Entrar a SONARA Nexus", secondaryAction: "Explorar herramientas gratis", tertiaryAction: "Ver planes",
+      productsKicker: "Tres empresas conectadas", productsHeading: "Una capa operativa. Tres espacios enfocados.",
+      productsBody: "Cada empresa conserva sus herramientas y registros mientras identidad, facturación, soporte y entrega permanecen conectados.",
+      flowKicker: "Diseñado para el impulso", flowHeading: "De la intención al resultado sin perder el contexto.",
+      ctaKicker: "Empieza con la siguiente acción útil", ctaHeading: "Construye algo real antes de añadir complejidad.",
+      searchPlaceholder: "Buscar páginas y acciones", settingsTitle: "Ajustes de experiencia", language: "Idioma",
+      languageHelp: "Actualiza la interfaz y el lenguaje principal del producto.", appearance: "Apariencia",
+      appearanceHelp: "Sigue tu dispositivo o elige claro u oscuro.", motion: "Movimiento", sound: "Sonido", haptics: "Respuesta táctil"
+    },
+    fr: {
+      platform: "Plateforme", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      tools: "Outils gratuits", pricing: "Tarifs", support: "Assistance", login: "Connexion", start: "Commencer gratuitement",
+      menu: "Menu", command: "Commande", experience: "Expérience", heroEyebrow: "Système d’exploitation de lancement",
+      heroHeading: "Faites avancer le travail.", heroBody: "Business Builder, Creator Studio et Growth Studio se connectent dans une couche opérationnelle rapide.",
+      primaryAction: "Entrer dans SONARA Nexus", secondaryAction: "Explorer les outils", tertiaryAction: "Voir les offres",
+      productsKicker: "Trois entreprises connectées", productsHeading: "Une couche opérationnelle. Trois espaces spécialisés.",
+      productsBody: "Chaque entreprise conserve ses outils et ses données tandis que l’identité, la facturation, l’assistance et la livraison restent connectées.",
+      flowKicker: "Conçu pour l’élan", flowHeading: "De l’intention au résultat sans perdre le contexte.",
+      ctaKicker: "Commencez par l’action utile", ctaHeading: "Construisez quelque chose de réel.",
+      searchPlaceholder: "Rechercher des pages et actions", settingsTitle: "Réglages de l’expérience", language: "Langue",
+      languageHelp: "Met à jour l’interface et le langage principal du produit.", appearance: "Apparence",
+      appearanceHelp: "Suivez l’appareil ou choisissez clair ou sombre.", motion: "Animation", sound: "Retour sonore", haptics: "Retour tactile"
+    },
+    de: {
+      platform: "Plattform", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      tools: "Kostenlose Tools", pricing: "Preise", support: "Support", login: "Anmelden", start: "Kostenlos starten",
+      menu: "Menü", command: "Befehl", experience: "Erlebnis", heroEyebrow: "Launch-Betriebssystem",
+      heroHeading: "Arbeit in Bewegung bringen.", heroBody: "Business Builder, Creator Studio und Growth Studio sind über eine schnelle Betriebsebene verbunden.",
+      primaryAction: "SONARA Nexus öffnen", secondaryAction: "Tools erkunden", tertiaryAction: "Pläne ansehen",
+      productsKicker: "Drei verbundene Unternehmen", productsHeading: "Eine Betriebsebene. Drei fokussierte Arbeitsbereiche.",
+      productsBody: "Jedes Unternehmen behält seine Werkzeuge und Daten, während Identität, Abrechnung, Support und Lieferung verbunden bleiben.",
+      flowKicker: "Für Dynamik entwickelt", flowHeading: "Von der Absicht zum Ergebnis ohne Kontextverlust.",
+      ctaKicker: "Mit dem nächsten Schritt beginnen", ctaHeading: "Etwas Echtes bauen.",
+      searchPlaceholder: "Seiten und Aktionen durchsuchen", settingsTitle: "Erlebniseinstellungen", language: "Sprache",
+      languageHelp: "Aktualisiert die Oberfläche und zentrale Produktsprache.", appearance: "Darstellung",
+      appearanceHelp: "Gerät verwenden oder Hell/Dunkel wählen.", motion: "Bewegung", sound: "Klangfeedback", haptics: "Haptisches Feedback"
     }
   };
 
-  const routes = [
-    ["/start", "platform", "◈"], ["/business-builder", "forge", "⚡"], ["/creator-studio", "canvas", "✦"],
-    ["/growth-studio", "signal", "⌁"], ["/free-tools", "tools", "⌘"], ["/pricing", "pricing", "$"],
-    ["/support", "support", "?"], ["/login", "login", "→"], ["/signup", "start", "+"]
-  ];
-
-  function applyPreferences() {
-    const resolvedTheme = settings.theme === "system"
-      ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
-      : settings.theme;
-    root.dataset.theme = resolvedTheme;
-    root.dataset.motion = settings.motion;
-    root.lang = settings.language;
-    translateNavigation();
+  let preferences;
+  try {
+    preferences = { ...defaults, ...JSON.parse(window.localStorage.getItem(preferenceKey) || "{}") };
+  } catch {
+    preferences = { ...defaults };
   }
 
-  function translateNavigation() {
-    const copy = labels[settings.language] || labels.en;
-    const map = new Map(routes.map(([path, key]) => [path, copy[key]]));
-    document.querySelectorAll("header a[href]").forEach((link) => {
-      const label = map.get(link.getAttribute("href"));
-      if (label) {
-        const img = link.querySelector("img");
-        if (img) link.replaceChildren(img, document.createTextNode(` ${label}`));
-        else link.textContent = label;
+  let audioContext;
+
+  function resolveTheme(value) {
+    if (value === "light" || value === "dark") return value;
+    return window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ? "dark" : "light";
+  }
+
+  function translate() {
+    const dictionary = dictionaries[preferences.language] || dictionaries.en;
+    root.lang = preferences.language;
+    document.querySelectorAll("[data-i18n]").forEach((element) => {
+      const value = dictionary[element.dataset.i18n];
+      if (!value) return;
+      if (element.tagName === "INPUT" && element.type === "search") element.placeholder = value;
+      else element.textContent = value;
+    });
+  }
+
+  function applyPreferences() {
+    root.dataset.theme = resolveTheme(preferences.theme);
+    root.dataset.nexusMotion = preferences.motion;
+    root.dataset.nexusSound = preferences.sound;
+    root.dataset.nexusHaptics = preferences.haptics;
+    translate();
+    document.querySelectorAll("[data-nexus-preference]").forEach((element) => {
+      const name = element.dataset.nexusPreference;
+      if (element.type === "checkbox") element.checked = preferences[name] === "on";
+      else element.value = preferences[name];
+    });
+  }
+
+  function installHero() {
+    if (!document.body.classList.contains("sonara-home-v3")) return;
+    const stage = document.querySelector(".hero");
+    if (!stage || stage.querySelector(".nexus-hero-visual")) return;
+    stage.insertAdjacentHTML("beforeend", `<div class="nexus-hero-visual" aria-hidden="true"><div class="nexus-orbit" data-nexus-parallax><span class="nexus-ring"></span><span class="nexus-ring"></span><span class="nexus-ring"></span><span class="nexus-node nexus-node--forge"></span><span class="nexus-node nexus-node--canvas"></span><span class="nexus-node nexus-node--signal"></span><span class="nexus-orbit-label nexus-orbit-label--forge">Forge mode</span><span class="nexus-orbit-label nexus-orbit-label--canvas">Canvas mode</span><span class="nexus-orbit-label nexus-orbit-label--signal">Signal mode</span><span class="nexus-orbit-floor"></span></div></div>`);
+  }
+
+  function installRevealMotion() {
+    const items = document.querySelectorAll("main>section:not(.hero),.nexus-section,.card,.nexus-product");
+    items.forEach((item) => { item.dataset.nexusReveal = ""; });
+    if (reducedMotion || preferences.motion === "off" || !window.IntersectionObserver) {
+      items.forEach((item) => item.classList.add("is-visible"));
+      return;
+    }
+    const observer = new window.IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add("is-visible");
+      observer.unobserve(entry.target);
+    }), { threshold: 0.08 });
+    items.forEach((item) => observer.observe(item));
+  }
+
+  function installParallax() {
+    const target = document.querySelector("[data-nexus-parallax]");
+    if (!target || reducedMotion || preferences.motion === "off" || window.innerWidth < 920) return;
+    window.addEventListener("pointermove", (event) => {
+      const x = (event.clientX / window.innerWidth - 0.5) * 8;
+      const y = (event.clientY / window.innerHeight - 0.5) * -7;
+      target.style.transform = `rotateX(${y}deg) rotateY(${x}deg)`;
+    }, { passive: true });
+  }
+
+  function playTone(kind = "tap") {
+    if (preferences.sound !== "on") return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    audioContext ||= new AudioContextClass();
+    const now = audioContext.currentTime;
+    const gain = audioContext.createGain();
+    const oscillator = audioContext.createOscillator();
+    oscillator.type = "triangle";
+    oscillator.frequency.value = kind === "open" ? 320 : 420;
+    gain.gain.setValueAtTime(0.03, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.12);
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.14);
+  }
+
+  function installTactileFeedback() {
+    window.addEventListener("pointerdown", (event) => {
+      const control = event.target.closest?.("a,button,summary");
+      if (!control) return;
+      control.classList.add("nexus-press");
+      if (preferences.haptics === "on" && window.navigator.vibrate) window.navigator.vibrate(7);
+      playTone(control.hasAttribute("data-nexus-command") ? "open" : "tap");
+    });
+    window.addEventListener("pointerup", () => {
+      document.querySelectorAll(".nexus-press").forEach((element) => element.classList.remove("nexus-press"));
+    });
+  }
+
+  function installDialogs() {
+    const commandDialog = document.querySelector("#nexus-command-dialog");
+    const settingsDialog = document.querySelector("#nexus-settings-dialog");
+    const commandList = commandDialog?.querySelector(".nexus-command-list");
+    const commandInput = commandDialog?.querySelector("input");
+    const links = [...document.querySelectorAll(".sonara-desktop-nav a")];
+
+    if (commandList) {
+      commandList.innerHTML = links.map((link) => `<li><a href="${link.getAttribute("href")}" data-label="${link.textContent.toLowerCase()}"><span>${link.textContent}</span><small>↵</small></a></li>`).join("");
+    }
+
+    const open = (dialog) => {
+      dialog?.showModal?.();
+      window.setTimeout(() => {
+        if (dialog === commandDialog) commandInput?.focus();
+      }, 30);
+    };
+
+    document.querySelectorAll("[data-nexus-command]").forEach((button) => { button.onclick = () => open(commandDialog); });
+    document.querySelectorAll("[data-nexus-settings]").forEach((button) => { button.onclick = () => open(settingsDialog); });
+    document.querySelectorAll("[data-dialog-close]").forEach((button) => { button.onclick = () => button.closest("dialog")?.close(); });
+    commandInput?.addEventListener("input", () => {
+      commandList?.querySelectorAll("li").forEach((item) => {
+        item.hidden = !item.textContent.toLowerCase().includes(commandInput.value.toLowerCase());
+      });
+    });
+    window.addEventListener("keydown", (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        open(commandDialog);
       }
     });
   }
 
-  function audioCue(type = "tap") {
-    if (settings.sound !== "on") return;
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = audioCue.ctx ||= new AudioContext();
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const now = ctx.currentTime;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(.0001, now);
-    gain.gain.exponentialRampToValueAtTime(type === "success" ? .055 : .035, now + .008);
-    gain.gain.exponentialRampToValueAtTime(.0001, now + (type === "success" ? .22 : .09));
-    gain.connect(ctx.destination);
-    const tones = type === "success" ? [440, 660] : [type === "open" ? 330 : 260];
-    tones.forEach((frequency, index) => {
-      const osc = ctx.createOscillator();
-      osc.type = index ? "sine" : "triangle";
-      osc.frequency.setValueAtTime(frequency, now + index * .045);
-      osc.connect(gain);
-      osc.start(now + index * .045);
-      osc.stop(now + .24);
-    });
+  function installSettings() {
+    document.querySelectorAll("[data-nexus-preference]").forEach((element) => element.addEventListener("change", () => {
+      const name = element.dataset.nexusPreference;
+      preferences[name] = element.type === "checkbox" ? (element.checked ? "on" : "off") : element.value;
+      try { window.localStorage.setItem(preferenceKey, JSON.stringify(preferences)); } catch {}
+      applyPreferences();
+    }));
   }
 
-  function haptic(pattern = 10) {
-    if (settings.haptics === "on" && navigator.vibrate) navigator.vibrate(pattern);
-  }
-
-  function icon(name) {
-    const icons = {
-      command: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6H7a3 3 0 1 0 3 3V7a3 3 0 1 0-3 3h10a3 3 0 1 0-3-3v10a3 3 0 1 0 3-3H7a3 3 0 1 0 3 3v-2"/></svg>',
-      settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21H9.6v-.1A1.7 1.7 0 0 0 8.2 19.3a1.7 1.7 0 0 0-1.87.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 3.8 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H2V9.6h.1A1.7 1.7 0 0 0 3.7 8.2a1.7 1.7 0 0 0-.34-1.87l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 8 3.8a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V2h4v.1A1.7 1.7 0 0 0 14.8 3.7a1.7 1.7 0 0 0 1.87-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.2 8a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.1v4h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>'
-    };
-    return icons[name] || "";
-  }
-
-  function installBoot() {
-    const boot = document.createElement("div");
-    boot.className = "sonara-boot";
-    boot.innerHTML = '<div class="sonara-boot-core"><img class="sonara-boot-logo" src="/brand/sonara-industries-mark.svg" alt=""><div class="sonara-boot-track"></div><div class="sonara-boot-label">SONARA NEXUS</div></div>';
-    document.body.prepend(boot);
-    const done = () => requestAnimationFrame(() => boot.classList.add("is-ready"));
-    if (document.readyState === "complete") setTimeout(done, 120); else addEventListener("load", () => setTimeout(done, 120), { once: true });
-    setTimeout(done, 1400);
-  }
-
-  function installTransition() {
-    const layer = document.createElement("div");
-    layer.className = "sonara-route-transition";
-    layer.innerHTML = '<div class="sonara-route-orbit" aria-label="Loading"></div>';
-    document.body.append(layer);
+  function installRouteProgress() {
+    const progress = document.querySelector(".nexus-route-progress");
     document.addEventListener("click", (event) => {
-      const link = event.target.closest("a[href]");
-      if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || link.target === "_blank") return;
-      const url = new URL(link.href, location.href);
-      if (url.origin !== location.origin || url.pathname === location.pathname && url.hash) return;
-      audioCue("open"); haptic(12); layer.classList.add("is-active");
+      const link = event.target.closest?.("a[href]");
+      if (!link || event.metaKey || event.ctrlKey) return;
+      const url = new window.URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.hash) return;
+      if (!document.startViewTransition) progress?.classList.add("is-active");
     });
   }
 
-  function installPalette() {
-    const palette = document.createElement("div");
-    palette.className = "sonara-palette";
-    palette.setAttribute("role", "dialog");
-    palette.setAttribute("aria-modal", "true");
-    palette.innerHTML = '<div class="sonara-dialog"><div class="sonara-dialog-head"><input id="sonara-command-search" autocomplete="off"><button type="button" data-close>×</button></div><div class="sonara-command-list"></div></div>';
-    document.body.append(palette);
-    const input = palette.querySelector("input");
-    const list = palette.querySelector(".sonara-command-list");
-    const render = (query = "") => {
-      const copy = labels[settings.language] || labels.en;
-      const filtered = routes.filter(([, key]) => copy[key].toLowerCase().includes(query.toLowerCase()));
-      list.innerHTML = filtered.map(([path, key, glyph]) => `<a href="${path}"><span class="sonara-command-icon">${glyph}</span><strong>${copy[key]}</strong><span class="sonara-command-meta">${path}</span></a>`).join("");
-    };
-    const open = () => { render(); input.placeholder = (labels[settings.language] || labels.en).search; palette.classList.add("is-open"); setTimeout(() => input.focus(), 30); audioCue("open"); };
-    const close = () => palette.classList.remove("is-open");
-    input.addEventListener("input", () => render(input.value));
-    palette.addEventListener("click", (event) => { if (event.target === palette || event.target.closest("[data-close]")) close(); });
-    document.addEventListener("keydown", (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); palette.classList.contains("is-open") ? close() : open(); }
-      if (event.key === "Escape") close();
+  function initialize() {
+    applyPreferences();
+    installHero();
+    installRevealMotion();
+    installParallax();
+    installDialogs();
+    installSettings();
+    installTactileFeedback();
+    installRouteProgress();
+    root.classList.add("nexus-ready");
+    root.classList.remove("nexus-loading");
+    const loader = document.querySelector("#nexus-loader");
+    if (loader) window.setTimeout(() => { loader.hidden = true; }, 320);
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  else initialize();
+})();
+
+"use strict";
+
+(() => {
+  const initialize = () => document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const input = document.getElementById(button.getAttribute("data-toggle-password"));
+      if (!input) return;
+      const hidden = input.type === "password";
+      input.type = hidden ? "text" : "password";
+      button.textContent = hidden ? "Hide password" : "Show password";
+      button.setAttribute("aria-pressed", String(hidden));
     });
-    return open;
-  }
-
-  function installPreferences() {
-    const panel = document.createElement("div");
-    panel.className = "sonara-preferences";
-    panel.setAttribute("role", "dialog");
-    panel.setAttribute("aria-modal", "true");
-    const copy = labels[settings.language] || labels.en;
-    panel.innerHTML = `<div class="sonara-dialog"><div class="sonara-dialog-head"><strong>${copy.preferences}</strong><button type="button" data-close>×</button></div><div class="sonara-settings-body">
-      ${settingRow(copy.theme, "theme", [["dark",copy.dark],["light",copy.light],["system",copy.system]])}
-      ${settingRow(copy.motion, "motion", [["full",copy.full],["reduced",copy.reduced]])}
-      ${settingRow(copy.sound, "sound", [["off",copy.off],["on",copy.on]])}
-      ${settingRow(copy.haptics, "haptics", [["off",copy.off],["on",copy.on]])}
-      ${settingRow(copy.language, "language", [["en","English"],["es","Español"]])}
-    </div></div>`;
-    document.body.append(panel);
-    panel.querySelectorAll("select[data-setting]").forEach((select) => {
-      const key = select.dataset.setting;
-      select.value = settings[key];
-      select.addEventListener("change", () => {
-        settings[key] = select.value; storage.set(`sonara-${key}`, select.value); applyPreferences(); audioCue("success"); haptic([8,25,8]); showToast("Saved");
-        if (key === "language") setTimeout(() => location.reload(), 220);
-      });
-    });
-    const open = () => { panel.classList.add("is-open"); audioCue("open"); };
-    const close = () => panel.classList.remove("is-open");
-    panel.addEventListener("click", (event) => { if (event.target === panel || event.target.closest("[data-close]")) close(); });
-    document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
-    return open;
-  }
-
-  function settingRow(label, key, options) {
-    return `<label class="sonara-setting"><span><strong>${label}</strong><small>${key === "sound" || key === "haptics" ? "Optional and off by default" : "Saved on this device"}</small></span><select data-setting="${key}">${options.map(([value,text]) => `<option value="${value}">${text}</option>`).join("")}</select></label>`;
-  }
-
-  function showToast(message) {
-    let toast = document.querySelector(".sonara-toast");
-    if (!toast) { toast = document.createElement("div"); toast.className = "sonara-toast"; document.body.append(toast); }
-    toast.textContent = message; toast.classList.add("is-visible"); clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 1300);
-  }
-
-  function installDock(openPalette, openPreferences) {
-    const dock = document.createElement("div");
-    dock.className = "sonara-utility-dock";
-    dock.innerHTML = `<button type="button" aria-label="Command palette">${icon("command")}</button><button type="button" aria-label="Experience settings">${icon("settings")}</button>`;
-    const [command, prefs] = dock.querySelectorAll("button");
-    command.addEventListener("click", () => { haptic(8); openPalette(); });
-    prefs.addEventListener("click", () => { haptic(8); openPreferences(); });
-    document.body.append(dock);
-  }
-
-  function markCurrentRoute() {
-    document.querySelectorAll("header a[href]").forEach((link) => {
-      const path = new URL(link.href, location.href).pathname;
-      const active = path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-      if (active) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
-    });
-  }
-
-  function renameVisibleProducts() {
-    const replacements = new Map([["Business Builder","SONARA Forge"],["Creator Studio","SONARA Canvas"],["Growth Studio","SONARA Signal"]]);
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-      acceptNode(node) { return node.parentElement?.closest("script,style") ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT; }
-    });
-    const nodes = [];
-    while (walker.nextNode()) nodes.push(walker.currentNode);
-    nodes.forEach((node) => replacements.forEach((next, old) => { if (node.nodeValue.includes(old)) node.nodeValue = node.nodeValue.replaceAll(old, next); }));
-    replacements.forEach((next, old) => { if (document.title.includes(old)) document.title = document.title.replaceAll(old, next); });
-  }
-
-  applyPreferences();
-  renameVisibleProducts();
-  markCurrentRoute();
-  installBoot();
-  installTransition();
-  const openPalette = installPalette();
-  const openPreferences = installPreferences();
-  installDock(openPalette, openPreferences);
-
-  document.addEventListener("pointerdown", (event) => {
-    if (event.target.closest("button,.action,summary")) { audioCue("tap"); haptic(6); }
-  }, { passive: true });
+  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialize, { once: true });
+  else initialize();
 })();
