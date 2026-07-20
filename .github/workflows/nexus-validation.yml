@@ -38,13 +38,23 @@ jobs:
         run: pnpm run apply:runtime
 
       - name: Run full test suite
+        id: tests
         shell: bash
         run: |
           set +e
           pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/nexus-tests.log 2>&1
           status=$?
-          tail -n 180 /tmp/nexus-tests.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
+
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-test-diagnostics
+          path: /tmp/nexus-tests.log
+          if-no-files-found: error
+          retention-days: 3
 
       - name: Verify server build
         run: pnpm run build
