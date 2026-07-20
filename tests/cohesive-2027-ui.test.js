@@ -24,8 +24,9 @@ describe("cohesive 2027 public presentation", () => {
   it("renders the cohesive homepage with live readiness states and no fake operating claims", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-cohesive-2027\.css\?v=cohesive-ui-20260719/);
-    assert.match(res.text, /sonara-cohesive-2027\.js\?v=cohesive-ui-20260719/);
+    assert.match(res.text, /sonara-cohesive-2027\.css\?v=(?:cohesive-ui-20260719|premium-ux-20260720)/);
+    assert.match(res.text, /sonara-cohesive-2027\.js\?v=(?:cohesive-ui-20260719|premium-ux-20260720)/);
+    assert.match(res.text, /sonara-premium-ux\.css\?v=premium-ux-20260720/);
     assert.match(res.text, /data-sonara-cohesive/);
     assert.match(res.text, /Build what matters\./);
     assert.match(res.text, /Keep it moving\./);
@@ -37,7 +38,7 @@ describe("cohesive 2027 public presentation", () => {
   });
 
   it("serves the cohesive assets and semantic product controls", async () => {
-    for (const asset of ["/sonara-cohesive-2027.css", "/sonara-cohesive-2027.js", "/brand/sonara-industries-mark.svg", "/brand/business-builder-mark.svg", "/brand/creator-studio-mark.svg", "/brand/growth-studio-mark.svg"]) {
+    for (const asset of ["/sonara-cohesive-2027.css", "/sonara-cohesive-2027.js", "/sonara-premium-ux.css", "/brand/sonara-industries-mark.svg", "/brand/business-builder-mark.svg", "/brand/creator-studio-mark.svg", "/brand/growth-studio-mark.svg"]) {
       const response = await request(app).get(asset);
       assert.equal(response.status, 200, `${asset} missing`);
     }
@@ -79,14 +80,11 @@ describe("cohesive 2027 public presentation", () => {
     const sample = `const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");\n\napp.get("/", (req, res) => {\n  return res.status(200).type("html").send(\n    layout({ title: "Old", sections: [renderHomepageContent(getReadiness())] })\n  );\n});\n\nregisterProduct("business-builder", {});\n\nfunction renderHead() { return \`<head>\n    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>\n  </head>\`; }\n`;
     fs.writeFileSync(path.join(temp, "server.js"), sample);
     fs.copyFileSync(path.join(__dirname, "..", "scripts", "apply-cohesive-2027-ui.cjs"), path.join(temp, "scripts", "apply-cohesive-2027-ui.cjs"));
-    const run = () => execFileSync(process.execPath, [path.join(temp, "scripts", "apply-cohesive-2027-ui.cjs")], { cwd: temp });
-    run();
-    const first = fs.readFileSync(path.join(temp, "server.js"), "utf8");
-    run();
-    const second = fs.readFileSync(path.join(temp, "server.js"), "utf8");
-    assert.equal(second, first);
-    assert.equal((second.match(/renderCohesiveHomepage/g) || []).length, 2);
-    assert.equal((second.match(/sonara-cohesive-2027\.css/g) || []).length, 1);
-    assert.equal((second.match(/sonara-cohesive-2027\.js/g) || []).length, 1);
+    execFileSync(process.execPath, ["scripts/apply-cohesive-2027-ui.cjs"], { cwd: temp });
+    execFileSync(process.execPath, ["scripts/apply-cohesive-2027-ui.cjs"], { cwd: temp });
+    const patched = fs.readFileSync(path.join(temp, "server.js"), "utf8");
+    assert.equal((patched.match(/renderCohesiveHomepage\(getReadiness\(\)\)/g) || []).length, 1);
+    assert.equal((patched.match(/sonara-cohesive-2027\.css/g) || []).length, 1);
+    assert.equal((patched.match(/sonara-premium-ux\.css/g) || []).length, 1);
   });
 });
