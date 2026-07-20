@@ -48,8 +48,19 @@ jobs:
             sleep 1
           done
           test "$ready" = "true"
+          grep --quiet '"ok":true' /tmp/sonara-health.json
+          grep --quiet '"app":"sonara-industries"' /tmp/sonara-health.json
 
           curl --fail --silent --show-error http://127.0.0.1:3000/ > /tmp/sonara-home.html
-          grep --quiet 'sonara-builder-2027.css' /tmp/sonara-home.html
-          grep --quiet 'data-sonara-builder' /tmp/sonara-home.html
-          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-builder-2027.css > /dev/null
+          grep --quiet 'sonara-application-ui.css' /tmp/sonara-home.html
+          grep --quiet 'sonara-prepaint.js' /tmp/sonara-home.html
+          grep --quiet 'sonara-nexus.js' /tmp/sonara-home.html
+          grep --quiet 'data-sonara-interface="live"' /tmp/sonara-home.html
+
+          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-application-ui.css > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-prepaint.js > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-nexus.js > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/api/ecosystem/readiness > /tmp/ecosystem-readiness.json
+          curl --fail --silent --show-error http://127.0.0.1:3000/api/formulas/readiness > /tmp/formula-readiness.json
+          grep --quiet '"mode":"static"' /tmp/ecosystem-readiness.json
+          grep --quiet '"mode":"static"' /tmp/formula-readiness.json
