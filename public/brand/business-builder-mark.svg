@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Forge mark">
-  <title>SONARA Forge mark</title><desc>An original angular prism wave forming a rising forge and operating path.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Business Builder Prism Forge-mode mark">
+  <title>Business Builder Prism mark</title><desc>An original angular prism wave representing Forge mode and a rising operating path.</desc>
   <defs><linearGradient id="f" x1="21" y1="103" x2="106" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".55" stop-color="#FF7A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient><filter id="g" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
   <path d="M20 94 48 66l15 15 40-47" fill="none" stroke="url(#f)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)"/>
   <path d="M28 103h72M43 92V75M64 92V78M85 92V58" fill="none" stroke="#171C2C" stroke-width="6" stroke-linecap="round"/>
