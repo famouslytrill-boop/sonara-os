@@ -4,7 +4,7 @@
 
 This document turns public product patterns from leading technology, retail, automotive, entertainment, gaming, media, and consumer-electronics companies into an **original SONARA design system**. It does not permit copying trademarks, logos, proprietary source code, copyrighted sounds, character art, screen layouts, or distinctive trade dress.
 
-SONARA remains **SONARA Industries**. The operating layer is **SONARA Nexus**. Its three product modes are **SONARA Forge**, **SONARA Canvas**, and **SONARA Signal**. Existing route slugs remain stable for compatibility.
+SONARA remains **SONARA Industries**. The operating layer is **SONARA Nexus**. The approved child-company names remain **Business Builder**, **Creator Studio**, and **Growth Studio**. **Forge**, **Canvas**, and **Signal** are interaction-mode labels inside Nexus, not replacement company names. Existing route slugs remain stable for compatibility.
 
 ## Research groups
 
@@ -89,9 +89,9 @@ Applied patterns:
 - Promise: **Build what moves you.**
 - System headline: **Make work move.**
 - Audience: founders, creators, and small teams
-- **SONARA Forge** — shape and operate the business
-- **SONARA Canvas** — create, organize, release, and monetize
-- **SONARA Signal** — reach people, learn from outcomes, and improve
+- **Business Builder** — shape and operate the business; uses **Forge mode** interaction language
+- **Creator Studio** — create, organize, release, and monetize; uses **Canvas mode** interaction language
+- **Growth Studio** — reach people, learn from outcomes, and improve; uses **Signal mode** interaction language
 
 ## Voice and marketing rules
 
@@ -114,13 +114,13 @@ Applied patterns:
 
 ## Localization specification
 
-Initial shell languages: English, Spanish, French, and German.
+Initial interface languages: English, Spanish, French, and German.
 
 Requirements:
 - update the document language
 - native-language option labels
 - keyboard and screen-reader operability
-- no claim of full-document translation when only the shell is translated
+- no claim of full-document translation when only the interface is translated
 - architecture compatible with future right-to-left content
 
 ## Technical architecture
@@ -145,12 +145,13 @@ The permitted result is an **original SONARA system** informed by public design 
 
 ## Acceptance criteria
 
-- one coherent desktop, tablet, and mobile shell
+- one coherent desktop, tablet, and mobile interface
 - original Prism Wave SVG family
 - no fixed bottom navigation or overlapping mobile panels
 - command navigation and visible focus
 - optional motion, sound, haptics, appearance, and language preferences
 - honest loading and route transitions
 - product and pricing language tied to real capabilities
+- approved company names preserved across the application
 - no legacy visual authority
 - tests, build, deployment, and live-route verification before promotion
