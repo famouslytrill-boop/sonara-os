@@ -71,20 +71,23 @@ describe("premium application rebuild", () => {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.match(res.text, /sonara-brand-mark/);
       assert.match(res.text, /\/brand\/sonara-industries-mark\.svg/);
-      assert.match(res.text, /SONARA/);
+      assert.match(res.text, /SONARA Industries/);
       assert.match(res.text, /Nexus/);
     });
   });
 
   describe("Nexus application frame", () => {
-    it("homepage tells the product story in plain outcome language", async function() {
+    it("homepage tells the company story in plain outcome language", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.equal(res.status, 200);
       assert.match(res.text, /Make work move\./);
-      assert.match(res.text, /One system\. Three ways to move\./);
-      assert.match(res.text, /SONARA Forge/);
-      assert.match(res.text, /SONARA Canvas/);
-      assert.match(res.text, /SONARA Signal/);
+      assert.match(res.text, /One operating layer\. Three focused workspaces\./);
+      assert.match(res.text, /Business Builder/);
+      assert.match(res.text, /Creator Studio/);
+      assert.match(res.text, /Growth Studio/);
+      assert.match(res.text, /FORGE MODE/);
+      assert.match(res.text, /CANVAS MODE/);
+      assert.match(res.text, /SIGNAL MODE/);
       assert.match(res.text, /href="\/service-catalog"/);
       assert.match(res.text, /href="\/requests"/);
       assert.match(res.text, /href="\/deliverables"/);
@@ -164,16 +167,16 @@ describe("premium application rebuild", () => {
   });
 
   describe("product isolation routes", () => {
-    it("product request views are scoped per product", async function() {
+    it("product request views are scoped per approved company", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
       global.fetch = customerFetchMock();
       try {
         for (const [route, name] of [
-          ["/business-builder/requests", "SONARA Forge requests"],
-          ["/creator-studio/requests", "SONARA Canvas requests"],
-          ["/growth-studio/requests", "SONARA Signal requests"]
+          ["/business-builder/requests", "Business Builder requests"],
+          ["/creator-studio/requests", "Creator Studio requests"],
+          ["/growth-studio/requests", "Growth Studio requests"]
         ]) {
           const res = await request(app).get(route).set("Authorization", "Bearer customer-session").set("Accept", "text/html");
           assert.equal(res.status, 200, `${route} should render for a logged-in customer`);
@@ -185,7 +188,7 @@ describe("premium application rebuild", () => {
       }
     });
 
-    it("content planning pages exist for Canvas and Signal", async function() {
+    it("content planning pages exist for Creator Studio and Growth Studio", async function() {
       for (const route of ["/creator-studio/content", "/growth-studio/content"]) {
         const res = await request(app).get(route).set("Accept", "text/html");
         assert.equal(res.status, 200);
