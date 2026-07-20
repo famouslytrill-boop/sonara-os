@@ -3,14 +3,17 @@ const assert = require("assert");
 const app = require("../server");
 
 describe("SONARA Nexus product experience", () => {
-  it("presents the re-engineered product family", async () => {
+  it("presents the re-engineered company family and Nexus modes", async () => {
     const res = await request(app).get("/");
     assert.equal(res.status, 200);
     assert.match(res.text, /Make work move\./);
-    assert.match(res.text, /SONARA Forge/);
-    assert.match(res.text, /SONARA Canvas/);
-    assert.match(res.text, /SONARA Signal/);
-    assert.match(res.text, /One system\. Three ways to move\./);
+    assert.match(res.text, /Business Builder/);
+    assert.match(res.text, /Creator Studio/);
+    assert.match(res.text, /Growth Studio/);
+    assert.match(res.text, /FORGE MODE/);
+    assert.match(res.text, /CANVAS MODE/);
+    assert.match(res.text, /SIGNAL MODE/);
+    assert.match(res.text, /One operating layer\. Three focused workspaces\./);
     assert.match(res.text, /nexus-product-grid/);
   });
 
@@ -27,9 +30,9 @@ describe("SONARA Nexus product experience", () => {
       assert.match(asset.headers["content-type"], /svg/);
     }
     assert.match(bodies[0], /SONARA Prism Wave/);
-    assert.match(bodies[1], /SONARA Forge mark/);
-    assert.match(bodies[2], /SONARA Canvas mark/);
-    assert.match(bodies[3], /SONARA Signal mark/);
+    assert.match(bodies[1], /Business Builder Prism mark/);
+    assert.match(bodies[2], /Creator Studio Prism mark/);
+    assert.match(bodies[3], /Growth Studio Prism mark/);
   });
 
   it("keeps original sound and haptics optional", async () => {
