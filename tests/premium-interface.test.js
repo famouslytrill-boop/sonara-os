@@ -19,12 +19,12 @@ describe("SONARA Nexus interface QA", () => {
     assert.match(engine.text, /sonara:nexus:preferences:v1/);
   });
 
-  it("renders a responsive brand shell with command and experience controls", async () => {
+  it("renders a responsive brand interface with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260720-v2/);
-    assert.match(res.text, /sonara-prepaint\.js\?v=nexus-ui-20260720-v2/);
-    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260720-v2/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260720-v3/);
+    assert.match(res.text, /sonara-prepaint\.js\?v=nexus-ui-20260720-v3/);
+    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260720-v3/);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);
@@ -47,7 +47,7 @@ describe("SONARA Nexus interface QA", () => {
     }
   });
 
-  it("prevents rejected legacy shells", async () => {
+  it("prevents rejected legacy interfaces", async () => {
     const res = await request(app).get("/");
     assert.doesNotMatch(res.text, /Keep it moving/i);
     assert.doesNotMatch(res.text, /Launch command center/i);
