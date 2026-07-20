@@ -38,16 +38,18 @@ describe("SONARA Nexus product experience", () => {
   it("keeps original sound and haptics optional", async () => {
     const engine = await request(app).get("/sonara-nexus.js");
     assert.equal(engine.status, 200);
-    assert.match(engine.text, /sound:"off"/);
-    assert.match(engine.text, /haptics:"on"/);
-    assert.match(engine.text, /preferences\.sound!=="on"/);
-    assert.match(engine.text, /preferences\.haptics==="on"/);
+    assert.match(engine.text, /sound\s*:\s*"off"/);
+    assert.match(engine.text, /haptics\s*:\s*"on"/);
+    assert.match(engine.text, /preferences\.sound\s*!==\s*"on"/);
+    assert.match(engine.text, /preferences\.haptics\s*===\s*"on"/);
     assert.doesNotMatch(engine.text, /\.mp3|\.wav|\.ogg/i);
   });
 
   it("provides localized interface dictionaries and accessible settings", async () => {
     const [page, engine] = await Promise.all([request(app).get("/"), request(app).get("/sonara-nexus.js")]);
-    for (const language of ["en", "es", "fr", "de"]) assert.match(engine.text, new RegExp(`${language}:\\{`));
+    for (const language of ["en", "es", "fr", "de"]) {
+      assert.match(engine.text, new RegExp(`${language}\\s*:\\s*\\{`));
+    }
     for (const value of ["en", "es", "fr", "de"]) assert.match(page.text, new RegExp(`<option value="${value}"`));
     assert.match(page.text, /aria-live="polite"/);
     assert.match(page.text, /aria-labelledby="nexus-settings-title"/);
