@@ -1,1 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Canvas mark"><title>SONARA Canvas</title><defs><linearGradient id="c" x1="18" y1="18" x2="110" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#C35CFF"/><stop offset=".52" stop-color="#FF4DA6"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient></defs><rect x="8" y="8" width="112" height="112" rx="30" fill="#111522"/><path d="M26 68c10-31 25-45 39-41 15 4 11 29 23 34 9 4 16-3 22-15-5 31-20 52-37 54-17 2-15-27-29-31-7-2-13 2-18 9z" fill="none" stroke="url(#c)" stroke-width="11" stroke-linecap="round"/><circle cx="65" cy="64" r="8" fill="#F8FAFC"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">SONARA Canvas mark</title><desc id="desc">An original looping prism wave surrounding a creative play aperture.</desc>
+  <defs><linearGradient id="c" x1="21" y1="24" x2="107" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#A855F7"/><stop offset="1" stop-color="#526BFF"/></linearGradient><filter id="g" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <path d="M101 42c-12-21-42-28-64-13C16 43 17 75 38 89c21 14 50 5 55-17 5-22-16-39-36-31-20 8-22 34-4 44" fill="none" stroke="url(#c)" stroke-width="12" stroke-linecap="round" filter="url(#g)"/>
+  <path d="m58 48 25 16-25 16z" fill="#FFF" stroke="#171C2C" stroke-width="5" stroke-linejoin="round"/>
+  <circle cx="101" cy="42" r="6" fill="#FFF" stroke="#171C2C" stroke-width="4"/>
+</svg>
