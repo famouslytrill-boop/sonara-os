@@ -1,0 +1,12 @@
+/* Compatibility with existing server-rendered card grids while Nexus remains the only visual authority. */
+.sonara-standard-page .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 680px) {
+  .sonara-standard-page .grid {
+    grid-template-columns: 1fr;
+  }
+}
