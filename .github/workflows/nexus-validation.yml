@@ -1,0 +1,51 @@
+name: Nexus Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/nexus-experience-engine]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nexus-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, test, and security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.1.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate final runtime
+        run: pnpm run apply:runtime
+
+      - name: Run full test suite
+        run: pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests
+
+      - name: Verify server build
+        run: pnpm run build
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Scan client bundle for secrets
+        run: pnpm run scan:client-secrets
