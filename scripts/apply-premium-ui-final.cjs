@@ -3,83 +3,110 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const serverPath = path.join(process.cwd(), "server.js");
-if (!fs.existsSync(serverPath)) {
-  console.error("server.js not found. Run from repository root.");
+const root = process.cwd();
+const serverPath = path.join(root, "server.js");
+const version = "nexus-ui-20260720-v2";
+
+function fail(message) {
+  console.error(message);
   process.exit(1);
 }
+
+function assemble(directory, output) {
+  const sourceDirectory = path.join(root, directory);
+  if (!fs.existsSync(sourceDirectory)) fail(`Missing ${directory}`);
+  const files = fs.readdirSync(sourceDirectory).filter((file) => /\.(css|js)$/.test(file)).sort();
+  if (!files.length) fail(`No source modules in ${directory}`);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, files.map((file) => fs.readFileSync(path.join(sourceDirectory, file), "utf8")).join("\n"));
+}
+
+if (!fs.existsSync(serverPath)) fail("server.js not found");
+assemble("ui/nexus/styles", path.join(root, "public", "sonara-application-ui.css"));
+assemble("ui/nexus/scripts", path.join(root, "public", "sonara-nexus.js"));
+const prepaint = path.join(root, "ui", "nexus", "prepaint.js");
+if (!fs.existsSync(prepaint)) fail("Missing Nexus prepaint source");
+fs.copyFileSync(prepaint, path.join(root, "public", "sonara-prepaint.js"));
 
 let source = fs.readFileSync(serverPath, "utf8");
-const version = "sonara-nexus-20260720-v6";
 
-const cleanRootRoute = `app.get("/", (req, res) => {
-  return res.status(200).type("html").send(
-    layout({
-      title: "SONARA Industries",
-      eyebrow: "SONARA NEXUS",
-      heading: "Make work move.",
-      variant: "home",
-      body: "One responsive operating layer for shaping a business, creating original work, reaching customers, and keeping every next action visible.",
-      sections: [renderHomepageContent(getReadiness())],
-      actions: [
-        linkAction("/signup", "Enter SONARA"),
-        linkAction("/free-tools", "Launch a free tool"),
-        linkAction("/pricing", "Compare access")
-      ]
-    })
-  );
-});`;
-const rootPattern = /app\.get\("\/", \(req, res\) => \{[\s\S]*?\n\}\);\n\nregisterProduct\("business-builder"/;
-if (rootPattern.test(source)) source = source.replace(rootPattern, `${cleanRootRoute}\n\nregisterProduct("business-builder"`);
+const nav = `
+        <a href="/start" data-i18n="platform">Platform</a>
+        <a href="/business-builder" data-i18n="forge">SONARA Forge</a>
+        <a href="/creator-studio" data-i18n="canvas">SONARA Canvas</a>
+        <a href="/growth-studio" data-i18n="signal">SONARA Signal</a>
+        <a href="/free-tools" data-i18n="tools">Free tools</a>
+        <a href="/pricing" data-i18n="pricing">Pricing</a>
+        <a href="/support" data-i18n="support">Support</a>
+        <a href="/login" data-i18n="login">Log in</a>
+        <a class="sonara-nav-primary" href="/signup" data-i18n="start">Start Free</a>`;
 
-const navigationLinks = `
-        <a href="/start">Nexus</a>
-        <a href="/business-builder">Forge</a>
-        <a href="/creator-studio">Canvas</a>
-        <a href="/growth-studio">Signal</a>
-        <a href="/free-tools">Tools</a>
-        <a href="/pricing">Access</a>
-        <a href="/support">Support</a>
-        <a href="/login">Log in</a>
-        <a class="sonara-nav-primary" href="/signup">Enter SONARA</a>`;
-
-const cleanHeader = `<header class="sonara-site-header">
-      <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="38" height="38"> SONARA <span>Nexus</span></a>
-      <nav class="sonara-desktop-nav" aria-label="Primary">${navigationLinks}
+const header = `<header class="sonara-site-header">
+      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="36" height="36"><span class="nexus-brand-copy"><strong>SONARA</strong><small>Nexus</small></span></a>
+      <nav class="sonara-desktop-nav" aria-label="Primary">${nav}
       </nav>
-      <details class="sonara-mobile-menu">
-        <summary aria-label="Open navigation">Menu</summary>
-        <nav aria-label="Mobile primary">${navigationLinks}
-        </nav>
-      </details>
+      <div class="nexus-header-tools">
+        <button type="button" class="nexus-icon-button" data-nexus-command aria-haspopup="dialog" aria-controls="nexus-command-dialog" aria-label="Open command navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m14.5 14.5 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="nexus-tool-label" data-i18n="command">Command</span><kbd class="nexus-key">⌘K</kbd></button>
+        <button type="button" class="nexus-icon-button" data-nexus-settings aria-haspopup="dialog" aria-controls="nexus-settings-dialog" aria-label="Open experience settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M8 12h8M6 17h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="nexus-tool-label" data-i18n="experience">Experience</span></button>
+      </div>
+      <details class="sonara-mobile-menu"><summary aria-label="Open navigation" data-i18n="menu">Menu</summary><nav aria-label="Mobile primary">${nav}
+      </nav></details>
     </header>`;
-source = source.replace(/<header(?:\s[^>]*)?>[\s\S]*?<\/header>/, cleanHeader);
+
+const homeContent = `<div class="nexus-home">
+  <section class="nexus-section"><div class="nexus-section-head"><div><span class="nexus-kicker" data-i18n="productsKicker">Three operating modes</span><h2 data-i18n="productsHeading">One system. Three ways to move.</h2></div><p data-i18n="productsBody">Each workspace has its own rhythm, records, and tools while identity, billing, support, and delivery remain connected.</p></div>
+    <div class="nexus-product-grid">
+      <article class="nexus-product nexus-product--forge"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/business-builder-mark.svg" alt=""><span class="nexus-product-index">01 · OPERATE</span></div><h3>SONARA Forge</h3><p>Shape the offer, customer path, records, payment readiness, and operating rhythm.</p><a href="/business-builder/dashboard">Open Forge</a></article>
+      <article class="nexus-product nexus-product--canvas"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/creator-studio-mark.svg" alt=""><span class="nexus-product-index">02 · CREATE</span></div><h3>SONARA Canvas</h3><p>Organize assets, rights, releases, media systems, offers, and monetization.</p><a href="/creator-studio/dashboard">Open Canvas</a></article>
+      <article class="nexus-product nexus-product--signal"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/growth-studio-mark.svg" alt=""><span class="nexus-product-index">03 · REACH</span></div><h3>SONARA Signal</h3><p>Plan campaigns, manage leads, protect consent, and learn from real outcomes.</p><a href="/growth-studio/dashboard">Open Signal</a></article>
+    </div>
+  </section>
+  <section class="nexus-section nexus-flow"><div class="nexus-flow-copy"><span class="nexus-kicker" data-i18n="flowKicker">Designed for momentum</span><h2 data-i18n="flowHeading">From intent to outcome without losing context.</h2><p>Every next action, saved record, payment state, request, and deliverable stays connected and evidence-backed.</p><div class="card-actions"><a class="action" href="/start">See the operating model</a><a class="action" href="/requests">Track requests</a></div></div><div class="nexus-flow-list"><div class="nexus-flow-step"><strong>Choose the outcome</strong><small>Start from a product, free tool, or supported service.</small></div><div class="nexus-flow-step"><strong>Create useful work</strong><small>Complete one focused step with clear inputs.</small></div><div class="nexus-flow-step"><strong>Confirm the truth</strong><small>Billing, database, and delivery states remain real.</small></div><div class="nexus-flow-step"><strong>Keep momentum</strong><small>Return without rebuilding context.</small></div></div></section>
+  <section class="nexus-cta"><div><span class="nexus-kicker" data-i18n="ctaKicker">Start with the next useful action</span><h2 data-i18n="ctaHeading">Build something real before adding complexity.</h2><p>Explore for free. Upgrade when saved work, deeper records, and support become valuable.</p></div><div class="card-actions"><a class="action" href="/signup">Start Free</a><a class="action" href="/free-tools">Try a free tool</a><a class="action" href="/pricing">See plans</a></div></section>
+</div>`;
+
+const rootRoute = `app.get("/", (req, res) => {
+  return res.status(200).type("html").send(layout({
+    title: "SONARA Industries",
+    eyebrow: "Adaptive operating system",
+    heading: "Make work move.",
+    variant: "home",
+    body: "Shape the business, create the release, reach the audience, and keep every next action connected through one fast operating layer.",
+    sections: [${JSON.stringify(homeContent)}],
+    actions: [linkAction("/start", "Enter SONARA Nexus"), linkAction("/free-tools", "Explore free tools"), linkAction("/pricing", "See plans")]
+  }));
+});`;
+
+source = source.replace(/app\.get\("\/", \(req, res\) => \{[\s\S]*?\n\}\);\n\nregisterProduct\("business-builder"/, `${rootRoute}\n\nregisterProduct("business-builder"`);
+source = source.replace(/<header(?:\s[^>]*)?>[\s\S]*?<\/header>/, header);
+source = source
+  .replace(/\n\s*<script data-sonara-theme-prepaint>[\s\S]*?<\/script>/, "")
+  .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-[^"]+\.css(?:\?v=[^"]+)?">/g, "")
+  .replace(/\n\s*<script(?: defer)? src="\/sonara-[^"]+\.js(?:\?v=[^"]+)?"><\/script>/g, "")
+  .replace(/\n\s*<script>\s*document\.querySelectorAll\("\[data-toggle-password\]"\)[\s\S]*?<\/script>/, "")
+  .replace(/\bBusiness Builder\b/g, "SONARA Forge")
+  .replace(/\bCreator Studio\b/g, "SONARA Canvas")
+  .replace(/\bGrowth Studio\b/g, "SONARA Signal");
 
 source = source
-  .replace(/var choice = "system";/, 'var choice = "dark";')
-  .replace(/window\.localStorage\.getItem\("sonara-appearance"\)/, 'window.localStorage.getItem("sonara-theme")')
-  .replace(/document\.documentElement\.setAttribute\("data-sonara-appearance", choice\);/, 'document.documentElement.setAttribute("data-sonara-theme", choice);')
-  .replace(/<meta name="theme-color" content="[^"]+">/, '<meta name="theme-color" content="#070910">')
-  .replace(/\n\s*<style>[\s\S]*?<\/style>/, "")
-  .replace(/\n\s*<link rel="preconnect" href="https:\/\/fonts\.(?:googleapis|gstatic)\.com"(?: crossorigin)?>/g, "")
-  .replace(/\n\s*<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^"]+">/g, "")
-  .replace(/\n\s*<link rel="stylesheet" href="\/(?:sonara-brand-system|sonara-friendly-premium|sonara-interface-engine|sonara-launch-ui|sonara-cohesive-2027|sonara-cohesive-2027-base|sonara-builder-2027|sonara-premium-mobile-fix|sonara-premium-access-2027|sonara-premium-ux|sonara-premium-mobile-final|sonara-application-ui)\.css(?:\?v=[^"]+)?">/g, "")
-  .replace(/\n\s*<script defer src="\/(?:sonara-experience|sonara-interface-engine|sonara-cohesive-2027|sonara-builder-2027|sonara-nexus)\.js(?:\?v=[^"]+)?"><\/script>/g, "")
-  .replace(/ data-sonara-interface="live"/g, "")
-  .replace(/\n\s*\$\{variant === "home" \? `<aside class="sonara-interface-face"[\s\S]*?<\/aside>` : ""\}/, "")
-  .replace(/\n\s*<nav class="sonara-quick-bar" aria-label="Quick actions">[\s\S]*?<\/nav>/, "");
+  .replace('<div class="eyebrow">${escapeHtml(eyebrow)}</div>', '<div class="eyebrow"${variant === "home" ? \' data-i18n="heroEyebrow"\' : ""}>${escapeHtml(eyebrow)}</div>')
+  .replace('<h1>${escapeHtml(heading)}</h1>', '<h1${variant === "home" ? \' data-i18n="heroHeading"\' : ""}>${escapeHtml(heading)}</h1>')
+  .replace('<p class="lede">${escapeHtml(body)}</p>', '<p class="lede"${variant === "home" ? \' data-i18n="heroBody"\' : ""}>${escapeHtml(body)}</p>');
+
+const loader = `<div id="nexus-loader" class="nexus-loader" role="status" aria-live="polite"><div class="nexus-loader__core"><img class="nexus-loader__mark" src="/brand/sonara-industries-mark.svg" alt=""><div class="nexus-loader__track" aria-hidden="true"></div><span class="nexus-loader__label">SONARA NEXUS</span></div></div><div class="nexus-route-progress" aria-hidden="true"></div>`;
+source = source.replace(/(<body class="\$\{escapeHtml\(brandClass\)\} \$\{variant === "home" \? "sonara-home-v3" : "sonara-standard-page"\}">)/, `$1\n    ${loader}`);
+
+const dialogs = `<dialog id="nexus-command-dialog" class="nexus-dialog" aria-labelledby="nexus-command-title"><div class="nexus-dialog__head"><strong id="nexus-command-title">Command</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-command-input"><label for="nexus-command-search">Navigate</label><input id="nexus-command-search" type="search" data-i18n="searchPlaceholder" placeholder="Search pages and actions"></div><ul class="nexus-command-list"></ul></dialog><dialog id="nexus-settings-dialog" class="nexus-dialog" aria-labelledby="nexus-settings-title"><div class="nexus-dialog__head"><strong id="nexus-settings-title" data-i18n="settingsTitle">Experience settings</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-settings"><label class="nexus-setting-row"><span><b data-i18n="language">Language</b><small data-i18n="languageHelp">Updates the interface shell and core product language.</small></span><select data-nexus-preference="language"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option><option value="fr" lang="fr">Français</option><option value="de" lang="de">Deutsch</option></select></label><label class="nexus-setting-row"><span><b data-i18n="appearance">Appearance</b><small data-i18n="appearanceHelp">Follow your device or choose light or dark.</small></span><select data-nexus-preference="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="nexus-setting-row"><span><b data-i18n="motion">Motion</b></span><input type="checkbox" data-nexus-preference="motion"></label><label class="nexus-setting-row"><span><b data-i18n="sound">Sound feedback</b></span><input type="checkbox" data-nexus-preference="sound"></label><label class="nexus-setting-row"><span><b data-i18n="haptics">Tactile feedback</b></span><input type="checkbox" data-nexus-preference="haptics"></label></div></dialog><div id="nexus-live" class="nexus-live" aria-live="polite"></div>`;
+source = source.replace(/\n\s*<\/body>/, `\n    ${dialogs}\n  </body>`);
 
 const staticAnchor = 'app.use(express.static(path.join(__dirname, "public")));';
-const noStoreMiddleware = `${staticAnchor}\napp.use((req, res, next) => {\n  if (req.method === "GET" && !path.extname(req.path)) {\n    res.set("Cache-Control", "no-store, max-age=0");\n  }\n  next();\n});`;
-if (source.includes(staticAnchor) && !source.includes('Cache-Control", "no-store, max-age=0')) source = source.replace(staticAnchor, noStoreMiddleware);
-
-const finalAssets = `    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-nexus.js?v=${version}"></script>`;
-const headClose = "  </head>";
-if (!source.includes(headClose)) {
-  console.error("Unable to locate document head close tag.");
-  process.exit(1);
+if (source.includes(staticAnchor) && !source.includes('Cache-Control", "no-store, max-age=0')) {
+  source = source.replace(staticAnchor, `${staticAnchor}\napp.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path)) res.set("Cache-Control", "no-store, max-age=0"); next(); });`);
 }
-source = source.replace(headClose, `${finalAssets}\n${headClose}`);
 
+const assets = `    <script src="/sonara-prepaint.js?v=${version}"></script>\n    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-nexus.js?v=${version}"></script>`;
+if (!source.includes("  </head>")) fail("Unable to locate document head");
+source = source.replace("  </head>", `${assets}\n  </head>`);
 fs.writeFileSync(serverPath, source);
-console.log("SONARA Nexus premium runtime applied with one visual authority, original motion, optional sound/haptics, command navigation, and localization controls.");
+console.log("SONARA Nexus experience engine applied.");
