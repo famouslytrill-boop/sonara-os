@@ -21,13 +21,14 @@ const securityMiddleware = `app.use((req, res, next) => {
   next();
 });`;
 
-const jsonAnchor = 'app.use(express.json({ limit: "64kb" }));';
 if (!source.includes(securityMiddleware)) {
-  if (!source.includes(jsonAnchor)) {
+  const jsonPattern = /app\.use\(express\.json\(\{\s*limit:\s*"[^"]+"\s*\}\)\);/;
+  const jsonMatch = source.match(jsonPattern);
+  if (!jsonMatch) {
     console.error("Unable to locate JSON middleware anchor.");
     process.exit(1);
   }
-  source = source.replace(jsonAnchor, `${jsonAnchor}\n\n${securityMiddleware}`);
+  source = source.replace(jsonPattern, `${jsonMatch[0]}\n\n${securityMiddleware}`);
 }
 
 source = source
