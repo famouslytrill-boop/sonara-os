@@ -53,14 +53,15 @@ if (!rootPattern.test(source)) {
 source = source
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-cohesive-2027\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<link rel="stylesheet" href="\/sonara-cohesive-2027-base\.css(?:\?v=[^"]+)?">/g, "")
+  .replace(/\n\s*<link rel="stylesheet" href="\/sonara-premium-ux\.css(?:\?v=[^"]+)?">/g, "")
   .replace(/\n\s*<script defer src="\/sonara-cohesive-2027\.js(?:\?v=[^"]+)?"><\/script>/g, "");
 
-const assetVersion = "cohesive-ui-20260719";
-const assetMarkup = `    <link rel="stylesheet" href="/sonara-cohesive-2027.css?v=${assetVersion}">\n    <link rel="stylesheet" href="/sonara-cohesive-2027-base.css?v=${assetVersion}">\n    <script defer src="/sonara-cohesive-2027.js?v=${assetVersion}"></script>`;
+const assetVersion = "premium-ux-20260720";
+const assetMarkup = `    <link rel="stylesheet" href="/sonara-cohesive-2027.css?v=${assetVersion}">\n    <link rel="stylesheet" href="/sonara-cohesive-2027-base.css?v=${assetVersion}">\n    <link rel="stylesheet" href="/sonara-premium-ux.css?v=${assetVersion}">\n    <script defer src="/sonara-cohesive-2027.js?v=${assetVersion}"></script>`;
 const interfaceAnchor = '    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>\n  </head>';
 if (source.includes(interfaceAnchor)) {
   source = source.replace(interfaceAnchor, `    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>\n${assetMarkup}\n  </head>`);
-} else if (!source.includes('/sonara-cohesive-2027.css')) {
+} else if (!source.includes('/sonara-premium-ux.css')) {
   const headClose = "  </head>";
   if (!source.includes(headClose)) {
     console.error("Unable to locate document head close tag.");
@@ -70,4 +71,4 @@ if (source.includes(interfaceAnchor)) {
 }
 
 fs.writeFileSync(serverPath, source);
-console.log("SONARA cohesive 2027 presentation applied to the accepted Express runtime.");
+console.log("SONARA cohesive 2027 presentation and premium UX layer applied to the accepted Express runtime.");
