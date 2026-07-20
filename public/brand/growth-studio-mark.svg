@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Signal mark">
-  <title>SONARA Signal mark</title><desc>An original prism signal path connecting three live customer-signal nodes.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Growth Studio Prism Signal-mode mark">
+  <title>Growth Studio Prism mark</title><desc>An original prism path representing Signal mode and three live customer-signal nodes.</desc>
   <defs><linearGradient id="s" x1="20" y1="102" x2="108" y2="24" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".48" stop-color="#15C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient><filter id="g" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="2.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
   <path d="M20 95c17-3 24-27 42-30 17-3 25 10 46-34" fill="none" stroke="url(#s)" stroke-width="12" stroke-linecap="round" filter="url(#g)"/>
   <path d="M27 92c16-22 30-29 45-24 13 4 20 0 31-22" fill="none" stroke="#171C2C" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 10"/>
