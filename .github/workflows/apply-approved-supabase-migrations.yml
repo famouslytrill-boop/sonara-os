@@ -43,6 +43,7 @@ jobs:
           echo "Approved production project reference verified. Secret values were not printed."
 
       - name: Verify recoverable database backup
+        id: backup
         shell: bash
         run: |
           set -euo pipefail
@@ -85,16 +86,12 @@ jobs:
             return Boolean(item.inserted_at || item.created_at || item.updated_at || item.backup_date || item.completed_at);
           });
 
-          if (!pitrEnabled && !latestPhysicalBackup && recoverable.length === 0) {
-            console.error("Refusing migration: no recoverable daily backup or PITR protection was reported by Supabase.");
-            process.exit(1);
-          }
-
-          console.log(pitrEnabled
-            ? "Supabase PITR protection confirmed."
-            : latestPhysicalBackup
-              ? "Supabase physical backup protection confirmed."
-            : `Supabase reported ${recoverable.length} recoverable database backup(s).`);
+          const managed = pitrEnabled || Boolean(latestPhysicalBackup) || recoverable.length > 0;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `managed=${managed}\n`);
+          if (pitrEnabled) console.log("Supabase PITR protection confirmed.");
+          else if (latestPhysicalBackup) console.log("Supabase physical backup protection confirmed.");
+          else if (recoverable.length > 0) console.log(`Supabase reported ${recoverable.length} recoverable database backup(s).`);
+          else console.log("No managed backup was reported; an encrypted logical backup is required before migration.");
           NODE
 
           rm -f "$backup_json"
@@ -109,8 +106,69 @@ jobs:
           set -euo pipefail
           supabase link --project-ref "$SUPABASE_PROJECT_ID"
 
+      - name: Create encrypted logical backup when managed protection is unavailable
+        if: steps.backup.outputs.managed != 'true'
+        id: logical-backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$RUNNER_TEMP/sonara-pre-migration-backup"
+          archive_name="sonara-production-pre-migration-${GITHUB_RUN_ID}.tar.gz"
+          plain_archive="$RUNNER_TEMP/$archive_name"
+          encrypted_archive="$plain_archive.enc"
+          checksum_file="$encrypted_archive.sha256"
+          key_file="$RUNNER_TEMP/sonara-backup-key"
+
+          mkdir -p "$backup_dir"
+          supabase db dump --linked --role-only --file "$backup_dir/roles.sql"
+          supabase db dump --linked --schema public,auth,storage --file "$backup_dir/schema.sql"
+          supabase db dump --linked --schema public,auth,storage --data-only --use-copy --file "$backup_dir/data.sql"
+          tar -C "$backup_dir" -czf "$plain_archive" roles.sql schema.sql data.sql
+
+          umask 077
+          printf '%s' "$SUPABASE_DB_PASSWORD" > "$key_file"
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 600000 -md sha256 \
+            -in "$plain_archive" \
+            -out "$encrypted_archive" \
+            -pass "file:$key_file"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 \
+            -in "$encrypted_archive" \
+            -pass "file:$key_file" \
+            | tar -tzf - > /dev/null
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum "$archive_name.enc" > "$archive_name.enc.sha256"
+          )
+
+          test -s "$encrypted_archive"
+          test -s "$checksum_file"
+          rm -f \
+            "$backup_dir/roles.sql" \
+            "$backup_dir/schema.sql" \
+            "$backup_dir/data.sql" \
+            "$plain_archive" \
+            "$key_file"
+          rmdir "$backup_dir"
+
+          echo "archive=$encrypted_archive" >> "$GITHUB_OUTPUT"
+          echo "checksum=$checksum_file" >> "$GITHUB_OUTPUT"
+          echo "Encrypted logical backup created and verified; plaintext was removed."
+
+      - name: Upload encrypted pre-migration backup
+        if: steps.backup.outputs.managed != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonara-production-pre-migration-${{ github.run_id }}
+          path: |
+            ${{ steps.logical-backup.outputs.archive }}
+            ${{ steps.logical-backup.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 3
+
       - name: Preflight migration history and dry run
         shell: bash
+        env:
+          MANAGED_BACKUP: ${{ steps.backup.outputs.managed }}
         run: |
           set -euo pipefail
           supabase migration list --linked > migration-ledger-before.log 2>&1
@@ -141,7 +199,11 @@ jobs:
           {
             echo "### Supabase production migration preflight"
             echo "Target project reference verified: \`$EXPECTED_PROJECT_ID\`."
-            echo "Recoverable backup or PITR protection verified through the Supabase Management API."
+            if [ "$MANAGED_BACKUP" = "true" ]; then
+              echo "Recoverable managed backup or PITR protection verified through the Supabase Management API."
+            else
+              echo "Encrypted logical pre-migration backup created, integrity-checked, and uploaded with three-day retention."
+            fi
             if [ -n "$pending" ]; then
               echo "Approved pending migrations:"
               printf '%s\n' "$pending" | sed 's/^/- `/' | sed 's/$/`/'
@@ -196,3 +258,19 @@ jobs:
             migration-lint.log
           if-no-files-found: ignore
           retention-days: 3
+
+      - name: Remove encrypted runner backup copy
+        if: always() && steps.backup.outputs.managed != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_name="sonara-production-pre-migration-${GITHUB_RUN_ID}.tar.gz"
+          rm -f \
+            "$RUNNER_TEMP/$archive_name.enc" \
+            "$RUNNER_TEMP/$archive_name.enc.sha256" \
+            "$RUNNER_TEMP/$archive_name" \
+            "$RUNNER_TEMP/sonara-backup-key" \
+            "$RUNNER_TEMP/sonara-pre-migration-backup/roles.sql" \
+            "$RUNNER_TEMP/sonara-pre-migration-backup/schema.sql" \
+            "$RUNNER_TEMP/sonara-pre-migration-backup/data.sql"
+          rmdir "$RUNNER_TEMP/sonara-pre-migration-backup" 2>/dev/null || true
