@@ -34,10 +34,10 @@ patcher = patcher.replace(
   "SONARA connects identity, organization access, saved records, billing, requests, delivery, and support without inventing activity or hiding setup requirements.",
   "SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements."
 );
-patcher = patcher.replace(
-  '<main id="sonara-main" data-sonara-interface="live">',
-  '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">'
-);
+const oldMainPatcher = `.replace('<main id="sonara-main">', '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">');`;
+const newMainPatcher = `.replace(/<main id="sonara-main"[^>]*>/, '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">');`;
+if (patcher.includes(oldMainPatcher)) patcher = patcher.replace(oldMainPatcher, newMainPatcher);
+if (!patcher.includes(newMainPatcher)) throw new Error("Canonical main-element normalizer is missing");
 write("scripts/apply-premium-ui-final.cjs", patcher);
 
 const testDirectory = path.join(root, "tests");
