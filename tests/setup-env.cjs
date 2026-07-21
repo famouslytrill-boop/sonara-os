@@ -15,7 +15,16 @@ const isolatedProviderPrefixes = [
   "NEXT_PUBLIC_SUPABASE_",
   "STRIPE_",
   "RESEND_",
-  "GOOGLE_"
+  "GOOGLE_",
+  "OPENCLAW_",
+  "N8N_",
+  "OLLAMA_",
+  "LANGFLOW_",
+  "DIFY_",
+  "OPEN_WEBUI_",
+  "RAGFLOW_",
+  "CREWAI_",
+  "SONARA_AI_INTEGRATION_"
 ];
 
 const isolatedProviderKeys = new Set([

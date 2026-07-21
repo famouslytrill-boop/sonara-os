@@ -287,6 +287,24 @@
     }));
   }
 
+  function installPasswordVisibility() {
+    document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+      const input = document.getElementById(button.dataset.togglePassword || "");
+      if (!input || input.tagName !== "INPUT") {
+        button.disabled = true;
+        return;
+      }
+
+      button.addEventListener("click", () => {
+        const show = input.type === "password";
+        input.type = show ? "text" : "password";
+        button.textContent = show ? "Hide password" : "Show password";
+        button.setAttribute("aria-pressed", show ? "true" : "false");
+        button.setAttribute("aria-label", show ? "Hide password" : "Show password");
+      });
+    });
+  }
+
   function installRouteProgress() {
     const progress = document.querySelector(".nexus-route-progress");
     document.addEventListener("click", (event) => {
@@ -326,6 +344,7 @@
     installDepth();
     installDialogs();
     installSettings();
+    installPasswordVisibility();
     installTactileFeedback();
     installRouteProgress();
     installCurrentNavigation();

@@ -73,7 +73,7 @@ async function insertSetupOrganization(config, user, organizationName, productPa
 
   const legacyCompanyKey = legacyOrganizationCompanyKey();
   const records = [
-    { name: organizationName, slug: slugBase, owner_id: user.id, created_by: user.id, company_key: legacyCompanyKey },
+    { name: organizationName, slug: slugBase, owner_id: user.id, created_by: user.id, company_key: legacyCompanyKey, metadata: { source: "account_setup", product_path: productPath } },
     { name: organizationName, slug: slugBase, owner_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
     { name: organizationName, slug: slugBase, owner_id: user.id },
     { name: organizationName, created_by: user.id, company_key: legacyCompanyKey },

@@ -195,7 +195,7 @@ function registerRouteRegistryRoutes(app, deps) {
     eyebrow: "Account recovery",
     heading: "Create a new password.",
     body: "Open this page from the secure recovery link in your email. Your recovery token is removed from the address bar before the form is submitted.",
-    sections: [`<form class="card" method="post" action="/auth/reset-password" data-sonara-recovery-form><input type="hidden" name="accessToken" data-sonara-recovery-token><label>New password<input type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><p data-sonara-recovery-status role="status">Checking the recovery link…</p><button type="submit" disabled data-sonara-recovery-submit>Update password</button></form><script src="/sonara-auth-recovery.js" defer></script>`],
+    sections: [`<form class="card" method="post" action="/auth/reset-password" data-sonara-recovery-form><input type="hidden" name="accessToken" data-sonara-recovery-token><label>New password<input id="account-recovery-password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button type="button" data-toggle-password="account-recovery-password" aria-controls="account-recovery-password" aria-pressed="false" aria-label="Show password">Show password</button><p data-sonara-recovery-status role="status">Checking the recovery link…</p><button type="submit" disabled data-sonara-recovery-submit>Update password</button></form><script src="/sonara-auth-recovery.js" defer></script>`],
     actions: [linkAction("/forgot-password", "Request another link"), linkAction("/support", "Account help")]
   }));
 
@@ -228,7 +228,7 @@ function registerRouteRegistryRoutes(app, deps) {
     eyebrow: "Your account",
     heading: "Security",
     body: "Manage password recovery and active sign-in behavior without exposing session details.",
-    sections: [accountNoticeCard(req), brandCard("Password", "Use the secure recovery flow when you need to change a forgotten password."), brandCard("Sessions", "SONARA uses HttpOnly session cookies. Explicit logout clears the browser session.")],
+    sections: [accountNoticeCard(req), brandCard("Password", "Use the secure recovery flow when you need to change a forgotten password."), brandCard("Sessions", "SONARA keeps short-lived access and rotating refresh tokens in HttpOnly cookies. Explicit logout clears both browser cookies.")],
     actions: [linkAction("/forgot-password", "Reset password"), linkAction("/account", "Account"), logoutAction()]
   }));
 

@@ -5,6 +5,7 @@ const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
 const registerSonaraInfrastructureRoutes = require("./routes/sonara-infrastructure-routes.cjs");
 const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.cjs");
+const registerSonaraAIIntegrationRoutes = require("./routes/sonara-ai-integrations-routes.cjs");
 const registerSonaraFormulaRoutes = require("./routes/sonara-formula-routes.cjs");
 const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music-system-readonly.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
@@ -21,8 +22,10 @@ const {
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const CUSTOMER_SESSION_COOKIE = "sonara_customer_session";
+const CUSTOMER_REFRESH_COOKIE = "sonara_customer_refresh";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60;
+const CUSTOMER_REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
@@ -101,6 +104,14 @@ registerSonaraEcosystemRoutes(app, {
   escapeHtml,
   requireAdmin,
   safeListTable
+});
+
+registerSonaraAIIntegrationRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  requireAdmin,
+  recordAdminAuditEvent
 });
 
 registerSonaraFormulaRoutes(app, {
@@ -212,7 +223,7 @@ app.get("/", (req, res) => {
     heading: "Build, create, and grow—without losing control.",
     variant: "home",
     body: "Three focused companies share one secure operating layer for identity, records, billing, support, and real work.",
-    sections: ["<div class=\"nexus-home\">\n  <section class=\"nexus-section\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 data-i18n=\"productsHeading\">One system. Three focused ways to move.</h2></div><p data-i18n=\"productsBody\">Choose the workspace that matches the work. SONARA Nexus keeps the account, evidence, and next action connected.</p></div>\n    <div class=\"nexus-product-grid\">\n      <article class=\"nexus-product nexus-product--forge\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/business-builder-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">FORGE · OPERATE</span></div><h3>Business Builder</h3><p>Launch offers, organize customers, manage staff, inventory, menus, payments, locations, and daily operations.</p><a href=\"/business-builder/dashboard\">Open Business Builder</a></article>\n      <article class=\"nexus-product nexus-product--canvas\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/creator-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">CANVAS · CREATE</span></div><h3>Creator Studio</h3><p>Develop artist systems, songs, prompt packs, assets, releases, media, rights checks, and export packages.</p><a href=\"/creator-studio/dashboard\">Open Creator Studio</a></article>\n      <article class=\"nexus-product nexus-product--signal\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/growth-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">SIGNAL · GROW</span></div><h3>Growth Studio</h3><p>Plan consent-safe campaigns, leads, showcases, venues, promotions, follow-up, experiments, and conversion.</p><a href=\"/growth-studio/dashboard\">Open Growth Studio</a></article>\n    </div>\n  </section>\n\n  <section class=\"nexus-section nexus-flow\">\n    <div><span class=\"nexus-kicker\" data-i18n=\"flowKicker\">Designed for real operations</span><h2 data-i18n=\"flowHeading\">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how Nexus works</a><a class=\"action\" href=\"/service-catalog\">Service catalog</a><a class=\"action\" href=\"/readiness\">Readiness</a><a class=\"action\" href=\"/requests\">Requests</a><a class=\"action\" href=\"/deliverables\">Deliverables</a></div></div>\n    <div class=\"nexus-flow-list\"><div class=\"nexus-flow-step\"><strong>Choose the outcome</strong><small>Enter the company that matches the work.</small></div><div class=\"nexus-flow-step\"><strong>Complete one clear action</strong><small>Focused screens replace overloaded dashboards.</small></div><div class=\"nexus-flow-step\"><strong>Confirm the real state</strong><small>Ready, setup required, permission required, or review required.</small></div><div class=\"nexus-flow-step\"><strong>Return without rebuilding context</strong><small>Records, activity, billing, and support stay connected.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section\" aria-labelledby=\"operations-heading\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Independent business operations</span><h2 id=\"operations-heading\">Built for the places where work actually happens.</h2></div><p>Restaurants, bars, food trucks, service businesses, studios, venues, and independent teams can use focused tools without pretending to be an enterprise.</p></div>\n    <div class=\"nexus-operations-strip\"><div class=\"nexus-operation\"><strong>Sell and fulfill</strong><small>Offers, orders, payments, appointments, POS-ready workflows, and delivery status.</small></div><div class=\"nexus-operation\"><strong>Run the floor</strong><small>Menus, recipes, inventory, vendors, staff, shifts, locations, and assets.</small></div><div class=\"nexus-operation\"><strong>Create and release</strong><small>Music projects, tracks, stems, artist systems, rights checks, media, and packages.</small></div><div class=\"nexus-operation\"><strong>Reach and learn</strong><small>Campaigns, leads, consent, venues, showcases, promotions, and evidence.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section sonara-status-panel\" aria-label=\"Truthful readiness\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Truth before theater</span><h2>Every status has to mean something.</h2></div><p>Provider-dependent workflows display Setup Required, Permission Required, Review Required, or Ready based on real configuration and access.</p></div>\n    <div class=\"nexus-product-grid\"><article class=\"card\"><h3>Account and access</h3><p>Create an account, sign in, switch workspaces, review settings, or log out through one consistent identity layer.</p><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/login\">Log in</a></div></article><article class=\"card\"><h3>Founder administration</h3><p>Administrative readiness, users, roles, subscriptions, integrations, support, and audits stay protected behind founder access.</p><div class=\"card-actions\"><a class=\"action\" href=\"/admin/login\">Admin access</a></div></article><article class=\"card\"><h3>Free launch stack</h3><p>Explore useful tools before paying. Upgrade when saved work, deeper records, and supported operations become valuable.</p><div class=\"card-actions\"><a class=\"action\" href=\"/free-tools\">Explore free tools</a><a class=\"action\" href=\"/pricing\">See plans</a></div></article></div>\n  </section>\n\n  <section class=\"nexus-cta\"><div><span class=\"nexus-kicker\" data-i18n=\"ctaKicker\">Start with useful work</span><h2 data-i18n=\"ctaHeading\">Begin free. Add depth when the work demands it.</h2><p>No fake urgency. No hidden enterprise maze. Start with the workspace and action you need now.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/free-tools\">Try a free tool</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
+    sections: ["<div class=\"nexus-home\">\n  <section class=\"nexus-section\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 data-i18n=\"productsHeading\">One system. Three focused ways to move.</h2></div><p data-i18n=\"productsBody\">Choose the workspace that matches the work. SONARA Nexus keeps the account, evidence, and next action connected.</p></div>\n    <div class=\"nexus-product-grid\">\n      <article class=\"nexus-product nexus-product--forge\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/business-builder-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">FORGE · OPERATE</span></div><h3>Business Builder</h3><p>Launch offers, organize customers, manage staff, inventory, menus, payments, locations, and daily operations.</p><a href=\"/business-builder/dashboard\">Open Business Builder</a></article>\n      <article class=\"nexus-product nexus-product--canvas\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/creator-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">CANVAS · CREATE</span></div><h3>Creator Studio</h3><p>Develop artist systems, songs, prompt packs, assets, releases, media, rights checks, and export packages.</p><a href=\"/creator-studio/dashboard\">Open Creator Studio</a></article>\n      <article class=\"nexus-product nexus-product--signal\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/growth-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">SIGNAL · GROW</span></div><h3>Growth Studio</h3><p>Plan consent-safe campaigns, leads, showcases, venues, promotions, follow-up, experiments, and conversion.</p><a href=\"/growth-studio/dashboard\">Open Growth Studio</a></article>\n    </div>\n  </section>\n\n  <section class=\"nexus-section nexus-flow\">\n    <div><span class=\"nexus-kicker\" data-i18n=\"flowKicker\">Designed for real operations</span><h2 data-i18n=\"flowHeading\">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how Nexus works</a><a class=\"action\" href=\"/service-catalog\">Service catalog</a><a class=\"action\" href=\"/readiness\">Readiness</a><a class=\"action\" href=\"/requests\">Requests</a><a class=\"action\" href=\"/deliverables\">Deliverables</a></div></div>\n    <div class=\"nexus-flow-list\"><div class=\"nexus-flow-step\"><strong>Choose the outcome</strong><small>Enter the company that matches the work.</small></div><div class=\"nexus-flow-step\"><strong>Complete one clear action</strong><small>Focused screens replace overloaded dashboards.</small></div><div class=\"nexus-flow-step\"><strong>Confirm the real state</strong><small>Ready, setup required, permission required, or review required.</small></div><div class=\"nexus-flow-step\"><strong>Return without rebuilding context</strong><small>Records, activity, billing, and support stay connected.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section\" aria-labelledby=\"operations-heading\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Independent business operations</span><h2 id=\"operations-heading\">Built for the places where work actually happens.</h2></div><p>Restaurants, bars, food trucks, service businesses, studios, venues, and independent teams can use focused tools without pretending to be an enterprise.</p></div>\n    <div class=\"nexus-operations-strip\"><div class=\"nexus-operation\"><strong>Sell and fulfill</strong><small>Offers, orders, payments, appointments, POS-ready workflows, and delivery status.</small></div><div class=\"nexus-operation\"><strong>Run the floor</strong><small>Menus, recipes, inventory, vendors, staff, shifts, locations, and assets.</small></div><div class=\"nexus-operation\"><strong>Create and release</strong><small>Music projects, tracks, stems, artist systems, rights checks, media, and packages.</small></div><div class=\"nexus-operation\"><strong>Reach and learn</strong><small>Campaigns, leads, consent, venues, showcases, promotions, and evidence.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section sonara-status-panel\" aria-label=\"Company quick access\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Quick access</span><h2>Move directly into the work.</h2></div><p>Open the real workflow you need. Access, setup, and provider requirements remain enforced by the server.</p></div>\n    <div class=\"nexus-product-grid\"><article class=\"card\"><h3>Business Builder</h3><p>Launch and operate the business.</p><div class=\"card-actions\"><a class=\"action\" href=\"/business-builder/dashboard\">Dashboard</a><a class=\"action\" href=\"/business-builder/intake\">Intake</a></div></article><article class=\"card\"><h3>Creator Studio</h3><p>Organize creative work and releases.</p><div class=\"card-actions\"><a class=\"action\" href=\"/creator-studio/assets\">Assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Music system</a></div></article><article class=\"card\"><h3>Growth Studio</h3><p>Plan campaigns and follow-up.</p><div class=\"card-actions\"><a class=\"action\" href=\"/growth-studio/campaigns\">Campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Leads</a></div></article></div>\n  </section>\n\n  <section class=\"nexus-section sonara-status-panel\" aria-label=\"Truthful readiness\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Truth before theater</span><h2>Every status has to mean something.</h2></div><p>Provider-dependent workflows display Setup Required, Permission Required, Review Required, or Ready based on real configuration and access.</p></div>\n    <div class=\"nexus-product-grid\"><article class=\"card\"><h3>Account and access</h3><p>Create an account, sign in, switch workspaces, review settings, or log out through one consistent identity layer.</p><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/login\">Log in</a></div></article><article class=\"card\"><h3>Founder administration</h3><p>Administrative readiness, users, roles, subscriptions, integrations, support, and audits stay protected behind founder access.</p><div class=\"card-actions\"><a class=\"action\" href=\"/admin/login\">Admin access</a></div></article><article class=\"card\"><h3>Free launch stack</h3><p>Explore useful tools before paying. Upgrade when saved work, deeper records, and supported operations become valuable.</p><div class=\"card-actions\"><a class=\"action\" href=\"/free-tools\">Explore free tools</a><a class=\"action\" href=\"/pricing\">See plans</a></div></article></div>\n  </section>\n\n  <section class=\"nexus-cta\"><div><span class=\"nexus-kicker\" data-i18n=\"ctaKicker\">Start with useful work</span><h2 data-i18n=\"ctaHeading\">Begin free. Add depth when the work demands it.</h2><p>No fake urgency. No hidden enterprise maze. Start with the workspace and action you need now.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/free-tools\">Try a free tool</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
     actions: [linkAction("/signup", "Create account"), linkAction("/free-tools", "Explore free tools"), linkAction("/pricing", "Compare plans")]
   }));
 });
@@ -375,6 +386,7 @@ app.get("/login", (req, res) => {
       heading: "Continue your work.",
       body: "Sign in to return to your private SONARA workspace, saved projects, requests, billing, and support.",
       sections: [
+        accountNoticeCard(req),
         authForm("Login with email", "/auth/login"),
         brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
         brandCard("Private by default", "Only you and approved members can access protected workspace content.")
@@ -403,7 +415,7 @@ app.get("/signup", (req, res) => {
 
 app.post("/auth/signup", async (req, res) => {
   const result = await handleEmailAuth("signup", req.body);
-  return sendEmailAuthResult(req, res, result, "/dashboard?account=created", "/login");
+  return sendEmailAuthResult(req, res, result, "/account/setup?account=created", "/login?account=confirmation_required");
 });
 
 app.get("/auth/signup", (req, res) => {
@@ -466,7 +478,7 @@ app.get("/account", (req, res) => {
       eyebrow: "Account readiness",
       heading: "Account",
       body: getReadiness().services.supabase === "configured"
-        ? "Email login is configured. Persistent session handling requires owner smoke testing before customer launch."
+        ? "Email login and renewable HttpOnly browser sessions are configured. Production account creation still requires an owner smoke test before customer launch."
         : "Setup required: Connect account login to enable account sessions.",
       sections: accountSetupCards(),
       actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
@@ -481,7 +493,7 @@ app.get("/account/setup", (req, res) => {
       eyebrow: "Account readiness",
       heading: "Account setup",
       body: "Complete these items after email login is configured and owner-tested.",
-      sections: accountSetupCards(),
+      sections: [accountNoticeCard(req), ...accountSetupCards()],
       actions: [linkAction("/account", "Account"), linkAction("/contact", "Request setup"), linkAction("/", "Home")]
     })
   );
@@ -569,7 +581,7 @@ app.post("/api/checkout/session", handleCheckoutSessionRequest);
 app.post("/api/billing/create-checkout-session", handleCheckoutSessionRequest);
 
 app.post("/api/billing/create-portal-session", async (req, res) => {
-  const customer = await resolveCustomerSession(req);
+  const customer = await resolveCustomerSession(req, res);
   if (!customer.ok) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
     return res.status(customer.status).json(customer.body);
@@ -1723,7 +1735,8 @@ function readinessStatusClass(status) {
 
 function accountNoticeCard(req) {
   const account = String(req.query?.account || "");
-  if (account === "created") return brandCard("Account created", "You are signed in. Choose Business Builder, Creator Studio, or Growth Studio to start working.");
+  if (account === "created") return brandCard("Account created", "You are signed in. Create or attach your organization, then continue to Business Builder, Creator Studio, or Growth Studio.");
+  if (account === "confirmation_required") return brandCard("Check your email", "Your account was created. Confirm the email address, then return here to log in.");
   return "";
 }
 
@@ -2065,8 +2078,8 @@ function adminLoginForm() {
     <h2>Protected access</h2>
     <form method="post" action="/admin/login">
       <label>Founder email<input name="email" type="email" autocomplete="username" required></label>
-      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="current-password" required></label>
-      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
+      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="current-password" minlength="8" required></label>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false" aria-label="Show password">Show password</button>
       <button type="submit">Sign in to admin</button>
     </form>
   </article>`;
@@ -2094,9 +2107,9 @@ function businessEmployeeAcceptForm() {
     <h2>Set employee password</h2>
     <form method="post" action="/business-builder/invite/accept">
       <label>Invite token<input name="token" type="text" required></label>
-      <label>Email<input name="email" type="email" required></label>
-      <label>Password<input id="${inputId}" name="password" type="password" required></label>
-      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false" aria-label="Show password">Show password</button>
       <button type="submit">Accept invite</button>
     </form>
   </article>`;
@@ -2209,12 +2222,21 @@ function growthLeadForm() {
 
 function authForm(label, action) {
   const inputId = `password-${crypto.createHash("sha1").update(action).digest("hex").slice(0, 8)}`;
+  const isSignup = action === "/auth/signup";
+  const passwordAutocomplete = isSignup ? "new-password" : "current-password";
+  const confirmInputId = `${inputId}-confirm`;
+  const confirmationField = isSignup
+    ? `<label>Confirm password<input id="${confirmInputId}" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" aria-describedby="${inputId}-hint" required></label>
+      <button type="button" data-toggle-password="${confirmInputId}" aria-controls="${confirmInputId}" aria-pressed="false" aria-label="Show confirmed password">Show password</button>`
+    : "";
   return `<article class="card">
     <h2>${escapeHtml(label)}</h2>
     <form method="post" action="${escapeHtml(action)}">
-      <label>Email<input name="email" type="email" required></label>
-      <label>Password<input id="${inputId}" name="password" type="password" required></label>
-      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false">Show password</button>
+      <label>Email<input name="email" type="email" autocomplete="${isSignup ? "email" : "username"}" required></label>
+      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="${passwordAutocomplete}" minlength="8" aria-describedby="${inputId}-hint" required></label>
+      <p class="fine" id="${inputId}-hint">Use at least 8 characters.</p>
+      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false" aria-label="Show password">Show password</button>
+      ${confirmationField}
       <button type="submit">${escapeHtml(label)}</button>
     </form>
   </article>`;
@@ -2392,7 +2414,7 @@ async function insertSetupOrganization(config, user, organizationName, productPa
 
   const legacyCompanyKey = legacyOrganizationCompanyKey();
   const records = [
-    { name: organizationName, slug: slugBase, owner_id: user.id, created_by: user.id, company_key: legacyCompanyKey },
+    { name: organizationName, slug: slugBase, owner_id: user.id, created_by: user.id, company_key: legacyCompanyKey, metadata: { source: "account_setup", product_path: productPath } },
     { name: organizationName, slug: slugBase, owner_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
     { name: organizationName, slug: slugBase, owner_id: user.id },
     { name: organizationName, created_by: user.id, company_key: legacyCompanyKey },
@@ -3435,7 +3457,10 @@ async function handleEmailAuth(mode, body) {
   const email = String(body.email || "").trim();
   const password = String(body.password || "");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
-    return { status: 400, body: { ok: false, code: "validation_failed" } };
+    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter a valid email and a password with at least 8 characters." } };
+  }
+  if (mode === "signup" && password !== String(body.confirmPassword || body.confirm_password || "")) {
+    return { status: 400, body: { ok: false, code: "password_mismatch", message: "The password confirmation does not match." } };
   }
 
   const endpoint = mode === "signup" ? "/auth/v1/signup" : "/auth/v1/token?grant_type=password";
@@ -3453,71 +3478,91 @@ async function handleEmailAuth(mode, body) {
   if (!response?.ok) return { status: 401, body: { ok: false, code: "auth_not_completed" } };
   const data = await response.json().catch(() => ({}));
   const accessToken = typeof data.access_token === "string" ? data.access_token : "";
+  const refreshToken = typeof data.refresh_token === "string" ? data.refresh_token : "";
   const reportedExpiresIn = Number(data.expires_in);
   const expiresIn = Number.isFinite(reportedExpiresIn) ? Math.max(60, Math.min(reportedExpiresIn, CUSTOMER_SESSION_MAX_AGE_SECONDS)) : CUSTOMER_SESSION_MAX_AGE_SECONDS;
+  const code = mode === "signup"
+    ? accessToken ? "signup_ready" : "signup_confirmation_required"
+    : "login_ready";
   return {
     status: 200,
-    body: { ok: true, code: mode === "signup" ? "signup_requested" : "login_ready", sessionStored: Boolean(accessToken) },
-    session: accessToken ? { accessToken, maxAgeSeconds: expiresIn } : undefined
+    body: {
+      ok: true,
+      code,
+      sessionStored: Boolean(accessToken),
+      message: code === "signup_confirmation_required" ? "Confirm your email address before logging in." : undefined
+    },
+    session: accessToken ? { accessToken, refreshToken, maxAgeSeconds: expiresIn } : undefined
   };
 }
 
 function sendEmailAuthResult(req, res, result, sessionRedirect, fallbackRedirect) {
-  if (result.session?.accessToken) setCustomerSessionCookie(res, result.session.accessToken, result.session.maxAgeSeconds);
+  if (result.session?.accessToken) setCustomerSessionCookies(res, result.session);
 
   if (acceptsHtml(req)) {
     if (result.status >= 200 && result.status < 300) {
       return res.redirect(303, result.session?.accessToken ? sessionRedirect : fallbackRedirect);
     }
 
-    const message = result.body?.code === "setup_required"
+    const message = result.body?.message || (result.body?.code === "setup_required"
       ? "Account login setup is required before email/password access can complete."
-      : "Email/password access was not completed.";
+      : "Email/password access was not completed.");
     return res.status(result.status).type("html").send(responsePage("Access not completed", message, [linkAction("/login", "Login"), linkAction("/signup", "Create account")]));
   }
 
   return res.status(result.status).json(result.body);
 }
 
+function setCustomerSessionCookies(res, session) {
+  setCustomerSessionCookie(res, session.accessToken, session.maxAgeSeconds);
+  if (session.refreshToken) setCustomerRefreshCookie(res, session.refreshToken);
+  else clearCustomerRefreshCookie(res);
+}
+
 function setCustomerSessionCookie(res, accessToken, maxAgeSeconds = CUSTOMER_SESSION_MAX_AGE_SECONDS) {
   res.cookie(CUSTOMER_SESSION_COOKIE, accessToken, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    ...customerCookieOptions(),
     maxAge: Math.max(60, Math.min(Number(maxAgeSeconds) || CUSTOMER_SESSION_MAX_AGE_SECONDS, CUSTOMER_SESSION_MAX_AGE_SECONDS)) * 1000
   });
 }
 
-function clearCustomerSessionCookie(res) {
-  res.clearCookie(CUSTOMER_SESSION_COOKIE, {
+function setCustomerRefreshCookie(res, refreshToken) {
+  res.cookie(CUSTOMER_REFRESH_COOKIE, refreshToken, {
+    ...customerCookieOptions(),
+    maxAge: CUSTOMER_REFRESH_MAX_AGE_SECONDS * 1000
+  });
+}
+
+function customerCookieOptions() {
+  return {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/"
-  });
+  };
+}
+
+function clearCustomerRefreshCookie(res) {
+  res.clearCookie(CUSTOMER_REFRESH_COOKIE, customerCookieOptions());
+}
+
+function clearCustomerSessionCookie(res) {
+  res.clearCookie(CUSTOMER_SESSION_COOKIE, customerCookieOptions());
+  clearCustomerRefreshCookie(res);
 }
 
 async function requireCustomer(req, res, next) {
-  if (!isSupabaseAuthConfigured()) {
+  const customer = await resolveCustomerSession(req, res);
+  if (!customer.ok) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
-    return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
+    return res.status(customer.status || 401).json(customer.body || { ok: false, code: "customer_auth_required" });
   }
-
-  const sessionToken = getCustomerSessionToken(req);
-  if (!sessionToken) {
-    if (acceptsHtml(req)) return res.redirect(303, "/login");
-    return res.status(401).json({ ok: false, code: "customer_auth_required" });
-  }
-
-  const verification = await verifySupabaseAccessToken(sessionToken);
-  if (!verification.ok) return res.status(401).json({ ok: false, code: "customer_auth_required" });
-  req.sonaraUser = verification.user;
+  req.sonaraUser = customer.user;
   return next();
 }
 
 async function requireAppAccess(req, res, next) {
-  const access = await resolveWorkspaceAccess(req);
+  const access = await resolveWorkspaceAccess(req, res);
   if (access.ok) {
     req.sonaraAccess = access;
     if (access.user) req.sonaraUser = access.user;
@@ -3530,7 +3575,7 @@ async function requireAppAccess(req, res, next) {
 
 function requireWorkspaceAccess(productKey) {
   return async (req, res, next) => {
-    const access = await resolveWorkspaceAccess(req, productKey);
+    const access = await resolveWorkspaceAccess(req, res, productKey);
     if (access.ok) {
       req.sonaraAccess = access;
       if (access.user) req.sonaraUser = access.user;
@@ -3544,7 +3589,7 @@ function requireWorkspaceAccess(productKey) {
 
 function requirePaidOrOwnerAccess(productKey) {
   return async (req, res, next) => {
-    const access = await resolveWorkspaceAccess(req, productKey);
+    const access = await resolveWorkspaceAccess(req, res, productKey);
     if (!access.ok) {
       if (acceptsHtml(req)) return res.redirect(303, "/login");
       return res.status(access.status || 401).json(access.body || { ok: false, code: "customer_auth_required" });
@@ -3580,13 +3625,13 @@ function requirePaidOrOwnerAccess(productKey) {
   };
 }
 
-async function resolveWorkspaceAccess(req, productKey) {
+async function resolveWorkspaceAccess(req, res, productKey) {
   const admin = await verifyAdminRequest(req);
   if (admin.ok) {
     return { ok: true, mode: "owner_admin", ownerOverride: true, productKey, admin, user: admin.user, roles: admin.roles || ["owner"] };
   }
 
-  const customer = await resolveCustomerSession(req);
+  const customer = await resolveCustomerSession(req, res);
   if (!customer.ok) return customer;
 
   const roles = await getUserRoles(customer.user);
@@ -3600,19 +3645,55 @@ async function resolveWorkspaceAccess(req, productKey) {
   };
 }
 
-async function resolveCustomerSession(req) {
+async function resolveCustomerSession(req, res) {
   if (!isSupabaseAuthConfigured()) {
     return { ok: false, status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
   }
 
   const sessionToken = getCustomerSessionToken(req);
-  if (!sessionToken) {
-    return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
+  if (sessionToken) {
+    const verification = await verifySupabaseAccessToken(sessionToken);
+    if (verification.ok) return { ok: true, user: verification.user };
   }
 
-  const verification = await verifySupabaseAccessToken(sessionToken);
-  if (!verification.ok) return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
-  return { ok: true, user: verification.user };
+  if (!getBearerToken(req) && res) {
+    const refreshed = await refreshCustomerSession(req, res);
+    if (refreshed.ok) {
+      const verification = await verifySupabaseAccessToken(refreshed.accessToken);
+      if (verification.ok) return { ok: true, user: verification.user, refreshed: true };
+    }
+  }
+
+  return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
+}
+
+async function refreshCustomerSession(req, res) {
+  const refreshToken = getCustomerRefreshToken(req);
+  const config = getSupabaseAuthConfig();
+  if (!refreshToken || !config.ok) return { ok: false };
+
+  const response = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
+    method: "POST",
+    headers: {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${config.anonKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ refresh_token: refreshToken })
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+
+  const data = await response.json().catch(() => ({}));
+  const accessToken = typeof data.access_token === "string" ? data.access_token : "";
+  const rotatedRefreshToken = typeof data.refresh_token === "string" ? data.refresh_token : refreshToken;
+  if (!accessToken) return { ok: false };
+
+  const reportedExpiresIn = Number(data.expires_in);
+  const maxAgeSeconds = Number.isFinite(reportedExpiresIn)
+    ? Math.max(60, Math.min(reportedExpiresIn, CUSTOMER_SESSION_MAX_AGE_SECONDS))
+    : CUSTOMER_SESSION_MAX_AGE_SECONDS;
+  setCustomerSessionCookies(res, { accessToken, refreshToken: rotatedRefreshToken, maxAgeSeconds });
+  return { ok: true, accessToken };
 }
 
 async function verifySupabaseAccessToken(accessToken) {
@@ -3671,22 +3752,19 @@ async function requireBusinessManager(req, res, next) {
     return res.status(503).json({ ok: false, code: "setup_required", service: "supabase_auth" });
   }
 
-  const bearerToken = getBearerToken(req);
-  if (!bearerToken) {
+  const customer = await resolveCustomerSession(req, res);
+  if (!customer.ok) {
     if (acceptsHtml(req)) return res.redirect(303, "/business-builder/login");
-    return res.status(401).json({ ok: false, code: "business_auth_required" });
+    return res.status(customer.status || 401).json({ ok: false, code: customer.status === 503 ? "setup_required" : "business_auth_required", service: customer.status === 503 ? "supabase_auth" : undefined });
   }
 
-  const verification = await verifySupabaseAccessToken(bearerToken);
-  if (!verification.ok) return res.status(401).json({ ok: false, code: "business_auth_required" });
-
-  const membership = await isBusinessManagerUser(verification.user, getBusinessWorkspaceId(req));
+  const membership = await isBusinessManagerUser(customer.user, getBusinessWorkspaceId(req));
   if (!membership.ok) {
     if (acceptsHtml(req)) return res.status(403).type("html").send(responsePage("Business access denied", "This account is not authorized to manage Business Builder employees for the selected workspace.", [linkAction("/business-builder/login", "Business login")]));
     return res.status(403).json({ ok: false, code: "business_forbidden" });
   }
 
-  req.sonaraUser = verification.user;
+  req.sonaraUser = customer.user;
   req.sonaraBusinessMembership = membership.membership;
   return next();
 }
@@ -3703,14 +3781,6 @@ async function getCustomerPrimaryOrganization(user) {
   if (organizationMembership?.ok) {
     const rows = await organizationMembership.json().catch(() => []);
     if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_memberships" };
-  }
-
-  const legacyOrganizationMember = await fetch(`${config.url}/rest/v1/organization_members?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (legacyOrganizationMember?.ok) {
-    const rows = await legacyOrganizationMember.json().catch(() => []);
-    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_members" };
   }
 
   const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
@@ -3807,6 +3877,10 @@ function getBearerToken(req) {
 
 function getCustomerSessionToken(req) {
   return getBearerToken(req) || getCookie(req, CUSTOMER_SESSION_COOKIE);
+}
+
+function getCustomerRefreshToken(req) {
+  return getCookie(req, CUSTOMER_REFRESH_COOKIE);
 }
 
 async function isSupabaseAdminUser(user) {
@@ -3918,7 +3992,7 @@ async function handleCheckoutSessionRequest(req, res) {
     return res.redirect(303, "/dashboard");
   }
 
-  const customer = await resolveCustomerSession(req);
+  const customer = await resolveCustomerSession(req, res);
   if (!customer.ok) {
     if (acceptsHtml(req)) return res.redirect(303, "/login");
     return res.status(customer.status).json(customer.body);

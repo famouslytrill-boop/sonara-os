@@ -1,6 +1,9 @@
 const request = require("supertest");
 const assert = require("assert");
 const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
 const { URLSearchParams } = require("node:url");
 const {
   DATABASE_FUNCTIONS,
@@ -393,6 +396,7 @@ describe("auth setup", () => {
     assert.match(res.text, /Login with email/);
     assert.match(res.text, /Show password/);
     assert.match(res.text, /data-toggle-password/);
+    assert.match(res.text, /autocomplete="current-password"/);
     assert.doesNotMatch(res.text, /Google OAuth/);
   });
 
@@ -481,6 +485,115 @@ describe("auth setup", () => {
     assert.match(res.text, /Create account/);
     assert.match(res.text, /Show password/);
     assert.match(res.text, /data-toggle-password/);
+    assert.match(res.text, /Confirm password/);
+    assert.equal((res.text.match(/autocomplete="new-password"/g) || []).length, 2);
+    assert.equal((res.text.match(/minlength="8"/g) || []).length, 2);
+  });
+
+  it("the loaded Nexus client toggles password visibility and accessible state", function() {
+    const source = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
+    const documentListeners = {};
+    const buttonListeners = {};
+    const attributes = { "aria-pressed": "false" };
+    const input = { tagName: "INPUT", type: "password" };
+    const button = {
+      dataset: { togglePassword: "password-test" },
+      textContent: "Show password",
+      addEventListener(type, handler) { buttonListeners[type] = handler; },
+      setAttribute(name, value) { attributes[name] = value; }
+    };
+    const classList = { add() {}, remove() {}, contains() { return false; } };
+    const document = {
+      readyState: "loading",
+      documentElement: { dataset: {}, classList },
+      body: { classList },
+      addEventListener(type, handler) { documentListeners[type] = handler; },
+      getElementById(id) { return id === "password-test" ? input : null; },
+      querySelector() { return null; },
+      querySelectorAll(selector) { return selector === "[data-toggle-password]" ? [button] : []; }
+    };
+    const window = {
+      innerWidth: 1280,
+      location: { href: "https://example.test/login", origin: "https://example.test", pathname: "/login" },
+      localStorage: { getItem() { return null; }, setItem() {} },
+      matchMedia() { return { matches: false }; },
+      navigator: {},
+      addEventListener() {},
+      setTimeout(handler) { handler(); },
+      URL
+    };
+
+    vm.runInNewContext(source, { document, window });
+    documentListeners.DOMContentLoaded();
+    buttonListeners.click();
+    assert.equal(input.type, "text");
+    assert.equal(button.textContent, "Hide password");
+    assert.equal(attributes["aria-pressed"], "true");
+    assert.equal(attributes["aria-label"], "Hide password");
+
+    buttonListeners.click();
+    assert.equal(input.type, "password");
+    assert.equal(button.textContent, "Show password");
+    assert.equal(attributes["aria-pressed"], "false");
+  });
+
+  it("POST /auth/signup rejects a mismatched password confirmation", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    const res = await request(app).post("/auth/signup").send({
+      email: "owner@example.com",
+      password: "password123",
+      confirmPassword: "different-password"
+    });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.code, "password_mismatch");
+  });
+
+  it("POST /auth/signup sends email-confirmation signups back to login with a visible notice", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/signup")) return { ok: true, json: async () => ({ user: { id: "new-user" } }) };
+      return { ok: false, json: async () => ({}) };
+    };
+
+    const signup = await request(app)
+      .post("/auth/signup")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ email: "owner@example.com", password: "password123", confirmPassword: "password123" });
+    const login = await request(app).get("/login?account=confirmation_required").set("Accept", "text/html");
+    global.fetch = originalFetch;
+
+    assert.equal(signup.status, 303);
+    assert.equal(signup.headers.location, "/login?account=confirmation_required");
+    assert.match(login.text, /Check your email/);
+    assert.match(login.text, /Confirm the email address/);
+  });
+
+  it("POST /auth/signup starts a renewable session and continues to organization setup when confirmation is immediate", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/signup")) {
+        return { ok: true, json: async () => ({ access_token: "signup-access-token", refresh_token: "signup-refresh-token", expires_in: 3600 }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    };
+
+    const signup = await request(app)
+      .post("/auth/signup")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ email: "owner@example.com", password: "password123", confirmPassword: "password123" });
+    global.fetch = originalFetch;
+
+    assert.equal(signup.status, 303);
+    assert.equal(signup.headers.location, "/account/setup?account=created");
+    assert.ok(signup.headers["set-cookie"]?.some((value) => value.startsWith("sonara_customer_session=signup-access-token")));
+    assert.ok(signup.headers["set-cookie"]?.some((value) => value.startsWith("sonara_customer_refresh=signup-refresh-token")));
   });
 
   it("customer dashboards require authentication", async function() {
@@ -549,6 +662,8 @@ describe("auth setup", () => {
     const res = await request(app).post("/logout").set("Accept", "text/html");
     assert.equal(res.status, 303);
     assert.equal(res.headers.location, "/login");
+    assert.ok(res.headers["set-cookie"]?.some((value) => value.startsWith("sonara_customer_session=")));
+    assert.ok(res.headers["set-cookie"]?.some((value) => value.startsWith("sonara_customer_refresh=")));
   });
 
   it("POST /auth/signup browser form does not show raw JSON when Supabase is missing", async function() {
@@ -583,7 +698,7 @@ describe("auth setup", () => {
     const originalFetch = global.fetch;
     global.fetch = async (url) => {
       if (String(url).includes("/auth/v1/token")) {
-        return { ok: true, json: async () => ({ access_token: "customer-session-token", expires_in: 3600 }) };
+        return { ok: true, json: async () => ({ access_token: "customer-session-token", refresh_token: "customer-refresh-token", expires_in: 3600 }) };
       }
       if (String(url).includes("/auth/v1/user")) {
         return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000101", email: "customer@example.com" }) };
@@ -608,12 +723,56 @@ describe("auth setup", () => {
     assert.equal(login.status, 303);
     assert.equal(login.headers.location, "/dashboard");
     const cookie = login.headers["set-cookie"]?.find((value) => value.startsWith("sonara_customer_session="));
+    const refreshCookie = login.headers["set-cookie"]?.find((value) => value.startsWith("sonara_customer_refresh="));
     assert.ok(cookie);
+    assert.ok(refreshCookie);
     assert.match(cookie, /HttpOnly/);
+    assert.match(refreshCookie, /HttpOnly/);
+    assert.equal(JSON.stringify(login.body).includes("customer-session-token"), false);
+    assert.equal(JSON.stringify(login.body).includes("customer-refresh-token"), false);
     assert.equal(dashboard.status, 200);
     assert.match(dashboard.text, /Free access/);
     assert.match(dashboard.text, /Paid access/);
     assert.match(dashboard.text, /Paid workspaces stay locked/);
+  });
+
+  it("renews an expired browser session with a refresh cookie and rotates both cookies", async function() {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+    const calls = [];
+    const originalFetch = global.fetch;
+    global.fetch = async (url, options = {}) => {
+      const target = String(url);
+      calls.push({ target, authorization: options.headers?.Authorization, body: options.body });
+      if (target.includes("grant_type=refresh_token")) {
+        return { ok: true, json: async () => ({ access_token: "rotated-access-token", refresh_token: "rotated-refresh-token", expires_in: 3600 }) };
+      }
+      if (target.includes("/auth/v1/user")) {
+        if (options.headers?.Authorization === "Bearer rotated-access-token") {
+          return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000102", email: "customer@example.com" }) };
+        }
+        return { ok: false, status: 401, json: async () => ({}) };
+      }
+      return { ok: true, json: async () => [] };
+    };
+
+    const dashboard = await request(app)
+      .get("/dashboard")
+      .set("Cookie", "sonara_customer_session=expired-access-token; sonara_customer_refresh=valid-refresh-token")
+      .set("Accept", "text/html");
+    global.fetch = originalFetch;
+
+    assert.equal(dashboard.status, 200);
+    const accessCookie = dashboard.headers["set-cookie"]?.find((value) => value.startsWith("sonara_customer_session=rotated-access-token"));
+    const refreshCookie = dashboard.headers["set-cookie"]?.find((value) => value.startsWith("sonara_customer_refresh=rotated-refresh-token"));
+    assert.ok(accessCookie);
+    assert.ok(refreshCookie);
+    assert.match(accessCookie, /HttpOnly/);
+    assert.match(refreshCookie, /HttpOnly/);
+    const refreshCall = calls.find((call) => call.target.includes("grant_type=refresh_token"));
+    assert.ok(refreshCall);
+    assert.deepEqual(JSON.parse(refreshCall.body), { refresh_token: "valid-refresh-token" });
   });
 
   it("POST /auth/login returns setup_required when Supabase is missing", async function() {
@@ -1150,6 +1309,31 @@ describe("business builder employee portal", () => {
 
     assert.equal(res.status, 403);
     assert.equal(res.body.code, "business_forbidden");
+  });
+
+  it("Business Builder managers can use the same browser session established by the login form", async function() {
+    configureSupabase();
+    const originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000024", email: "manager@example.com" }) };
+      }
+      if (String(url).includes("/business_memberships")) {
+        return { ok: true, json: async () => [{ id: "membership-2", organization_id: "00000000-0000-0000-0000-000000000031", workspace_id: "00000000-0000-0000-0000-000000000041", role: "manager", status: "active" }] };
+      }
+      if (String(url).includes("/business_employee_invites")) return { ok: true, json: async () => [] };
+      return { ok: true, json: async () => [] };
+    };
+
+    const res = await request(app)
+      .get("/business-builder/employees?workspaceId=00000000-0000-0000-0000-000000000041")
+      .set("Cookie", "sonara_customer_session=manager-browser-session")
+      .set("Accept", "text/html");
+    global.fetch = originalFetch;
+
+    assert.equal(res.status, 200);
+    assert.match(res.text, /Employee access/);
+    assert.match(res.text, /Create employee invite/);
   });
 
   it("employee invite creation rejects owner-submitted passwords", async function() {
