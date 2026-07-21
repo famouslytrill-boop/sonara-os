@@ -1,19 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA admin systems mark">
-  <title>SONARA Admin</title>
-  <defs>
-    <radialGradient id="ad-bg" cx="30%" cy="22%" r="90%">
-      <stop offset="0%" stop-color="#2c2618"/>
-      <stop offset="60%" stop-color="#191510"/>
-      <stop offset="100%" stop-color="#0c0a07"/>
-    </radialGradient>
-    <linearGradient id="ad-shield" x1="34" y1="30" x2="94" y2="102">
-      <stop offset="0%" stop-color="#ffd166"/>
-      <stop offset="100%" stop-color="#d7b46a"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#ad-bg)"/>
-  <path d="M64 24 L98 38 V66 C98 88 84 100 64 108 C44 100 30 88 30 66 V38 Z"
-        fill="none" stroke="url(#ad-shield)" stroke-width="7" stroke-linejoin="round"/>
-  <circle cx="64" cy="64" r="14" fill="none" stroke="#ffd166" stroke-width="6"/>
-  <circle cx="64" cy="64" r="4" fill="#ff6b5e"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA administrator mark">
+  <title>SONARA Administrator mark</title>
+  <desc>An original shield around the SONARA approval core representing protected founder operations.</desc>
+  <defs><linearGradient id="a" x1="26" y1="18" x2="102" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#FFC43D"/><stop offset=".48" stop-color="#FF8A3D"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+  <path d="M64 13 103 29v29c0 28-17 46-39 57-22-11-39-29-39-57V29z" fill="none" stroke="url(#a)" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M43 64c9-13 14 10 22-1 8-12 13 8 21-8" fill="none" stroke="#11162A" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="8" fill="#fff" stroke="#11162A" stroke-width="4"/>
 </svg>
