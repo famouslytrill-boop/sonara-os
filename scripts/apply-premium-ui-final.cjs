@@ -132,7 +132,7 @@ source = source
   .replace('<div class="eyebrow">${escapeHtml(eyebrow)}</div>', '<div class="eyebrow"${variant === "home" ? \' data-i18n="heroEyebrow"\' : ""}>${escapeHtml(eyebrow)}</div>')
   .replace('<h1>${escapeHtml(heading)}</h1>', '<h1${variant === "home" ? \' data-i18n="heroHeading"\' : ""}>${escapeHtml(heading)}</h1>')
   .replace('<p class="lede">${escapeHtml(body)}</p>', '<p class="lede"${variant === "home" ? \' data-i18n="heroBody"\' : ""}>${escapeHtml(body)}</p>')
-  .replace('<main id="sonara-main">', '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">');
+  .replace(/<main id="sonara-main"[^>]*>/, '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">');
 
 const loader = `<div id="nexus-loader" class="nexus-loader" role="status" aria-live="polite"><div class="nexus-loader__core"><img class="nexus-loader__mark" src="/brand/sonara-industries-mark.svg" alt=""><div class="nexus-loader__track" aria-hidden="true"></div><span class="nexus-loader__label">SONARA NEXUS</span></div></div><div class="nexus-route-progress" aria-hidden="true"></div>`;
 source = source.replace(/(<body class="\$\{escapeHtml\(brandClass\)\} \$\{variant === "home" \? "sonara-home-v3" : "sonara-standard-page"\}">)/, `$1\n    ${loader}`);

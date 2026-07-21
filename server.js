@@ -1635,7 +1635,7 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
         <a href="/admin/login" data-i18n="admin">Administration</a>
       </nav></details>
     </header>
-    <main id="sonara-main" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">
+    <main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">
       <section class="hero sonara-hero-stage">
         <div class="sonara-hero-copy">
           <div class="eyebrow"${variant === "home" ? ' data-i18n="heroEyebrow"' : ""}>${escapeHtml(eyebrow)}</div>
