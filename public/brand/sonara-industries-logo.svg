@@ -1,16 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-label="SONARA Industries">
   <title>SONARA Industries</title>
+  <desc>SONARA Industries wordmark with the original Prism Gate symbol.</desc>
   <defs>
-    <linearGradient id="w1" x1="16" y1="20" x2="134" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".55" stop-color="#FF8A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient>
-    <linearGradient id="w2" x1="14" y1="50" x2="140" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
-    <linearGradient id="w3" x1="24" y1="84" x2="132" y2="132" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".52" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
+    <linearGradient id="forge" x1="16" y1="24" x2="142" y2="74" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".58" stop-color="#FF8A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient>
+    <linearGradient id="canvas" x1="16" y1="54" x2="148" y2="112" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
+    <linearGradient id="signal" x1="22" y1="88" x2="140" y2="138" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".52" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
   </defs>
-  <g transform="translate(8 5)" fill="none" stroke-linecap="round">
-    <path d="M118 30C94 12 56 14 32 29C10 43 9 65 25 74C39 82 61 80 77 80" stroke="url(#w1)" stroke-width="15"/>
-    <path d="M77 80C101 79 122 84 128 98C136 116 117 133 91 137C64 141 37 131 24 116" stroke="url(#w3)" stroke-width="15"/>
-    <path d="M24 116C11 103 13 88 28 80C42 72 58 81 77 80C98 79 115 72 122 59C128 48 126 38 118 30" stroke="url(#w2)" stroke-width="8"/>
-    <circle cx="77" cy="80" r="9" fill="#fff" stroke="#11162A" stroke-width="4"/>
+  <g transform="translate(8 4)" fill="none" stroke-linecap="round">
+    <path d="M122 31C100 14 64 13 35 24C8 34 2 55 17 67C29 77 50 77 74 75" stroke="url(#forge)" stroke-width="16"/>
+    <path d="M74 75C100 73 124 79 132 94C141 112 122 131 98 138C70 146 40 136 24 119" stroke="url(#signal)" stroke-width="16"/>
+    <path d="M24 119C11 106 13 91 27 82C40 73 57 78 75 75C98 72 116 66 124 53C130 44 129 36 122 31" stroke="url(#canvas)" stroke-width="8"/>
+    <circle cx="75" cy="75" r="10" fill="#fff" stroke="#11162A" stroke-width="4"/>
+    <path d="M71 75l4 4 7-9" stroke="#11162A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <text x="170" y="78" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="58" font-weight="820" letter-spacing="4" fill="#11162A">SONARA</text>
-  <text x="173" y="116" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="19" font-weight="700" letter-spacing="9" fill="#5C6678">INDUSTRIES</text>
+  <text x="172" y="76" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="56" font-weight="820" letter-spacing="3" fill="#11162A">SONARA</text>
+  <text x="175" y="113" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="18" font-weight="700" letter-spacing="9" fill="#5C6678">INDUSTRIES</text>
 </svg>
