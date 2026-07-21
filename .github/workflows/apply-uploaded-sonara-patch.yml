@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - apply/sonara-nexus-a11y-port-clean
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -20,9 +23,10 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      - name: Checkout feature branch
         uses: actions/checkout@v4
         with:
+          ref: apply/sonara-nexus-a11y-port-clean
           fetch-depth: 0
 
       - name: Set up Node
