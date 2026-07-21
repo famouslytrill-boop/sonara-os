@@ -13,6 +13,13 @@ function write(relative, content) {
   fs.writeFileSync(path.join(root, relative), content);
 }
 
+let styles = read("ui/nexus/styles/99-sonara-cinematic-system.css");
+styles = styles.replace(
+  ".sonara-interface-face,.sonara-proof-pill,.sonara-quick-bar,.sonara-command-button,.sonara-utility-dock",
+  ".sonara-interface-face,.sonara-proof-pill,.sonara-command-button,.sonara-utility-dock"
+);
+write("ui/nexus/styles/99-sonara-cinematic-system.css", styles);
+
 let patcher = read("scripts/apply-premium-ui-final.cjs");
 const readinessLink = '<a class="action" href="/readiness">Readiness</a>';
 if (!patcher.includes('href="/requests"')) {
@@ -22,6 +29,15 @@ if (!patcher.includes('href="/requests"')) {
     `${readinessLink}<a class="action" href="/requests">Requests</a><a class="action" href="/deliverables">Deliverables</a>`
   );
 }
+patcher = patcher.replace('eyebrow: "SONARA NEXUS"', 'eyebrow: "LAUNCH OPERATING SYSTEM"');
+patcher = patcher.replace(
+  "SONARA connects identity, organization access, saved records, billing, requests, delivery, and support without inventing activity or hiding setup requirements.",
+  "SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements."
+);
+patcher = patcher.replace(
+  '<main id="sonara-main" data-sonara-interface="live">',
+  '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">'
+);
 write("scripts/apply-premium-ui-final.cjs", patcher);
 
 const testDirectory = path.join(root, "tests");
@@ -58,4 +74,4 @@ const nexusTest = read("tests/nexus-experience.test.js");
 if (!nexusTest.includes('haptics\\s*:\\s*"off"')) throw new Error("Haptics default test was not updated");
 if (!nexusTest.includes('preferences\\.haptics\\s*!==\\s*"on"')) throw new Error("Haptics opt-in test was not updated");
 
-console.log("Updated SONARA cinematic v4 test contracts.");
+console.log("Updated SONARA cinematic v4 source and test contracts.");
