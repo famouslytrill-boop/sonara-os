@@ -1,0 +1,1 @@
+Temporary patch-staging files. The application workflow verifies the uploaded patch byte length and SHA-256 before applying it, then removes this directory before the final feature commit.

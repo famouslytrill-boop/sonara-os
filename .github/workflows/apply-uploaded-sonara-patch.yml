@@ -1,0 +1,87 @@
+name: Apply uploaded SONARA patch
+
+on:
+  push:
+    branches:
+      - apply/sonara-nexus-a11y-port-clean
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-uploaded-sonara-patch
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: apply/sonara-nexus-a11y-port-clean
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.1.1 --activate
+
+      - name: Reconstruct and verify uploaded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .ai/apply-sonara-patch/part00.b64 \
+            .ai/apply-sonara-patch/part01.b64 \
+            .ai/apply-sonara-patch/part02.b64 \
+            .ai/apply-sonara-patch/part03.b64 \
+            .ai/apply-sonara-patch/part04.b64 \
+            .ai/apply-sonara-patch/part05_06.b64 \
+            .ai/apply-sonara-patch/part07_08.b64 \
+            .ai/apply-sonara-patch/part09_10.b64 \
+            .ai/apply-sonara-patch/part11_12.b64 \
+            .ai/apply-sonara-patch/part13_14.b64 \
+            .ai/apply-sonara-patch/part15_16.b64 \
+            .ai/apply-sonara-patch/part17_00.b64 \
+            .ai/apply-sonara-patch/part17_01.b64 \
+            .ai/apply-sonara-patch/part17_02.b64 \
+            .ai/apply-sonara-patch/part17_03.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode > /tmp/sonara-patch.xz
+
+          xz --decompress --stdout /tmp/sonara-patch.xz > /tmp/sonara.patch
+
+          test "$(wc -c < /tmp/sonara.patch)" -eq 177264
+          echo "059a6e2aa8c68de22abb696308178ba8ed85209d625198c823a818815fc01674  /tmp/sonara.patch" | sha256sum --check -
+
+          git apply --check /tmp/sonara.patch
+          git apply /tmp/sonara.patch
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full launch verification
+        run: pnpm run verify:launch
+
+      - name: Commit applied patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .ai/apply-sonara-patch
+          rm -f .github/workflows/apply-uploaded-sonara-patch.yml
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: apply SONARA Nexus accessibility and vertical modules [skip ci]"
+          git push origin HEAD:apply/sonara-nexus-a11y-port-clean
