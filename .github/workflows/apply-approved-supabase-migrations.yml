@@ -71,6 +71,9 @@ jobs:
           const pitrEnabled = entries.some(({ path, value }) =>
             /pitr|point.?in.?time/i.test(path.join(".")) && value === true
           );
+          const latestPhysicalBackup = entries.find(({ path, value }) =>
+            path.at(-1) === "latest_physical_backup_date_unix" && Number(value) > 0
+          );
           const backupArrays = entries
             .filter(({ path, value }) => Array.isArray(value) && (path.length === 0 || /backup|restore/i.test(path.join("."))))
             .flatMap(({ value }) => value)
@@ -82,13 +85,15 @@ jobs:
             return Boolean(item.inserted_at || item.created_at || item.updated_at || item.backup_date || item.completed_at);
           });
 
-          if (!pitrEnabled && recoverable.length === 0) {
+          if (!pitrEnabled && !latestPhysicalBackup && recoverable.length === 0) {
             console.error("Refusing migration: no recoverable daily backup or PITR protection was reported by Supabase.");
             process.exit(1);
           }
 
           console.log(pitrEnabled
             ? "Supabase PITR protection confirmed."
+            : latestPhysicalBackup
+              ? "Supabase physical backup protection confirmed."
             : `Supabase reported ${recoverable.length} recoverable database backup(s).`);
           NODE
 
