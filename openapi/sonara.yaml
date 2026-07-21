@@ -421,6 +421,23 @@ paths:
       summary: Return truthful ecosystem table readiness.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/ai-integrations:
+    get:
+      operationId: getAIIntegrationCatalog
+      tags: [Ecosystem]
+      summary: Return the non-secret governed AI integration catalog.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/admin/ai-integrations/readiness:
+    get:
+      operationId: getAdminAIIntegrationReadiness
+      tags: [Administration]
+      summary: Run bounded read-only readiness probes for configured AI service adapters.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
   /api/infrastructure/manifest:
     get:
       operationId: getInfrastructureManifest

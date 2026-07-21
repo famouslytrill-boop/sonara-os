@@ -46,10 +46,6 @@ function isPrimaryMembershipLookup(url) {
   return url.includes("/rest/v1/organization_memberships?select=organization_id");
 }
 
-function isLegacyMembershipLookup(url) {
-  return url.includes("/rest/v1/organization_members?select=organization_id");
-}
-
 function isBusinessMembershipLookup(url) {
   return url.includes("/rest/v1/business_memberships?select=organization_id");
 }
@@ -83,7 +79,7 @@ describe("organization setup schema compatibility", () => {
       if (url.includes("/rest/v1/profiles?on_conflict=id") && method === "POST") {
         return response(201, [{ id: USER_ID }]);
       }
-      if ((isPrimaryMembershipLookup(url) || isLegacyMembershipLookup(url) || isBusinessMembershipLookup(url)) && method === "GET") {
+      if ((isPrimaryMembershipLookup(url) || isBusinessMembershipLookup(url)) && method === "GET") {
         return response(200, []);
       }
       if (url.includes("/rest/v1/organizations?select=id&slug=eq.") && method === "GET") {
@@ -146,7 +142,7 @@ describe("organization setup schema compatibility", () => {
       if (url.includes("/rest/v1/profiles?on_conflict=id") && method === "POST") {
         return response(201, [{ id: USER_ID }]);
       }
-      if ((isPrimaryMembershipLookup(url) || isLegacyMembershipLookup(url) || isBusinessMembershipLookup(url)) && method === "GET") {
+      if ((isPrimaryMembershipLookup(url) || isBusinessMembershipLookup(url)) && method === "GET") {
         return response(200, []);
       }
       if (url.includes("/rest/v1/organizations?select=id&slug=eq.") && method === "GET") {

@@ -22,12 +22,14 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         brandCard("Parent company", `${manifest.parentCompany.name}: ${manifest.parentCompany.legalRole}`),
         ...manifest.currentCompanies.map((company) => brandCard(company.name, `${company.purpose} Apps: ${company.apps.slice(0, 8).join(" / ")}`)),
         brandCard("Infrastructure", manifest.infrastructure.requiredServices.join(" / ")),
+        brandCard("Governed AI integrations", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} tools classified by runtime, risk, license, and product fit; all optional and disabled by default.`),
         brandCard("UI direction", manifest.uiExperience.direction),
         brandCard("Launch priority", manifest.launchPriorities.slice(0, 5).join(" / "))
       ],
       actions: [
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
         linkAction("/api/ecosystem/readiness", "Readiness JSON"),
+        linkAction("/api/ecosystem/ai-integrations", "AI integration catalog"),
         linkAction("/formulas", "Formulas"),
         linkAction("/dashboard", "Dashboard")
       ]
@@ -47,6 +49,7 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         brandCard("System model", `${manifest.currentCompanies.length} companies, ${manifest.requiredDatabaseDomains.length} database domains, ${getAllManifestTables().length} required table references.`),
         brandCard("Database readiness", `${readiness.tables.length - missingCount}/${readiness.tables.length} table references returned OK. ${missingCount} still need setup, migration, or read permission review.`),
         brandCard("Adapter policy", manifest.externalInspirationAndAdapters.adapterRules.join(" / ")),
+        brandCard("AI integration control plane", `${manifest.externalInspirationAndAdapters.governedAIIntegrations.length} classified tools with admin-only, read-only service probes.`),
         brandCard("UI layer", manifest.uiExperience.layers.join(" / ")),
         brandCard("Next priorities", manifest.launchPriorities.slice(0, 8).join(" / ")),
         ...manifest.currentCompanies.map((company) => brandCard(company.name, company.modules.slice(0, 14).join(" / ")))
@@ -55,7 +58,8 @@ module.exports = function registerSonaraEcosystemRoutes(app, deps = {}) {
         linkAction("/admin", "Admin"),
         linkAction("/admin/formulas", "Formulas"),
         linkAction("/api/ecosystem/manifest", "Manifest JSON"),
-        linkAction("/api/ecosystem/readiness", "Readiness JSON")
+        linkAction("/api/ecosystem/readiness", "Readiness JSON"),
+        linkAction("/admin/ai-integrations", "AI integrations")
       ]
     }));
   });
@@ -85,6 +89,7 @@ function getStaticEcosystemReadiness() {
       moduleCount: company.modules.length
     })),
     serviceCount: manifest.infrastructure.requiredServices.length,
+    aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
     tables: tableNames.map((table) => ({ table, ok: false, status: "setup_required" }))
   };
 }
@@ -115,6 +120,7 @@ async function getEcosystemReadiness(safeListTable, options = {}) {
       moduleCount: company.modules.length
     })),
     serviceCount: manifest.infrastructure.requiredServices.length,
+    aiIntegrationCount: manifest.externalInspirationAndAdapters.governedAIIntegrations.length,
     tables
   };
 }

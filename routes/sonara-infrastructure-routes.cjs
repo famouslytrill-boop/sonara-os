@@ -32,9 +32,9 @@ function registerSonaraInfrastructureRoutes(app, deps) {
   app.get("/infrastructure", (req, res) => {
     const services = envReadiness(process.env);
     const sections = [
-      brandCard("Infrastructure depth", "SONARA tracks hosting, database, payments, email, source control, local terminal work, Docker/Rancher worker readiness, and CrewAI orchestration as separate layers."),
+      brandCard("Infrastructure depth", "SONARA tracks hosting, database, renewable sessions, payments, email, source control, local terminal work, Docker/Rancher worker readiness, and governed AI adapters as separate layers."),
       brandCard("MVP launch rule", "Paid-customer readiness depends on passing tests, real database state, verified Stripe webhooks, verified Resend sender, and protected customer access."),
-      ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.launchStatus}`, `${service.category}. Endpoints: ${service.endpoints.length ? service.endpoints.join(" / ") : "manual or worker-layer verification"}.`)),
+      ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.configurationStatus || service.launchStatus}`, `${service.category}. Endpoints: ${service.endpoints.length ? service.endpoints.join(" / ") : "manual or worker-layer verification"}.`)),
       ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description)),
       brandCard("Mobile optimization", MOBILE_EXPERIENCE_CHECKS.join(" / "))
     ];
@@ -43,7 +43,7 @@ function registerSonaraInfrastructureRoutes(app, deps) {
       title: "Infrastructure",
       eyebrow: "System depth",
       heading: "SONARA Infrastructure",
-      body: "Operational map for Supabase, Vercel, Stripe, Resend, GitHub, terminal workflows, Docker, Rancher, workers, mobile readiness, and launch gates.",
+      body: "Operational map for Supabase, renewable sessions, Vercel, Stripe, Resend, GitHub, governed AI adapters, Docker, Rancher, workers, mobile readiness, and launch gates.",
       sections,
       actions: [linkAction("/api/infrastructure/readiness", "Readiness JSON"), linkAction("/admin/system", "Admin system"), linkAction("/dashboard", "Dashboard")]
     }));
@@ -53,7 +53,7 @@ function registerSonaraInfrastructureRoutes(app, deps) {
     const services = envReadiness(process.env);
     const sections = [
       brandCard("Admin infrastructure view", "This page shows configuration state without exposing raw secret values."),
-      ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : "setup required"}`, service.env.length ? service.env.map((item) => `${item.name}: ${item.configured ? "configured" : "missing"}`).join(" / ") : `${service.launchStatus} manual verification required.`)),
+      ...services.map((service) => brandCard(`${service.label}: ${service.configured ? "configured" : service.configurationStatus || "setup required"}`, service.env.length ? service.env.map((item) => `${item.name}: ${item.configured ? "configured" : "missing"}`).join(" / ") : `${service.launchStatus} manual verification required.`)),
       ...PIPELINE_LAYERS.map((layer) => brandCard(layer.label, layer.description))
     ];
 

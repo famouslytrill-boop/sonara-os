@@ -163,6 +163,9 @@ describe("SONARA route registry and account completion", () => {
     const duplicates = routes.filter((route, index) => routes.indexOf(route) !== index);
     assert.deepEqual(missing, []);
     assert.deepEqual([...new Set(duplicates)], []);
+    const registryPaths = ROUTE_REGISTRY.map((record) => record.route);
+    const productRoutes = routes.filter((route) => /^\/(business-builder|creator-studio|growth-studio)(?:\/|$)/.test(route));
+    assert.deepEqual(productRoutes.filter((route) => !registryPaths.includes(route)), []);
   });
 
   it("keeps protected routes out of sitemap metadata", () => {

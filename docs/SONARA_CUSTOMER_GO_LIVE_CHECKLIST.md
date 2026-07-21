@@ -74,7 +74,8 @@ Acceptance criteria:
 - Supabase service-role key is configured server-side only in Vercel.
 - Email/password signup works.
 - Email/password login works.
-- Logout clears customer session.
+- Access-token expiry renews through a rotating HttpOnly refresh cookie.
+- Logout clears both customer session cookies.
 - Customer session does not expose secrets.
 
 ### Founder/admin requirements

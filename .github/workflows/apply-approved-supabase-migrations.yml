@@ -1,0 +1,193 @@
+name: Apply approved Supabase migrations
+
+on:
+  push:
+    branches:
+      - feat/governed-ai-integrations
+    paths:
+      - .github/workflows/apply-approved-supabase-migrations.yml
+      - supabase/migrations/20260721170000_governed_ai_integration_catalog.sql
+      - supabase/migrations/20260721213000_complete_runtime_database_contract.sql
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-production-database-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-approved-migrations:
+    name: Apply migrations 43-44
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      EXPECTED_PROJECT_ID: yqncsonkxgwhcxedgevk
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify approved target and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_ID"
+          test -n "$SUPABASE_DB_PASSWORD"
+          if [ "$SUPABASE_PROJECT_ID" != "$EXPECTED_PROJECT_ID" ]; then
+            echo "Refusing migration: configured project does not match the approved SONARA production project."
+            exit 1
+          fi
+          echo "Approved production project reference verified. Secret values were not printed."
+
+      - name: Verify recoverable database backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_json="$RUNNER_TEMP/sonara-supabase-backups.json"
+          curl --fail --silent --show-error --retry 2 \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/backups" \
+            > "$backup_json"
+
+          node - "$backup_json" <<'NODE'
+          const fs = require("node:fs");
+          const payload = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+
+          function walk(value, path = []) {
+            if (!value || typeof value !== "object") return [];
+            if (Array.isArray(value)) {
+              return [{ path, value }, ...value.flatMap((item, index) => walk(item, [...path, String(index)]))];
+            }
+            return Object.entries(value).flatMap(([key, item]) => [
+              { path: [...path, key], value: item },
+              ...walk(item, [...path, key])
+            ]);
+          }
+
+          const entries = walk(payload);
+          const pitrEnabled = entries.some(({ path, value }) =>
+            /pitr|point.?in.?time/i.test(path.join(".")) && value === true
+          );
+          const backupArrays = entries
+            .filter(({ path, value }) => Array.isArray(value) && (path.length === 0 || /backup|restore/i.test(path.join("."))))
+            .flatMap(({ value }) => value)
+            .filter((item) => item && typeof item === "object" && !Array.isArray(item));
+          const recoverable = backupArrays.filter((item) => {
+            const status = String(item.status || item.state || "").toLowerCase();
+            if (/fail|error|cancel|expire|delete/.test(status)) return false;
+            if (/complete|success|available|ready|finish/.test(status)) return true;
+            return Boolean(item.inserted_at || item.created_at || item.updated_at || item.backup_date || item.completed_at);
+          });
+
+          if (!pitrEnabled && recoverable.length === 0) {
+            console.error("Refusing migration: no recoverable daily backup or PITR protection was reported by Supabase.");
+            process.exit(1);
+          }
+
+          console.log(pitrEnabled
+            ? "Supabase PITR protection confirmed."
+            : `Supabase reported ${recoverable.length} recoverable database backup(s).`);
+          NODE
+
+          rm -f "$backup_json"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link approved project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Preflight migration history and dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked > migration-ledger-before.log 2>&1
+
+          baseline="$(grep '20260718193000' migration-ledger-before.log || true)"
+          baseline_occurrences="$(printf '%s' "$baseline" | grep -o '20260718193000' | wc -l | tr -d ' ')"
+          if [ "$baseline_occurrences" -lt 2 ]; then
+            echo "Refusing migration: the approved production baseline is not present in the remote ledger."
+            exit 1
+          fi
+
+          dry_run="$(supabase db push --linked --dry-run 2>&1)"
+          printf '%s\n' "$dry_run" > migration-dry-run.log
+
+          pending="$(printf '%s\n' "$dry_run" | grep -oE '20[0-9]{12}_[A-Za-z0-9_.-]+\.sql' | sort -u || true)"
+          while IFS= read -r migration; do
+            [ -z "$migration" ] && continue
+            case "$migration" in
+              20260721170000_governed_ai_integration_catalog.sql|20260721213000_complete_runtime_database_contract.sql)
+                ;;
+              *)
+                echo "Refusing migration: unexpected pending file $migration"
+                exit 1
+                ;;
+            esac
+          done <<< "$pending"
+
+          {
+            echo "### Supabase production migration preflight"
+            echo "Target project reference verified: \`$EXPECTED_PROJECT_ID\`."
+            echo "Recoverable backup or PITR protection verified through the Supabase Management API."
+            if [ -n "$pending" ]; then
+              echo "Approved pending migrations:"
+              printf '%s\n' "$pending" | sed 's/^/- `/' | sed 's/$/`/'
+            else
+              echo "No unapplied migration files were reported; postflight will verify the approved versions."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Apply approved migrations
+        shell: bash
+        run: |
+          set +e
+          supabase db push --linked > migration-apply.log 2>&1
+          status=$?
+          set -e
+          cat migration-apply.log
+          exit "$status"
+
+      - name: Verify remote migration ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          ledger="$(supabase migration list --linked 2>&1)"
+          printf '%s\n' "$ledger" | tee migration-ledger-after.log
+          for version in 20260721170000 20260721213000; do
+            line="$(printf '%s\n' "$ledger" | grep "$version" || true)"
+            occurrences="$(printf '%s' "$line" | grep -o "$version" | wc -l | tr -d ' ')"
+            if [ "$occurrences" -lt 2 ]; then
+              echo "Remote migration ledger does not confirm $version as applied."
+              exit 1
+            fi
+          done
+          echo "Both approved migration versions are present locally and remotely." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Lint linked production schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db lint --linked --level error --fail-on error 2>&1 | tee migration-lint.log
+          echo "Linked production schema lint passed at error level." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload sanitized migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-supabase-migration-diagnostics-${{ github.run_attempt }}
+          path: |
+            migration-ledger-before.log
+            migration-dry-run.log
+            migration-apply.log
+            migration-ledger-after.log
+            migration-lint.log
+          if-no-files-found: ignore
+          retention-days: 3

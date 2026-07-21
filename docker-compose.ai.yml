@@ -1,0 +1,75 @@
+name: sonara-ai-local
+
+# Optional development services only. Nothing in this file is started by the
+# SONARA application. Ports bind to loopback so these services are not exposed
+# on the host network. Set strong local secrets before enabling a profile.
+services:
+  ollama:
+    profiles: ["ollama", "open-webui"]
+    image: ollama/ollama:0.32.0
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  open-webui:
+    profiles: ["open-webui"]
+    image: ghcr.io/open-webui/open-webui:v0.10.2
+    depends_on:
+      ollama:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3001:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH: "True"
+      ENABLE_SIGNUP: ${OPEN_WEBUI_ENABLE_SIGNUP:-False}
+      WEBUI_SECRET_KEY: ${OPEN_WEBUI_SECRET_KEY:-}
+    volumes:
+      - open-webui-data:/app/backend/data
+    security_opt:
+      - no-new-privileges:true
+
+  langflow:
+    profiles: ["langflow"]
+    image: langflowai/langflow:1.10.2
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      LANGFLOW_AUTO_LOGIN: "false"
+      LANGFLOW_SUPERUSER: ${LANGFLOW_SUPERUSER:-sonara-local-admin}
+      LANGFLOW_SUPERUSER_PASSWORD: ${LANGFLOW_SUPERUSER_PASSWORD:-}
+      LANGFLOW_SECRET_KEY: ${LANGFLOW_SECRET_KEY:-}
+    volumes:
+      - langflow-data:/app/langflow
+    security_opt:
+      - no-new-privileges:true
+
+  n8n:
+    profiles: ["n8n"]
+    image: docker.n8n.io/n8nio/n8n:2.31.4
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-}
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_SECURE_COOKIE: "false"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  ollama-data:
+  open-webui-data:
+  langflow-data:
+  n8n-data:

@@ -8,7 +8,7 @@ const migrationDir = join(root, "supabase", "migrations");
 const migrations = readdirSync(migrationDir).filter((name) => name.endsWith(".sql")).sort();
 const versions = new Map();
 const failures = [];
-const { DATABASE_INDEXES } = require(join(root, "lib", "sonara-database-contract.cjs"));
+const { DATABASE_INDEXES, DATABASE_TABLES } = require(join(root, "lib", "sonara-database-contract.cjs"));
 
 for (const name of migrations) {
   const version = name.split("_")[0];
@@ -17,23 +17,7 @@ for (const name of migrations) {
 }
 
 const sql = migrations.map((name) => readFileSync(join(migrationDir, name), "utf8")).join("\n").toLowerCase();
-const requiredTables = [
-  "profiles",
-  "organizations",
-  "organization_memberships",
-  "user_roles",
-  "support_requests",
-  "service_requests",
-  "service_deliverables",
-  "module_outputs",
-  "customer_records",
-  "order_records",
-  "creator_assets",
-  "growth_campaigns",
-  "growth_leads",
-  "billing_webhook_events",
-  "billing_subscriptions"
-];
+const requiredTables = DATABASE_TABLES;
 
 for (const table of requiredTables) {
   if (!sql.includes(`create table if not exists public.${table}`)) failures.push(`missing append-safe table definition: ${table}`);

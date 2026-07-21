@@ -6,7 +6,7 @@ SONARA uses one Supabase Postgres project as the primary source of truth. The Ex
 
 ## Inventory
 
-`lib/sonara-database-contract.cjs` is the shared application inventory. It groups 71 existing tables into:
+`lib/sonara-database-contract.cjs` is the shared application inventory. It groups 86 existing tables into:
 
 - identity and organization access
 - billing and entitlements
@@ -18,12 +18,14 @@ SONARA uses one Supabase Postgres project as the primary source of truth. The Ex
 - agents and automation
 - operations and audit
 - formula definitions and results
+- integration jobs and user notifications
+- sensory feedback and location zones
 
 The contract also declares 10 authorization/readiness functions, three required schemas, and seven private storage buckets. It does not create a database per customer and does not duplicate existing agent tables.
 
 ## Runtime Readiness
 
-Migration `20260718071148_connect_database_contract.sql`:
+Migration `20260721213000_complete_runtime_database_contract.sql` supersedes the earlier readiness snapshot and:
 
 1. Fails if a required application table is absent.
 2. Fails if a required application table does not have RLS enabled.

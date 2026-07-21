@@ -22,11 +22,30 @@ No external project should be added to customer-facing production until:
 6. Admin readiness can show status.
 7. A rollback path exists.
 
+## Governed AI integration set
+
+These entries have catalog, database, environment, and admin-readiness integration. `adapter_available` means a disabled-by-default, read-only HTTP readiness probe exists; it does not mean workflow or agent execution is authorized.
+
+| Project | Source | Status | Integration placement |
+|---|---|---|---|
+| OpenClaw | `github.com/openclaw/openclaw` | `adapter_available` | Private device/operator gateway |
+| n8n | `github.com/n8n-io/n8n` | `adapter_available_license_review` | Isolated automation service |
+| Ollama | `github.com/ollama/ollama` | `adapter_available` | Local/private model runtime |
+| Langflow | `github.com/langflow-ai/langflow` | `adapter_available` | Authenticated private flow service |
+| Dify | `github.com/langgenius/dify` | `adapter_available_license_review` | External or self-hosted app service |
+| LangChain | `github.com/langchain-ai/langchain` | `worker_reference` | Controlled worker framework only |
+| Open WebUI | `github.com/open-webui/open-webui` | `adapter_available_terms_review` | Private operator interface |
+| DeepSeek V3 | `github.com/deepseek-ai/DeepSeek-V3` | `gateway_model_option` | Approved gateway or private GPU worker; weights not bundled |
+| Gemini CLI | `github.com/google-gemini/gemini-cli` | `developer_only` | Developer workstation/container only |
+| RAGFlow | `github.com/infiniflow/ragflow` | `adapter_available_license_review` | Isolated retrieval stack |
+| Claude Code | `github.com/anthropics/claude-code` | `developer_only` | Developer workstation/container only |
+| CrewAI | `github.com/crewAIInc/crewAI` | `adapter_available` | Reviewed background worker only |
+
 ## Agent and orchestration
 
 | Project | Source | SONARA fit | Status | Integration placement |
 |---|---|---|---|---|
-| CrewAI | `github.com/crewAIInc/crewAI` | Agent orchestration for launch readiness, admin audits, product assistants | `authorized_controlled_build` | Worker/container only |
+| CrewAI | `github.com/crewAIInc/crewAI` | Agent orchestration for a future read-only launch-readiness pilot | `readiness_adapter_only` | Worker/container only |
 | pydantic/monty | `github.com/pydantic/monty` | AI/code/agent research candidate, likely useful for structured tool/workflow review | `review_required` | Research first |
 
 ## Creator Studio, media, and AI production

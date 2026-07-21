@@ -1302,6 +1302,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           actionCard("Email delivery (Resend)", `Email delivery: ${serviceState("emailDelivery")}. Notifications degrade to safe queued states when unconfigured.`, [linkAction("/admin/support", "Support queue")]),
           actionCard("Google sign-in", `Status: ${serviceState("googleSignIn")}. Email and password login works independently.`, [linkAction("/admin/env-readiness", "Environment")]),
           actionCard("Optional AI gateway", `Status: ${displayStatus(gateway.status)}. Operator/development use only; never customer-facing.`, [linkAction("/admin/ai-gateway", "AI gateway")]),
+          actionCard("Governed AI integrations", "Twelve tools are classified by runtime, license, risk, and product fit. Eight opt-in service adapters provide read-only readiness probes.", [linkAction("/admin/ai-integrations", "AI integrations")]),
           actionCard("System map", "Formula library, ecosystem manifest, and infrastructure manifest are part of the operational surface.", [linkAction("/admin/formulas", "Formulas"), linkAction("/admin/ecosystem", "Ecosystem"), linkAction("/admin/infrastructure", "Infrastructure")])
         ],
         actions: adminActions()

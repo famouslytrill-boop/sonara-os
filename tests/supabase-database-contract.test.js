@@ -10,11 +10,11 @@ const {
 } = require("../lib/sonara-database-contract.cjs");
 
 const root = path.resolve(__dirname, "..");
-const migrationPath = path.join(root, "supabase", "migrations", "20260718071148_connect_database_contract.sql");
+const migrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 71);
+    assert.equal(DATABASE_TABLES.length, 86);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -23,8 +23,13 @@ describe("Supabase database contract", () => {
       "billing_subscriptions",
       "support_requests",
       "business_workspaces",
+      "business_bookings",
       "creator_assets",
+      "music_projects",
       "growth_campaigns",
+      "integration_providers",
+      "user_notifications",
+      "sensory_feedback_profiles",
       "entity_agents",
       "entity_agent_runs",
       "entity_action_approvals",
@@ -54,6 +59,7 @@ describe("Supabase database contract", () => {
     const config = fs.readFileSync(path.join(root, "supabase", "config.toml"), "utf8");
     const mcp = JSON.parse(fs.readFileSync(path.join(root, ".mcp.json"), "utf8"));
     assert.match(config, /auto_expose_new_tables = false/);
+    assert.match(config, /minimum_password_length = 8/);
     for (const bucket of STORAGE_BUCKETS) {
       assert.match(config, new RegExp(`\\[storage\\.buckets\\.${bucket.replaceAll("-", "\\-")}\\]`));
       assert.match(config, new RegExp(`\\[storage\\.buckets\\.${bucket.replaceAll("-", "\\-")}\\][\\s\\S]*?public = false`));

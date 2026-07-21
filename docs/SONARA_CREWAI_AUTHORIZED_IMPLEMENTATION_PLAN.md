@@ -6,16 +6,16 @@ This does not authorize unsafe secret exposure, unrestricted shell access, direc
 
 ## Implementation status
 
-Status: `authorized_controlled_build`
+Status: `adapter_available_disabled_by_default`
 
-CrewAI can be integrated only through controlled worker jobs, not directly in the browser and not inside synchronous Vercel customer requests.
+CrewAI now has a configuration/readiness adapter in the governed AI control plane. Job execution remains disabled by default and can be enabled only through controlled worker jobs, not directly in the browser and not inside synchronous Vercel customer requests.
 
 ## Phase 1: Registry and visibility
 
 Add CrewAI to the SONARA ecosystem registry and admin control-plane as:
 
 - category: `agent_orchestration`
-- status: `authorized_controlled_build`
+- status: `adapter_available_disabled_by_default`
 - runtime: `worker_required`
 - launch impact: `not_required_for_customer_launch`
 - human review: `required`

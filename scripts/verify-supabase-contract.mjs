@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
-const contractMigrationName = "20260718071148_connect_database_contract.sql";
+const contractMigrationName = "20260721213000_complete_runtime_database_contract.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
@@ -39,7 +39,7 @@ const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
-if (DATABASE_TABLES.length !== 71) fail(`expected 71 canonical tables, found ${DATABASE_TABLES.length}`);
+if (DATABASE_TABLES.length !== 86) fail(`expected 86 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 10) fail(`expected 10 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
@@ -50,6 +50,27 @@ for (const table of DATABASE_TABLES) {
   const createPattern = new RegExp(`create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.${table}\\b`, "i");
   if (!createPattern.test(allSql)) fail(`no migration creates public.${table}`);
   if (!contractSql.includes(`'${table}'`)) fail(`the runtime migration does not check public.${table}`);
+}
+
+const runtimeFiles = [
+  path.join(root, "server.js"),
+  ...fs.readdirSync(path.join(root, "routes"))
+    .filter((name) => name.endsWith(".cjs"))
+    .sort()
+    .map((name) => path.join(root, "routes", name))
+];
+const runtimeSource = runtimeFiles.map(read).join("\n");
+const runtimeTableReferences = new Set();
+for (const pattern of [
+  /\/rest\/v1\/([a-z0-9_]+)/gi,
+  /safeListTable\(\s*["']([a-z0-9_]+)["']/gi,
+  /\btable\s*:\s*["']([a-z0-9_]+)["']/gi
+]) {
+  for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
+}
+for (const table of [...runtimeTableReferences].sort()) {
+  if (table === "rpc") continue;
+  if (!DATABASE_TABLES.includes(table)) fail(`runtime references public.${table}, but it is absent from the canonical contract`);
 }
 
 for (const signature of DATABASE_FUNCTIONS) {
@@ -93,6 +114,7 @@ if (/grant\s+/i.test(operationalIndexSql)) fail("operational index migration mus
 
 if (!/auto_expose_new_tables\s*=\s*false/.test(config)) fail("local Data API must not auto-expose new tables");
 if (!/\[db\.seed\][\s\S]*?enabled\s*=\s*false/.test(config)) fail("local seed execution must remain disabled until a reviewed seed exists");
+if (!/minimum_password_length\s*=\s*8/.test(config)) fail("local Supabase Auth must enforce the application 8-character minimum password length");
 for (const bucket of STORAGE_BUCKETS) {
   const escaped = bucket.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const section = config.match(new RegExp(`\\[storage\\.buckets\\.${escaped}\\]([\\s\\S]*?)(?=\\n\\[|$)`))?.[1] || "";
