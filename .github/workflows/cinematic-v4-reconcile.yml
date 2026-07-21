@@ -1,0 +1,82 @@
+name: Reconcile SONARA cinematic v4
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sonara-cinematic-v4-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/sonara-cinematic-research-v2
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@11.1.1 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Reconcile tests and homepage actions
+        run: node .ai/apply-cinematic-v4.cjs
+
+      - name: Generate runtime twice and verify idempotency
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run apply:runtime
+          git diff --binary > /tmp/runtime-first.diff
+          pnpm run apply:runtime
+          git diff --binary > /tmp/runtime-second.diff
+          cmp /tmp/runtime-first.diff /tmp/runtime-second.diff
+          git diff --check
+
+      - name: Run tests
+        run: pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests
+
+      - name: Build and lint
+        run: |
+          pnpm run build
+          pnpm run lint
+          pnpm run typecheck
+
+      - name: Security and contract checks
+        run: |
+          pnpm run scan:client-secrets
+          pnpm run smoke:routes
+          pnpm run verify:config
+          pnpm run verify:api
+
+      - name: Build Docker image
+        run: docker build -t sonara-os:cinematic-v4 .
+
+      - name: Commit generated runtime and updated contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .ai/apply-cinematic-v4.cjs
+          rm -f .github/workflows/cinematic-v4-reconcile.yml
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: generate and validate SONARA cinematic v4"
+          git push origin HEAD:feat/sonara-cinematic-research-v2
