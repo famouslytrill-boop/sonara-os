@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Reconcile tests and homepage actions
+      - name: Reconcile source and test contracts
         run: node .ai/apply-cinematic-v4.cjs
 
       - name: Generate runtime twice and verify idempotency
@@ -49,6 +49,16 @@ jobs:
           git diff --binary > /tmp/runtime-second.diff
           cmp /tmp/runtime-first.diff /tmp/runtime-second.diff
           git diff --check
+
+      - name: Commit reconciled runtime for shared CI
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat: generate SONARA cinematic v4 runtime"
+          git push origin HEAD:feat/sonara-cinematic-research-v2
 
       - name: Run tests
         run: pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests
@@ -69,14 +79,12 @@ jobs:
       - name: Build Docker image
         run: docker build -t sonara-os:cinematic-v4 .
 
-      - name: Commit generated runtime and updated contracts
+      - name: Remove temporary reconciliation files
         shell: bash
         run: |
           set -euo pipefail
           rm -f .ai/apply-cinematic-v4.cjs
           rm -f .github/workflows/cinematic-v4-reconcile.yml
           git add -A
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "feat: generate and validate SONARA cinematic v4"
+          git commit -m "chore: remove cinematic reconciliation helpers"
           git push origin HEAD:feat/sonara-cinematic-research-v2
