@@ -68,6 +68,30 @@ describe("governed AI integration registry", () => {
     assert.ok(PIPELINE_LAYERS.some((item) => item.key === "ai_control_plane"));
   });
 
+  it("treats supported production environment aliases as alternatives", () => {
+    const readiness = envReadiness({
+      SUPABASE_URL: "https://sonara.supabase.co",
+      SUPABASE_ANON_KEY: "anon-test-value",
+      SUPABASE_SERVICE_ROLE_KEY: "service-role-test-value",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      APP_URL: "https://sonaraindustries.com",
+      STRIPE_SECRET_KEY: "stripe-test-value",
+      STRIPE_WEBHOOK_SECRET: "stripe-webhook-test-value",
+      RESEND_API_KEY: "resend-test-value",
+      RESEND_FROM_EMAIL: "support@sonaraindustries.com",
+      SUPPORT_TO_EMAIL: "owner@sonaraindustries.com",
+      VERCEL_GIT_COMMIT_SHA: "0123456789abcdef"
+    });
+
+    const required = readiness.filter((item) => item.launchStatus === "required");
+    assert.deepEqual(required.map((item) => item.key), ["supabase", "vercel", "stripe", "resend", "github"]);
+    assert.ok(required.every((item) => item.configured));
+    assert.ok(readiness.find((item) => item.key === "vercel").env.some((item) => item.name.includes("APP_URL") && item.configured));
+    assert.ok(readiness.find((item) => item.key === "resend").env.some((item) => item.name.includes("SUPPORT_TO_EMAIL") && item.configured));
+    assert.ok(readiness.find((item) => item.key === "github").env.some((item) => item.name.includes("VERCEL_GIT_COMMIT_SHA") && item.configured));
+  });
+
   it("returns a safe public catalog without credential configuration fields", () => {
     const catalog = getPublicAIIntegrationCatalog();
     const serialized = JSON.stringify(catalog);
