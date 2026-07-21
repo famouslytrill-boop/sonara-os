@@ -1,0 +1,555 @@
+/* SONARA Nexus Cinematic System v4
+   Original synthesis of adaptive, media, automotive, game-UI, retail, and operating-system principles.
+   This file is assembled into the canonical application stylesheet; it is not a second stylesheet authority. */
+
+:root {
+  --nx-bg: #f7f9fc;
+  --nx-surface: #ffffff;
+  --nx-soft: #eef2f7;
+  --nx-ink: #11162a;
+  --nx-text: #20283a;
+  --nx-muted: #5b6475;
+  --nx-border: rgba(17, 22, 42, 0.12);
+  --nx-border-strong: rgba(17, 22, 42, 0.22);
+  --nx-violet: #7456ff;
+  --nx-blue: #4f6fff;
+  --nx-cyan: #14c8e5;
+  --nx-coral: #ff4d8d;
+  --nx-green: #20c98b;
+  --nx-radius: 16px;
+  --nx-radius-sm: 10px;
+  --nx-content: 1200px;
+  --nx-shadow: 0 1px 2px rgba(17, 22, 42, 0.05), 0 18px 48px rgba(17, 22, 42, 0.08);
+  --nx-shadow-strong: 0 26px 80px rgba(17, 22, 42, 0.14);
+  --nx-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-theme="dark"],
+body.sonara-admin {
+  --nx-bg: #080b14;
+  --nx-surface: #0f1422;
+  --nx-soft: #151b2b;
+  --nx-ink: #f7f9ff;
+  --nx-text: #e6ebf6;
+  --nx-muted: #a4aec1;
+  --nx-border: rgba(220, 228, 255, 0.13);
+  --nx-border-strong: rgba(220, 228, 255, 0.24);
+}
+
+body {
+  background:
+    radial-gradient(circle at 8% -8%, rgba(116, 86, 255, 0.12), transparent 30rem),
+    radial-gradient(circle at 100% 8%, rgba(20, 200, 229, 0.09), transparent 28rem),
+    var(--nx-bg);
+  font-size: 16px;
+  line-height: 1.58;
+}
+
+body::before {
+  opacity: 0.045;
+  background-size: 80px 80px;
+}
+
+.sonara-site-header {
+  min-height: 64px;
+  padding-block: 8px;
+  border-bottom-color: var(--nx-border);
+  background: color-mix(in srgb, var(--nx-bg) 88%, transparent);
+  backdrop-filter: saturate(135%) blur(16px);
+}
+
+.brand {
+  gap: 11px;
+  letter-spacing: -0.02em;
+}
+
+.sonara-brand-mark {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 10px 22px rgba(79, 111, 255, 0.18));
+}
+
+.nexus-brand-copy strong {
+  font-size: 14px;
+  letter-spacing: -0.015em;
+}
+
+.nexus-brand-copy small {
+  margin-top: 5px;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+}
+
+.sonara-desktop-nav {
+  gap: 1px;
+}
+
+.sonara-desktop-nav a,
+.sonara-mobile-menu nav a {
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.sonara-desktop-nav a:hover,
+.sonara-desktop-nav a[aria-current="page"],
+.sonara-mobile-menu nav a:hover,
+.sonara-mobile-menu nav a[aria-current="page"] {
+  background: color-mix(in srgb, var(--nx-blue) 9%, transparent);
+}
+
+.sonara-nav-primary {
+  border-radius: 9px !important;
+  box-shadow: 0 12px 28px rgba(79, 111, 255, 0.2) !important;
+}
+
+.nexus-icon-button,
+.sonara-mobile-menu summary {
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+main,
+footer {
+  width: min(var(--nx-content), calc(100% - 40px));
+}
+
+.hero {
+  min-height: min(680px, calc(100svh - 64px));
+  padding: clamp(64px, 8vw, 108px) 0 64px;
+  grid-template-columns: minmax(0, 1.05fr) minmax(330px, 0.75fr);
+  gap: clamp(30px, 5vw, 74px);
+}
+
+.sonara-standard-page .hero {
+  padding: 64px 0 36px;
+}
+
+h1,
+.sonara-home-v3 h1 {
+  max-width: 760px;
+  margin-top: 18px;
+  font-size: clamp(3.25rem, 6.4vw, 4.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.058em;
+  font-weight: 820;
+}
+
+.sonara-standard-page h1 {
+  max-width: 820px;
+  font-size: clamp(2.75rem, 5vw, 4rem);
+}
+
+h2 {
+  font-size: clamp(2rem, 3.5vw, 3.25rem);
+  line-height: 1.04;
+}
+
+h3 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+}
+
+.lede {
+  max-width: 650px;
+  margin-top: 22px;
+  color: var(--nx-muted);
+  font-size: clamp(1.05rem, 1.55vw, 1.25rem);
+}
+
+.action,
+button {
+  min-height: 46px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.action:hover,
+button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(17, 22, 42, 0.1);
+}
+
+/* Cinematic identity field: controlled, lightweight, and content-first. */
+.nexus-hero-visual {
+  min-height: 420px;
+  isolation: isolate;
+}
+
+.nexus-orbit {
+  width: min(36vw, 410px);
+  animation: none;
+  transform: rotateX(7deg) rotateY(-10deg);
+}
+
+.nexus-orbit::before {
+  inset: 18%;
+  background:
+    radial-gradient(circle at 40% 32%, #ffffff 0 2%, rgba(255,255,255,0.86) 3%, rgba(116,86,255,0.42) 15%, rgba(79,111,255,0.12) 42%, transparent 70%);
+  box-shadow: 0 0 72px rgba(79, 111, 255, 0.24);
+}
+
+.nexus-ring {
+  border-color: rgba(116, 86, 255, 0.28);
+  animation: none !important;
+}
+
+.nexus-ring:nth-child(2) {
+  border-color: rgba(20, 200, 229, 0.3);
+}
+
+.nexus-ring:nth-child(3) {
+  border-color: rgba(255, 77, 141, 0.28);
+}
+
+.nexus-orbit-label {
+  border-radius: 8px;
+  background: rgba(8, 12, 24, 0.84);
+  font-size: 9px;
+  letter-spacing: 0.11em;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+}
+
+.nexus-section {
+  padding: clamp(44px, 6vw, 76px) 0;
+}
+
+.nexus-section-head {
+  gap: 34px;
+  margin-bottom: 24px;
+}
+
+.nexus-product-grid {
+  gap: 14px;
+}
+
+.nexus-product {
+  min-height: 330px;
+  padding: 22px;
+  border-radius: 15px;
+  box-shadow: 0 1px 2px rgba(17, 22, 42, 0.05), 0 14px 38px rgba(17, 22, 42, 0.07);
+}
+
+.nexus-product:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--nx-shadow-strong);
+}
+
+.nexus-product h3 {
+  margin-top: 40px;
+}
+
+.nexus-flow-copy,
+.card,
+.nexus-cta {
+  border-radius: 16px;
+  box-shadow: var(--nx-shadow);
+}
+
+.nexus-flow-step {
+  border-radius: 10px;
+}
+
+.nexus-cta {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(116,86,255,0.32), transparent 30rem),
+    radial-gradient(circle at 92% 100%, rgba(20,200,229,0.2), transparent 28rem),
+    #090d18;
+}
+
+.nexus-cta::before {
+  display: none;
+}
+
+/* Data-heavy product pages behave like real operating software, not a card gallery. */
+.sonara-standard-page .grid {
+  align-items: start;
+}
+
+.sonara-standard-page .grid > .card,
+.sonara-standard-page article.card {
+  min-width: 0;
+}
+
+table {
+  border-radius: 10px;
+}
+
+th {
+  letter-spacing: 0.075em;
+}
+
+input,
+textarea,
+select {
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--nx-surface) 96%, var(--nx-soft));
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--nx-blue);
+  box-shadow: var(--nx-focus);
+  outline: none;
+}
+
+/* Authentication and account surfaces. */
+body:has(form[action*="login"]) .sonara-standard-page .grid,
+body:has(form[action*="signup"]) .sonara-standard-page .grid {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+}
+
+body:has(form[action*="login"]) .card,
+body:has(form[action*="signup"]) .card {
+  padding: clamp(24px, 5vw, 42px);
+}
+
+/* Startup screen: identity, not artificial delay. */
+.nexus-loader {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(116, 86, 255, 0.18), transparent 24rem),
+    #070a12;
+}
+
+.nexus-loader__core {
+  gap: 16px;
+}
+
+.nexus-loader__mark {
+  width: 72px;
+  height: 72px;
+  animation: nx-v4-loader-arrive 420ms var(--nx-ease) both;
+}
+
+.nexus-loader__track {
+  width: 138px;
+  height: 2px;
+}
+
+.nexus-loader__track::after {
+  width: 54%;
+  animation: nx-v4-loader-scan 620ms var(--nx-ease) both;
+}
+
+.nexus-loader__label {
+  letter-spacing: 0.24em;
+}
+
+@keyframes nx-v4-loader-arrive {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes nx-v4-loader-scan {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(190%); }
+}
+
+@media (max-width: 1040px) {
+  .sonara-desktop-nav a {
+    padding-inline: 8px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(290px, 0.68fr);
+  }
+}
+
+@media (max-width: 920px) {
+  .sonara-site-header {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto;
+    padding: 8px 14px;
+  }
+
+  .nexus-header-tools {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .sonara-mobile-menu {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .sonara-mobile-menu nav {
+    max-height: calc(100svh - 64px);
+    overflow-y: auto;
+    border-radius: 0 0 14px 14px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .nexus-hero-visual {
+    min-height: 300px;
+  }
+
+  .nexus-orbit {
+    width: min(64vw, 340px);
+    transform: rotateX(4deg) rotateY(-6deg) !important;
+  }
+}
+
+@media (max-width: 680px) {
+  body {
+    font-size: 16px;
+  }
+
+  main,
+  footer {
+    width: min(100% - 24px, 680px);
+  }
+
+  .sonara-site-header {
+    min-height: 60px;
+    padding-inline: 10px;
+  }
+
+  .sonara-brand-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nexus-brand-copy strong {
+    font-size: 13px;
+  }
+
+  .hero,
+  .sonara-standard-page .hero {
+    padding: 44px 0 34px;
+  }
+
+  h1,
+  .sonara-home-v3 h1,
+  .sonara-standard-page h1 {
+    max-width: 100%;
+    font-size: clamp(2.25rem, 11vw, 2.75rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 8.2vw, 2.35rem);
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 6vw, 1.55rem);
+  }
+
+  .lede {
+    margin-top: 18px;
+    font-size: 1.05rem;
+  }
+
+  .actions,
+  .card-actions {
+    gap: 8px;
+  }
+
+  .action,
+  .actions .action,
+  .card-actions .action {
+    width: 100%;
+    min-height: 48px;
+  }
+
+  .nexus-hero-visual {
+    min-height: 210px;
+    margin-top: 2px;
+  }
+
+  .nexus-orbit {
+    width: min(76vw, 260px);
+    transform: rotateX(2deg) rotateY(-4deg) !important;
+  }
+
+  .nexus-orbit-label {
+    padding: 7px 9px;
+    font-size: 8px;
+  }
+
+  .nexus-section {
+    padding: 40px 0;
+  }
+
+  .nexus-product {
+    min-height: 290px;
+    padding: 20px;
+  }
+
+  .nexus-flow-copy,
+  .card,
+  .nexus-cta {
+    padding: 22px;
+  }
+
+  .nexus-dialog {
+    width: calc(100% - 16px);
+    max-height: calc(100svh - 16px);
+    border-radius: 16px;
+  }
+
+  .nexus-setting-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  th,
+  td {
+    padding: 11px 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  main,
+  footer {
+    width: calc(100% - 20px);
+  }
+
+  .nexus-brand-copy strong {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nexus-header-tools [data-nexus-settings] {
+    display: none;
+  }
+
+  .sonara-mobile-menu nav {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+
+  .nexus-hero-visual {
+    min-height: 188px;
+  }
+
+  .nexus-orbit {
+    width: 226px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-orbit,
+  .nexus-ring,
+  .nexus-loader__mark,
+  .nexus-loader__track::after {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+html[data-nexus-motion="off"] .nexus-orbit,
+html[data-nexus-motion="off"] .nexus-ring {
+  animation: none !important;
+  transform: none !important;
+}
