@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 156" role="img" aria-label="SONARA Nexus by SONARA Industries">
+  <title>SONARA Nexus</title>
+  <desc>The original SONARA Prism Wave beside the SONARA Nexus platform name.</desc>
+  <defs>
+    <linearGradient id="n-violet" x1="20" y1="18" x2="132" y2="72" gradientUnits="userSpaceOnUse"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
+    <linearGradient id="n-coral" x1="30" y1="58" x2="140" y2="114" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient>
+    <linearGradient id="n-cyan" x1="22" y1="86" x2="132" y2="140" gradientUnits="userSpaceOnUse"><stop stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
+    <linearGradient id="n-word" x1="180" y1="40" x2="580" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#11162A"/><stop offset=".62" stop-color="#27304A"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
+  </defs>
+  <g transform="translate(8 4)" fill="none" stroke-linecap="round">
+    <path d="M118 31C94 13 56 15 32 30C10 44 9 66 25 75C39 83 61 81 77 81" stroke="url(#n-violet)" stroke-width="15"/>
+    <path d="M77 81C101 80 122 85 128 99C136 117 117 134 91 138C64 142 37 132 24 117" stroke="url(#n-cyan)" stroke-width="15"/>
+    <path d="M24 117C11 104 13 89 28 81C42 73 58 82 77 81C98 80 115 73 122 60C128 49 126 39 118 31" stroke="url(#n-coral)" stroke-width="8"/>
+    <circle cx="77" cy="81" r="9" fill="#F8FAFF" stroke="#11162A" stroke-width="4"/>
+  </g>
+  <text x="172" y="73" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="53" font-weight="820" letter-spacing="2" fill="url(#n-word)">SONARA NEXUS</text>
+  <text x="175" y="109" font-family="Inter,Segoe UI,system-ui,sans-serif" font-size="15" font-weight="700" letter-spacing="6" fill="#5B6475">A SONARA INDUSTRIES PLATFORM</text>
+</svg>
