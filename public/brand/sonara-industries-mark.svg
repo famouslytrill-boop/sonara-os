@@ -1,16 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="SONARA Prism Wave">
   <title>SONARA Prism Wave</title>
-  <desc>Three original luminous ribbons converge into an open S-shaped wave, representing Forge, Canvas, and Signal moving through one connected system.</desc>
+  <desc>Three original prism ribbons form an open S around a human approval core, representing Business Builder, Creator Studio, and Growth Studio connected through SONARA Nexus.</desc>
   <defs>
-    <linearGradient id="violet" x1="35" y1="38" x2="203" y2="116" gradientUnits="userSpaceOnUse"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
-    <linearGradient id="coral" x1="55" y1="87" x2="215" y2="170" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient>
-    <linearGradient id="cyan" x1="37" y1="143" x2="202" y2="224" gradientUnits="userSpaceOnUse"><stop stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <linearGradient id="forge" x1="34" y1="38" x2="214" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".56" stop-color="#FF8A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient>
+    <linearGradient id="canvas" x1="30" y1="92" x2="220" y2="176" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
+    <linearGradient id="signal" x1="44" y1="154" x2="208" y2="226" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".52" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
+    <filter id="soft" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   </defs>
-  <g fill="none" stroke-linecap="round" filter="url(#glow)">
-    <path d="M193 61C169 34 123 28 84 45C52 59 39 82 51 103C63 124 93 126 128 126" stroke="url(#violet)" stroke-width="25"/>
-    <path d="M128 126C162 126 194 129 205 151C216 174 198 199 166 213C130 228 87 221 63 194" stroke="url(#cyan)" stroke-width="25"/>
-    <path d="M64 194C44 174 44 151 61 138C77 126 101 128 128 128C154 128 178 124 190 106C201 91 202 73 193 61" stroke="url(#coral)" stroke-width="12"/>
+  <g fill="none" stroke-linecap="round" filter="url(#soft)">
+    <path d="M197 55C170 32 127 31 91 45C57 58 39 81 49 104C58 124 85 130 126 128" stroke="url(#forge)" stroke-width="22"/>
+    <path d="M126 128C166 126 197 133 207 154C218 179 194 205 160 217C126 229 87 220 61 194" stroke="url(#signal)" stroke-width="22"/>
+    <path d="M61 194C42 175 43 152 60 139C77 126 101 130 128 128C157 126 181 120 193 102C204 86 204 68 197 55" stroke="url(#canvas)" stroke-width="11"/>
   </g>
-  <circle cx="128" cy="127" r="9" fill="#F8FAFF" stroke="#11162A" stroke-width="4"/>
+  <circle cx="127" cy="128" r="13" fill="#FFFFFF" stroke="#11162A" stroke-width="5"/>
+  <circle cx="127" cy="128" r="4.5" fill="#11162A"/>
 </svg>
