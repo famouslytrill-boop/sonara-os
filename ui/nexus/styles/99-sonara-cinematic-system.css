@@ -72,7 +72,7 @@ img,svg,video,canvas{max-width:100%}img{height:auto}a{color:inherit}button,input
 a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:3px solid color-mix(in srgb,var(--nx-focus) 54%,transparent);outline-offset:3px}
 ::selection{background:color-mix(in srgb,var(--nx-violet) 24%,transparent);color:var(--nx-ink)}
 [hidden]{display:none!important}
-.sonara-interface-face,.sonara-proof-pill,.sonara-quick-bar,.sonara-command-button,.sonara-utility-dock{display:none!important}
+.sonara-interface-face,.sonara-proof-pill,.sonara-command-button,.sonara-utility-dock{display:none!important}
 
 .sonara-site-header,body>header{
   position:sticky;top:0;z-index:90;width:100%;min-height:var(--nx-header);margin:0;padding:10px max(16px,calc((100% - var(--nx-content))/2));

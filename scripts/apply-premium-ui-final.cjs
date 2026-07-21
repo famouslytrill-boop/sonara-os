@@ -81,7 +81,7 @@ const homeContent = `<div class="nexus-home">
   </section>
 
   <section class="nexus-section nexus-flow">
-    <div><span class="nexus-kicker" data-i18n="flowKicker">Designed for real operations</span><h2 data-i18n="flowHeading">Move from intention to evidence-backed action.</h2><p>SONARA connects identity, organization access, saved records, billing, requests, delivery, and support without inventing activity or hiding setup requirements.</p><div class="card-actions"><a class="action" href="/start">See how Nexus works</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/readiness">Readiness</a></div></div>
+    <div><span class="nexus-kicker" data-i18n="flowKicker">Designed for real operations</span><h2 data-i18n="flowHeading">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class="card-actions"><a class="action" href="/start">See how Nexus works</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/readiness">Readiness</a><a class="action" href="/requests">Requests</a><a class="action" href="/deliverables">Deliverables</a></div></div>
     <div class="nexus-flow-list"><div class="nexus-flow-step"><strong>Choose the outcome</strong><small>Enter the company that matches the work.</small></div><div class="nexus-flow-step"><strong>Complete one clear action</strong><small>Focused screens replace overloaded dashboards.</small></div><div class="nexus-flow-step"><strong>Confirm the real state</strong><small>Ready, setup required, permission required, or review required.</small></div><div class="nexus-flow-step"><strong>Return without rebuilding context</strong><small>Records, activity, billing, and support stay connected.</small></div></div>
   </section>
 
@@ -101,7 +101,7 @@ const homeContent = `<div class="nexus-home">
 const rootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(layout({
     title: "SONARA Industries",
-    eyebrow: "SONARA NEXUS",
+    eyebrow: "LAUNCH OPERATING SYSTEM",
     heading: "Build, create, and grow—without losing control.",
     variant: "home",
     body: "Three focused companies share one secure operating layer for identity, records, billing, support, and real work.",
@@ -132,7 +132,7 @@ source = source
   .replace('<div class="eyebrow">${escapeHtml(eyebrow)}</div>', '<div class="eyebrow"${variant === "home" ? \' data-i18n="heroEyebrow"\' : ""}>${escapeHtml(eyebrow)}</div>')
   .replace('<h1>${escapeHtml(heading)}</h1>', '<h1${variant === "home" ? \' data-i18n="heroHeading"\' : ""}>${escapeHtml(heading)}</h1>')
   .replace('<p class="lede">${escapeHtml(body)}</p>', '<p class="lede"${variant === "home" ? \' data-i18n="heroBody"\' : ""}>${escapeHtml(body)}</p>')
-  .replace('<main id="sonara-main">', '<main id="sonara-main" data-sonara-interface="live">');
+  .replace('<main id="sonara-main">', '<main id="sonara-main" data-sonara-interface="live" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">');
 
 const loader = `<div id="nexus-loader" class="nexus-loader" role="status" aria-live="polite"><div class="nexus-loader__core"><img class="nexus-loader__mark" src="/brand/sonara-industries-mark.svg" alt=""><div class="nexus-loader__track" aria-hidden="true"></div><span class="nexus-loader__label">SONARA NEXUS</span></div></div><div class="nexus-route-progress" aria-hidden="true"></div>`;
 source = source.replace(/(<body class="\$\{escapeHtml\(brandClass\)\} \$\{variant === "home" \? "sonara-home-v3" : "sonara-standard-page"\}">)/, `$1\n    ${loader}`);

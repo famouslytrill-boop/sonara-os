@@ -68,12 +68,23 @@ const STRIPE_PLANS = {
   }
 };
 app.use(express.static(path.join(__dirname, "public")));
+app.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path)) res.set("Cache-Control", "no-store, max-age=0"); next(); });
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
 app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json({ limit: "64kb" }));
+app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+app.use(express.json({ limit: "1mb" }));
+
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(self)");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
+  next();
+});
 
 registerSonaraInfrastructureRoutes(app, {
   layout,
@@ -195,22 +206,15 @@ registerRouteRegistryRoutes(app, {
 });
 
 app.get("/", (req, res) => {
-  return res.status(200).type("html").send(
-    layout({
-      title: "SONARA Industries",
-      eyebrow: "LAUNCH OPERATING SYSTEM",
-      heading: "SONARA Industries",
-      variant: "home",
-      body:
-        "SONARA turns business, creator, and growth work into guided software workflows with free tools, paid services, saved records, deliverables, billing, and operator support.",
-      sections: [renderHomepageContent(getReadiness())],
-      actions: [
-        linkAction("/signup", "Start Free"),
-        linkAction("/free-tools", "Try a free tool"),
-        linkAction("/pricing", "View pricing")
-      ]
-    })
-  );
+  return res.status(200).type("html").send(layout({
+    title: "SONARA Industries",
+    eyebrow: "LAUNCH OPERATING SYSTEM",
+    heading: "Build, create, and grow—without losing control.",
+    variant: "home",
+    body: "Three focused companies share one secure operating layer for identity, records, billing, support, and real work.",
+    sections: ["<div class=\"nexus-home\">\n  <section class=\"nexus-section\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 data-i18n=\"productsHeading\">One system. Three focused ways to move.</h2></div><p data-i18n=\"productsBody\">Choose the workspace that matches the work. SONARA Nexus keeps the account, evidence, and next action connected.</p></div>\n    <div class=\"nexus-product-grid\">\n      <article class=\"nexus-product nexus-product--forge\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/business-builder-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">FORGE · OPERATE</span></div><h3>Business Builder</h3><p>Launch offers, organize customers, manage staff, inventory, menus, payments, locations, and daily operations.</p><a href=\"/business-builder/dashboard\">Open Business Builder</a></article>\n      <article class=\"nexus-product nexus-product--canvas\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/creator-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">CANVAS · CREATE</span></div><h3>Creator Studio</h3><p>Develop artist systems, songs, prompt packs, assets, releases, media, rights checks, and export packages.</p><a href=\"/creator-studio/dashboard\">Open Creator Studio</a></article>\n      <article class=\"nexus-product nexus-product--signal\"><div class=\"nexus-product-meta\"><img class=\"nexus-product-mark\" src=\"/brand/growth-studio-mark.svg\" alt=\"\"><span class=\"nexus-product-index\">SIGNAL · GROW</span></div><h3>Growth Studio</h3><p>Plan consent-safe campaigns, leads, showcases, venues, promotions, follow-up, experiments, and conversion.</p><a href=\"/growth-studio/dashboard\">Open Growth Studio</a></article>\n    </div>\n  </section>\n\n  <section class=\"nexus-section nexus-flow\">\n    <div><span class=\"nexus-kicker\" data-i18n=\"flowKicker\">Designed for real operations</span><h2 data-i18n=\"flowHeading\">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how Nexus works</a><a class=\"action\" href=\"/service-catalog\">Service catalog</a><a class=\"action\" href=\"/readiness\">Readiness</a><a class=\"action\" href=\"/requests\">Requests</a><a class=\"action\" href=\"/deliverables\">Deliverables</a></div></div>\n    <div class=\"nexus-flow-list\"><div class=\"nexus-flow-step\"><strong>Choose the outcome</strong><small>Enter the company that matches the work.</small></div><div class=\"nexus-flow-step\"><strong>Complete one clear action</strong><small>Focused screens replace overloaded dashboards.</small></div><div class=\"nexus-flow-step\"><strong>Confirm the real state</strong><small>Ready, setup required, permission required, or review required.</small></div><div class=\"nexus-flow-step\"><strong>Return without rebuilding context</strong><small>Records, activity, billing, and support stay connected.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section\" aria-labelledby=\"operations-heading\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Independent business operations</span><h2 id=\"operations-heading\">Built for the places where work actually happens.</h2></div><p>Restaurants, bars, food trucks, service businesses, studios, venues, and independent teams can use focused tools without pretending to be an enterprise.</p></div>\n    <div class=\"nexus-operations-strip\"><div class=\"nexus-operation\"><strong>Sell and fulfill</strong><small>Offers, orders, payments, appointments, POS-ready workflows, and delivery status.</small></div><div class=\"nexus-operation\"><strong>Run the floor</strong><small>Menus, recipes, inventory, vendors, staff, shifts, locations, and assets.</small></div><div class=\"nexus-operation\"><strong>Create and release</strong><small>Music projects, tracks, stems, artist systems, rights checks, media, and packages.</small></div><div class=\"nexus-operation\"><strong>Reach and learn</strong><small>Campaigns, leads, consent, venues, showcases, promotions, and evidence.</small></div></div>\n  </section>\n\n  <section class=\"nexus-section sonara-status-panel\" aria-label=\"Truthful readiness\">\n    <div class=\"nexus-section-head\"><div><span class=\"nexus-kicker\">Truth before theater</span><h2>Every status has to mean something.</h2></div><p>Provider-dependent workflows display Setup Required, Permission Required, Review Required, or Ready based on real configuration and access.</p></div>\n    <div class=\"nexus-product-grid\"><article class=\"card\"><h3>Account and access</h3><p>Create an account, sign in, switch workspaces, review settings, or log out through one consistent identity layer.</p><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/login\">Log in</a></div></article><article class=\"card\"><h3>Founder administration</h3><p>Administrative readiness, users, roles, subscriptions, integrations, support, and audits stay protected behind founder access.</p><div class=\"card-actions\"><a class=\"action\" href=\"/admin/login\">Admin access</a></div></article><article class=\"card\"><h3>Free launch stack</h3><p>Explore useful tools before paying. Upgrade when saved work, deeper records, and supported operations become valuable.</p><div class=\"card-actions\"><a class=\"action\" href=\"/free-tools\">Explore free tools</a><a class=\"action\" href=\"/pricing\">See plans</a></div></article></div>\n  </section>\n\n  <section class=\"nexus-cta\"><div><span class=\"nexus-kicker\" data-i18n=\"ctaKicker\">Start with useful work</span><h2 data-i18n=\"ctaHeading\">Begin free. Add depth when the work demands it.</h2><p>No fake urgency. No hidden enterprise maze. Start with the workspace and action you need now.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create account</a><a class=\"action\" href=\"/free-tools\">Try a free tool</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
+    actions: [linkAction("/signup", "Create account"), linkAction("/free-tools", "Explore free tools"), linkAction("/pricing", "Compare plans")]
+  }));
 });
 
 registerProduct("business-builder", {
@@ -367,15 +371,15 @@ app.get("/login", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Login",
-      eyebrow: "Access readiness",
-      heading: "Login",
-      body: "Use email/password access after account login is configured and owner-tested.",
+      eyebrow: "Welcome back",
+      heading: "Continue your work.",
+      body: "Sign in to return to your private SONARA workspace, saved projects, requests, billing, and support.",
       sections: [
         authForm("Login with email", "/auth/login"),
-        brandCard("Account access", "Email login unlocks protected workspaces after account sessions are configured."),
-        brandCard("Admin protection", "Founder routes remain protected by server-side authorization.")
+        brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
+        brandCard("Private by default", "Only you and approved members can access protected workspace content.")
       ],
-      actions: [linkAction("/signup", "Create account"), linkAction("/docs", "Docs"), linkAction("/", "Home")]
+      actions: [linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
     })
   );
 });
@@ -384,12 +388,13 @@ app.get("/signup", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Signup",
-      eyebrow: "Account readiness",
-      heading: "Create an account",
-      body: "Account access will unlock Business Builder, Creator Studio, and Growth Studio once email login is configured by the owner.",
+      eyebrow: "Start building",
+      heading: "Create your SONARA account.",
+      body: "Begin with one secure account for Business Builder, Creator Studio, and Growth Studio.",
       sections: [
         authForm("Create account", "/auth/signup"),
-        brandCard("Account access", "Use one account for product path selection, first offer setup, support preferences, and payment readiness.")
+        brandCard("Start free", "Set up your workspace, choose a product path, and save your first project before upgrading."),
+        brandCard("Built to expand", "Add products, teammates, customer records, and paid services as your operation grows.")
       ],
       actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
     })
@@ -436,7 +441,7 @@ app.post("/auth/login", async (req, res) => {
 
 app.get("/logout", (req, res) => {
   return res.status(200).type("html").send(
-    responsePage("Logout", "No persistent session is active. OAuth-backed session logout will be enabled when owner credentials are configured.", [
+    responsePage("Sign out", "End your current SONARA session on this device.", [
       linkAction("/", "Home"),
       linkAction("/login", "Login")
     ])
@@ -446,12 +451,12 @@ app.get("/logout", (req, res) => {
 app.post("/logout", (req, res) => {
   clearCustomerSessionCookie(res);
   if (acceptsHtml(req)) return res.redirect(303, "/login");
-  return res.status(200).json({ ok: true, message: "No persistent session is active." });
+  return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
 app.post("/auth/logout", (req, res) => {
   clearCustomerSessionCookie(res);
-  return res.status(200).json({ ok: true, message: "No persistent session is active." });
+  return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
 app.get("/account", (req, res) => {
@@ -1171,6 +1176,18 @@ if (require.main === module) {
   app.listen(port, () => console.log(`Listening on ${port}`));
 }
 
+app.use((error, req, res, next) => {
+  const isPayloadTooLarge = error?.type === "entity.too.large" || error?.status === 413 || error?.statusCode === 413;
+  if (!isPayloadTooLarge) return next(error);
+
+  return res.status(413).json({
+    ok: false,
+    code: "payload_too_large",
+    message: "Structured request bodies must be 1 MB or smaller. Upload file bytes directly to approved private storage with a signed upload URL instead of embedding them in JSON.",
+    maxBytes: 1048576
+  });
+});
+
 module.exports = app;
 
 function registerProduct(slug, config) {
@@ -1222,7 +1239,7 @@ function registerProduct(slug, config) {
         eyebrow: "Launch Setup Checklist",
         heading: `${config.name} Setup Checklist`,
         body: "Service setup is shown without exposing secrets. Missing services stay setup required.",
-        sections: readinessCards(readiness),
+        sections: [readinessDeploymentCard(), ...readinessCards(readiness)],
         actions: productLaunchReadinessActions(slug)
       })
     );
@@ -1566,124 +1583,66 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
 <html lang="en">
   <head>
     ${renderHead(title, brandClass === "sonara-admin" ? "#0C1122" : "#FAF8F4")}
-    <style>
-      :root {
-        color-scheme: light;
-        --bg: #FAF8F4; --bg-2: #F3F0E9; --surface: #FFFFFF;
-        --navy: #10162B; --navy-2: #171F3A; --violet-deep: #191634; --ink: #12162A;
-        --text: #1A1F33; --text-2: #565D74; --text-3: #8A90A3;
-        --on-dark: #F4F2EC; --on-dark-2: #A9AFC4;
-        --blue: #3D5BF5; --violet: #7B5BF2; --coral: #EE6A54; --green: #2E9E6B; --cyan: #1D9FBF; --gold: #C9963C; --magenta: #C24FBC; --teal: #1FA88F;
-        --accent: var(--blue); --accent-2: var(--violet); --accent-soft: #E9EDFE;
-        --border: rgba(18,22,42,.10); --border-strong: rgba(18,22,42,.16); --border-dark: rgba(244,242,236,.12);
-        --r-panel: 16px; --r-card: 12px; --r-btn: 10px;
-        --sh-1: 0 1px 2px rgba(18,22,42,.05); --sh-2: 0 2px 8px rgba(18,22,42,.07); --sh-3: 0 12px 40px -12px rgba(18,22,42,.18);
-        --font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-        --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-        --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-        --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--blue);
-      }
-      * { box-sizing: border-box; }
-      body { margin: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14.5px; line-height: 1.55; -webkit-font-smoothing: antialiased; max-width: 100vw; overflow-x: clip; }
-      a { color: inherit; }
-      a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--focus); }
-      header, main, footer { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
-      header { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 14px 0; position: sticky; top: 0; z-index: 40; background: rgba(250,248,244,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); width: 100%; max-width: none; padding-left: max(20px, calc((100% - 1180px) / 2)); padding-right: max(20px, calc((100% - 1180px) / 2)); }
-      nav { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-      nav a { padding: 8px 12px; min-height: 40px; display: inline-flex; align-items: center; border-radius: 8px; text-decoration: none; color: var(--text-2); font-weight: 500; font-size: 13.5px; }
-      nav a:hover { color: var(--text); background: rgba(18,22,42,.05); }
-      nav a[aria-current="page"] { color: var(--text); background: rgba(18,22,42,.06); }
-      .action { border: 1px solid var(--border-strong); border-radius: var(--r-btn); padding: 0 16px; min-height: 44px; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); background: var(--surface); font-weight: 600; font-size: 13.5px; cursor: pointer; transition: transform .12s, box-shadow .12s, background .12s; }
-      .action:hover { background: var(--bg-2); box-shadow: var(--sh-1); }
-      .action:active { transform: scale(.98); }
-      .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; letter-spacing: -.01em; color: var(--text); text-decoration: none; white-space: nowrap; flex-shrink: 0; }
-      main { min-width: 0; }
-      .hero { padding: 64px 0 44px; }
-      .eyebrow { color: var(--accent); font-family: var(--mono); letter-spacing: .14em; text-transform: uppercase; font-size: 11px; font-weight: 500; }
-      h1 { font-family: var(--serif); font-size: clamp(38px, 4.5vw, 62px); line-height: 1.08; margin: 16px 0 0; letter-spacing: -.015em; font-weight: 600; }
-      h2 { font-family: var(--serif); font-size: 24px; line-height: 1.2; letter-spacing: -.01em; margin: 0 0 10px; font-weight: 600; }
-      p { color: var(--text-2); line-height: 1.65; font-size: 15px; margin: 12px 0 0; }
-      .lede { max-width: 620px; font-size: 17px; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 28px 0 44px; align-items: stretch; }
-      .card { min-width: 0; border: 1px solid var(--border); border-radius: var(--r-card); padding: 22px; background: var(--surface); box-shadow: var(--sh-1); overflow-wrap: anywhere; word-break: break-word; }
-      .card h2 { font-family: var(--font); font-size: 16px; letter-spacing: -.01em; overflow-wrap: anywhere; word-break: break-word; }
-      .card p { overflow-wrap: anywhere; word-break: break-word; font-size: 13.5px; }
-      .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
-      form { display: grid; gap: 14px; }
-      input, textarea, select, button { width: 100%; min-height: 44px; border-radius: var(--r-btn); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); padding: 10px 14px; font: inherit; font-size: 14px; }
-      input:focus-within, textarea:focus-within, select:focus-within { border-color: var(--blue); }
-      button { cursor: pointer; background: var(--navy); color: var(--on-dark); font-weight: 600; border-color: var(--navy); transition: transform .12s, background .12s; }
-      button:hover { background: #1B2445; }
-      button:active { transform: scale(.98); }
-      label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
-      .fine { font-size: 12.5px; color: var(--text-3); }
-      footer { border-top: 1px solid var(--border); padding: 32px 0 96px; color: var(--text-3); font-size: 13px; }
-      footer nav { margin-top: 14px; gap: 2px 14px; }
-      footer nav a { padding: 4px 0; min-height: 0; color: var(--text-2); font-weight: 400; font-size: 12.5px; }
-      footer nav a:hover { background: none; color: var(--text); }
-      table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
-      th { text-align: left; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); padding: 10px 14px; border-bottom: 1px solid var(--border); }
-      td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
-      body.sonara-admin { color-scheme: dark; --bg: #0C1122; --bg-2: #131A30; --surface: #131A30; --text: #EEF0F6; --text-2: #AAB0C4; --text-3: #767D93; --border: rgba(244,242,236,.10); --border-strong: rgba(244,242,236,.16); --accent-soft: rgba(123,91,242,.18); --sh-1: 0 1px 2px rgba(0,0,0,.3); --sh-2: 0 2px 10px rgba(0,0,0,.35); --sh-3: 0 14px 44px -12px rgba(0,0,0,.6); --focus: 0 0 0 2px var(--bg), 0 0 0 4px #6E86FF; }
-      body.sonara-admin header { background: rgba(12,17,34,.92); }
-      body.sonara-admin .action { background: rgba(244,242,236,.06); color: var(--on-dark); border-color: var(--border-dark); }
-      body.sonara-admin .action:hover { background: rgba(244,242,236,.12); }
-      body.sonara-admin button { background: #EEF0F6; color: #12162A; border-color: transparent; }
-      body.sonara-admin button:hover { background: #fff; }
-      body.sonara-admin input, body.sonara-admin textarea, body.sonara-admin select { background: #0E1426; color: var(--text); }
-      @media (max-width: 760px) { header { align-items: stretch; flex-direction: column; padding-top: 10px; padding-bottom: 10px; } .grid { grid-template-columns: 1fr; } .hero { padding-top: 36px; } h1 { font-size: clamp(32px, 9vw, 44px); } }
-      @media (prefers-reduced-motion: reduce) { .action, button { transition: none; } }
-    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
-    <link rel="stylesheet" href="/sonara-brand-system.css?v=clark-ui-20260718-preferences">
-    <link rel="stylesheet" href="/sonara-friendly-premium.css?v=clark-ui-20260718-preferences">
-    <link rel="stylesheet" href="/sonara-interface-engine.css?v=clark-ui-20260718-preferences">
-    <link rel="stylesheet" href="/sonara-launch-ui.css?v=clark-ui-20260718-preferences">
-    <script defer src="/sonara-experience.js?v=clark-ui-20260718-preferences"></script>
-    <script defer src="/sonara-interface-engine.js?v=clark-ui-20260718-preferences"></script>
+    <script src="/sonara-prepaint.js?v=nexus-ui-20260721-v4"></script>
+    <link rel="stylesheet" href="/sonara-application-ui.css?v=nexus-ui-20260721-v4">
+    <script defer src="/sonara-nexus.js?v=nexus-ui-20260721-v4"></script>
   </head>
   <body class="${escapeHtml(brandClass)} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
+    <div id="nexus-loader" class="nexus-loader" role="status" aria-live="polite"><div class="nexus-loader__core"><img class="nexus-loader__mark" src="/brand/sonara-industries-mark.svg" alt=""><div class="nexus-loader__track" aria-hidden="true"></div><span class="nexus-loader__label">SONARA NEXUS</span></div></div><div class="nexus-route-progress" aria-hidden="true"></div>
     <a class="sonara-skip" href="#sonara-main">Skip to content</a>
-    <header>
-      <a class="brand" href="/"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="30" height="30"> SONARA Industries</a>
-      <nav aria-label="Primary">
-        <a href="/start">Platform</a>
-        <a href="/business-builder">Business Builder</a>
-        <a href="/creator-studio">Creator Studio</a>
-        <a href="/growth-studio">Growth Studio</a>
-        <a href="/free-tools">Free tools</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/support">Support</a>
-        <a href="/login">Log in</a>
-        <a class="sonara-nav-primary" href="/signup">Start Free</a>
+    <header class="sonara-site-header">
+      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="40" height="40"><span class="nexus-brand-copy"><strong>SONARA Industries</strong><small>Nexus</small></span></a>
+      <nav class="sonara-desktop-nav" aria-label="Primary">
+        <a href="/start" data-i18n="platform">Platform</a>
+        <a href="/business-builder" data-i18n="businessBuilder">Business Builder</a>
+        <a href="/creator-studio" data-i18n="creatorStudio">Creator Studio</a>
+        <a href="/growth-studio" data-i18n="growthStudio">Growth Studio</a>
+        <a href="/free-tools" data-i18n="tools">Free tools</a>
+        <a href="/pricing" data-i18n="pricing">Pricing</a>
+        <a href="/support" data-i18n="support">Support</a>
+        <a href="/login" data-i18n="login">Log in</a>
+        <a class="sonara-nav-primary" href="/signup" data-i18n="start">Create account</a>
       </nav>
-      <button type="button" class="sonara-command-button" data-sonara-command aria-haspopup="dialog" aria-label="Open quick navigation (Control K)">Go to&hellip; Ctrl K</button>
+      <div class="nexus-header-tools">
+        <button type="button" class="nexus-icon-button" data-nexus-command aria-haspopup="dialog" aria-controls="nexus-command-dialog" aria-label="Open command navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m14.5 14.5 4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="nexus-tool-label" data-i18n="command">Command</span><kbd class="nexus-key">⌘K</kbd></button>
+        <button type="button" class="nexus-icon-button" data-nexus-settings aria-haspopup="dialog" aria-controls="nexus-settings-dialog" aria-label="Open experience settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M8 12h8M6 17h12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span class="nexus-tool-label" data-i18n="experience">Experience</span></button>
+        <details class="nexus-account-menu">
+        <summary aria-label="Open account navigation">Account</summary>
+        <div class="nexus-account-panel">
+          <a href="/dashboard" data-i18n="dashboard">Dashboard</a>
+          <a href="/account">Account</a>
+          <a href="/settings" data-i18n="settings">Settings</a>
+          <a href="/admin/login" data-i18n="admin">Administration</a>
+          <form method="post" action="/logout"><button type="submit" data-i18n="logout">Log out</button></form>
+        </div>
+      </details>
+      </div>
+      <details class="sonara-mobile-menu"><summary aria-label="Open navigation" data-i18n="menu">Menu</summary><nav aria-label="Mobile primary">
+        <a href="/start" data-i18n="platform">Platform</a>
+        <a href="/business-builder" data-i18n="businessBuilder">Business Builder</a>
+        <a href="/creator-studio" data-i18n="creatorStudio">Creator Studio</a>
+        <a href="/growth-studio" data-i18n="growthStudio">Growth Studio</a>
+        <a href="/free-tools" data-i18n="tools">Free tools</a>
+        <a href="/pricing" data-i18n="pricing">Pricing</a>
+        <a href="/support" data-i18n="support">Support</a>
+        <a href="/login" data-i18n="login">Log in</a>
+        <a class="sonara-nav-primary" href="/signup" data-i18n="start">Create account</a>
+        <a href="/dashboard" data-i18n="dashboard">Dashboard</a>
+        <a href="/settings" data-i18n="settings">Settings</a>
+        <a href="/admin/login" data-i18n="admin">Administration</a>
+      </nav></details>
     </header>
-    <main id="sonara-main">
-      <section class="hero sonara-hero-stage" data-sonara-interface="live">
+    <main id="sonara-main" data-layout-contract="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); overflow-wrap: anywhere; word-break: break-word">
+      <section class="hero sonara-hero-stage">
         <div class="sonara-hero-copy">
-          <div class="eyebrow">${escapeHtml(eyebrow)}</div>
-          <h1>${escapeHtml(heading)}</h1>
-          <p class="lede">${escapeHtml(body)}</p>
+          <div class="eyebrow"${variant === "home" ? ' data-i18n="heroEyebrow"' : ""}>${escapeHtml(eyebrow)}</div>
+          <h1${variant === "home" ? ' data-i18n="heroHeading"' : ""}>${escapeHtml(heading)}</h1>
+          <p class="lede"${variant === "home" ? ' data-i18n="heroBody"' : ""}>${escapeHtml(body)}</p>
           <div class="actions">${actions.join("")}</div>
         </div>
-        ${variant === "home" ? `<aside class="sonara-interface-face" aria-label="SONARA launch command center">
-          <div class="sonara-device-card">
-            <div class="sonara-device-bar"><span></span><span></span><span></span><em>Live configuration</em></div>
-            <strong>Launch command center</strong>
-            <p>Open a product workspace or review the current provider state before relying on a paid workflow.</p>
-            <div class="sonara-panel-tiles" aria-label="Product workspaces">
-              <a href="/business-builder/dashboard">Business<span>Open workspace</span></a>
-              <a href="/creator-studio/dashboard">Creator<span>Open workspace</span></a>
-              <a href="/growth-studio/dashboard">Growth<span>Open workspace</span></a>
-            </div>
-            ${renderInterfaceStatusPanel(getReadiness())}
-            <div class="sonara-command-actions"><a href="/dashboard">Open dashboard</a><a href="/readiness">Review readiness</a></div>
-          </div>
-          <div class="sonara-proof-pill">Mobile-ready &bull; Payment-gated &bull; Operator-controlled</div>
-        </aside>` : ""}
       </section>
       <section class="grid">${sections.join("")}</section>
     </main>
@@ -1708,24 +1667,7 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
         ${legalPages().map((page) => `<a href="${escapeHtml(page.href)}">${escapeHtml(page.title)}</a>`).join("")}
       </nav>
     </footer>
-    <nav class="sonara-quick-bar" aria-label="Quick actions">
-      <a href="/dashboard">Dashboard</a>
-      <a href="/requests">Requests</a>
-      <a href="/support">Support</a>
-      <a href="/account">Account</a>
-    </nav>
-    <script>
-      document.querySelectorAll("[data-toggle-password]").forEach((button) => {
-        button.addEventListener("click", () => {
-          const input = document.getElementById(button.getAttribute("data-toggle-password"));
-          if (!input) return;
-          const hidden = input.type === "password";
-          input.type = hidden ? "text" : "password";
-          button.textContent = hidden ? "Hide password" : "Show password";
-          button.setAttribute("aria-pressed", String(hidden));
-        });
-      });
-    </script>
+    <dialog id="nexus-command-dialog" class="nexus-dialog" aria-labelledby="nexus-command-title"><div class="nexus-dialog__head"><strong id="nexus-command-title">Command</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-command-input"><label for="nexus-command-search">Navigate</label><input id="nexus-command-search" type="search" data-i18n="searchPlaceholder" placeholder="Search pages, products, and actions"></div><ul class="nexus-command-list"></ul></dialog><dialog id="nexus-settings-dialog" class="nexus-dialog" aria-labelledby="nexus-settings-title"><div class="nexus-dialog__head"><strong id="nexus-settings-title" data-i18n="settingsTitle">Experience settings</strong><button type="button" class="nexus-dialog__close" data-dialog-close aria-label="Close">×</button></div><div class="nexus-settings"><label class="nexus-setting-row"><span><b data-i18n="language">Language</b><small data-i18n="languageHelp">Updates the interface language.</small></span><select data-nexus-preference="language"><option value="en" lang="en">English</option><option value="es" lang="es">Español</option><option value="fr" lang="fr">Français</option><option value="de" lang="de">Deutsch</option><option value="pt" lang="pt">Português</option></select></label><label class="nexus-setting-row"><span><b data-i18n="appearance">Appearance</b><small data-i18n="appearanceHelp">Follow your device or choose light or dark.</small></span><select data-nexus-preference="theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label class="nexus-setting-row"><span><b data-i18n="motion">Motion</b></span><input type="checkbox" data-nexus-preference="motion"></label><label class="nexus-setting-row"><span><b data-i18n="sound">Sound feedback</b></span><input type="checkbox" data-nexus-preference="sound"></label><label class="nexus-setting-row"><span><b data-i18n="haptics">Tactile feedback</b></span><input type="checkbox" data-nexus-preference="haptics"></label></div></dialog><div id="nexus-live" class="nexus-live" aria-live="polite"></div>
   </body>
 </html>`;
 }
@@ -1744,22 +1686,6 @@ function renderHead(title, themeColor = "#FAF8F4") {
   const pageTitle = title === "SONARA Industries" ? title : `${title} | SONARA Industries`;
   return `<meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script data-sonara-theme-prepaint>
-      (function initializeSonaraTheme() {
-        var choice = "system";
-        try {
-          var stored = window.localStorage.getItem("sonara-appearance");
-          if (stored === "light" || stored === "dark") choice = stored;
-        } catch {}
-        var prefersDark = false;
-        try {
-          prefersDark = Boolean(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
-        } catch {}
-        var resolved = choice === "system" ? (prefersDark ? "dark" : "light") : choice;
-        document.documentElement.setAttribute("data-sonara-appearance", choice);
-        document.documentElement.setAttribute("data-theme", resolved);
-      })();
-    </script>
     <meta name="theme-color" content="${escapeHtml(themeColor)}">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="SONARA">
@@ -1914,8 +1840,38 @@ function getRouteMapCards() {
   ];
 }
 
+const READINESS_DISPLAY_ITEMS = [
+  ["accountDatabase", "Account database"],
+  ["paymentConnection", "Payment connection"],
+  ["paymentUpdates", "Payment updates"],
+  ["emailDelivery", "Email delivery"],
+  ["googleSignIn", "Google sign-in"],
+  ["adminProtection", "Founder/Admin protection"],
+  ["checkout", "Checkout"],
+  ["ownerLegalApproval", "Owner legal approval"],
+  ["pricingCatalog", "Pricing catalog"],
+  ["legalPages", "Legal pages"],
+  ["legalReviewBoundary", "Legal review boundary"]
+];
+
+function readinessDeploymentCard() {
+  const deployment = getDeploymentInfo();
+  const environment = String(deployment.environment || "development").toLowerCase();
+  const explanation = environment === "preview"
+    ? "Preview deployment. This checklist reports Preview-scoped configuration only; Production may intentionally use different provider credentials."
+    : environment === "production"
+      ? "Production deployment. This checklist reflects the live production environment."
+      : "Local or development deployment. This checklist reflects only the current process environment.";
+  return brandCard(
+    "Deployment environment",
+    `${displayStatus(environment)}. ${explanation} Commit: ${deployment.commitSha}. Branch: ${deployment.branch}.`
+  );
+}
+
 function readinessCards(readiness) {
-  return Object.entries(readiness.services).map(([key, value]) => brandCard(formatLabel(key), displayStatus(value)));
+  return READINESS_DISPLAY_ITEMS
+    .filter(([key]) => Object.prototype.hasOwnProperty.call(readiness.services, key))
+    .map(([key, label]) => brandCard(label, displayStatus(readiness.services[key])));
 }
 
 function displayStatus(value) {
@@ -2357,7 +2313,7 @@ async function createOrAttachOrganization(req) {
         ok: false,
         code: "setup_required",
         service: "organizations",
-        message: "Setup required: the organizations table is unavailable or missing compatible columns.",
+        message: "Database connection is configured, but organization creation failed its schema compatibility check. An administrator must review the organizations table contract.",
         nextPath: "/account/setup"
       }
     };
@@ -2407,14 +2363,42 @@ async function upsertSetupProfile(config, user) {
   return { ok: false };
 }
 
+function legacyOrganizationCompanyKey() {
+  return "parent_admin";
+}
+
+async function findSetupOrganizationBySlug(config, slug) {
+  const response = await fetch(`${config.url}/rest/v1/organizations?select=id&slug=eq.${encodeURIComponent(slug)}&limit=1`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const rows = await response.json().catch(() => []);
+  return rows[0]?.id ? { ok: true, id: rows[0].id } : { ok: false };
+}
+
+async function getOrganizationSetupFailure(response) {
+  if (!response) return { status: 0, code: "network_unavailable" };
+  const payload = await response.json().catch(() => ({}));
+  const code = String(payload?.code || "postgrest_error")
+    .replace(/[^a-zA-Z0-9_.-]/g, "")
+    .slice(0, 80);
+  return { status: Number(response.status) || 0, code: code || "postgrest_error" };
+}
+
 async function insertSetupOrganization(config, user, organizationName, productPath) {
   const slugBase = slugify(`${organizationName}-${user.id.slice(0, 8)}`);
+  const existing = await findSetupOrganizationBySlug(config, slugBase);
+  if (existing.ok) return { ...existing, reused: true };
+
+  const legacyCompanyKey = legacyOrganizationCompanyKey();
   const records = [
-    { name: organizationName, slug: slugBase, owner_id: user.id, owner_user_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
+    { name: organizationName, slug: slugBase, owner_id: user.id, created_by: user.id, company_key: legacyCompanyKey },
     { name: organizationName, slug: slugBase, owner_id: user.id, metadata: { source: "account_setup", product_path: productPath } },
-    { name: organizationName, metadata: { source: "account_setup", product_path: productPath } },
+    { name: organizationName, slug: slugBase, owner_id: user.id },
+    { name: organizationName, created_by: user.id, company_key: legacyCompanyKey },
     { name: organizationName }
   ];
+  const failures = [];
   for (const record of records) {
     const response = await fetch(`${config.url}/rest/v1/organizations`, {
       method: "POST",
@@ -2425,8 +2409,15 @@ async function insertSetupOrganization(config, user, organizationName, productPa
       const rows = await response.json().catch(() => []);
       const id = rows[0]?.id;
       if (id) return { ok: true, id };
+    } else {
+      failures.push(await getOrganizationSetupFailure(response));
     }
   }
+
+  const recovered = await findSetupOrganizationBySlug(config, slugBase);
+  if (recovered.ok) return { ...recovered, reused: true };
+
+  console.warn("organization_setup_insert_failed", { attempts: failures });
   return { ok: false };
 }
 
@@ -2472,7 +2463,7 @@ function legalPage(res, title, points) {
       title,
       eyebrow: "Legal",
       heading: title,
-      body: "Owner-review-required draft for SONARA Industries production launch. This page requires qualified legal review before paid public launch and is not legal advice.",
+      body: "Owner-approved launch baseline for SONARA Industries; qualified legal review remains required. These terms are not legal advice and are not represented as attorney-reviewed. They remain subject to applicable law and future revision.",
       sections: points.map((point, index) => Array.isArray(point) ? brandCard(point[0], point[1]) : brandCard(`Section ${index + 1}`, point)),
       actions: [linkAction("/", "Home"), linkAction("/contact", "Contact")]
     })
@@ -2757,6 +2748,9 @@ function getReadiness() {
     googleOAuth: "deferred",
     adminProtection: adminProtectionStatus.status,
     legalPages: "review_required",
+    ownerLegalApproval: "owner_approved",
+    pricingCatalog: "owner_approved",
+    legalReviewBoundary: "not_attorney_reviewed",
     checkout: enabledPlanCount ? "enabled" : "setup_required",
     emailDelivery: resendStatus.status === "configured" ? "enabled" : resendStatus.status === "missing" ? "setup_required" : "invalid",
     accountDatabase: supabaseStatus.status,
@@ -2980,12 +2974,18 @@ function isPlaceholderValue(value) {
     || /^whsec_(test|xxx|placeholder|example|your)/i.test(normalized);
 }
 
+function extractEmailAddress(value) {
+  const raw = String(value || "").trim();
+  const friendlyNameMatch = raw.match(/^[^<>]*<([^<>]+)>$/);
+  return String(friendlyNameMatch?.[1] || raw).trim();
+}
+
 function isEmailLike(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(extractEmailAddress(value));
 }
 
 function isPlaceholderEmail(value) {
-  const email = String(value || "").trim().toLowerCase();
+  const email = extractEmailAddress(value).toLowerCase();
   return isPlaceholderValue(email) || ["your-email@example.com", "you@example.com"].includes(email);
 }
 
@@ -3697,7 +3697,7 @@ async function getCustomerPrimaryOrganization(user) {
   if (!config.ok) return { ok: false, code: "setup_required" };
   if (!userId) return { ok: false, code: "customer_auth_required" };
 
-  const organizationMembership = await fetch(`${config.url}/rest/v1/organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1`, {
+  const organizationMembership = await fetch(`${config.url}/rest/v1/organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
   if (organizationMembership?.ok) {
@@ -3713,7 +3713,7 @@ async function getCustomerPrimaryOrganization(user) {
     if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_members" };
   }
 
-  const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&limit=1`, {
+  const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
   if (businessMembership?.ok) {
@@ -3730,22 +3730,32 @@ async function getCustomerPaidEntitlement(user, productKey) {
 
   const config = getSupabaseServerConfig();
   const allowedKeys = getPaidEntitlementKeys(productKey);
-  const entitlementResponse = await fetch(`${config.url}/rest/v1/billing_entitlements?select=entitlement_key,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=eq.active`, {
+  if (!allowedKeys.length) {
+    return {
+      ok: false,
+      status: 402,
+      code: "upgrade_required",
+      reason: "product_entitlement_unmapped",
+      message: "Paid access is not configured for this product."
+    };
+  }
+  const entitlementFilter = allowedKeys.map((key) => encodeURIComponent(key)).join(",");
+  const entitlementResponse = await fetch(`${config.url}/rest/v1/billing_entitlements?select=entitlement_key,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=eq.active&entitlement_key=in.(${entitlementFilter})&limit=1`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
   if (entitlementResponse?.ok) {
     const rows = await entitlementResponse.json().catch(() => []);
-    const match = rows.find((row) => allowedKeys.includes(row.entitlement_key) && row.status === "active");
-    if (match) return { ok: true, organizationId: organization.organizationId, source: "billing_entitlements", entitlementKey: match.entitlement_key };
+    const match = rows[0];
+    if (match?.entitlement_key && match.status === "active") return { ok: true, organizationId: organization.organizationId, source: "billing_entitlements", entitlementKey: match.entitlement_key };
   }
 
-  const subscriptionResponse = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}`, {
+  const subscriptionResponse = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=in.(active,trialing)&plan_slug=in.(${entitlementFilter})&limit=1`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
   if (subscriptionResponse?.ok) {
     const rows = await subscriptionResponse.json().catch(() => []);
-    const match = rows.find((row) => allowedKeys.includes(row.plan_slug) && ["active", "trialing"].includes(row.status));
-    if (match) return { ok: true, organizationId: organization.organizationId, source: "billing_subscriptions", entitlementKey: match.plan_slug };
+    const match = rows[0];
+    if (match?.plan_slug && ["active", "trialing"].includes(match.status)) return { ok: true, organizationId: organization.organizationId, source: "billing_subscriptions", entitlementKey: match.plan_slug };
   }
 
   return {
@@ -3842,6 +3852,7 @@ async function isBusinessManagerUser(user, workspaceId) {
     `user_id=eq.${encodeURIComponent(userId)}`,
     "status=eq.active",
     "role=in.(owner,manager)",
+    "order=created_at.asc.nullslast,workspace_id.asc",
     "limit=1"
   ];
   if (workspaceId) filters.splice(3, 0, `workspace_id=eq.${encodeURIComponent(workspaceId)}`);

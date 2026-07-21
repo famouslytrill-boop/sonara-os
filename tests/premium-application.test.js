@@ -80,14 +80,14 @@ describe("premium application rebuild", () => {
     it("homepage tells the company story in plain outcome language", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.equal(res.status, 200);
-      assert.match(res.text, /Make work move\./);
-      assert.match(res.text, /One operating layer\. Three focused workspaces\./);
+      assert.match(res.text, /Build, create, and grow—without losing control\./);
+      assert.match(res.text, /One system\. Three focused ways to move\./);
       assert.match(res.text, /Business Builder/);
       assert.match(res.text, /Creator Studio/);
       assert.match(res.text, /Growth Studio/);
-      assert.match(res.text, /FORGE MODE/);
-      assert.match(res.text, /CANVAS MODE/);
-      assert.match(res.text, /SIGNAL MODE/);
+      assert.match(res.text, /FORGE/);
+      assert.match(res.text, /CANVAS/);
+      assert.match(res.text, /SIGNAL/);
       assert.match(res.text, /href="\/service-catalog"/);
       assert.match(res.text, /href="\/requests"/);
       assert.match(res.text, /href="\/deliverables"/);
@@ -107,7 +107,7 @@ describe("premium application rebuild", () => {
       assert.match(engine, /navigator\.vibrate/);
       assert.match(engine, /localStorage/);
       assert.match(engine, /prefers-reduced-motion/);
-      assert.match(engine, /language:"en"/);
+      assert.match(engine, /language\s*:\s*"en"/);
       assert.doesNotMatch(engine, /requestAdapter/);
     });
 
