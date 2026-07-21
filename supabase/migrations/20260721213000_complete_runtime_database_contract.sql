@@ -7,6 +7,8 @@ grant usage on schema public to service_role;
 do $$
 declare
   contract_table text;
+  missing_tables text[];
+  tables_without_rls text[];
   contract_tables constant text[] := array[
     'profiles','organizations','organization_memberships','user_roles','user_preferences',
     'stripe_customers','purchases','billing_webhook_events','billing_subscriptions','billing_entitlements',
@@ -28,24 +30,34 @@ declare
     'location_zones'
   ];
 begin
-  foreach contract_table in array contract_tables
-  loop
-    if to_regclass(format('public.%I', contract_table)) is null then
-      raise exception 'required SONARA contract table public.% is missing', contract_table;
-    end if;
+  select coalesce(array_agg(expected.table_name order by expected.table_name), '{}'::text[])
+  into missing_tables
+  from unnest(contract_tables) as expected(table_name)
+  where to_regclass(format('public.%I', expected.table_name)) is null;
 
-    if not exists (
+  select coalesce(array_agg(expected.table_name order by expected.table_name), '{}'::text[])
+  into tables_without_rls
+  from unnest(contract_tables) as expected(table_name)
+  where to_regclass(format('public.%I', expected.table_name)) is not null
+    and not exists (
       select 1
       from pg_class classes
       join pg_namespace namespaces on namespaces.oid = classes.relnamespace
       where namespaces.nspname = 'public'
-        and classes.relname = contract_table
+        and classes.relname = expected.table_name
         and classes.relkind in ('r', 'p')
         and classes.relrowsecurity
-    ) then
-      raise exception 'required SONARA contract table public.% does not have RLS enabled', contract_table;
-    end if;
+    );
 
+  if cardinality(missing_tables) > 0 or cardinality(tables_without_rls) > 0 then
+    raise exception
+      'SONARA contract preflight failed (missing tables: %; tables without RLS: %)',
+      array_to_string(missing_tables, ', '),
+      array_to_string(tables_without_rls, ', ');
+  end if;
+
+  foreach contract_table in array contract_tables
+  loop
     execute format(
       'grant select, insert, update, delete on table public.%I to service_role',
       contract_table
