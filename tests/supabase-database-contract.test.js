@@ -55,6 +55,18 @@ describe("Supabase database contract", () => {
     for (const signature of DATABASE_FUNCTIONS) assert.ok(sql.includes(`'${signature.toLowerCase()}'`), `${signature} must be checked by the RPC`);
   });
 
+  it("repairs the known production operations-table drift additively", () => {
+    const sql = fs.readFileSync(migrationPath, "utf8").toLowerCase();
+    for (const table of ["business_bookings", "employee_schedules", "maintenance_logs"]) {
+      assert.match(sql, new RegExp(`create table if not exists public\\.${table}\\b`));
+      assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));
+      assert.match(
+        sql,
+        new RegExp(`create policy "service role manages ${table}"[\\s\\S]*?on public\\.${table} for all to service_role`)
+      );
+    }
+  });
+
   it("uses private local storage defaults and a scoped read-only MCP", () => {
     const config = fs.readFileSync(path.join(root, "supabase", "config.toml"), "utf8");
     const mcp = JSON.parse(fs.readFileSync(path.join(root, ".mcp.json"), "utf8"));

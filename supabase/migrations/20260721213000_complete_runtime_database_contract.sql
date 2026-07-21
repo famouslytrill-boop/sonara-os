@@ -4,6 +4,85 @@
 
 grant usage on schema public to service_role;
 
+-- Some production projects recorded the legacy operations migration without
+-- creating these three runtime tables. Restore the original additive schema
+-- before enforcing the complete contract below.
+create table if not exists public.business_bookings (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) on delete cascade,
+  platform_id uuid references public.sonara_platforms(id) on delete set null,
+  location_id uuid references public.business_locations(id) on delete set null,
+  service_id uuid references public.business_service_catalog(id) on delete set null,
+  customer_id uuid references public.customer_records(id) on delete set null,
+  assigned_employee_id uuid,
+  customer_name text,
+  customer_email text,
+  customer_phone text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  status text not null default 'requested' check (status in ('requested','confirmed','completed','cancelled','no_show','archived')),
+  notes text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.employee_schedules (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) on delete cascade,
+  employee_id uuid references public.business_employee_profiles(id) on delete cascade,
+  location_id uuid references public.business_locations(id) on delete set null,
+  role_label text,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  status text not null default 'scheduled' check (status in ('scheduled','confirmed','completed','cancelled','missed')),
+  notes text,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists public.maintenance_logs (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) on delete cascade,
+  asset_id uuid references public.business_assets(id) on delete set null,
+  vehicle_id uuid references public.vehicle_records(id) on delete set null,
+  service_type text,
+  description text,
+  vendor text,
+  cost_cents integer default 0,
+  currency text default 'usd',
+  serviced_at date,
+  next_due_at date,
+  status text not null default 'completed' check (status in ('planned','completed','cancelled','archived')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create index if not exists business_bookings_organization_starts_at_idx
+  on public.business_bookings(organization_id, starts_at desc);
+create index if not exists employee_schedules_employee_idx
+  on public.employee_schedules(employee_id, starts_at);
+create index if not exists employee_schedules_organization_starts_at_idx
+  on public.employee_schedules(organization_id, starts_at);
+create index if not exists maintenance_logs_organization_serviced_at_idx
+  on public.maintenance_logs(organization_id, serviced_at desc);
+
+alter table public.business_bookings enable row level security;
+alter table public.employee_schedules enable row level security;
+alter table public.maintenance_logs enable row level security;
+
+drop policy if exists "service role manages business_bookings" on public.business_bookings;
+create policy "service role manages business_bookings"
+  on public.business_bookings for all to service_role using (true) with check (true);
+
+drop policy if exists "service role manages employee_schedules" on public.employee_schedules;
+create policy "service role manages employee_schedules"
+  on public.employee_schedules for all to service_role using (true) with check (true);
+
+drop policy if exists "service role manages maintenance_logs" on public.maintenance_logs;
+create policy "service role manages maintenance_logs"
+  on public.maintenance_logs for all to service_role using (true) with check (true);
+
 do $$
 declare
   contract_table text;
