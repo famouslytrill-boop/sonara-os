@@ -11,12 +11,13 @@ const {
 
 const root = path.resolve(__dirname, "..");
 const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_complete_ecosystem_database_contract.sql");
+const referenceContractExtensionPath = path.join(root, "supabase", "migrations", "20260722201600_extend_database_contract_reference_intelligence.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 119);
+    assert.equal(DATABASE_TABLES.length, 122);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -31,6 +32,9 @@ describe("Supabase database contract", () => {
       "music_projects",
       "audio_transcription_segments",
       "growth_campaigns",
+      "reference_intelligence_sources",
+      "reference_intelligence_insights",
+      "reference_intelligence_actions",
       "integration_providers",
       "user_notifications",
       "sensory_feedback_profiles",
@@ -46,7 +50,10 @@ describe("Supabase database contract", () => {
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = fs.readFileSync(migrationPath, "utf8").toLowerCase();
+    const sql = [migrationPath, referenceContractExtensionPath]
+      .map((filePath) => fs.readFileSync(filePath, "utf8"))
+      .join("\n")
+      .toLowerCase();
     assert.match(sql, /classes\.relrowsecurity/);
     assert.match(sql, /grant select, insert, update, delete on table public\.%i to service_role/);
     assert.match(sql, /security invoker/);
