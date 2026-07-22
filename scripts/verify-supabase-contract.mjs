@@ -7,8 +7,10 @@ const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
+const referenceContractExtensionName = "20260722201600_extend_database_contract_reference_intelligence.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
+const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
 const {
   DATABASE_FUNCTIONS,
@@ -33,14 +35,17 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = read(contractMigrationPath).toLowerCase();
+const contractSql = [contractMigrationPath, referenceContractExtensionPath]
+  .map(read)
+  .join("\n")
+  .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
-if (DATABASE_TABLES.length !== 119) fail(`expected 119 canonical tables, found ${DATABASE_TABLES.length}`);
+if (DATABASE_TABLES.length !== 122) fail(`expected 122 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 10) fail(`expected 10 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
