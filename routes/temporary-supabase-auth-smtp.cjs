@@ -196,8 +196,9 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
 };
 
 function readRuntimeConfig(req) {
-  const protectedGitHubKey = String(req.get("x-resend-credential") || "");
-  const resendApiKey = protectedGitHubKey || String(process.env.RESEND_API_KEY || "");
+  const protectedGitHubKey = normalizeCredential(req.get("x-resend-credential"));
+  const vercelResendKey = normalizeCredential(process.env.RESEND_API_KEY);
+  const resendApiKey = protectedGitHubKey || vercelResendKey;
   const smtpSenderEmail = parseSenderEmail(process.env.RESEND_FROM_EMAIL);
   const missing = [];
   if (!resendApiKey) missing.push("resend_api_key");
@@ -209,8 +210,17 @@ function readRuntimeConfig(req) {
     serviceRoleKey: "",
     anonKey: "",
     resendApiKey,
-    smtpSenderEmail
+    smtpSenderEmail,
+    resendCredentialSource: protectedGitHubKey ? "github_secret" : "vercel_environment"
   };
+}
+
+function normalizeCredential(value) {
+  const trimmed = String(value || "").trim();
+  if (trimmed.length >= 2 && ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'")))) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
 }
 
 function parseSenderEmail(value) {
@@ -325,6 +335,8 @@ async function verifyResendSender(runtime, recipient) {
     throw new AcceptanceError("verify_resend_sender", {
       upstreamStatus: response?.status || 0,
       upstreamCode: String(body?.name || body?.code || "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 80),
+      credentialSource: runtime.resendCredentialSource,
+      credentialShape: /^re_[A-Za-z0-9_]+$/.test(runtime.resendApiKey) ? "resend_api_key" : "invalid_format",
       ...(message ? { message } : {})
     });
   }
