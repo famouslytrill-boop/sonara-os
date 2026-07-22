@@ -26,6 +26,7 @@ jobs:
       EXPECTED_PROJECT_ID: yqncsonkxgwhcxedgevk
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
     steps:
       - name: Verify the approved production target
         shell: bash
@@ -126,6 +127,45 @@ jobs:
             state.anonKey = valueFor(["anon", "publishable"]);
             assert(state.serviceRole, "Supabase service-role key was not available to the protected runner");
             assert(state.anonKey, "Supabase anonymous key was not available to the protected runner");
+          }
+
+          async function ensureProductionAuthEmail() {
+            const configResponse = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth`, {
+              headers: { Authorization: `Bearer ${MANAGEMENT_TOKEN}` }
+            });
+            const config = await jsonResponse(configResponse, "Supabase Auth configuration read");
+            const smtpHost = String(config.smtp_host || "").trim().toLowerCase();
+            const smtpUser = String(config.smtp_user || "").trim();
+            const customSmtpConfigured = Boolean(smtpHost && smtpUser && !smtpHost.includes("supabase"));
+            if (customSmtpConfigured) {
+              assert(config.mailer_autoconfirm === false, "Supabase Auth custom SMTP is configured but email confirmation is disabled");
+              console.log("Supabase Auth custom SMTP and required email confirmation are already configured.");
+              return;
+            }
+
+            const resendKey = String(process.env.RESEND_API_KEY || "").trim();
+            assert(resendKey, "Supabase Auth custom SMTP is missing and RESEND_API_KEY is unavailable to the protected runner");
+            const response = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth`, {
+              method: "PATCH",
+              headers: {
+                Authorization: `Bearer ${MANAGEMENT_TOKEN}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                external_email_enabled: true,
+                mailer_autoconfirm: false,
+                mailer_secure_email_change_enabled: true,
+                smtp_admin_email: "no-reply@sonaraindustries.com",
+                smtp_host: "smtp.resend.com",
+                smtp_port: 465,
+                smtp_user: "resend",
+                smtp_pass: resendKey,
+                smtp_sender_name: "SONARA Industries"
+              })
+            });
+            await jsonResponse(response, "Supabase Auth Resend SMTP configuration");
+            console.log("Supabase Auth custom SMTP was configured with the approved Resend sender; credentials were not printed.");
+            await new Promise((resolve) => setTimeout(resolve, 2000));
           }
 
           async function listAdminUsers() {
@@ -378,6 +418,7 @@ jobs:
 
           async function main() {
             await discoverProjectKeys();
+            await ensureProductionAuthEmail();
             await verifyPasswordControls();
 
             const passwordA = `Sa!${crypto.randomBytes(24).toString("base64url")}`;
