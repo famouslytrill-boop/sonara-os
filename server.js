@@ -11,7 +11,6 @@ const registerCreatorMusicSystemReadOnlyRoutes = require("./routes/creator-music
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
-const registerTemporarySupabaseAuthSmtpRoute = require("./routes/temporary-supabase-auth-smtp.cjs");
 const {
   DATABASE_FUNCTIONS,
   DATABASE_SCHEMAS,
@@ -114,8 +113,6 @@ registerSonaraAIIntegrationRoutes(app, {
   requireAdmin,
   recordAdminAuditEvent
 });
-
-registerTemporarySupabaseAuthSmtpRoute(app);
 
 registerSonaraFormulaRoutes(app, {
   layout,
