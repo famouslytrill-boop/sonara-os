@@ -255,7 +255,8 @@ async function configureAuthSmtp(managementToken, resendApiKey) {
       smtp_port: "465",
       smtp_user: "resend",
       smtp_pass: resendApiKey,
-      smtp_sender_name: SMTP_SENDER_NAME
+      smtp_sender_name: SMTP_SENDER_NAME,
+      rate_limit_email_sent: 30
     })
   }).catch(() => undefined);
   if (!response?.ok) {
@@ -282,6 +283,7 @@ function assertAuthSmtpConfig(config) {
   assert(Number(config.smtp_port) === 465, "verify_custom_smtp");
   assert(String(config.smtp_user || "").toLowerCase() === "resend", "verify_custom_smtp");
   assert(String(config.smtp_sender_name || "") === SMTP_SENDER_NAME, "verify_custom_smtp");
+  assert(Number(config.rate_limit_email_sent) === 30, "verify_custom_smtp");
 }
 
 async function supabasePublicSignup(runtime, email, password) {
