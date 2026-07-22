@@ -1,0 +1,93 @@
+name: Configure Supabase Auth SMTP and prove confirmation
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/configure-supabase-auth-smtp.yml
+      - routes/temporary-supabase-auth-smtp.cjs
+      - server.js
+      - openapi/sonara.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-production-auth-configuration
+  cancel-in-progress: false
+
+jobs:
+  configure-and-prove:
+    name: Configure Resend SMTP and prove public confirmation
+    if: github.head_ref == 'ops/configure-supabase-auth-smtp-20260722'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SHARE_ROOT: https://sonara-48p56ihsm-famouslytrill-1509s-projects.vercel.app/?_vercel_share=aL3dHLYe9M4FNdloCFCMGgJWd8dev0Dg
+      OPERATION_URL: https://sonara-48p56ihsm-famouslytrill-1509s-projects.vercel.app/api/internal/ops/configure-supabase-auth-smtp-20260722
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify protected management credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          echo "Protected Supabase Management credential is available; its value was not printed."
+
+      - name: Configure SMTP and run production acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cookie_file="$RUNNER_TEMP/vercel-preview-cookie"
+          response_file="$RUNNER_TEMP/smtp-acceptance-response.json"
+
+          curl --silent --show-error --location \
+            --cookie-jar "$cookie_file" \
+            --cookie "$cookie_file" \
+            "$SHARE_ROOT" \
+            --output /dev/null
+
+          status="$(curl --silent --show-error \
+            --cookie "$cookie_file" \
+            --request POST \
+            --header "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            --header "x-sonara-operation: configure-resend-smtp-and-prove-email-confirmation" \
+            --header "Accept: application/json" \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            "$OPERATION_URL")"
+
+          node - "$response_file" "$status" <<'NODE'
+          const fs = require("node:fs");
+          const [responsePath, status] = process.argv.slice(2);
+          const data = JSON.parse(fs.readFileSync(responsePath, "utf8"));
+          console.log(JSON.stringify(data, null, 2));
+          if (status !== "200" || data.ok !== true || data.code !== "supabase_auth_smtp_verified") {
+            throw new Error(`Sanitized SMTP acceptance failed with HTTP ${status} at ${data.failedStep || "unknown"}`);
+          }
+          const required = [
+            "publicSignup",
+            "delivery",
+            "confirmationLink",
+            "confirmedUser",
+            "applicationLogin",
+            "secureCookies",
+            "refreshRotation",
+            "logout",
+            "postLogoutDenial",
+            "cleanup"
+          ];
+          for (const field of required) {
+            if (!data.acceptance?.[field]) throw new Error(`Missing sanitized acceptance field: ${field}`);
+          }
+          NODE
+
+      - name: Remove runner copies
+        if: always()
+        shell: bash
+        run: |
+          rm -f "$RUNNER_TEMP/vercel-preview-cookie" "$RUNNER_TEMP/smtp-acceptance-response.json"
