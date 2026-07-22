@@ -12,6 +12,7 @@ const {
 const root = path.resolve(__dirname, "..");
 const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_complete_ecosystem_database_contract.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
+const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
@@ -78,6 +79,15 @@ describe("Supabase database contract", () => {
     assert.match(sql, /revoke all on table public\.audio_transcription_segments from public, anon, authenticated/);
     assert.match(sql, /create policy "service role manages audio_transcription_segments"[\s\S]*?to service_role/);
     assert.match(sql, /audio_transcription_segments_org_track_segment_idx/);
+  });
+
+  it("keeps organization deletion auditable without a dangling tenant foreign key", () => {
+    const sql = fs.readFileSync(organizationDeleteAuditRepairPath, "utf8").toLowerCase();
+    assert.match(sql, /create or replace function public\.audit_row_change\(\)/);
+    assert.match(sql, /if tg_op = 'delete' then[\s\S]*?deleted_organization_id := target_id;[\s\S]*?target_org_id := null;/);
+    assert.match(sql, /'deleted_organization_id', deleted_organization_id/);
+    assert.match(sql, /revoke all on function public\.audit_row_change\(\) from public, anon, authenticated/);
+    assert.match(sql, /grant execute on function public\.audit_row_change\(\) to service_role/);
   });
 
   it("uses private local storage defaults and a scoped read-only MCP", () => {
