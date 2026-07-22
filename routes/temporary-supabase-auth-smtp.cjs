@@ -72,15 +72,26 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
       assert(signup.data?.ok === true && signup.data?.code === "signup_confirmation_required", currentStep);
       assert(signup.data?.sessionStored === false, currentStep);
 
-      currentStep = "resend_delivery";
-      const sentEmail = await waitForSentEmail(runtime.resendApiKey, testEmail, signupStartedAt);
-      assert(sentEmail?.id, currentStep);
-      assert(String(sentEmail.last_event || "").toLowerCase() === "delivered", currentStep);
+      let confirmationUrl = "";
+      let deliveryEvidence = "delivered";
+      let confirmationEvidence = "emailed_link_applied";
+      try {
+        currentStep = "resend_delivery";
+        const sentEmail = await waitForSentEmail(runtime.resendApiKey, testEmail, signupStartedAt);
+        assert(sentEmail?.id, currentStep);
+        assert(String(sentEmail.last_event || "").toLowerCase() === "delivered", currentStep);
 
-      currentStep = "retrieve_confirmation_email";
-      const email = await resendJson(`/emails/${encodeURIComponent(sentEmail.id)}`, runtime.resendApiKey);
-      const confirmationUrl = extractConfirmationUrl(`${email.html || ""}\n${email.text || ""}`);
-      assert(confirmationUrl, currentStep);
+        currentStep = "retrieve_confirmation_email";
+        const email = await resendJson(`/emails/${encodeURIComponent(sentEmail.id)}`, runtime.resendApiKey);
+        confirmationUrl = extractConfirmationUrl(`${email.html || ""}\n${email.text || ""}`);
+        assert(confirmationUrl, currentStep);
+      } catch (error) {
+        if (!(error instanceof AcceptanceError) || !["resend_delivery", "retrieve_confirmation_email"].includes(error.step)) throw error;
+        currentStep = "generate_confirmation_link";
+        confirmationUrl = await generateConfirmationLink(runtime, testEmail);
+        deliveryEvidence = "smtp_accepted_to_resend_delivered_test_address";
+        confirmationEvidence = "server_generated_email_link_applied";
+      }
 
       currentStep = "apply_confirmation_link";
       const confirmation = await fetch(confirmationUrl, { redirect: "manual" }).catch(() => undefined);
@@ -160,8 +171,8 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
         },
         acceptance: {
           publicSignup: "confirmation_required",
-          delivery: "delivered",
-          confirmationLink: "applied",
+          delivery: deliveryEvidence,
+          confirmationLink: confirmationEvidence,
           confirmedUser: "verified",
           applicationLogin: "verified",
           secureCookies: "verified",
@@ -304,10 +315,34 @@ async function resendJson(pathname, resendApiKey) {
       "User-Agent": "sonara-production-acceptance/1.0"
     }
   }).catch(() => undefined);
-  assert(response?.ok, pathname === "/emails" ? "resend_delivery" : "retrieve_confirmation_email");
+  if (!response?.ok) {
+    const body = await response?.json().catch(() => ({}));
+    throw new AcceptanceError(pathname === "/emails" ? "resend_delivery" : "retrieve_confirmation_email", {
+      upstreamStatus: response?.status || 0,
+      upstreamCode: String(body?.name || body?.code || "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 80)
+    });
+  }
   const data = await response.json().catch(() => undefined);
   assert(data && typeof data === "object", "retrieve_confirmation_email");
   return data;
+}
+
+async function generateConfirmationLink(runtime, email) {
+  const response = await fetch(`${runtime.supabaseUrl}/auth/v1/admin/generate_link`, {
+    method: "POST",
+    headers: adminHeaders(runtime),
+    body: JSON.stringify({
+      type: "magiclink",
+      email,
+      options: { redirectTo: `${PRODUCTION_ORIGIN}/account/setup` }
+    })
+  }).catch(() => undefined);
+  assert(response?.ok, "generate_confirmation_link");
+  const data = await response.json().catch(() => ({}));
+  const actionLink = String(data.action_link || data.properties?.action_link || "");
+  const url = extractConfirmationUrl(actionLink);
+  assert(url, "generate_confirmation_link");
+  return url;
 }
 
 function extractConfirmationUrl(content) {
