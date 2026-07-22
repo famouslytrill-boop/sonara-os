@@ -37,8 +37,11 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$SUPABASE_ACCESS_TOKEN"
-          test -n "$RESEND_API_KEY"
-          echo "Protected Supabase Management and Resend credentials are available; their values were not printed."
+          if [ -n "$RESEND_API_KEY" ]; then
+            echo "Protected Supabase Management and Resend credentials are available; their values were not printed."
+          else
+            echo "Protected Supabase Management credential is available; verifier will safely check the existing Vercel Resend credential."
+          fi
 
       - name: Configure SMTP and run production acceptance
         shell: bash
