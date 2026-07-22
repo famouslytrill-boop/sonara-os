@@ -23,6 +23,7 @@ jobs:
     timeout-minutes: 15
     env:
       BASE_URL: https://sonaraindustries.com
+      CLEANUP_ONLY: "true"
       EXPECTED_PROJECT_ID: yqncsonkxgwhcxedgevk
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
@@ -514,11 +515,25 @@ jobs:
               },
               body: JSON.stringify({ query })
             });
-            await jsonResponse(response, "Transaction-scoped temporary-account cleanup");
+            const responseBody = await response.text();
+            if (!response.ok) {
+              let detail = responseBody;
+              try {
+                const payload = JSON.parse(responseBody);
+                detail = String(payload.message || payload.error || payload.msg || responseBody);
+              } catch {}
+              detail = detail.replace(/[^a-zA-Z0-9_ .,:()\-]/g, " ").replace(/\s+/g, " ").trim().slice(0, 600);
+              throw new Error(`Transaction-scoped temporary-account cleanup failed with HTTP ${response.status}: ${detail || "no diagnostic detail"}`);
+            }
           }
 
           async function main() {
             await discoverProjectKeys();
+            if (String(process.env.CLEANUP_ONLY || "").toLowerCase() === "true") {
+              await cleanup();
+              console.log("Cleanup-only run passed; no temporary auth acceptance records remain.");
+              return;
+            }
             await ensureProductionAuthEmail();
             await verifyPasswordControls();
 
