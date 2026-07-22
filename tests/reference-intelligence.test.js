@@ -11,6 +11,7 @@ const {
   REFERENCE_PRODUCT_FRAMEWORK
 } = require("../data/facebook-reference-catalog.cjs");
 const { DATABASE_TABLE_GROUPS } = require("../lib/sonara-database-contract.cjs");
+const { getManifest } = require("../lib/sonara-ecosystem-manifest.cjs");
 
 const MIGRATION_PATH = path.join(
   __dirname,
@@ -39,12 +40,18 @@ describe("reference intelligence catalog", () => {
     assert.ok(Object.values(REFERENCE_PRODUCT_FRAMEWORK).every((item) => item.allowedOutputs.length >= 4));
   });
 
-  it("registers the reference tables in the database contract", () => {
+  it("registers the reference tables and founder control plane in ecosystem contracts", () => {
     assert.deepEqual(DATABASE_TABLE_GROUPS.referenceIntelligence, [
       "reference_intelligence_sources",
       "reference_intelligence_insights",
       "reference_intelligence_actions"
     ]);
+
+    const manifest = getManifest();
+    assert.equal(manifest.externalInspirationAndAdapters.referenceIntelligence.sourceCount, 27);
+    assert.equal(manifest.externalInspirationAndAdapters.referenceIntelligence.verifiedSourceCount, 0);
+    assert.ok(manifest.adminControlPlane.routes.includes("/admin/reference-intelligence"));
+    assert.ok(manifest.requiredDatabaseDomains.some((domain) => domain.domain === "Reference intelligence model"));
   });
 
   it("protects reference intelligence operations behind founder/admin authentication", async () => {
