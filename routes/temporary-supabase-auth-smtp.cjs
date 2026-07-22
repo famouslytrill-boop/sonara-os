@@ -66,6 +66,9 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
       currentStep = "verify_resend_sender";
       await verifyResendSender(runtime, testEmail);
 
+      currentStep = "wait_for_auth_config";
+      await wait(15000);
+
       currentStep = "public_signup";
       const signup = await supabasePublicSignup(runtime, testEmail, password);
       assert(signup.user?.id, currentStep);
@@ -161,7 +164,7 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
         code: "supabase_auth_smtp_verified",
         smtp: {
           host: "smtp.resend.com",
-          port: 465,
+          port: 587,
           user: "resend",
           sender: runtime.smtpSenderEmail,
           senderName: SMTP_SENDER_NAME,
@@ -275,7 +278,7 @@ async function configureAuthSmtp(managementToken, resendApiKey, smtpSenderEmail)
       mailer_autoconfirm: false,
       smtp_admin_email: smtpSenderEmail,
       smtp_host: "smtp.resend.com",
-      smtp_port: "465",
+      smtp_port: "587",
       smtp_user: "resend",
       smtp_pass: resendApiKey,
       smtp_sender_name: SMTP_SENDER_NAME,
@@ -303,7 +306,7 @@ function assertAuthSmtpConfig(config, smtpSenderEmail) {
   assert(config.mailer_autoconfirm === false, "verify_custom_smtp");
   assert(String(config.smtp_admin_email || "").toLowerCase() === smtpSenderEmail.toLowerCase(), "verify_custom_smtp");
   assert(String(config.smtp_host || "").toLowerCase() === "smtp.resend.com", "verify_custom_smtp");
-  assert(Number(config.smtp_port) === 465, "verify_custom_smtp");
+  assert(Number(config.smtp_port) === 587, "verify_custom_smtp");
   assert(String(config.smtp_user || "").toLowerCase() === "resend", "verify_custom_smtp");
   assert(String(config.smtp_sender_name || "") === SMTP_SENDER_NAME, "verify_custom_smtp");
   assert(Number(config.rate_limit_email_sent) === 30, "verify_custom_smtp");
