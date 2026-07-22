@@ -190,7 +190,7 @@ jobs:
               assert(html.includes("data-toggle-password"), `${path} is missing its password toggle control`);
               assert(html.includes("aria-label=\"Show password\""), `${path} is missing its accessible Show password action`);
             }
-            const script = await fetch(`${BASE_URL}/sonara-experience.js`);
+            const script = await fetch(`${BASE_URL}/sonara-nexus.js`);
             const javascript = await script.text();
             assert(script.status === 200, "Password-control JavaScript did not load");
             assert(javascript.includes("data-toggle-password"), "Password-control JavaScript is not wired to the live toggle controls");
