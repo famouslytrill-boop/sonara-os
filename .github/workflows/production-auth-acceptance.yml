@@ -431,6 +431,8 @@ jobs:
                   from public.organizations
                  where name like 'SONARA Auth Acceptance %';
 
+                perform set_config('session_replication_role', 'replica', true);
+
                 if cardinality(test_organization_ids) > 0 then
                   for target in
                     select child_namespace.nspname as schema_name,
@@ -487,6 +489,11 @@ jobs:
                     ) using test_user_ids;
                   end loop;
 
+                end if;
+
+                perform set_config('session_replication_role', 'origin', true);
+
+                if cardinality(test_user_ids) > 0 then
                   delete from auth.users
                    where id = any (test_user_ids);
                 end if;
@@ -504,6 +511,10 @@ jobs:
                 ) then
                   raise exception 'temporary organizations remain after cleanup';
                 end if;
+              exception
+                when others then
+                  perform set_config('session_replication_role', 'origin', true);
+                  raise;
               end
               $sonara_auth_acceptance_cleanup$;
             `;
