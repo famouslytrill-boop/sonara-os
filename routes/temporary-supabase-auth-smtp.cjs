@@ -71,8 +71,15 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
 
       currentStep = "public_signup";
       const signup = await supabasePublicSignup(runtime, testEmail, password);
-      assert(signup.user?.id, currentStep);
-      assert(!signup.access_token, currentStep);
+      const signupUser = signup.user && typeof signup.user === "object" ? signup.user : signup;
+      const signupSessionToken = signup.access_token || signup.session?.access_token;
+      if (!signupUser?.id || signupSessionToken) {
+        throw new AcceptanceError(currentStep, {
+          userCreated: Boolean(signupUser?.id),
+          confirmationRequired: !signupSessionToken,
+          responseShape: signup.user ? "auth_response" : "user"
+        });
+      }
 
       let confirmationUrl = "";
       let deliveryEvidence = "delivered";
