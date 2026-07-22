@@ -7,7 +7,6 @@ const EXPECTED_BRANCH = "ops/configure-supabase-auth-smtp-20260722";
 const OPERATION_HEADER = "configure-resend-smtp-and-prove-email-confirmation";
 const ROUTE = "/api/internal/ops/configure-supabase-auth-smtp-20260722";
 const PRODUCTION_ORIGIN = "https://sonaraindustries.com";
-const SMTP_SENDER_EMAIL = "no-reply@sonaraindustries.com";
 const SMTP_SENDER_NAME = "SONARA Industries";
 
 class AcceptanceError extends Error {
@@ -53,16 +52,19 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
       runtime.anonKey = apiKeys.anonKey;
 
       currentStep = "configure_custom_smtp";
-      await configureAuthSmtp(managementToken, runtime.resendApiKey);
+      await configureAuthSmtp(managementToken, runtime.resendApiKey, runtime.smtpSenderEmail);
 
       currentStep = "verify_custom_smtp";
       const authConfig = await getAuthConfig(managementToken);
-      assertAuthSmtpConfig(authConfig);
+      assertAuthSmtpConfig(authConfig, runtime.smtpSenderEmail);
 
       const label = `sonara-auth-${Date.now().toString(36)}-${crypto.randomBytes(6).toString("hex")}`;
       testEmail = `delivered+${label}@resend.dev`;
       const password = `Aa9!${crypto.randomBytes(24).toString("base64url")}`;
       const signupStartedAt = Date.now() - 5000;
+
+      currentStep = "verify_resend_sender";
+      await verifyResendSender(runtime, testEmail);
 
       currentStep = "public_signup";
       const signup = await supabasePublicSignup(runtime, testEmail, password);
@@ -161,7 +163,7 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
           host: "smtp.resend.com",
           port: 465,
           user: "resend",
-          sender: SMTP_SENDER_EMAIL,
+          sender: runtime.smtpSenderEmail,
           senderName: SMTP_SENDER_NAME,
           emailSignupEnabled: true,
           emailAutoconfirm: false
@@ -195,16 +197,26 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
 
 function readRuntimeConfig() {
   const resendApiKey = String(process.env.RESEND_API_KEY || "");
+  const smtpSenderEmail = parseSenderEmail(process.env.RESEND_FROM_EMAIL);
   const missing = [];
   if (!resendApiKey) missing.push("resend_api_key");
+  if (!smtpSenderEmail) missing.push("resend_from_email");
   return {
     ok: missing.length === 0,
     missing,
     supabaseUrl: `https://${EXPECTED_PROJECT_REF}.supabase.co`,
     serviceRoleKey: "",
     anonKey: "",
-    resendApiKey
+    resendApiKey,
+    smtpSenderEmail
   };
+}
+
+function parseSenderEmail(value) {
+  const raw = String(value || "").trim();
+  const friendlyNameMatch = raw.match(/<([^<>]+)>$/);
+  const email = String(friendlyNameMatch?.[1] || raw).trim();
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email) ? email : "";
 }
 
 function readBearerToken(req) {
@@ -239,7 +251,7 @@ async function getProjectApiKeys(managementToken) {
   return { serviceRoleKey, anonKey };
 }
 
-async function configureAuthSmtp(managementToken, resendApiKey) {
+async function configureAuthSmtp(managementToken, resendApiKey, smtpSenderEmail) {
   const response = await fetch(`https://api.supabase.com/v1/projects/${EXPECTED_PROJECT_REF}/config/auth`, {
     method: "PATCH",
     headers: {
@@ -250,7 +262,7 @@ async function configureAuthSmtp(managementToken, resendApiKey) {
       external_email_enabled: true,
       mailer_secure_email_change_enabled: true,
       mailer_autoconfirm: false,
-      smtp_admin_email: SMTP_SENDER_EMAIL,
+      smtp_admin_email: smtpSenderEmail,
       smtp_host: "smtp.resend.com",
       smtp_port: "465",
       smtp_user: "resend",
@@ -275,15 +287,49 @@ async function configureAuthSmtp(managementToken, resendApiKey) {
   }
 }
 
-function assertAuthSmtpConfig(config) {
+function assertAuthSmtpConfig(config, smtpSenderEmail) {
   assert(config.external_email_enabled === true, "verify_custom_smtp");
   assert(config.mailer_autoconfirm === false, "verify_custom_smtp");
-  assert(String(config.smtp_admin_email || "").toLowerCase() === SMTP_SENDER_EMAIL, "verify_custom_smtp");
+  assert(String(config.smtp_admin_email || "").toLowerCase() === smtpSenderEmail.toLowerCase(), "verify_custom_smtp");
   assert(String(config.smtp_host || "").toLowerCase() === "smtp.resend.com", "verify_custom_smtp");
   assert(Number(config.smtp_port) === 465, "verify_custom_smtp");
   assert(String(config.smtp_user || "").toLowerCase() === "resend", "verify_custom_smtp");
   assert(String(config.smtp_sender_name || "") === SMTP_SENDER_NAME, "verify_custom_smtp");
   assert(Number(config.rate_limit_email_sent) === 30, "verify_custom_smtp");
+}
+
+async function verifyResendSender(runtime, recipient) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${runtime.resendApiKey}`,
+      "Content-Type": "application/json",
+      "User-Agent": "sonara-production-acceptance/1.0"
+    },
+    body: JSON.stringify({
+      from: runtime.smtpSenderEmail,
+      to: [recipient],
+      subject: "SONARA authentication delivery verification",
+      text: "Automated provider verification for the SONARA public signup confirmation flow."
+    })
+  }).catch(() => undefined);
+
+  if (!response?.ok) {
+    const body = await response?.json().catch(() => ({}));
+    const message = String(body?.message || body?.error || "")
+      .replaceAll(runtime.resendApiKey, "[redacted]")
+      .replace(/re_[A-Za-z0-9_]+/g, "[redacted]")
+      .replace(/[^A-Za-z0-9 @._,:'\/-]/g, "")
+      .slice(0, 240);
+    throw new AcceptanceError("verify_resend_sender", {
+      upstreamStatus: response?.status || 0,
+      upstreamCode: String(body?.name || body?.code || "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 80),
+      ...(message ? { message } : {})
+    });
+  }
+
+  const data = await response.json().catch(() => ({}));
+  assert(typeof data?.id === "string" && data.id.length > 0, "verify_resend_sender");
 }
 
 async function supabasePublicSignup(runtime, email, password) {
