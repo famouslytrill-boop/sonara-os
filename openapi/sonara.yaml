@@ -54,24 +54,6 @@ paths:
       summary: Return non-secret service configuration readiness.
       responses:
         "200": { $ref: "#/components/responses/Success" }
-  /api/internal/ops/configure-supabase-auth-smtp-20260722:
-    post:
-      operationId: configureSupabaseAuthSmtpAcceptance20260722
-      tags: [Administration]
-      summary: Run the one-time preview-only Supabase Auth SMTP configuration and acceptance proof.
-      description: This operation is unavailable outside the exact approved preview branch and is removed after the production acceptance run.
-      security: [{ supabaseManagementToken: [] }]
-      parameters:
-        - in: header
-          name: x-sonara-operation
-          required: true
-          schema: { type: string, const: configure-resend-smtp-and-prove-email-confirmation }
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404": { description: Operation is unavailable outside the exact approved preview deployment. }
-        "502": { description: A sanitized configuration or acceptance step failed. }
-        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/support/status:
     get:
       operationId: getSupportStatus
@@ -791,10 +773,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
       description: Supabase access token resolved server-side and authorized by workspace role.
-    supabaseManagementToken:
-      type: http
-      scheme: bearer
-      description: Protected Supabase Management API token accepted only by the temporary exact-branch operation.
     stripeSignature:
       type: apiKey
       in: header
