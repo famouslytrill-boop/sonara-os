@@ -5,7 +5,8 @@ const path = require("node:path");
 
 patchServer();
 patchEcosystemManifest();
-console.log("Reference intelligence runtime and manifest applied");
+patchOpenApiContract();
+console.log("Reference intelligence runtime, manifest, and OpenAPI contract applied");
 
 function patchServer() {
   const serverPath = path.join(__dirname, "..", "server.js");
@@ -87,4 +88,29 @@ ${adapterMarker}`;
   }
 
   fs.writeFileSync(manifestPath, source);
+}
+
+function patchOpenApiContract() {
+  const openApiPath = path.join(__dirname, "..", "openapi", "sonara.yaml");
+  let source = fs.readFileSync(openApiPath, "utf8");
+
+  if (!source.includes("/api/admin/reference-intelligence:")) {
+    const routeMarker = "  /api/business-builder/employees/invite:";
+    const routeBlock = `  /api/admin/reference-intelligence:
+    get:
+      operationId: getAdminReferenceIntelligence
+      tags: [Administration]
+      summary: Return the founder-only governed external-reference catalog and review policy.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+${routeMarker}`;
+    if (!source.includes(routeMarker)) throw new Error("Reference intelligence OpenAPI marker not found");
+    source = source.replace(routeMarker, routeBlock);
+  }
+
+  fs.writeFileSync(openApiPath, source);
 }
