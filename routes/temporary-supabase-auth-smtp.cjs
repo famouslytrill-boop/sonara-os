@@ -48,7 +48,9 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
     try {
       currentStep = "validate_management_access";
       await getAuthConfig(managementToken);
-      runtime.serviceRoleKey = await getServiceRoleKey(managementToken);
+      const apiKeys = await getProjectApiKeys(managementToken);
+      runtime.serviceRoleKey = apiKeys.serviceRoleKey;
+      runtime.anonKey = apiKeys.anonKey;
 
       currentStep = "configure_custom_smtp";
       await configureAuthSmtp(managementToken, runtime.resendApiKey);
@@ -63,14 +65,9 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
       const signupStartedAt = Date.now() - 5000;
 
       currentStep = "public_signup";
-      const signup = await appJson("/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email: testEmail, password, confirmPassword: password })
-      });
-      assert(signup.response.status === 200, currentStep);
-      assert(signup.data?.ok === true && signup.data?.code === "signup_confirmation_required", currentStep);
-      assert(signup.data?.sessionStored === false, currentStep);
+      const signup = await supabasePublicSignup(runtime, testEmail, password);
+      assert(signup.user?.id, currentStep);
+      assert(!signup.access_token, currentStep);
 
       let confirmationUrl = "";
       let deliveryEvidence = "delivered";
@@ -205,6 +202,7 @@ function readRuntimeConfig() {
     missing,
     supabaseUrl: `https://${EXPECTED_PROJECT_REF}.supabase.co`,
     serviceRoleKey: "",
+    anonKey: "",
     resendApiKey
   };
 }
@@ -224,17 +222,21 @@ async function getAuthConfig(managementToken) {
   return data;
 }
 
-async function getServiceRoleKey(managementToken) {
+async function getProjectApiKeys(managementToken) {
   const response = await fetch(`https://api.supabase.com/v1/projects/${EXPECTED_PROJECT_REF}/api-keys`, {
     headers: { Authorization: `Bearer ${managementToken}` }
   }).catch(() => undefined);
   assert(response?.ok, "validate_management_access");
   const payload = await response.json().catch(() => undefined);
   const rows = Array.isArray(payload) ? payload : (payload?.keys || payload?.data || []);
-  const row = rows.find((item) => String(item.name || item.type || item.role || "").toLowerCase() === "service_role");
-  const key = String(row?.api_key || row?.key || row?.value || "");
-  assert(key.length >= 20, "validate_management_access");
-  return key;
+  const findKey = (name) => {
+    const row = rows.find((item) => String(item.name || item.type || item.role || "").toLowerCase() === name);
+    return String(row?.api_key || row?.key || row?.value || "");
+  };
+  const serviceRoleKey = findKey("service_role");
+  const anonKey = findKey("anon") || findKey("publishable");
+  assert(serviceRoleKey.length >= 20 && anonKey.length >= 20, "validate_management_access");
+  return { serviceRoleKey, anonKey };
 }
 
 async function configureAuthSmtp(managementToken, resendApiKey) {
@@ -280,6 +282,32 @@ function assertAuthSmtpConfig(config) {
   assert(Number(config.smtp_port) === 465, "verify_custom_smtp");
   assert(String(config.smtp_user || "").toLowerCase() === "resend", "verify_custom_smtp");
   assert(String(config.smtp_sender_name || "") === SMTP_SENDER_NAME, "verify_custom_smtp");
+}
+
+async function supabasePublicSignup(runtime, email, password) {
+  const response = await fetch(`${runtime.supabaseUrl}/auth/v1/signup`, {
+    method: "POST",
+    headers: {
+      apikey: runtime.anonKey,
+      Authorization: `Bearer ${runtime.anonKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ email, password })
+  }).catch(() => undefined);
+  if (!response?.ok) {
+    const body = await response?.json().catch(() => ({}));
+    const message = String(body?.msg || body?.message || body?.error_description || body?.error || "")
+      .replace(/[^A-Za-z0-9 _.,:/-]/g, "")
+      .slice(0, 240);
+    throw new AcceptanceError("public_signup", {
+      upstreamStatus: response?.status || 0,
+      upstreamCode: String(body?.code || body?.error_code || "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 80),
+      ...(message ? { message } : {})
+    });
+  }
+  const data = await response.json().catch(() => ({}));
+  assert(data && typeof data === "object", "public_signup");
+  return data;
 }
 
 async function appJson(pathname, options) {
