@@ -18,6 +18,8 @@ COPY api ./api
 COPY routes ./routes
 COPY lib ./lib
 COPY config ./config
+COPY data ./data
+COPY openapi ./openapi
 COPY scripts ./scripts
 COPY ui ./ui
 COPY public ./public
