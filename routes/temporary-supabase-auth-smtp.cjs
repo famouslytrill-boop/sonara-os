@@ -35,7 +35,7 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
       return res.status(401).json({ ok: false, code: "management_authorization_required" });
     }
 
-    const runtime = readRuntimeConfig();
+    const runtime = readRuntimeConfig(req);
     if (!runtime.ok) {
       return res.status(503).json({ ok: false, code: "runtime_configuration_missing", missing: runtime.missing });
     }
@@ -195,8 +195,9 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
   });
 };
 
-function readRuntimeConfig() {
-  const resendApiKey = String(process.env.RESEND_API_KEY || "");
+function readRuntimeConfig(req) {
+  const protectedGitHubKey = String(req.get("x-resend-credential") || "");
+  const resendApiKey = protectedGitHubKey || String(process.env.RESEND_API_KEY || "");
   const smtpSenderEmail = parseSenderEmail(process.env.RESEND_FROM_EMAIL);
   const missing = [];
   if (!resendApiKey) missing.push("resend_api_key");
