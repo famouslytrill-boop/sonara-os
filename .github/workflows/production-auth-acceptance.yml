@@ -1,0 +1,435 @@
+name: Production auth and tenant acceptance
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/production-auth-acceptance.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-production-auth-acceptance
+  cancel-in-progress: false
+
+jobs:
+  production-auth-acceptance:
+    name: Signup, session, organization, and RLS acceptance
+    if: github.head_ref == 'ops/production-auth-acceptance-20260722'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BASE_URL: https://sonaraindustries.com
+      EXPECTED_PROJECT_ID: yqncsonkxgwhcxedgevk
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - name: Verify the approved production target
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_ID"
+          test "$SUPABASE_PROJECT_ID" = "$EXPECTED_PROJECT_ID"
+          echo "Approved production project reference verified. Secret values were not printed."
+
+      - name: Run temporary production acceptance accounts
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const crypto = require("node:crypto");
+          const fs = require("node:fs");
+
+          const BASE_URL = required("BASE_URL").replace(/\/$/, "");
+          const PROJECT_REF = required("SUPABASE_PROJECT_ID");
+          const EXPECTED_PROJECT_REF = required("EXPECTED_PROJECT_ID");
+          const MANAGEMENT_TOKEN = required("SUPABASE_ACCESS_TOKEN");
+          const SUPABASE_URL = `https://${PROJECT_REF}.supabase.co`;
+          const runSuffix = `${required("GITHUB_RUN_ID")}-${required("GITHUB_RUN_ATTEMPT")}`;
+          const state = { serviceRole: "", anonKey: "", emails: [], users: [], organizations: [] };
+
+          function required(name) {
+            const value = String(process.env[name] || "").trim();
+            if (!value) throw new Error(`Missing required environment value: ${name}`);
+            return value;
+          }
+
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          async function jsonResponse(response, label) {
+            const body = await response.text();
+            if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}`);
+            if (!body) return {};
+            try {
+              return JSON.parse(body);
+            } catch {
+              throw new Error(`${label} returned invalid JSON`);
+            }
+          }
+
+          function adminHeaders(contentType = false) {
+            const headers = {
+              apikey: state.serviceRole,
+              Authorization: `Bearer ${state.serviceRole}`
+            };
+            if (contentType) headers["Content-Type"] = "application/json";
+            return headers;
+          }
+
+          function userHeaders(accessToken) {
+            return {
+              apikey: state.anonKey,
+              Authorization: `Bearer ${accessToken}`,
+              Accept: "application/json"
+            };
+          }
+
+          function cookieFrom(response, name) {
+            const lines = typeof response.headers.getSetCookie === "function"
+              ? response.headers.getSetCookie()
+              : [response.headers.get("set-cookie") || ""];
+            const line = lines.find((value) => value.startsWith(`${name}=`));
+            if (!line) return null;
+            const pair = line.split(";", 1)[0];
+            return {
+              line,
+              pair,
+              value: decodeURIComponent(pair.slice(name.length + 1))
+            };
+          }
+
+          function assertSecureCookie(cookie, label) {
+            assert(cookie, `${label} cookie was not set`);
+            assert(/;\s*HttpOnly/i.test(cookie.line), `${label} cookie is not HttpOnly`);
+            assert(/;\s*Secure/i.test(cookie.line), `${label} cookie is not Secure`);
+            assert(/;\s*SameSite=Lax/i.test(cookie.line), `${label} cookie is not SameSite=Lax`);
+          }
+
+          async function discoverProjectKeys() {
+            assert(PROJECT_REF === EXPECTED_PROJECT_REF, "Refusing to test an unapproved Supabase project");
+            const response = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys`, {
+              headers: { Authorization: `Bearer ${MANAGEMENT_TOKEN}` }
+            });
+            const payload = await jsonResponse(response, "Supabase API-key discovery");
+            const keys = Array.isArray(payload) ? payload : (payload.keys || payload.data || []);
+            const valueFor = (names) => {
+              const row = keys.find((item) => names.includes(String(item.name || item.type || item.role || "").toLowerCase()));
+              return String(row?.api_key || row?.key || row?.value || "").trim();
+            };
+            state.serviceRole = valueFor(["service_role", "secret"]);
+            state.anonKey = valueFor(["anon", "publishable"]);
+            assert(state.serviceRole, "Supabase service-role key was not available to the protected runner");
+            assert(state.anonKey, "Supabase anonymous key was not available to the protected runner");
+          }
+
+          async function listAdminUsers() {
+            const users = [];
+            for (let page = 1; page <= 20; page += 1) {
+              const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?page=${page}&per_page=100`, {
+                headers: adminHeaders()
+              });
+              const payload = await jsonResponse(response, "Supabase admin user listing");
+              const pageUsers = Array.isArray(payload) ? payload : (payload.users || []);
+              users.push(...pageUsers);
+              const lastPage = Number(payload.last_page || payload.lastPage || 0);
+              if (pageUsers.length < 100 || (lastPage && page >= lastPage)) break;
+            }
+            return users;
+          }
+
+          async function waitForAdminUser(email) {
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              const user = (await listAdminUsers()).find((item) => String(item.email || "").toLowerCase() === email.toLowerCase());
+              if (user) return user;
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+            throw new Error("The signup account was not visible through Supabase Auth admin access");
+          }
+
+          async function confirmUser(user) {
+            const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${user.id}`, {
+              method: "PUT",
+              headers: adminHeaders(true),
+              body: JSON.stringify({ email_confirm: true })
+            });
+            const payload = await jsonResponse(response, "Supabase email confirmation");
+            const confirmed = payload.user || payload;
+            assert(confirmed.email_confirmed_at || confirmed.confirmed_at, "Supabase did not record email confirmation");
+            return confirmed;
+          }
+
+          async function createSecondaryUser(email, password) {
+            const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+              method: "POST",
+              headers: adminHeaders(true),
+              body: JSON.stringify({
+                email,
+                password,
+                email_confirm: true,
+                user_metadata: { source: "sonara_production_auth_acceptance" }
+              })
+            });
+            const payload = await jsonResponse(response, "Secondary Supabase Auth user creation");
+            const user = payload.user || payload;
+            assert(user.id, "Secondary Supabase Auth user creation did not return an ID");
+            state.users.push(user.id);
+            return user;
+          }
+
+          async function verifyPasswordControls() {
+            for (const path of ["/signup", "/login"]) {
+              const response = await fetch(`${BASE_URL}${path}`);
+              const html = await response.text();
+              assert(response.status === 200, `${path} did not render successfully`);
+              assert(html.includes("data-toggle-password"), `${path} is missing its password toggle control`);
+              assert(html.includes("aria-label=\"Show password\""), `${path} is missing its accessible Show password action`);
+            }
+            const script = await fetch(`${BASE_URL}/sonara-experience.js`);
+            const javascript = await script.text();
+            assert(script.status === 200, "Password-control JavaScript did not load");
+            assert(javascript.includes("data-toggle-password"), "Password-control JavaScript is not wired to the live toggle controls");
+          }
+
+          async function signupThroughApplication(email, password) {
+            const response = await fetch(`${BASE_URL}/auth/signup`, {
+              method: "POST",
+              redirect: "manual",
+              headers: {
+                Accept: "text/html",
+                "Content-Type": "application/x-www-form-urlencoded"
+              },
+              body: new URLSearchParams({ email, password, confirmPassword: password })
+            });
+            assert(response.status === 303, `Application signup returned HTTP ${response.status}`);
+            const location = String(response.headers.get("location") || "");
+            assert(location.includes("confirmation_required"), "Production signup did not require email confirmation");
+            const user = await waitForAdminUser(email);
+            state.users.push(user.id);
+            assert(!user.email_confirmed_at && !user.confirmed_at, "Signup account was unexpectedly confirmed before confirmation");
+            return confirmUser(user);
+          }
+
+          async function loginThroughApplication(email, password) {
+            const response = await fetch(`${BASE_URL}/auth/login`, {
+              method: "POST",
+              redirect: "manual",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ email, password })
+            });
+            const payload = await jsonResponse(response, "Application login");
+            assert(payload.ok === true && payload.code === "login_ready", "Application login did not return login_ready");
+            const access = cookieFrom(response, "sonara_customer_session");
+            const refresh = cookieFrom(response, "sonara_customer_refresh");
+            assertSecureCookie(access, "Access session");
+            assertSecureCookie(refresh, "Refresh session");
+            return { access, refresh };
+          }
+
+          async function rotateSession(session) {
+            const response = await fetch(`${BASE_URL}/dashboard`, {
+              redirect: "manual",
+              headers: {
+                Accept: "text/html",
+                Cookie: `sonara_customer_session=expired-acceptance-token; ${session.refresh.pair}`
+              }
+            });
+            assert(response.status === 200, `Refresh-backed dashboard request returned HTTP ${response.status}`);
+            const access = cookieFrom(response, "sonara_customer_session");
+            const refresh = cookieFrom(response, "sonara_customer_refresh");
+            assertSecureCookie(access, "Rotated access session");
+            assertSecureCookie(refresh, "Rotated refresh session");
+            assert(access.value !== session.access.value, "Access session was not rotated");
+            assert(refresh.value !== session.refresh.value, "Refresh session was not rotated");
+            return { access, refresh };
+          }
+
+          async function createOrganization(session, name) {
+            const response = await fetch(`${BASE_URL}/account/setup/organization`, {
+              method: "POST",
+              redirect: "manual",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+                Cookie: `${session.access.pair}; ${session.refresh.pair}`
+              },
+              body: JSON.stringify({ organizationName: name, productPath: "dashboard" })
+            });
+            const payload = await jsonResponse(response, "Application organization creation");
+            assert(payload.ok === true && payload.code === "organization_created", "Application did not create the temporary organization");
+            assert(payload.organizationId, "Application organization creation did not return an ID");
+            state.organizations.push(payload.organizationId);
+            return payload.organizationId;
+          }
+
+          async function serviceRows(table, query) {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+              headers: { ...adminHeaders(), Accept: "application/json" }
+            });
+            const payload = await jsonResponse(response, `Service-role read of ${table}`);
+            assert(Array.isArray(payload), `${table} did not return a row array`);
+            return payload;
+          }
+
+          async function verifyOrganizationRecords(userId, organizationId) {
+            const profiles = await serviceRows("profiles", `select=id&id=eq.${encodeURIComponent(userId)}`);
+            const organizations = await serviceRows("organizations", `select=id&id=eq.${encodeURIComponent(organizationId)}`);
+            const memberships = await serviceRows(
+              "organization_memberships",
+              `select=organization_id,user_id,role,status&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(userId)}`
+            );
+            assert(profiles.length === 1, "Organization setup did not create the expected profile row");
+            assert(organizations.length === 1, "Organization setup did not create the expected organization row");
+            assert(memberships.length === 1, "Organization setup did not create the expected membership row");
+            assert(memberships[0].role === "owner" && memberships[0].status === "active", "Organization membership is not an active owner membership");
+          }
+
+          async function userOrganizationRows(accessToken, organizationId) {
+            const response = await fetch(
+              `${SUPABASE_URL}/rest/v1/organizations?select=id&id=eq.${encodeURIComponent(organizationId)}`,
+              { headers: userHeaders(accessToken) }
+            );
+            const payload = await jsonResponse(response, "Authenticated organization RLS read");
+            assert(Array.isArray(payload), "Authenticated organization RLS read did not return an array");
+            return payload;
+          }
+
+          async function verifyCrossTenantDenial(sessionA, organizationA, organizationB) {
+            const ownRows = await userOrganizationRows(sessionA.access.value, organizationA);
+            const foreignRows = await userOrganizationRows(sessionA.access.value, organizationB);
+            assert(ownRows.length === 1 && ownRows[0].id === organizationA, "Tenant A could not read its own organization");
+            assert(foreignRows.length === 0, "RLS exposed tenant B to tenant A");
+          }
+
+          async function logoutThroughApplication(session) {
+            const response = await fetch(`${BASE_URL}/auth/logout`, {
+              method: "POST",
+              redirect: "manual",
+              headers: {
+                Accept: "application/json",
+                Cookie: `${session.access.pair}; ${session.refresh.pair}`
+              }
+            });
+            const payload = await jsonResponse(response, "Application logout");
+            assert(payload.ok === true, "Application logout did not succeed");
+            const clearedAccess = cookieFrom(response, "sonara_customer_session");
+            const clearedRefresh = cookieFrom(response, "sonara_customer_refresh");
+            assert(clearedAccess && /Expires=Thu, 01 Jan 1970/i.test(clearedAccess.line), "Logout did not expire the access cookie");
+            assert(clearedRefresh && /Expires=Thu, 01 Jan 1970/i.test(clearedRefresh.line), "Logout did not expire the refresh cookie");
+
+            const protectedResponse = await fetch(`${BASE_URL}/dashboard`, {
+              redirect: "manual",
+              headers: { Accept: "application/json" }
+            });
+            assert(protectedResponse.status === 401, "Protected dashboard remained available after logout");
+          }
+
+          async function serviceDelete(table, query) {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
+              method: "DELETE",
+              headers: adminHeaders()
+            });
+            if (!response.ok && response.status !== 404) {
+              throw new Error(`Cleanup of ${table} failed with HTTP ${response.status}`);
+            }
+          }
+
+          async function cleanup() {
+            const failures = [];
+            for (const organizationId of [...state.organizations].reverse()) {
+              for (const [table, field] of [["activity_events", "organization_id"], ["organization_memberships", "organization_id"], ["organizations", "id"]]) {
+                try {
+                  await serviceDelete(table, `${field}=eq.${encodeURIComponent(organizationId)}`);
+                } catch (error) {
+                  failures.push(error.message);
+                }
+              }
+            }
+            try {
+              const users = await listAdminUsers();
+              for (const email of state.emails) {
+                const user = users.find((item) => String(item.email || "").toLowerCase() === email.toLowerCase());
+                if (user?.id && !state.users.includes(user.id)) state.users.push(user.id);
+              }
+            } catch (error) {
+              failures.push(`Temporary-user discovery failed: ${error.message}`);
+            }
+            for (const userId of [...new Set(state.users)].reverse()) {
+              try {
+                const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+                  method: "DELETE",
+                  headers: adminHeaders()
+                });
+                if (!response.ok && response.status !== 404) throw new Error(`Auth user cleanup failed with HTTP ${response.status}`);
+              } catch (error) {
+                failures.push(error.message);
+              }
+            }
+            if (failures.length) throw new Error(`Temporary-account cleanup failed: ${failures.join("; ")}`);
+          }
+
+          async function main() {
+            await discoverProjectKeys();
+            await verifyPasswordControls();
+
+            const passwordA = `Sa!${crypto.randomBytes(24).toString("base64url")}`;
+            const passwordB = `Sb!${crypto.randomBytes(24).toString("base64url")}`;
+            const emailA = `sonara-auth-acceptance-${runSuffix}-a@example.com`;
+            const emailB = `sonara-auth-acceptance-${runSuffix}-b@example.com`;
+            state.emails.push(emailA, emailB);
+
+            let failure;
+            try {
+              const userA = await signupThroughApplication(emailA, passwordA);
+              const userB = await createSecondaryUser(emailB, passwordB);
+              const loginA = await loginThroughApplication(emailA, passwordA);
+              const loginB = await loginThroughApplication(emailB, passwordB);
+              const sessionA = await rotateSession(loginA);
+              const organizationA = await createOrganization(sessionA, `SONARA Auth Acceptance A ${runSuffix}`);
+              const organizationB = await createOrganization(loginB, `SONARA Auth Acceptance B ${runSuffix}`);
+              await verifyOrganizationRecords(userA.id, organizationA);
+              await verifyOrganizationRecords(userB.id, organizationB);
+              await verifyCrossTenantDenial(sessionA, organizationA, organizationB);
+              await logoutThroughApplication(sessionA);
+              await logoutThroughApplication(loginB);
+
+            } catch (error) {
+              failure = error;
+            }
+
+            try {
+              await cleanup();
+            } catch (cleanupError) {
+              failure = failure
+                ? new Error(`${failure.message}; ${cleanupError.message}`)
+                : cleanupError;
+            }
+
+            if (failure) throw failure;
+            fs.appendFileSync(required("GITHUB_STEP_SUMMARY"), [
+              "### Production auth and tenant acceptance passed",
+              "- Live signup required confirmation and the temporary account reached a confirmed state.",
+              "- Live password login set Secure, HttpOnly, SameSite=Lax access and refresh cookies.",
+              "- An invalid access token was renewed through the refresh cookie and both tokens rotated.",
+              "- Both temporary organizations produced profile, organization, and active-owner membership rows.",
+              "- Tenant A could read its own organization and received zero rows for tenant B through RLS.",
+              "- Logout expired both cookies and the protected dashboard returned 401.",
+              "- Temporary organizations and users were removed in the cleanup phase.",
+              ""
+            ].join("\n"));
+            console.log("Production auth and cross-tenant acceptance passed; temporary data was removed.");
+          }
+
+          main().catch((error) => {
+            console.error(`Acceptance failure: ${error.message}`);
+            process.exitCode = 1;
+          });
+          NODE
