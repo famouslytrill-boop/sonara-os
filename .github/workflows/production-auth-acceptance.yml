@@ -542,10 +542,37 @@ jobs:
             }
           }
 
+          async function inspectOrganizationAuditContract() {
+            const response = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query/read-only`, {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${MANAGEMENT_TOKEN}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({
+                query: `
+                  select trigger_record.tgname as trigger_name,
+                         pg_get_triggerdef(trigger_record.oid, true) as trigger_definition,
+                         function_record.oid::regprocedure::text as function_signature,
+                         pg_get_functiondef(function_record.oid) as function_definition
+                    from pg_trigger trigger_record
+                    join pg_proc function_record
+                      on function_record.oid = trigger_record.tgfoid
+                   where trigger_record.tgrelid = 'public.organizations'::regclass
+                     and not trigger_record.tgisinternal
+                   order by trigger_record.tgname
+                `
+              })
+            });
+            const payload = await jsonResponse(response, "Organization audit contract inspection");
+            console.log(`ORGANIZATION_AUDIT_CONTRACT=${JSON.stringify(payload)}`);
+          }
+
           async function main() {
             await discoverProjectKeys();
             if (String(process.env.CLEANUP_ONLY || "").toLowerCase() === "true") {
               await cleanup();
+              await inspectOrganizationAuditContract();
               console.log("Cleanup-only run passed; no temporary auth acceptance records remain.");
               return;
             }
