@@ -6,9 +6,10 @@ SONARA uses one Supabase Postgres project as the primary source of truth. The Ex
 
 ## Inventory
 
-`lib/sonara-database-contract.cjs` is the shared application inventory. It groups 86 existing tables into:
+`lib/sonara-database-contract.cjs` is the shared application inventory. It groups 119 active application tables into:
 
 - identity and organization access
+- platform, page, app, module, publication, and template records
 - billing and entitlements
 - support and email delivery
 - service lifecycle records
@@ -25,14 +26,15 @@ The contract also declares 10 authorization/readiness functions, three required 
 
 ## Runtime Readiness
 
-Migration `20260721213000_complete_runtime_database_contract.sql` supersedes the earlier readiness snapshot and:
+Migration `20260722170000_complete_ecosystem_database_contract.sql` supersedes the runtime-only readiness snapshot and:
 
-1. Fails if a required application table is absent.
-2. Fails if a required application table does not have RLS enabled.
-3. Makes service-role table privileges explicit.
-4. Creates `public.sonara_database_contract_snapshot()` as a metadata-only, security-invoker function.
-5. Revokes the function from `PUBLIC`, `anon`, and `authenticated` and grants it only to `service_role`.
-6. Reloads the PostgREST schema cache.
+1. Creates the previously undeclared `audio_transcription_segments` table with tenant scoping, indexes, RLS, and service-role-only access.
+2. Fails if any active ecosystem table is absent.
+3. Fails if a required application table does not have RLS enabled.
+4. Makes service-role table privileges explicit.
+5. Creates `public.sonara_database_contract_snapshot()` as a metadata-only, security-invoker function.
+6. Revokes the function from `PUBLIC`, `anon`, and `authenticated` and grants it only to `service_role`.
+7. Reloads the PostgREST schema cache.
 
 `GET /api/admin/database-readiness` is protected by the existing server-side admin guard. When the RPC is applied, the route reports schema, table/RLS, function, group, and agent-foundation readiness. During rollout it falls back to legacy server-side table checks and remains `setup_required`; it never invents a successful state.
 

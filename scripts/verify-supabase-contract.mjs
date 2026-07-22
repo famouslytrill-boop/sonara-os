@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
-const contractMigrationName = "20260721213000_complete_runtime_database_contract.sql";
+const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
@@ -18,6 +18,7 @@ const {
   DATABASE_TABLES,
   STORAGE_BUCKETS
 } = require(path.join(root, "lib", "sonara-database-contract.cjs"));
+const { getAllManifestTables } = require(path.join(root, "lib", "sonara-ecosystem-manifest.cjs"));
 
 function fail(message) {
   console.error(`Supabase contract verification failed: ${message}`);
@@ -39,12 +40,17 @@ const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
-if (DATABASE_TABLES.length !== 86) fail(`expected 86 canonical tables, found ${DATABASE_TABLES.length}`);
+if (DATABASE_TABLES.length !== 119) fail(`expected 119 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 10) fail(`expected 10 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
 if (new Set(DATABASE_INDEXES.map((index) => index.name)).size !== DATABASE_INDEXES.length) fail("the operational index list contains duplicate names");
 if (DATABASE_SCHEMAS.join(",") !== "public,auth,storage") fail("expected public, auth, and storage schemas");
+
+const manifestTables = [...new Set(getAllManifestTables().filter((table) => !table.includes(".")))];
+for (const table of manifestTables) {
+  if (!DATABASE_TABLES.includes(table)) fail(`ecosystem manifest references public.${table}, but it is absent from the canonical contract`);
+}
 
 for (const table of DATABASE_TABLES) {
   const createPattern = new RegExp(`create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.${table}\\b`, "i");

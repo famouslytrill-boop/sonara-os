@@ -2,6 +2,7 @@ const request = require("supertest");
 const assert = require("assert");
 const app = require("../server");
 const { getManifest, getAllManifestTables } = require("../lib/sonara-ecosystem-manifest.cjs");
+const { DATABASE_TABLES } = require("../lib/sonara-database-contract.cjs");
 
 describe("SONARA ecosystem manifest", () => {
   it("contains the parent company and three current companies", function() {
@@ -19,6 +20,11 @@ describe("SONARA ecosystem manifest", () => {
     assert.ok(tables.includes("organizations"));
     assert.ok(tables.includes("billing_webhook_events"));
     assert.ok(tables.includes("sonara_formula_definitions"));
+    assert.ok(tables.includes("sonara_platform_pages"));
+    assert.ok(tables.includes("audio_transcription_segments"));
+    for (const table of tables.filter((name) => !name.includes("."))) {
+      assert.ok(DATABASE_TABLES.includes(table), `${table} must be part of the canonical database contract`);
+    }
   });
 });
 
