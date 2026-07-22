@@ -11,10 +11,11 @@ const SMTP_SENDER_EMAIL = "no-reply@sonaraindustries.com";
 const SMTP_SENDER_NAME = "SONARA Industries";
 
 class AcceptanceError extends Error {
-  constructor(step) {
+  constructor(step, diagnostic = undefined) {
     super(step);
     this.name = "AcceptanceError";
     this.step = step;
+    this.diagnostic = diagnostic;
   }
 }
 
@@ -177,6 +178,7 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
         ok: false,
         code: "supabase_auth_smtp_acceptance_failed",
         failedStep: error instanceof AcceptanceError ? error.step : currentStep,
+        ...(error instanceof AcceptanceError && error.diagnostic ? { diagnostic: error.diagnostic } : {}),
         cleanup: cleanup.ok ? "complete" : "failed"
       });
     }
@@ -243,7 +245,20 @@ async function configureAuthSmtp(managementToken, resendApiKey) {
       smtp_sender_name: SMTP_SENDER_NAME
     })
   }).catch(() => undefined);
-  assert(response?.ok, "configure_custom_smtp");
+  if (!response?.ok) {
+    const body = await response?.json().catch(() => ({}));
+    const rawMessage = String(body?.message || body?.error || "");
+    const message = rawMessage
+      .replaceAll(resendApiKey, "[redacted]")
+      .replace(/re_[A-Za-z0-9_]+/g, "[redacted]")
+      .replace(/[^A-Za-z0-9 _.,:/-]/g, "")
+      .slice(0, 240);
+    throw new AcceptanceError("configure_custom_smtp", {
+      upstreamStatus: response?.status || 0,
+      upstreamCode: String(body?.code || body?.error_code || "").replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 80),
+      ...(message ? { message } : {})
+    });
+  }
 }
 
 function assertAuthSmtpConfig(config) {
