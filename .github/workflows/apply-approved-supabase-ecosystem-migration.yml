@@ -7,6 +7,13 @@ on:
     paths:
       - .github/workflows/apply-approved-supabase-ecosystem-migration.yml
       - supabase/migrations/20260722170000_complete_ecosystem_database_contract.sql
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/apply-approved-supabase-ecosystem-migration.yml
+      - supabase/migrations/20260722170000_complete_ecosystem_database_contract.sql
 
 permissions:
   contents: read
@@ -18,6 +25,7 @@ concurrency:
 jobs:
   apply-approved-migration:
     name: Apply ecosystem contract migration 45
+    if: github.event_name == 'push' || github.head_ref == 'feat/complete-ecosystem-database-contract'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
