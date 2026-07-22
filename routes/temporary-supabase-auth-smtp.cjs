@@ -47,6 +47,7 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
     try {
       currentStep = "validate_management_access";
       await getAuthConfig(managementToken);
+      runtime.serviceRoleKey = await getServiceRoleKey(managementToken);
 
       currentStep = "configure_custom_smtp";
       await configureAuthSmtp(managementToken, runtime.resendApiKey);
@@ -183,23 +184,16 @@ module.exports = function registerTemporarySupabaseAuthSmtpRoute(app) {
 };
 
 function readRuntimeConfig() {
-  const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
-  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
   const resendApiKey = String(process.env.RESEND_API_KEY || "");
   const missing = [];
-  if (!supabaseUrl) missing.push("supabase_url");
-  if (!serviceRoleKey) missing.push("supabase_service_role");
   if (!resendApiKey) missing.push("resend_api_key");
-
-  let projectRef = "";
-  try {
-    projectRef = new URL(supabaseUrl).hostname.split(".")[0];
-  } catch {
-    missing.push("valid_supabase_url");
-  }
-  if (projectRef && projectRef !== EXPECTED_PROJECT_REF) missing.push("approved_supabase_project");
-
-  return { ok: missing.length === 0, missing, supabaseUrl, serviceRoleKey, resendApiKey };
+  return {
+    ok: missing.length === 0,
+    missing,
+    supabaseUrl: `https://${EXPECTED_PROJECT_REF}.supabase.co`,
+    serviceRoleKey: "",
+    resendApiKey
+  };
 }
 
 function readBearerToken(req) {
@@ -215,6 +209,19 @@ async function getAuthConfig(managementToken) {
   const data = await response.json().catch(() => undefined);
   assert(data && typeof data === "object", "validate_management_access");
   return data;
+}
+
+async function getServiceRoleKey(managementToken) {
+  const response = await fetch(`https://api.supabase.com/v1/projects/${EXPECTED_PROJECT_REF}/api-keys`, {
+    headers: { Authorization: `Bearer ${managementToken}` }
+  }).catch(() => undefined);
+  assert(response?.ok, "validate_management_access");
+  const payload = await response.json().catch(() => undefined);
+  const rows = Array.isArray(payload) ? payload : (payload?.keys || payload?.data || []);
+  const row = rows.find((item) => String(item.name || item.type || item.role || "").toLowerCase() === "service_role");
+  const key = String(row?.api_key || row?.key || row?.value || "");
+  assert(key.length >= 20, "validate_management_access");
+  return key;
 }
 
 async function configureAuthSmtp(managementToken, resendApiKey) {
