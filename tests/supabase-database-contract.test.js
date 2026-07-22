@@ -10,11 +10,12 @@ const {
 } = require("../lib/sonara-database-contract.cjs");
 
 const root = path.resolve(__dirname, "..");
-const migrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
+const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_complete_ecosystem_database_contract.sql");
+const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 86);
+    assert.equal(DATABASE_TABLES.length, 119);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -24,8 +25,10 @@ describe("Supabase database contract", () => {
       "support_requests",
       "business_workspaces",
       "business_bookings",
+      "business_appointments",
       "creator_assets",
       "music_projects",
+      "audio_transcription_segments",
       "growth_campaigns",
       "integration_providers",
       "user_notifications",
@@ -56,7 +59,7 @@ describe("Supabase database contract", () => {
   });
 
   it("repairs the known production operations-table drift additively", () => {
-    const sql = fs.readFileSync(migrationPath, "utf8").toLowerCase();
+    const sql = fs.readFileSync(runtimeRepairMigrationPath, "utf8").toLowerCase();
     for (const table of ["business_bookings", "employee_schedules", "maintenance_logs"]) {
       assert.match(sql, new RegExp(`create table if not exists public\\.${table}\\b`));
       assert.match(sql, new RegExp(`alter table public\\.${table} enable row level security`));
@@ -65,6 +68,16 @@ describe("Supabase database contract", () => {
         new RegExp(`create policy "service role manages ${table}"[\\s\\S]*?on public\\.${table} for all to service_role`)
       );
     }
+  });
+
+  it("creates the missing Creator Studio transcription table with tenant-safe access", () => {
+    const sql = fs.readFileSync(migrationPath, "utf8").toLowerCase();
+    assert.match(sql, /create table if not exists public\.audio_transcription_segments\b/);
+    assert.match(sql, /organization_id uuid not null references public\.organizations\(id\) on delete cascade/);
+    assert.match(sql, /alter table public\.audio_transcription_segments enable row level security/);
+    assert.match(sql, /revoke all on table public\.audio_transcription_segments from public, anon, authenticated/);
+    assert.match(sql, /create policy "service role manages audio_transcription_segments"[\s\S]*?to service_role/);
+    assert.match(sql, /audio_transcription_segments_org_track_segment_idx/);
   });
 
   it("uses private local storage defaults and a scoped read-only MCP", () => {
