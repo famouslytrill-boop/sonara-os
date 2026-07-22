@@ -420,6 +420,7 @@ jobs:
                 test_user_ids uuid[];
                 test_organization_ids uuid[];
                 target record;
+                organization_triggers_disabled boolean := false;
               begin
                 select coalesce(array_agg(id), array[]::uuid[])
                   into test_user_ids
@@ -430,8 +431,6 @@ jobs:
                   into test_organization_ids
                   from public.organizations
                  where name like 'SONARA Auth Acceptance %';
-
-                perform set_config('session_replication_role', 'replica', true);
 
                 if cardinality(test_organization_ids) > 0 then
                   for target in
@@ -450,6 +449,7 @@ jobs:
                        and foreign_key.confrelid = 'public.organizations'::regclass
                        and array_length(foreign_key.conkey, 1) = 1
                        and child_namespace.nspname = 'public'
+                     order by (child_table.relname ilike '%audit%'), child_table.relname
                   loop
                     execute format(
                       'delete from %I.%I where %I = any ($1)',
@@ -459,8 +459,12 @@ jobs:
                     ) using test_organization_ids;
                   end loop;
 
+                  execute 'alter table public.organizations disable trigger user';
+                  organization_triggers_disabled := true;
                   delete from public.organizations
                    where id = any (test_organization_ids);
+                  execute 'alter table public.organizations enable trigger user';
+                  organization_triggers_disabled := false;
                 end if;
 
                 if cardinality(test_user_ids) > 0 then
@@ -491,8 +495,6 @@ jobs:
 
                 end if;
 
-                perform set_config('session_replication_role', 'origin', true);
-
                 if cardinality(test_user_ids) > 0 then
                   delete from auth.users
                    where id = any (test_user_ids);
@@ -513,7 +515,9 @@ jobs:
                 end if;
               exception
                 when others then
-                  perform set_config('session_replication_role', 'origin', true);
+                  if organization_triggers_disabled then
+                    execute 'alter table public.organizations enable trigger user';
+                  end if;
                   raise;
               end
               $sonara_auth_acceptance_cleanup$;
