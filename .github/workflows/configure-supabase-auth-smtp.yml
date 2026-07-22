@@ -26,8 +26,8 @@ jobs:
     timeout-minutes: 10
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SHARE_ROOT: https://sonara-os-git-ops-configure-51c825-famouslytrill-1509s-projects.vercel.app/?_vercel_share=POhpcUm2b8miWo7EcO1qPr7ETABsUNNj
-      OPERATION_URL: https://sonara-os-git-ops-configure-51c825-famouslytrill-1509s-projects.vercel.app/api/internal/ops/configure-supabase-auth-smtp-20260722
+      SHARE_ROOT: https://sonara-rde48xf8j-famouslytrill-1509s-projects.vercel.app/?_vercel_share=eYBXZUMZ3dLu4q7pp64CGwVXjKZsaokZ
+      OPERATION_URL: https://sonara-rde48xf8j-famouslytrill-1509s-projects.vercel.app/api/internal/ops/configure-supabase-auth-smtp-20260722
     steps:
       - uses: actions/checkout@v5
 
