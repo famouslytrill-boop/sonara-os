@@ -1,0 +1,269 @@
+name: Apply approved organization delete audit repair
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/workflows/apply-organization-delete-audit-repair.yml
+      - supabase/migrations/20260722183000_fix_organization_delete_audit.sql
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-production-database-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-approved-migration:
+    name: Apply audit repair migration 46
+    if: github.head_ref == 'fix/organization-delete-audit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      EXPECTED_PROJECT_ID: yqncsonkxgwhcxedgevk
+      APPROVED_MIGRATION: 20260722183000_fix_organization_delete_audit.sql
+      APPROVED_VERSION: "20260722183000"
+      REQUIRED_BASELINE_VERSION: "20260722170000"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Verify approved target and credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$SUPABASE_PROJECT_ID"
+          test -n "$SUPABASE_DB_PASSWORD"
+          test "$SUPABASE_PROJECT_ID" = "$EXPECTED_PROJECT_ID"
+          echo "Approved production project reference verified. Secret values were not printed."
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link approved project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Create encrypted logical pre-migration backup
+        id: logical-backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_dir="$RUNNER_TEMP/sonara-pre-audit-repair-backup"
+          archive_name="sonara-production-pre-audit-repair-${GITHUB_RUN_ID}.tar.gz"
+          plain_archive="$RUNNER_TEMP/$archive_name"
+          encrypted_archive="$plain_archive.enc"
+          checksum_file="$encrypted_archive.sha256"
+          key_file="$RUNNER_TEMP/sonara-backup-key"
+
+          mkdir -p "$backup_dir"
+          supabase db dump --linked --role-only --file "$backup_dir/roles.sql"
+          supabase db dump --linked --schema public,auth,storage --file "$backup_dir/schema.sql"
+          supabase db dump --linked --schema public,auth,storage --data-only --use-copy --file "$backup_dir/data.sql"
+          tar -C "$backup_dir" -czf "$plain_archive" roles.sql schema.sql data.sql
+
+          umask 077
+          printf '%s' "$SUPABASE_DB_PASSWORD" > "$key_file"
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 600000 -md sha256 \
+            -in "$plain_archive" \
+            -out "$encrypted_archive" \
+            -pass "file:$key_file"
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 600000 -md sha256 \
+            -in "$encrypted_archive" \
+            -pass "file:$key_file" \
+            | tar -tzf - > /dev/null
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum "$archive_name.enc" > "$archive_name.enc.sha256"
+          )
+
+          test -s "$encrypted_archive"
+          test -s "$checksum_file"
+          rm -f "$backup_dir/roles.sql" "$backup_dir/schema.sql" "$backup_dir/data.sql" "$plain_archive" "$key_file"
+          rmdir "$backup_dir"
+          echo "archive=$encrypted_archive" >> "$GITHUB_OUTPUT"
+          echo "checksum=$checksum_file" >> "$GITHUB_OUTPUT"
+          echo "Encrypted logical backup created and integrity-checked; plaintext was removed."
+
+      - name: Upload encrypted pre-migration backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonara-production-pre-audit-repair-${{ github.run_id }}
+          path: |
+            ${{ steps.logical-backup.outputs.archive }}
+            ${{ steps.logical-backup.outputs.checksum }}
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Preflight migration history and dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked > migration-ledger-before.log 2>&1
+          baseline="$(grep "$REQUIRED_BASELINE_VERSION" migration-ledger-before.log || true)"
+          baseline_occurrences="$(printf '%s' "$baseline" | grep -o "$REQUIRED_BASELINE_VERSION" | wc -l | tr -d ' ')"
+          if [ "$baseline_occurrences" -lt 2 ]; then
+            echo "Refusing migration: the approved production baseline is not present remotely."
+            exit 1
+          fi
+
+          dry_run="$(supabase db push --linked --dry-run 2>&1)"
+          printf '%s\n' "$dry_run" > migration-dry-run.log
+          pending="$(printf '%s\n' "$dry_run" | grep -oE '20[0-9]{12}_[A-Za-z0-9_.-]+\.sql' | sort -u || true)"
+          while IFS= read -r migration; do
+            [ -z "$migration" ] && continue
+            if [ "$migration" != "$APPROVED_MIGRATION" ]; then
+              echo "Refusing migration: unexpected pending file $migration"
+              exit 1
+            fi
+          done <<< "$pending"
+
+      - name: Apply approved audit repair
+        shell: bash
+        run: |
+          set +e
+          supabase db push --linked > migration-apply.log 2>&1
+          status=$?
+          set -e
+          cat migration-apply.log
+          exit "$status"
+
+      - name: Verify remote ledger and linked schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          ledger="$(supabase migration list --linked 2>&1)"
+          printf '%s\n' "$ledger" | tee migration-ledger-after.log
+          line="$(printf '%s\n' "$ledger" | grep "$APPROVED_VERSION" || true)"
+          occurrences="$(printf '%s' "$line" | grep -o "$APPROVED_VERSION" | wc -l | tr -d ' ')"
+          if [ "$occurrences" -lt 2 ]; then
+            echo "Remote migration ledger does not confirm $APPROVED_VERSION as applied."
+            exit 1
+          fi
+          supabase db lint --linked --level error --fail-on error 2>&1 | tee migration-lint.log
+
+      - name: Prove organization delete audit integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const projectRef = String(process.env.SUPABASE_PROJECT_ID || "").trim();
+          const managementToken = String(process.env.SUPABASE_ACCESS_TOKEN || "").trim();
+          const supabaseUrl = `https://${projectRef}.supabase.co`;
+          const marker = `SONARA Audit Delete Acceptance ${process.env.GITHUB_RUN_ID}`;
+          let serviceRole = "";
+          let organizationId = "";
+
+          function assert(condition, message) {
+            if (!condition) throw new Error(message);
+          }
+
+          async function json(response, label) {
+            const text = await response.text();
+            if (!response.ok) throw new Error(`${label} failed with HTTP ${response.status}`);
+            return text ? JSON.parse(text) : {};
+          }
+
+          function serviceHeaders(jsonBody = false) {
+            const headers = { apikey: serviceRole, Authorization: `Bearer ${serviceRole}` };
+            if (jsonBody) headers["Content-Type"] = "application/json";
+            return headers;
+          }
+
+          async function cleanup() {
+            if (!serviceRole) return;
+            if (organizationId) {
+              await fetch(`${supabaseUrl}/rest/v1/audit_logs?target_id=eq.${encodeURIComponent(organizationId)}`, {
+                method: "DELETE",
+                headers: serviceHeaders()
+              });
+              await fetch(`${supabaseUrl}/rest/v1/organizations?id=eq.${encodeURIComponent(organizationId)}`, {
+                method: "DELETE",
+                headers: serviceHeaders()
+              });
+            }
+          }
+
+          async function main() {
+            const keys = await json(await fetch(`https://api.supabase.com/v1/projects/${projectRef}/api-keys`, {
+              headers: { Authorization: `Bearer ${managementToken}` }
+            }), "Supabase API-key discovery");
+            const keyRows = Array.isArray(keys) ? keys : (keys.keys || keys.data || []);
+            const row = keyRows.find((item) => String(item.name || item.type || item.role || "").toLowerCase() === "service_role");
+            serviceRole = String(row?.api_key || row?.key || row?.value || "").trim();
+            assert(serviceRole, "Protected runner could not resolve the service-role key");
+
+            try {
+              const created = await json(await fetch(`${supabaseUrl}/rest/v1/organizations`, {
+                method: "POST",
+                headers: { ...serviceHeaders(true), Prefer: "return=representation" },
+                body: JSON.stringify({ name: marker, company_key: "parent_admin", metadata: { source: "audit_delete_acceptance" } })
+              }), "Temporary organization creation");
+              organizationId = created[0]?.id;
+              assert(organizationId, "Temporary organization creation did not return an ID");
+
+              const removed = await fetch(`${supabaseUrl}/rest/v1/organizations?id=eq.${encodeURIComponent(organizationId)}`, {
+                method: "DELETE",
+                headers: { ...serviceHeaders(), Prefer: "return=representation" }
+              });
+              const removedRows = await json(removed, "Temporary organization deletion");
+              assert(Array.isArray(removedRows) && removedRows.length === 1, "Organization deletion did not remove exactly one row");
+
+              const audits = await json(await fetch(
+                `${supabaseUrl}/rest/v1/audit_logs?select=org_id,action,target_table,target_id,metadata&target_id=eq.${encodeURIComponent(organizationId)}&action=eq.DELETE&target_table=eq.organizations`,
+                { headers: serviceHeaders() }
+              ), "Organization deletion audit read");
+              assert(audits.length >= 1, "Organization deletion did not preserve an audit row");
+              const audit = audits[0];
+              assert(audit.org_id === null, "Organization deletion audit retained a dangling org_id");
+              assert(audit.metadata?.deleted_organization_id === organizationId, "Organization deletion audit did not preserve the deleted organization ID in metadata");
+              console.log("Organization create, delete, and surviving audit metadata proof passed.");
+            } finally {
+              await cleanup();
+            }
+          }
+
+          main().catch((error) => {
+            console.error(`Audit acceptance failure: ${error.message}`);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Upload sanitized migration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: approved-audit-repair-migration-diagnostics-${{ github.run_attempt }}
+          path: |
+            migration-ledger-before.log
+            migration-dry-run.log
+            migration-apply.log
+            migration-ledger-after.log
+            migration-lint.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Remove encrypted runner backup copy
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_name="sonara-production-pre-audit-repair-${GITHUB_RUN_ID}.tar.gz"
+          rm -f \
+            "$RUNNER_TEMP/$archive_name.enc" \
+            "$RUNNER_TEMP/$archive_name.enc.sha256" \
+            "$RUNNER_TEMP/$archive_name" \
+            "$RUNNER_TEMP/sonara-backup-key" \
+            "$RUNNER_TEMP/sonara-pre-audit-repair-backup/roles.sql" \
+            "$RUNNER_TEMP/sonara-pre-audit-repair-backup/schema.sql" \
+            "$RUNNER_TEMP/sonara-pre-audit-repair-backup/data.sql"
+          rmdir "$RUNNER_TEMP/sonara-pre-audit-repair-backup" 2>/dev/null || true
