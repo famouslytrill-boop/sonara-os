@@ -33,6 +33,11 @@ function patchDatabaseManagementModule() {
     source = source.replace(routePattern, replacement);
   }
 
+  source = source.replace(
+    'return res.status(result.status).type("html").send(layout({',
+    'return res.status(200).type("html").send(layout({'
+  );
+
   fs.writeFileSync(modulePath, source);
 }
 
