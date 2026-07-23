@@ -3,11 +3,38 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+patchDatabaseManagementModule();
 patchServer();
 patchRouteRegistry();
+patchLegacyAdminRoutes();
 patchOpenApiContract();
 
 console.log("Database management console runtime and contracts applied");
+
+function patchDatabaseManagementModule() {
+  const modulePath = path.join(__dirname, "..", "routes", "sonara-database-management-routes.cjs");
+  let source = fs.readFileSync(modulePath, "utf8");
+
+  if (!source.includes("app.locals.sonaraDatabaseManagementPage = databaseManagementPage")) {
+    const routePattern = /  app\.get\("\/admin\/database-management", requireAdmin, async \(req, res\) => \{([\s\S]*?)\n  \}\);\n\n  app\.get\("\/admin\/database", requireAdmin, \(req, res\) => \{[\s\S]*?\n  \}\);\n\n  app\.get\("\/admin\/migrations", requireAdmin, \(req, res\) => \{[\s\S]*?\n  \}\);/;
+    const match = source.match(routePattern);
+    if (!match) throw new Error("Database management page handler marker not found");
+
+    const body = match[1].replace(
+      "const requestedSection = normalizeSection(req.query.section);",
+      "const requestedSection = normalizeSection(sectionOverride || req.query.section);"
+    );
+
+    const replacement = `  const databaseManagementPage = async (req, res, sectionOverride = null) => {${body}
+  };
+
+  app.locals.sonaraDatabaseManagementPage = databaseManagementPage;
+  app.get("/admin/database-management", requireAdmin, (req, res) => databaseManagementPage(req, res));`;
+    source = source.replace(routePattern, replacement);
+  }
+
+  fs.writeFileSync(modulePath, source);
+}
 
 function patchServer() {
   const serverPath = path.join(__dirname, "..", "server.js");
@@ -44,22 +71,68 @@ function patchRouteRegistry() {
   const registryPath = path.join(__dirname, "..", "lib", "sonara-route-registry.cjs");
   let source = fs.readFileSync(registryPath, "utf8");
 
-  if (!source.includes('"/admin/database-management"')) {
-    const routeMarker = '"/admin", "/admin/env-readiness", "/admin/system", "/admin/database", "/admin/storage", "/admin/migrations",';
+  if (!source.includes('\"/admin/database-management\"')) {
+    const routeMarker = '\"/admin\", \"/admin/env-readiness\", \"/admin/system\", \"/admin/database\", \"/admin/storage\", \"/admin/migrations\",';
     if (!source.includes(routeMarker)) throw new Error("Database management route registry marker not found");
     source = source.replace(
       routeMarker,
-      '"/admin", "/admin/env-readiness", "/admin/system", "/admin/database", "/admin/database-management", "/admin/storage", "/admin/migrations",'
+      '\"/admin\", \"/admin/env-readiness\", \"/admin/system\", \"/admin/database\", \"/admin/database-management\", \"/admin/storage\", \"/admin/migrations\",'
     );
   }
 
-  if (!source.includes('"/admin/database-management": "Database Management"')) {
-    const titleMarker = '"/admin/env-readiness": "Environment readiness",';
+  if (!source.includes('\"/admin/database-management\": \"Database Management\"')) {
+    const titleMarker = '\"/admin/env-readiness\": \"Environment readiness\",';
     if (!source.includes(titleMarker)) throw new Error("Database management title marker not found");
-    source = source.replace(titleMarker, `${titleMarker}\n  "/admin/database-management": "Database Management",`);
+    source = source.replace(titleMarker, `${titleMarker}\n  \"/admin/database-management\": \"Database Management\",`);
   }
 
   fs.writeFileSync(registryPath, source);
+}
+
+function patchLegacyAdminRoutes() {
+  const serverPath = path.join(__dirname, "..", "server.js");
+  let serverSource = fs.readFileSync(serverPath, "utf8");
+
+  if (!serverSource.includes('app.locals.sonaraDatabaseManagementPage(req, res)')) {
+    const databaseRoutePattern = /app\.get\("\/admin\/database", requireAdmin, async \(req, res\) => \{[\s\S]*?\n\}\);\n\napp\.get\("\/admin\/storage"/;
+    if (!databaseRoutePattern.test(serverSource)) throw new Error("Legacy admin database route marker not found");
+    serverSource = serverSource.replace(
+      databaseRoutePattern,
+      `app.get("/admin/database", requireAdmin, async (req, res) => {
+  await recordAdminAuditEvent(req, "admin.database.view", { path: req.path, delegate: "database_management" });
+  if (typeof app.locals.sonaraDatabaseManagementPage !== "function") {
+    return res.status(503).type("html").send(responsePage("Database Management needs setup", "The database management runtime handler is unavailable.", [linkAction("/admin", "Admin")]));
+  }
+  return app.locals.sonaraDatabaseManagementPage(req, res);
+});
+
+app.get("/admin/storage"`
+    );
+  }
+
+  fs.writeFileSync(serverPath, serverSource);
+
+  const registryRoutesPath = path.join(__dirname, "..", "routes", "sonara-route-registry-routes.cjs");
+  let registryRoutesSource = fs.readFileSync(registryRoutesPath, "utf8");
+
+  if (!registryRoutesSource.includes('app.locals.sonaraDatabaseManagementPage(req, res, "migrations")')) {
+    const migrationRoutePattern = /  app\.get\("\/admin\/migrations", requireAdmin, async \(req, res\) => \{[\s\S]*?\n  \}\);\n\n  app\.get\("\/admin\/pipelines"/;
+    if (!migrationRoutePattern.test(registryRoutesSource)) throw new Error("Legacy admin migrations route marker not found");
+    registryRoutesSource = registryRoutesSource.replace(
+      migrationRoutePattern,
+      `  app.get("/admin/migrations", requireAdmin, async (req, res) => {
+    await recordAdminAuditEvent(req, "admin.migrations.view", { path: req.path, delegate: "database_management" });
+    if (typeof app.locals.sonaraDatabaseManagementPage !== "function") {
+      return res.status(503).type("html").send(responsePage("Database Management needs setup", "The database management runtime handler is unavailable.", [linkAction("/admin", "Admin")]));
+    }
+    return app.locals.sonaraDatabaseManagementPage(req, res, "migrations");
+  });
+
+  app.get("/admin/pipelines"`
+    );
+  }
+
+  fs.writeFileSync(registryRoutesPath, registryRoutesSource);
 }
 
 function patchOpenApiContract() {
