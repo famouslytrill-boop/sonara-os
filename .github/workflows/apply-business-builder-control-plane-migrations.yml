@@ -25,7 +25,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       TRACKING_ISSUE: "66"
       MIGRATION_ONE: "20260723060000"
-      MIGRATION_TWO: "20260723061000"
+      MIGRATION_TWO: "20260723060500"
 
     steps:
       - uses: actions/checkout@v5
@@ -51,7 +51,7 @@ jobs:
             fi
           done
           test -f "supabase/migrations/${MIGRATION_ONE}_business_builder_control_plane.sql"
-          test -f "supabase/migrations/${MIGRATION_TWO}_business_builder_control_plane_contract_extension.sql"
+          test -f "supabase/migrations/${MIGRATION_TWO}_business_integration_connections.sql"
 
       - uses: supabase/setup-cli@v1
         with:
@@ -112,7 +112,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Production database migration completed successfully.\n\n- \`${MIGRATION_ONE}_business_builder_control_plane.sql\`: applied and verified in local and remote migration history\n- \`${MIGRATION_TWO}_business_builder_control_plane_contract_extension.sql\`: applied and verified in local and remote migration history\n- \`pnpm run verify:db\`: passed\n- Commit: \`${GITHUB_SHA}\`"
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Production database migration completed successfully.\n\n- \`${MIGRATION_ONE}_business_builder_control_plane.sql\`: applied and verified in local and remote migration history\n- \`${MIGRATION_TWO}_business_integration_connections.sql\`: applied and verified in local and remote migration history\n- \`pnpm run verify:db\`: passed\n- Commit: \`${GITHUB_SHA}\`"
           gh issue close "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
 
       - name: Report failure to tracking issue
