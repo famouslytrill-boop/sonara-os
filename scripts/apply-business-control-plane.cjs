@@ -62,10 +62,7 @@ function patchRouteRegistry() {
   if (!source.includes('"/business-builder/control-center"')) {
     const marker = '    "/business-builder/owner/vendors"';
     if (!source.includes(marker)) throw new Error("Business Builder route registry marker not found");
-    source = source.replace(
-      marker,
-      `${marker},\n    "/business-builder/control-center", "/business-builder/businesses"`
-    );
+    source = source.replace(marker, `${marker},\n    "/business-builder/control-center", "/business-builder/businesses"`);
   }
   if (!source.includes('"/business-builder/control-center": "Business Control Center"')) {
     const marker = '  "/admin/ai-integrations": "AI integrations"';
@@ -90,7 +87,7 @@ function patchOpenApi() {
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "401": { $ref: "#/components/responses/Unauthorized" }
-        "402": { $ref: "#/components/responses/PaymentRequired" }
+        "402": { $ref: "#/components/responses/Forbidden" }
   /api/business-builder/businesses:
     get:
       operationId: listBusinessBuilderBusinesses
@@ -120,7 +117,7 @@ function patchOpenApi() {
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
-        "404": { $ref: "#/components/responses/NotFound" }
+        "404": { $ref: "#/components/responses/BadRequest" }
     patch:
       operationId: updateBusinessBuilderBusiness
       tags: [Business Builder]
