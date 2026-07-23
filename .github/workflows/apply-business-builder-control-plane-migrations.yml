@@ -1,5 +1,6 @@
 name: Apply Business Builder Control Plane Migrations
 
+# Migration source fix: 5dc07e1501adbc0d834cc4bbc3f9d847f0a4028b
 on:
   push:
     branches: [main]
@@ -52,6 +53,7 @@ jobs:
           done
           test -f "supabase/migrations/${MIGRATION_ONE}_business_builder_control_plane.sql"
           test -f "supabase/migrations/${MIGRATION_TWO}_business_integration_connections.sql"
+          ! grep -q "inventory_movements" "supabase/migrations/${MIGRATION_ONE}_business_builder_control_plane.sql"
 
       - uses: supabase/setup-cli@v1
         with:
