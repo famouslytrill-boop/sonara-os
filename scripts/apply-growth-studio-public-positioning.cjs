@@ -41,8 +41,6 @@ replaceRequired(
   "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."
 );
 
-replaceLastRequired("Launch Setup Checklist", "Experiments & Analytics");
-
 replaceRequired(
   'linkAction("/growth-studio/dashboard", "Open dashboard")',
   'linkAction("/growth-studio/control-center", "Open control center")'
@@ -73,13 +71,6 @@ function replaceRequired(before, after) {
   if (source.includes(after)) return;
   if (!source.includes(before)) throw new Error(`Growth Studio public-positioning source marker missing: ${before}`);
   source = source.replace(before, after);
-}
-
-function replaceLastRequired(before, after) {
-  if (source.includes(after)) return;
-  const index = source.lastIndexOf(before);
-  if (index < 0) throw new Error(`Growth Studio public-positioning source marker missing: ${before}`);
-  source = `${source.slice(0, index)}${after}${source.slice(index + before.length)}`;
 }
 
 function replaceAllRequired(before, after) {
