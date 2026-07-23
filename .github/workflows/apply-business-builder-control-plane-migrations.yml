@@ -78,8 +78,16 @@ jobs:
       - name: Apply pending production migrations
         shell: bash
         run: |
-          set -euo pipefail
-          pnpm run db:push
+          set -uo pipefail
+          set +e
+          pnpm run db:push 2>&1 | tee db-push.log
+          status=${PIPESTATUS[0]}
+          set -e
+          sed -E 's/\x1B\[[0-9;]*[mK]//g; s#postgres(ql)?://[^[:space:]]+#postgresql://[redacted]#g' db-push.log > db-push-clean.log
+          if [ "$status" -ne 0 ]; then
+            tail -n 60 db-push-clean.log > db-push-failure-tail.txt
+            exit "$status"
+          fi
 
       - name: Verify remote migration history and repository contract
         shell: bash
@@ -119,4 +127,9 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Production database migration workflow failed. No success claim has been recorded. Review GitHub Actions run \`${GITHUB_RUN_ID}\` before retrying."
+          details="No sanitized database error tail was produced."
+          if [ -s db-push-failure-tail.txt ]; then
+            details=$(cat db-push-failure-tail.txt)
+          fi
+          printf -v body 'Production database migration workflow failed. No success claim has been recorded. Review GitHub Actions run `%s`.\n\nSanitized failure tail:\n```text\n%s\n```' "$GITHUB_RUN_ID" "$details"
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "$body"
