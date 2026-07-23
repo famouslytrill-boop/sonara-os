@@ -4,6 +4,12 @@
   "framework": null,
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run vercel-build",
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "*": false
+    }
+  },
   "functions": {
     "api/index.js": {
       "includeFiles": "{public/**,routes/**,lib/**}"
