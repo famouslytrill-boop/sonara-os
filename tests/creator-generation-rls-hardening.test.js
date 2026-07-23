@@ -11,15 +11,18 @@ const migration = fs.readFileSync(
 
 describe("Creator Studio generation RLS hardening", () => {
   it("keeps provider state, private assets, analyses, and events server-written", () => {
-    for (const table of [
+    const serverWrittenTables = [
       "creator_generation_jobs",
       "creator_generation_assets",
       "creator_reference_analyses",
       "creator_generation_events"
-    ]) {
+    ];
+    for (const table of serverWrittenTables) {
       assert.match(migration, new RegExp(`revoke insert, update, delete on public\\.${table} from anon, authenticated`));
-      assert.match(migration, new RegExp(`service role manages ${table}`));
+      assert.match(migration, new RegExp(`'${table}'`));
     }
+    assert.match(migration, /create policy "service role manages %1\$s"/);
+    assert.match(migration, /auth\.role\(\) = ''service_role''/);
   });
 
   it("limits voice-consent evidence to the subject or an organization owner/admin", () => {
