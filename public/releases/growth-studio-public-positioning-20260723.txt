@@ -1,0 +1,5 @@
+SONARA Growth Studio public positioning release
+Date: 2026-07-23
+Reviewed merge: 9efb072bcb423c8b4dcb3afb0de31fdadcb3cbfa
+Purpose: force the Git-connected Vercel production build to include the validated Growth Studio public product positioning.
+Provider state: credentials, OAuth, platform audit, approval, and real-account acceptance remain required.
