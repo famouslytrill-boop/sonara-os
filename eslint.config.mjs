@@ -46,6 +46,12 @@ const nodeGlobals = {
   __filename: "readonly",
   URL: "readonly",
   URLSearchParams: "readonly",
+  Headers: "readonly",
+  Request: "readonly",
+  Response: "readonly",
+  FormData: "readonly",
+  Blob: "readonly",
+  AbortController: "readonly",
   setTimeout: "readonly",
   clearTimeout: "readonly",
   fetch: "readonly"
