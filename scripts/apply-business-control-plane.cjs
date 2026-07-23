@@ -59,11 +59,21 @@ function patchServer() {
 function patchRouteRegistry() {
   const file = path.join(__dirname, "..", "lib", "sonara-route-registry.cjs");
   let source = fs.readFileSync(file, "utf8");
+  const dynamicRoute = '"/business-builder/businesses/:businessId"';
+
   if (!source.includes('"/business-builder/control-center"')) {
     const marker = '    "/business-builder/owner/vendors"';
     if (!source.includes(marker)) throw new Error("Business Builder route registry marker not found");
-    source = source.replace(marker, `${marker},\n    "/business-builder/control-center", "/business-builder/businesses"`);
+    source = source.replace(
+      marker,
+      `${marker},\n    "/business-builder/control-center", "/business-builder/businesses", ${dynamicRoute}`
+    );
+  } else if (!source.includes(dynamicRoute)) {
+    const marker = '"/business-builder/control-center", "/business-builder/businesses"';
+    if (!source.includes(marker)) throw new Error("Business Builder dynamic route registry marker not found");
+    source = source.replace(marker, `${marker}, ${dynamicRoute}`);
   }
+
   if (!source.includes('"/business-builder/control-center": "Business Control Center"')) {
     const marker = '  "/admin/ai-integrations": "AI integrations"';
     if (!source.includes(marker)) throw new Error("Business Builder title registry marker not found");
