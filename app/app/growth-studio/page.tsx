@@ -1,5 +1,5 @@
-import { AppPlaceholderPage } from "../../../components/AppPlaceholderPage";
+import { redirect } from "next/navigation";
 
 export default function AppGrowthStudioPage() {
-  return <AppPlaceholderPage title="Growth Studio" />;
+  redirect("/growth-studio/control-center");
 }
