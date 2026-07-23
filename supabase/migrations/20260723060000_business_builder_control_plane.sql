@@ -84,7 +84,6 @@ alter table public.business_service_catalog add column if not exists business_id
 alter table public.business_bookings add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
 alter table public.business_assets add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
 alter table public.inventory_items add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
-alter table public.inventory_movements add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
 alter table public.customer_records add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
 alter table public.order_records add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
 alter table public.organization_integrations add column if not exists business_id uuid references public.business_workspaces(id) on delete cascade;
@@ -156,7 +155,6 @@ begin
     'business_bookings',
     'business_assets',
     'inventory_items',
-    'inventory_movements',
     'customer_records',
     'order_records',
     'organization_integrations'
