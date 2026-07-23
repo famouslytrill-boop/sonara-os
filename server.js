@@ -231,12 +231,14 @@ app.get("/", (req, res) => {
 registerProduct("business-builder", {
   productKey: "business_builder",
   name: "Business Builder",
-  body: "Service-business launch infrastructure for offers, intake, customer records, booking readiness, and payment readiness.",
+  tagline: "Run the business",
+  audience: "For service businesses, restaurants, food trucks, and independent operators who need to launch offers, take payments, and run daily operations — without enterprise overhead.",
+  body: "Launch offers, organize customers, take bookings and payments, and run daily operations from one place.",
   cards: [
     ["Offer Builder", "Shape the launch offer, scope, proof points, and customer next action."],
-    ["Intake & Request Queue", "Capture requests through the support queue and review workflow."],
-    ["Booking & Payment Readiness", "Keep checkout gated until Stripe products, prices, and webhooks are configured."],
-    ["Customer Records", "Prepare organization-scoped customer records for Supabase-backed operations."]
+    ["Intake & Request Queue", "Capture customer requests and move them through a clear review workflow."],
+    ["Booking & Payment Readiness", "Keep checkout gated until payments are fully configured — no charges before you are ready."],
+    ["Customer Records", "Keep customer records private and organization-scoped, ready for real operations."]
   ],
   checklist: ["Business profile", "Offer", "Intake", "Pricing", "Payment", "Support", "Legal", "Analytics"]
 });
@@ -244,7 +246,9 @@ registerProduct("business-builder", {
 registerProduct("creator-studio", {
   productKey: "creator_studio",
   name: "Creator Studio",
-  body: "Creator product and catalog workspace for assets, offers, release planning, monetization readiness, and media records.",
+  tagline: "Create and monetize",
+  audience: "For musicians, artists, and digital creators who want to organize work, protect rights, publish, and sell — with anti-clone safety built in.",
+  body: "Organize creative work, protect rights, plan releases, and get paid — for your own original work.",
   cards: [
     ["Asset Catalog", "Organize creator assets, catalog items, and provenance-ready records."],
     ["Creator Offers", "Prepare creator products and customer-facing offers."],
@@ -258,6 +262,8 @@ registerProduct("creator-studio", {
 registerProduct("growth-studio", {
   productKey: "growth_studio",
   name: "Growth Studio",
+  tagline: "Attract and grow",
+  audience: "For founders and teams who want more customers, leads, and fans through consent-safe campaigns, follow-up, showcases, and offers.",
   body: "Growth workspace for campaign planning, lead follow-up, consent-safe checklists, automation readiness, and growth records.",
   cards: [
     ["Campaign Workspace", "Plan growth campaigns and launch experiments."],
@@ -337,6 +343,24 @@ app.get("/pricing", (req, res) => {
         pricingFaq
       ],
       actions: [linkAction("/signup", "Start free"), linkAction("/login", "Log in"), linkAction("/business-builder/billing", "Billing")]
+    })
+  );
+});
+
+app.get("/about", (req, res) => {
+  return res.status(200).type("html").send(
+    layout({
+      title: "About SONARA",
+      eyebrow: "About SONARA Industries",
+      heading: "Software that tells you the truth.",
+      body: "SONARA Industries builds one honest operating layer for founders, creators, and small teams — so business, creative, and growth work stay connected instead of scattered across a dozen tools.",
+      sections: [
+        brandCard("Why SONARA exists", "Independent operators juggle disconnected tools that each demand setup, subscriptions, and guesswork. SONARA connects three focused companies — Business Builder, Creator Studio, and Growth Studio — under one account, so the next useful action is always in reach."),
+        brandCard("What we believe", "Real records beat demos. An honest “setup required” beats fake success. Your data is yours, private and organization-scoped. And premium software should not require an enterprise maze to be worth it."),
+        brandCard("How we are different", "Three focused workspaces, one identity and one bill. No invented activity or placeholder numbers. Anti-clone and consent safety for creative work. Free to start, with paid depth only when the work earns it."),
+        brandCard("Built for real operations", "Restaurants, studios, service businesses, venues, and independent teams use focused tools that match how they actually work — without pretending to be an enterprise.")
+      ],
+      actions: [linkAction("/signup", "Start free"), linkAction("/how-it-works", "How it works"), linkAction("/pricing", "See pricing")]
     })
   );
 });
@@ -1223,11 +1247,11 @@ function registerProduct(slug, config) {
     res.status(200).type("html").send(
       layout({
         title: config.name,
-        eyebrow: "Product system",
+        eyebrow: config.tagline || "Product system",
         heading: config.name,
         body: config.body,
         sections: [
-          brandCard("What this product does", config.body),
+          config.audience ? brandCard("Who it's for", config.audience) : brandCard("What this product does", config.body),
           ...config.cards.map(([title, body]) => brandCard(title, body)),
           checklistCard("Launch Setup Checklist", config.checklist)
         ],
@@ -1679,6 +1703,7 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
           <p>SONARA Industries builds launch infrastructure for Business Builder, Creator Studio, and Growth Studio.</p>
         </div>
         <nav aria-label="Products and support">
+          <a href="/about">About</a>
           <a href="/business-builder">Business Builder</a>
           <a href="/creator-studio">Creator Studio</a>
           <a href="/growth-studio">Growth Studio</a>
