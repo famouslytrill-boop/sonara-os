@@ -19,6 +19,44 @@ function patchRouteModule() {
     if (!source.includes(marker)) throw new Error("Business control route binding marker not found");
     source = source.replace(marker, `${binding}\n\n${marker}`);
   }
+
+  if (!source.includes('archivePatch: { connection_status: "disabled" }')) {
+    const marker = `    actorColumn: "created_by",
+    ownerOnly: true,
+    fields: {
+      provider_key:`;
+    if (!source.includes(marker)) throw new Error("Business integration archive marker not found");
+    source = source.replace(marker, `    actorColumn: "created_by",
+    ownerOnly: true,
+    archivePatch: { connection_status: "disabled" },
+    fields: {
+      provider_key:`);
+  }
+
+  if (!source.includes('archivePatch: { status: "revoked" }')) {
+    const marker = `    actorColumn: "granted_by",
+    ownerOnly: true,
+    fields: {
+      user_id:`;
+    if (!source.includes(marker)) throw new Error("Business permission archive marker not found");
+    source = source.replace(marker, `    actorColumn: "granted_by",
+    ownerOnly: true,
+    archivePatch: { status: "revoked" },
+    fields: {
+      user_id:`);
+  }
+
+  const legacyArchivePatch = `    const patch = action === "archive"
+      ? { status: "archived", updated_at: new Date().toISOString() }
+      : normalizeFields(req.body, definition.fields, true).value;`;
+  const resourceAwareArchivePatch = `    const patch = action === "archive"
+      ? { ...(definition.archivePatch || { status: "archived" }) }
+      : normalizeFields(req.body, definition.fields, true).value;`;
+  if (!source.includes(resourceAwareArchivePatch)) {
+    if (!source.includes(legacyArchivePatch)) throw new Error("Business resource archive lifecycle marker not found");
+    source = source.replace(legacyArchivePatch, resourceAwareArchivePatch);
+  }
+
   fs.writeFileSync(file, source);
 }
 
