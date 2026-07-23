@@ -1,0 +1,131 @@
+name: Apply Growth Studio Migration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-growth-studio-migration.yml
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sonara-production-database-migrations
+  cancel-in-progress: false
+
+jobs:
+  apply-production-migration:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      GH_TOKEN: ${{ github.token }}
+      TRACKING_ISSUE: "74"
+      MIGRATION_VERSION: "20260723120000"
+      MIGRATION_FILE: "20260723120000_growth_studio_control_plane.sql"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Validate protected configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_ID SUPABASE_DB_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "Required protected variable $name is missing."
+              exit 1
+            fi
+          done
+          test -f "supabase/migrations/${MIGRATION_FILE}"
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Link production project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link \
+            --project-ref "$SUPABASE_PROJECT_ID" \
+            --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Dry-run production migration push
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee migration-before.txt
+          supabase db push --linked --dry-run --password "$SUPABASE_DB_PASSWORD" | tee migration-dry-run.txt
+
+      - name: Apply pending production migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run db:push 2>&1 | tee migration-apply.txt
+
+      - name: Verify remote migration history and repository contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee migration-after.txt
+          sed -E 's/\x1B\[[0-9;]*[mK]//g' migration-after.txt > migration-after-clean.txt
+          count=$(grep -o "$MIGRATION_VERSION" migration-after-clean.txt | wc -l | tr -d ' ')
+          if [ "$count" -lt 2 ]; then
+            echo "Migration $MIGRATION_VERSION is not present in both local and remote history columns."
+            exit 1
+          fi
+
+          pnpm run verify:db
+
+          {
+            echo "### Production migration verification"
+            echo
+            echo "- ${MIGRATION_FILE}: applied"
+            echo "- ${MIGRATION_VERSION}: present in local and remote migration history"
+            echo "- Repository database contract: verified"
+            echo "- Target branch: ${GITHUB_REF_NAME}"
+            echo "- Commit: ${GITHUB_SHA}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report success to tracking issue
+        if: success()
+        shell: bash
+        run: |
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Growth Studio production migration completed successfully.\n\n- \`${MIGRATION_FILE}\`: applied\n- \`${MIGRATION_VERSION}\`: verified in local and remote migration history\n- \`pnpm run verify:db\`: passed\n- No destructive reset or manual SQL bypass was used\n- Commit: \`${GITHUB_SHA}\`"
+          gh issue close "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Report failure to tracking issue
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo "Growth Studio production migration workflow failed. No success claim has been recorded."
+            echo
+            echo "Review GitHub Actions run \`${GITHUB_RUN_ID}\`."
+            if [ -f migration-apply.txt ]; then
+              echo
+              echo "Sanitized failure tail:"
+              echo '```text'
+              tail -n 80 migration-apply.txt \
+                | sed -E 's/(apikey|authorization|password|token|secret)[=:][^[:space:]]+/\1=[redacted]/Ig'
+              echo '```'
+            fi
+          } > migration-failure-comment.md
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file migration-failure-comment.md
