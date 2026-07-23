@@ -13,12 +13,22 @@ const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
   "20260723060500_business_integration_connections.sql"
 ];
+const creatorGenerationMigrationNames = [
+  "20260723080000_creator_generation_control_plane.sql"
+];
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
   "business_permission_grants",
   "business_ownership_transfers",
   "business_control_audit_events",
   "business_integration_connections"
+]);
+const CREATOR_GENERATION_TABLES = Object.freeze([
+  "creator_voice_consents",
+  "creator_generation_jobs",
+  "creator_generation_assets",
+  "creator_reference_analyses",
+  "creator_generation_events"
 ]);
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
@@ -42,6 +52,17 @@ function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+function readExtension(names, label) {
+  return names.map((name) => {
+    const filePath = path.join(migrationsDirectory, name);
+    if (!fs.existsSync(filePath)) {
+      fail(`missing ${label} migration: ${name}`);
+      return "";
+    }
+    return read(filePath);
+  }).join("\n").toLowerCase();
+}
+
 const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
@@ -51,17 +72,8 @@ const contractSql = [contractMigrationPath, referenceContractExtensionPath]
   .join("\n")
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
-const businessControlSql = businessControlMigrationNames
-  .map((name) => {
-    const filePath = path.join(migrationsDirectory, name);
-    if (!fs.existsSync(filePath)) {
-      fail(`missing Business Builder control-plane migration: ${name}`);
-      return "";
-    }
-    return read(filePath);
-  })
-  .join("\n")
-  .toLowerCase();
+const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
+const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
@@ -85,14 +97,7 @@ for (const table of DATABASE_TABLES) {
   if (!contractSql.includes(`'${table}'`)) fail(`the runtime migration does not check public.${table}`);
 }
 
-for (const table of BUSINESS_CONTROL_TABLES) {
-  const createPattern = new RegExp(`create\\s+table\\s+if\\s+not\\s+exists\\s+public\\.${table}\\b`, "i");
-  const rlsPattern = new RegExp(`alter\\s+table\\s+public\\.${table}\\s+enable\\s+row\\s+level\\s+security`, "i");
-  if (!createPattern.test(businessControlSql)) fail(`Business Builder extension does not create public.${table}`);
-  if (!rlsPattern.test(businessControlSql) && !businessControlSql.includes(`'${table}'`)) {
-    fail(`Business Builder extension does not enable or programmatically verify RLS for public.${table}`);
-  }
-}
+verifyExtension(BUSINESS_CONTROL_TABLES, businessControlSql, "Business Builder");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "public.is_org_owner_or_admin(organization_id)",
@@ -100,6 +105,22 @@ for (const required of [
   "revoke select (credential_reference) on public.business_integration_connections from anon, authenticated"
 ]) {
   if (!businessControlSql.includes(required)) fail(`Business Builder control-plane extension is missing: ${required}`);
+}
+
+verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
+for (const required of [
+  "public.sonara_is_org_member(organization_id)",
+  "auth.role() = 'service_role'",
+  "rights_attested boolean not null default false",
+  "consent_attested boolean not null default false",
+  "identity_imitation_prohibited",
+  "revoke delete on public.creator_generation_jobs from anon, authenticated",
+  "revoke delete on public.creator_generation_events from anon, authenticated"
+]) {
+  if (!creatorGenerationSql.includes(required)) fail(`Creator Studio generation extension is missing: ${required}`);
+}
+if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerationSql)) {
+  fail("Creator Studio generation tables must not persist provider credentials");
 }
 
 const runtimeFiles = [
@@ -119,9 +140,10 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
+const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
-  if (!DATABASE_TABLES.includes(table) && !BUSINESS_CONTROL_TABLES.includes(table)) {
+  if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
     fail(`runtime references public.${table}, but it is absent from the canonical or reviewed extension contract`);
   }
 }
@@ -184,6 +206,15 @@ if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
+}
+
+function verifyExtension(tables, sql, label) {
+  for (const table of tables) {
+    const createPattern = new RegExp(`create\\s+table\\s+if\\s+not\\s+exists\\s+public\\.${table}\\b`, "i");
+    const rlsPattern = new RegExp(`alter\\s+table\\s+public\\.${table}\\s+enable\\s+row\\s+level\\s+security`, "i");
+    if (!createPattern.test(sql)) fail(`${label} extension does not create public.${table}`);
+    if (!rlsPattern.test(sql) && !sql.includes(`'${table}'`)) fail(`${label} extension does not enable or programmatically verify RLS for public.${table}`);
+  }
 }
