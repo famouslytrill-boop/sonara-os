@@ -1,0 +1,29 @@
+{
+  "product": "Creator Studio Generation Platform",
+  "status": "provider_adapters_disabled_by_default",
+  "databaseMigration": "20260723080000_creator_generation_control_plane.sql",
+  "capabilities": [
+    "video_generation",
+    "audio_generation",
+    "music_generation",
+    "voice_generation",
+    "reference_analysis"
+  ],
+  "providers": [
+    "elevenlabs",
+    "google_veo",
+    "suno",
+    "higgsfield",
+    "open_source_media_worker"
+  ],
+  "safety": {
+    "rightsAttestationRequired": true,
+    "voiceConsentRequired": true,
+    "directIdentityImitation": "review_required",
+    "outputsPrivateByDefault": true,
+    "credentialsServerOnly": true
+  },
+  "mergedPullRequest": 71,
+  "mergedCommit": "e1d5deed193384fb93bd2e0eab9246efbccae9ec",
+  "productionMigrationVerified": true
+}
