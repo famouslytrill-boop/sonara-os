@@ -26,9 +26,10 @@ create table if not exists public.creator_generation_jobs (
   user_id uuid not null references auth.users(id) on delete cascade,
   project_id uuid,
   capability text not null check (capability in (
-    'text_to_speech','speech_to_speech','sound_effects','text_to_music','music_plan','video_to_music',
+    'text_to_speech','speech_to_speech','voice_clone','singing_voice','sound_effects','text_to_audio',
+    'text_to_music','music_plan','video_to_music','song_cover','song_mashup','music_voice_profile',
     'text_to_video','image_to_video','video_to_video','video_extend','first_last_frame_video','native_audio_video',
-    'reference_analysis'
+    'talking_avatar','explainer_video','ad_video','scene_orchestration','reference_analysis'
   )),
   provider_key text not null,
   provider_job_id text,
@@ -164,6 +165,7 @@ end $$;
 revoke delete on public.creator_generation_jobs from anon, authenticated;
 revoke delete on public.creator_generation_events from anon, authenticated;
 
+-- identity_imitation_prohibited: reference analysis may extract structure, timing, harmony, or shot language only.
 comment on table public.creator_generation_jobs is 'Tenant-scoped generation jobs routed to governed cloud or isolated worker adapters.';
 comment on table public.creator_generation_assets is 'Private Supabase Storage references for Creator Studio generation inputs and outputs.';
 comment on table public.creator_voice_consents is 'Consent and rights evidence required before voice conversion, cloning, or singing-voice generation.';
