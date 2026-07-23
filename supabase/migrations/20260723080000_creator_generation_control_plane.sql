@@ -161,9 +161,36 @@ begin
   end loop;
 end $$;
 
+-- Consent evidence is private to the subject user and organization owners/admins.
+drop policy if exists "creator members read creator_voice_consents" on public.creator_voice_consents;
+create policy "creator users read own voice consents"
+  on public.creator_voice_consents for select to authenticated
+  using (auth.uid() = user_id or public.is_org_owner_or_admin(organization_id));
+
+-- Provider status, provenance, reference analysis, assets, and events are written only by the server-side control plane.
+do $$
+declare
+  relation_name text;
+begin
+  foreach relation_name in array array[
+    'creator_generation_jobs',
+    'creator_generation_assets',
+    'creator_reference_analyses',
+    'creator_generation_events'
+  ]
+  loop
+    execute format('drop policy if exists "creator users create %1$s" on public.%1$I', relation_name);
+    execute format('drop policy if exists "creator users update own %1$s" on public.%1$I', relation_name);
+  end loop;
+end $$;
+
+revoke insert, update, delete on public.creator_generation_jobs from anon, authenticated;
+revoke insert, update, delete on public.creator_generation_assets from anon, authenticated;
+revoke insert, update, delete on public.creator_reference_analyses from anon, authenticated;
+revoke insert, update, delete on public.creator_generation_events from anon, authenticated;
+
 -- Job/event records are retained for audit; customer-facing routes cancel or soft-transition jobs instead of deleting them.
-revoke delete on public.creator_generation_jobs from anon, authenticated;
-revoke delete on public.creator_generation_events from anon, authenticated;
+revoke delete on public.creator_voice_consents from anon, authenticated;
 
 -- identity_imitation_prohibited: reference analysis may extract structure, timing, harmony, or shot language only.
 comment on table public.creator_generation_jobs is 'Tenant-scoped generation jobs routed to governed cloud or isolated worker adapters.';
@@ -171,3 +198,5 @@ comment on table public.creator_generation_assets is 'Private Supabase Storage r
 comment on table public.creator_voice_consents is 'Consent and rights evidence required before voice conversion, cloning, or singing-voice generation.';
 comment on table public.creator_reference_analyses is 'Structural analysis of owned or licensed references; identity imitation is prohibited.';
 comment on table public.creator_generation_events is 'Append-only operational and policy evidence for generation jobs.';
+
+notify pgrst, 'reload schema';
