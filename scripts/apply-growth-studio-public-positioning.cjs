@@ -42,10 +42,6 @@ replaceRequired(
 );
 
 replaceRequired("Launch Setup Checklist", "Experiments & Analytics");
-replaceRequired(
-  "Plan campaign / Review consent posture / Confirm email readiness / Prepare growth records",
-  "Define hypothesis / Allocate variants / Select primary and guardrail metrics / Review sampling and freshness / Record evidence before declaring a winner"
-);
 
 replaceRequired(
   'linkAction("/growth-studio/dashboard", "Open dashboard")',
