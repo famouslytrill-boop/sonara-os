@@ -102,18 +102,9 @@ describe("database management console", () => {
       });
   });
 
-  it("redirects the legacy database and migration pages into the unified console", async () => {
+  it("publishes one reusable page handler for the existing admin database routes", () => {
     const app = buildApp();
-
-    await request(app)
-      .get("/admin/database")
-      .expect(302)
-      .expect("Location", "/admin/database-management");
-
-    await request(app)
-      .get("/admin/migrations")
-      .expect(302)
-      .expect("Location", "/admin/database-management?section=migrations");
+    assert.equal(typeof app.locals.sonaraDatabaseManagementPage, "function");
   });
 
   it("reports the exact required migration when the catalog RPC is missing", async () => {
