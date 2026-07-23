@@ -1,0 +1,192 @@
+name: Promote Growth Studio Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/promote-growth-studio-production.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sonara-vercel-production-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote-production:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
+      VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
+      GH_TOKEN: ${{ github.token }}
+      TRACKING_ISSUE: "75"
+      STALE_COMMIT: "58494f86f1ef1e14e0dcc84b28fd4c036ab5dc75"
+      PRODUCTION_APEX: "https://sonaraindustries.com"
+      PRODUCTION_WWW: "https://www.sonaraindustries.com"
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Validate protected production configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "Required protected variable VERCEL_TOKEN is missing."
+            exit 1
+          fi
+          test -f vercel.json
+          test -f package.json
+          test -f pnpm-lock.yaml
+          test -f routes/growth-studio-control-routes.cjs
+          test -f supabase/migrations/20260723120000_growth_studio_control_plane.sql
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify repository before production deployment
+        run: |
+          set -euo pipefail
+          pnpm run typecheck
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run scan:client-secrets
+          pnpm run verify:config
+          pnpm run verify:api
+          pnpm run verify:supabase-contract
+
+      - name: Pull Vercel production configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          test -f .vercel/project.json
+
+      - name: Build reviewed production artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx vercel@latest build --prod --token="$VERCEL_TOKEN" 2>&1 | tee vercel-build.log
+
+      - name: Deploy prebuilt artifact to production aliases
+        shell: bash
+        run: |
+          set -euo pipefail
+          deployment_url=$(pnpm dlx vercel@latest deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN" \
+            --meta githubCommitSha="$GITHUB_SHA" \
+            --meta githubCommitRef="main" \
+            --meta githubCommitMessage="Promote Growth Studio production" \
+            2>&1 | tee vercel-deploy.log | grep -Eo 'https://[^[:space:]]+\.vercel\.app' | tail -n 1)
+          if [ -z "$deployment_url" ]; then
+            echo "Vercel did not return a production deployment URL."
+            exit 1
+          fi
+          echo "DEPLOYMENT_URL=$deployment_url" >> "$GITHUB_ENV"
+          echo "Production deployment: $deployment_url" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify production aliases and Growth Studio routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            apex_status=$(curl -sS -o apex-health.json -w '%{http_code}' "$PRODUCTION_APEX/api/health" || true)
+            www_status=$(curl -sS -o www-health.json -w '%{http_code}' "$PRODUCTION_WWW/api/health" || true)
+            if [ "$apex_status" = "200" ] && [ "$www_status" = "200" ]; then
+              break
+            fi
+            sleep 10
+          done
+
+          test "${apex_status:-}" = "200"
+          test "${www_status:-}" = "200"
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const stale = process.env.STALE_COMMIT;
+          for (const file of ['apex-health.json', 'www-health.json']) {
+            const payload = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (!payload.ok) throw new Error(`${file} did not report ok`);
+            if (payload.deployment?.commitSha === stale) throw new Error(`${file} still reports stale production commit ${stale}`);
+          }
+          NODE
+
+          growth_api_status=$(curl -sS -o growth-api.json -w '%{http_code}' "$PRODUCTION_APEX/api/growth/providers" || true)
+          case "$growth_api_status" in
+            401|402|403) ;;
+            *)
+              echo "Expected protected Growth Studio provider route, received HTTP $growth_api_status"
+              cat growth-api.json || true
+              exit 1
+              ;;
+          esac
+
+          growth_ui_status=$(curl -sS -o growth-ui.txt -w '%{http_code}' "$PRODUCTION_APEX/growth-studio/control-center" || true)
+          case "$growth_ui_status" in
+            200|302|303|401|402|403) ;;
+            *)
+              echo "Expected present/protected Growth Studio control-center route, received HTTP $growth_ui_status"
+              cat growth-ui.txt || true
+              exit 1
+              ;;
+          esac
+
+          {
+            echo "### Growth Studio production promotion"
+            echo
+            echo "- Deployment URL: ${DEPLOYMENT_URL}"
+            echo "- Apex health: HTTP ${apex_status}"
+            echo "- WWW health: HTTP ${www_status}"
+            echo "- Growth provider API: HTTP ${growth_api_status} (protected)"
+            echo "- Growth control center: HTTP ${growth_ui_status} (present/protected)"
+            echo "- Stale commit removed: yes"
+            echo "- Source commit: ${GITHUB_SHA}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Report success to tracking issue
+        if: success()
+        shell: bash
+        run: |
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Growth Studio production promotion completed successfully.\n\n- Production deployment: \`${DEPLOYMENT_URL}\`\n- \`sonaraindustries.com/api/health\`: HTTP 200\n- \`www.sonaraindustries.com/api/health\`: HTTP 200\n- \`/api/growth/providers\`: present and protected\n- \`/growth-studio/control-center\`: present and protected\n- Stale production commit \`${STALE_COMMIT}\`: no longer served\n- Source commit: \`${GITHUB_SHA}\`\n- Provider readiness remains credential-, OAuth-, audit-, and acceptance-test gated"
+          gh issue close "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
+
+      - name: Report failure to tracking issue
+        if: failure()
+        shell: bash
+        run: |
+          {
+            echo "Growth Studio production promotion failed. No success claim has been recorded."
+            echo
+            echo "Review GitHub Actions run \`${GITHUB_RUN_ID}\`."
+            if [ -z "${VERCEL_TOKEN:-}" ]; then
+              echo
+              echo "Protected GitHub secret \`VERCEL_TOKEN\` is missing from the production environment or repository."
+            fi
+            for file in vercel-build.log vercel-deploy.log; do
+              if [ -f "$file" ]; then
+                echo
+                echo "Sanitized tail of \`$file\`:"
+                echo '```text'
+                tail -n 60 "$file" | sed -E 's/(authorization|password|token|secret|apikey)[=:][^[:space:]]+/\1=[redacted]/Ig'
+                echo '```'
+              fi
+            done
+          } > production-promotion-failure.md
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body-file production-promotion-failure.md
