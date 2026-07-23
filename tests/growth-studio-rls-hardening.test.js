@@ -46,7 +46,7 @@ describe("Growth Studio RLS and evidence hardening", () => {
   });
 
   it("preserves consent, attribution confidence, approval, sampling, and audit evidence", () => {
-    assert.match(migration, /purpose-specific consent evidence/);
+    assert.match(migration, /purpose- and channel-specific consent evidence/);
     assert.match(migration, /attribution_model text not null/);
     assert.match(migration, /attribution_confidence text not null/);
     assert.match(migration, /approval_required boolean not null default false/);
