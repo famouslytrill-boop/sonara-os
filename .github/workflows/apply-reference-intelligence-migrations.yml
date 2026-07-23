@@ -86,17 +86,24 @@ jobs:
         run: |
           set -euo pipefail
           supabase migration list --linked | tee migration-after.txt
+          perl -pe 's/\e\[[0-9;?]*[A-Za-z]//g' migration-after.txt > migration-after-clean.txt
 
-          grep -Eq "${MIGRATION_ONE}[[:space:]]*\\|[[:space:]]*${MIGRATION_ONE}" migration-after.txt
-          grep -Eq "${MIGRATION_TWO}[[:space:]]*\\|[[:space:]]*${MIGRATION_TWO}" migration-after.txt
+          for version in "$MIGRATION_ONE" "$MIGRATION_TWO"; do
+            occurrences="$(awk -v version="$version" '{ total += gsub(version, version) } END { print total + 0 }' migration-after-clean.txt)"
+            if [ "$occurrences" -lt 2 ]; then
+              echo "Migration $version was not present in both local and remote history."
+              cat migration-after-clean.txt
+              exit 1
+            fi
+          done
 
           pnpm run verify:db
 
           {
             echo "### Production migration verification"
             echo
-            echo "- ${MIGRATION_ONE}: applied and present in remote migration history"
-            echo "- ${MIGRATION_TWO}: applied and present in remote migration history"
+            echo "- ${MIGRATION_ONE}: present in local and remote migration history"
+            echo "- ${MIGRATION_TWO}: present in local and remote migration history"
             echo "- Repository database contract: verified"
             echo "- Target branch: ${GITHUB_REF_NAME}"
             echo "- Commit: ${GITHUB_SHA}"
@@ -106,7 +113,7 @@ jobs:
         if: success()
         shell: bash
         run: |
-          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Production database migration completed successfully.\n\n- \`${MIGRATION_ONE}_reference_intelligence_system.sql\`: applied and verified in remote migration history\n- \`${MIGRATION_TWO}_extend_database_contract_reference_intelligence.sql\`: applied and verified in remote migration history\n- \`pnpm run verify:db\`: passed\n- Commit: \`${GITHUB_SHA}\`"
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Production database migration completed successfully.\n\n- \`${MIGRATION_ONE}_reference_intelligence_system.sql\`: present in local and remote migration history\n- \`${MIGRATION_TWO}_extend_database_contract_reference_intelligence.sql\`: present in local and remote migration history\n- \`pnpm run verify:db\`: passed\n- Commit: \`${GITHUB_SHA}\`"
           gh issue close "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --reason completed
 
       - name: Report failure to tracking issue
