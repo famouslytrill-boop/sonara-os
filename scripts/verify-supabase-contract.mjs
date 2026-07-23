@@ -110,12 +110,17 @@ for (const required of [
 verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
-  "auth.role() = 'service_role'",
+  "auth.role() = ''service_role''",
   "rights_attested boolean not null default false",
   "consent_attested boolean not null default false",
   "identity_imitation_prohibited",
-  "revoke delete on public.creator_generation_jobs from anon, authenticated",
-  "revoke delete on public.creator_generation_events from anon, authenticated"
+  "auth.uid() = user_id or public.is_org_owner_or_admin(organization_id)",
+  "revoke insert, update, delete on public.creator_generation_jobs from anon, authenticated",
+  "revoke insert, update, delete on public.creator_generation_assets from anon, authenticated",
+  "revoke insert, update, delete on public.creator_reference_analyses from anon, authenticated",
+  "revoke insert, update, delete on public.creator_generation_events from anon, authenticated",
+  "revoke delete on public.creator_voice_consents from anon, authenticated",
+  "notify pgrst, 'reload schema'"
 ]) {
   if (!creatorGenerationSql.includes(required)) fail(`Creator Studio generation extension is missing: ${required}`);
 }
