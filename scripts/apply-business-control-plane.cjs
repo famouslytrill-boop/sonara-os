@@ -135,10 +135,106 @@ function patchOpenApi() {
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: updateBusinessBuilderBusinessForm
+      tags: [Business Builder]
+      summary: Update a business from an HTML-compatible form submission.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
     delete:
       operationId: deleteBusinessBuilderBusiness
       tags: [Business Builder]
       summary: Soft-delete a business while preserving audit and recovery evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/archive:
+    post:
+      operationId: archiveBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Archive a business without deleting customer records.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/restore:
+    post:
+      operationId: restoreBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Restore an archived or soft-deleted business.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/ownership-transfers:
+    post:
+      operationId: requestBusinessBuilderOwnershipTransfer
+      tags: [Business Builder]
+      summary: Create an auditable pending ownership-transfer request.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/business-builder/businesses/{businessId}/{resource}:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: resource
+        required: true
+        schema:
+          type: string
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, integrations, permissions]
+    get:
+      operationId: listBusinessBuilderResourceRecords
+      tags: [Business Builder]
+      summary: List records from one allowlisted business resource.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Create a record in one allowlisted business resource.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/business-builder/businesses/{businessId}/{resource}/{id}:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: resource
+        required: true
+        schema:
+          type: string
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, integrations, permissions]
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Update one organization- and business-scoped resource record.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: updateBusinessBuilderResourceRecordForm
+      tags: [Business Builder]
+      summary: Update one resource record from an HTML-compatible form submission.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      operationId: archiveBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Soft-archive one organization- and business-scoped resource record.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
