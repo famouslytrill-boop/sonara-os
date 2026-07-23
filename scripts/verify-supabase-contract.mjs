@@ -9,6 +9,17 @@ const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
 const referenceContractExtensionName = "20260722201600_extend_database_contract_reference_intelligence.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
+const businessControlMigrationNames = [
+  "20260723060000_business_builder_control_plane.sql",
+  "20260723060500_business_integration_connections.sql"
+];
+const BUSINESS_CONTROL_TABLES = Object.freeze([
+  "business_channels",
+  "business_permission_grants",
+  "business_ownership_transfers",
+  "business_control_audit_events",
+  "business_integration_connections"
+]);
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
@@ -40,6 +51,17 @@ const contractSql = [contractMigrationPath, referenceContractExtensionPath]
   .join("\n")
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
+const businessControlSql = businessControlMigrationNames
+  .map((name) => {
+    const filePath = path.join(migrationsDirectory, name);
+    if (!fs.existsSync(filePath)) {
+      fail(`missing Business Builder control-plane migration: ${name}`);
+      return "";
+    }
+    return read(filePath);
+  })
+  .join("\n")
+  .toLowerCase();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
@@ -63,6 +85,23 @@ for (const table of DATABASE_TABLES) {
   if (!contractSql.includes(`'${table}'`)) fail(`the runtime migration does not check public.${table}`);
 }
 
+for (const table of BUSINESS_CONTROL_TABLES) {
+  const createPattern = new RegExp(`create\\s+table\\s+if\\s+not\\s+exists\\s+public\\.${table}\\b`, "i");
+  const rlsPattern = new RegExp(`alter\\s+table\\s+public\\.${table}\\s+enable\\s+row\\s+level\\s+security`, "i");
+  if (!createPattern.test(businessControlSql)) fail(`Business Builder extension does not create public.${table}`);
+  if (!rlsPattern.test(businessControlSql) && !businessControlSql.includes(`'${table}'`)) {
+    fail(`Business Builder extension does not enable or programmatically verify RLS for public.${table}`);
+  }
+}
+for (const required of [
+  "public.sonara_is_org_member(organization_id)",
+  "public.is_org_owner_or_admin(organization_id)",
+  "auth.role() = 'service_role'",
+  "revoke select (credential_reference) on public.business_integration_connections from anon, authenticated"
+]) {
+  if (!businessControlSql.includes(required)) fail(`Business Builder control-plane extension is missing: ${required}`);
+}
+
 const runtimeFiles = [
   path.join(root, "server.js"),
   ...fs.readdirSync(path.join(root, "routes"))
@@ -75,13 +114,16 @@ const runtimeTableReferences = new Set();
 for (const pattern of [
   /\/rest\/v1\/([a-z0-9_]+)/gi,
   /safeListTable\(\s*["']([a-z0-9_]+)["']/gi,
-  /\btable\s*:\s*["']([a-z0-9_]+)["']/gi
+  /\btable\s*:\s*["']([a-z0-9_]+)["']/gi,
+  /\brest\(\s*["']([a-z0-9_]+)["']/gi
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
-  if (!DATABASE_TABLES.includes(table)) fail(`runtime references public.${table}, but it is absent from the canonical contract`);
+  if (!DATABASE_TABLES.includes(table) && !BUSINESS_CONTROL_TABLES.includes(table)) {
+    fail(`runtime references public.${table}, but it is absent from the canonical or reviewed extension contract`);
+  }
 }
 
 for (const signature of DATABASE_FUNCTIONS) {
@@ -142,6 +184,6 @@ if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
 }
