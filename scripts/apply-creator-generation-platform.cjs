@@ -3,10 +3,21 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+patchRouteModule();
 patchServer();
 patchRouteRegistry();
 patchOpenApi();
 console.log("Creator Studio generation platform applied");
+
+function patchRouteModule() {
+  const file = path.join(process.cwd(), "routes", "creator-generation-routes.cjs");
+  let source = fs.readFileSync(file, "utf8");
+  const oldVoiceSet = 'const VOICE_CAPABILITIES = new Set(["speech_to_speech"]);';
+  const newVoiceSet = 'const VOICE_CAPABILITIES = new Set(["speech_to_speech", "voice_clone", "singing_voice", "music_voice_profile", "talking_avatar"]);';
+  if (source.includes(oldVoiceSet)) source = source.replace(oldVoiceSet, newVoiceSet);
+  if (!source.includes(newVoiceSet)) throw new Error("Creator generation voice-consent marker not found");
+  fs.writeFileSync(file, source);
+}
 
 function patchServer() {
   const file = path.join(process.cwd(), "server.js");
