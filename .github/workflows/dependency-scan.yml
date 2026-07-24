@@ -27,7 +27,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit root dependencies
-        run: pnpm audit --audit-level moderate
+        id: root-audit
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          pnpm audit --audit-level moderate --json > pnpm-audit.json
+          status=$?
+          cat pnpm-audit.json
+          exit $status
+
+      - name: Upload dependency audit diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: root-pnpm-audit-${{ github.run_id }}
+          path: pnpm-audit.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Enforce dependency audit
+        if: steps.root-audit.outcome == 'failure'
+        run: exit 1
 
       - name: Validate open-source dependency and repository policy
         run: pnpm run verify:open-source

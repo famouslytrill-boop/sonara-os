@@ -1,0 +1,154 @@
+name: Controlled Production Deployment
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sonara-controlled-production
+  cancel-in-progress: false
+
+jobs:
+  validate-migrate-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: team_tjHnRTtPAagk3RcaEte9SRla
+      VERCEL_PROJECT_ID: prj_QN8mHacmlaJWSieVbjMFV5D7fmuY
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      APEX_URL: https://sonaraindustries.com
+      WWW_URL: https://www.sonaraindustries.com
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Require protected production credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}"
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test -n "${SUPABASE_PROJECT_ID:-}"
+          test -n "${SUPABASE_DB_PASSWORD:-}"
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level moderate
+
+      - name: Validate complete release candidate
+        run: pnpm run verify:all
+
+      - name: Link and preview production database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Apply production database migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
+          supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Deploy validated source to Vercel production
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm dlx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN" \
+            --meta githubCommitSha="$GITHUB_SHA" \
+            --meta githubCommitRef="main" \
+            --meta githubCommitMessage="Controlled SONARA production deployment" \
+            2>&1 | tee vercel-deploy.log
+          deployment_url=$(grep -Eo 'https://[^[:space:]]+\.vercel\.app' vercel-deploy.log | tail -n 1)
+          test -n "$deployment_url"
+          echo "DEPLOYMENT_URL=$deployment_url" >> "$GITHUB_ENV"
+
+      - name: Verify aliases, commit, and authentication boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 36); do
+            apex_status=$(curl -sS -o apex-health.json -w '%{http_code}' "$APEX_URL/api/health" || true)
+            www_status=$(curl -sS -o www-health.json -w '%{http_code}' "$WWW_URL/api/health" || true)
+            if [ "$apex_status" = "200" ] && [ "$www_status" = "200" ]; then
+              if node - <<'NODE'
+          const fs = require('node:fs');
+          const expected = process.env.GITHUB_SHA;
+          const apex = JSON.parse(fs.readFileSync('apex-health.json', 'utf8'));
+          const www = JSON.parse(fs.readFileSync('www-health.json', 'utf8'));
+          if (apex.deployment?.commitSha !== expected || www.deployment?.commitSha !== expected) process.exit(1);
+          if (apex.deployment?.branch !== 'main' || www.deployment?.branch !== 'main') process.exit(1);
+          NODE
+              then
+                ready=true
+                break
+              fi
+            fi
+            sleep 10
+          done
+          test "$ready" = "true"
+
+          lifecycle_api_status=$(curl -sS -o lifecycle-api.json -w '%{http_code}' "$APEX_URL/api/product-lifecycle/framework" || true)
+          lifecycle_ui_status=$(curl -sS -o lifecycle-ui.txt -w '%{http_code}' "$APEX_URL/product-lifecycle" || true)
+          provider_status=$(curl -sS -o providers.json -w '%{http_code}' "$APEX_URL/api/growth/providers" || true)
+          control_status=$(curl -sS -o control.txt -w '%{http_code}' "$APEX_URL/growth-studio/control-center" || true)
+
+          case "$lifecycle_api_status" in 401|402|403) ;; *) echo "Unexpected lifecycle API status: $lifecycle_api_status"; exit 1;; esac
+          case "$lifecycle_ui_status" in 302|303|401|402|403) ;; *) echo "Unexpected lifecycle UI status: $lifecycle_ui_status"; exit 1;; esac
+          case "$provider_status" in 401|402|403) ;; *) echo "Unexpected provider status: $provider_status"; exit 1;; esac
+          case "$control_status" in 302|303|401|402|403) ;; *) echo "Unexpected control-center status: $control_status"; exit 1;; esac
+
+          {
+            echo "### Controlled SONARA production deployment"
+            echo "- Deployment: ${DEPLOYMENT_URL}"
+            echo "- Commit: ${GITHUB_SHA}"
+            echo "- Apex health: ${apex_status}"
+            echo "- WWW health: ${www_status}"
+            echo "- Product lifecycle API: ${lifecycle_api_status}, protected"
+            echo "- Product lifecycle UI: ${lifecycle_ui_status}, protected"
+            echo "- Growth provider API: ${provider_status}, protected"
+            echo "- Growth control center: ${control_status}, protected"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload deployment diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controlled-production-diagnostics-${{ github.run_id }}
+          path: |
+            vercel-deploy.log
+            apex-health.json
+            www-health.json
+            lifecycle-api.json
+            lifecycle-ui.txt
+            providers.json
+            control.txt
+          if-no-files-found: ignore
+          retention-days: 3

@@ -95,6 +95,18 @@ const homeContent = `<div class="nexus-home">
     <div class="nexus-product-grid"><article class="card"><h3>Account and access</h3><p>Create an account, sign in, switch workspaces, review settings, or log out through one consistent identity layer.</p><div class="card-actions"><a class="action" href="/signup">Create account</a><a class="action" href="/login">Log in</a></div></article><article class="card"><h3>Founder administration</h3><p>Administrative readiness, users, roles, subscriptions, integrations, support, and audits stay protected behind founder access.</p><div class="card-actions"><a class="action" href="/admin/login">Admin access</a></div></article><article class="card"><h3>Free launch stack</h3><p>Explore useful tools before paying. Upgrade when saved work, deeper records, and supported operations become valuable.</p><div class="card-actions"><a class="action" href="/free-tools">Explore free tools</a><a class="action" href="/pricing">See plans</a></div></article></div>
   </section>
 
+  <section class="nexus-section nexus-faq" aria-label="Common questions">
+    <div class="nexus-section-head"><div><span class="nexus-kicker">Common questions</span><h2>Answers before you sign up.</h2></div><p>Straight answers about how SONARA works, what is free, and how your data is handled.</p></div>
+    <div class="nexus-faq-list">
+      <details><summary>What is SONARA?</summary><p>One operating layer for three focused companies — Business Builder, Creator Studio, and Growth Studio — with shared identity, billing, records, and support.</p></details>
+      <details><summary>Is it really free to start?</summary><p>Yes. Create an account, use free tools, and save real work without entering a card. Paid plans begin at $7/mo when you want deeper records and support.</p></details>
+      <details><summary>What happens when I upgrade?</summary><p>Paid tools unlock only after your payment is confirmed. If a payment lapses, paid access relocks — nothing is charged by surprise.</p></details>
+      <details><summary>Do you ever show fake data?</summary><p>No. Every figure is your real saved data. When a connection or setup is missing, the page shows a clear setup-required state instead of inventing results.</p></details>
+      <details><summary>Is my data private?</summary><p>Records are organization-scoped and private by default. Team access is controlled by role.</p></details>
+      <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want.</p></details>
+    </div>
+  </section>
+
   <section class="nexus-cta"><div><span class="nexus-kicker" data-i18n="ctaKicker">Start with useful work</span><h2 data-i18n="ctaHeading">Begin free. Add depth when the work demands it.</h2><p>No fake urgency. No hidden enterprise maze. Start with the workspace and action you need now.</p></div><div class="card-actions"><a class="action" href="/signup">Create account</a><a class="action" href="/free-tools">Try a free tool</a><a class="action" href="/pricing">Compare plans</a></div></section>
 </div>`;
 
