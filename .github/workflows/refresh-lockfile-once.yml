@@ -1,0 +1,60 @@
+name: Refresh lockfile once
+
+on:
+  push:
+    branches:
+      - feature/company-product-lifecycle-20260724
+    paths:
+      - pnpm-workspace.yaml
+      - .github/workflows/refresh-lockfile-once.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-product-lifecycle-lockfile
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/company-product-lifecycle-20260724
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Regenerate lockfile from repository overrides
+        run: pnpm install --lockfile-only
+
+      - name: Verify patched tar resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'tar@7.5.21' pnpm-lock.yaml
+          ! grep -q 'tar@7.5.20' pnpm-lock.yaml
+
+      - name: Commit regenerated lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile already current."
+            exit 0
+          fi
+          git config user.name "SONARA Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "Regenerate lockfile for patched tar [skip ci]"
+          git push origin HEAD:feature/company-product-lifecycle-20260724
