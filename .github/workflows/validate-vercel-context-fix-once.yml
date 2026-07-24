@@ -1,0 +1,57 @@
+name: Validate Vercel context fix once
+
+on:
+  push:
+    branches:
+      - fix-vercel-dockerignore-test-20260724
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: validate-vercel-context-fix-once
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TRACKING_ISSUE: "83"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.1
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit dependencies
+        run: pnpm audit --audit-level moderate
+
+      - name: Validate complete release candidate
+        run: pnpm run verify:all
+
+      - name: Record validation success
+        if: success()
+        shell: bash
+        run: |
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Full branch validation passed for commit \`$GITHUB_SHA\`. Dependency audit and \`pnpm run verify:all\` completed successfully. This exact commit is approved to advance to \`main\` for controlled migration, Vercel production deployment, and final acceptance checks."
+
+      - name: Record validation failure
+        if: failure()
+        shell: bash
+        run: |
+          gh issue comment "$TRACKING_ISSUE" --repo "$GITHUB_REPOSITORY" --body "Branch validation failed for commit \`$GITHUB_SHA\`. Main was not changed. Inspect workflow run \`$GITHUB_RUN_ID\` before retrying."
