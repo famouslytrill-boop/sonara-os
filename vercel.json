@@ -5,10 +5,7 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm run vercel-build",
   "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "*": false
-    }
+    "deploymentEnabled": false
   },
   "functions": {
     "api/index.js": {
