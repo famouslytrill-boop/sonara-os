@@ -266,3 +266,16 @@ html.nexus-leaving main{opacity:.88;transition:opacity .12s ease}
   :root{--nx-line:#9aa6b8;--nx-line-strong:#718096;--nx-muted:#3f4a5d}
   html[data-theme="dark"]{--nx-line:#6f7d94;--nx-line-strong:#8e9bb0;--nx-muted:#d1d7e2}
 }
+
+/* Homepage FAQ — accessible native details/summary, canonical cinematic layer.
+   Overrides the generic compact summary button style with a full-width row. */
+.nexus-faq-list{display:grid;gap:10px;max-width:840px}
+.nexus-faq-list details{border:1px solid var(--nx-line);border-radius:var(--nx-radius-sm);background:var(--nx-surface);box-shadow:var(--nx-shadow);overflow:hidden}
+.nexus-faq-list summary{width:auto;min-width:0;height:auto;place-items:unset;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 18px;min-height:44px;border:0;border-radius:0;background:transparent;font-weight:720;color:var(--nx-ink);cursor:pointer;list-style:none}
+.nexus-faq-list summary:hover{background:transparent;border-color:transparent;color:var(--nx-ink)}
+.nexus-faq-list summary::-webkit-details-marker{display:none}
+.nexus-faq-list summary::after{content:"+";flex:none;color:var(--nx-muted);font-size:22px;line-height:1;transition:transform .16s var(--nx-ease)}
+.nexus-faq-list details[open] summary::after{content:"\2212"}
+.nexus-faq-list details[open] summary{border-bottom:1px solid var(--nx-line)}
+.nexus-faq-list details p{margin:0;padding:14px 18px 18px;color:var(--nx-muted);line-height:1.65}
+@media (prefers-reduced-motion: reduce){.nexus-faq-list summary::after{transition:none}}

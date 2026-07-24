@@ -662,9 +662,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     res.status(200).type("html").send(
       layout({
         title: "Start",
-        eyebrow: "Software-in-a-Service",
+        eyebrow: "Get started",
         heading: "Start with SONARA",
-        body: "SONARA is a Software-in-a-Service platform: use the software yourself with free tools, and request done-for-you services when you want operator help.",
+        body: "Use the tools yourself for free, and request done-for-you help whenever you want a hand. Here is the path from account to first result.",
         sections: [
           checklistCard("Your path", [
             "Create a free account",
@@ -676,7 +676,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           ]),
           actionCard("1. Create your account", "Free accounts unlock the free planning tools in every product workspace.", [linkAction("/signup", "Create account"), linkAction("/login", "Login")]),
           actionCard("2. Pick a product", "Business Builder for service businesses, Creator Studio for creators, Growth Studio for campaigns.", [linkAction("/business-builder/start", "Business Builder"), linkAction("/creator-studio/start", "Creator Studio"), linkAction("/growth-studio/start", "Growth Studio")]),
-          actionCard("3. Set up your workspace", "Create or attach an organization so records can be saved when the account database is configured.", [linkAction("/account/setup", "Account setup")]),
+          actionCard("3. Set up your workspace", "Create or attach your organization so your records have a home as you work.", [linkAction("/account/setup", "Account setup")]),
           actionCard("4. Request services", "Browse the service catalog and submit a request. Every accepted request gets a reference ID and status tracking.", [linkAction("/service-catalog", "Service catalog"), linkAction("/requests", "My requests")]),
           actionCard("5. Track everything", "Requests, deliverables, billing, and support all have their own tracking pages.", [linkAction("/deliverables", "Deliverables"), linkAction("/support", "Support"), linkAction("/pricing", "Pricing")])
         ],
@@ -701,8 +701,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     if (!usingDatabase) {
       sections.push(
         rows.ok
-          ? brandCard("Catalog records", "No catalog records are published in the account database yet, so the standard catalog is shown.")
-          : brandCard("Catalog database status", "Setup required: the service_catalog_items table is not available yet, so the standard catalog is shown. Requests still work and always return a reference ID.")
+          ? brandCard("Catalog records", "No custom catalog is published yet, so the standard services are shown.")
+          : brandCard("Catalog status", "Setup required: the service_catalog_items catalog isn't connected yet, so the standard services are shown. You can still submit a request, and every request returns a reference ID.")
       );
     }
     res.status(200).type("html").send(
@@ -938,10 +938,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Support",
         eyebrow: "Support center",
         heading: "Support",
-        body: "Submit a support request and get a reference ID. Requests are stored in the account database when configured, and always use a safe fallback queue otherwise.",
+        body: "Submit a support request and get a reference ID right away. Every request is tracked, so you always have that ID to follow up.",
         sections: [
           supportForm("support"),
-          brandCard("Support queue status", readiness.services.supabase === "configured" ? "Support requests are recorded in the account database." : "Setup required: support requests use the safe fallback queue with a reference ID until the account database is configured."),
+          brandCard("Support queue status", readiness.services.supabase === "configured" ? "Support requests are recorded and tracked." : "Support requests are queued safely with a reference ID, so nothing gets lost while setup finishes."),
           actionCard("Other paths", "Billing questions, account access, and general contact all route through the same tracked intake.", [linkAction("/contact", "Contact form"), linkAction("/api/support/status", "Support status JSON")])
         ],
         actions: [linkAction("/", "Home"), linkAction("/dashboard", "Dashboard"), linkAction("/help", "Help")]

@@ -44,6 +44,7 @@ describe("public site", () => {
     "/growth-studio",
     "/growth-studio/launch-readiness",
     "/contact",
+    "/about",
     "/pricing",
     "/security",
     "/help",

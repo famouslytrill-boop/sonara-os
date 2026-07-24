@@ -95,22 +95,22 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/products", (req, res) => sendPage(res, {
     title: "Products",
-    eyebrow: "One platform, three workspaces",
-    heading: "Choose the system that matches the work.",
-    body: "Each product has its own tools and records. They share one account and operating layer without mixing customer data across products.",
+    eyebrow: "Build. Create. Grow.",
+    heading: "Three focused ways to move your work forward.",
+    body: "Pick the workspace that matches what you're doing right now. Each one has its own tools and records, and they share one sign-in so you never rebuild your account to switch.",
     sections: [
-      actionCard("Business Builder", "Create, launch, and operate a business with offers, pricing, customer workflows, and practical records.", [linkAction("/business-builder", "Explore Business Builder"), linkAction("/tutorials/business-builder", "Tutorial")]),
-      actionCard("Creator Studio", "Organize, protect, publish, and grow creative work through repeatable release and content systems.", [linkAction("/creator-studio", "Explore Creator Studio"), linkAction("/tutorials/creator-studio", "Tutorial")]),
-      actionCard("Growth Studio", "Plan campaigns, follow up responsibly, and learn from measurable growth signals.", [linkAction("/growth-studio", "Explore Growth Studio"), linkAction("/tutorials/growth-studio", "Tutorial")])
+      actionCard("Business Builder", "Create, launch, run, and manage a business with guided systems for offers, pricing, bookings, payments, customers, and the records that keep it moving.", [linkAction("/business-builder", "Explore Business Builder"), linkAction("/tutorials/business-builder", "Tutorial")]),
+      actionCard("Creator Studio", "Organize, protect, publish, monetize, and grow your creative work — from first idea through release, media, and digital products.", [linkAction("/creator-studio", "Explore Creator Studio"), linkAction("/tutorials/creator-studio", "Tutorial")]),
+      actionCard("Growth Studio", "Attract customers, leads, and referrals with campaigns, follow-up, offers, and growth systems you can actually keep up with.", [linkAction("/growth-studio", "Explore Growth Studio"), linkAction("/tutorials/growth-studio", "Tutorial")])
     ],
-    actions: [linkAction("/free-tools", "Free tools"), linkAction("/pricing", "Pricing"), linkAction("/start", "Start")]
+    actions: [linkAction("/free-tools", "Try a free tool"), linkAction("/pricing", "See pricing"), linkAction("/start", "Get started")]
   }));
 
   app.get("/free-tools", (req, res) => sendPage(res, {
     title: "Free tools",
-    eyebrow: "Useful before you pay",
-    heading: "Start with a real output.",
-    body: "Signed-in customers can use deterministic free tools without submitting a service intake first. Sign in is required so product data stays attached to the correct account.",
+    eyebrow: "Useful before you pay a cent",
+    heading: "Get a real result in your first few minutes.",
+    body: "Sign in and use the free planning tools in every workspace — no sales call, no service request first. You sign in so your work saves to your own account and stays there.",
     sections: [
       actionCard("Business Builder tools", "Offer outline, pricing calculator, readiness score, launch checklist, customer starter, and service-package builder.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
       actionCard("Creator Studio tools", "Creator profile, asset checklist, release checklist, content brief, content plan, and music-system blueprint.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
@@ -121,17 +121,17 @@ function registerRouteRegistryRoutes(app, deps) {
 
   app.get("/how-it-works", (req, res) => sendPage(res, {
     title: "How SONARA works",
-    eyebrow: "From goal to delivery",
-    heading: "Every workflow shows the next honest step.",
-    body: "SONARA combines software tools with optional operator delivery. Missing providers show setup-required states instead of simulated success.",
+    eyebrow: "From goal to done",
+    heading: "Every step shows you the next honest move.",
+    body: "SONARA gives you the tools to do the work yourself, plus optional done-for-you help when you want it. When something isn't set up yet, you see “setup required” — never a fake success.",
     sections: [
-      brandCard("1. Choose an outcome", "Start with the business, creator, or growth result you need."),
-      brandCard("2. Create a useful output", "Use a free tool, checklist, calculator, or structured workspace action."),
-      brandCard("3. Save and track", "Account database records keep the output, request, status, and responsible party connected."),
-      brandCard("4. Upgrade with proof", "Paid access unlocks only after Stripe records active or trialing billing state."),
-      brandCard("5. Receive delivery", "Service requests move through review, production, feedback, delivery, and completion with visible status.")
+      brandCard("1. Choose an outcome", "Start with the business, creator, or growth result you actually need."),
+      brandCard("2. Create something useful", "Run a free tool, checklist, calculator, or guided workspace action and get a real output."),
+      brandCard("3. Save and track it", "Your outputs, requests, status, and next steps stay connected in your workspace."),
+      brandCard("4. Upgrade only when it pays off", "Paid features unlock after your subscription is active — you are never charged for a plan you have not started."),
+      brandCard("5. Get it delivered", "Requested services move through review, production, feedback, delivery, and completion, with the status visible the whole way.")
     ],
-    actions: [linkAction("/start", "Start"), linkAction("/service-catalog", "Service catalog"), linkAction("/tutorials/getting-started", "Getting started")]
+    actions: [linkAction("/start", "Get started"), linkAction("/service-catalog", "Service catalog"), linkAction("/tutorials/getting-started", "Getting started")]
   }));
 
   app.get("/tutorials", (req, res) => sendPage(res, {
