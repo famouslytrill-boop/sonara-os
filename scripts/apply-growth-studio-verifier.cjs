@@ -45,8 +45,7 @@ insertAfter(
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");`
 );
 
-const credentialBlock = `if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerationSql)) {
-  fail("Creator Studio generation tables must not persist provider credentials");
+const credentialBlock = `fail("Creator Studio generation tables must not persist provider credentials");
 }`;
 insertAfter(credentialBlock, `
 
