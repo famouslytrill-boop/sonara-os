@@ -1,3 +1,4 @@
+// Guarded one-shot patch for the public readiness route. Refuse to modify unexpected source.
 const fs = require("node:fs");
 
 const serverPath = "server.js";
