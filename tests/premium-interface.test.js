@@ -4,16 +4,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const app = require("../server");
 
-describe("SONARA Nexus interface QA", () => {
+describe("SONARA One interface QA", () => {
   it("serves the canonical stylesheet, prepaint, and interaction engine", async () => {
     const [styles, prepaint, engine] = await Promise.all([
       request(app).get("/sonara-application-ui.css"),
       request(app).get("/sonara-prepaint.js"),
-      request(app).get("/sonara-nexus.js")
+      request(app).get("/sonara-one.js")
     ]);
     assert.equal(styles.status, 200);
     assert.match(styles.headers["content-type"], /css/);
-    assert.match(styles.text, /SONARA Nexus Experience System 2026/);
+    assert.match(styles.text, /SONARA One Experience System 2026/);
     assert.equal(prepaint.status, 200);
     assert.equal(engine.status, 200);
     assert.match(engine.text, /sonara:nexus:preferences:v1/);
@@ -22,19 +22,19 @@ describe("SONARA Nexus interface QA", () => {
   it("renders a responsive brand interface with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260721-v4/);
-    assert.match(res.text, /sonara-prepaint\.js\?v=nexus-ui-20260721-v4/);
-    assert.match(res.text, /sonara-nexus\.js\?v=nexus-ui-20260721-v4/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
+    assert.match(res.text, /sonara-prepaint\.js\?v=sonara-ui-20260721-v4/);
+    assert.match(res.text, /sonara-one\.js\?v=sonara-ui-20260721-v4/);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);
     assert.match(res.text, /<nav class="sonara-desktop-nav" aria-label="Primary">/);
     assert.match(res.text, /<details class="sonara-mobile-menu">/);
-    assert.match(res.text, /data-nexus-command/);
-    assert.match(res.text, /data-nexus-settings/);
-    assert.match(res.text, /id="nexus-command-dialog"/);
-    assert.match(res.text, /id="nexus-settings-dialog"/);
-    assert.match(res.text, /id="nexus-loader"/);
+    assert.match(res.text, /data-sonara-command/);
+    assert.match(res.text, /data-sonara-settings/);
+    assert.match(res.text, /id="sonara-command-dialog"/);
+    assert.match(res.text, /id="sonara-settings-dialog"/);
+    assert.match(res.text, /id="sonara-loader"/);
     assert.doesNotMatch(res.text, /sonara-quick-bar/);
   });
 
@@ -58,7 +58,7 @@ describe("SONARA Nexus interface QA", () => {
 
   it("supports performant motion, accessibility preferences, and narrow-screen reflow", () => {
     const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-application-ui.css"), "utf8");
-    const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
+    const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-one.js"), "utf8");
     assert.match(styles, /@view-transition/);
     assert.match(styles, /@media\(prefers-reduced-motion:reduce\)/);
     assert.match(styles, /@media\(max-width:420px\)/);

@@ -491,8 +491,8 @@ describe("auth setup", () => {
     assert.equal((res.text.match(/minlength="8"/g) || []).length, 2);
   });
 
-  it("the loaded Nexus client toggles password visibility and accessible state", function() {
-    const source = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
+  it("the loaded SONARA One client toggles password visibility and accessible state", function() {
+    const source = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-one.js"), "utf8");
     const documentListeners = {};
     const buttonListeners = {};
     const attributes = { "aria-pressed": "false" };

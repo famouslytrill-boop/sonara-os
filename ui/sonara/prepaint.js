@@ -20,6 +20,6 @@
 
   root.dataset.sonaraAppearance = theme;
   root.dataset.theme = theme === "system" ? (prefersDark ? "dark" : "light") : theme;
-  if (!browser.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) root.classList.add("nexus-loading");
-  browser.setTimeout(() => root.classList.remove("nexus-loading"), 2400);
+  if (!browser.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) root.classList.add("sonara-loading");
+  browser.setTimeout(() => root.classList.remove("sonara-loading"), 2400);
 })();

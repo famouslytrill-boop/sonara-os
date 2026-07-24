@@ -72,7 +72,7 @@ Expensive reads as **restraint and precision**, not decoration.
 - **Wordmark:** "SONARA Industries" is set tight and confident — heavier weight,
   slightly negative tracking — so it reads as a deliberate wordmark, not body
   text.
-- **Descriptor:** the small "NEXUS" label uses wide uppercase tracking in the
+- **Descriptor:** the small "SONARA ONE" label uses wide uppercase tracking in the
   mono face to sit quietly beneath the wordmark.
 - **Hierarchy:** one clear size jump between eyebrow, heading, and body. Avoid
   more than three type sizes competing in the same block.
@@ -133,7 +133,7 @@ and product surfaces — so it feels like a shipping product, because it is.
 
 ## Color tokens
 
-Source of truth: `ui/nexus/styles/99-sonara-cinematic-system.css` (`:root` and
+Source of truth: `ui/sonara/styles/99-sonara-cinematic-system.css` (`:root` and
 `html[data-theme="dark"]`).
 
 | Token | Light | Dark | Use |

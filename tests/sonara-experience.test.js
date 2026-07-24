@@ -2,8 +2,8 @@ const request = require("supertest");
 const assert = require("assert");
 const app = require("../server");
 
-describe("SONARA Nexus product experience", () => {
-  it("presents the re-engineered company family and Nexus modes", async () => {
+describe("SONARA One product experience", () => {
+  it("presents the re-engineered company family and SONARA One modes", async () => {
     const res = await request(app).get("/");
     assert.equal(res.status, 200);
     assert.match(res.text, /Build, create, and grow—without losing control\./);
@@ -14,7 +14,7 @@ describe("SONARA Nexus product experience", () => {
     assert.match(res.text, /CANVAS/);
     assert.match(res.text, /SIGNAL/);
     assert.match(res.text, /One system\. Three focused ways to move\./);
-    assert.match(res.text, /nexus-product-grid/);
+    assert.match(res.text, /sonara-product-grid/);
   });
 
   it("serves the original Prism Wave SVG family", async () => {
@@ -36,7 +36,7 @@ describe("SONARA Nexus product experience", () => {
   });
 
   it("keeps original sound and haptics optional", async () => {
-    const engine = await request(app).get("/sonara-nexus.js");
+    const engine = await request(app).get("/sonara-one.js");
     assert.equal(engine.status, 200);
     assert.match(engine.text, /sound\s*:\s*"off"/);
     assert.match(engine.text, /haptics\s*:\s*"off"/);
@@ -46,12 +46,12 @@ describe("SONARA Nexus product experience", () => {
   });
 
   it("provides localized interface dictionaries and accessible settings", async () => {
-    const [page, engine] = await Promise.all([request(app).get("/"), request(app).get("/sonara-nexus.js")]);
+    const [page, engine] = await Promise.all([request(app).get("/"), request(app).get("/sonara-one.js")]);
     for (const language of ["en", "es", "fr", "de"]) {
       assert.match(engine.text, new RegExp(`${language}\\s*:\\s*\\{`));
     }
     for (const value of ["en", "es", "fr", "de"]) assert.match(page.text, new RegExp(`<option value="${value}"`));
     assert.match(page.text, /aria-live="polite"/);
-    assert.match(page.text, /aria-labelledby="nexus-settings-title"/);
+    assert.match(page.text, /aria-labelledby="sonara-settings-title"/);
   });
 });

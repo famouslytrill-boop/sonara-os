@@ -15,13 +15,13 @@
 
   const dictionaries = {
     en: {
-      platform: "Nexus", products: "Companies", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Companies", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Free tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Create account", dashboard: "Dashboard", settings: "Settings", admin: "Administration", logout: "Log out",
       menu: "Menu", command: "Command", experience: "Experience", heroEyebrow: "Connected operating infrastructure",
       heroHeading: "Build, create, and grow—without losing control.",
       heroBody: "Business Builder, Creator Studio, and Growth Studio share one secure operating layer for independent founders, creators, operators, and small teams.",
       productsKicker: "Three connected companies", productsHeading: "One system. Three focused ways to move.",
-      productsBody: "Each company keeps its own workflows and records while identity, access, billing, support, and delivery remain connected through SONARA Nexus.",
+      productsBody: "Each company keeps its own workflows and records while identity, access, billing, support, and delivery remain connected through SONARA One.",
       flowKicker: "Designed for real operations", flowHeading: "Move from intention to evidence-backed action.",
       ctaKicker: "Start with useful work", ctaHeading: "Begin free. Add depth when the work demands it.",
       searchPlaceholder: "Search companies, pages, and actions", settingsTitle: "Experience settings", language: "Language",
@@ -29,7 +29,7 @@
       motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"
     },
     es: {
-      platform: "Nexus", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Herramientas gratis", pricing: "Precios", support: "Soporte", login: "Iniciar sesión", start: "Crear cuenta", dashboard: "Panel", settings: "Ajustes", admin: "Administración", logout: "Cerrar sesión",
       menu: "Menú", command: "Comandos", experience: "Experiencia", heroEyebrow: "Infraestructura operativa conectada",
       heroHeading: "Construye, crea y crece sin perder el control.",
@@ -43,7 +43,7 @@
       motion: "Movimiento", sound: "Sonido", haptics: "Respuesta táctil"
     },
     fr: {
-      platform: "Nexus", products: "Entreprises", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Entreprises", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Outils gratuits", pricing: "Tarifs", support: "Assistance", login: "Connexion", start: "Créer un compte", dashboard: "Tableau de bord", settings: "Réglages", admin: "Administration", logout: "Déconnexion",
       menu: "Menu", command: "Commande", experience: "Expérience", heroEyebrow: "Infrastructure opérationnelle connectée",
       heroHeading: "Construisez, créez et développez sans perdre le contrôle.",
@@ -57,7 +57,7 @@
       motion: "Animation", sound: "Retour sonore", haptics: "Retour tactile"
     },
     de: {
-      platform: "Nexus", products: "Unternehmen", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Unternehmen", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Kostenlose Tools", pricing: "Preise", support: "Support", login: "Anmelden", start: "Konto erstellen", dashboard: "Übersicht", settings: "Einstellungen", admin: "Administration", logout: "Abmelden",
       menu: "Menü", command: "Befehl", experience: "Erlebnis", heroEyebrow: "Vernetzte Betriebsinfrastruktur",
       heroHeading: "Bauen, gestalten und wachsen—ohne die Kontrolle zu verlieren.",
@@ -71,7 +71,7 @@
       motion: "Bewegung", sound: "Klangfeedback", haptics: "Haptisches Feedback"
     },
     pt: {
-      platform: "Nexus", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
+      platform: "SONARA One", products: "Empresas", businessBuilder: "Business Builder", creatorStudio: "Creator Studio", growthStudio: "Growth Studio",
       tools: "Ferramentas grátis", pricing: "Preços", support: "Suporte", login: "Entrar", start: "Criar conta", dashboard: "Painel", settings: "Configurações", admin: "Administração", logout: "Sair",
       menu: "Menu", command: "Comando", experience: "Experiência", heroEyebrow: "Infraestrutura operacional conectada",
       heroHeading: "Construa, crie e cresça sem perder o controle.",
@@ -122,12 +122,12 @@
 
   function applyPreferences() {
     root.dataset.theme = resolveTheme(preferences.theme);
-    root.dataset.nexusMotion = preferences.motion;
-    root.dataset.nexusSound = preferences.sound;
-    root.dataset.nexusHaptics = preferences.haptics;
+    root.dataset.sonaraMotion = preferences.motion;
+    root.dataset.sonaraSound = preferences.sound;
+    root.dataset.sonaraHaptics = preferences.haptics;
     translate();
-    document.querySelectorAll("[data-nexus-preference]").forEach((element) => {
-      const name = element.dataset.nexusPreference;
+    document.querySelectorAll("[data-sonara-preference]").forEach((element) => {
+      const name = element.dataset.sonaraPreference;
       if (element.type === "checkbox") element.checked = preferences[name] === "on";
       else element.value = preferences[name];
     });
@@ -142,25 +142,25 @@
   function installHeroScene() {
     if (!document.body.classList.contains("sonara-home-v3")) return;
     const hero = document.querySelector(".hero");
-    if (!hero || hero.querySelector(".nexus-hero-scene")) return;
+    if (!hero || hero.querySelector(".sonara-hero-scene")) return;
     hero.insertAdjacentHTML("beforeend", `
-      <div class="nexus-hero-scene" aria-hidden="true">
-        <div class="nexus-prism-stage" data-nexus-depth>
-          <span class="nexus-grid-plane"></span>
-          <span class="nexus-ribbon nexus-ribbon--forge"></span>
-          <span class="nexus-ribbon nexus-ribbon--canvas"></span>
-          <span class="nexus-ribbon nexus-ribbon--signal"></span>
-          <span class="nexus-core"></span>
-          <span class="nexus-label nexus-label--forge">FORGE · OPERATE</span>
-          <span class="nexus-label nexus-label--canvas">CANVAS · CREATE</span>
-          <span class="nexus-label nexus-label--signal">SIGNAL · GROW</span>
+      <div class="sonara-hero-scene" aria-hidden="true">
+        <div class="sonara-prism-stage" data-sonara-depth>
+          <span class="sonara-grid-plane"></span>
+          <span class="sonara-ribbon sonara-ribbon--forge"></span>
+          <span class="sonara-ribbon sonara-ribbon--canvas"></span>
+          <span class="sonara-ribbon sonara-ribbon--signal"></span>
+          <span class="sonara-core"></span>
+          <span class="sonara-label sonara-label--forge">FORGE · OPERATE</span>
+          <span class="sonara-label sonara-label--canvas">CANVAS · CREATE</span>
+          <span class="sonara-label sonara-label--signal">SIGNAL · GROW</span>
         </div>
       </div>`);
   }
 
   function installRevealMotion() {
-    const items = document.querySelectorAll("main>section:not(.hero),.nexus-section,.nexus-cta,.card,.nexus-product");
-    items.forEach((item) => { item.dataset.nexusReveal = ""; });
+    const items = document.querySelectorAll("main>section:not(.hero),.sonara-section,.sonara-cta,.card,.sonara-product");
+    items.forEach((item) => { item.dataset.sonaraReveal = ""; });
     if (reducedMotion || preferences.motion === "off" || !window.IntersectionObserver) {
       items.forEach((item) => item.classList.add("is-visible"));
       return;
@@ -174,7 +174,7 @@
   }
 
   function installDepth() {
-    const target = document.querySelector("[data-nexus-depth]");
+    const target = document.querySelector("[data-sonara-depth]");
     if (!target || reducedMotion || preferences.motion === "off" || window.innerWidth < 920) return;
     window.addEventListener("pointermove", (event) => {
       const x = (event.clientX / window.innerWidth - 0.5) * 7;
@@ -210,12 +210,12 @@
     window.addEventListener("pointerdown", (event) => {
       const control = event.target.closest?.("a,button,summary,input[type='submit']");
       if (!control || control.hasAttribute("disabled")) return;
-      control.classList.add("nexus-press");
-      pulse(control.hasAttribute("data-nexus-command") ? 8 : 5);
-      playTone(control.hasAttribute("data-nexus-command") ? "open" : "tap");
+      control.classList.add("sonara-press");
+      pulse(control.hasAttribute("data-sonara-command") ? 8 : 5);
+      playTone(control.hasAttribute("data-sonara-command") ? "open" : "tap");
     });
     for (const type of ["pointerup", "pointercancel", "blur"]) {
-      window.addEventListener(type, () => document.querySelectorAll(".nexus-press").forEach((element) => element.classList.remove("nexus-press")));
+      window.addEventListener(type, () => document.querySelectorAll(".sonara-press").forEach((element) => element.classList.remove("sonara-press")));
     }
   }
 
@@ -226,9 +226,9 @@
   }
 
   function installDialogs() {
-    const commandDialog = document.querySelector("#nexus-command-dialog");
-    const settingsDialog = document.querySelector("#nexus-settings-dialog");
-    const commandList = commandDialog?.querySelector(".nexus-command-list");
+    const commandDialog = document.querySelector("#sonara-command-dialog");
+    const settingsDialog = document.querySelector("#sonara-settings-dialog");
+    const commandList = commandDialog?.querySelector(".sonara-command-list");
     const commandInput = commandDialog?.querySelector("input");
     const links = [...document.querySelectorAll(".sonara-desktop-nav a, .sonara-mobile-menu nav a")]
       .filter((link, index, array) => array.findIndex((item) => item.getAttribute("href") === link.getAttribute("href")) === index);
@@ -249,8 +249,8 @@
       }, 25);
     };
 
-    document.querySelectorAll("[data-nexus-command]").forEach((button) => { button.onclick = () => open(commandDialog); });
-    document.querySelectorAll("[data-nexus-settings]").forEach((button) => { button.onclick = () => open(settingsDialog); });
+    document.querySelectorAll("[data-sonara-command]").forEach((button) => { button.onclick = () => open(commandDialog); });
+    document.querySelectorAll("[data-sonara-settings]").forEach((button) => { button.onclick = () => open(settingsDialog); });
     document.querySelectorAll("[data-dialog-close]").forEach((button) => { button.onclick = () => closeDialog(button.closest("dialog")); });
 
     for (const dialog of [commandDialog, settingsDialog]) {
@@ -277,8 +277,8 @@
   }
 
   function installSettings() {
-    document.querySelectorAll("[data-nexus-preference]").forEach((element) => element.addEventListener("change", () => {
-      const name = element.dataset.nexusPreference;
+    document.querySelectorAll("[data-sonara-preference]").forEach((element) => element.addEventListener("change", () => {
+      const name = element.dataset.sonaraPreference;
       preferences[name] = element.type === "checkbox" ? (element.checked ? "on" : "off") : element.value;
       savePreferences();
       applyPreferences();
@@ -306,18 +306,18 @@
   }
 
   function installRouteProgress() {
-    const progress = document.querySelector(".nexus-route-progress");
+    const progress = document.querySelector(".sonara-route-progress");
     document.addEventListener("click", (event) => {
       const link = event.target.closest?.("a[href]");
       if (!link || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target === "_blank") return;
       const url = new window.URL(link.href, window.location.href);
       if (url.origin !== window.location.origin || url.hash || link.hasAttribute("download")) return;
       progress?.classList.add("is-active");
-      root.classList.add("nexus-leaving");
+      root.classList.add("sonara-leaving");
     });
     window.addEventListener("pageshow", () => {
       progress?.classList.remove("is-active");
-      root.classList.remove("nexus-leaving");
+      root.classList.remove("sonara-leaving");
     });
   }
 
@@ -349,9 +349,9 @@
     installRouteProgress();
     installCurrentNavigation();
     closeMenusAfterNavigation();
-    root.classList.add("nexus-ready");
-    root.classList.remove("nexus-loading");
-    const loader = document.querySelector("#nexus-loader");
+    root.classList.add("sonara-ready");
+    root.classList.remove("sonara-loading");
+    const loader = document.querySelector("#sonara-loader");
     if (loader) {
       loader.classList.add("is-ready");
       window.setTimeout(() => { loader.hidden = true; }, reducedMotion ? 0 : 230);

@@ -13,8 +13,8 @@ describe("premium access experience", () => {
     assert.doesNotMatch(response.text, /sessions are configured/i);
     assert.doesNotMatch(response.text, /server-side authorization/i);
     assert.doesNotMatch(response.text, /service-role|webhook secret|environment variable/i);
-    assert.match(response.text, /sonara-application-ui\.css\?v=nexus-ui-20260721-v4/);
-    assert.match(response.text, /sonara-nexus\.js\?v=nexus-ui-20260721-v4/);
+    assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
+    assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260721-v4/);
   });
 
   it("protects product workspaces and founder routes when no valid session exists", async () => {
@@ -46,10 +46,10 @@ describe("premium access experience", () => {
     assert.match(response.headers["content-security-policy"], /fonts\.googleapis\.com/);
   });
 
-  it("serves the lightweight Nexus experience assets", async () => {
+  it("serves the lightweight SONARA One experience assets", async () => {
     const [styles, engine] = await Promise.all([
       request(app).get("/sonara-application-ui.css"),
-      request(app).get("/sonara-nexus.js")
+      request(app).get("/sonara-one.js")
     ]);
     assert.equal(styles.status, 200);
     assert.equal(engine.status, 200);
