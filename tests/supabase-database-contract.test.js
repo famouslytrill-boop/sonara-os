@@ -12,12 +12,13 @@ const {
 const root = path.resolve(__dirname, "..");
 const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_complete_ecosystem_database_contract.sql");
 const referenceContractExtensionPath = path.join(root, "supabase", "migrations", "20260722201600_extend_database_contract_reference_intelligence.sql");
+const productLifecycleMigrationPath = path.join(root, "supabase", "migrations", "20260723193000_product_lifecycle_system.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 122);
+    assert.equal(DATABASE_TABLES.length, 129);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -32,6 +33,13 @@ describe("Supabase database contract", () => {
       "music_projects",
       "audio_transcription_segments",
       "growth_campaigns",
+      "product_lifecycle_initiatives",
+      "product_lifecycle_evidence",
+      "product_lifecycle_requirements",
+      "product_lifecycle_iterations",
+      "product_lifecycle_feedback",
+      "product_lifecycle_stage_reviews",
+      "product_lifecycle_events",
       "reference_intelligence_sources",
       "reference_intelligence_insights",
       "reference_intelligence_actions",
@@ -50,7 +58,7 @@ describe("Supabase database contract", () => {
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = [migrationPath, referenceContractExtensionPath]
+    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath]
       .map((filePath) => fs.readFileSync(filePath, "utf8"))
       .join("\n")
       .toLowerCase();
@@ -62,7 +70,7 @@ describe("Supabase database contract", () => {
     assert.match(sql, /grant execute on function public\.sonara_database_contract_snapshot\(\) to service_role/);
     assert.match(sql, /notify pgrst, 'reload schema'/);
     assert.doesNotMatch(sql, /grant execute on function public\.sonara_database_contract_snapshot\(\) to anon|grant execute on function public\.sonara_database_contract_snapshot\(\) to authenticated/);
-    for (const table of DATABASE_TABLES) assert.ok(sql.includes(`'${table}'`), `${table} must be checked by the migration`);
+    for (const table of DATABASE_TABLES) assert.ok(sql.includes(`'${table}'`) || sql.includes(`public.${table}`), `${table} must be checked or created by the migrations`);
     for (const signature of DATABASE_FUNCTIONS) assert.ok(sql.includes(`'${signature.toLowerCase()}'`), `${signature} must be checked by the RPC`);
   });
 

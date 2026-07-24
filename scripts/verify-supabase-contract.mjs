@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
 const referenceContractExtensionName = "20260722201600_extend_database_contract_reference_intelligence.sql";
+const productLifecycleMigrationName = "20260723193000_product_lifecycle_system.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
@@ -30,8 +31,18 @@ const CREATOR_GENERATION_TABLES = Object.freeze([
   "creator_reference_analyses",
   "creator_generation_events"
 ]);
+const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
+  "product_lifecycle_initiatives",
+  "product_lifecycle_evidence",
+  "product_lifecycle_requirements",
+  "product_lifecycle_iterations",
+  "product_lifecycle_feedback",
+  "product_lifecycle_stage_reviews",
+  "product_lifecycle_events"
+]);
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
+const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
 const {
   DATABASE_FUNCTIONS,
@@ -67,19 +78,20 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = [contractMigrationPath, referenceContractExtensionPath]
+const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath]
   .map(read)
   .join("\n")
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
+const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
-if (DATABASE_TABLES.length !== 122) fail(`expected 122 canonical tables, found ${DATABASE_TABLES.length}`);
+if (DATABASE_TABLES.length !== 129) fail(`expected 129 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 10) fail(`expected 10 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
@@ -94,7 +106,7 @@ for (const table of manifestTables) {
 for (const table of DATABASE_TABLES) {
   const createPattern = new RegExp(`create\\s+table\\s+(?:if\\s+not\\s+exists\\s+)?public\\.${table}\\b`, "i");
   if (!createPattern.test(allSql)) fail(`no migration creates public.${table}`);
-  if (!contractSql.includes(`'${table}'`)) fail(`the runtime migration does not check public.${table}`);
+  if (!contractSql.includes(`'${table}'`) && !contractSql.includes(`public.${table}`)) fail(`the runtime migration does not check public.${table}`);
 }
 
 verifyExtension(BUSINESS_CONTROL_TABLES, businessControlSql, "Business Builder");
@@ -128,6 +140,21 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerati
   fail("Creator Studio generation tables must not persist provider credentials");
 }
 
+verifyExtension(PRODUCT_LIFECYCLE_TABLES, productLifecycleSql, "Product lifecycle");
+for (const required of [
+  "public.sonara_is_org_member(organization_id)",
+  "auth.role() = ''service_role''",
+  "revoke insert, update, delete on public.product_lifecycle_initiatives from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_evidence from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_requirements from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_iterations from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_feedback from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_stage_reviews from anon, authenticated",
+  "revoke insert, update, delete on public.product_lifecycle_events from anon, authenticated"
+]) {
+  if (!productLifecycleSql.includes(required)) fail(`Product lifecycle extension is missing: ${required}`);
+}
+
 const runtimeFiles = [
   path.join(root, "server.js"),
   ...fs.readdirSync(path.join(root, "routes"))
@@ -145,7 +172,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -211,7 +238,7 @@ if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
 }
 

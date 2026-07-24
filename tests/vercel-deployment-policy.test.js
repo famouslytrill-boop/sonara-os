@@ -3,15 +3,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 describe('Vercel deployment policy', () => {
-  const configPath = path.join(__dirname, '..', 'vercel.json');
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  const root = path.join(__dirname, '..');
+  const config = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'controlled-production-deploy.yml'), 'utf8');
 
-  it('allows automatic production deployments from main', () => {
-    assert.equal(config.git?.deploymentEnabled?.main, true);
+  it('disables every automatic Git deployment', () => {
+    assert.equal(config.git?.deploymentEnabled, false);
   });
 
-  it('disables automatic deployments from every other branch', () => {
-    assert.equal(config.git?.deploymentEnabled?.['*'], false);
+  it('deploys only through the validated main-branch production workflow', () => {
+    assert.match(workflow, /branches:\s*\[main\]/);
+    assert.match(workflow, /pnpm run verify:all/);
+    assert.match(workflow, /supabase db push --linked --include-all/);
+    assert.match(workflow, /vercel@latest deploy --prod/);
+    assert.match(workflow, /githubCommitSha=\"\$GITHUB_SHA\"/);
   });
 
   it('does not use an ignored build step as a quota workaround', () => {
