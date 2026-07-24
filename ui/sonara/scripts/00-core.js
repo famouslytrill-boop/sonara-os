@@ -18,9 +18,9 @@
       tools: "Free tools", pricing: "Pricing", support: "Support", login: "Log in", start: "Start Free",
       menu: "Menu", command: "Command", experience: "Experience", heroEyebrow: "Launch operating system",
       heroHeading: "Make work move.", heroBody: "Business Builder, Creator Studio, and Growth Studio connect through one fast operating layer for founders, creators, and small teams.",
-      primaryAction: "Enter SONARA Nexus", secondaryAction: "Explore free tools", tertiaryAction: "See plans",
+      primaryAction: "Enter SONARA One", secondaryAction: "Explore free tools", tertiaryAction: "See plans",
       productsKicker: "Three connected companies", productsHeading: "One operating layer. Three focused workspaces.",
-      productsBody: "Business Builder, Creator Studio, and Growth Studio keep their own tools and records while identity, billing, support, and delivery stay connected through SONARA Nexus.",
+      productsBody: "Business Builder, Creator Studio, and Growth Studio keep their own tools and records while identity, billing, support, and delivery stay connected through SONARA One.",
       flowKicker: "Designed for momentum", flowHeading: "From intent to outcome without losing context.",
       ctaKicker: "Start with the next useful action", ctaHeading: "Build something real before adding complexity.",
       searchPlaceholder: "Search pages and actions", settingsTitle: "Experience settings", language: "Language",
@@ -32,7 +32,7 @@
       tools: "Herramientas gratis", pricing: "Precios", support: "Soporte", login: "Iniciar sesión", start: "Comenzar gratis",
       menu: "Menú", command: "Comandos", experience: "Experiencia", heroEyebrow: "Sistema operativo de lanzamiento",
       heroHeading: "Haz que el trabajo avance.", heroBody: "Business Builder, Creator Studio y Growth Studio se conectan mediante una capa operativa rápida.",
-      primaryAction: "Entrar a SONARA Nexus", secondaryAction: "Explorar herramientas gratis", tertiaryAction: "Ver planes",
+      primaryAction: "Entrar a SONARA One", secondaryAction: "Explorar herramientas gratis", tertiaryAction: "Ver planes",
       productsKicker: "Tres empresas conectadas", productsHeading: "Una capa operativa. Tres espacios enfocados.",
       productsBody: "Cada empresa conserva sus herramientas y registros mientras identidad, facturación, soporte y entrega permanecen conectados.",
       flowKicker: "Diseñado para el impulso", flowHeading: "De la intención al resultado sin perder el contexto.",
@@ -46,7 +46,7 @@
       tools: "Outils gratuits", pricing: "Tarifs", support: "Assistance", login: "Connexion", start: "Commencer gratuitement",
       menu: "Menu", command: "Commande", experience: "Expérience", heroEyebrow: "Système d’exploitation de lancement",
       heroHeading: "Faites avancer le travail.", heroBody: "Business Builder, Creator Studio et Growth Studio se connectent dans une couche opérationnelle rapide.",
-      primaryAction: "Entrer dans SONARA Nexus", secondaryAction: "Explorer les outils", tertiaryAction: "Voir les offres",
+      primaryAction: "Entrer dans SONARA One", secondaryAction: "Explorer les outils", tertiaryAction: "Voir les offres",
       productsKicker: "Trois entreprises connectées", productsHeading: "Une couche opérationnelle. Trois espaces spécialisés.",
       productsBody: "Chaque entreprise conserve ses outils et ses données tandis que l’identité, la facturation, l’assistance et la livraison restent connectées.",
       flowKicker: "Conçu pour l’élan", flowHeading: "De l’intention au résultat sans perdre le contexte.",
@@ -60,7 +60,7 @@
       tools: "Kostenlose Tools", pricing: "Preise", support: "Support", login: "Anmelden", start: "Kostenlos starten",
       menu: "Menü", command: "Befehl", experience: "Erlebnis", heroEyebrow: "Launch-Betriebssystem",
       heroHeading: "Arbeit in Bewegung bringen.", heroBody: "Business Builder, Creator Studio und Growth Studio sind über eine schnelle Betriebsebene verbunden.",
-      primaryAction: "SONARA Nexus öffnen", secondaryAction: "Tools erkunden", tertiaryAction: "Pläne ansehen",
+      primaryAction: "SONARA One öffnen", secondaryAction: "Tools erkunden", tertiaryAction: "Pläne ansehen",
       productsKicker: "Drei verbundene Unternehmen", productsHeading: "Eine Betriebsebene. Drei fokussierte Arbeitsbereiche.",
       productsBody: "Jedes Unternehmen behält seine Werkzeuge und Daten, während Identität, Abrechnung, Support und Lieferung verbunden bleiben.",
       flowKicker: "Für Dynamik entwickelt", flowHeading: "Von der Absicht zum Ergebnis ohne Kontextverlust.",
@@ -98,12 +98,12 @@
 
   function applyPreferences() {
     root.dataset.theme = resolveTheme(preferences.theme);
-    root.dataset.nexusMotion = preferences.motion;
-    root.dataset.nexusSound = preferences.sound;
-    root.dataset.nexusHaptics = preferences.haptics;
+    root.dataset.sonaraMotion = preferences.motion;
+    root.dataset.sonaraSound = preferences.sound;
+    root.dataset.sonaraHaptics = preferences.haptics;
     translate();
-    document.querySelectorAll("[data-nexus-preference]").forEach((element) => {
-      const name = element.dataset.nexusPreference;
+    document.querySelectorAll("[data-sonara-preference]").forEach((element) => {
+      const name = element.dataset.sonaraPreference;
       if (element.type === "checkbox") element.checked = preferences[name] === "on";
       else element.value = preferences[name];
     });
@@ -112,13 +112,13 @@
   function installHero() {
     if (!document.body.classList.contains("sonara-home-v3")) return;
     const stage = document.querySelector(".hero");
-    if (!stage || stage.querySelector(".nexus-hero-visual")) return;
-    stage.insertAdjacentHTML("beforeend", `<div class="nexus-hero-visual" aria-hidden="true"><div class="nexus-orbit" data-nexus-parallax><span class="nexus-ring"></span><span class="nexus-ring"></span><span class="nexus-ring"></span><span class="nexus-node nexus-node--forge"></span><span class="nexus-node nexus-node--canvas"></span><span class="nexus-node nexus-node--signal"></span><span class="nexus-orbit-label nexus-orbit-label--forge">Forge mode</span><span class="nexus-orbit-label nexus-orbit-label--canvas">Canvas mode</span><span class="nexus-orbit-label nexus-orbit-label--signal">Signal mode</span><span class="nexus-orbit-floor"></span></div></div>`);
+    if (!stage || stage.querySelector(".sonara-hero-visual")) return;
+    stage.insertAdjacentHTML("beforeend", `<div class="sonara-hero-visual" aria-hidden="true"><div class="sonara-orbit" data-sonara-parallax><span class="sonara-ring"></span><span class="sonara-ring"></span><span class="sonara-ring"></span><span class="sonara-node sonara-node--forge"></span><span class="sonara-node sonara-node--canvas"></span><span class="sonara-node sonara-node--signal"></span><span class="sonara-orbit-label sonara-orbit-label--forge">Forge mode</span><span class="sonara-orbit-label sonara-orbit-label--canvas">Canvas mode</span><span class="sonara-orbit-label sonara-orbit-label--signal">Signal mode</span><span class="sonara-orbit-floor"></span></div></div>`);
   }
 
   function installRevealMotion() {
-    const items = document.querySelectorAll("main>section:not(.hero),.nexus-section,.card,.nexus-product");
-    items.forEach((item) => { item.dataset.nexusReveal = ""; });
+    const items = document.querySelectorAll("main>section:not(.hero),.sonara-section,.card,.sonara-product");
+    items.forEach((item) => { item.dataset.sonaraReveal = ""; });
     if (reducedMotion || preferences.motion === "off" || !window.IntersectionObserver) {
       items.forEach((item) => item.classList.add("is-visible"));
       return;
@@ -132,7 +132,7 @@
   }
 
   function installParallax() {
-    const target = document.querySelector("[data-nexus-parallax]");
+    const target = document.querySelector("[data-sonara-parallax]");
     if (!target || reducedMotion || preferences.motion === "off" || window.innerWidth < 920) return;
     window.addEventListener("pointermove", (event) => {
       const x = (event.clientX / window.innerWidth - 0.5) * 8;
@@ -162,19 +162,19 @@
     window.addEventListener("pointerdown", (event) => {
       const control = event.target.closest?.("a,button,summary");
       if (!control) return;
-      control.classList.add("nexus-press");
+      control.classList.add("sonara-press");
       if (preferences.haptics === "on" && window.navigator.vibrate) window.navigator.vibrate(7);
-      playTone(control.hasAttribute("data-nexus-command") ? "open" : "tap");
+      playTone(control.hasAttribute("data-sonara-command") ? "open" : "tap");
     });
     window.addEventListener("pointerup", () => {
-      document.querySelectorAll(".nexus-press").forEach((element) => element.classList.remove("nexus-press"));
+      document.querySelectorAll(".sonara-press").forEach((element) => element.classList.remove("sonara-press"));
     });
   }
 
   function installDialogs() {
-    const commandDialog = document.querySelector("#nexus-command-dialog");
-    const settingsDialog = document.querySelector("#nexus-settings-dialog");
-    const commandList = commandDialog?.querySelector(".nexus-command-list");
+    const commandDialog = document.querySelector("#sonara-command-dialog");
+    const settingsDialog = document.querySelector("#sonara-settings-dialog");
+    const commandList = commandDialog?.querySelector(".sonara-command-list");
     const commandInput = commandDialog?.querySelector("input");
     const links = [...document.querySelectorAll(".sonara-desktop-nav a")];
 
@@ -189,8 +189,8 @@
       }, 30);
     };
 
-    document.querySelectorAll("[data-nexus-command]").forEach((button) => { button.onclick = () => open(commandDialog); });
-    document.querySelectorAll("[data-nexus-settings]").forEach((button) => { button.onclick = () => open(settingsDialog); });
+    document.querySelectorAll("[data-sonara-command]").forEach((button) => { button.onclick = () => open(commandDialog); });
+    document.querySelectorAll("[data-sonara-settings]").forEach((button) => { button.onclick = () => open(settingsDialog); });
     document.querySelectorAll("[data-dialog-close]").forEach((button) => { button.onclick = () => button.closest("dialog")?.close(); });
     commandInput?.addEventListener("input", () => {
       commandList?.querySelectorAll("li").forEach((item) => {
@@ -206,8 +206,8 @@
   }
 
   function installSettings() {
-    document.querySelectorAll("[data-nexus-preference]").forEach((element) => element.addEventListener("change", () => {
-      const name = element.dataset.nexusPreference;
+    document.querySelectorAll("[data-sonara-preference]").forEach((element) => element.addEventListener("change", () => {
+      const name = element.dataset.sonaraPreference;
       preferences[name] = element.type === "checkbox" ? (element.checked ? "on" : "off") : element.value;
       try { window.localStorage.setItem(preferenceKey, JSON.stringify(preferences)); } catch {}
       applyPreferences();
@@ -215,7 +215,7 @@
   }
 
   function installRouteProgress() {
-    const progress = document.querySelector(".nexus-route-progress");
+    const progress = document.querySelector(".sonara-route-progress");
     document.addEventListener("click", (event) => {
       const link = event.target.closest?.("a[href]");
       if (!link || event.metaKey || event.ctrlKey) return;
@@ -234,9 +234,9 @@
     installSettings();
     installTactileFeedback();
     installRouteProgress();
-    root.classList.add("nexus-ready");
-    root.classList.remove("nexus-loading");
-    const loader = document.querySelector("#nexus-loader");
+    root.classList.add("sonara-ready");
+    root.classList.remove("sonara-loading");
+    const loader = document.querySelector("#sonara-loader");
     if (loader) window.setTimeout(() => { loader.hidden = true; }, 320);
   }
 

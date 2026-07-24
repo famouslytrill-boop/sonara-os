@@ -11,7 +11,7 @@ const LEGACY_ASSET_PATTERN = /sonara-(?:brand-system|friendly-premium|interface-
 const countMatches = (value, pattern) => (value.match(pattern) || []).length;
 
 describe("canonical responsive application interface", () => {
-  it("keeps the parent, approved companies, Nexus modes, routes, and prices in one registry", () => {
+  it("keeps the parent, approved companies, SONARA One modes, routes, and prices in one registry", () => {
     assert.equal(SONARA_BRAND_REGISTRY.parent.name, "SONARA Industries");
     assert.equal(SONARA_BRAND_REGISTRY.parent.platform, "SONARA One");
     assert.equal(SONARA_BRAND_REGISTRY.parent.message, "Build, create, and grow—without losing control.");
@@ -20,10 +20,10 @@ describe("canonical responsive application interface", () => {
     assert.deepEqual(SONARA_BRAND_REGISTRY.plans.map((plan) => plan.price), ["$0", "$7/mo", "$19/mo", "$39/mo"]);
   });
 
-  it("renders one clean Nexus homepage without retired visual systems", async () => {
+  it("renders one clean SONARA One homepage without retired visual systems", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=nexus-ui-20260721-v4/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
     assert.equal(countMatches(res.text, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(res.text, LEGACY_ASSET_PATTERN);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
@@ -42,11 +42,11 @@ describe("canonical responsive application interface", () => {
     assert.match(res.headers["cache-control"] || "", /no-store/);
   });
 
-  it("serves the Nexus interface assets and original brand family", async () => {
+  it("serves the SONARA One interface assets and original brand family", async () => {
     for (const asset of [
       "/sonara-application-ui.css",
       "/sonara-prepaint.js",
-      "/sonara-nexus.js",
+      "/sonara-one.js",
       "/brand/sonara-industries-mark.svg",
       "/brand/business-builder-mark.svg",
       "/brand/creator-studio-mark.svg",
@@ -69,11 +69,11 @@ describe("canonical responsive application interface", () => {
     assert.match(styles, /prefers-reduced-motion/);
   });
 
-  it("applies the Nexus runtime patch idempotently", () => {
-    const temp = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-nexus-ui-"));
+  it("applies the SONARA One runtime patch idempotently", () => {
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-sonara-ui-"));
     fs.mkdirSync(path.join(temp, "scripts"), { recursive: true });
     fs.mkdirSync(path.join(temp, "public"), { recursive: true });
-    fs.cpSync(path.join(__dirname, "..", "ui", "nexus"), path.join(temp, "ui", "nexus"), { recursive: true });
+    fs.cpSync(path.join(__dirname, "..", "ui", "sonara"), path.join(temp, "ui", "sonara"), { recursive: true });
     const sample = `const path = require("node:path");\nconst app = { use() {} };\napp.use(express.static(path.join(__dirname, "public")));\n\napp.get("/", (req, res) => {\n  return res.status(200).type("html").send(layout({ title: "Old", sections: [] }));\n});\n\nregisterProduct("business-builder", {});\n\nfunction layout({ variant = "standard" }) { const brandClass = "sonara-platform"; return \`<!doctype html>\n<html><head>\n<style>header{border-radius:30px}</style>\n<link rel="stylesheet" href="/sonara-builder-2027.css?v=old">\n<script defer src="/sonara-builder-2027.js?v=old"></script>\n  </head><body class="\${escapeHtml(brandClass)} \${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">\n<header><a class="brand" href="/">Old</a></header>\n<main><section class="hero" data-sonara-interface="live">\${variant === "home" ? \`<aside class="sonara-interface-face">Old device</aside>\` : ""}</section></main>\n<nav class="sonara-quick-bar" aria-label="Quick actions"><a href="/dashboard">Dashboard</a></nav>\n</body></html>\`; }\n`;
     fs.writeFileSync(path.join(temp, "server.js"), sample);
     fs.copyFileSync(path.join(__dirname, "..", "scripts", "apply-premium-ui-final.cjs"), path.join(temp, "scripts", "apply-premium-ui-final.cjs"));
@@ -84,7 +84,7 @@ describe("canonical responsive application interface", () => {
     const second = fs.readFileSync(path.join(temp, "server.js"), "utf8");
     assert.equal(second, first);
     assert.equal(countMatches(second, /sonara-application-ui\.css/g), 1);
-    assert.equal(countMatches(second, /sonara-nexus\.js/g), 1);
+    assert.equal(countMatches(second, /sonara-one\.js/g), 1);
     assert.doesNotMatch(second, LEGACY_ASSET_PATTERN);
     assert.doesNotMatch(second, /<style[\s>]/i);
     assert.match(second, /sonara-mobile-menu/);

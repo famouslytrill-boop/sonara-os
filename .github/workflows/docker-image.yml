@@ -54,12 +54,12 @@ jobs:
           curl --fail --silent --show-error http://127.0.0.1:3000/ > /tmp/sonara-home.html
           grep --quiet 'sonara-application-ui.css' /tmp/sonara-home.html
           grep --quiet 'sonara-prepaint.js' /tmp/sonara-home.html
-          grep --quiet 'sonara-nexus.js' /tmp/sonara-home.html
+          grep --quiet 'sonara-one.js' /tmp/sonara-home.html
           grep --quiet 'data-sonara-interface="live"' /tmp/sonara-home.html
 
           curl --fail --silent --show-error http://127.0.0.1:3000/sonara-application-ui.css > /dev/null
           curl --fail --silent --show-error http://127.0.0.1:3000/sonara-prepaint.js > /dev/null
-          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-nexus.js > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:3000/sonara-one.js > /dev/null
           curl --fail --silent --show-error http://127.0.0.1:3000/api/ecosystem/readiness > /tmp/ecosystem-readiness.json
           curl --fail --silent --show-error http://127.0.0.1:3000/api/formulas/readiness > /tmp/formula-readiness.json
           grep --quiet '"mode":"static"' /tmp/ecosystem-readiness.json

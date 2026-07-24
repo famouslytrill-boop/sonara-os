@@ -1,17 +1,17 @@
-name: Nexus Validation
+name: SONARA One Validation
 
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [feat/nexus-experience-engine]
+    branches: [feat/sonara-experience-engine]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: nexus-${{ github.ref }}
+  group: sonara-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -39,9 +39,9 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm run apply:runtime > /tmp/nexus-runtime.log 2>&1
+          pnpm run apply:runtime > /tmp/sonara-runtime.log 2>&1
           status=$?
-          cat /tmp/nexus-runtime.log
+          cat /tmp/sonara-runtime.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
 
@@ -49,8 +49,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-runtime-diagnostics-${{ github.run_id }}
-          path: /tmp/nexus-runtime.log
+          name: sonara-runtime-diagnostics-${{ github.run_id }}
+          path: /tmp/sonara-runtime.log
           if-no-files-found: ignore
           retention-days: 3
 
@@ -59,7 +59,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/nexus-tests.log 2>&1
+          pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/sonara-tests.log 2>&1
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
@@ -68,8 +68,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-test-diagnostics-${{ github.run_id }}
-          path: /tmp/nexus-tests.log
+          name: sonara-test-diagnostics-${{ github.run_id }}
+          path: /tmp/sonara-tests.log
           if-no-files-found: ignore
           retention-days: 3
 
@@ -81,7 +81,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm run lint > /tmp/nexus-lint.log 2>&1
+          pnpm run lint > /tmp/sonara-lint.log 2>&1
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
@@ -90,8 +90,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-lint-diagnostics-${{ github.run_id }}
-          path: /tmp/nexus-lint.log
+          name: sonara-lint-diagnostics-${{ github.run_id }}
+          path: /tmp/sonara-lint.log
           if-no-files-found: ignore
           retention-days: 3
 

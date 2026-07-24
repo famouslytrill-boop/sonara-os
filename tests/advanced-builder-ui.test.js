@@ -27,13 +27,13 @@ describe("application-wide route presentation", () => {
     assert.match(runtime, /apply:premium-ui-final/);
   });
 
-  it("uses the same Nexus application frame on public and product routes", async () => {
+  it("uses the same SONARA One application frame on public and product routes", async () => {
     for (const route of ["/", "/business-builder", "/creator-studio", "/growth-studio", "/login", "/pricing", "/support"]) {
       const response = await request(app).get(route).set("Accept", "text/html");
       assert.equal(response.status, 200, `${route} unavailable`);
-      assert.match(response.text, /sonara-application-ui\.css\?v=nexus-ui-20260721-v4/);
-      assert.match(response.text, /sonara-prepaint\.js\?v=nexus-ui-20260721-v4/);
-      assert.match(response.text, /sonara-nexus\.js\?v=nexus-ui-20260721-v4/);
+      assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
+      assert.match(response.text, /sonara-prepaint\.js\?v=sonara-ui-20260721-v4/);
+      assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260721-v4/);
       assert.doesNotMatch(response.text, /<style[\s>]/i);
       assert.doesNotMatch(response.text, /<script(?![^>]+src=)[^>]*>/i);
       assert.match(response.text, /class="sonara-site-header"/);

@@ -233,8 +233,8 @@ Balanced Precision:
 
 ## Technical implementation mapping
 
-- `ui/nexus/styles/99-sonara-cinematic-system.css` is the canonical visual source.
-- `ui/nexus/scripts/99-sonara-cinematic-system.js` is the canonical progressive-enhancement source.
+- `ui/sonara/styles/99-sonara-cinematic-system.css` is the canonical visual source.
+- `ui/sonara/scripts/99-sonara-cinematic-system.js` is the canonical progressive-enhancement source.
 - `scripts/apply-premium-ui-final.cjs` assembles only canonical `99-` modules when present.
 - `public/sonara-application-ui.css` and `public/sonara-nexus.js` are generated outputs.
 - `public/brand/` contains original Prism assets.

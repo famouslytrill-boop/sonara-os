@@ -269,7 +269,7 @@ function renderSummary(snapshot, brandCard) {
   };
 
   const state = snapshot?.migrations?.synchronized ? "synchronized" : "review required";
-  return `<section class="nexus-product-grid" aria-label="Database summary">
+  return `<section class="sonara-product-grid" aria-label="Database summary">
     ${brandCard("Schemas", String(counts.schemas))}
     ${brandCard("Tables and views", String(counts.tables))}
     ${brandCard("Functions", String(counts.functions))}
@@ -311,7 +311,7 @@ function renderGraph(graph, escapeHtml) {
     ? `<p>Showing ${MAX_RENDERED_ROWS} of ${nodes.length} nodes. Use the JSON endpoint for the complete graph.</p>`
     : `<p>${nodes.length} nodes and ${edges.length} foreign-key relationships.</p>`;
 
-  return `<section aria-labelledby="database-schema-graph"><h2 id="database-schema-graph">Schema Visualizer</h2>${note}<div class="nexus-product-grid">${rendered || "<p>No schema graph nodes returned.</p>"}</div></section>`;
+  return `<section aria-labelledby="database-schema-graph"><h2 id="database-schema-graph">Schema Visualizer</h2>${note}<div class="sonara-product-grid">${rendered || "<p>No schema graph nodes returned.</p>"}</div></section>`;
 }
 
 function renderList(label, rows, escapeHtml) {
@@ -323,7 +323,7 @@ function renderList(label, rows, escapeHtml) {
   const note = list.length > MAX_RENDERED_ROWS
     ? `<p>Showing ${MAX_RENDERED_ROWS} of ${list.length} records. Use the JSON endpoint for the complete result.</p>`
     : `<p>${list.length} records returned.</p>`;
-  return `<section><h2>${escapeHtml(label)}</h2>${note}<div class="nexus-product-grid">${rendered || "<p>No records returned.</p>"}</div></section>`;
+  return `<section><h2>${escapeHtml(label)}</h2>${note}<div class="sonara-product-grid">${rendered || "<p>No records returned.</p>"}</div></section>`;
 }
 
 function renderObject(label, value, escapeHtml) {
@@ -337,7 +337,7 @@ function renderObject(label, value, escapeHtml) {
     }
     return `<article class="card"><h3>${escapeHtml(displayKey(key))}</h3><p>${escapeHtml(formatValue(item))}</p></article>`;
   }).join("");
-  return `<section><h2>${escapeHtml(label)}</h2><div class="nexus-product-grid">${rendered || "<p>No metadata returned.</p>"}</div></section>`;
+  return `<section><h2>${escapeHtml(label)}</h2><div class="sonara-product-grid">${rendered || "<p>No metadata returned.</p>"}</div></section>`;
 }
 
 function renderKeyValues(record, escapeHtml) {

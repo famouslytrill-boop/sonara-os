@@ -76,7 +76,7 @@ describe("premium application rebuild", () => {
     });
   });
 
-  describe("Nexus application frame", () => {
+  describe("SONARA One application frame", () => {
     it("homepage tells the company story in plain outcome language", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
       assert.equal(res.status, 200);
@@ -95,15 +95,15 @@ describe("premium application rebuild", () => {
 
     it("header exposes command navigation and experience preferences", async function() {
       const res = await request(app).get("/").set("Accept", "text/html");
-      assert.match(res.text, /data-nexus-command/);
-      assert.match(res.text, /data-nexus-settings/);
-      assert.match(res.text, /id="nexus-command-dialog"/);
-      assert.match(res.text, /id="nexus-settings-dialog"/);
+      assert.match(res.text, /data-sonara-command/);
+      assert.match(res.text, /data-sonara-settings/);
+      assert.match(res.text, /id="sonara-command-dialog"/);
+      assert.match(res.text, /id="sonara-settings-dialog"/);
     });
 
     it("experience engine ships command navigation, haptics, localization, and safety guards", function() {
-      const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-nexus.js"), "utf8");
-      assert.match(engine, /nexus-command-dialog/);
+      const engine = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-one.js"), "utf8");
+      assert.match(engine, /sonara-command-dialog/);
       assert.match(engine, /navigator\.vibrate/);
       assert.match(engine, /localStorage/);
       assert.match(engine, /prefers-reduced-motion/);
@@ -127,7 +127,7 @@ describe("premium application rebuild", () => {
       }
     });
 
-    it("canonical Nexus design tokens exist in the application stylesheet", function() {
+    it("canonical SONARA One design tokens exist in the application stylesheet", function() {
       const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-application-ui.css"), "utf8");
       assert.match(styles, /--nx-bg:/);
       assert.match(styles, /--nx-ease:/);
