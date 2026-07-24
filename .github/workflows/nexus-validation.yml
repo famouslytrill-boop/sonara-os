@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -35,7 +35,24 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate final runtime
-        run: pnpm run apply:runtime
+        id: runtime
+        shell: bash
+        run: |
+          set +e
+          pnpm run apply:runtime > /tmp/nexus-runtime.log 2>&1
+          status=$?
+          cat /tmp/nexus-runtime.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit $status
+
+      - name: Upload runtime diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-runtime-diagnostics-${{ github.run_id }}
+          path: /tmp/nexus-runtime.log
+          if-no-files-found: ignore
+          retention-days: 3
 
       - name: Run full test suite
         id: tests
@@ -51,9 +68,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-test-diagnostics
+          name: nexus-test-diagnostics-${{ github.run_id }}
           path: /tmp/nexus-tests.log
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 3
 
       - name: Verify server build
@@ -73,9 +90,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nexus-lint-diagnostics
+          name: nexus-lint-diagnostics-${{ github.run_id }}
           path: /tmp/nexus-lint.log
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 3
 
       - name: Scan client bundle for secrets
