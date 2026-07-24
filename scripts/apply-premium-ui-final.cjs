@@ -55,7 +55,7 @@ const accountMenu = `<details class="nexus-account-menu">
       </details>`;
 
 const header = `<header class="sonara-site-header">
-      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="40" height="40"><span class="nexus-brand-copy"><strong>SONARA Industries</strong><small>Nexus</small></span></a>
+      <a class="brand" href="/" aria-label="SONARA Industries home"><img class="sonara-brand-mark" src="/brand/sonara-industries-mark.svg" alt="" width="40" height="40"><span class="nexus-brand-copy"><strong>SONARA Industries</strong><small>SONARA One</small></span></a>
       <nav class="sonara-desktop-nav" aria-label="Primary">${nav}
       </nav>
       <div class="nexus-header-tools">
@@ -72,7 +72,7 @@ const header = `<header class="sonara-site-header">
 
 const homeContent = `<div class="nexus-home">
   <section class="nexus-section">
-    <div class="nexus-section-head"><div><span class="nexus-kicker" data-i18n="productsKicker">Three connected companies</span><h2 data-i18n="productsHeading">One system. Three focused ways to move.</h2></div><p data-i18n="productsBody">Choose the workspace that matches the work. SONARA Nexus keeps the account, evidence, and next action connected.</p></div>
+    <div class="nexus-section-head"><div><span class="nexus-kicker" data-i18n="productsKicker">Three connected companies</span><h2 data-i18n="productsHeading">One system. Three focused ways to move.</h2></div><p data-i18n="productsBody">Choose the workspace that matches the work. SONARA One keeps the account, evidence, and next action connected.</p></div>
     <div class="nexus-product-grid">
       <article class="nexus-product nexus-product--forge"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/business-builder-mark.svg" alt=""><span class="nexus-product-index">FORGE · OPERATE</span></div><h3>Business Builder</h3><p>Launch offers, organize customers, manage staff, inventory, menus, payments, locations, and daily operations.</p><a href="/business-builder/dashboard">Open Business Builder</a></article>
       <article class="nexus-product nexus-product--canvas"><div class="nexus-product-meta"><img class="nexus-product-mark" src="/brand/creator-studio-mark.svg" alt=""><span class="nexus-product-index">CANVAS · CREATE</span></div><h3>Creator Studio</h3><p>Develop artist systems, songs, prompt packs, assets, releases, media, rights checks, and export packages.</p><a href="/creator-studio/dashboard">Open Creator Studio</a></article>
@@ -81,7 +81,7 @@ const homeContent = `<div class="nexus-home">
   </section>
 
   <section class="nexus-section nexus-flow">
-    <div><span class="nexus-kicker" data-i18n="flowKicker">Designed for real operations</span><h2 data-i18n="flowHeading">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class="card-actions"><a class="action" href="/start">See how Nexus works</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/readiness">Readiness</a><a class="action" href="/requests">Requests</a><a class="action" href="/deliverables">Deliverables</a></div></div>
+    <div><span class="nexus-kicker" data-i18n="flowKicker">Designed for real operations</span><h2 data-i18n="flowHeading">Move from intention to evidence-backed action.</h2><p>SONARA is Software-in-a-Service built around identity, organization access, saved records, billing, requests, delivery, and support—without inventing activity or hiding setup requirements.</p><div class="card-actions"><a class="action" href="/start">See how SONARA One works</a><a class="action" href="/service-catalog">Service catalog</a><a class="action" href="/readiness">Readiness</a><a class="action" href="/requests">Requests</a><a class="action" href="/deliverables">Deliverables</a></div></div>
     <div class="nexus-flow-list"><div class="nexus-flow-step"><strong>Choose the outcome</strong><small>Enter the company that matches the work.</small></div><div class="nexus-flow-step"><strong>Complete one clear action</strong><small>Focused screens replace overloaded dashboards.</small></div><div class="nexus-flow-step"><strong>Confirm the real state</strong><small>Ready, setup required, permission required, or review required.</small></div><div class="nexus-flow-step"><strong>Return without rebuilding context</strong><small>Records, activity, billing, and support stay connected.</small></div></div>
   </section>
 
