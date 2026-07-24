@@ -216,8 +216,8 @@ function patchCompanyEntryPoints() {
 
   const replacements = [
     [
-      '<a class="action" href="/start">See how Nexus works</a><a class="action" href="/service-catalog">Service catalog</a>',
-      '<a class="action" href="/start">See how Nexus works</a><a class="action" href="/product-lifecycle">Product lifecycle</a><a class="action" href="/service-catalog">Service catalog</a>'
+      '<a class="action" href="/start">See how SONARA One works</a><a class="action" href="/service-catalog">Service catalog</a>',
+      '<a class="action" href="/start">See how SONARA One works</a><a class="action" href="/product-lifecycle">Product lifecycle</a><a class="action" href="/service-catalog">Service catalog</a>'
     ],
     [
       'linkAction("/business-builder/billing", "Billing")\n        ])',

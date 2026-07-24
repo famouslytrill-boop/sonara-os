@@ -72,7 +72,7 @@ describe("premium application rebuild", () => {
       assert.match(res.text, /sonara-brand-mark/);
       assert.match(res.text, /\/brand\/sonara-industries-mark\.svg/);
       assert.match(res.text, /SONARA Industries/);
-      assert.match(res.text, /Nexus/);
+      assert.match(res.text, /SONARA One/);
     });
   });
 

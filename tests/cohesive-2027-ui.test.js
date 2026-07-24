@@ -13,7 +13,7 @@ const countMatches = (value, pattern) => (value.match(pattern) || []).length;
 describe("canonical responsive application interface", () => {
   it("keeps the parent, approved companies, Nexus modes, routes, and prices in one registry", () => {
     assert.equal(SONARA_BRAND_REGISTRY.parent.name, "SONARA Industries");
-    assert.equal(SONARA_BRAND_REGISTRY.parent.platform, "SONARA Nexus");
+    assert.equal(SONARA_BRAND_REGISTRY.parent.platform, "SONARA One");
     assert.equal(SONARA_BRAND_REGISTRY.parent.message, "Build, create, and grow—without losing control.");
     assert.deepEqual(SONARA_BRAND_REGISTRY.products.map((product) => product.name), ["Business Builder", "Creator Studio", "Growth Studio"]);
     assert.deepEqual(SONARA_BRAND_REGISTRY.products.map((product) => product.experienceMode), ["Forge", "Canvas", "Signal"]);
