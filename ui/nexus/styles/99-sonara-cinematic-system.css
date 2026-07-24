@@ -80,8 +80,8 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
   background:color-mix(in srgb,var(--nx-bg) 82%,transparent);box-shadow:0 10px 32px rgba(21,31,55,.06);backdrop-filter:blur(18px) saturate(140%)
 }
 .brand{display:inline-flex;align-items:center;gap:10px;min-width:0;flex:0 0 auto;text-decoration:none;color:var(--nx-ink)}
-.sonara-brand-mark{width:40px;height:40px;flex:0 0 auto;filter:drop-shadow(0 8px 18px rgba(79,111,255,.16))}
-.nexus-brand-copy{display:grid;line-height:1.05}.nexus-brand-copy strong{font-size:14px;letter-spacing:-.015em}.nexus-brand-copy small{margin-top:4px;color:var(--nx-muted);font:700 9px/1 var(--nx-mono);letter-spacing:.14em;text-transform:uppercase}
+.sonara-brand-mark{width:40px;height:40px;flex:0 0 auto;filter:drop-shadow(0 2px 6px rgba(17,22,42,.14))}
+.nexus-brand-copy{display:grid;line-height:1.02}.nexus-brand-copy strong{font-size:14px;font-weight:800;letter-spacing:-.02em}.nexus-brand-copy small{margin-top:5px;color:var(--nx-muted);font:600 9px/1 var(--nx-mono);letter-spacing:.2em;text-transform:uppercase}
 .sonara-desktop-nav{display:flex;align-items:center;justify-content:center;gap:2px;min-width:0;flex:1}
 .sonara-desktop-nav>a,.sonara-desktop-nav>details>summary,.sonara-mobile-menu a,.nexus-account-menu summary{
   min-height:44px;padding:10px 11px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;border-radius:var(--nx-radius-sm);
