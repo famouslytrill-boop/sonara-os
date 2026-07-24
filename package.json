@@ -11,7 +11,7 @@
     "apply:creator-generation": "node scripts/apply-creator-generation-platform.cjs && node scripts/apply-creator-generation-verifier.cjs",
     "apply:growth-studio": "node scripts/apply-growth-studio-platform.cjs && node scripts/apply-growth-studio-verifier.cjs",
     "apply:growth-public": "node scripts/apply-growth-studio-public-positioning.cjs",
-    "apply:product-lifecycle": "node scripts/apply-product-lifecycle-system.cjs",
+    "apply:product-lifecycle": "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs",
     "apply:formulas": "node scripts/apply-formula-routes.cjs",
     "apply:ecosystem": "node scripts/apply-ecosystem-routes.cjs",
     "apply:ai-integrations": "node scripts/apply-ai-integrations.cjs",
