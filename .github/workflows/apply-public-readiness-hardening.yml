@@ -1,0 +1,68 @@
+name: Apply public readiness hardening
+
+on:
+  push:
+    branches:
+      - fix/public-readiness-hardening
+    paths:
+      - scripts/apply-public-readiness-hardening.cjs
+      - .github/workflows/apply-public-readiness-hardening.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  harden-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/public-readiness-hardening
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply guarded patch
+        run: node scripts/apply-public-readiness-hardening.cjs
+
+      - name: Run repository tests
+        run: npm test
+
+      - name: Run high-severity dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Verify public route source contract
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const source = fs.readFileSync('server.js', 'utf8');
+          const start = source.indexOf('app.get("/api/readiness"');
+          const end = source.indexOf('\n\n', start);
+          if (start < 0 || end < 0) throw new Error('Public readiness route not found.');
+          const route = source.slice(start, end);
+          for (const token of ['checkoutPlans','missing:','invalid:','GOOGLE_REDIRECT_URI','STRIPE_SECRET_KEY','STRIPE_WEBHOOK_SECRET','SUPABASE_SERVICE_ROLE_KEY','RESEND_API_KEY']) {
+            if (route.includes(token)) throw new Error(`Forbidden readiness detail exposed: ${token}`);
+          }
+          if (!route.includes('emailDelivery: "verification_required"')) throw new Error('Email delivery must remain verification_required.');
+          NODE
+
+      - name: Commit verified fix
+        run: |
+          if git diff --quiet -- server.js; then
+            echo "No server.js change required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add server.js
+          git commit -m "Harden public readiness response"
+          git push origin HEAD:fix/public-readiness-hardening
