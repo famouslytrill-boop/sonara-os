@@ -15,7 +15,7 @@
     "apply:market-intelligence": "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs",
     "apply:market-rd": "node scripts/apply-market-rd-priorities.cjs",
     "apply:product-catalog": "node scripts/apply-recommended-product-catalog.cjs",
-    "apply:catalog-fetch-race": "node scripts/apply-catalog-fetch-race.cjs && node scripts/apply-catalog-compact-directory.cjs",
+    "apply:catalog-fetch-race": "node scripts/apply-catalog-fetch-race.cjs && node scripts/apply-catalog-compact-directory.cjs && node scripts/apply-catalog-route-boundary.cjs",
     "apply:formulas": "node scripts/apply-formula-routes.cjs",
     "apply:ecosystem": "node scripts/apply-ecosystem-routes.cjs",
     "apply:ai-integrations": "node scripts/apply-ai-integrations.cjs",
