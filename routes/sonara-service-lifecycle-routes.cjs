@@ -723,7 +723,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Platform readiness",
         eyebrow: "Live status",
         heading: "Platform readiness",
-        body: "Live service setup state without exposing secret values. Missing services stay setup required instead of pretending to work.",
+        body: "A live, honest view of what's set up and what still needs attention — no secrets shown. Anything that isn't ready says so, instead of pretending to work.",
         sections: readinessCards(getReadiness()),
         actions: [linkAction("/api/readiness", "Readiness JSON"), linkAction("/start", "Start"), linkAction("/", "Home")]
       })
@@ -974,17 +974,17 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       res.status(200).type("html").send(
         layout({
           title: `${product.name} Start`,
-          eyebrow: "Software-in-a-Service",
+          eyebrow: "Get started",
           heading: `Start with ${product.name}`,
-          body: `Use the ${product.name} free tools yourself, then request done-for-you services when you want operator help.`,
+          body: `Use the ${product.name} free tools yourself, then request done-for-you help whenever you want a hand.`,
           sections: [
             checklistCard("Getting started", [
               "Create a free account",
               "Create or attach your organization",
               "Open the free tools",
-              "Save outputs when the account database is ready",
+              "Save your outputs once your workspace is set up",
               "Request services from the catalog",
-              "Upgrade for paid records and tracking"
+              "Upgrade for saved records and tracking"
             ]),
             actionCard("Free tools", `Start with: ${productTools.map((tool) => tool.title).join(", ")}.`, [linkAction(`/${product.slug}/tools`, "Open tools")]),
             actionCard("Workspace", "Your organization scopes every saved record. Free accounts can create one in account setup.", [linkAction("/account/setup", "Account setup"), linkAction(`/${product.slug}/dashboard`, "Dashboard")]),
@@ -1008,7 +1008,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           title: `${product.name} Tools`,
           eyebrow: "Tool directory",
           heading: `${product.name} tools`,
-          body: "Free tools are available to logged-in users and render useful output even before the account database is configured.",
+          body: "Free tools are available once you're signed in, and give you a real result even before your workspace is fully set up.",
           sections,
           actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
         })

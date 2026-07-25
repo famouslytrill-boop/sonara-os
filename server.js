@@ -403,15 +403,15 @@ app.get("/docs", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Docs",
-      eyebrow: "Launch documentation",
-      heading: "Docs",
-      body: "Operational setup references for paid-launch readiness.",
+      eyebrow: "Documentation",
+      heading: "Docs & guides",
+      body: "How SONARA works, what each product does, and how to get set up. Start with the guides below, or reach out if you get stuck.",
       sections: [
-        brandCard("Service setup", "Configure the account database, payment connection, email delivery, email auth, and founder access before paid launch."),
-        brandCard("Payments", "Checkout remains server-gated until payment settings exist."),
-        brandCard("Support", "Contact requests use the account database and email delivery when configured, with safe setup required fallback behavior.")
+        brandCard("How it works", "The path from a free tool to a saved workspace to done-for-you delivery — with honest status at every step."),
+        brandCard("Products", "What Business Builder, Creator Studio, and Growth Studio each do, and which one fits the work in front of you."),
+        brandCard("Getting set up", "Create an account, add your organization, and start saving your work. Paid features unlock only when your plan is active.")
       ],
-      actions: [linkAction("/help", "Help"), linkAction("/api/readiness", "Readiness JSON"), linkAction("/", "Home")]
+      actions: [linkAction("/how-it-works", "How it works"), linkAction("/products", "Products"), linkAction("/help", "Help")]
     })
   );
 });
