@@ -17,7 +17,7 @@ describe("public site", () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
     assert.equal(res.type, "text/html");
-    assert.match(res.text, /LAUNCH OPERATING SYSTEM/);
+    assert.match(res.text, /Build\. Create\. Grow\./);
     assert.match(res.text, /Business Builder/);
     assert.match(res.text, /Creator Studio/);
     assert.match(res.text, /Growth Studio/);
