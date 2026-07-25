@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const root = process.cwd();
 const serverPath = path.join(root, "server.js");
-const version = "sonara-ui-20260721-v4";
+const version = "sonara-ui-20260725-v5";
 
 function fail(message) {
   console.error(message);

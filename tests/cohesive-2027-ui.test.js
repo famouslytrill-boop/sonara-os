@@ -23,7 +23,7 @@ describe("canonical responsive application interface", () => {
   it("renders one clean SONARA One homepage without retired visual systems", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v5/);
     assert.equal(countMatches(res.text, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(res.text, LEGACY_ASSET_PATTERN);
     assert.doesNotMatch(res.text, /<style[\s>]/i);

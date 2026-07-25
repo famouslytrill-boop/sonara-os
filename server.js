@@ -1636,9 +1636,9 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
-    <script src="/sonara-prepaint.js?v=sonara-ui-20260721-v4"></script>
-    <link rel="stylesheet" href="/sonara-application-ui.css?v=sonara-ui-20260721-v4">
-    <script defer src="/sonara-one.js?v=sonara-ui-20260721-v4"></script>
+    <script src="/sonara-prepaint.js?v=sonara-ui-20260725-v5"></script>
+    <link rel="stylesheet" href="/sonara-application-ui.css?v=sonara-ui-20260725-v5">
+    <script defer src="/sonara-one.js?v=sonara-ui-20260725-v5"></script>
   </head>
   <body class="${escapeHtml(brandClass)} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
     <div id="sonara-loader" class="sonara-loader" role="status" aria-live="polite"><div class="sonara-loader__core"><img class="sonara-loader__mark" src="/brand/sonara-industries-mark.svg" alt=""><div class="sonara-loader__track" aria-hidden="true"></div><span class="sonara-loader__label">SONARA ONE</span></div></div><div class="sonara-route-progress" aria-hidden="true"></div>
