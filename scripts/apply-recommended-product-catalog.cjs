@@ -113,7 +113,7 @@ function patchServiceCatalogRoute() {
   source = source.replace('heading: "Service catalog",', 'heading: "Product and service catalog",');
   source = source.replace(
     'body: "Done-for-you services across Business Builder, Creator Studio, and Growth Studio. Submit a request and track it from your dashboard.",',
-    'body: "Published SONARA products, governed capabilities, and done-for-you services across the parent platform, Business Builder, Creator Studio, and Growth Studio. Availability labels distinguish active, beta, validation-required, and planned work."'
+    'body: "Published SONARA products, governed capabilities, and done-for-you services across the parent platform, Business Builder, Creator Studio, and Growth Studio. Availability labels distinguish active, beta, validation-required, and planned work.",'
   );
 
   write(file, source);
