@@ -30,6 +30,10 @@ source = ensureCanonicalPair(
   "/creator-studio/market-intelligence"
 );
 
+source = source.replace(
+  '"/growth-studio/tools/readiness", "/growth-studio/product-lifecycle"',
+  '"/growth-studio/tools/readiness"'
+);
 source = ensureCanonicalPair(
   source,
   '    "/growth-studio/control-center", "/growth-studio/segments", "/growth-studio/experiments", "/growth-studio/attribution", "/growth-studio/providers", "/growth-studio/consent", "/growth-studio/provider-jobs"',
