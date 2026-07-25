@@ -22,9 +22,9 @@ describe("SONARA One interface QA", () => {
   it("renders a responsive brand interface with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
-    assert.match(res.text, /sonara-prepaint\.js\?v=sonara-ui-20260721-v4/);
-    assert.match(res.text, /sonara-one\.js\?v=sonara-ui-20260721-v4/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v5/);
+    assert.match(res.text, /sonara-prepaint\.js\?v=sonara-ui-20260725-v5/);
+    assert.match(res.text, /sonara-one\.js\?v=sonara-ui-20260725-v5/);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);

@@ -13,8 +13,8 @@ describe("premium access experience", () => {
     assert.doesNotMatch(response.text, /sessions are configured/i);
     assert.doesNotMatch(response.text, /server-side authorization/i);
     assert.doesNotMatch(response.text, /service-role|webhook secret|environment variable/i);
-    assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260721-v4/);
-    assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260721-v4/);
+    assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v5/);
+    assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260725-v5/);
   });
 
   it("protects product workspaces and founder routes when no valid session exists", async () => {
