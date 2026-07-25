@@ -44,10 +44,10 @@ describe("SONARA recommended product catalog", () => {
     }
   });
 
-  it("runs the product catalog patch at the end of the runtime pipeline", () => {
+  it("runs the product catalog after product lifecycle and before final market decisions", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     assert.equal(pkg.scripts["apply:product-catalog"], "node scripts/apply-recommended-product-catalog.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:market-rd && pnpm run apply:product-catalog$/);
+    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("seeds every product through an idempotent service catalog migration", () => {
@@ -68,7 +68,7 @@ describe("SONARA recommended product catalog", () => {
     assert.match(routes, /LEGACY_DEFAULT_SERVICE_CATALOG/);
     assert.match(routes, /mergedCatalog/);
     assert.match(routes, /Availability:/);
-    assert.match(routes, /Request or discuss/);
+    assert.match(routes, /Request this service/);
     assert.match(manifest, /recommendedProductCatalog: getRecommendedProductCatalog\(\)/);
   });
 });
