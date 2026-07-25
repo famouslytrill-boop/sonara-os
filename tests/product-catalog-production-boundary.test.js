@@ -54,8 +54,9 @@ describe("Recommended product catalog production boundary", () => {
     assert.match(sql, /plan_floor <> 'free'[\s\S]*entitlement_integration_verified = false[\s\S]*execution_enabled = true/i);
   });
 
-  it("removes direct catalog execution links from restricted and unverified paid products", () => {
+  it("removes direct catalog execution links and aborts stalled database reads", () => {
     const routes = read("routes/sonara-service-lifecycle-routes.cjs");
+    const server = read("server.js");
     assert.match(routes, /function catalogActions\(item, product\)/);
     assert.match(routes, /Request validation discussion/);
     assert.match(routes, /Request access verification/);
@@ -65,6 +66,10 @@ describe("Recommended product catalog production boundary", () => {
     assert.match(routes, /Execution: restricted until lifecycle evidence and launch approval are complete/);
     assert.match(routes, /Execution: restricted until a production paid-entitlement test passes/);
     assert.match(routes, /productCatalogItems/);
+    assert.match(server, /const timeoutMs = process\.env\.NODE_ENV === "test" \? 100 : 1200/);
+    assert.match(server, /const controller = new AbortController\(\)/);
+    assert.match(server, /signal: controller\.signal/);
+    assert.match(server, /clearTimeout\(timeout\)/);
   });
 
   it("verifies exact production rows, configured plans, pages, and fail-closed entitlement source", () => {
