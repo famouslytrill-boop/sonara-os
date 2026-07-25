@@ -242,7 +242,11 @@ function patchSafeListTimeout() {
   const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
   const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !serviceRoleKey) return { ok: false };
-  if (process.env.NODE_ENV === "test" && /^https:\\/\\/project\\.supabase\\.co\\/?$/i.test(url)) {
+  if (
+    process.env.NODE_ENV === "test" &&
+    global.fetch?.__sonaraOfflineFirewall === true &&
+    /^https:\\/\\/[a-z0-9-]+\\.supabase\\.co\\/?$/i.test(url)
+  ) {
     return { ok: false, code: "test_provider_blocked" };
   }
   return { ok: true, url: url.replace(/\\/$/, ""), serviceRoleKey };
@@ -250,7 +254,7 @@ function patchSafeListTimeout() {
   if (source.includes(configBefore)) source = source.replace(configBefore, configAfter);
 
   requireAnchor(source, 'const timeoutMs = process.env.NODE_ENV === "test" ? 100 : 1200;', "safe catalog list timeout");
-  requireAnchor(source, 'code: "test_provider_blocked"', "test Supabase placeholder rejection");
+  requireAnchor(source, 'global.fetch?.__sonaraOfflineFirewall === true', "tagged test provider firewall");
   write(file, source);
 }
 
