@@ -8,10 +8,10 @@ const root = path.join(__dirname, "..");
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), "utf8"); }
 
 describe("Market intelligence integration contract", () => {
-  it("runs the market integration last in the runtime pipeline", function() {
+  it("prepares route anchors and runs market intelligence before final R&D decisions", function() {
     const pkg = JSON.parse(read("package.json"));
-    assert.equal(pkg.scripts["apply:market-intelligence"], "node scripts/apply-market-intelligence-system.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:market-intelligence$/);
+    assert.equal(pkg.scripts["apply:market-intelligence"], "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs");
+    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("registers parent and studio workspaces", function() {
@@ -76,7 +76,7 @@ describe("Market intelligence integration contract", () => {
       "rights-aware release",
       "first-party data",
       "incrementality",
-      "source-dated",
+      "observed date",
       "willingness to pay",
       "Do not build yet",
       "current owner-approved plans"

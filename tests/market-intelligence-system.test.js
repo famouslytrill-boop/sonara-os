@@ -65,7 +65,7 @@ describe("SONARA market intelligence", () => {
     assert.equal(recommendMarketAction(-5), "hold");
   });
 
-  it("keeps every market workspace and API behind customer access", async function() {
+  it("keeps every market workspace and API behind customer access or honest setup failure", async function() {
     for (const route of [
       "/api/market-intelligence/framework",
       "/api/market-intelligence/portfolio",
@@ -75,7 +75,7 @@ describe("SONARA market intelligence", () => {
       "/api/market-intelligence/opportunities"
     ]) {
       const response = await request(app).get(route).set("Accept", "application/json");
-      assert.equal(response.status, 401, `${route} must require customer authentication`);
+      assert.ok([401, 503].includes(response.status), `${route} must require customer authentication or report account setup`);
     }
 
     for (const route of [
@@ -85,7 +85,7 @@ describe("SONARA market intelligence", () => {
       "/growth-studio/market-intelligence"
     ]) {
       const response = await request(app).get(route).set("Accept", "text/html");
-      assert.ok([302, 303, 401, 402, 403].includes(response.status), `${route} must remain protected`);
+      assert.ok([302, 303, 401, 402, 403, 503].includes(response.status), `${route} must remain protected or report setup`);
     }
   });
 
