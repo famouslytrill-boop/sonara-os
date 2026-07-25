@@ -279,9 +279,9 @@ app.get("/contact", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Contact",
-      eyebrow: "Launch review",
-      heading: "Contact SONARA Industries",
-      body: "Use this intake for launch, support, billing, access, or readiness requests. Accepted requests always return a reference ID.",
+      eyebrow: "We're here to help",
+      heading: "Get in touch.",
+      body: "Questions about getting started, billing, your account, or a service request? Send a message and you'll get a reference ID right away so you can follow it.",
       sections: [contactForm()],
       actions: [linkAction("/", "Return home"), linkAction("/help", "Help"), linkAction("/pricing", "Pricing")]
     })
@@ -369,15 +369,15 @@ app.get("/security", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Security",
-      eyebrow: "Operational posture",
-      heading: "Security",
-      body: "SONARA keeps production infrastructure boring, reviewable, and server-controlled. Secrets stay server-side and high-risk automation requires approval.",
+      eyebrow: "Security & privacy",
+      heading: "Built to protect your work.",
+      body: "We keep the sensitive parts on our servers, never hand secrets to your browser, and ask for your approval before anything risky happens.",
       sections: [
-        brandCard("Server-only credentials", "Service-role keys, provider secrets, webhook secrets, and admin credentials are never shipped to public clients."),
-        brandCard("Human approval", "AI and outbound actions require preview, owner approval, and audit-ready records."),
-        brandCard("Data boundaries", "Organization-scoped records require RBAC, provenance, and retention discipline.")
+        brandCard("Secrets stay server-side", "Payment keys, provider credentials, and admin access live only on our servers — they never reach your browser."),
+        brandCard("You approve sensitive actions", "Assisted and outbound actions are shown to you first and need owner approval, with an audit trail of what happened."),
+        brandCard("Your data stays yours", "Records are scoped to your organization with role-based access and clear retention — nothing is mixed across accounts.")
       ],
-      actions: [linkAction("/legal/privacy", "Privacy"), linkAction("/contact", "Report issue")]
+      actions: [linkAction("/privacy", "Privacy"), linkAction("/contact", "Report an issue")]
     })
   );
 });
@@ -386,15 +386,15 @@ app.get("/help", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Help",
-      eyebrow: "Support",
-      heading: "Help",
-      body: "Support and launch review entry points for SONARA Industries.",
+      eyebrow: "Help center",
+      heading: "How can we help?",
+      body: "Find answers, get in touch, or open a request — here's where to start.",
       sections: [
-        brandCard("Contact support", "Use the contact form for launch, billing, access, and readiness requests."),
-        brandCard("Service setup", "Tools show what is ready without exposing private setup details."),
-        brandCard("Admin access", "Founder operations remain protected by server-side admin authorization.")
+        brandCard("Contact support", "Send a message for account, billing, or service questions. Every request returns a reference ID you can follow."),
+        brandCard("Getting started", "Use the free planning tools and short tutorials to get a real result before choosing a plan."),
+        brandCard("Account & billing", "Manage your plan and billing from your account, and cancel anytime.")
       ],
-      actions: [linkAction("/contact", "Contact"), linkAction("/docs", "Docs"), linkAction("/", "Home")]
+      actions: [linkAction("/contact", "Contact"), linkAction("/tutorials", "Tutorials"), linkAction("/free-tools", "Free tools")]
     })
   );
 });
