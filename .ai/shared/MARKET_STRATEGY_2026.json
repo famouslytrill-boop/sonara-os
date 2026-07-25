@@ -1,0 +1,114 @@
+{
+  "version": "2026-07-25",
+  "status": "approved_strategy_baseline",
+  "company": "SONARA Industries",
+  "positioning": "Affordable governed operating infrastructure for independent founders, creators, local operators, and small teams.",
+  "portfolio_moat": [
+    "first offer to first transaction",
+    "creator asset to portable rights-aware release package",
+    "consented first-party data to measured growth",
+    "market evidence to product lifecycle decision",
+    "shared organization customer consent asset evidence and attribution spine"
+  ],
+  "non_goals": [
+    "generic website builder feature parity",
+    "generic design editor feature parity",
+    "full accounting tax banking or payroll replacement",
+    "bulk messaging before consent deliverability suppression and provider controls",
+    "unrestricted identity imitation or autonomous publishing and spending",
+    "guaranteed revenue streams audience growth attribution or search placement"
+  ],
+  "companies": {
+    "business_builder": {
+      "market": "small-business operating software",
+      "primary_outcome": "complete the first transaction and operate repeatably",
+      "priority_workflows": [
+        "offer intake booking or order payment delivery review repeat follow-up",
+        "vertical starter packs",
+        "portable imports and exports",
+        "security and recovery readiness",
+        "cash-flow and operating-health evidence without accounting claims"
+      ]
+    },
+    "creator_studio": {
+      "market": "creator operations and monetization infrastructure",
+      "primary_outcome": "turn original work into a portable rights-aware release or client package",
+      "priority_workflows": [
+        "rights consent provenance originality and collaborator records",
+        "portable DAW distribution client and archive packages",
+        "creator-owned fan and buyer records",
+        "brand partnership deliverables approvals disclosures and measurement",
+        "human-controlled provider generation with provenance"
+      ]
+    },
+    "growth_studio": {
+      "market": "CRM lifecycle marketing and measurement operations",
+      "primary_outcome": "turn consented first-party signals into measured customer growth",
+      "priority_workflows": [
+        "shared consent ledger and customer timeline",
+        "touchpoints offline conversions deduplication and freshness",
+        "incrementality and holdout experiments",
+        "creator partnership measurement and disclosures",
+        "provider diagnostics and human approval",
+        "answer-engine visibility evidence without placement guarantees"
+      ]
+    }
+  },
+  "pricing": {
+    "current": [
+      { "plan": "free", "price_usd_monthly": 0 },
+      { "plan": "starter", "price_usd_monthly": 7 },
+      { "plan": "core", "price_usd_monthly": 19 },
+      { "plan": "pro", "price_usd_monthly": 39 },
+      { "plan": "business_builder_setup", "billing": "one_time" }
+    ],
+    "policy": "Keep the affordable ladder. Explicitly limit or separately price cost-bearing email SMS storage media generation support and third-party API work. Price changes require customer and cost-to-serve evidence plus owner approval."
+  },
+  "opportunity_scoring": {
+    "positive": {
+      "demand_evidence": 25,
+      "willingness_to_pay": 20,
+      "strategic_fit": 20,
+      "underserved_need": 15,
+      "differentiation": 10,
+      "channel_access": 10
+    },
+    "penalties": {
+      "delivery_complexity": 15,
+      "compliance_risk": 15
+    },
+    "bands": {
+      "prioritize": 75,
+      "validate": 55,
+      "watch": 35,
+      "hold": 0
+    }
+  },
+  "evidence_rules": [
+    "record source URL publisher observed date geography segment confidence and expiry",
+    "timestamp competitor price and capability observations",
+    "separate facts quotes estimates assumptions and opinions",
+    "never seed private workspaces with fictional customer or market evidence",
+    "link prioritized opportunities to Product Lifecycle initiatives",
+    "do not treat a large total addressable market as authorization to build"
+  ],
+  "implementation": {
+    "workspace_routes": [
+      "/market-intelligence",
+      "/business-builder/market-intelligence",
+      "/creator-studio/market-intelligence",
+      "/growth-studio/market-intelligence"
+    ],
+    "tables": [
+      "market_intelligence_segments",
+      "market_intelligence_competitors",
+      "market_intelligence_signals",
+      "market_intelligence_opportunities",
+      "market_intelligence_reviews",
+      "market_intelligence_events"
+    ],
+    "writes": "authenticated server controlled",
+    "reads": "organization scoped through RLS",
+    "external_provider_execution": "not enabled by market intelligence"
+  }
+}

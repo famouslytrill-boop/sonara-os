@@ -1,0 +1,423 @@
+"use strict";
+
+const {
+  getMarketIntelligenceFramework,
+  scoreMarketOpportunity,
+  recommendMarketAction
+} = require("../lib/sonara-market-intelligence-registry.cjs");
+
+const TABLES = Object.freeze({
+  segments: "market_intelligence_segments",
+  competitors: "market_intelligence_competitors",
+  signals: "market_intelligence_signals",
+  opportunities: "market_intelligence_opportunities",
+  reviews: "market_intelligence_reviews",
+  events: "market_intelligence_events"
+});
+
+const STUDIO_KEYS = new Set(["sonara_industries", "business_builder", "creator_studio", "growth_studio"]);
+const SIGNAL_TYPES = new Set(["market_size", "customer_need", "pricing", "competitor", "technology", "regulation", "channel", "behavior", "risk"]);
+const CONFIDENCE_LEVELS = new Set(["low", "medium", "high", "authoritative"]);
+const OPPORTUNITY_STATES = new Set(["watch", "validate", "prioritized", "building", "launched", "hold", "rejected"]);
+const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "reject"]);
+
+module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
+  const requireCustomer = deps.requireCustomer || passthrough;
+  const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
+  const ui = buildUi(deps);
+
+  app.get("/api/market-intelligence/framework", requireCustomer, (req, res) => {
+    return res.status(200).json({ ok: true, framework: getMarketIntelligenceFramework() });
+  });
+
+  app.get("/api/market-intelligence/portfolio", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studio = validStudio(req.query.studio) ? String(req.query.studio) : null;
+    const extra = studio ? `&studio_key=eq.${encodeURIComponent(studio)}` : "";
+    const limit = clamp(req.query.limit, 1, 250, 100);
+    const [segments, competitors, signals, opportunities, reviews] = await Promise.all([
+      list(config, TABLES.segments, context, limit, extra),
+      list(config, TABLES.competitors, context, limit, extra),
+      list(config, TABLES.signals, context, limit, extra),
+      list(config, TABLES.opportunities, context, limit, extra),
+      list(config, TABLES.reviews, context, limit)
+    ]);
+    const failed = [segments, competitors, signals, opportunities, reviews].find((result) => !result.ok);
+    if (failed) return res.status(502).json({ ok: false, code: failed.code || "market_portfolio_load_failed" });
+    return res.status(200).json({
+      ok: true,
+      studio,
+      framework: getMarketIntelligenceFramework(),
+      segments: segments.rows,
+      competitors: competitors.rows,
+      signals: signals.rows,
+      opportunities: opportunities.rows,
+      reviews: reviews.rows,
+      summary: summarizePortfolio({ segments: segments.rows, competitors: competitors.rows, signals: signals.rows, opportunities: opportunities.rows })
+    });
+  });
+
+  app.get("/api/market-intelligence/segments", requireCustomer, listHandler(TABLES.segments, deps, "segments"));
+  app.post("/api/market-intelligence/segments", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
+    const segmentKey = slug(req.body.segment_key || req.body.segmentKey, 120);
+    const name = clean(req.body.name, 240);
+    if (!studioKey || !segmentKey || !name) return res.status(400).json({ ok: false, code: "studio_segment_key_and_name_required" });
+    const created = await insert(config, TABLES.segments, {
+      organization_id: context.organizationId,
+      user_id: context.userId,
+      studio_key: studioKey,
+      segment_key: segmentKey,
+      name,
+      description: nullable(req.body.description, 2000),
+      customer_type: nullable(req.body.customer_type || req.body.customerType, 240),
+      geography: nullable(req.body.geography, 240),
+      jobs_to_be_done: parseArray(req.body.jobs_to_be_done || req.body.jobsToBeDone),
+      pain_points: parseArray(req.body.pain_points || req.body.painPoints),
+      buying_triggers: parseArray(req.body.buying_triggers || req.body.buyingTriggers),
+      constraints: parseArray(req.body.constraints),
+      status: oneOf(req.body.status, ["active", "watch", "archived"], "active")
+    });
+    if (created.ok) await recordEvent(config, context, "segment.created", { segment_id: created.rows[0]?.id, studio_key: studioKey, segment_key: segmentKey });
+    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, segment: created.rows[0], code: created.code });
+  });
+
+  app.get("/api/market-intelligence/competitors", requireCustomer, listHandler(TABLES.competitors, deps, "competitors"));
+  app.post("/api/market-intelligence/competitors", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
+    const name = clean(req.body.name, 240);
+    const sourceUrl = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
+    const verifiedAt = validDate(req.body.verified_at || req.body.verifiedAt);
+    if (!studioKey || !name || !sourceUrl || !verifiedAt) return res.status(400).json({ ok: false, code: "studio_name_source_and_verified_at_required" });
+    const created = await insert(config, TABLES.competitors, {
+      organization_id: context.organizationId,
+      user_id: context.userId,
+      studio_key: studioKey,
+      name,
+      category: nullable(req.body.category, 240),
+      source_url: sourceUrl,
+      verified_at: verifiedAt,
+      entry_price: nonNegativeNumber(req.body.entry_price || req.body.entryPrice),
+      currency: clean(req.body.currency || "USD", 12).toUpperCase(),
+      billing_period: oneOf(req.body.billing_period || req.body.billingPeriod, ["free", "monthly", "annual", "usage", "percentage", "custom", "mixed"], "custom"),
+      pricing_model: nullable(req.body.pricing_model || req.body.pricingModel, 500),
+      capabilities: parseArray(req.body.capabilities),
+      strengths: parseArray(req.body.strengths),
+      weaknesses: parseArray(req.body.weaknesses),
+      notes: nullable(req.body.notes, 3000),
+      status: oneOf(req.body.status, ["active", "watch", "archived"], "active")
+    });
+    if (created.ok) await recordEvent(config, context, "competitor.recorded", { competitor_id: created.rows[0]?.id, studio_key: studioKey, name, verified_at: verifiedAt });
+    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, competitor: created.rows[0], code: created.code });
+  });
+
+  app.get("/api/market-intelligence/signals", requireCustomer, listHandler(TABLES.signals, deps, "signals"));
+  app.post("/api/market-intelligence/signals", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
+    const signalType = oneOf(req.body.signal_type || req.body.signalType, [...SIGNAL_TYPES], null);
+    const title = clean(req.body.title, 300);
+    const summary = clean(req.body.summary, 4000);
+    const sourceName = clean(req.body.source_name || req.body.sourceName, 300);
+    const sourceUrl = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
+    const observedAt = validDate(req.body.observed_at || req.body.observedAt);
+    const confidence = oneOf(req.body.confidence, [...CONFIDENCE_LEVELS], null);
+    if (!studioKey || !signalType || !title || !summary || !sourceName || !sourceUrl || !observedAt || !confidence) {
+      return res.status(400).json({ ok: false, code: "complete_evidence_backed_signal_required" });
+    }
+    const created = await insert(config, TABLES.signals, {
+      organization_id: context.organizationId,
+      user_id: context.userId,
+      studio_key: studioKey,
+      signal_type: signalType,
+      title,
+      summary,
+      source_name: sourceName,
+      source_url: sourceUrl,
+      observed_at: observedAt,
+      expires_at: validDate(req.body.expires_at || req.body.expiresAt),
+      confidence,
+      metric_name: nullable(req.body.metric_name || req.body.metricName, 240),
+      metric_value: finiteNumberOrNull(req.body.metric_value || req.body.metricValue),
+      metric_unit: nullable(req.body.metric_unit || req.body.metricUnit, 80),
+      geography: nullable(req.body.geography, 240),
+      segment_key: nullable(req.body.segment_key || req.body.segmentKey, 120),
+      metadata: parseObject(req.body.metadata, {})
+    });
+    if (created.ok) await recordEvent(config, context, "signal.recorded", { signal_id: created.rows[0]?.id, studio_key: studioKey, signal_type: signalType, observed_at: observedAt });
+    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, signal: created.rows[0], code: created.code });
+  });
+
+  app.get("/api/market-intelligence/opportunities", requireCustomer, listHandler(TABLES.opportunities, deps, "opportunities"));
+  app.post("/api/market-intelligence/opportunities", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studioKey = normalizeStudio(req.body.studio_key || req.body.studioKey);
+    const name = clean(req.body.name, 300);
+    const problem = clean(req.body.problem, 4000);
+    const targetSegment = clean(req.body.target_segment || req.body.targetSegment, 500);
+    const proposedValue = clean(req.body.proposed_value || req.body.proposedValue, 4000);
+    if (!studioKey || !name || !problem || !targetSegment || !proposedValue) return res.status(400).json({ ok: false, code: "complete_market_opportunity_required" });
+    const scores = scoreFields(req.body);
+    const marketScore = scoreMarketOpportunity(scores);
+    const recommendation = recommendMarketAction(marketScore);
+    const created = await insert(config, TABLES.opportunities, {
+      organization_id: context.organizationId,
+      user_id: context.userId,
+      product_lifecycle_initiative_id: validUuid(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) ? String(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) : null,
+      studio_key: studioKey,
+      name,
+      problem,
+      target_segment: targetSegment,
+      proposed_value: proposedValue,
+      demand_evidence: scores.demandEvidence,
+      willingness_to_pay: scores.willingnessToPay,
+      strategic_fit: scores.strategicFit,
+      underserved_need: scores.underservedNeed,
+      differentiation: scores.differentiation,
+      channel_access: scores.channelAccess,
+      delivery_complexity: scores.deliveryComplexity,
+      compliance_risk: scores.complianceRisk,
+      market_score: marketScore,
+      recommendation,
+      state: OPPORTUNITY_STATES.has(String(req.body.state || "")) ? String(req.body.state) : recommendation === "prioritize" ? "prioritized" : recommendation,
+      owner_name: nullable(req.body.owner_name || req.body.ownerName, 240),
+      next_review_at: validDate(req.body.next_review_at || req.body.nextReviewAt),
+      metadata: parseObject(req.body.metadata, {})
+    });
+    if (created.ok) await recordEvent(config, context, "opportunity.created", { opportunity_id: created.rows[0]?.id, studio_key: studioKey, market_score: marketScore, recommendation });
+    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, opportunity: created.rows[0], code: created.code });
+  });
+
+  app.get("/api/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    if (!validUuid(req.params.opportunityId)) return res.status(400).json({ ok: false, code: "invalid_opportunity_id" });
+    const config = getConfig(deps);
+    const opportunity = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+    if (!opportunity.ok) return res.status(opportunity.status).json(opportunity);
+    const reviews = await rest(config, TABLES.reviews, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&opportunity_id=eq.${encodeURIComponent(req.params.opportunityId)}&order=created_at.desc&limit=100`);
+    return res.status(reviews.ok ? 200 : 502).json({ ok: reviews.ok, opportunity: opportunity.row, reviews: reviews.rows, code: reviews.code });
+  });
+
+  app.patch("/api/market-intelligence/opportunities/:opportunityId", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    if (!validUuid(req.params.opportunityId)) return res.status(400).json({ ok: false, code: "invalid_opportunity_id" });
+    const config = getConfig(deps);
+    const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+    if (!loaded.ok) return res.status(loaded.status).json(loaded);
+    const mergedScores = scoreFields({ ...loaded.row, ...req.body });
+    const marketScore = scoreMarketOpportunity(mergedScores);
+    const recommendation = recommendMarketAction(marketScore);
+    const patch = compact({
+      product_lifecycle_initiative_id: req.body.product_lifecycle_initiative_id === undefined && req.body.productLifecycleInitiativeId === undefined ? undefined : validUuid(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) ? String(req.body.product_lifecycle_initiative_id || req.body.productLifecycleInitiativeId) : null,
+      name: req.body.name === undefined ? undefined : clean(req.body.name, 300),
+      problem: req.body.problem === undefined ? undefined : clean(req.body.problem, 4000),
+      target_segment: req.body.target_segment === undefined && req.body.targetSegment === undefined ? undefined : clean(req.body.target_segment || req.body.targetSegment, 500),
+      proposed_value: req.body.proposed_value === undefined && req.body.proposedValue === undefined ? undefined : clean(req.body.proposed_value || req.body.proposedValue, 4000),
+      demand_evidence: mergedScores.demandEvidence,
+      willingness_to_pay: mergedScores.willingnessToPay,
+      strategic_fit: mergedScores.strategicFit,
+      underserved_need: mergedScores.underservedNeed,
+      differentiation: mergedScores.differentiation,
+      channel_access: mergedScores.channelAccess,
+      delivery_complexity: mergedScores.deliveryComplexity,
+      compliance_risk: mergedScores.complianceRisk,
+      market_score: marketScore,
+      recommendation,
+      state: req.body.state === undefined ? undefined : OPPORTUNITY_STATES.has(String(req.body.state)) ? String(req.body.state) : undefined,
+      owner_name: req.body.owner_name === undefined && req.body.ownerName === undefined ? undefined : nullable(req.body.owner_name || req.body.ownerName, 240),
+      next_review_at: req.body.next_review_at === undefined && req.body.nextReviewAt === undefined ? undefined : validDate(req.body.next_review_at || req.body.nextReviewAt),
+      metadata: req.body.metadata === undefined ? undefined : parseObject(req.body.metadata, {}),
+      updated_at: new Date().toISOString()
+    });
+    const updated = await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, patch);
+    if (updated.ok) await recordEvent(config, context, "opportunity.updated", { opportunity_id: req.params.opportunityId, market_score: marketScore, recommendation, fields: Object.keys(patch) });
+    return res.status(updated.ok ? 200 : 502).json({ ok: updated.ok, opportunity: updated.rows[0], code: updated.code });
+  });
+
+  app.post("/api/market-intelligence/opportunities/:opportunityId/reviews", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    if (!validUuid(req.params.opportunityId)) return res.status(400).json({ ok: false, code: "invalid_opportunity_id" });
+    const decision = oneOf(req.body.decision, [...REVIEW_DECISIONS], null);
+    const rationale = clean(req.body.rationale, 4000);
+    if (!decision || !rationale) return res.status(400).json({ ok: false, code: "decision_and_rationale_required" });
+    const config = getConfig(deps);
+    const loaded = await loadOne(config, TABLES.opportunities, context, req.params.opportunityId);
+    if (!loaded.ok) return res.status(loaded.status).json(loaded);
+    const created = await insert(config, TABLES.reviews, {
+      organization_id: context.organizationId,
+      user_id: context.userId,
+      opportunity_id: req.params.opportunityId,
+      decision,
+      rationale,
+      market_score: loaded.row.market_score,
+      evidence_snapshot: parseObject(req.body.evidence_snapshot || req.body.evidenceSnapshot, {
+        source_count: Number(req.body.source_count || req.body.sourceCount || 0),
+        customer_evidence_count: Number(req.body.customer_evidence_count || req.body.customerEvidenceCount || 0),
+        pricing_evidence_count: Number(req.body.pricing_evidence_count || req.body.pricingEvidenceCount || 0)
+      })
+    });
+    if (created.ok) {
+      const nextState = decision === "prioritize" ? "prioritized" : decision === "reject" ? "rejected" : decision;
+      await patchRows(config, TABLES.opportunities, context, req.params.opportunityId, { state: nextState, updated_at: new Date().toISOString() });
+      await recordEvent(config, context, "opportunity.reviewed", { opportunity_id: req.params.opportunityId, review_id: created.rows[0]?.id, decision, market_score: loaded.row.market_score });
+    }
+    return res.status(created.ok ? 201 : 502).json({ ok: created.ok, review: created.rows[0], code: created.code });
+  });
+
+  registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui);
+  registerWorkspacePage(app, "/business-builder/market-intelligence", requireWorkspaceAccess("business_builder"), "Business Builder", "business_builder", ui);
+  registerWorkspacePage(app, "/creator-studio/market-intelligence", requireWorkspaceAccess("creator_studio"), "Creator Studio", "creator_studio", ui);
+  registerWorkspacePage(app, "/growth-studio/market-intelligence", requireWorkspaceAccess("growth_studio"), "Growth Studio", "growth_studio", ui);
+};
+
+function registerWorkspacePage(app, path, access, label, studioKey, ui) {
+  app.get(path, access, (req, res) => {
+    const framework = getMarketIntelligenceFramework();
+    const market = studioKey ? framework.markets[studioKey] : null;
+    const sections = market
+      ? [
+          ui.card("Market", `${market.name}. ${market.primaryAudience}`),
+          ui.card("What to prioritize", market.priorities.join(" ")),
+          ui.card("What to avoid", market.avoid.join(" ")),
+          ui.card("Evidence rules", framework.evidenceRules.join(" "))
+        ]
+      : [
+          ui.card("Portfolio thesis", framework.portfolioThesis.join(" ")),
+          ui.card("Pricing position", framework.pricingPosition.conclusion),
+          ui.card("Evidence-led decisions", "Score demand, willingness to pay, strategic fit, underserved need, differentiation, channel access, delivery complexity, and compliance risk before work advances."),
+          ui.card("No invented market data", "The workspace starts empty until organization-scoped evidence is recorded. Static research guidance is labeled by source and date.")
+        ];
+    return res.status(200).type("html").send(ui.layout({
+      title: `${label} Market Intelligence`,
+      eyebrow: "Evidence-led market strategy",
+      heading: `${label} market intelligence`,
+      body: "Track customer segments, competitor evidence, pricing, market signals, scored opportunities, and portfolio decisions without turning estimates into facts.",
+      sections,
+      actions: [
+        ui.link("/product-lifecycle", "Product lifecycle"),
+        ui.link("/service-catalog", "Service catalog"),
+        ui.link(studioKey ? `/${studioKey.replaceAll("_", "-")}/dashboard` : "/", studioKey ? `${label} dashboard` : "SONARA home")
+      ]
+    }));
+  });
+}
+
+function listHandler(table, deps, key) {
+  return async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    const studio = validStudio(req.query.studio) ? String(req.query.studio) : null;
+    const extra = studio ? `&studio_key=eq.${encodeURIComponent(studio)}` : "";
+    const result = await list(config, table, context, clamp(req.query.limit, 1, 500, 100), extra);
+    return res.status(result.ok ? 200 : 502).json({ ok: result.ok, [key]: result.rows, code: result.code });
+  };
+}
+
+async function resolveContext(req, deps) {
+  const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user || null;
+  if (!user?.id) return { ok: false, status: 401, code: "market_intelligence_auth_required" };
+  if (typeof deps.getCustomerPrimaryOrganization !== "function") return { ok: false, status: 503, code: "organization_resolver_unavailable" };
+  const organization = await deps.getCustomerPrimaryOrganization(user);
+  if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "organization_setup_required" };
+  return { ok: true, organizationId: organization.organizationId, userId: user.id };
+}
+
+function getConfig(deps) {
+  if (typeof deps.getSupabaseServerConfig === "function") return deps.getSupabaseServerConfig();
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return url && serviceRoleKey ? { ok: true, url: String(url).replace(/\/$/, ""), serviceRoleKey } : { ok: false };
+}
+
+async function rest(config, table, query = "", options = {}) {
+  if (!config?.ok && (!config?.url || !config?.serviceRoleKey)) return { ok: false, status: 503, code: "supabase_setup_required", rows: [] };
+  const response = await fetch(`${config.url}/rest/v1/${table}${query ? `?${query}` : ""}`, {
+    method: options.method || "GET",
+    headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json", ...(options.prefer ? { Prefer: options.prefer } : {}) },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body)
+  }).catch(() => undefined);
+  if (!response) return { ok: false, status: 503, code: "database_unreachable", rows: [] };
+  const rows = response.status === 204 ? [] : await response.json().catch(() => []);
+  return { ok: response.ok, status: response.status, code: response.ok ? "ok" : "database_operation_failed", rows: Array.isArray(rows) ? rows : [] };
+}
+
+function insert(config, table, body) { return rest(config, table, "", { method: "POST", prefer: "return=representation", body }); }
+function list(config, table, context, limit = 100, extra = "") { return rest(config, table, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}${extra}&order=created_at.desc&limit=${limit}`); }
+function patchRows(config, table, context, id, body) { return rest(config, table, `id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}`, { method: "PATCH", prefer: "return=representation", body }); }
+async function loadOne(config, table, context, id) {
+  const result = await rest(config, table, `select=*&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`);
+  if (!result.ok) return { ok: false, status: 502, code: result.code };
+  if (!result.rows[0]) return { ok: false, status: 404, code: "resource_not_found" };
+  return { ok: true, row: result.rows[0] };
+}
+async function recordEvent(config, context, eventType, details) {
+  return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, event_type: eventType, details: parseObject(details, {}) });
+}
+
+function scoreFields(input = {}) {
+  return {
+    demandEvidence: boundedInteger(read(input, "demandEvidence", "demand_evidence"), 0, 25),
+    willingnessToPay: boundedInteger(read(input, "willingnessToPay", "willingness_to_pay"), 0, 20),
+    strategicFit: boundedInteger(read(input, "strategicFit", "strategic_fit"), 0, 20),
+    underservedNeed: boundedInteger(read(input, "underservedNeed", "underserved_need"), 0, 15),
+    differentiation: boundedInteger(read(input, "differentiation"), 0, 10),
+    channelAccess: boundedInteger(read(input, "channelAccess", "channel_access"), 0, 10),
+    deliveryComplexity: boundedInteger(read(input, "deliveryComplexity", "delivery_complexity"), 0, 15),
+    complianceRisk: boundedInteger(read(input, "complianceRisk", "compliance_risk"), 0, 15)
+  };
+}
+
+function summarizePortfolio(data) {
+  const currentSignals = data.signals.filter((signal) => !signal.expires_at || Date.parse(signal.expires_at) > Date.now()).length;
+  const prioritized = data.opportunities.filter((opportunity) => opportunity.state === "prioritized").length;
+  const validating = data.opportunities.filter((opportunity) => opportunity.state === "validate").length;
+  return { segmentCount: data.segments.length, competitorCount: data.competitors.length, signalCount: data.signals.length, currentSignalCount: currentSignals, opportunityCount: data.opportunities.length, prioritizedCount: prioritized, validatingCount: validating };
+}
+
+function buildUi(deps) {
+  return { layout: deps.layout || basicLayout, card: deps.brandCard || card, link: deps.linkAction || link, escape: deps.escapeHtml || escapeHtml };
+}
+function basicLayout(data) { return `<!doctype html><html><head><title>${escapeHtml(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${escapeHtml(data.eyebrow)}</p><h1>${escapeHtml(data.heading)}</h1><p>${escapeHtml(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }
+function card(title, body) { return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p></article>`; }
+function link(href, label) { return `<a class="action" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`; }
+function escapeHtml(value) { return String(value || "").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[char])); }
+function passthrough(req, res, next) { next(); }
+function clean(value, max = 500) { return String(value || "").trim().slice(0, max); }
+function nullable(value, max = 500) { const text = clean(value, max); return text || null; }
+function slug(value, max = 120) { return clean(value, max).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, ""); }
+function validStudio(value) { return STUDIO_KEYS.has(String(value || "")); }
+function normalizeStudio(value) { const key = String(value || ""); return validStudio(key) ? key : null; }
+function oneOf(value, allowed, fallback) { const text = String(value || ""); return allowed.includes(text) ? text : fallback; }
+function parseArray(value) { if (Array.isArray(value)) return value.slice(0, 100).map((item) => clean(item, 1000)).filter(Boolean); if (typeof value === "string") { try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parseArray(parsed) : value.split("\n").map((item) => clean(item, 1000)).filter(Boolean); } catch { return value.split("\n").map((item) => clean(item, 1000)).filter(Boolean); } } return []; }
+function parseObject(value, fallback = {}) { if (value && typeof value === "object" && !Array.isArray(value)) return value; if (typeof value === "string") { try { const parsed = JSON.parse(value); return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : fallback; } catch { return fallback; } } return fallback; }
+function safeHttpsUrl(value) { const text = clean(value, 2000); if (!text) return null; try { const url = new URL(text); return url.protocol === "https:" && !url.username && !url.password ? url.toString() : null; } catch { return null; } }
+function validDate(value) { if (!value) return null; const timestamp = Date.parse(String(value)); return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null; }
+function validUuid(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "")); }
+function nonNegativeNumber(value) { const numeric = Number(value); return Number.isFinite(numeric) && numeric >= 0 ? numeric : null; }
+function finiteNumberOrNull(value) { const numeric = Number(value); return Number.isFinite(numeric) ? numeric : null; }
+function boundedInteger(value, min, max) { const numeric = Number(value); if (!Number.isFinite(numeric)) return min; return Math.max(min, Math.min(max, Math.round(numeric))); }
+function read(input, camel, snake) { if (input[camel] !== undefined) return input[camel]; if (snake && input[snake] !== undefined) return input[snake]; return 0; }
+function compact(value) { return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)); }
+function clamp(value, min, max, fallback) { const numeric = Number(value); return Number.isFinite(numeric) ? Math.max(min, Math.min(max, Math.round(numeric))) : fallback; }
