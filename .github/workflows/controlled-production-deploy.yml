@@ -22,6 +22,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       APEX_URL: https://sonaraindustries.com
       WWW_URL: https://www.sonaraindustries.com
 
@@ -52,6 +53,7 @@ jobs:
           test -n "${SUPABASE_ACCESS_TOKEN:-}"
           test -n "${SUPABASE_PROJECT_ID:-}"
           test -n "${SUPABASE_DB_PASSWORD:-}"
+          test -n "${SUPABASE_SERVICE_ROLE_KEY:-}"
 
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
@@ -87,6 +89,10 @@ jobs:
             --yes \
             --token="$VERCEL_TOKEN"
           test -s .env.production.catalog-verification
+          # SUPABASE_SERVICE_ROLE_KEY comes from the protected GitHub Actions secret, not from
+          # `vercel env pull`: Vercel does not return the plaintext of variables marked Sensitive,
+          # so the pulled file has no usable service-role key. Process env takes precedence over
+          # --env-file in Node, so the secret below wins over any blank/missing value in the file.
           node --env-file=.env.production.catalog-verification scripts/verify-production-product-catalog.mjs --database-only
 
       - name: Remove temporary production environment material
