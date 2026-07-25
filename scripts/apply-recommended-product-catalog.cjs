@@ -199,7 +199,7 @@ function patchServiceCatalogRoute() {
 function patchSafeListTimeout() {
   const file = root("server.js");
   let source = read(file);
-  const before = `async function safeListTable(table, query) {
+  const listBefore = `async function safeListTable(table, query) {
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false, rows: [] };
   if (!/^[a-z_]+$/i.test(table)) return { ok: false, rows: [] };
@@ -210,7 +210,7 @@ function patchSafeListTimeout() {
   const rows = await response.json().catch(() => []);
   return { ok: true, rows: Array.isArray(rows) ? rows : [] };
 }`;
-  const after = `async function safeListTable(table, query) {
+  const listAfter = `async function safeListTable(table, query) {
   const config = getSupabaseServerConfig();
   if (!config.ok) return { ok: false, rows: [] };
   if (!/^[a-z_]+$/i.test(table)) return { ok: false, rows: [] };
@@ -230,8 +230,27 @@ function patchSafeListTimeout() {
     clearTimeout(timeout);
   }
 }`;
-  if (source.includes(before)) source = source.replace(before, after);
+  if (source.includes(listBefore)) source = source.replace(listBefore, listAfter);
+
+  const configBefore = `function getSupabaseServerConfig() {
+  const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
+  const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) return { ok: false };
+  return { ok: true, url: url.replace(/\\/$/, ""), serviceRoleKey };
+}`;
+  const configAfter = `function getSupabaseServerConfig() {
+  const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
+  const serviceRoleKey = getEnv("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !serviceRoleKey) return { ok: false };
+  if (process.env.NODE_ENV === "test" && /^https:\\/\\/project\\.supabase\\.co\\/?$/i.test(url)) {
+    return { ok: false, code: "test_provider_blocked" };
+  }
+  return { ok: true, url: url.replace(/\\/$/, ""), serviceRoleKey };
+}`;
+  if (source.includes(configBefore)) source = source.replace(configBefore, configAfter);
+
   requireAnchor(source, 'const timeoutMs = process.env.NODE_ENV === "test" ? 100 : 1200;', "safe catalog list timeout");
+  requireAnchor(source, 'code: "test_provider_blocked"', "test Supabase placeholder rejection");
   write(file, source);
 }
 
