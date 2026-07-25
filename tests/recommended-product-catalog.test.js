@@ -61,7 +61,7 @@ describe("SONARA recommended product catalog", () => {
     }
   });
 
-  it("integrates products into the customer catalog and ecosystem manifest", () => {
+  it("integrates products without creating fake parent studio lifecycle routes", () => {
     const routes = fs.readFileSync(path.join(root, "routes", "sonara-service-lifecycle-routes.cjs"), "utf8");
     const manifest = fs.readFileSync(path.join(root, "lib", "sonara-ecosystem-manifest.cjs"), "utf8");
     assert.match(routes, /getRecommendedProductCatalog/);
@@ -69,6 +69,7 @@ describe("SONARA recommended product catalog", () => {
     assert.match(routes, /mergedCatalog/);
     assert.match(routes, /Availability:/);
     assert.match(routes, /Request this service/);
+    assert.doesNotMatch(routes, /slug: "products", productKey: "sonara_industries"/);
     assert.match(manifest, /recommendedProductCatalog: getRecommendedProductCatalog\(\)/);
   });
 });
