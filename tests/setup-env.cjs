@@ -39,3 +39,25 @@ for (const key of Object.keys(process.env)) {
     delete process.env[key];
   }
 }
+
+// Tests use project.supabase.co as an intentionally fake configured-provider
+// host. Keep that placeholder entirely offline so a leaked temporary env value
+// cannot create a real socket, delay public pages, or keep Mocha alive after the
+// assertions finish. Tests that need provider behavior replace global.fetch
+// with a scoped mock and restore this firewall afterward.
+const nativeFetch = global.fetch;
+if (typeof nativeFetch === "function") {
+  global.fetch = async (input, init) => {
+    const address = String(input?.url || input || "");
+    if (/^https:\/\/project\.supabase\.co(?:\/|$)/i.test(address)) {
+      return {
+        ok: false,
+        status: 503,
+        headers: { get: () => null },
+        json: async () => [],
+        text: async () => JSON.stringify({ ok: false, code: "test_provider_blocked" })
+      };
+    }
+    return nativeFetch(input, init);
+  };
+}
