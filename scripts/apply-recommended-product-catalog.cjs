@@ -19,7 +19,7 @@ function patchServiceCatalogRoute() {
     source = source.replace(anchor, `${anchor}\n${requireLine}`);
   }
 
-  if (source.includes("const DEFAULT_SERVICE_CATALOG = [")) {
+  if (!source.includes("const LEGACY_DEFAULT_SERVICE_CATALOG = [") && source.includes("const DEFAULT_SERVICE_CATALOG = [")) {
     source = source.replace("const DEFAULT_SERVICE_CATALOG = [", "const LEGACY_DEFAULT_SERVICE_CATALOG = [");
   }
 
