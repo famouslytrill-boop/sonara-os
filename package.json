@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.1.1",
   "main": "server.js",
   "scripts": {
-    "vercel-build": "pnpm run apply:runtime && pnpm exec mocha --file tests/setup-env.cjs \"tests/**/*.js\" --pass-with-no-tests && pnpm run build",
+    "vercel-build": "pnpm run apply:runtime && pnpm exec mocha --file tests/setup-env.cjs \"tests/**/*.js\" --pass-with-no-tests --exit && pnpm run build",
     "apply:last9": "node scripts/apply-last9-routes.cjs",
     "apply:creator-music": "node scripts/apply-creator-music-readonly.cjs",
     "apply:creator-generation": "node scripts/apply-creator-generation-platform.cjs && node scripts/apply-creator-generation-verifier.cjs",
@@ -34,7 +34,7 @@
     "db:push": "pnpm run db:patch-triggers && pnpm exec supabase db push",
     "db:push:all": "pnpm run db:patch-triggers && pnpm exec supabase db push --include-all",
     "pretest": "pnpm run apply:runtime",
-    "test": "mocha --file tests/setup-env.cjs \"tests/**/*.js\" --pass-with-no-tests",
+    "test": "mocha --file tests/setup-env.cjs \"tests/**/*.js\" --pass-with-no-tests --exit",
     "start": "node server.js",
     "build": "node --check server.js && node -e \"require('./server')\"",
     "lint": "eslint server.js api routes lib scripts tests public --ignore-pattern \"frontend/**\" --ignore-pattern \"my-app/**\" --ignore-pattern \"sonara-industries/**\" --ignore-pattern \"**/node_modules/**\" --ignore-pattern \"**/.next/**\"",
