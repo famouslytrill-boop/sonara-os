@@ -18,12 +18,6 @@ function patchServiceCatalogRoute() {
     source = source.replace(anchor, `${anchor}\n${requireLine}`);
   }
 
-  if (!source.includes('productKey: "sonara_industries"')) {
-    const anchor = "const PRODUCTS = [";
-    requireAnchor(source, anchor, "parent catalog product");
-    source = source.replace(anchor, `${anchor}\n  { slug: "products", productKey: "sonara_industries", name: "SONARA Industries" },`);
-  }
-
   if (source.includes("const DEFAULT_SERVICE_CATALOG = [")) {
     source = source.replace("const DEFAULT_SERVICE_CATALOG = [", "const LEGACY_DEFAULT_SERVICE_CATALOG = [");
   }
