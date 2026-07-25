@@ -11,7 +11,7 @@ describe("Market intelligence integration contract", () => {
   it("prepares route anchors and runs market intelligence before final R&D decisions", function() {
     const pkg = JSON.parse(read("package.json"));
     assert.equal(pkg.scripts["apply:market-intelligence"], "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
+    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("registers parent and studio workspaces", function() {

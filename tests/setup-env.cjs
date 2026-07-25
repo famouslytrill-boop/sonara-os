@@ -40,16 +40,15 @@ for (const key of Object.keys(process.env)) {
   }
 }
 
-// Tests use project.supabase.co as an intentionally fake configured-provider
-// host. Keep that placeholder entirely offline so a leaked temporary env value
-// cannot create a real socket, delay public pages, or keep Mocha alive after the
-// assertions finish. Tests that need provider behavior replace global.fetch
-// with a scoped mock and restore this firewall afterward.
+// Keep unmocked Supabase traffic offline. Tests that intentionally exercise a
+// configured provider replace global.fetch with a scoped mock; the runtime can
+// identify this tagged default firewall and fail closed before creating a
+// request. Restoring the original fetch restores the firewall after each test.
 const nativeFetch = global.fetch;
 if (typeof nativeFetch === "function") {
-  global.fetch = async (input, init) => {
+  const offlineProviderFetch = async (input, init) => {
     const address = String(input?.url || input || "");
-    if (/^https:\/\/project\.supabase\.co(?:\/|$)/i.test(address)) {
+    if (/^https:\/\/[a-z0-9-]+\.supabase\.co(?:\/|$)/i.test(address)) {
       return {
         ok: false,
         status: 503,
@@ -60,4 +59,11 @@ if (typeof nativeFetch === "function") {
     }
     return nativeFetch(input, init);
   };
+  Object.defineProperty(offlineProviderFetch, "__sonaraOfflineFirewall", {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false
+  });
+  global.fetch = offlineProviderFetch;
 }
