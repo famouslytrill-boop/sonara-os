@@ -28,10 +28,10 @@ function patchServiceCatalogRoute() {
     source = source.replace("const DEFAULT_SERVICE_CATALOG = [", "const LEGACY_DEFAULT_SERVICE_CATALOG = [");
   }
 
-  if (!source.includes("const DEFAULT_SERVICE_CATALOG = getRecommendedProductCatalog();")) {
+  if (!source.includes("const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DEFAULT_SERVICE_CATALOG];")) {
     const anchor = "function catalogCardBody(item) {";
     requireAnchor(source, anchor, "recommended catalog default");
-    source = source.replace(anchor, `const DEFAULT_SERVICE_CATALOG = getRecommendedProductCatalog();\n\n${anchor}`);
+    source = source.replace(anchor, `const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DEFAULT_SERVICE_CATALOG];\n\n${anchor}`);
   }
 
   const oldCardBody = `function catalogCardBody(item) {
@@ -90,7 +90,8 @@ function patchServiceCatalogRoute() {
       mergedCatalog.set(\`\${item.productKey}:\${String(item.serviceKey || item.name).toLowerCase()}\`, item);
     }
     for (const item of databaseItems) {
-      mergedCatalog.set(\`\${item.productKey}:\${String(item.serviceKey || item.name).toLowerCase()}\`, item);
+      const key = \`\${item.productKey}:\${String(item.serviceKey || item.name).toLowerCase()}\`;
+      mergedCatalog.set(key, { ...(mergedCatalog.get(key) || {}), ...item });
     }
     const items = [...mergedCatalog.values()].sort((left, right) => Number(left.sortOrder || 100) - Number(right.sortOrder || 100) || left.name.localeCompare(right.name));`;
   if (source.includes(oldLoad)) source = source.replace(oldLoad, newLoad);
