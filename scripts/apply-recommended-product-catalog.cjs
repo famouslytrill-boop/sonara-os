@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 patchServiceCatalogRoute();
+patchSafeListTimeout();
 patchEcosystemManifest();
 console.log("SONARA recommended product catalog applied");
 
@@ -192,6 +193,45 @@ function patchServiceCatalogRoute() {
     'body: `Published ${product.name} products and services. Direct execution remains unavailable until lifecycle and entitlement verification pass.`, '
   );
 
+  write(file, source);
+}
+
+function patchSafeListTimeout() {
+  const file = root("server.js");
+  let source = read(file);
+  const before = `async function safeListTable(table, query) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false, rows: [] };
+  if (!/^[a-z_]+$/i.test(table)) return { ok: false, rows: [] };
+  const response = await fetch(\`\${config.url}/rest/v1/\${table}\${query}\`, {
+    headers: supabaseHeaders(config)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, rows: [] };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, rows: Array.isArray(rows) ? rows : [] };
+}`;
+  const after = `async function safeListTable(table, query) {
+  const config = getSupabaseServerConfig();
+  if (!config.ok) return { ok: false, rows: [] };
+  if (!/^[a-z_]+$/i.test(table)) return { ok: false, rows: [] };
+  const timeoutMs = process.env.NODE_ENV === "test" ? 100 : 1200;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  timeout.unref?.();
+  try {
+    const response = await fetch(\`\${config.url}/rest/v1/\${table}\${query}\`, {
+      headers: supabaseHeaders(config),
+      signal: controller.signal
+    }).catch(() => undefined);
+    if (!response?.ok) return { ok: false, rows: [] };
+    const rows = await response.json().catch(() => []);
+    return { ok: true, rows: Array.isArray(rows) ? rows : [] };
+  } finally {
+    clearTimeout(timeout);
+  }
+}`;
+  if (source.includes(before)) source = source.replace(before, after);
+  requireAnchor(source, 'const timeoutMs = process.env.NODE_ENV === "test" ? 100 : 1200;', "safe catalog list timeout");
   write(file, source);
 }
 
