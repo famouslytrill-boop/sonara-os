@@ -76,10 +76,31 @@ jobs:
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
 
+      - name: Verify production catalog database boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .vercel
+          printf '{"orgId":"%s","projectId":"%s"}\n' "$VERCEL_ORG_ID" "$VERCEL_PROJECT_ID" > .vercel/project.json
+          pnpm dlx vercel@latest env pull .env.production.catalog-verification \
+            --environment=production \
+            --yes \
+            --token="$VERCEL_TOKEN"
+          test -s .env.production.catalog-verification
+          node --env-file=.env.production.catalog-verification scripts/verify-production-product-catalog.mjs --database-only
+
+      - name: Remove temporary production environment material
+        if: always()
+        shell: bash
+        run: |
+          rm -f .env.production.catalog-verification
+          test ! -e .env.production.catalog-verification
+
       - name: Deploy validated source to Vercel production
         shell: bash
         run: |
           set -euo pipefail
+          test ! -e .env.production.catalog-verification
           pnpm dlx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN" \
             --meta githubCommitSha="$GITHUB_SHA" \
             --meta githubCommitRef="main" \
@@ -136,6 +157,14 @@ jobs:
             echo "- Growth provider API: ${provider_status}, protected"
             echo "- Growth control center: ${control_status}, protected"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify production catalog pages and configured plan infrastructure
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_BASE_URL="$APEX_URL" \
+          EXPECTED_COMMIT_SHA="$GITHUB_SHA" \
+          node scripts/verify-production-product-catalog.mjs --pages-only
 
       - name: Upload deployment diagnostics on failure
         if: failure()
