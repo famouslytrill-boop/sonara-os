@@ -31,15 +31,26 @@ if (!source.includes(helperMarker)) {
   const helper = `function catalogDirectorySections(items, resolveProduct) {
   const groups = new Map();
   for (const item of items) {
-    const product = resolveProduct(item);
-    const groupName = product?.name || (item.productKey === "sonara_industries" ? "SONARA Industries" : displayStatus(item.productKey || "Services"));
+    let product = null;
+    try {
+      product = resolveProduct(item) || null;
+    } catch (_) {
+      product = null;
+    }
+    const groupName = product?.name || (item?.productKey === "sonara_industries" ? "SONARA Industries" : displayStatus(item?.productKey || "Services"));
     if (!groups.has(groupName)) groups.set(groupName, []);
-    groups.get(groupName).push({ item, product });
+    groups.get(groupName).push({ item: item || {}, product });
   }
   return [...groups.entries()].map(([groupName, entries]) => {
     const rows = entries.map(({ item, product }) => {
-      const actions = catalogActions(item, product).join("");
-      return \`<article class="catalog-row"><div class="catalog-row-copy"><h3>\${escapeHtml(item.name)}</h3><p>\${escapeHtml(catalogCardBody(item))}</p></div><div class="actions">\${actions}</div></article>\`;
+      try {
+        const actions = catalogActions(item, product).join("");
+        return \`<article class="catalog-row"><div class="catalog-row-copy"><h3>\${escapeHtml(item.name || "Catalog item")}</h3><p>\${escapeHtml(catalogCardBody(item))}</p></div><div class="actions">\${actions}</div></article>\`;
+      } catch (_) {
+        const fallbackName = escapeHtml(item?.name || "Catalog item");
+        const fallbackSummary = escapeHtml(item?.summary || "This catalog entry needs review before it can be opened.");
+        return \`<article class="catalog-row"><div class="catalog-row-copy"><h3>\${fallbackName}</h3><p>\${fallbackSummary}</p></div><div class="actions">\${linkAction("/requests", "Request catalog review")}</div></article>\`;
+      }
     }).join("");
     return \`<section class="card catalog-directory"><div class="catalog-directory-heading"><h2>\${escapeHtml(groupName)}</h2><p>\${entries.length} published product\${entries.length === 1 ? "" : "s"}</p></div><div class="catalog-list">\${rows}</div></section>\`;
   });
@@ -60,6 +71,7 @@ if (source.includes(productBefore)) source = source.replace(productBefore, produ
 
 for (const marker of [
   helperMarker,
+  "Request catalog review",
   "const sections = catalogDirectorySections(items, (item) => productByKey(item.productKey));",
   "const sections = catalogDirectorySections(items, () => product);"
 ]) {
