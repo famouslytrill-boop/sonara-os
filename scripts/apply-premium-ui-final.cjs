@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const root = process.cwd();
 const serverPath = path.join(root, "server.js");
-const version = "sonara-ui-20260725-v5";
+const version = "sonara-ui-20260725-v6";
 
 function fail(message) {
   console.error(message);
@@ -113,10 +113,10 @@ const homeContent = `<div class="sonara-home">
 const rootRoute = `app.get("/", (req, res) => {
   return res.status(200).type("html").send(layout({
     title: "SONARA Industries",
-    eyebrow: "LAUNCH OPERATING SYSTEM",
+    eyebrow: "Build. Create. Grow.",
     heading: "Build, create, and grow—without losing control.",
     variant: "home",
-    body: "Three focused companies share one secure operating layer for identity, records, billing, support, and real work.",
+    body: "Business Builder, Creator Studio, and Growth Studio — one account, three focused workspaces, and honest status every step of the way.",
     sections: [${JSON.stringify(homeContent)}],
     actions: [linkAction("/signup", "Create account"), linkAction("/free-tools", "Explore free tools"), linkAction("/pricing", "Compare plans")]
   }));
