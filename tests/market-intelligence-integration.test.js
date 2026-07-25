@@ -76,7 +76,7 @@ describe("Market intelligence integration contract", () => {
       "rights-aware release",
       "first-party data",
       "incrementality",
-      "source-dated",
+      "observed date",
       "willingness to pay",
       "Do not build yet",
       "current owner-approved plans"
