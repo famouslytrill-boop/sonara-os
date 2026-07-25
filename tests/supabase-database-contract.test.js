@@ -13,12 +13,13 @@ const root = path.resolve(__dirname, "..");
 const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_complete_ecosystem_database_contract.sql");
 const referenceContractExtensionPath = path.join(root, "supabase", "migrations", "20260722201600_extend_database_contract_reference_intelligence.sql");
 const productLifecycleMigrationPath = path.join(root, "supabase", "migrations", "20260723193000_product_lifecycle_system.sql");
+const marketIntelligenceMigrationPath = path.join(root, "supabase", "migrations", "20260725120000_market_intelligence_system.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 129);
+    assert.equal(DATABASE_TABLES.length, 135);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -40,6 +41,12 @@ describe("Supabase database contract", () => {
       "product_lifecycle_feedback",
       "product_lifecycle_stage_reviews",
       "product_lifecycle_events",
+      "market_intelligence_segments",
+      "market_intelligence_competitors",
+      "market_intelligence_signals",
+      "market_intelligence_opportunities",
+      "market_intelligence_reviews",
+      "market_intelligence_events",
       "reference_intelligence_sources",
       "reference_intelligence_insights",
       "reference_intelligence_actions",
@@ -58,7 +65,7 @@ describe("Supabase database contract", () => {
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath]
+    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath]
       .map((filePath) => fs.readFileSync(filePath, "utf8"))
       .join("\n")
       .toLowerCase();
