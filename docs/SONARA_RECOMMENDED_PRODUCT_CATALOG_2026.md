@@ -83,9 +83,16 @@ This catalog converts the approved market research and product bets into one ver
 - The customer catalog merges database records with the code registry, so database state can override verified fields without losing the richer product definition.
 - The original done-for-you services remain in the catalog.
 
-## Production boundary
+## Remaining production boundary
 
-The initial catalog code is merged into `main`. Production is considered verified only when the controlled deployment workflow completes all of the following in order:
+**Current status as of 2026-07-25:**
+
+- The recommended catalog code has been merged into `main` through PR #96 and its production controls were strengthened through PRs #97–#101.
+- Treat the production Supabase catalog migrations as unapplied and unverified until the controlled deployment produces database evidence proving otherwise.
+- Do not advertise paid product access until actual production plan-entitlement tests prove that an entitled account is allowed and an unpaid or lower-plan account is denied.
+- Keep `planned`, `validation_required`, and `setup_required` products restricted until their workflows, security controls, providers, lifecycle approvals, and required entitlements are genuinely operational.
+
+Production is considered verified only when the controlled deployment workflow completes all of the following in order:
 
 1. Dry-run all linked Supabase migrations.
 2. Apply `20260725180000_recommended_product_catalog.sql` and `20260725193000_product_catalog_production_boundary.sql`.
