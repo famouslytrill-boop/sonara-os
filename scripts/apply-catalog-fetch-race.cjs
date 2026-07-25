@@ -21,7 +21,7 @@ const current = `async function safeListTable(table, query) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   timeout.unref?.();
   try {
-    const response = await fetch(\`${config.url}/rest/v1/${table}${query}\`, {
+    const response = await fetch(\`\${config.url}/rest/v1/\${table}\${query}\`, {
       headers: supabaseHeaders(config),
       signal: controller.signal
     }).catch(() => undefined);
@@ -42,7 +42,7 @@ const replacement = `async function safeListTable(table, query) {
   const timeoutResult = Object.freeze({ sonaraCatalogTimeout: true });
   let timeout;
   const request = Promise.resolve()
-    .then(() => fetch(\`${config.url}/rest/v1/${table}${query}\`, {
+    .then(() => fetch(\`\${config.url}/rest/v1/\${table}\${query}\`, {
       headers: supabaseHeaders(config),
       signal: controller.signal
     }))
