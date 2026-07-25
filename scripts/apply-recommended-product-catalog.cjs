@@ -47,7 +47,7 @@ function patchServiceCatalogRoute() {
   if (item.customerOutcome) parts.push(\`Outcome: \${item.customerOutcome}\`);
   if (item.inputs) parts.push(\`Inputs: \${item.inputs}.\`);
   if (item.turnaround) parts.push(\`Turnaround: \${item.turnaround}.\`);
-  if (item.deliverableType) parts.push(\`Type: \${item.deliverableType}.\`);
+  if (item.deliverableType) parts.push(\`Deliverable: \${item.deliverableType}.\`);
   if (item.lifecycleStatus) parts.push(\`Availability: \${String(item.lifecycleStatus).replace(/_/g, " ")}.\`);
   if (item.planFloor) parts.push(\`Plan floor: \${item.planFloor}.\`);
   else parts.push(\`Access: \${item.tier === "free" ? "Free tool" : "Paid service"}.\`);
@@ -103,11 +103,11 @@ function patchServiceCatalogRoute() {
       ]);`;
   const newCard = `      const detailPath = item.route || (product ? \`/\${product.slug}\` : "/start");
       return actionCard(item.name, catalogCardBody(item), [
-        linkAction("/requests", "Request or discuss"),
+        linkAction("/requests", "Request this service"),
         linkAction(detailPath, product ? product.name : "Open product")
       ]);`;
   if (source.includes(oldCard)) source = source.replace(oldCard, newCard);
-  requireAnchor(source, 'linkAction("/requests", "Request or discuss")', "catalog action");
+  requireAnchor(source, 'linkAction("/requests", "Request this service")', "catalog action");
 
   source = source.replace('title: "Service catalog",', 'title: "Product and service catalog",');
   source = source.replace('heading: "Service catalog",', 'heading: "Product and service catalog",');
