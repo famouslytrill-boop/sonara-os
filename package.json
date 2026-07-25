@@ -12,7 +12,7 @@
     "apply:growth-studio": "node scripts/apply-growth-studio-platform.cjs && node scripts/apply-growth-studio-verifier.cjs",
     "apply:growth-public": "node scripts/apply-growth-studio-public-positioning.cjs",
     "apply:product-lifecycle": "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs",
-    "apply:market-intelligence": "node scripts/apply-market-intelligence-system.cjs",
+    "apply:market-intelligence": "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs",
     "apply:market-rd": "node scripts/apply-market-rd-priorities.cjs",
     "apply:formulas": "node scripts/apply-formula-routes.cjs",
     "apply:ecosystem": "node scripts/apply-ecosystem-routes.cjs",
