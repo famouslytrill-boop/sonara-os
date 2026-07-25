@@ -9,10 +9,10 @@ function read(relativePath) {
 }
 
 describe("Product lifecycle integration contract", () => {
-  it("runs the lifecycle patch last in the runtime pipeline", () => {
+  it("runs lifecycle before market intelligence and market R&D", () => {
     const pkg = JSON.parse(read("package.json"));
     assert.equal(pkg.scripts["apply:product-lifecycle"], "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:growth-public && pnpm run apply:product-lifecycle$/);
+    assert.match(pkg.scripts["apply:runtime"], /apply:growth-public && pnpm run apply:product-lifecycle && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("registers parent and studio lifecycle routes", () => {
