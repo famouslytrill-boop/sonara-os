@@ -47,7 +47,7 @@ describe("SONARA recommended product catalog", () => {
   it("runs the product catalog after product lifecycle and before final market decisions", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     assert.equal(pkg.scripts["apply:product-catalog"], "node scripts/apply-recommended-product-catalog.cjs");
-    assert.equal(pkg.scripts["apply:catalog-fetch-race"], "node scripts/apply-catalog-fetch-race.cjs && node scripts/apply-catalog-compact-directory.cjs && node scripts/apply-catalog-route-boundary.cjs");
+    assert.equal(pkg.scripts["apply:catalog-fetch-race"], "node scripts/apply-catalog-helper-scope.cjs && node scripts/apply-catalog-fetch-race.cjs && node scripts/apply-catalog-compact-directory.cjs && node scripts/apply-catalog-route-boundary.cjs");
     assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
@@ -65,6 +65,7 @@ describe("SONARA recommended product catalog", () => {
   it("integrates products without creating fake parent studio lifecycle routes", () => {
     const routes = fs.readFileSync(path.join(root, "routes", "sonara-service-lifecycle-routes.cjs"), "utf8");
     const manifest = fs.readFileSync(path.join(root, "lib", "sonara-ecosystem-manifest.cjs"), "utf8");
+    const scopePatch = fs.readFileSync(path.join(root, "scripts", "apply-catalog-helper-scope.cjs"), "utf8");
     const racePatch = fs.readFileSync(path.join(root, "scripts", "apply-catalog-fetch-race.cjs"), "utf8");
     const directoryPatch = fs.readFileSync(path.join(root, "scripts", "apply-catalog-compact-directory.cjs"), "utf8");
     const routeBoundaryPatch = fs.readFileSync(path.join(root, "scripts", "apply-catalog-route-boundary.cjs"), "utf8");
@@ -75,11 +76,13 @@ describe("SONARA recommended product catalog", () => {
     assert.match(routes, /Request this service/);
     assert.doesNotMatch(routes, /slug: "products", productKey: "sonara_industries"/);
     assert.match(manifest, /recommendedProductCatalog: getRecommendedProductCatalog\(\)/);
+    assert.match(scopePatch, /Catalog actions remain at module scope/);
+    assert.match(scopePatch, /  function catalogActions\(item, product\)/);
     assert.match(racePatch, /Promise\.race\(\[request, deadline\]\)/);
     assert.match(racePatch, /table === "service_catalog_items"/);
-    assert.match(directoryPatch, /function catalogDirectorySections\(items, resolveProduct\)/);
+    assert.match(directoryPatch, /  function catalogDirectorySections\(items, resolveProduct\)/);
     assert.match(directoryPatch, /catalog-row/);
-    assert.match(routeBoundaryPatch, /function registerCatalogRoute\(route, handler\)/);
+    assert.match(routeBoundaryPatch, /  function registerCatalogRoute\(route, handler\)/);
     assert.match(routeBoundaryPatch, /Catalog temporarily unavailable/);
   });
 });
