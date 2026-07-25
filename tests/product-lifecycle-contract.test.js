@@ -12,7 +12,7 @@ describe("Product lifecycle integration contract", () => {
   it("runs lifecycle before the catalog and market decision layers", () => {
     const pkg = JSON.parse(read("package.json"));
     assert.equal(pkg.scripts["apply:product-lifecycle"], "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:growth-public && pnpm run apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
+    assert.match(pkg.scripts["apply:runtime"], /apply:growth-public && pnpm run apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("registers parent and studio lifecycle routes", () => {
