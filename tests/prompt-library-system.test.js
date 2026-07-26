@@ -182,7 +182,10 @@ describe("SONARA Prompt Library", () => {
     assert.equal(packageJson.dependencies?.["prompts.chat"], undefined);
     assert.equal(packageJson.dependencies?.next, undefined);
     assert.equal(packageJson.dependencies?.["@modelcontextprotocol/sdk"], undefined);
-    assert.match(packageJson.scripts["apply:runtime"], /apply:prompt-library/);
+    assert.match(packageJson.scripts["apply:prompt-library"], /prepare-prompt-library-runtime/);
+    const marketRdSource = fs.readFileSync(path.join(root, "scripts/apply-market-rd-priorities.cjs"), "utf8");
+    assert.match(marketRdSource, /prepare-prompt-library-runtime\.cjs/);
+    assert.match(marketRdSource, /apply-prompt-library-system\.cjs/);
 
     const routeSource = fs.readFileSync(path.join(root, "routes/sonara-prompt-library-routes.cjs"), "utf8");
     const engineSource = fs.readFileSync(path.join(root, "lib/sonara-prompt-library.cjs"), "utf8");
