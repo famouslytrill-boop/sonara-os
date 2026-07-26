@@ -34,3 +34,4 @@ console.log("SONARA market R&D priorities applied");
 require("./prepare-prompt-library-runtime.cjs");
 require("./apply-prompt-library-system.cjs");
 require("./apply-prompt-library-openapi-compatibility.cjs");
+require("./apply-prompt-library-security-hotfix.cjs");
