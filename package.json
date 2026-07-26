@@ -22,7 +22,7 @@
     "apply:reference-intelligence": "node scripts/apply-reference-intelligence.cjs",
     "apply:system-design-intelligence": "node scripts/apply-system-design-intelligence.cjs",
     "apply:model-safety-resilience": "node scripts/apply-model-safety-resilience.cjs && node scripts/apply-obliteratus-open-source-registry.cjs",
-    "apply:prompt-library": "node scripts/apply-prompt-library-system.cjs",
+    "apply:prompt-library": "node scripts/prepare-prompt-library-runtime.cjs && node scripts/apply-prompt-library-system.cjs",
     "apply:database-management": "node scripts/apply-database-management-console.cjs",
     "apply:business-control-plane": "node scripts/apply-business-control-plane.cjs",
     "apply:business-operating-system": "node scripts/apply-business-builder-operating-system.cjs && node scripts/apply-business-builder-dashboard-compatibility.cjs && node scripts/apply-business-builder-openapi-compatibility.cjs && node scripts/apply-business-builder-intake-customer-sync.cjs",
