@@ -13,7 +13,7 @@
     "apply:growth-public": "node scripts/apply-growth-studio-public-positioning.cjs",
     "apply:product-lifecycle": "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs",
     "apply:market-intelligence": "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs",
-    "apply:market-rd": "node scripts/apply-market-rd-priorities.cjs && pnpm run apply:prompt-library",
+    "apply:market-rd": "node scripts/apply-market-rd-priorities.cjs",
     "apply:product-catalog": "node scripts/apply-recommended-product-catalog.cjs",
     "apply:catalog-fetch-race": "node scripts/apply-catalog-helper-scope.cjs && node scripts/apply-catalog-fetch-race.cjs && node scripts/apply-catalog-compact-directory.cjs && node scripts/apply-catalog-route-boundary.cjs",
     "apply:formulas": "node scripts/apply-formula-routes.cjs",
