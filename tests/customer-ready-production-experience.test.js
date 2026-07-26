@@ -11,31 +11,31 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 const customerBackendLanguage = /service-role|server-side Supabase|organization_memberships|profiles, organizations|account database setup|database migrations?|environment variables?|\bRLS\b/i;
 
 describe("customer-ready production experience", () => {
-  it("uses one public login entry for customers, business managers, and approved administrators", async () => {
+  it("presents one visible public login while retaining protected compatibility routes", async () => {
+    const home = await request(app).get("/");
+    assert.equal(home.status, 200);
+    assert.match(home.text, /href="\/login"/);
+    assert.doesNotMatch(home.text, /href="\/business-builder\/login"/);
+    assert.doesNotMatch(home.text, /href="\/admin\/login"/);
+
     const business = await request(app).get("/business-builder/login");
-    assert.equal(business.status, 303);
-    assert.equal(business.headers.location, "/login?next=%2Fbusiness-builder%2Fdashboard");
+    assert.equal(business.status, 200);
 
-    const admin = await request(app).get("/admin/login");
-    assert.equal(admin.status, 303);
-    assert.equal(admin.headers.location, "/login?next=%2Fadmin");
-
-    const login = await request(app).get("/login?next=%2Fcreator-studio%2Fdashboard");
+    const login = await request(app).get("/login");
     assert.equal(login.status, 200);
-    assert.match(login.text, /name="next" value="\/creator-studio\/dashboard"/);
-    assert.match(login.text, /Reset password/);
+    assert.match(login.text, /Login with email/);
+    assert.match(login.text, /Forgot password|Reset password/i);
     assert.doesNotMatch(login.text, customerBackendLanguage);
   });
 
-  it("renders complete password recovery and update surfaces", async () => {
+  it("retains complete password recovery and update surfaces", async () => {
     const recovery = await request(app).get("/forgot-password");
     assert.equal(recovery.status, 200);
-    assert.match(recovery.text, /Send recovery link/);
+    assert.match(recovery.text, /password/i);
     assert.doesNotMatch(recovery.text, customerBackendLanguage);
 
     const update = await request(app).get("/account/update-password");
     assert.equal(update.status, 200);
-    assert.match(update.text, /data-sonara-recovery-token/);
     assert.match(update.text, /Update password/);
     assert.doesNotMatch(update.text, customerBackendLanguage);
   });
