@@ -11,7 +11,7 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "background_color": "#F7F9FF",
-  "theme_color": "#101A38",
+  "theme_color": "#11101a",
   "categories": ["business", "productivity", "music", "marketing"],
   "prefer_related_applications": false,
   "icons": [
