@@ -28,3 +28,9 @@ for (const marker of [
 
 fs.writeFileSync(file, source);
 console.log("SONARA market R&D priorities applied");
+
+// Prompt Library runs after every route-sensitive market transform while the
+// package-level runtime contract still ends with the established Market R&D stage.
+require("./prepare-prompt-library-runtime.cjs");
+require("./apply-prompt-library-system.cjs");
+require("./apply-prompt-library-openapi-compatibility.cjs");

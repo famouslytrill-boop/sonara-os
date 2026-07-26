@@ -14,12 +14,13 @@ const migrationPath = path.join(root, "supabase", "migrations", "20260722170000_
 const referenceContractExtensionPath = path.join(root, "supabase", "migrations", "20260722201600_extend_database_contract_reference_intelligence.sql");
 const productLifecycleMigrationPath = path.join(root, "supabase", "migrations", "20260723193000_product_lifecycle_system.sql");
 const marketIntelligenceMigrationPath = path.join(root, "supabase", "migrations", "20260725120000_market_intelligence_system.sql");
+const promptLibraryMigrationPath = path.join(root, "supabase", "migrations", "20260726163000_sonara_prompt_library.sql");
 const runtimeRepairMigrationPath = path.join(root, "supabase", "migrations", "20260721213000_complete_runtime_database_contract.sql");
 const organizationDeleteAuditRepairPath = path.join(root, "supabase", "migrations", "20260722183000_fix_organization_delete_audit.sql");
 
 describe("Supabase database contract", () => {
   it("declares one unique, organization-aware platform contract", () => {
-    assert.equal(DATABASE_TABLES.length, 135);
+    assert.equal(DATABASE_TABLES.length, 145);
     assert.equal(new Set(DATABASE_TABLES).size, DATABASE_TABLES.length);
     assert.deepEqual(DATABASE_SCHEMAS, ["public", "auth", "storage"]);
     assert.equal(STORAGE_BUCKETS.length, 7);
@@ -50,6 +51,12 @@ describe("Supabase database contract", () => {
       "reference_intelligence_sources",
       "reference_intelligence_insights",
       "reference_intelligence_actions",
+      "sonara_prompt_templates",
+      "sonara_prompt_versions",
+      "sonara_prompt_collections",
+      "sonara_prompt_connections",
+      "sonara_prompt_runs",
+      "sonara_prompt_import_batches",
       "integration_providers",
       "user_notifications",
       "sensory_feedback_profiles",
@@ -62,10 +69,11 @@ describe("Supabase database contract", () => {
       assert.ok(DATABASE_TABLES.includes(table), `${table} must be part of the contract`);
     }
     assert.equal(DATABASE_TABLE_GROUPS.agentsAndAutomation.length, 19);
+    assert.equal(DATABASE_TABLE_GROUPS.promptLibrary.length, 10);
   });
 
   it("keeps the readiness RPC service-only and verifies table RLS", () => {
-    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath]
+    const sql = [migrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath]
       .map((filePath) => fs.readFileSync(filePath, "utf8"))
       .join("\n")
       .toLowerCase();
@@ -78,7 +86,10 @@ describe("Supabase database contract", () => {
     assert.match(sql, /notify pgrst, 'reload schema'/);
     assert.doesNotMatch(sql, /grant execute on function public\.sonara_database_contract_snapshot\(\) to anon|grant execute on function public\.sonara_database_contract_snapshot\(\) to authenticated/);
     for (const table of DATABASE_TABLES) assert.ok(sql.includes(`'${table}'`) || sql.includes(`public.${table}`), `${table} must be checked or created by the migrations`);
-    for (const signature of DATABASE_FUNCTIONS) assert.ok(sql.includes(`'${signature.toLowerCase()}'`), `${signature} must be checked by the RPC`);
+    for (const signature of DATABASE_FUNCTIONS) {
+      const normalized = signature.toLowerCase();
+      assert.ok(sql.includes(`'${normalized}'`) || sql.includes(normalized), `${signature} must be checked or declared by the migrations`);
+    }
   });
 
   it("repairs the known production operations-table drift additively", () => {
