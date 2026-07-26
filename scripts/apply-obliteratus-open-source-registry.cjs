@@ -74,6 +74,11 @@ ${marker}`;
 
 function patchRepositoryRegistry() {
   const filePath = path.join(__dirname, "..", "docs", "SONARA_EXTERNAL_REPOSITORY_REGISTRY.md");
+  if (!fs.existsSync(filePath)) {
+    console.log("OBLITERATUS documentation registry skipped because docs are not present in this runtime image");
+    return;
+  }
+
   let source = fs.readFileSync(filePath, "utf8");
 
   if (!source.includes("elder-plinius/OBLITERATUS")) {
