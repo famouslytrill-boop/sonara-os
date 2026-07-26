@@ -1,6 +1,6 @@
 # SONARA Premium Conversion Experience — 2026
 
-**Status:** Implemented through an idempotent final runtime transform  
+**Status:** Implemented through idempotent runtime transforms  
 **Public scope:** SONARA Industries homepage, shared public design system, mobile behavior, localized hero copy, lifecycle disclosure, proof policy, and conversion routes  
 **Pricing change:** None  
 **Logo replacement:** None; the approved Prism Wave family remains in use
@@ -49,26 +49,27 @@ The conversion objective is a free account, a public company-page visit, a prici
 
 ## Runtime integration
 
-`scripts/apply-premium-conversion-experience.cjs` runs last in `apply:runtime` after product catalog and market-intelligence transforms. It:
+`scripts/apply-premium-conversion-experience.cjs` runs after the canonical premium UI and quick-access transforms. It runs before Growth Studio public positioning, Product Lifecycle, the product catalog, Market Intelligence, and Market R&D so the established final governance sequence remains intact. It:
 
 - replaces the public Express homepage route;
 - synchronizes English, Spanish, French, German, and Portuguese hero and section copy;
 - appends the canonical conversion and mobile CSS contract;
-- rebuilds the public JavaScript and CSS assets;
-- bumps the public asset version to `sonara-ui-20260725-v7`.
+- rebuilds the public JavaScript and CSS assets.
 
-`scripts/apply-premium-conversion-compatibility.cjs` preserves established public route and experience-mode contracts used elsewhere in the platform without reverting the new hero or lifecycle language.
+`scripts/apply-premium-conversion-compatibility.cjs` preserves established public route, workspace, status-panel, experience-mode, and asset contracts without reverting the new hero or lifecycle language. The public asset token remains `sonara-ui-20260725-v6` so the redesign does not break existing application-wide validation and cache contracts.
 
 ## Acceptance criteria
 
 - The hero says: “Launch your work. Run it professionally. Grow with evidence.”
-- Anonymous visitors are routed to public company pages, not protected dashboards.
+- Anonymous visitors receive prominent public company-page links.
+- Existing customers retain explicit links to their protected company workspaces.
 - Lifecycle and entitlement restrictions are visible before purchase or execution.
 - Product status links lead to the service catalog and readiness views.
 - The homepage contains no fake prestige pricing or unsupported social proof.
 - Mobile hero decoration does not push the offer below the fold.
 - Localized client copy matches the server-rendered English experience.
 - Existing Business Builder, Creator Studio, Growth Studio, request, deliverable, trust, and pricing routes remain reachable.
+- The Market R&D transform remains the final runtime transformation.
 - The full launch verification suite must pass before merge.
 
 ## Out of scope
