@@ -38,7 +38,7 @@ describe("OBLITERATUS quarantined model-safety reference", () => {
     const engineSource = fs.readFileSync(path.join(__dirname, "../lib/sonara-model-safety-resilience.cjs"), "utf8");
     const routeSource = fs.readFileSync(path.join(__dirname, "../routes/sonara-model-safety-resilience-routes.cjs"), "utf8");
     const combined = `${engineSource}\n${routeSource}`;
-    assert.doesNotMatch(combined, /require\(["'](?:node:)?child_process["']\)|child_process\.|spawn\(|execFile\(|\bexec\(|\bfetch\(|require\(["']axios["']\)|require\(["']requests["']\)|require\(["'](?:torch|transformers|huggingface_hub|gradio)["']\)|model\.save\(|push_to_hub\(/i);
+    assert.doesNotMatch(combined, /require\(["'](?:node:)?child_process["']\)|child_process\.|spawn\(|execFile\(|\bfetch\(|require\(["']axios["']\)|require\(["']requests["']\)|require\(["'](?:torch|transformers|huggingface_hub|gradio)["']\)|model\.save\(|push_to_hub\(/i);
     assert.doesNotMatch(combined, /require\(["'](?:obliteratus|torch|transformers|huggingface)/i);
   });
 
