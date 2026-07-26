@@ -17,12 +17,15 @@ describe("premium public conversion experience", () => {
     assert.match(res.text, /Professional systems built around the result you need next/);
   });
 
-  it("links anonymous visitors to public company pages instead of protected dashboards", async () => {
+  it("keeps public exploration primary while preserving existing-customer workspace access", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     for (const route of ["/business-builder", "/creator-studio", "/growth-studio"]) {
       assert.match(res.text, new RegExp(`href="${route}"`));
     }
-    assert.doesNotMatch(res.text, /href="\/(?:business-builder|creator-studio|growth-studio)\/dashboard"/);
+    for (const route of ["/business-builder/dashboard", "/creator-studio/dashboard", "/growth-studio/dashboard"]) {
+      assert.match(res.text, new RegExp(`href="${route}"`));
+    }
+    assert.match(res.text, /aria-label="Existing customer workspaces"/);
   });
 
   it("keeps lifecycle and entitlement restrictions visible", async () => {
