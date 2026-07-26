@@ -100,10 +100,14 @@ function patchRouteRegistry() {
   let source = fs.readFileSync(registryPath, "utf8");
 
   if (!source.includes('"/admin/model-safety-resilience"')) {
-    const preferredMarker = '  "/admin/ai-integrations", "/admin/reference-intelligence", "/admin/system-design-intelligence"\n];';
-    const fallbackMarker = '  "/admin/ai-integrations"\n];';
-    const marker = source.includes(preferredMarker) ? preferredMarker : fallbackMarker;
-    if (!source.includes(marker)) throw new Error("Model Safety Resilience route registry marker not found");
+    const markers = [
+      '  "/admin/ai-integrations", "/admin/reference-intelligence", "/admin/system-design-intelligence"\n];',
+      '  "/admin/ai-integrations", "/admin/system-design-intelligence"\n];',
+      '  "/admin/ai-integrations", "/admin/reference-intelligence"\n];',
+      '  "/admin/ai-integrations"\n];'
+    ];
+    const marker = markers.find((candidate) => source.includes(candidate));
+    if (!marker) throw new Error("Model Safety Resilience route registry marker not found");
     source = source.replace(marker, marker.replace("\n];", ', "/admin/model-safety-resilience"\n];'));
   }
 
