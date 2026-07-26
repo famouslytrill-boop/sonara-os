@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const root = process.cwd();
 const serverPath = path.join(root, "server.js");
+const routePath = path.join(root, "routes", "customer-ready-experience.cjs");
 const workerPath = path.join(root, "public", "sw.js");
 const templateRoot = path.join(root, "scripts", "customer-ready-templates");
 const publicClientPath = path.join(root, "public", "sonara-one.js");
@@ -50,6 +51,26 @@ function assemble(directory, output) {
   if (!files.length) fail(`No canonical assets found in ${directory}`);
   fs.writeFileSync(output, files.map((file) => read(path.join(sourceDirectory, file))).join("\n"));
 }
+
+let customerRoutes = read(routePath);
+const logoutBefore = `  app.post("/logout", (req, res, next) => {
+    clearCustomerSessionCookie(res);
+    if (req.path === "/logout") return res.redirect(303, "/");
+    return next();
+  });`;
+const logoutAfter = `  app.post("/logout", (req, res, next) => {
+    clearCustomerSessionCookie(res);
+    res.clearCookie("sonara_admin_session", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/"
+    });
+    if (req.path === "/logout") return res.redirect(303, "/");
+    return next();
+  });`;
+customerRoutes = replaceRequired(customerRoutes, logoutBefore, logoutAfter, "unified logout cookies");
+fs.writeFileSync(routePath, customerRoutes);
 
 let server = read(serverPath);
 
