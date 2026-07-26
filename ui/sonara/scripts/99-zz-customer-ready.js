@@ -19,9 +19,9 @@
 
   function applyBrightness(value) {
     const brightness = Math.min(112, Math.max(92, Number(value) || 104));
-    root.style.setProperty("--sonara-brightness", String(brightness / 100));
-    document.querySelectorAll("[data-sonara-preference='brightness']").forEach((input) => { input.value = String(brightness); });
-    document.querySelectorAll("[data-sonara-brightness-output]").forEach((output) => { output.textContent = `${brightness}%`; });
+    root?.style?.setProperty?.("--sonara-brightness", String(brightness / 100));
+    document.querySelectorAll?.("[data-sonara-preference='brightness']")?.forEach?.((input) => { input.value = String(brightness); });
+    document.querySelectorAll?.("[data-sonara-brightness-output]")?.forEach?.((output) => { output.textContent = `${brightness}%`; });
     return brightness;
   }
 
@@ -29,8 +29,8 @@
     const preferences = readPreferences();
     preferences.brightness = String(applyBrightness(preferences.brightness));
     writePreferences(preferences);
-    document.querySelectorAll("[data-sonara-preference='brightness']").forEach((input) => {
-      input.addEventListener("input", () => {
+    document.querySelectorAll?.("[data-sonara-preference='brightness']")?.forEach?.((input) => {
+      input.addEventListener?.("input", () => {
         const current = readPreferences();
         current.brightness = String(applyBrightness(input.value));
         writePreferences(current);
@@ -39,9 +39,9 @@
   }
 
   function installPasswordRecovery() {
-    const tokenInput = document.querySelector("[data-sonara-recovery-token]");
+    const tokenInput = document.querySelector?.("[data-sonara-recovery-token]");
     if (!tokenInput) return;
-    const status = document.querySelector("[data-sonara-recovery-status]");
+    const status = document.querySelector?.("[data-sonara-recovery-status]");
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const token = hash.get("access_token") || "";
     const type = hash.get("type") || "";
@@ -55,8 +55,8 @@
   }
 
   function closeWorkspaceMenu() {
-    document.addEventListener("click", (event) => {
-      const menu = document.querySelector(".sonara-workspace-menu[open]");
+    document.addEventListener?.("click", (event) => {
+      const menu = document.querySelector?.(".sonara-workspace-menu[open]");
       if (!menu || menu.contains(event.target)) return;
       menu.removeAttribute("open");
     });
