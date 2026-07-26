@@ -5,106 +5,210 @@ const { randomUUID } = require("node:crypto");
 const BUSINESS_SELECT = "id,organization_id,created_by,owner_user_id,name,business_type,acquisition_mode,legal_name,public_name,industry,description,website_url,timezone,currency_code,status,metadata,created_at,updated_at,archived_at,deleted_at,version";
 
 const RESOURCES = Object.freeze({
-  locations: {
-    table: "business_locations",
-    label: "Locations",
-    select: "id,business_id,name,location_type,address_line1,address_line2,city,region,postal_code,country,phone,email,status,metadata,created_at,updated_at",
-    fields: {
-      name: { required: true }, location_type: { values: ["storefront","mobile","food_truck","vehicle","home_service","event","online","other"], fallback: "storefront" },
-      address_line1: {}, address_line2: {}, city: {}, region: {}, postal_code: {}, country: { fallback: "US" }, phone: {}, email: {},
-      status: { values: ["active","inactive","archived"], fallback: "active" }, metadata: { type: "json" }
-    }
-  },
-  channels: {
-    table: "business_channels",
-    label: "Physical and online channels",
-    select: "id,business_id,channel_type,name,url,status,settings,created_at,updated_at,archived_at",
-    actorColumn: "created_by",
-    fields: {
-      channel_type: { required: true, values: ["website","online_store","marketplace","social","phone","email","physical_location","mobile","other"] },
-      name: { required: true }, url: {}, status: { values: ["active","inactive","setup_required","archived"], fallback: "active" }, settings: { type: "json" }
-    }
-  },
-  employees: {
-    table: "business_employee_profiles",
-    label: "Team",
-    select: "id,business_id,location_id,user_id,employee_number,display_name,email,phone,job_title,employment_type,status,hire_date,metadata,created_at,updated_at",
-    fields: {
-      location_id: { type: "uuid" }, employee_number: {}, display_name: { required: true }, email: {}, phone: {}, job_title: {},
-      employment_type: { values: ["employee","contractor","seasonal","temporary","owner"], fallback: "employee" },
-      status: { values: ["active","invited","disabled","terminated","archived"], fallback: "active" }, hire_date: { type: "date" }, metadata: { type: "json" }
-    }
-  },
-  services: {
+  services: resource({
     table: "business_service_catalog",
-    label: "Products and services",
+    label: "Offers & services",
+    description: "Create the products, services, packages, and appointments customers can buy.",
+    group: "launch",
     select: "id,business_id,location_id,name,category,description,price_cents,currency,duration_minutes,status,metadata,created_at,updated_at",
     fields: {
-      location_id: { type: "uuid" }, name: { required: true }, category: {}, description: {}, price_cents: { type: "integer", fallback: 0 },
-      currency: { fallback: "usd" }, duration_minutes: { type: "integer" }, status: { values: ["active","inactive","archived"], fallback: "active" }, metadata: { type: "json" }
+      name: field("Offer or service name", { required: true }),
+      category: field("Category"),
+      description: field("What the customer receives", { textarea: true }),
+      price_cents: field("Price", { type: "money", fallback: 0 }),
+      currency: field("Currency", { fallback: "usd", values: ["usd"] }),
+      duration_minutes: field("Duration in minutes", { type: "integer" }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      status: field("Status", { values: ["active", "inactive", "archived"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
     }
-  },
-  customers: {
+  }),
+  customers: resource({
     table: "customer_records",
     label: "Customers",
+    description: "Keep customer and lead contact details, status, and notes in one place.",
+    group: "sales",
     select: "id,business_id,name,email,phone,status,notes,metadata,created_at,updated_at",
     actorColumn: "user_id",
     fields: {
-      name: { required: true }, email: {}, phone: {}, status: { values: ["lead","active","inactive","archived"], fallback: "lead" }, notes: {}, metadata: { type: "json" }
+      name: field("Customer name", { required: true }),
+      email: field("Email", { input: "email" }),
+      phone: field("Phone", { input: "tel" }),
+      status: field("Status", { values: ["lead", "active", "inactive", "archived"], fallback: "lead" }),
+      notes: field("Notes", { textarea: true }),
+      metadata: field("Metadata", { type: "json", hidden: true })
     }
-  },
-  inventory: {
-    table: "inventory_items",
-    label: "Inventory",
-    select: "id,business_id,location_id,name,sku,category,quantity,unit,reorder_level,cost_cents,price_cents,status,metadata,created_at,updated_at",
-    fields: {
-      location_id: { type: "uuid" }, name: { required: true }, sku: {}, category: {}, quantity: { type: "number", fallback: 0 }, unit: { fallback: "each" },
-      reorder_level: { type: "number" }, cost_cents: { type: "integer" }, price_cents: { type: "integer" }, status: { values: ["active","inactive","archived"], fallback: "active" }, metadata: { type: "json" }
-    }
-  },
-  assets: {
-    table: "business_assets",
-    label: "Assets and equipment",
-    select: "id,business_id,location_id,name,asset_type,serial_number,purchase_date,purchase_cost_cents,status,metadata,created_at,updated_at",
-    fields: {
-      location_id: { type: "uuid" }, name: { required: true }, asset_type: { values: ["equipment","vehicle","trailer","appliance","tool","device","furniture","other"], fallback: "equipment" },
-      serial_number: {}, purchase_date: { type: "date" }, purchase_cost_cents: { type: "integer" }, status: { values: ["active","maintenance","retired","lost","archived"], fallback: "active" }, metadata: { type: "json" }
-    }
-  },
-  orders: {
+  }),
+  orders: resource({
     table: "order_records",
-    label: "Orders",
+    label: "Orders & sales",
+    description: "Track quotes, open orders, paid work, fulfillment, cancellations, and refunds.",
+    group: "sales",
     select: "id,business_id,customer_id,title,amount_cents,currency,status,metadata,created_at,updated_at",
     actorColumn: "user_id",
     fields: {
-      customer_id: { type: "uuid" }, title: { required: true }, amount_cents: { type: "integer", fallback: 0 }, currency: { fallback: "usd" },
-      status: { values: ["draft","pending","paid","fulfilled","cancelled","refunded"], fallback: "draft" }, metadata: { type: "json" }
+      title: field("Order or invoice title", { required: true }),
+      amount_cents: field("Amount", { type: "money", fallback: 0 }),
+      currency: field("Currency", { fallback: "usd", values: ["usd"] }),
+      status: field("Status", { values: ["draft", "pending", "paid", "fulfilled", "cancelled", "refunded"], fallback: "draft" }),
+      customer_id: field("Customer ID", { type: "uuid", advanced: true }),
+      metadata: field("Metadata", { type: "json", hidden: true })
     }
-  },
-  integrations: {
+  }),
+  bookings: resource({
+    table: "business_bookings",
+    label: "Bookings & appointments",
+    description: "Schedule customer work and move it from requested to confirmed to completed.",
+    group: "sales",
+    select: "id,business_id,location_id,service_id,customer_id,assigned_employee_id,customer_name,customer_email,customer_phone,starts_at,ends_at,status,notes,metadata,created_at,updated_at",
+    fields: {
+      customer_name: field("Customer name", { required: true }),
+      customer_email: field("Customer email", { input: "email" }),
+      customer_phone: field("Customer phone", { input: "tel" }),
+      starts_at: field("Starts", { type: "datetime", required: true }),
+      ends_at: field("Ends", { type: "datetime" }),
+      status: field("Status", { values: ["requested", "confirmed", "completed", "cancelled", "no_show", "archived"], fallback: "requested" }),
+      notes: field("Notes", { textarea: true }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      service_id: field("Service ID", { type: "uuid", advanced: true }),
+      customer_id: field("Customer ID", { type: "uuid", advanced: true }),
+      assigned_employee_id: field("Employee ID", { type: "uuid", advanced: true }),
+      metadata: field("Metadata", { type: "json", hidden: true })
+    }
+  }),
+  locations: resource({
+    table: "business_locations",
+    label: "Locations",
+    description: "Manage storefronts, mobile routes, food trucks, service areas, events, and online locations.",
+    group: "launch",
+    select: "id,business_id,name,location_type,address_line1,address_line2,city,region,postal_code,country,phone,email,status,metadata,created_at,updated_at",
+    fields: {
+      name: field("Location name", { required: true }),
+      location_type: field("Location type", { values: ["storefront", "mobile", "food_truck", "vehicle", "home_service", "event", "online", "other"], fallback: "storefront" }),
+      address_line1: field("Street address"),
+      address_line2: field("Unit or suite"),
+      city: field("City"),
+      region: field("State or region"),
+      postal_code: field("Postal code"),
+      country: field("Country", { fallback: "US" }),
+      phone: field("Phone", { input: "tel" }),
+      email: field("Email", { input: "email" }),
+      status: field("Status", { values: ["active", "inactive", "archived"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
+    }
+  }),
+  channels: resource({
+    table: "business_channels",
+    label: "Sales channels",
+    description: "Track your website, online store, marketplaces, social pages, phone, email, and physical sales channels.",
+    group: "launch",
+    select: "id,business_id,channel_type,name,url,status,settings,created_at,updated_at,archived_at",
+    actorColumn: "created_by",
+    fields: {
+      name: field("Channel name", { required: true }),
+      channel_type: field("Channel type", { required: true, values: ["website", "online_store", "marketplace", "social", "phone", "email", "physical_location", "mobile", "other"] }),
+      url: field("URL", { input: "url" }),
+      status: field("Status", { values: ["active", "inactive", "setup_required", "archived"], fallback: "active" }),
+      settings: field("Settings", { type: "json", hidden: true })
+    }
+  }),
+  employees: resource({
+    table: "business_employee_profiles",
+    label: "Team",
+    description: "Create team profiles and track role, contact information, employment type, and status.",
+    group: "operations",
+    select: "id,business_id,location_id,user_id,employee_number,display_name,email,phone,job_title,employment_type,status,hire_date,metadata,created_at,updated_at",
+    fields: {
+      display_name: field("Team member name", { required: true }),
+      email: field("Email", { input: "email" }),
+      phone: field("Phone", { input: "tel" }),
+      job_title: field("Job title"),
+      employment_type: field("Employment type", { values: ["employee", "contractor", "seasonal", "temporary", "owner"], fallback: "employee" }),
+      hire_date: field("Hire date", { type: "date" }),
+      employee_number: field("Employee number", { advanced: true }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      status: field("Status", { values: ["active", "invited", "disabled", "terminated", "archived"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
+    }
+  }),
+  inventory: resource({
+    table: "inventory_items",
+    label: "Inventory",
+    description: "Track stock, units, cost, selling price, and reorder points.",
+    group: "operations",
+    select: "id,business_id,location_id,name,sku,category,quantity,unit,reorder_level,cost_cents,price_cents,status,metadata,created_at,updated_at",
+    fields: {
+      name: field("Item name", { required: true }),
+      sku: field("SKU"),
+      category: field("Category"),
+      quantity: field("Quantity", { type: "number", fallback: 0 }),
+      unit: field("Unit", { fallback: "each" }),
+      reorder_level: field("Reorder at", { type: "number" }),
+      cost_cents: field("Unit cost", { type: "money" }),
+      price_cents: field("Selling price", { type: "money" }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      status: field("Status", { values: ["active", "inactive", "archived"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
+    }
+  }),
+  assets: resource({
+    table: "business_assets",
+    label: "Equipment & assets",
+    description: "Track equipment, vehicles, trailers, appliances, tools, devices, and furniture.",
+    group: "operations",
+    select: "id,business_id,location_id,name,asset_type,serial_number,purchase_date,purchase_cost_cents,status,metadata,created_at,updated_at",
+    fields: {
+      name: field("Asset name", { required: true }),
+      asset_type: field("Asset type", { values: ["equipment", "vehicle", "trailer", "appliance", "tool", "device", "furniture", "other"], fallback: "equipment" }),
+      serial_number: field("Serial number"),
+      purchase_date: field("Purchase date", { type: "date" }),
+      purchase_cost_cents: field("Purchase cost", { type: "money" }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      status: field("Status", { values: ["active", "maintenance", "retired", "lost", "archived"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
+    }
+  }),
+  integrations: resource({
     table: "business_integration_connections",
-    label: "Connected providers",
+    label: "Connected tools",
+    description: "Record payment, email, calendar, payroll, website, and other provider connections without exposing credentials.",
+    group: "settings",
     select: "id,business_id,provider_key,display_name,connection_mode,connection_status,capabilities,settings,last_checked_at,created_at,updated_at",
     actorColumn: "created_by",
     ownerOnly: true,
+    archivePatch: { connection_status: "disabled" },
     fields: {
-      provider_key: { required: true }, display_name: {}, connection_mode: { values: ["api","oauth","manual","webhook","export"], fallback: "manual" },
-      connection_status: { values: ["not_connected","connected","setup_required","error","disabled"], fallback: "setup_required" },
-      capabilities: { type: "json" }, settings: { type: "json" }, last_checked_at: { type: "datetime" }
+      provider_key: field("Provider key", { required: true }),
+      display_name: field("Display name"),
+      connection_mode: field("Connection method", { values: ["api", "oauth", "manual", "webhook", "export"], fallback: "manual" }),
+      connection_status: field("Connection status", { values: ["not_connected", "connected", "setup_required", "error", "disabled"], fallback: "setup_required" }),
+      last_checked_at: field("Last checked", { type: "datetime", advanced: true }),
+      capabilities: field("Capabilities", { type: "json", hidden: true }),
+      settings: field("Settings", { type: "json", hidden: true })
     }
-  },
-  permissions: {
+  }),
+  permissions: resource({
     table: "business_permission_grants",
-    label: "Permissions",
+    label: "Access & permissions",
+    description: "Give approved people only the business access they need.",
+    group: "settings",
     select: "id,business_id,user_id,role_key,permission_key,location_id,status,expires_at,metadata,created_at,updated_at",
     actorColumn: "granted_by",
     ownerOnly: true,
+    archivePatch: { status: "revoked" },
     fields: {
-      user_id: { required: true, type: "uuid" }, role_key: { values: ["owner","administrator","manager","employee","accountant","marketing","contractor","viewer"], fallback: "viewer" },
-      permission_key: { required: true }, location_id: { type: "uuid" }, status: { values: ["active","revoked","expired"], fallback: "active" }, expires_at: { type: "datetime" }, metadata: { type: "json" }
+      user_id: field("User ID", { required: true, type: "uuid" }),
+      role_key: field("Role", { values: ["owner", "administrator", "manager", "employee", "accountant", "marketing", "contractor", "viewer"], fallback: "viewer" }),
+      permission_key: field("Permission", { required: true }),
+      location_id: field("Location ID", { type: "uuid", advanced: true }),
+      expires_at: field("Expires", { type: "datetime", advanced: true }),
+      status: field("Status", { values: ["active", "revoked", "expired"], fallback: "active" }),
+      metadata: field("Metadata", { type: "json", hidden: true })
     }
-  }
+  })
 });
+
+const CORE_DASHBOARD_RESOURCES = Object.freeze(["services", "customers", "orders", "bookings", "employees", "inventory", "locations"]);
 
 module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {}) {
   const layout = deps.layout;
@@ -112,6 +216,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
   const linkAction = deps.linkAction;
   const escapeHtml = deps.escapeHtml;
   const requirePaidOrOwnerAccess = deps.requirePaidOrOwnerAccess;
+  const requireCustomer = deps.requireCustomer || requirePaidOrOwnerAccess("business_builder");
   const getCustomerPrimaryOrganization = deps.getCustomerPrimaryOrganization;
   const getSupabaseServerConfig = deps.getSupabaseServerConfig;
   const supabaseHeaders = deps.supabaseHeaders;
@@ -121,10 +226,12 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
 
   async function rest(table, query = "", options = {}) {
     const config = configFor();
-    if (!config?.ok) return { ok: false, status: 503, code: "supabase_setup_required", rows: [] };
+    if (!config?.ok) return { ok: false, status: 503, code: "workspace_unavailable", rows: [] };
+    const extraHeaders = {};
+    if (options.prefer) extraHeaders.prefer = options.prefer;
     const response = await fetch(`${config.url}/rest/v1/${table}${query ? `?${query}` : ""}`, {
       method: options.method || "GET",
-      headers: supabaseHeaders(config, options.prefer ? { prefer: options.prefer } : undefined),
+      headers: supabaseHeaders(config, extraHeaders),
       body: options.body === undefined ? undefined : JSON.stringify(options.body)
     }).catch(() => undefined);
     if (!response) return { ok: false, status: 503, code: "database_unreachable", rows: [] };
@@ -132,9 +239,11 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return { ok: response.ok, status: response.status, code: response.ok ? "ok" : "database_operation_failed", rows };
   }
 
+  globalThis.__sonaraBusinessControlRest = rest;
+
   async function context(req) {
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-    if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "organization_setup_required" };
+    if (!organization?.ok) return { ok: false, status: 409, code: organization?.code || "workspace_not_ready" };
     return { ok: true, organizationId: organization.organizationId, userId: req.sonaraUser?.id || null };
   }
 
@@ -176,6 +285,118 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return rest("business_workspaces", `select=${encodeURIComponent(BUSINESS_SELECT)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&deleted_at=is.null&order=created_at.desc&limit=100`);
   }
 
+  async function primaryBusiness(ctx) {
+    const result = await listBusinesses(ctx);
+    return result.ok && result.rows[0] ? { ok: true, business: result.rows[0] } : { ok: false, status: result.ok ? 404 : 502, code: result.ok ? "business_required" : result.code };
+  }
+
+  async function dashboardSnapshot(ctx, businessId) {
+    const entries = await Promise.all(CORE_DASHBOARD_RESOURCES.map(async (key) => {
+      const result = await listResource(ctx, businessId, RESOURCES[key], 200);
+      return [key, result.ok ? result.rows : []];
+    }));
+    const records = Object.fromEntries(entries);
+    const pendingOrders = records.orders.filter((row) => ["draft", "pending"].includes(row.status)).length;
+    const upcomingBookings = records.bookings.filter((row) => ["requested", "confirmed"].includes(row.status)).length;
+    const lowStock = records.inventory.filter((row) => Number.isFinite(Number(row.reorder_level)) && Number(row.quantity || 0) <= Number(row.reorder_level)).length;
+    return {
+      records,
+      counts: Object.fromEntries(entries.map(([key, rows]) => [key, rows.length])),
+      pendingOrders,
+      upcomingBookings,
+      lowStock
+    };
+  }
+
+  app.get("/account/setup", requireCustomer, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "We could not finish preparing your private workspace. Try again or contact support.", [linkAction("/account/setup", "Try again"), linkAction("/support", "Get help")]));
+    const businesses = await listBusinesses(ctx);
+    if (businesses.ok && businesses.rows.length) return res.redirect(303, "/business-builder/dashboard");
+    return res.status(200).type("html").send(onboardingPage());
+  });
+
+  app.get("/business-builder/dashboard", access, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "Your account is secure, but the business workspace could not be prepared yet.", [linkAction("/support", "Get help")]));
+    const businesses = await listBusinesses(ctx);
+    if (!businesses.ok) return res.status(503).type("html").send(friendlyPage("Business Builder is temporarily unavailable", "Your records are safe. Try again in a moment.", [linkAction("/business-builder/dashboard", "Try again"), linkAction("/support", "Get help")]));
+    if (!businesses.rows.length) return res.status(200).type("html").send(onboardingPage());
+    if (businesses.rows.length > 1) return res.status(200).type("html").send(controlCenterPage(businesses.rows));
+    const business = businesses.rows[0];
+    const snapshot = await dashboardSnapshot(ctx, business.id);
+    return res.status(200).type("html").send(businessDashboardPage(business, snapshot));
+  });
+
+  app.get("/business-builder/control-center", access, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "Your private workspace could not be prepared yet.", [linkAction("/support", "Get help")]));
+    const result = await listBusinesses(ctx);
+    if (!result.ok) return res.status(503).type("html").send(friendlyPage("Business Builder is temporarily unavailable", "Your records are safe. Try again shortly.", [linkAction("/business-builder/control-center", "Try again")]));
+    return res.status(200).type("html").send(result.rows.length ? controlCenterPage(result.rows) : onboardingPage());
+  });
+
+  app.get("/business-builder/businesses", access, (req, res) => res.redirect(302, "/business-builder/control-center"));
+
+  app.get("/business-builder/offers/free", access, async (req, res) => redirectToPrimaryResource(req, res, "services"));
+  app.get("/business-builder/offers", access, async (req, res) => redirectToPrimaryResource(req, res, "services"));
+  app.get("/business-builder/intake", access, async (req, res) => redirectToPrimaryResource(req, res, "customers"));
+
+  async function redirectToPrimaryResource(req, res, resourceKey) {
+    const ctx = await context(req);
+    if (!ctx.ok) return res.redirect(303, "/account/setup");
+    const primary = await primaryBusiness(ctx);
+    if (!primary.ok) return res.redirect(303, "/business-builder/dashboard");
+    return res.redirect(303, `/business-builder/businesses/${primary.business.id}/manage/${resourceKey}`);
+  }
+
+  app.post("/api/business-builder/offers", access, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return send(req, res, ctx, "/business-builder/dashboard");
+    const primary = await primaryBusiness(ctx);
+    if (!primary.ok) return send(req, res, { ok: false, status: 409, code: "create_business_first" }, "/business-builder/dashboard");
+    const name = text(req.body.serviceType || req.body.name, 200);
+    const deliverables = text(req.body.deliverables || req.body.description, 4000);
+    if (!name || !deliverables) return send(req, res, { ok: false, status: 400, code: "offer_name_and_details_required" }, `/business-builder/businesses/${primary.business.id}/manage/services`);
+    const record = {
+      organization_id: ctx.organizationId,
+      business_id: primary.business.id,
+      name,
+      category: "offer",
+      description: deliverables,
+      price_cents: moneyToCents(req.body.priceIdea || req.body.price || 0),
+      currency: "usd",
+      status: "active",
+      metadata: { audience: text(req.body.audience, 1000) || null, source: "business_builder_offer" }
+    };
+    const result = await rest("business_service_catalog", "", { method: "POST", prefer: "return=representation", body: record });
+    await audit(ctx, primary.business.id, "services.created", "services", result.rows[0]?.id, result.ok ? "success" : "failed", { source: "legacy_offer_route" });
+    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${primary.business.id}/manage/services`);
+  });
+
+  app.post("/api/business-builder/intake", access, async (req, res) => {
+    const ctx = await context(req);
+    if (!ctx.ok) return send(req, res, ctx, "/business-builder/dashboard");
+    const primary = await primaryBusiness(ctx);
+    if (!primary.ok) return send(req, res, { ok: false, status: 409, code: "create_business_first" }, "/business-builder/dashboard");
+    const name = text(req.body.name || req.body.contactName, 200);
+    if (!name) return send(req, res, { ok: false, status: 400, code: "customer_name_required" }, `/business-builder/businesses/${primary.business.id}/manage/customers`);
+    const record = {
+      organization_id: ctx.organizationId,
+      business_id: primary.business.id,
+      user_id: ctx.userId,
+      name,
+      email: nullableText(req.body.email, 320),
+      phone: nullableText(req.body.phone, 80),
+      status: "lead",
+      notes: nullableText(req.body.message || req.body.goals, 4000),
+      metadata: { service_interest: text(req.body.serviceInterest || req.body.neededServices, 1000) || null, source: "business_builder_intake" }
+    };
+    const result = await rest("customer_records", "", { method: "POST", prefer: "return=representation", body: record });
+    await audit(ctx, primary.business.id, "customers.created", "customers", result.rows[0]?.id, result.ok ? "success" : "failed", { source: "legacy_intake_route" });
+    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${primary.business.id}/manage/customers`);
+  });
+
   app.get("/api/business-builder/control-plane", access, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return res.status(ctx.status).json(ctx);
@@ -199,8 +420,8 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!allowed.ok && !req.sonaraAccess?.ownerOverride) return send(req, res, allowed, "/business-builder/control-center");
     const name = text(req.body.name, 160);
     if (!name) return send(req, res, { ok: false, status: 400, code: "name_required" }, "/business-builder/control-center");
-    const businessType = oneOf(req.body.business_type || req.body.businessType, ["physical","online","hybrid","service","restaurant","retail","creator","other"], "other");
-    const acquisitionMode = oneOf(req.body.acquisition_mode || req.body.acquisitionMode, ["created","connected","imported"], "created");
+    const businessType = oneOf(req.body.business_type || req.body.businessType, ["physical", "online", "hybrid", "service", "restaurant", "retail", "creator", "other"], "other");
+    const acquisitionMode = oneOf(req.body.acquisition_mode || req.body.acquisitionMode, ["created", "connected", "imported"], "created");
     const record = {
       organization_id: ctx.organizationId,
       created_by: ctx.userId,
@@ -250,11 +471,11 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const allowed = await permission(req, ctx, loaded.business.id, "business.update");
     if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}`);
     const patch = {};
-    const textFields = ["name","legal_name","public_name","industry","description","timezone","currency_code"];
-    for (const field of textFields) if (req.body[field] !== undefined) patch[field] = nullableText(req.body[field], field === "description" ? 2000 : 200);
+    const textFields = ["name", "legal_name", "public_name", "industry", "description", "timezone", "currency_code"];
+    for (const fieldName of textFields) if (req.body[fieldName] !== undefined) patch[fieldName] = nullableText(req.body[fieldName], fieldName === "description" ? 2000 : 200);
     if (req.body.website_url !== undefined) patch.website_url = safeUrl(req.body.website_url);
-    if (req.body.business_type !== undefined) patch.business_type = oneOf(req.body.business_type, ["physical","online","hybrid","service","restaurant","retail","creator","other"], loaded.business.business_type || "other");
-    if (req.body.status !== undefined) patch.status = oneOf(req.body.status, ["active","inactive","setup_required","archived"], loaded.business.status);
+    if (req.body.business_type !== undefined) patch.business_type = oneOf(req.body.business_type, ["physical", "online", "hybrid", "service", "restaurant", "retail", "creator", "other"], loaded.business.business_type || "other");
+    if (req.body.status !== undefined) patch.status = oneOf(req.body.status, ["active", "inactive", "setup_required", "archived"], loaded.business.status);
     if (req.body.metadata !== undefined) patch.metadata = parseJson(req.body.metadata, loaded.business.metadata || {});
     patch.updated_at = new Date().toISOString();
     patch.version = Number(loaded.business.version || 1) + 1;
@@ -320,14 +541,14 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const loaded = await loadBusiness(ctx, req.params.businessId);
     if (!loaded.ok) return send(req, res, loaded, "/business-builder/control-center");
     const allowed = await permission(req, ctx, loaded.business.id, `${req.params.resource}.create`, definition.ownerOnly);
-    if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}`);
+    if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const normalized = normalizeFields(req.body, definition.fields, false);
-    if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}`);
+    if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const record = { organization_id: ctx.organizationId, business_id: loaded.business.id, ...normalized.value };
     if (definition.actorColumn) record[definition.actorColumn] = ctx.userId;
     const result = await rest(definition.table, "", { method: "POST", prefer: "return=representation", body: record });
     await audit(ctx, loaded.business.id, `${req.params.resource}.created`, req.params.resource, result.rows[0]?.id, result.ok ? "success" : "failed");
-    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}`);
+    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   });
 
   app.patch("/api/business-builder/businesses/:businessId/:resource/:id", access, async (req, res) => mutateResource(req, res, "update"));
@@ -342,48 +563,99 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const loaded = await loadBusiness(ctx, req.params.businessId);
     if (!loaded.ok) return send(req, res, loaded, "/business-builder/control-center");
     const allowed = await permission(req, ctx, loaded.business.id, `${req.params.resource}.${action}`, definition.ownerOnly);
-    if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}`);
+    if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const patch = action === "archive"
-      ? { status: "archived", updated_at: new Date().toISOString() }
+      ? { ...(definition.archivePatch || { status: "archived" }) }
       : normalizeFields(req.body, definition.fields, true).value;
     patch.updated_at = new Date().toISOString();
     const result = await rest(definition.table, `id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}`, { method: "PATCH", prefer: "return=representation", body: patch });
     await audit(ctx, loaded.business.id, `${req.params.resource}.${action}d`, req.params.resource, req.params.id, result.ok ? "success" : "failed", { fields: Object.keys(patch) });
-    return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}`);
+    return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   }
 
-  app.get("/business-builder/control-center", access, async (req, res) => {
+  app.get("/business-builder/businesses/:businessId/manage/:resource", access, async (req, res) => {
+    const definition = RESOURCES[req.params.resource];
+    if (!definition) return res.status(404).type("html").send(friendlyPage("Business tool not found", "That Business Builder tool is not available.", [linkAction(`/business-builder/businesses/${req.params.businessId}`, "Return to business")]));
     const ctx = await context(req);
-    if (!ctx.ok) return res.status(ctx.status).type("html").send(page("Business setup required", "Create or repair your organization before opening Business Builder.", []));
-    const result = await listBusinesses(ctx);
-    const cards = result.rows.map((business) => `<article class="card"><h2>${escapeHtml(business.public_name || business.name)}</h2><p>${escapeHtml(business.business_type || "business")} · ${escapeHtml(business.status || "active")} · ${escapeHtml(business.acquisition_mode || "created")}</p><div class="card-actions"><a class="action" href="/business-builder/businesses/${encodeURIComponent(business.id)}">Manage business</a></div></article>`).join("") || brandCard("No businesses yet", "Create a physical, online, or hybrid business below.");
-    const createForm = `<article class="card"><h2>Create or add a business</h2><form method="post" action="/api/business-builder/businesses"><label>Business name<input name="name" required maxlength="160"></label><label>Public name<input name="public_name" maxlength="200"></label><label>Business type<select name="business_type"><option value="physical">Physical</option><option value="online">Online</option><option value="hybrid">Physical and online</option><option value="service">Service</option><option value="restaurant">Restaurant</option><option value="retail">Retail</option><option value="other">Other</option></select></label><label>How it enters SONARA<select name="acquisition_mode"><option value="created">Create with SONARA</option><option value="connected">Add an existing business</option><option value="imported">Import an existing business</option></select></label><label>Industry<input name="industry" maxlength="120"></label><label>Website<input name="website_url" type="url"></label><label>Description<textarea name="description" rows="4" maxlength="2000"></textarea></label><button type="submit">Create business workspace</button></form></article>`;
-    return res.status(200).type("html").send(layout({ title: "Business Builder Control Center", eyebrow: "Business ownership", heading: "Control every business from one workspace", body: "Create or add physical and online businesses, then manage locations, channels, people, customers, catalog, inventory, assets, orders, integrations, permissions, ownership, and audit evidence.", sections: [createForm, `<section class="grid">${cards}</section>`, brandCard("Ownership boundary", "Customers control their business records and operations. SONARA controls platform security, billing enforcement, and audited support intervention.")], actions: [linkAction("/business-builder/dashboard", "Business Builder"), linkAction("/pricing", "Billing"), linkAction("/support", "Support")] }));
+    if (!ctx.ok) return res.redirect(303, "/account/setup");
+    const loaded = await loadBusiness(ctx, req.params.businessId);
+    if (!loaded.ok) return res.status(loaded.status).type("html").send(friendlyPage("Business not found", "The requested business is unavailable or outside your workspace.", [linkAction("/business-builder/control-center", "All businesses")]));
+    const allowed = await permission(req, ctx, loaded.business.id, `${req.params.resource}.read`, definition.ownerOnly);
+    if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow this area.", [linkAction(`/business-builder/businesses/${loaded.business.id}`, "Return to business")]));
+    const records = await listResource(ctx, loaded.business.id, definition, 100);
+    return res.status(records.ok ? 200 : 503).type("html").send(resourcePage(loaded.business, req.params.resource, definition, records.rows || []));
   });
-
-  app.get("/business-builder/businesses", access, (req, res) => res.redirect(302, "/business-builder/control-center"));
 
   app.get("/business-builder/businesses/:businessId", access, async (req, res) => {
     const ctx = await context(req);
-    if (!ctx.ok) return res.status(ctx.status).type("html").send(page("Business setup required", "Organization setup is incomplete.", []));
+    if (!ctx.ok) return res.redirect(303, "/account/setup");
     const loaded = await loadBusiness(ctx, req.params.businessId);
-    if (!loaded.ok) return res.status(loaded.status).type("html").send(page("Business not found", "The requested business is unavailable or outside your organization.", [linkAction("/business-builder/control-center", "Control center")]));
+    if (!loaded.ok) return res.status(loaded.status).type("html").send(friendlyPage("Business not found", "The requested business is unavailable or outside your workspace.", [linkAction("/business-builder/control-center", "All businesses")]));
     const allowed = await permission(req, ctx, loaded.business.id, "business.read");
-    if (!allowed.ok) return res.status(allowed.status).type("html").send(page("Access denied", "Your role does not allow this business.", [linkAction("/business-builder/control-center", "Control center")]));
-    const sections = [businessSummary(loaded.business, escapeHtml)];
-    for (const [key, definition] of Object.entries(RESOURCES)) {
-      const permissionResult = await permission(req, ctx, loaded.business.id, `${key}.read`, definition.ownerOnly);
-      if (!permissionResult.ok) continue;
-      const result = await listResource(ctx, loaded.business.id, definition, 10);
-      sections.push(resourceSection(loaded.business.id, key, definition, result.rows, escapeHtml));
-    }
-    sections.push(ownershipSection(loaded.business.id, escapeHtml));
-    return res.status(200).type("html").send(layout({ title: `${loaded.business.public_name || loaded.business.name} · Business Builder`, eyebrow: "Customer-controlled business", heading: loaded.business.public_name || loaded.business.name, body: "Every action is organization-scoped, permission-checked, and written to the business audit trail.", sections, actions: [linkAction("/business-builder/control-center", "All businesses"), linkAction(`/api/business-builder/businesses/${loaded.business.id}`, "Business JSON"), linkAction("/business-builder/dashboard", "Dashboard")] }));
+    if (!allowed.ok) return res.status(allowed.status).type("html").send(friendlyPage("Access denied", "Your role does not allow this business.", [linkAction("/business-builder/control-center", "All businesses")]));
+    const snapshot = await dashboardSnapshot(ctx, loaded.business.id);
+    return res.status(200).type("html").send(businessDashboardPage(loaded.business, snapshot));
   });
 
-  function page(title, body, actions) {
+  function onboardingPage() {
+    return layout({
+      title: "Build your business",
+      eyebrow: "Business Builder",
+      heading: "What business are you building?",
+      body: "Start with the basics. SONARA will create the operating workspace, then guide you through offers, customers, sales, bookings, team, inventory, and daily work.",
+      sections: [createBusinessForm(), launchPath()],
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")]
+    });
+  }
+
+  function controlCenterPage(businesses) {
+    const businessCards = businesses.map((business) => businessCard(business)).join("");
+    return layout({
+      title: "Business Builder",
+      eyebrow: "Business operations",
+      heading: "Your businesses",
+      body: "Choose a business to run, or add another one. Each business keeps its own customers, offers, orders, bookings, team, inventory, locations, and records.",
+      sections: [`<section class="bb-business-list">${businessCards}</section>`, `<details class="bb-add-business"><summary>Add another business</summary>${createBusinessForm()}</details>`],
+      actions: [linkAction("/dashboard", "All workspaces"), linkAction("/pricing", "Plan & billing"), linkAction("/support", "Support")]
+    });
+  }
+
+  function businessDashboardPage(business, snapshot) {
+    const next = nextBusinessAction(business, snapshot);
+    const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key] || 0)).join("");
+    return layout({
+      title: `${business.public_name || business.name} · Business Builder`,
+      eyebrow: "Business Builder",
+      heading: business.public_name || business.name,
+      body: "Run the business from one workspace. Every number below comes from your saved records.",
+      sections: [
+        `<section class="bb-today"><div><span class="sonara-kicker">Next best action</span><h2>${escapeHtml(next.title)}</h2><p>${escapeHtml(next.body)}</p><a class="action" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></div>${businessSnapshot(snapshot)}</section>`,
+        `<section class="bb-module-grid">${moduleCards}</section>`,
+        businessProfileEditor(business),
+        ownershipSection(business.id, escapeHtml)
+      ],
+      actions: [linkAction("/business-builder/control-center", "All businesses"), linkAction("/business-builder/billing", "Plan & billing"), linkAction("/support", "Support")]
+    });
+  }
+
+  function resourcePage(business, key, definition, rows) {
+    return layout({
+      title: `${definition.label} · ${business.public_name || business.name}`,
+      eyebrow: business.public_name || business.name,
+      heading: definition.label,
+      body: definition.description,
+      sections: [
+        `<section class="bb-resource-shell"><div class="bb-resource-main">${recordList(business.id, key, definition, rows)}</div><aside class="bb-resource-form">${resourceForm(business.id, key, definition)}</aside></section>`
+      ],
+      actions: [linkAction(`/business-builder/businesses/${business.id}`, "Business home"), linkAction("/business-builder/control-center", "All businesses")]
+    });
+  }
+
+  function friendlyPage(title, body, actions) {
     return layout({ title, eyebrow: "Business Builder", heading: title, body, sections: [], actions });
   }
+
+  return app;
 };
 
 async function listResource(ctx, businessId, definition, limit) {
@@ -391,6 +663,9 @@ async function listResource(ctx, businessId, definition, limit) {
   if (typeof config === "function") return config(definition.table, `select=${encodeURIComponent(definition.select)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(businessId)}&order=created_at.desc&limit=${limit}`);
   return { ok: false, rows: [], code: "runtime_not_bound" };
 }
+
+function resource(config) { return Object.freeze(config); }
+function field(label, config = {}) { return Object.freeze({ label, ...config }); }
 
 function normalizeFields(body, fields, partial) {
   const value = {};
@@ -404,6 +679,7 @@ function normalizeFields(body, fields, partial) {
     if (rules.type === "uuid") { if (!isUuid(input)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = String(input); continue; }
     if (rules.type === "integer") { const parsed = Number.parseInt(String(input), 10); if (!Number.isFinite(parsed)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = parsed; continue; }
     if (rules.type === "number") { const parsed = Number(String(input)); if (!Number.isFinite(parsed)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = parsed; continue; }
+    if (rules.type === "money") { const cents = moneyToCents(input); if (!Number.isFinite(cents)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = cents; continue; }
     if (rules.type === "json") { value[name] = parseJson(input, {}); continue; }
     if (rules.type === "date" || rules.type === "datetime") { const date = new Date(String(input)); if (Number.isNaN(date.getTime())) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = rules.type === "date" ? date.toISOString().slice(0, 10) : date.toISOString(); continue; }
     const cleaned = text(input, name === "description" || name === "notes" ? 4000 : 500);
@@ -413,32 +689,124 @@ function normalizeFields(body, fields, partial) {
   return { ok: true, value };
 }
 
-function businessSummary(business, escapeHtml) {
-  return `<section class="grid"><article class="card"><h2>Business profile</h2><p>${escapeHtml(business.business_type || "business")} · ${escapeHtml(business.acquisition_mode || "created")} · ${escapeHtml(business.status || "active")}</p><p>${escapeHtml(business.description || "No description yet.")}</p></article><article class="card"><h2>Online identity</h2><p>${business.website_url ? `<a href="${escapeHtml(business.website_url)}" rel="noreferrer">${escapeHtml(business.website_url)}</a>` : "No website connected."}</p><p>${escapeHtml(business.timezone || "America/New_York")} · ${escapeHtml(String(business.currency_code || "usd").toUpperCase())}</p></article><article class="card"><h2>Lifecycle</h2><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(business.id)}/archive"><button type="submit">Archive business</button></form><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(business.id)}/restore"><button type="submit">Restore business</button></form></article></section>`;
+function createBusinessForm() {
+  return `<article class="card bb-onboarding-card"><form method="post" action="/api/business-builder/businesses">
+    <label>Business name<input name="name" required maxlength="160" autocomplete="organization"></label>
+    <label>Business type<select name="business_type"><option value="service">Service business</option><option value="restaurant">Restaurant or food business</option><option value="retail">Retail</option><option value="online">Online business</option><option value="physical">Physical location</option><option value="hybrid">Physical and online</option><option value="creator">Creator business</option><option value="other">Other</option></select></label>
+    <label>Are you starting or adding it?<select name="acquisition_mode"><option value="created">Starting a new business</option><option value="connected">Adding an existing business</option><option value="imported">Importing existing records</option></select></label>
+    <label>Industry<input name="industry" maxlength="120" placeholder="Restaurant, landscaping, consulting, retail…"></label>
+    <label>What does the business do?<textarea name="description" rows="3" maxlength="2000" placeholder="One clear sentence is enough to begin."></textarea></label>
+    <details><summary>Optional details</summary><label>Website<input name="website_url" type="url" placeholder="https://"></label><label>Legal business name<input name="legal_name" maxlength="200"></label></details>
+    <button type="submit">Create business</button>
+  </form></article>`;
 }
 
-function resourceSection(businessId, key, definition, rows, escapeHtml) {
-  const recordRows = rows.map((row) => `<tr><td>${escapeHtml(String(row.name || row.display_name || row.title || row.provider_key || row.permission_key || row.id))}</td><td>${escapeHtml(String(row.status || row.connection_status || row.role_key || "active"))}</td><td><code>${escapeHtml(String(row.id))}</code></td></tr>`).join("") || '<tr><td colspan="3">No records yet.</td></tr>';
-  const inputs = Object.entries(definition.fields).filter(([, rules]) => !["json"].includes(rules.type)).map(([name, rules]) => `<label>${escapeHtml(name.replaceAll("_", " "))}<input name="${escapeHtml(name)}"${rules.required ? " required" : ""}></label>`).join("");
-  return `<section class="card"><h2>${escapeHtml(definition.label)}</h2><table><thead><tr><th>Record</th><th>Status</th><th>ID</th></tr></thead><tbody>${recordRows}</tbody></table><details><summary>Add ${escapeHtml(definition.label.toLowerCase())}</summary><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}">${inputs}<button type="submit">Save record</button></form></details><p><a href="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}">Open complete JSON list</a></p></section>`;
+function launchPath() {
+  return `<section class="bb-launch-path"><article><strong>1. Define it</strong><span>Business profile and locations</span></article><article><strong>2. Sell it</strong><span>Offers, customers, orders, and bookings</span></article><article><strong>3. Run it</strong><span>Team, inventory, equipment, and daily work</span></article><article><strong>4. Grow it</strong><span>Connect Growth Studio when the operation is ready</span></article></section>`;
 }
 
-function ownershipSection(businessId, escapeHtml) {
-  return `<section class="card"><h2>Ownership transfer</h2><p>Creates a seven-day pending transfer request. Ownership is not changed until the recipient is authenticated and acceptance is explicitly completed.</p><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/ownership-transfers"><label>Recipient email<input name="to_email" type="email" required></label><button type="submit">Request ownership transfer</button></form></section>`;
+function businessCard(business) {
+  return `<article class="card bb-business-card"><span class="sonara-kicker">${escapeBasic(business.business_type || "business")}</span><h2>${escapeBasic(business.public_name || business.name)}</h2><p>${escapeBasic(business.description || "Open the workspace and complete the first operating step.")}</p><div class="card-actions"><a class="action" href="/business-builder/businesses/${encodeURIComponent(business.id)}">Open business</a></div></article>`;
+}
+
+function businessSnapshot(snapshot) {
+  return `<div class="bb-snapshot" aria-label="Business snapshot"><div><strong>${snapshot.counts.customers || 0}</strong><span>Customers</span></div><div><strong>${snapshot.pendingOrders}</strong><span>Open orders</span></div><div><strong>${snapshot.upcomingBookings}</strong><span>Upcoming bookings</span></div><div><strong>${snapshot.lowStock}</strong><span>Low-stock items</span></div></div>`;
+}
+
+function nextBusinessAction(business, snapshot) {
+  const id = encodeURIComponent(business.id);
+  if (!snapshot.counts.services) return { title: "Create the first offer", body: "Define what the business sells, what the customer receives, and the price.", href: `/business-builder/businesses/${id}/manage/services`, label: "Create offer" };
+  if (!snapshot.counts.customers) return { title: "Add the first customer", body: "Create a customer or lead record so sales and follow-up have a real starting point.", href: `/business-builder/businesses/${id}/manage/customers`, label: "Add customer" };
+  if (snapshot.upcomingBookings) return { title: "Review upcoming work", body: `${snapshot.upcomingBookings} booking${snapshot.upcomingBookings === 1 ? " needs" : "s need"} attention.`, href: `/business-builder/businesses/${id}/manage/bookings`, label: "Review bookings" };
+  if (snapshot.pendingOrders) return { title: "Move open orders forward", body: `${snapshot.pendingOrders} order${snapshot.pendingOrders === 1 ? " is" : "s are"} still draft or pending.`, href: `/business-builder/businesses/${id}/manage/orders`, label: "Review orders" };
+  if (snapshot.lowStock) return { title: "Restock inventory", body: `${snapshot.lowStock} item${snapshot.lowStock === 1 ? " is" : "s are"} at or below the reorder point.`, href: `/business-builder/businesses/${id}/manage/inventory`, label: "Review inventory" };
+  if (!snapshot.counts.locations) return { title: "Add where the business operates", body: "Create a storefront, mobile route, service area, event, or online location.", href: `/business-builder/businesses/${id}/manage/locations`, label: "Add location" };
+  return { title: "Keep the operation moving", body: "Review sales, bookings, customers, and inventory, then complete the most valuable open item.", href: `/business-builder/businesses/${id}/manage/orders`, label: "Open operations" };
+}
+
+function moduleCard(businessId, key, definition, count) {
+  return `<article class="card bb-module-card" data-group="${escapeBasic(definition.group)}"><span class="sonara-kicker">${escapeBasic(definition.group)}</span><h2>${escapeBasic(definition.label)}</h2><p>${escapeBasic(definition.description)}</p><div class="bb-module-footer"><strong>${count}</strong><span>saved record${count === 1 ? "" : "s"}</span><a href="/business-builder/businesses/${encodeURIComponent(businessId)}/manage/${encodeURIComponent(key)}">Open</a></div></article>`;
+}
+
+function businessProfileEditor(business) {
+  return `<details class="card bb-profile-editor"><summary>Business profile and settings</summary><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(business.id)}">
+    <label>Business name<input name="name" value="${escapeAttribute(business.name || "")}" required></label>
+    <label>Public name<input name="public_name" value="${escapeAttribute(business.public_name || "")}"></label>
+    <label>Industry<input name="industry" value="${escapeAttribute(business.industry || "")}"></label>
+    <label>Description<textarea name="description" rows="4">${escapeBasic(business.description || "")}</textarea></label>
+    <label>Website<input name="website_url" type="url" value="${escapeAttribute(business.website_url || "")}"></label>
+    <label>Time zone<input name="timezone" value="${escapeAttribute(business.timezone || "America/New_York")}"></label>
+    <button type="submit">Save business profile</button>
+  </form></details>`;
+}
+
+function recordList(businessId, key, definition, rows) {
+  if (!rows.length) return `<article class="card bb-empty"><h2>No ${escapeBasic(definition.label.toLowerCase())} yet</h2><p>Use the form to create the first record.</p></article>`;
+  return `<div class="bb-record-list">${rows.map((row) => recordCard(businessId, key, definition, row)).join("")}</div>`;
+}
+
+function recordCard(businessId, key, definition, row) {
+  const title = row.name || row.display_name || row.customer_name || row.title || row.provider_key || row.permission_key || "Saved record";
+  const status = row.status || row.connection_status || row.role_key || "active";
+  const details = recordDetails(row);
+  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}?_method=DELETE"><button class="bb-quiet-action" type="submit" formaction="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}" formmethod="post" name="status" value="archived">Archive</button></form></article>`;
+}
+
+function recordDetails(row) {
+  if (row.price_cents !== undefined) return `${formatMoney(row.price_cents, row.currency)}${row.duration_minutes ? ` · ${row.duration_minutes} minutes` : ""}`;
+  if (row.amount_cents !== undefined) return formatMoney(row.amount_cents, row.currency);
+  if (row.email || row.phone) return [row.email, row.phone].filter(Boolean).join(" · ");
+  if (row.starts_at) return `${formatDateTime(row.starts_at)}${row.ends_at ? ` – ${formatDateTime(row.ends_at)}` : ""}`;
+  if (row.quantity !== undefined) return `${row.quantity} ${row.unit || "each"}${row.reorder_level !== null && row.reorder_level !== undefined ? ` · reorder at ${row.reorder_level}` : ""}`;
+  if (row.job_title || row.employment_type) return [row.job_title, row.employment_type].filter(Boolean).join(" · ");
+  if (row.city || row.region) return [row.city, row.region].filter(Boolean).join(", ");
+  return row.description || row.notes || row.category || row.channel_type || row.asset_type || row.display_name || "";
+}
+
+function resourceForm(businessId, key, definition) {
+  const standard = [];
+  const advanced = [];
+  for (const [name, rules] of Object.entries(definition.fields)) {
+    if (rules.hidden) continue;
+    const control = renderField(name, rules);
+    if (rules.advanced) advanced.push(control);
+    else standard.push(control);
+  }
+  return `<article class="card"><h2>Add ${escapeBasic(definition.label.toLowerCase())}</h2><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}">${standard.join("")}${advanced.length ? `<details><summary>Advanced linking</summary>${advanced.join("")}</details>` : ""}<button type="submit">Save</button></form></article>`;
+}
+
+function renderField(name, rules) {
+  const required = rules.required ? " required" : "";
+  const label = escapeBasic(rules.label || name.replaceAll("_", " "));
+  if (rules.values) return `<label>${label}<select name="${escapeAttribute(name)}"${required}>${rules.values.map((value) => `<option value="${escapeAttribute(value)}"${value === rules.fallback ? " selected" : ""}>${escapeBasic(String(value).replaceAll("_", " "))}</option>`).join("")}</select></label>`;
+  if (rules.textarea) return `<label>${label}<textarea name="${escapeAttribute(name)}" rows="4"${required}></textarea></label>`;
+  const type = rules.type === "datetime" ? "datetime-local" : rules.type === "date" ? "date" : rules.type === "money" || rules.type === "integer" || rules.type === "number" ? "number" : rules.input || "text";
+  const step = rules.type === "money" ? ' step="0.01" min="0"' : rules.type === "number" ? ' step="any"' : rules.type === "integer" ? ' step="1"' : "";
+  return `<label>${label}<input name="${escapeAttribute(name)}" type="${escapeAttribute(type)}"${step}${required}></label>`;
+}
+
+function ownershipSection(businessId) {
+  return `<details class="card bb-danger-zone"><summary>Ownership and lifecycle</summary><p>Ownership changes require an authenticated recipient and an explicit acceptance step.</p><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/ownership-transfers"><label>New owner email<input name="to_email" type="email" required></label><button type="submit">Request ownership transfer</button></form><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/archive"><button class="bb-quiet-action" type="submit">Archive business</button></form></details>`;
 }
 
 function send(req, res, result, redirectTo) {
   const status = Number(result.status || (result.ok ? 200 : 400));
-  if (acceptsHtml(req)) return result.ok ? res.redirect(303, redirectTo) : res.status(status).type("html").send(`<h1>Business action not completed</h1><p>${String(result.code || "request_failed")}</p><p><a href="${redirectTo}">Return</a></p>`);
+  if (acceptsHtml(req)) return result.ok ? res.redirect(303, redirectTo) : res.status(status).type("html").send(`<main><h1>Action not completed</h1><p>${escapeBasic(humanizeCode(result.code || "request_failed"))}</p><p><a href="${escapeAttribute(redirectTo)}">Return</a></p></main>`);
   return res.status(status).json(result);
 }
 
+function humanizeCode(value) { return String(value || "request_failed").replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase()); }
 function acceptsHtml(req) { return String(req.get("accept") || "").includes("text/html") || String(req.get("content-type") || "").includes("application/x-www-form-urlencoded"); }
 function isUuid(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "")); }
 function text(value, max = 500) { return String(value || "").trim().slice(0, max); }
 function nullableText(value, max = 500) { const cleaned = text(value, max); return cleaned || null; }
 function oneOf(value, allowed, fallback) { const cleaned = String(value || "").trim().toLowerCase(); return allowed.includes(cleaned) ? cleaned : fallback; }
 function parseJson(value, fallback) { if (value && typeof value === "object") return value; if (!String(value || "").trim()) return fallback; try { const parsed = JSON.parse(String(value)); return parsed && typeof parsed === "object" ? parsed : fallback; } catch { return fallback; } }
-function safeUrl(value) { const cleaned = text(value, 1000); if (!cleaned) return null; try { const parsed = new URL(cleaned); return ["http:","https:"].includes(parsed.protocol) ? parsed.toString() : null; } catch { return null; } }
+function safeUrl(value) { const cleaned = text(value, 1000); if (!cleaned) return null; try { const parsed = new URL(cleaned); return ["http:", "https:"].includes(parsed.protocol) ? parsed.toString() : null; } catch { return null; } }
 function emailLike(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "")); }
 function clamp(value, min, max, fallback) { const parsed = Number.parseInt(String(value || ""), 10); return Number.isFinite(parsed) ? Math.max(min, Math.min(max, parsed)) : fallback; }
+function moneyToCents(value) { const normalized = String(value ?? "0").replace(/[^0-9.-]/g, ""); const amount = Number(normalized); return Number.isFinite(amount) ? Math.round(amount * 100) : Number.NaN; }
+function formatMoney(cents, currency = "usd") { try { return new Intl.NumberFormat("en-US", { style: "currency", currency: String(currency || "usd").toUpperCase() }).format(Number(cents || 0) / 100); } catch { return `$${(Number(cents || 0) / 100).toFixed(2)}`; } }
+function formatDateTime(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? String(value || "") : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(date); }
+function escapeBasic(value) { return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character])); }
+function escapeAttribute(value) { return escapeBasic(value).replace(/`/g, "&#96;"); }
