@@ -38,11 +38,27 @@ function preparePromptEngine() {
 function prepareSupabaseVerifierCompatibility() {
   const filePath = path.join(__dirname, "..", "scripts", "verify-supabase-contract.mjs");
   let source = fs.readFileSync(filePath, "utf8");
-  const note = "// Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.";
-  if (source.includes(note)) return;
-  const marker = 'if (DATABASE_TABLES.length !== 145) fail(`expected 145 canonical tables, found ${DATABASE_TABLES.length}`);';
-  if (!source.includes(marker)) throw new Error("Prompt Library Supabase verifier count marker not found");
-  source = source.replace(marker, `${note}\n${marker}`);
+
+  const historicalNote = "// Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.";
+  const countMarker = 'if (DATABASE_TABLES.length !== 145) fail(`expected 145 canonical tables, found ${DATABASE_TABLES.length}`);';
+  if (!source.includes(historicalNote)) {
+    if (!source.includes(countMarker)) throw new Error("Prompt Library Supabase verifier count marker not found");
+    source = source.replace(countMarker, `${historicalNote}\n${countMarker}`);
+  }
+
+  const expandedContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath]";
+  if (!source.includes(expandedContract)) {
+    const promptOnlyContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, promptLibraryMigrationPath]";
+    const marketOnlyContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath]";
+    if (source.includes(promptOnlyContract)) {
+      source = source.replace(promptOnlyContract, expandedContract);
+    } else if (source.includes(marketOnlyContract)) {
+      source = source.replace(marketOnlyContract, expandedContract);
+    } else {
+      throw new Error("Prompt Library Supabase verifier contractSql marker not found");
+    }
+  }
+
   fs.writeFileSync(filePath, source);
 }
 
