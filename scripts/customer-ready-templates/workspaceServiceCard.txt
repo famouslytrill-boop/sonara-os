@@ -1,0 +1,6 @@
+function workspaceServiceCard(page, paid) {
+  if (paid) return brandCard("Access", "This feature opens when your plan includes it. Your saved work remains available if you change plans.");
+  if (page.form) return brandCard("Next step", "Complete the form to create your result. SONARA saves it to your workspace when you are signed in.");
+  if (page.api) return brandCard("Saved work", "Open your workspace to review saved results and continue where you left off.");
+  return brandCard("Ready when you are", "Follow the steps on this page and SONARA will guide you to the next useful action.");
+}

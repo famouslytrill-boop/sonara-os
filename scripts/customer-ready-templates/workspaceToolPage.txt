@@ -1,0 +1,23 @@
+function workspaceToolPage({ slug, config, page, access, paid }) {
+  const sections = [
+    ...workspaceFormSections(page),
+    brandCard("What this tool does", page.body),
+    workspaceServiceCard(page, paid),
+    ...workspaceRecordSections(page)
+  ];
+  return layout({
+    title: page.title,
+    eyebrow: paid ? "Plan feature" : "Included tool",
+    heading: page.title,
+    body: paid
+      ? "Paid tools are available when your plan includes them. Your work stays private and connected to your organization."
+      : "Create a useful result now. Signed-in work is saved automatically to your workspace.",
+    sections,
+    actions: [
+      linkAction(`/${slug}/dashboard`, `${config.name} home`),
+      linkAction(`/${slug}/tools`, "All tools"),
+      paid ? linkAction("/pricing", "Compare plans") : linkAction("/dashboard", "My workspace"),
+      logoutAction()
+    ]
+  });
+}
