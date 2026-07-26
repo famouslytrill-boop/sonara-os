@@ -45,7 +45,7 @@ describe("premium public conversion experience", () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.match(res.text, /Proof policy/);
     assert.match(res.text, /does not publish fake testimonials/);
-    assert.match(res.text, /No fake urgency/i);
+    assert.match(res.text, /false scarcity/i);
     assert.doesNotMatch(res.text, /\$10K|\$500,000 branding campaign|fictional customer count|guaranteed search placement/i);
   });
 
