@@ -33,10 +33,12 @@ function patchRouteModule() {
       "  const requireCustomer = deps.requireCustomer || requirePaidOrOwnerAccess(\"business_builder\");\n  const requireWorkspaceAccess = deps.requireWorkspaceAccess;\n  const getCustomerPrimaryOrganization"
     );
   }
-  source = source.replace(
-    "  const access = requirePaidOrOwnerAccess(\"business_builder\");\n",
-    "  const access = requirePaidOrOwnerAccess(\"business_builder\");\n  const workspaceAccess = typeof requireWorkspaceAccess === \"function\" ? requireWorkspaceAccess(\"business_builder\") : requireCustomer;\n"
-  );
+  if (!source.includes("const workspaceAccess =")) {
+    source = source.replace(
+      "  const access = requirePaidOrOwnerAccess(\"business_builder\");\n",
+      "  const access = requirePaidOrOwnerAccess(\"business_builder\");\n  const workspaceAccess = typeof requireWorkspaceAccess === \"function\" ? requireWorkspaceAccess(\"business_builder\") : requireCustomer;\n"
+    );
+  }
 
   const accountStart = '  app.get("/account/setup", requireCustomer, async (req, res) => {';
   const dashboardStart = '  app.get("/business-builder/dashboard", access, async (req, res) => {';
