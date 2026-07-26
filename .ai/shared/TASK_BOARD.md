@@ -1,31 +1,47 @@
 # Shared Task Board
 
-Updated: 2026-07-19 by Codex (Agent A)
+Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 
 ## In progress
 
-- None for the production connectivity release.
+- Reconcile all Claude-authored development into the current source baseline and protect it with automated checks.
+- Verify the next controlled production deployment reaches current `main` rather than the older deployed commit.
+- Verify production migrations, catalog records, lifecycle restrictions, and paid entitlements after deployment.
 
 ## Blocked / owner-dependent
 
+- Add or confirm the protected GitHub `production` environment secret named exactly `SUPABASE_SERVICE_ROLE_KEY`. Never paste its value into chat or source.
+- Re-run or trigger the controlled production deployment after the secret exists.
 - Complete an authenticated organization-creation smoke test against the deployed hosted-compatible schema.
 - Configure an isolated non-production backend for complete Preview account testing.
 - Complete one authenticated billing lifecycle and confirm access relock.
+- Complete positive and negative production paid-entitlement tests for actual plan floors.
 - Complete one approved production email delivery and verify persistence.
-- Run authenticated tenant-isolation and private-storage tests.
+- Run authenticated tenant-isolation and private-storage denial tests.
+- Verify all 34 production catalog records and the 10/8/8/8 company distribution.
 - Configure Google sign-in after an approved redirect URI is available.
 - Obtain qualified legal review.
 - Complete PWA/browser and physical-device verification.
 
 ## Done
 
-- Merged PR #36 with exact-head protection to `aebee84129f3488d91bc51ea81aa0f8c423fc8e7`.
-- Deployed READY Vercel Production deployment `dpl_7RzByXjMYwGp7C78CuNVC6AuiV8Q` on the exact merge SHA.
+- Confirmed `claude/fix-deploy-service-role-secret` was merged as PR #101.
+- Confirmed Claude head `375a2ef1b3809be76ccd4f3a00a107d8d9f788a9` is contained in current `main`.
+- Confirmed there are no open Claude-generated PRs or live `claude/*` branches in the accessible SONARA repository.
+- Confirmed PR #101's service-role secret remains step-scoped and absent from job-level environment variables.
+- Confirmed PR #100's recommended-product-catalog apply script remains idempotent.
+- Confirmed the Claude dependency override pins vulnerable `brace-expansion` versions to `5.0.8`.
+- Merged PR #102 with the explicit recommended-catalog production boundary.
+- Merged PR #103 with the premium conversion and mobile experience.
+- Merged PR #104 with the v3 SVG identity, light/dark startup and loading system, reduced-motion behavior, and PWA updates.
+- Added a Claude development inventory and refreshed shared current-state and handoff records.
+- Added automated verification for secret scoping, catalog idempotency, dependency hardening, and shared-state synchronization.
 - Expanded main CI to run complete build, test, lint, typecheck, client-secret, route, database/storage, configuration, registry, OpenAPI, and documentation checks.
 - Added scheduled and post-main production connectivity verification with exact-SHA deployment waiting.
-- Verified live health, provider/database readiness, support connection, public routes, PWA assets, redirects, protected access boundaries, and safe validation failures.
-- Verified no Vercel runtime errors after the release.
-- Released the cohesive 2027 frontend and canonical SONARA registry in PR #34.
-- Connected the public presentation to live non-secret readiness while keeping Supabase Postgres authoritative.
-- Merged organization setup compatibility with deterministic slug recovery and canonical organization membership.
-- Released payload-size handling and the production database/paid-launch baseline.
+- Released organization setup compatibility, payload-size handling, production database groundwork, and paid-launch fail-closed controls.
+
+## Current deployment evidence
+
+- Current audited source `main`: `fa9402a8671bae7934925c5c64f147a221bf4e16`.
+- Latest READY Vercel production commit found: `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`.
+- Production remains behind source until an exact-SHA controlled deployment proves otherwise.
