@@ -33,3 +33,4 @@ console.log("SONARA market R&D priorities applied");
 // package-level runtime contract still ends with the established Market R&D stage.
 require("./prepare-prompt-library-runtime.cjs");
 require("./apply-prompt-library-system.cjs");
+require("./apply-prompt-library-openapi-compatibility.cjs");
