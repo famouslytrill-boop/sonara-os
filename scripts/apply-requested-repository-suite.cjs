@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
 const serverPath = path.join(root, "server.js");
+const openapiPath = path.join(root, "openapi", "sonara.yaml");
 
 let server = fs.readFileSync(serverPath, "utf8");
 
@@ -38,4 +39,41 @@ if (!server.includes(requestedRegistration)) {
 }
 
 fs.writeFileSync(serverPath, server, "utf8");
-console.log("Applied governed requested repository routes.");
+
+let openapi = fs.readFileSync(openapiPath, "utf8");
+const openapiAnchor = `  /api/admin/ai-integrations/readiness:
+    get:
+      operationId: getAdminAIIntegrationReadiness
+      tags: [Administration]
+      summary: Run bounded read-only readiness probes for configured AI service adapters.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }`;
+
+const requestedOpenapiPaths = `  /api/ecosystem/requested-repositories:
+    get:
+      operationId: getRequestedRepositoryCatalog
+      tags: [Ecosystem]
+      summary: Return the governed non-secret catalog for requested external repositories.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/admin/requested-repositories/readiness:
+    get:
+      operationId: getAdminRequestedRepositoryReadiness
+      tags: [Administration]
+      summary: Return owner-only static readiness and governance state for requested repositories.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }`;
+
+if (!openapi.includes("  /api/ecosystem/requested-repositories:")) {
+  if (!openapi.includes(openapiAnchor)) throw new Error("Requested repository integration: OpenAPI AI readiness anchor not found.");
+  openapi = openapi.replace(openapiAnchor, `${openapiAnchor}\n${requestedOpenapiPaths}`);
+}
+
+fs.writeFileSync(openapiPath, openapi, "utf8");
+console.log("Applied governed requested repository routes and OpenAPI contract.");
