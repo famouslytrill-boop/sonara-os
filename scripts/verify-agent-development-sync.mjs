@@ -1,0 +1,82 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+
+const root = process.cwd();
+
+function read(relativePath) {
+  const filePath = path.join(root, relativePath);
+  assert.ok(fs.existsSync(filePath), `Missing required sync file: ${relativePath}`);
+  return fs.readFileSync(filePath, "utf8");
+}
+
+function workflowStep(workflow, name) {
+  const marker = `      - name: ${name}`;
+  const start = workflow.indexOf(marker);
+  assert.notEqual(start, -1, `Missing workflow step: ${name}`);
+  const next = workflow.indexOf("\n      - name:", start + marker.length);
+  return workflow.slice(start, next === -1 ? workflow.length : next);
+}
+
+const workflow = read(".github/workflows/controlled-production-deploy.yml");
+const jobEnvStart = workflow.indexOf("    env:\n");
+const stepsStart = workflow.indexOf("\n    steps:");
+assert.ok(jobEnvStart !== -1 && stepsStart > jobEnvStart, "Unable to isolate controlled deployment job env");
+
+const jobEnv = workflow.slice(jobEnvStart, stepsStart);
+assert.doesNotMatch(
+  jobEnv,
+  /SUPABASE_SERVICE_ROLE_KEY/,
+  "The RLS-bypassing service-role key must never be exposed at job scope"
+);
+
+const secretBindings = workflow.match(/\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/g) || [];
+assert.equal(secretBindings.length, 2, "The service-role key must be bound to exactly two workflow steps");
+
+const guard = workflowStep(workflow, "Require protected production credentials");
+assert.match(guard, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
+assert.match(guard, /test -n "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
+
+const pull = workflowStep(workflow, "Pull production environment for catalog verification");
+assert.doesNotMatch(pull, /SUPABASE_SERVICE_ROLE_KEY/);
+assert.match(pull, /vercel@latest env pull/);
+
+const verify = workflowStep(workflow, "Verify production catalog database boundary");
+assert.match(verify, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
+assert.match(verify, /verify-production-product-catalog\.mjs --database-only/);
+
+const cleanup = workflowStep(workflow, "Remove temporary production environment material");
+assert.match(cleanup, /rm -f \.env\.production\.catalog-verification/);
+assert.match(cleanup, /test ! -e \.env\.production\.catalog-verification/);
+
+const catalogApply = read("scripts/apply-recommended-product-catalog.cjs");
+assert.match(
+  catalogApply,
+  /if \(!source\.includes\("const LEGACY_DEFAULT_SERVICE_CATALOG = \["\) && source\.includes\("const DEFAULT_SERVICE_CATALOG = \["\)\)/,
+  "Recommended product catalog apply script must retain the idempotent legacy rename guard"
+);
+assert.match(
+  catalogApply,
+  /const DEFAULT_SERVICE_CATALOG = \[\.\.\.getRecommendedProductCatalog\(\), \.\.\.LEGACY_DEFAULT_SERVICE_CATALOG\];/,
+  "Recommended and legacy catalog composition contract is missing"
+);
+
+const workspace = read("pnpm-workspace.yaml");
+assert.match(
+  workspace,
+  /"brace-expansion@<=5\.0\.7": "5\.0\.8"/,
+  "Claude dependency hardening for brace-expansion must remain pinned"
+);
+
+const currentState = read(".ai/shared/CURRENT_STATE.md");
+for (const marker of ["PR #100", "PR #101", "PR #103", "PR #104", "production lag"]) {
+  assert.match(currentState, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+}
+
+const claudeSync = read(".ai/shared/CLAUDE_SYNC_2026-07-26.md");
+assert.match(claudeSync, /claude\/fix-deploy-service-role-secret/);
+assert.match(claudeSync, /375a2ef1b3809be76ccd4f3a00a107d8d9f788a9/);
+assert.match(claudeSync, /fa9402a8671bae7934925c5c64f147a221bf4e16/);
+assert.doesNotMatch(claudeSync, /service[_ -]?role[_ -]?key\s*[:=]\s*[A-Za-z0-9._-]{20,}/i);
+
+console.log("Agent development sync verified: Claude deployment hardening, catalog idempotency, dependency override, and shared state are aligned.");

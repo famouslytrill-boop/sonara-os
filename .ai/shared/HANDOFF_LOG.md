@@ -1,5 +1,20 @@
 # Handoff Log
 
+## 2026-07-26 UTC - Claude development reconciliation and deployment boundary
+
+- Searched every accessible SONARA GitHub repository; only `famouslytrill-boop/sonara-os` is connected.
+- Searched live branches, open and historical pull requests, recent commits, current workflow code, shared agent records, and Vercel production deployment metadata.
+- No open Claude-generated pull request or live `claude/*` branch remains.
+- The requested branch `claude/fix-deploy-service-role-secret` was confirmed as merged PR #101. Claude head `375a2ef1b3809be76ccd4f3a00a107d8d9f788a9` is an ancestor of current `main`.
+- Current audited `main` is `fa9402a8671bae7934925c5c64f147a221bf4e16`, 45 commits ahead of the Claude service-role fix.
+- Confirmed the production workflow still scopes `SUPABASE_SERVICE_ROLE_KEY` only to the credential guard and catalog database verifier. It is not exposed to dependency installation, build/test, Supabase migration, or Vercel CLI steps.
+- Confirmed PR #100's recommended-product-catalog idempotency guard remains present.
+- Confirmed the Claude-authored `brace-expansion` security override remains pinned to `5.0.8`.
+- Confirmed later PRs #102–#104 build on the Claude baseline rather than removing its security behavior.
+- Latest READY Vercel production deployment found reports commit `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`; no READY deployment matching current `main` was found.
+- Protected secret values were not read or copied. A successful exact-SHA controlled-production run is still required to prove secret presence and deployment completion.
+- Added `.ai/shared/CLAUDE_SYNC_2026-07-26.md` and an automated agent-development verification script so future Claude/Codex sessions detect regressions in the secret scope, catalog idempotency, dependency override, and shared-state baseline.
+
 ## 2026-07-19 - Production connectivity hardening released
 
 - User requested assurance that the software and its provider connections work correctly.
@@ -36,6 +51,10 @@
 
 ## Outstanding launch gates
 
+- Confirm the protected production service-role secret exists without exposing it.
+- Deploy current `main` through the controlled workflow and verify exact-SHA production aliases.
+- Verify the two catalog migrations and exactly 34 production software-product records.
+- Verify real positive and negative paid-plan entitlements.
 - Authenticated deployed organization-creation smoke test.
 - Isolated Preview backend configuration and verification.
 - One real production email delivery with persistence evidence.
