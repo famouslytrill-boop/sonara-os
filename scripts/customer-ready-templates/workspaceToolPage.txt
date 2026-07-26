@@ -10,7 +10,7 @@ function workspaceToolPage({ slug, config, page, access, paid }) {
     eyebrow: paid ? "Plan feature" : "Included tool",
     heading: page.title,
     body: paid
-      ? "Use this workspace when your plan includes it. Your work stays private and connected to your organization."
+      ? "Paid tools are available when your plan includes them. Your work stays private and connected to your organization."
       : "Create a useful result now. Signed-in work is saved automatically to your workspace.",
     sections,
     actions: [
