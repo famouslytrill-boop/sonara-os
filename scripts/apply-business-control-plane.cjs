@@ -8,7 +8,7 @@ patchServer();
 patchRouteRegistry();
 patchOpenApi();
 
-console.log("Business Builder control plane applied");
+console.log("Business Builder operating system applied");
 
 function patchRouteModule() {
   const file = path.join(__dirname, "..", "routes", "sonara-business-control-plane-routes.cjs");
@@ -52,8 +52,7 @@ function patchRouteModule() {
   const resourceAwareArchivePatch = `    const patch = action === "archive"
       ? { ...(definition.archivePatch || { status: "archived" }) }
       : normalizeFields(req.body, definition.fields, true).value;`;
-  if (!source.includes(resourceAwareArchivePatch)) {
-    if (!source.includes(legacyArchivePatch)) throw new Error("Business resource archive lifecycle marker not found");
+  if (!source.includes(resourceAwareArchivePatch) && source.includes(legacyArchivePatch)) {
     source = source.replace(legacyArchivePatch, resourceAwareArchivePatch);
   }
 
@@ -79,13 +78,17 @@ function patchServer() {
   brandCard,
   linkAction,
   escapeHtml,
+  requireCustomer,
   requirePaidOrOwnerAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders
 });`;
 
-  if (!source.includes("registerSonaraBusinessControlPlaneRoutes(app")) {
+  const existingRegistration = /registerSonaraBusinessControlPlaneRoutes\(app, \{[\s\S]*?\n\}\);/;
+  if (existingRegistration.test(source)) {
+    source = source.replace(existingRegistration, registration);
+  } else {
     const markers = ["registerSonaraDatabaseManagementRoutes(app, {", "registerRouteRegistryRoutes(app, {"];
     const marker = markers.find((candidate) => source.includes(candidate));
     if (!marker) throw new Error("Business control registration marker not found");
@@ -97,25 +100,24 @@ function patchServer() {
 function patchRouteRegistry() {
   const file = path.join(__dirname, "..", "lib", "sonara-route-registry.cjs");
   let source = fs.readFileSync(file, "utf8");
-  const dynamicRoute = '"/business-builder/businesses/:businessId"';
+  const controlCenter = '"/business-builder/control-center"';
+  const businesses = '"/business-builder/businesses"';
+  const businessRoute = '"/business-builder/businesses/:businessId"';
+  const resourceRoute = '"/business-builder/businesses/:businessId/manage/:resource"';
 
-  if (!source.includes('"/business-builder/control-center"')) {
+  if (!source.includes(controlCenter)) {
     const marker = '    "/business-builder/owner/vendors"';
     if (!source.includes(marker)) throw new Error("Business Builder route registry marker not found");
-    source = source.replace(
-      marker,
-      `${marker},\n    "/business-builder/control-center", "/business-builder/businesses", ${dynamicRoute}`
-    );
-  } else if (!source.includes(dynamicRoute)) {
-    const marker = '"/business-builder/control-center", "/business-builder/businesses"';
-    if (!source.includes(marker)) throw new Error("Business Builder dynamic route registry marker not found");
-    source = source.replace(marker, `${marker}, ${dynamicRoute}`);
+    source = source.replace(marker, `${marker},\n    ${controlCenter}, ${businesses}, ${businessRoute}, ${resourceRoute}`);
+  } else {
+    if (!source.includes(businessRoute)) source = source.replace(`${controlCenter}, ${businesses}`, `${controlCenter}, ${businesses}, ${businessRoute}`);
+    if (!source.includes(resourceRoute)) source = source.replace(businessRoute, `${businessRoute}, ${resourceRoute}`);
   }
 
-  if (!source.includes('"/business-builder/control-center": "Business Control Center"')) {
+  if (!source.includes('"/business-builder/control-center": "Business Builder"')) {
     const marker = '  "/admin/ai-integrations": "AI integrations"';
     if (!source.includes(marker)) throw new Error("Business Builder title registry marker not found");
-    source = source.replace(marker, `${marker},\n  "/business-builder/control-center": "Business Control Center",\n  "/business-builder/businesses": "Businesses"`);
+    source = source.replace(marker, `${marker},\n  "/business-builder/control-center": "Business Builder",\n  "/business-builder/businesses": "Businesses"`);
   }
   fs.writeFileSync(file, source);
 }
@@ -123,14 +125,14 @@ function patchRouteRegistry() {
 function patchOpenApi() {
   const file = path.join(__dirname, "..", "openapi", "sonara.yaml");
   let source = fs.readFileSync(file, "utf8");
-  if (source.includes("/api/business-builder/control-plane:")) return;
-  const marker = "components:";
-  if (!source.includes(marker)) throw new Error("OpenAPI components marker not found");
-  const block = `  /api/business-builder/control-plane:
+  if (!source.includes("/api/business-builder/control-plane:")) {
+    const marker = "components:";
+    if (!source.includes(marker)) throw new Error("OpenAPI components marker not found");
+    const block = `  /api/business-builder/control-plane:
     get:
       operationId: getBusinessBuilderControlPlane
       tags: [Business Builder]
-      summary: List customer-controlled businesses and control-plane resource types.
+      summary: List customer-controlled businesses and operating resource types.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
@@ -147,7 +149,7 @@ function patchOpenApi() {
     post:
       operationId: createBusinessBuilderBusiness
       tags: [Business Builder]
-      summary: Create or connect a physical, online, or hybrid business workspace.
+      summary: Create or connect a physical, online, service, restaurant, retail, or hybrid business workspace.
       security: [{ bearerAuth: [] }]
       responses:
         "201": { $ref: "#/components/responses/Success" }
@@ -223,18 +225,18 @@ function patchOpenApi() {
         required: true
         schema:
           type: string
-          enum: [locations, channels, employees, services, customers, inventory, assets, orders, integrations, permissions]
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]
     get:
       operationId: listBusinessBuilderResourceRecords
       tags: [Business Builder]
-      summary: List records from one allowlisted business resource.
+      summary: List records from one allowlisted business operating resource.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
     post:
       operationId: createBusinessBuilderResourceRecord
       tags: [Business Builder]
-      summary: Create a record in one allowlisted business resource.
+      summary: Create a record in one allowlisted business operating resource.
       security: [{ bearerAuth: [] }]
       responses:
         "201": { $ref: "#/components/responses/Success" }
@@ -250,7 +252,7 @@ function patchOpenApi() {
         required: true
         schema:
           type: string
-          enum: [locations, channels, employees, services, customers, inventory, assets, orders, integrations, permissions]
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]
       - in: path
         name: id
         required: true
@@ -258,25 +260,28 @@ function patchOpenApi() {
     patch:
       operationId: updateBusinessBuilderResourceRecord
       tags: [Business Builder]
-      summary: Update one organization- and business-scoped resource record.
+      summary: Update one organization- and business-scoped operating record.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
     post:
       operationId: updateBusinessBuilderResourceRecordForm
       tags: [Business Builder]
-      summary: Update one resource record from an HTML-compatible form submission.
+      summary: Update one operating record from an HTML-compatible form submission.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
     delete:
       operationId: archiveBusinessBuilderResourceRecord
       tags: [Business Builder]
-      summary: Soft-archive one organization- and business-scoped resource record.
+      summary: Soft-archive one organization- and business-scoped operating record.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
 `;
-  source = source.replace(marker, `${block}${marker}`);
+    source = source.replace(marker, `${block}${marker}`);
+  } else {
+    source = source.replace(/enum: \[locations, channels, employees, services, customers, inventory, assets, orders, integrations, permissions\]/g, "enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]");
+  }
   fs.writeFileSync(file, source);
 }
