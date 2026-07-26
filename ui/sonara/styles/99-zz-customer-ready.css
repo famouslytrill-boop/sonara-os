@@ -168,6 +168,5 @@ html[data-theme="dark"] .card {
   .sonara-header-tools .sonara-icon-button { min-width: 44px; padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  body { filter: none; }
   .card, .action, button, [data-sonara-reveal] { transition: none !important; animation: none !important; transform: none !important; }
 }
