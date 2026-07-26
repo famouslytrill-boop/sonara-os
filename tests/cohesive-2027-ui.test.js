@@ -23,14 +23,14 @@ describe("canonical responsive application interface", () => {
   it("renders one clean SONARA One homepage without retired visual systems", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6/);
+    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v7/);
     assert.equal(countMatches(res.text, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(res.text, LEGACY_ASSET_PATTERN);
     assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.match(res.text, /class="sonara-site-header"/);
     assert.match(res.text, /class="sonara-mobile-menu"/);
-    assert.match(res.text, /Build, create, and grow—without losing control\./);
-    assert.match(res.text, /One system\. Three focused ways to move\./);
+    assert.match(res.text, /Launch your work\. Run it professionally\. Grow with evidence\./);
+    assert.match(res.text, /Choose the studio that matches the work\./);
     assert.match(res.text, /Business Builder/);
     assert.match(res.text, /Creator Studio/);
     assert.match(res.text, /Growth Studio/);
