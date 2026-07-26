@@ -81,6 +81,7 @@ server = replaceBetween(server, "async function verifyAdminRequest(req) {", "fun
 
 const desktopNavPattern = /<nav class="sonara-desktop-nav" aria-label="Primary">[\s\S]*?<\/nav>/;
 const desktopNav = `<nav class="sonara-desktop-nav" aria-label="Primary">
+        <a href="/start" data-i18n="platform">Platform</a>
         <a href="/dashboard" data-i18n="dashboard">Workspace</a>
         <details class="sonara-workspace-menu"><summary>Workspaces</summary><div><a href="/business-builder">Business Builder</a><a href="/creator-studio">Creator Studio</a><a href="/growth-studio">Growth Studio</a></div></details>
         <a href="/free-tools" data-i18n="tools">Tools</a>
@@ -94,6 +95,7 @@ server = server.replace(desktopNavPattern, desktopNav);
 
 const mobileNavPattern = /<details class="sonara-mobile-menu"><summary[^>]*>.*?<\/summary><nav aria-label="Mobile primary">[\s\S]*?<\/nav><\/details>/;
 const mobileNav = `<details class="sonara-mobile-menu"><summary aria-label="Open navigation" data-i18n="menu">Menu</summary><nav aria-label="Mobile primary">
+        <a href="/start" data-i18n="platform">Platform</a>
         <a href="/dashboard" data-i18n="dashboard">Workspace</a>
         <a href="/business-builder">Business Builder</a>
         <a href="/creator-studio">Creator Studio</a>
