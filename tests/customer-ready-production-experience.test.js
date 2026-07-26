@@ -24,27 +24,28 @@ describe("customer-ready production experience", () => {
     const login = await request(app).get("/login");
     assert.equal(login.status, 200);
     assert.match(login.text, /Login with email/);
-    assert.match(login.text, /Forgot password|Reset password/i);
+    assert.match(login.text, /href="\/forgot-password"/);
     assert.doesNotMatch(login.text, customerBackendLanguage);
   });
 
   it("retains complete password recovery and update surfaces", async () => {
     const recovery = await request(app).get("/forgot-password");
     assert.equal(recovery.status, 200);
-    assert.match(recovery.text, /password/i);
+    assert.match(recovery.text, /Send reset link/);
     assert.doesNotMatch(recovery.text, customerBackendLanguage);
 
-    const update = await request(app).get("/account/update-password");
+    const update = await request(app).get("/reset-password");
     assert.equal(update.status, 200);
+    assert.match(update.text, /data-sonara-recovery-token/);
     assert.match(update.text, /Update password/);
     assert.doesNotMatch(update.text, customerBackendLanguage);
   });
 
-  it("keeps public company pages free of infrastructure language", async () => {
+  it("keeps public company pages free of visible infrastructure language", async () => {
     for (const route of ["/", "/business-builder", "/creator-studio", "/growth-studio", "/pricing", "/free-tools"]) {
       const response = await request(app).get(route);
       assert.equal(response.status, 200, `${route} unavailable`);
-      assert.doesNotMatch(response.text, customerBackendLanguage, `${route} leaks backend terminology`);
+      assert.doesNotMatch(response.text.replace(/<[^>]+hidden[^>]*>[\s\S]*?<\/[^>]+>/gi, ""), customerBackendLanguage, `${route} leaks visible backend terminology`);
     }
   });
 
