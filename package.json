@@ -22,7 +22,7 @@
     "apply:reference-intelligence": "node scripts/apply-reference-intelligence.cjs",
     "apply:database-management": "node scripts/apply-database-management-console.cjs",
     "apply:business-control-plane": "node scripts/apply-business-control-plane.cjs",
-    "apply:business-operating-system": "node scripts/apply-business-builder-operating-system.cjs && node scripts/apply-business-builder-dashboard-compatibility.cjs",
+    "apply:business-operating-system": "node scripts/apply-business-builder-operating-system.cjs && node scripts/apply-business-builder-dashboard-compatibility.cjs && node scripts/apply-business-builder-openapi-compatibility.cjs",
     "apply:brand": "node scripts/apply-premium-brand-system.cjs",
     "apply:db-query-contract": "node scripts/apply-database-query-contract.cjs",
     "apply:paid-launch": "node scripts/apply-paid-launch-finalization.cjs",
