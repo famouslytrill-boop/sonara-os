@@ -39,7 +39,7 @@ if (!source.includes("sonara-continuity-note")) {
 }
 
 const workspaceAnchor = String.raw`Explore Growth Studio</a></article>\n    </div>`;
-const workspaceCopy = String.raw`Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a></nav>`;
+const workspaceCopy = String.raw`Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>`;
 if (!source.includes(String.raw`href=\"/business-builder/dashboard\"`)) {
   if (!source.includes(workspaceAnchor)) {
     console.error("Unable to locate the existing-customer workspace anchor");
