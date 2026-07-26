@@ -3,10 +3,36 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+preparePromptEngine();
 prepareRouteRegistry();
 prepareEcosystemManifest();
 
-console.log("Prompt Library route markers prepared for transformed runtime");
+console.log("Prompt Library engine and route markers prepared for transformed runtime");
+
+function preparePromptEngine() {
+  const filePath = path.join(__dirname, "..", "lib", "sonara-prompt-library.cjs");
+  let source = fs.readFileSync(filePath, "utf8");
+  if (source.includes("const protectedVariable = variables.find(isProtectedVariableName);")) return;
+
+  const marker = `  const content = String(source.content || "");
+  const safety = reviewPromptContent(content, source);
+  if (!safety.ok) return { ok: false, code: "prompt_blocked", safety };
+  if (content.length > MAX_TEMPLATE_LENGTH) return { ok: false, code: "template_too_large" };
+
+  const variables = extractVariables(content);`;
+  if (!source.includes(marker)) throw new Error("Prompt Library render validation marker not found");
+
+  const replacement = `  const content = String(source.content || "");
+  const variables = extractVariables(content);
+  const protectedVariable = variables.find(isProtectedVariableName);
+  if (protectedVariable) return { ok: false, code: "protected_variable_name", variable: protectedVariable };
+  const safety = reviewPromptContent(content, source);
+  if (!safety.ok) return { ok: false, code: "prompt_blocked", safety };
+  if (content.length > MAX_TEMPLATE_LENGTH) return { ok: false, code: "template_too_large" };`;
+
+  source = source.replace(marker, replacement);
+  fs.writeFileSync(filePath, source);
+}
 
 function prepareRouteRegistry() {
   const filePath = path.join(__dirname, "..", "lib", "sonara-route-registry.cjs");
