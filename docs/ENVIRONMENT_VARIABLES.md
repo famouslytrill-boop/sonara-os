@@ -32,6 +32,7 @@ Configure these only in server-side hosting environment variables:
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `OPENAI_API_KEY`
+- `HF_TOKEN`
 - `SONARA_CRON_SECRET`
 - `SONARA_ADMIN_EMAILS`
 - `OPENCLAW_GATEWAY_TOKEN`
@@ -71,6 +72,19 @@ Each adapter requires an explicit `*_ENABLED=true` flag and is otherwise inert. 
 | CrewAI worker | `CREWAI_ENABLED` | `CREWAI_WORKER_URL` | `CREWAI_WORKER_TOKEN` |
 
 LangChain is a worker-framework reference, DeepSeek V3 is an optional model family served through an approved gateway, and Gemini CLI and Claude Code are development tools. They intentionally have no production enable flags.
+
+### Hugging Face metadata integration
+
+The Hugging Face catalog is non-executing. Enabling it permits one bounded, read-only Hub metadata health probe; it does not download models, ingest datasets, train, or perform inference.
+
+| Purpose | Variable | Default |
+| --- | --- | --- |
+| Enable metadata probe | `HUGGINGFACE_HUB_ENABLED` | `false` |
+| Approved Hub base URL | `HUGGINGFACE_HUB_BASE_URL` | `https://huggingface.co` |
+| Optional server-only read token | `HF_TOKEN` | unset |
+| Bounded probe timeout | `SONARA_HF_PROBE_TIMEOUT_MS` | `1800` milliseconds |
+
+Use the minimum token scope. Never expose `HF_TOKEN` to the browser, store it in Supabase, place it in a URL, or print it in logs. Model execution and dataset ingestion require separately reviewed workers and are not enabled by these variables.
 
 Google OAuth client credentials are configured in Supabase provider settings, not in this repository. Phone OTP requires Supabase Phone provider and SMS provider setup.
 
