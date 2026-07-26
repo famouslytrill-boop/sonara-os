@@ -5,10 +5,12 @@ const path = require("node:path");
 
 const root = process.cwd();
 const serverPath = path.join(root, "server.js");
+const workerPath = path.join(root, "public", "sw.js");
 const templateRoot = path.join(root, "scripts", "customer-ready-templates");
 const publicClientPath = path.join(root, "public", "sonara-one.js");
 const publicStylePath = path.join(root, "public", "sonara-application-ui.css");
-const assetVersion = "sonara-ui-20260726-customer-ready1";
+const assetVersion = "sonara-ui-20260725-v6-motion3";
+const workerVersion = "clark-ui-20260718-preferences-motion3-customer-ready1";
 
 function fail(message) {
   console.error(message);
@@ -68,7 +70,6 @@ const registration = `registerCustomerReadyExperienceRoutes(app, {
   linkAction,
   responsePage,
   escapeHtml,
-  accountNoticeCard,
   requireCustomer,
   handleEmailAuth,
   sendEmailAuthResult,
@@ -125,6 +126,12 @@ server = server.replace(/Setup required: organization membership is missing\.?/g
 server = server.replace(/Setup required: account database is not configured\.?/gi, "Your workspace is temporarily unavailable.");
 server = server.replace(/This uses server-side Supabase access only\. It never exposes service-role credentials to the browser\.?/gi, "Your workspace is protected and private.");
 fs.writeFileSync(serverPath, server);
+
+let worker = read(workerPath);
+worker = worker.replace(/const VERSION = "[^"]+";/, `const VERSION = "${workerVersion}";`);
+worker = worker.replace(/sonara-application-ui\.css\?v=[^"]+/g, `sonara-application-ui.css?v=${assetVersion}`);
+worker = worker.replace(/sonara-one\.js\?v=[^"]+/g, `sonara-one.js?v=${assetVersion}`);
+fs.writeFileSync(workerPath, worker);
 
 assemble(path.join("ui", "sonara", "scripts"), publicClientPath);
 assemble(path.join("ui", "sonara", "styles"), publicStylePath);
