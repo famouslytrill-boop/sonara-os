@@ -1,185 +1,172 @@
-# SONARA Brand Guidelines — Premium Principles
+# SONARA Brand Guidelines — Nexus v3
 
-A working guide for keeping SONARA's public identity **premium, restrained, and
-unmistakably ours.** It adapts seven brand-design principles to SONARA's real
-identity and records the refinement decisions applied to the live application.
+This guide defines the identity shipped by SONARA Industries, SONARA One, Business Builder, Creator Studio, and Growth Studio.
 
-This document describes the identity we actually ship — the Prism Wave symbol,
-the Inter wordmark, and the dark-first gradient system already in the codebase.
-It does **not** authorize fabricated campaigns, invented metrics, testimonials,
-or claims. Premium presentation never means pretending.
+The identity must remain **clear, restrained, recognizable, and truthful**. Premium presentation does not authorize fabricated campaigns, invented metrics, fake testimonials, false scarcity, or unsupported claims.
 
----
-
-## Brand at a glance
+## Brand architecture
 
 - **Parent company:** SONARA Industries
-- **Platform:** SONARA One
+- **Connected platform:** SONARA One
 - **Products:** Business Builder · Creator Studio · Growth Studio
 - **Public message:** Build. Create. Grow.
-- **Voice:** Plain, confident, customer-facing. Avoid overusing internal engine
-  names or the word "AI" in public copy.
+- **Audience:** independent founders, creators, operators, and small teams
+- **Voice:** direct, practical, customer-facing, and evidence-based
 
-Primary assets in the repo:
+## Official v3 assets
 
-| Asset | File |
+| Surface | Asset |
 | --- | --- |
-| Parent symbol (header/footer) | `public/brand/sonara-industries-mark.svg` |
-| Horizontal lockup | `public/brand/sonara-industries-logo.svg` |
-| Product marks | `public/brand/{business-builder,creator-studio,growth-studio}-mark.svg` |
-| Favicon / app icon | `public/favicon.svg`, `public/favicon.ico`, `public/icons/*` |
-| Social preview | `public/og-image.png` (source `public/brand/sonara-og.svg`) |
+| SONARA One primary mark | `public/brand/sonara-one-mark-v3.svg` |
+| SONARA One dark-interface mark | `public/brand/sonara-one-mark-v3-dark.svg` |
+| SONARA One monochrome mark | `public/brand/sonara-one-mark-v3-mono.svg` |
+| SONARA Industries horizontal lockup | `public/brand/sonara-industries-logo-v3.svg` |
+| Business Builder mark and lockup | `public/brand/business-builder-mark-v3.svg`, `public/brand/business-builder-logo-v3.svg` |
+| Creator Studio mark and lockup | `public/brand/creator-studio-mark-v3.svg`, `public/brand/creator-studio-logo-v3.svg` |
+| Growth Studio mark and lockup | `public/brand/growth-studio-mark-v3.svg`, `public/brand/growth-studio-logo-v3.svg` |
+| Favicon | `public/favicon.svg` |
 | Web manifest | `public/site.webmanifest` |
 
----
+Legacy Prism Wave files remain available only for migration compatibility and older cached links. They are not the active rendered identity.
 
-## 1. Build the Brand First
+## 1. Parent symbol: SONARA Nexus
 
-Before styling, be clear on what SONARA stands for.
+The **SONARA Nexus** is an angular S ribbon inside an open six-sided frame.
 
-- **Core value:** software that tells you the truth — real state, honest
-  setup-required messages, no invented activity.
-- **Audience:** independent operators, creators, and small teams who want to
-  build, create, and grow without enterprise theater.
-- **Promise:** one account, three focused workspaces, and status that always
-  means something.
+- The S represents SONARA and the connected operating path.
+- The six-sided frame communicates structure, containment, and interoperable systems.
+- The open geometry prevents the mark from feeling closed, defensive, or overly institutional.
+- The blue-violet-cyan spectrum connects business execution, creative work, and measurable growth.
+- The mark must remain recognizable at favicon size and on large-format surfaces.
 
-Every mark, color, and headline should reinforce that promise. If a visual
-choice makes SONARA feel like generic SaaS filler, it is wrong regardless of how
-polished it looks.
+The official SVG is flat, precise, and resolution-independent. Do not permanently add bevels, textures, photographs, raster effects, or decorative particles to the master asset.
 
-## 2. Make It Look Expensive
+## 2. Product marks
 
-Expensive reads as **restraint and precision**, not decoration.
+The three product marks share the same frame proportions and construction logic.
 
-- **Space is a feature.** Generous, even spacing around the lockup and between
-  sections. Let elements breathe.
-- **Color is earned.** The full gradient lives in the symbol and a few hero
-  moments. The rest of the interface stays calm — ink, surface, muted, and line
-  tokens carry most of the UI. Use gradient as a *premium accent*, not a
-  background for everything.
-- **No glows.** Soft blur/glow filters and heavy colored drop-shadows read
-  cheap and blur at small sizes. Prefer crisp edges and subtle, neutral
-  grounding shadows.
-- **Palette (dark-first):** see the token table below. Black-ink text on light,
-  near-black surfaces on dark, with the brand spectrum reserved for the mark and
-  key highlights.
+### Business Builder
 
-## 3. Fix the Typography
+Ascending operating bars beneath a launch/roof line represent offer creation, structure, first transaction, and repeatable operations.
 
-- **Typeface:** Inter (with a system fallback stack) everywhere; monospace only
-  for small technical labels.
-- **Wordmark:** "SONARA Industries" is set tight and confident — heavier weight,
-  slightly negative tracking — so it reads as a deliberate wordmark, not body
-  text.
-- **Descriptor:** the small "SONARA ONE" label uses wide uppercase tracking in the
-  mono face to sit quietly beneath the wordmark.
-- **Hierarchy:** one clear size jump between eyebrow, heading, and body. Avoid
-  more than three type sizes competing in the same block.
+Primary spectrum: blue to cyan.
 
-## 4. Create the Symbol
+### Creator Studio
 
-The **Prism Wave** is SONARA's symbol: three original prism ribbons forming an
-open "S" around a white **human-approval core.**
+An open C ribbon surrounding a play triangle represents authorship, making, media, release, and portable creative assets.
 
-- The three ribbons map to Business Builder, Creator Studio, and Growth Studio,
-  connected through SONARA One.
-- The core dot is the human in the loop — approval and provenance stay central.
-- Keep the symbol crisp and single-weight. It must remain recognizable at 16px
-  (favicon) and on signage-scale surfaces.
-- Do not add glow, bevel, or 3D effects. Do not recolor the ribbons outside the
-  brand spectrum.
+Primary spectrum: pink through violet to blue.
 
-## 5. Make It Work Everywhere
+### Growth Studio
 
-One symbol, many surfaces — it has to hold up at every size.
+Evidence bars and an upward directional path represent consented customer data, measurement, learning, and accountable growth.
 
-- **Favicon / app icon:** the Prism Wave motif on a dark rounded field; no fine
-  detail that disappears below 32px. Signal dots use the brand mint / pink /
-  cyan so the icon echoes the product spectrum.
-- **Manifest:** every icon referenced in `public/site.webmanifest` must exist on
-  disk (checked in CI). Provide the sizes browsers and installers expect.
-- **Social / OG:** dark field, symbol, wordmark, and the "Build. Create. Grow."
-  message — legible as a thumbnail.
-- **Light and dark:** the mark carries its own color and reads on both themes;
-  never place it in a low-contrast well.
+Primary spectrum: teal through green to lime.
 
-## 6. Beat the Generic AI Look
+Product marks must not be swapped, recolored into another product’s spectrum, or used as decorative generic icons.
 
-Avoid the visual clichés that make products look mass-generated.
+## 3. Typography
 
-- No purple-on-black glow soup, no default neon gradients applied everywhere, no
-  blurred orbs standing in for design.
-- The human-approval core is a deliberate anti-pattern to faceless automation —
-  keep it.
-- In copy, lead with outcomes and plain language. Don't lean on "AI" as a
-  selling point; describe what the customer gets.
-- Research the category and stand apart on clarity and honesty, not on more
-  effects.
+- Use the application’s approved sans-serif stack for interface and wordmark presentation.
+- Keep `SONARA` confident and widely tracked in display lockups.
+- Keep product descriptors smaller, uppercase, and aligned to the wordmark grid.
+- Use monospace only for technical labels, status identifiers, and compact metadata.
+- Avoid novelty display type, simulated chrome lettering, and illegible ultra-thin weights.
 
-## 7. Make It Look Like a Real Campaign — Truthfully
+## 4. Light and dark interfaces
 
-Present the brand in real context — headers, cards, favicons, social previews,
-and product surfaces — so it feels like a shipping product, because it is.
+The interface supports `system`, `light`, and `dark` appearance modes.
 
-- Show the identity in situ across the actual pages and platforms it runs on.
-- **Never** stage fabricated proof: no invented revenue figures, fake budgets,
-  imaginary press, or testimonials that did not happen. Prior premium copy work
-  keeps proof truthful; brand presentation follows the same rule.
-- When a surface isn't built yet, show an honest placeholder, not a fake mockup
-  presented as live.
+- The light mark is the default on bright and neutral surfaces.
+- The dark-interface mark uses lighter stops for sufficient contrast on near-black surfaces.
+- The monochrome mark is reserved for single-color printing, embossing, legal documents, and constrained production.
+- Never place a logo on a surface where any major stroke loses contrast.
+- Theme selection must update before first paint to avoid a bright flash on dark-mode devices.
 
----
+## 5. Startup and loading motion
 
-## Color tokens
+The production startup experience uses CSS and SVG—not heavyweight video or a blocking 3D engine.
 
-Source of truth: `ui/sonara/styles/99-sonara-cinematic-system.css` (`:root` and
-`html[data-theme="dark"]`).
+Allowed transient presentation:
 
-| Token | Light | Dark | Use |
-| --- | --- | --- | --- |
-| `--nx-ink` | `#11162a` | `#f7f9ff` | Primary text, wordmark |
-| `--nx-surface` | `#ffffff` | `#111725` | Cards, panels |
-| `--nx-muted` | `#5c6678` | `#aeb7c8` | Secondary text (AA-checked) |
-| `--nx-line` | `#dce3ed` | `#263044` | Borders, dividers |
-| `--nx-violet` | `#7454f5` | `#9878ff` | Accent |
-| `--nx-blue` | `#4f6fff` | `#718aff` | Accent |
-| `--nx-pink` | `#ef4d8d` | `#ff619f` | Accent |
-| `--nx-orange` | `#f47b3a` | `#ff9a59` | Accent |
-| `--nx-cyan` | `#14b8d4` | `#31d2e7` | Accent |
-| `--nx-mint` | `#179d72` | `#37c894` | Accent |
+- perspective and restrained rotation;
+- orbit lines and small particles;
+- soft grounding glow;
+- mark materialization and depth;
+- a short transition into the real interface.
 
-Symbol spectrum (fixed): forge `#FF4D6D → #FF8A3D → #FFC43D`, canvas
-`#FF4D8D → #8B5CF6 → #4F6FFF`, signal `#4F6FFF → #14C8E5 → #20C98B`.
+Motion rules:
 
----
+- First-session startup must remain brief and skippable.
+- Ordinary route loading must use a shorter reduced presentation.
+- Loading progress must be indeterminate unless backed by measurable real progress.
+- Do not display fictional percentages such as 68% or 72%.
+- A fail-safe timeout must always remove the loader.
+- `prefers-reduced-motion` disables nonessential movement immediately.
+- Startup motion must not delay access to critical content beyond the defined minimum presentation window.
 
-## Do / Don't
+The 3D treatment belongs to the **presentation layer only**. The official SVG master remains flat and reusable.
+
+## 6. Premium presentation
+
+Premium means discipline, not decoration.
+
+- Use generous spacing and strong hierarchy.
+- Reserve the full spectrum for the marks, startup moments, and a limited number of important accents.
+- Keep most interface surfaces calm and readable.
+- Use neutral shadows for layout depth.
+- Avoid constant glow, excessive glassmorphism, animated backgrounds behind forms, or movement that competes with the task.
+- Do not use the phrase “worth $10K,” imaginary campaign budgets, or unverified prestige claims.
+
+## 7. Originality boundary
+
+Do not imitate another company’s proprietary logo, app icon, interface, motion sequence, or trade dress.
+
+The generated concept boards were used only to establish high-level direction: logo-family cohesion, light/dark startup composition, loading clarity, and a four-stage motion sequence. Production assets were redrawn as original SONARA SVG geometry and implemented through the existing design system.
+
+## 8. Accessibility and performance
+
+- Maintain visible keyboard focus.
+- Keep interactive targets at least 44px, and 48px on narrow mobile screens where practical.
+- Ensure every informational image has appropriate text or is marked decorative.
+- Do not put essential status information only in color or motion.
+- Keep startup assets local, cacheable, and small.
+- Do not load 3D frameworks, video, or large concept images solely for the startup screen.
+- Preserve horizontal-overflow and long-word protections.
+
+## 9. Truth and product boundaries
+
+Brand polish must never conceal operational state.
+
+- `planned`, `validation_required`, and `setup_required` products remain restricted.
+- Paid execution is not advertised until real production entitlement tests pass.
+- Sensitive actions remain permission- and approval-gated.
+- No guaranteed revenue, compliance, cybersecurity, attribution, or placement claims.
+- No fake customer counts, awards, testimonials, urgency, or availability.
+
+## Do / Don’t
 
 **Do**
-- Keep the symbol crisp and single-weight.
-- Give the lockup room; align to the layout grid.
-- Reserve gradient for the mark and a few hero moments.
-- Test the icon at 16px and the lockup on light and dark.
 
-**Don't**
-- Add glow, blur, bevel, or heavy colored shadows to the mark.
-- Recolor the ribbons outside the brand spectrum.
-- Reintroduce retired public product names in active UI.
-- Stage fabricated metrics, budgets, testimonials, or press.
+- Use the correct v3 logo for each company.
+- Test marks at small and large sizes.
+- Use the dark variant on dark startup surfaces.
+- Keep startup animation brief, skippable, and motion-safe.
+- Preserve lifecycle and entitlement disclosures.
 
----
+**Don’t**
 
-## Refinement log
+- Modify the master SVG with permanent raster effects.
+- use the parent mark as a substitute for every product mark;
+- animate forms, payment controls, or critical error messages;
+- publish fake progress percentages;
+- reintroduce retired identity assets into active rendered UI;
+- present concept art as a live product screenshot.
 
-Applied in the brand-refinement pass (evolving the existing identity toward a
-more restrained, premium feel — colors kept):
+## Implementation sources
 
-- **Symbol** (`sonara-industries-mark.svg`): removed the Gaussian-blur glow
-  filter so the Prism Wave renders crisp at every size and matches the already
-  filter-free product marks.
-- **Wordmark** (`99-sonara-cinematic-system.css`): heavier weight and tighter
-  tracking on the wordmark; wider tracking on the small descriptor; replaced the
-  logo's large blue glow with a subtle neutral grounding shadow.
-- **Favicon** (`favicon.svg`): removed the low-contrast ring for a cleaner icon
-  and aligned the wave gradient and signal dots to the exact brand spectrum.
+- Runtime transform: `scripts/apply-motion-brand-system.cjs`
+- Canonical motion source: `ui/sonara/scripts/99-sonara-cinematic-system.js`
+- Canonical style source: `ui/sonara/styles/99-sonara-cinematic-system.css`
+- Brand registry: `lib/sonara-brand-registry.cjs`
+- Motion regression tests: `tests/motion-brand-system.test.js`

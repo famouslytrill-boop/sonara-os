@@ -10,11 +10,17 @@
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
-  "background_color": "#FAF8F4",
+  "background_color": "#F7F9FF",
   "theme_color": "#11101a",
   "categories": ["business", "productivity", "music", "marketing"],
   "prefer_related_applications": false,
   "icons": [
+    {
+      "src": "/brand/sonara-one-mark-v3.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -38,12 +44,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/brand/sonara-industries-mark.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -52,21 +52,21 @@
       "short_name": "Business",
       "description": "Open Business Builder tools and operations.",
       "url": "/business-builder",
-      "icons": [{ "src": "/brand/business-builder-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/brand/business-builder-mark-v3.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "Creator Studio",
       "short_name": "Creator",
       "description": "Open Creator Studio assets, releases, and creator tools.",
       "url": "/creator-studio",
-      "icons": [{ "src": "/brand/creator-studio-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/brand/creator-studio-mark-v3.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
       "name": "Growth Studio",
       "short_name": "Growth",
       "description": "Open Growth Studio campaigns, leads, and growth tools.",
       "url": "/growth-studio",
-      "icons": [{ "src": "/brand/growth-studio-icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/brand/growth-studio-mark-v3.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }

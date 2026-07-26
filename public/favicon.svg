@@ -1,21 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA Industries">
   <title>SONARA Industries</title>
   <defs>
-    <radialGradient id="fav-bg" cx="30%" cy="22%" r="90%">
-      <stop offset="0%" stop-color="#3d2c52"/>
-      <stop offset="55%" stop-color="#161226"/>
-      <stop offset="100%" stop-color="#0a0812"/>
-    </radialGradient>
-    <linearGradient id="fav-wave" x1="20" y1="88" x2="108" y2="40">
-      <stop offset="0%" stop-color="#FFC43D"/>
-      <stop offset="50%" stop-color="#FF6B6D"/>
-      <stop offset="100%" stop-color="#8B5CF6"/>
-    </linearGradient>
+    <linearGradient id="fav-bg" x1="10" y1="8" x2="118" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="#101A38"/><stop offset="1" stop-color="#070A12"/></linearGradient>
+    <linearGradient id="fav-wave" x1="23" y1="22" x2="108" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#60A5FA"/><stop offset=".48" stop-color="#8B5CF6"/><stop offset="1" stop-color="#22D3EE"/></linearGradient>
   </defs>
   <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#fav-bg)"/>
-  <path d="M30 78 C46 60 52 92 64 74 C76 56 82 88 98 50" fill="none"
-        stroke="url(#fav-wave)" stroke-width="10" stroke-linecap="round"/>
-  <circle cx="30" cy="78" r="7" fill="#20C98B"/>
-  <circle cx="64" cy="74" r="7" fill="#FF4D8D"/>
-  <circle cx="98" cy="50" r="7" fill="#14C8E5"/>
+  <path d="M64 16 108 42v52l-44 26-44-26V42z" fill="none" stroke="url(#fav-wave)" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M92 42H54c-12 0-21 7-21 17 0 8 5 14 15 19l33 18c5 3 7 5 7 9 0 5-4 7-10 7H42" fill="none" stroke="url(#fav-wave)" stroke-width="14" stroke-linecap="square" stroke-linejoin="round"/>
 </svg>

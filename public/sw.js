@@ -1,8 +1,8 @@
 // SONARA public-site service worker.
-// The cache version stays aligned with the rendered ?v= asset token. Only
+// The cache version stays aligned with the rendered asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.
 // Static assets use stale-while-revalidate; public navigations use network-first.
-const VERSION = "clark-ui-20260718-preferences";
+const VERSION = "clark-ui-20260718-preferences-motion3";
 const CACHE_PREFIX = "sonara-public-";
 const CACHE_NAME = CACHE_PREFIX + VERSION;
 const OFFLINE_URL = "/offline";
@@ -31,13 +31,14 @@ const PUBLIC_STAGE = [
   OFFLINE_URL,
   "/site.webmanifest",
   "/favicon.svg",
-  "/brand/sonara-industries-mark.svg",
-  "/sonara-brand-system.css?v=" + VERSION,
-  "/sonara-friendly-premium.css?v=" + VERSION,
-  "/sonara-interface-engine.css?v=" + VERSION,
-  "/sonara-launch-ui.css?v=" + VERSION,
-  "/sonara-experience.js?v=" + VERSION,
-  "/sonara-interface-engine.js?v=" + VERSION
+  "/brand/sonara-one-mark-v3.svg",
+  "/brand/sonara-one-mark-v3-dark.svg",
+  "/brand/sonara-industries-logo-v3.svg",
+  "/brand/business-builder-mark-v3.svg",
+  "/brand/creator-studio-mark-v3.svg",
+  "/brand/growth-studio-mark-v3.svg",
+  "/sonara-application-ui.css?v=sonara-ui-20260725-v6-motion3",
+  "/sonara-one.js?v=sonara-ui-20260725-v6-motion3"
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest)$/;
 

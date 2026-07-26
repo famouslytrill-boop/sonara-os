@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SONARA One Nexus mark</title>
+  <desc id="desc">An angular S ribbon inside an open six-sided frame, representing connected business, creative, and growth systems.</desc>
+  <defs>
+    <linearGradient id="frame" x1="34" y1="32" x2="220" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset=".48" stop-color="#7C3AED"/>
+      <stop offset="1" stop-color="#06B6D4"/>
+    </linearGradient>
+    <linearGradient id="ribbon" x1="63" y1="64" x2="194" y2="207" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset=".5" stop-color="#4F6FFF"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <path d="M128 19 219 72v108l-91 53-91-53V72z" fill="none" stroke="url(#frame)" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M183 72h-78c-25 0-43 14-43 35 0 17 10 29 30 40l68 37c10 5 14 10 14 17 0 9-8 15-20 15H73" fill="none" stroke="url(#ribbon)" stroke-width="28" stroke-linecap="square" stroke-linejoin="round"/>
+  <path d="m72 72 30 30M184 216l-30-30" fill="none" stroke="#FFFFFF" stroke-opacity=".72" stroke-width="5" stroke-linecap="round"/>
+</svg>
