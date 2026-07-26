@@ -28,7 +28,7 @@ for (const [previous, next] of replacements) {
 }
 
 const continuityAnchor = "<p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p>";
-const continuityCopy = `${continuityAnchor}<p class="sonara-continuity-note"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move.</p>`;
+const continuityCopy = `${continuityAnchor}<p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move.</p>`;
 if (!source.includes("sonara-continuity-note")) {
   if (!source.includes(continuityAnchor)) {
     console.error("Unable to locate the homepage continuity anchor");
@@ -37,9 +37,9 @@ if (!source.includes("sonara-continuity-note")) {
   source = source.replace(continuityAnchor, continuityCopy);
 }
 
-const navigationAnchor = '<a class="action" href="/trust">Review the trust model</a></div>';
-const navigationCopy = '<a class="action" href="/trust">Review the trust model</a><a class="action" href="/requests">Track requests</a><a class="action" href="/deliverables">Review deliverables</a></div>';
-if (!source.includes('href="/requests">Track requests')) {
+const navigationAnchor = '<a class=\"action\" href=\"/trust\">Review the trust model</a></div>';
+const navigationCopy = '<a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div>';
+if (!source.includes('href=\"/requests\">Track requests')) {
   if (!source.includes(navigationAnchor)) {
     console.error("Unable to locate the conversion navigation anchor");
     process.exit(1);
