@@ -9,6 +9,7 @@ const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
 const referenceContractExtensionName = "20260722201600_extend_database_contract_reference_intelligence.sql";
 const productLifecycleMigrationName = "20260723193000_product_lifecycle_system.sql";
+const promptLibraryMigrationName = "20260726163000_sonara_prompt_library.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
@@ -40,9 +41,22 @@ const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_stage_reviews",
   "product_lifecycle_events"
 ]);
+const PROMPT_LIBRARY_TABLES = Object.freeze([
+  "sonara_prompt_templates",
+  "sonara_prompt_versions",
+  "sonara_prompt_tags",
+  "sonara_prompt_template_tags",
+  "sonara_prompt_collections",
+  "sonara_prompt_collection_items",
+  "sonara_prompt_connections",
+  "sonara_prompt_runs",
+  "sonara_prompt_reports",
+  "sonara_prompt_import_batches"
+]);
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
+const promptLibraryMigrationPath = path.join(migrationsDirectory, promptLibraryMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
 const {
   DATABASE_FUNCTIONS,
@@ -78,7 +92,7 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath]
+const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, promptLibraryMigrationPath]
   .map(read)
   .join("\n")
   .toLowerCase();
@@ -86,14 +100,15 @@ const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
+const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
-if (DATABASE_TABLES.length !== 129) fail(`expected 129 canonical tables, found ${DATABASE_TABLES.length}`);
+if (DATABASE_TABLES.length !== 145) fail(`expected 145 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
-if (DATABASE_FUNCTIONS.length !== 10) fail(`expected 10 contract functions, found ${DATABASE_FUNCTIONS.length}`);
+if (DATABASE_FUNCTIONS.length !== 11) fail(`expected 11 contract functions, found ${DATABASE_FUNCTIONS.length}`);
 if (DATABASE_INDEXES.length !== 8) fail(`expected 8 operational indexes, found ${DATABASE_INDEXES.length}`);
 if (new Set(DATABASE_INDEXES.map((index) => index.name)).size !== DATABASE_INDEXES.length) fail("the operational index list contains duplicate names");
 if (DATABASE_SCHEMAS.join(",") !== "public,auth,storage") fail("expected public, auth, and storage schemas");
@@ -155,6 +170,22 @@ for (const required of [
   if (!productLifecycleSql.includes(required)) fail(`Product lifecycle extension is missing: ${required}`);
 }
 
+verifyExtension(PROMPT_LIBRARY_TABLES, promptLibrarySql, "Prompt Library");
+for (const required of [
+  "public.is_org_member(organization_id)",
+  "public.has_org_role(organization_id",
+  "public.is_org_owner_or_admin(organization_id)",
+  "auth.role() = ''service_role''",
+  "create or replace function public.create_sonara_prompt_version",
+  "revoke all on function public.create_sonara_prompt_version(uuid,text,text,text,text) from public, anon",
+  "grant execute on function public.create_sonara_prompt_version(uuid,text,text,text,text) to authenticated, service_role"
+]) {
+  if (!promptLibrarySql.includes(required)) fail(`Prompt Library extension is missing: ${required}`);
+}
+if (/api_key\s+text|secret_key\s+text|access_token\s+text|refresh_token\s+text/i.test(promptLibrarySql)) {
+  fail("Prompt Library tables must not persist provider credentials");
+}
+
 const runtimeFiles = [
   path.join(root, "server.js"),
   ...fs.readdirSync(path.join(root, "routes"))
@@ -172,7 +203,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -181,7 +212,8 @@ for (const table of [...runtimeTableReferences].sort()) {
 }
 
 for (const signature of DATABASE_FUNCTIONS) {
-  if (!contractSql.includes(`'${signature.toLowerCase()}'`)) fail(`the readiness RPC does not check ${signature}`);
+  const normalized = signature.toLowerCase();
+  if (!contractSql.includes(`'${normalized}'`) && !contractSql.includes(normalized)) fail(`the readiness contract does not check or declare ${signature}`);
   const functionName = signature.slice("public.".length, signature.indexOf("("));
   const createPattern = new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${functionName}\\s*\\(`, "i");
   if (!createPattern.test(allSql)) fail(`no migration defines ${signature}`);
@@ -238,7 +270,7 @@ if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
 }
 
