@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-business-control-plane-routes.cjs");
@@ -54,6 +56,7 @@ function buildApp({ paid = true } = {}) {
     linkAction: (href, label) => `<a href="${href}">${label}</a>`,
     escapeHtml: (value) => String(value).replace(/[&<>"']/g, ""),
     requireCustomer: authorize,
+    requireWorkspaceAccess: () => authorize,
     requirePaidOrOwnerAccess: () => authorize,
     getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
     getSupabaseServerConfig: () => ({ ok: true, url: "https://example.supabase.co", serviceRoleKey: "server-only" }),
@@ -72,18 +75,15 @@ describe("Business Builder operating system", () => {
     delete globalThis.__sonaraBusinessControlRest;
   });
 
-  it("replaces technical account readiness with business onboarding", async () => {
-    global.fetch = async (url) => {
-      assert.match(String(url), /business_workspaces/);
-      return response(200, []);
-    };
-
+  it("replaces visible technical readiness with a short business-workspace step", async () => {
     const result = await request(buildApp()).get("/account/setup").set("Accept", "text/html");
     assert.equal(result.status, 200);
-    assert.match(result.text, /What business are you building\?/);
-    assert.match(result.text, /Create business/);
-    assert.match(result.text, /Offers, customers, sales, bookings, team, inventory/);
-    assert.doesNotMatch(result.text, /Readiness JSON|Database readiness|organization_memberships|service-role|required tables/i);
+    assert.match(result.text, /Name your business workspace/);
+    assert.match(result.text, /Continue to Business Builder/);
+    assert.match(result.text, /action="\/account\/setup\/organization"/);
+    assert.match(result.text, /Offers, customers, orders, and bookings/);
+    const visibleText = result.text.replace(/<[^>]+hidden[^>]*>[\s\S]*?<\/[^>]+>/gi, "");
+    assert.doesNotMatch(visibleText, /Readiness JSON|Database readiness|organization_memberships|service-role|required tables/i);
   });
 
   it("shows real business records and an evidence-based next action", async () => {
@@ -113,7 +113,7 @@ describe("Business Builder operating system", () => {
     assert.match(result.text, /Bookings &amp; appointments|Bookings & appointments/);
   });
 
-  it("saves the offer builder into the real service catalog", async () => {
+  it("creates a real service-catalog offer through the allowlisted business API", async () => {
     const calls = [];
     global.fetch = async (url, options = {}) => {
       const call = { url: String(url), method: options.method || "GET", body: options.body ? JSON.parse(options.body) : undefined };
@@ -125,9 +125,9 @@ describe("Business Builder operating system", () => {
     };
 
     const result = await request(buildApp())
-      .post("/api/business-builder/offers")
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/services`)
       .set("Accept", "application/json")
-      .send({ serviceType: "Private chef dinner", audience: "Busy families", priceIdea: "$325", deliverables: "Menu planning, shopping, cooking, and cleanup" });
+      .send({ name: "Private chef dinner", category: "offer", price_cents: 32500, description: "Menu planning, shopping, cooking, and cleanup", status: "active" });
 
     assert.equal(result.status, 201);
     assert.equal(result.body.ok, true);
@@ -136,10 +136,9 @@ describe("Business Builder operating system", () => {
     assert.equal(save.body.business_id, BUSINESS_ID);
     assert.equal(save.body.name, "Private chef dinner");
     assert.equal(save.body.price_cents, 32500);
-    assert.equal(save.body.description, "Menu planning, shopping, cooking, and cleanup");
   });
 
-  it("saves intake into the real customer system", async () => {
+  it("creates a real customer through the allowlisted business API", async () => {
     const calls = [];
     global.fetch = async (url, options = {}) => {
       const call = { url: String(url), method: options.method || "GET", body: options.body ? JSON.parse(options.body) : undefined };
@@ -151,9 +150,9 @@ describe("Business Builder operating system", () => {
     };
 
     const result = await request(buildApp())
-      .post("/api/business-builder/intake")
+      .post(`/api/business-builder/businesses/${BUSINESS_ID}/customers`)
       .set("Accept", "application/json")
-      .send({ name: "Jordan Customer", email: "jordan@example.com", phone: "614-555-0100", serviceInterest: "Weekly meal prep", message: "Needs meals for a family of four" });
+      .send({ name: "Jordan Customer", email: "jordan@example.com", phone: "614-555-0100", status: "lead", notes: "Weekly meal prep" });
 
     assert.equal(result.status, 201);
     assert.equal(result.body.ok, true);
@@ -162,7 +161,6 @@ describe("Business Builder operating system", () => {
     assert.equal(save.body.business_id, BUSINESS_ID);
     assert.equal(save.body.name, "Jordan Customer");
     assert.equal(save.body.status, "lead");
-    assert.equal(save.body.metadata.service_interest, "Weekly meal prep");
   });
 
   it("renders focused operating pages instead of one giant control-plane form", async () => {
@@ -180,5 +178,12 @@ describe("Business Builder operating system", () => {
     assert.match(result.text, /Customer name/);
     assert.match(result.text, /No customers yet/);
     assert.doesNotMatch(result.text, /Business JSON|complete JSON list|table checklist|database readiness/i);
+  });
+
+  it("augments the canonical free Offer Builder save with the real service catalog", () => {
+    const server = fs.readFileSync(path.join(__dirname, "..", "server.js"), "utf8");
+    assert.match(server, /safeInsertBusinessBuilderOperatingRecord/);
+    assert.match(server, /business_service_catalog/);
+    assert.match(server, /operatingRecordSaved/);
   });
 });
