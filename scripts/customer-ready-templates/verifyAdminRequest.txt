@@ -1,0 +1,17 @@
+async function verifyAdminRequest(req) {
+  const candidates = [
+    [getCookie(req, ADMIN_SESSION_COOKIE), "admin_cookie"],
+    [getCookie(req, CUSTOMER_SESSION_COOKIE), "customer_cookie"],
+    [getBearerToken(req), "supabase_role"]
+  ];
+  const seen = new Set();
+  for (const [token, method] of candidates) {
+    if (!token || seen.has(token)) continue;
+    seen.add(token);
+    const verification = await verifySupabaseAccessToken(token);
+    if (!verification.ok) continue;
+    const admin = await isSupabaseAdminUser(verification.user);
+    if (admin.ok) return { ok: true, method, user: verification.user, roles: admin.roles };
+  }
+  return { ok: false, setupRequired: getReadiness().services.adminProtection !== "configured" };
+}
