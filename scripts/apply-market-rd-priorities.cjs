@@ -35,3 +35,4 @@ require("./prepare-prompt-library-runtime.cjs");
 require("./apply-prompt-library-system.cjs");
 require("./apply-prompt-library-openapi-compatibility.cjs");
 require("./apply-prompt-library-security-hotfix.cjs");
+require("./apply-prompt-library-security-verifier-compatibility.cjs");
