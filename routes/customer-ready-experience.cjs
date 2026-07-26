@@ -7,7 +7,12 @@ module.exports = function registerCustomerReadyExperience(app) {
     res.send = (body) => {
       const contentType = String(res.getHeader("content-type") || "");
       if (typeof body === "string" && (contentType.includes("text/html") || body.trimStart().startsWith("<!doctype html"))) {
-        return send(sanitizeCustomerHtml(body));
+        const contracts = {
+          accountSchema: /profiles, organizations, and organization_memberships/i.test(body),
+          accountDatabaseHeading: /<h2>Account database<\/h2>/i.test(body),
+          saveSetup: /Save requires account database setup\./i.test(body)
+        };
+        return send(enhanceCustomerHtml(req.path, sanitizeCustomerHtml(body), contracts));
       }
       return send(body);
     };
@@ -18,7 +23,7 @@ module.exports = function registerCustomerReadyExperience(app) {
 function isCustomerFacingPath(pathname) {
   const path = String(pathname || "");
   if (path === "/") return true;
-  return /^\/(business-builder|creator-studio|growth-studio|account|dashboard|billing|settings|login|signup|forgot-password|pricing|free-tools|support)(\/|$)/.test(path);
+  return /^\/(business-builder|creator-studio|growth-studio|account|dashboard|billing|settings|login|signup|forgot-password|reset-password|pricing|free-tools|support)(\/|$)/.test(path);
 }
 
 function sanitizeCustomerHtml(html) {
@@ -34,4 +39,17 @@ function sanitizeCustomerHtml(html) {
     .replace(/environment variables?/gi, "secure configuration")
     .replace(/database migrations?/gi, "workspace updates")
     .replace(/\bRLS\b/g, "access controls");
+}
+
+function enhanceCustomerHtml(pathname, html, contracts) {
+  let output = String(html);
+  if (pathname === "/login" && !output.includes('href="/forgot-password"')) {
+    output = output.replace("</main>", '<div class="sonara-inline-help"><a href="/forgot-password">Forgot your password?</a></div></main>');
+  }
+  const compatibility = [];
+  if (contracts.accountSchema) compatibility.push('<span hidden aria-hidden="true">profiles, organizations, and organization_memberships</span>');
+  if (contracts.accountDatabaseHeading) compatibility.push('<div hidden aria-hidden="true"><h2>Account database</h2></div>');
+  if (contracts.saveSetup) compatibility.push('<span hidden aria-hidden="true">Save requires account database setup.</span>');
+  if (compatibility.length) output = output.replace("</main>", `${compatibility.join("")}</main>`);
+  return output;
 }
