@@ -68,6 +68,6 @@
     closeWorkspaceMenu();
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initializeCustomerReadyExperience, { once: true });
+  if (document.readyState === "loading") window.addEventListener?.("load", initializeCustomerReadyExperience, { once: true });
   else initializeCustomerReadyExperience();
 })();
