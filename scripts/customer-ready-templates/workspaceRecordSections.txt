@@ -1,0 +1,4 @@
+function workspaceRecordSections(page) {
+  if (!page.api) return [];
+  return [brandCard("Your saved work", "Recent results appear in your private workspace after they are saved.")];
+}
