@@ -8,7 +8,6 @@ module.exports = function registerCustomerReadyExperienceRoutes(app, deps) {
     linkAction,
     responsePage,
     escapeHtml,
-    accountNoticeCard,
     requireCustomer,
     handleEmailAuth,
     sendEmailAuthResult,
@@ -32,7 +31,6 @@ module.exports = function registerCustomerReadyExperienceRoutes(app, deps) {
       heading: "Continue your work.",
       body: "One secure sign-in opens every SONARA workspace, billing, support, and approved administration.",
       sections: [
-        accountNoticeCard(req),
         authForm({ label: "Log in", action: "/auth/login", nextPath, escapeHtml }),
         actionCard("Need a new password?", "We will send a secure recovery link to your email.", [linkAction("/forgot-password", "Reset password")])
       ],
@@ -45,7 +43,7 @@ module.exports = function registerCustomerReadyExperienceRoutes(app, deps) {
     eyebrow: "Start free",
     heading: "Create one SONARA account.",
     body: "Use the same account for Business Builder, Creator Studio, and Growth Studio. Your private workspace is prepared automatically after sign-in.",
-    sections: [accountNoticeCard(req), authForm({ label: "Create account", action: "/auth/signup", signup: true, escapeHtml })],
+    sections: [authForm({ label: "Create account", action: "/auth/signup", signup: true, escapeHtml })],
     actions: [linkAction("/login", "Log in"), linkAction("/pricing", "Compare plans"), linkAction("/support", "Get help")]
   })));
 
@@ -108,7 +106,7 @@ module.exports = function registerCustomerReadyExperienceRoutes(app, deps) {
   });
 
   app.get("/account/setup", requireCustomer, async (req, res) => {
-    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser, { autoBootstrap: false });
     if (organization.ok) return res.redirect(303, "/account");
     return res.status(200).type("html").send(layout({
       title: "Prepare workspace",
@@ -183,6 +181,17 @@ module.exports = function registerCustomerReadyExperienceRoutes(app, deps) {
     if (req.path === "/logout") return res.redirect(303, "/");
     return next();
   });
+
+  app.use((req, res, next) => {
+    if (!isCustomerFacingPath(req.path)) return next();
+    const send = res.send.bind(res);
+    res.send = (body) => {
+      const contentType = String(res.getHeader("content-type") || "");
+      if (typeof body === "string" && (contentType.includes("text/html") || body.trimStart().startsWith("<!doctype html"))) return send(sanitizeCustomerHtml(body));
+      return send(body);
+    };
+    return next();
+  });
 };
 
 function authForm({ label, action, signup = false, nextPath = "", escapeHtml }) {
@@ -251,12 +260,7 @@ async function bootstrapWorkspace({ user, organizationName = null, productPath =
   const response = await fetch(`${config.url}/rest/v1/rpc/sonara_bootstrap_customer_workspace`, {
     method: "POST",
     headers: supabaseHeaders(config, { "content-type": "application/json" }),
-    body: JSON.stringify({
-      p_user_id: user.id,
-      p_email: user.email || null,
-      p_organization_name: organizationName,
-      p_product_path: normalizeProductPath(productPath)
-    })
+    body: JSON.stringify({ p_user_id: user.id, p_email: user.email || null, p_organization_name: organizationName, p_product_path: normalizeProductPath(productPath) })
   }).catch(() => undefined);
   if (!response?.ok) return { ok: false };
   const payload = await response.json().catch(() => ({}));
@@ -287,4 +291,25 @@ function safeNextPath(value, fallback = "/dashboard") {
   } catch {
     return fallback;
   }
+}
+
+function isCustomerFacingPath(pathname) {
+  return /^(\/|\/(business-builder|creator-studio|growth-studio|account|dashboard|billing|settings|login|signup|forgot-password|pricing|free-tools|support|requests|deliverables|service-catalog))(\/|$)/.test(String(pathname || ""));
+}
+
+function sanitizeCustomerHtml(html) {
+  return String(html)
+    .replace(/profiles, organizations, and organization_memberships/gi, "account and workspace records")
+    .replace(/organization_memberships|business_memberships|service_requests|service_deliverables|module_outputs/gi, "workspace records")
+    .replace(/organization membership/gi, "workspace access")
+    .replace(/account database/gi, "workspace")
+    .replace(/server-side Supabase/gi, "secure account")
+    .replace(/Supabase/gi, "secure account service")
+    .replace(/service-role credentials?/gi, "protected credentials")
+    .replace(/service-role/gi, "protected server")
+    .replace(/environment variables?/gi, "secure configuration")
+    .replace(/database migrations?/gi, "workspace updates")
+    .replace(/\bRLS\b/g, "access controls")
+    .replace(/Setup required:/gi, "Not ready yet:")
+    .replace(/setup-required/gi, "not ready yet");
 }
