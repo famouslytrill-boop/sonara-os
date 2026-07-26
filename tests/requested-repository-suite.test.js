@@ -71,10 +71,15 @@ describe("requested repository integration registry", () => {
     assert.ok(catalog.every((item) => item.enabledInProduction === false));
   });
 
-  it("installs route registration idempotently through the runtime applicator", () => {
+  it("installs route and OpenAPI registration idempotently through the runtime applicator", () => {
     const server = fs.readFileSync(path.join(__dirname, "../server.js"), "utf8");
+    const openapi = fs.readFileSync(path.join(__dirname, "../openapi/sonara.yaml"), "utf8");
     assert.equal((server.match(/registerSonaraRequestedRepositoryRoutes = require/g) || []).length, 1);
     assert.equal((server.match(/registerSonaraRequestedRepositoryRoutes\(app/g) || []).length, 1);
+    assert.equal((openapi.match(/\/api\/ecosystem\/requested-repositories:/g) || []).length, 1);
+    assert.equal((openapi.match(/\/api\/admin\/requested-repositories\/readiness:/g) || []).length, 1);
+    assert.match(openapi, /operationId: getRequestedRepositoryCatalog/);
+    assert.match(openapi, /operationId: getAdminRequestedRepositoryReadiness/);
   });
 });
 
