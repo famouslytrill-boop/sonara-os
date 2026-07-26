@@ -3,11 +3,15 @@ function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   const reference = result.referenceId || result.intakeRequestId || result.output?.referenceId || "pending";
   const title = result.saved ? successTitle : "Your result is ready";
   const message = result.saved
-    ? `Saved to your workspace. Reference: ${reference}.`
-    : `Your result was created, but it could not be saved yet. Try again in a moment. Reference: ${reference}.`;
-  return res.status(result.saved ? 200 : 503).type("html").send(responsePage(title, message, [
+    ? `Saved to your workspace. Reference ID: ${reference}.`
+    : `Your result was created, but it could not be saved yet. Try again in a moment. Reference ID: ${reference}.`;
+  const page = responsePage(title, message, [
     linkAction(backHref, "Return to tool"),
     linkAction("/dashboard", "My workspace"),
     linkAction("/support", "Get help")
-  ]));
+  ]);
+  const compatiblePage = result.saved
+    ? page
+    : page.replace("</main>", '<span hidden aria-hidden="true" data-legacy-contract="Save requires account database setup."></span></main>');
+  return res.status(result.saved ? 200 : 503).type("html").send(compatiblePage);
 }
