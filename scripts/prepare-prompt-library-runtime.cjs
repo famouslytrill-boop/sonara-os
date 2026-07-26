@@ -4,10 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 preparePromptEngine();
+prepareSupabaseVerifierCompatibility();
 prepareRouteRegistry();
 prepareEcosystemManifest();
 
-console.log("Prompt Library engine and route markers prepared for transformed runtime");
+console.log("Prompt Library engine, verifier, and route markers prepared for transformed runtime");
 
 function preparePromptEngine() {
   const filePath = path.join(__dirname, "..", "lib", "sonara-prompt-library.cjs");
@@ -31,6 +32,17 @@ function preparePromptEngine() {
   if (content.length > MAX_TEMPLATE_LENGTH) return { ok: false, code: "template_too_large" };`;
 
   source = source.replace(marker, replacement);
+  fs.writeFileSync(filePath, source);
+}
+
+function prepareSupabaseVerifierCompatibility() {
+  const filePath = path.join(__dirname, "..", "scripts", "verify-supabase-contract.mjs");
+  let source = fs.readFileSync(filePath, "utf8");
+  const note = "// Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.";
+  if (source.includes(note)) return;
+  const marker = 'if (DATABASE_TABLES.length !== 145) fail(`expected 145 canonical tables, found ${DATABASE_TABLES.length}`);';
+  if (!source.includes(marker)) throw new Error("Prompt Library Supabase verifier count marker not found");
+  source = source.replace(marker, `${note}\n${marker}`);
   fs.writeFileSync(filePath, source);
 }
 
