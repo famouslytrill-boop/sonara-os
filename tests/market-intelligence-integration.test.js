@@ -9,9 +9,14 @@ const root = path.join(__dirname, "..");
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), "utf8"); }
 
 function companyBlock(manifest, companyKey) {
-  const match = manifest.match(new RegExp(`key:\\s*"${companyKey}"[\\s\\S]*?(?=\\n    \\{\\n      key:|\\n  \\],\\n  adminControlPlane:)`));
-  assert.ok(match, `Missing company manifest block: ${companyKey}`);
-  return match[0];
+  const marker = `key: "${companyKey}"`;
+  const start = manifest.indexOf(marker);
+  assert.notEqual(start, -1, `Missing company manifest block: ${companyKey}`);
+  const nextCompany = manifest.indexOf("\n    {\n      key:", start + marker.length);
+  const adminBoundary = manifest.indexOf("\n  ],\n  adminControlPlane:", start + marker.length);
+  const endCandidates = [nextCompany, adminBoundary].filter((value) => value > start);
+  assert.ok(endCandidates.length, `Missing company manifest boundary: ${companyKey}`);
+  return manifest.slice(start, Math.min(...endCandidates));
 }
 
 function occurrenceCount(source, value) {
