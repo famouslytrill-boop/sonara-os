@@ -168,7 +168,8 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
+          node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs \
+            2>&1 | tee supabase-deep-verification.log
 
       - name: Remove temporary production environment material
         if: always()
@@ -254,6 +255,7 @@ jobs:
           name: controlled-production-diagnostics-${{ github.run_id }}
           path: |
             release-validation.log
+            supabase-deep-verification.log
             vercel-deploy.log
             apex-health.json
             www-health.json
