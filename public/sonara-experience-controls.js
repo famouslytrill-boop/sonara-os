@@ -1,0 +1,198 @@
+/*
+ * SONARA experience controls — motion, sound, and haptics.
+ *
+ * AGENTS.md is unambiguous:
+ *
+ *   "Sounds, voice announcements, haptics, SMS, push, and email alerts must be
+ *    off or explicitly user-controlled by default."
+ *
+ * So all three are built, and all three are OFF until the person using the
+ * product turns them on. Nothing here fires on first visit. The preference is
+ * stored locally and never leaves the browser -- no account field, no network
+ * call, nothing to sync or leak.
+ *
+ * Sound is synthesised with the Web Audio API rather than shipping audio files:
+ * a handful of short tones cost roughly 2 KB of code instead of several hundred
+ * KB of assets, and they cannot be blocked by the CSP because there is nothing
+ * to fetch.
+ *
+ * No dependencies. Runs under script-src 'self'.
+ */
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "sonara.experience.v1";
+  var root = document.documentElement;
+
+  var defaults = {
+    motion: "auto", // auto | off  -- "auto" still defers to prefers-reduced-motion
+    sound: "off",   // off | on
+    haptics: "off"  // off | on
+  };
+
+  var state = load();
+
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return Object.assign({}, defaults);
+      var parsed = JSON.parse(raw);
+      return {
+        motion: parsed.motion === "off" ? "off" : "auto",
+        sound: parsed.sound === "on" ? "on" : "off",
+        haptics: parsed.haptics === "on" ? "on" : "off"
+      };
+    } catch (error) {
+      // Private browsing, disabled storage, corrupt value -- fall back to the
+      // safe defaults rather than letting a preference read break the page.
+      return Object.assign({}, defaults);
+    }
+  }
+
+  function save() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (error) {
+      /* Not being able to persist a preference is not worth an error. */
+    }
+  }
+
+  function systemPrefersReducedMotion() {
+    return Boolean(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }
+
+  function motionEnabled() {
+    return state.motion !== "off" && !systemPrefersReducedMotion();
+  }
+
+  function apply() {
+    // The CSS reads this attribute and zeroes its duration tokens, which
+    // disables every animation in the design system at once.
+    root.setAttribute("data-sonara-motion", motionEnabled() ? "on" : "off");
+    root.setAttribute("data-sonara-sound", state.sound);
+    root.setAttribute("data-sonara-haptics", state.haptics);
+  }
+
+  /* Sound ---------------------------------------------------------------
+   * One lazily-created AudioContext, created only after the user has opted
+   * in and interacted -- browsers block it otherwise, and creating one
+   * speculatively wastes an audio thread on every page load. */
+  var audio = null;
+
+  function context() {
+    if (state.sound !== "on") return null;
+    if (audio) return audio;
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    try {
+      audio = new Ctor();
+    } catch (error) {
+      audio = null;
+    }
+    return audio;
+  }
+
+  var TONES = {
+    tap: { frequency: 620, duration: 0.045, gain: 0.05 },
+    confirm: { frequency: 880, duration: 0.09, gain: 0.06 },
+    error: { frequency: 200, duration: 0.16, gain: 0.07 }
+  };
+
+  function playTone(name) {
+    var tone = TONES[name];
+    var ctx = context();
+    if (!tone || !ctx) return;
+    if (ctx.state === "suspended" && ctx.resume) ctx.resume();
+
+    var oscillator = ctx.createOscillator();
+    var gain = ctx.createGain();
+    var now = ctx.currentTime;
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(tone.frequency, now);
+
+    // Ramped rather than gated, because an abrupt start or stop on a square
+    // edge is audible as a click.
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(tone.gain, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + tone.duration);
+
+    oscillator.connect(gain).connect(ctx.destination);
+    oscillator.start(now);
+    oscillator.stop(now + tone.duration + 0.02);
+  }
+
+  /* Haptics -------------------------------------------------------------
+   * navigator.vibrate is unsupported on iOS Safari and increasingly gated
+   * elsewhere. Treated as a progressive enhancement: if it is absent, the
+   * interaction is simply silent rather than throwing. */
+  var HAPTICS = { tap: 8, confirm: [10, 30, 10], error: [24, 40, 24] };
+
+  function vibrate(name) {
+    if (state.haptics !== "on") return;
+    if (typeof navigator.vibrate !== "function") return;
+    var pattern = HAPTICS[name];
+    if (!pattern) return;
+    try {
+      navigator.vibrate(pattern);
+    } catch (error) {
+      /* Vendor quirk; a failed buzz is not worth surfacing. */
+    }
+  }
+
+  function feedback(name) {
+    playTone(name);
+    vibrate(name);
+  }
+
+  /* Public API ----------------------------------------------------------- */
+  var api = {
+    get: function () {
+      return {
+        motion: state.motion,
+        motionActive: motionEnabled(),
+        sound: state.sound,
+        haptics: state.haptics,
+        systemReducedMotion: systemPrefersReducedMotion()
+      };
+    },
+    set: function (key, value) {
+      if (!Object.prototype.hasOwnProperty.call(defaults, key)) return api.get();
+      if (key === "motion") state.motion = value === "off" ? "off" : "auto";
+      else state[key] = value === "on" ? "on" : "off";
+      save();
+      apply();
+      return api.get();
+    },
+    toggle: function (key) {
+      if (key === "motion") return api.set("motion", state.motion === "off" ? "auto" : "off");
+      return api.set(key, state[key] === "on" ? "off" : "on");
+    },
+    feedback: feedback
+  };
+
+  window.sonaraExperience = api;
+
+  apply();
+
+  // Track live changes to the OS setting, so turning reduced motion on in the
+  // system takes effect without a reload.
+  if (window.matchMedia) {
+    var query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (query.addEventListener) query.addEventListener("change", apply);
+    else if (query.addListener) query.addListener(apply);
+  }
+
+  // Opt-in feedback for anything that asks for it by attribute. Nothing is
+  // wired implicitly -- an element must declare data-sonara-feedback, so no
+  // existing control starts making noise because this file loaded.
+  document.addEventListener(
+    "click",
+    function (event) {
+      var target = event.target && event.target.closest ? event.target.closest("[data-sonara-feedback]") : null;
+      if (!target) return;
+      feedback(target.getAttribute("data-sonara-feedback") || "tap");
+    },
+    { passive: true }
+  );
+})();

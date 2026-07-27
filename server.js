@@ -1864,8 +1864,10 @@ function layout({ title, eyebrow, heading, body, sections, actions, variant = "s
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
     <script src="/sonara-prepaint.js?v=sonara-ui-20260725-v6-motion3"></script>
+    <link rel="stylesheet" href="/sonara-design-system.css?v=sonara-ui-20260725-v6-motion3">
     <link rel="stylesheet" href="/sonara-application-ui.css?v=sonara-ui-20260725-v6-motion3">
     <script defer src="/sonara-one.js?v=sonara-ui-20260725-v6-motion3"></script>
+    <script defer src="/sonara-experience-controls.js?v=sonara-ui-20260725-v6-motion3"></script>
   </head>
   <body class="${escapeHtml(brandClass)} ${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">
     <div id="sonara-loader" class="sonara-loader" role="status" aria-live="polite" aria-label="SONARA One is loading">

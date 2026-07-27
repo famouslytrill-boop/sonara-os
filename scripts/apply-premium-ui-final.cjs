@@ -157,7 +157,14 @@ if (source.includes(staticAnchor) && !source.includes('Cache-Control", "no-store
   source = source.replace(staticAnchor, `${staticAnchor}\napp.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path)) res.set("Cache-Control", "no-store, max-age=0"); next(); });`);
 }
 
-const assets = `    <script src="/sonara-prepaint.js?v=${version}"></script>\n    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-one.js?v=${version}"></script>`;
+// The design system loads before the assembled application stylesheet so its
+// :root tokens are in place first and application rules can override
+// individual properties without fighting over token definitions. It is the
+// only file permitted to declare design tokens -- see tests/design-system.test.js.
+//
+// Experience controls (motion, sound, haptics) load deferred and do nothing
+// until the user opts in; AGENTS.md requires all three off by default.
+const assets = `    <script src="/sonara-prepaint.js?v=${version}"></script>\n    <link rel="stylesheet" href="/sonara-design-system.css?v=${version}">\n    <link rel="stylesheet" href="/sonara-application-ui.css?v=${version}">\n    <script defer src="/sonara-one.js?v=${version}"></script>\n    <script defer src="/sonara-experience-controls.js?v=${version}"></script>`;
 if (!source.includes("  </head>")) fail("Unable to locate document head");
 source = source.replace("  </head>", `${assets}\n  </head>`);
 fs.writeFileSync(serverPath, source);
