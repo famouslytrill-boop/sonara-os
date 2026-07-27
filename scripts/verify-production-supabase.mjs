@@ -36,25 +36,15 @@ for (const schemaName of ["public", "auth", "storage", "supabase_migrations"]) {
 }
 
 for (const tableName of [...expectedTables].sort()) {
-  const table = publicTables.get(tableName);
-  if (!table) {
-    failures.push(`active application table is missing from production: public.${tableName}`);
-    continue;
-  }
-  if (!table.rls_enabled) failures.push(`row-level security is disabled: public.${tableName}`);
-  if (Number(table.column_count) < 1) failures.push(`table has no visible columns: public.${tableName}`);
-  if (Number(table.primary_key_count) < 1) failures.push(`table has no primary key: public.${tableName}`);
-  if (Number(table.index_count) !== Number(table.valid_index_count)) failures.push(`table has an invalid or unready index: public.${tableName}`);
-  if (!table.service_role_select) failures.push(`service role cannot read table: public.${tableName}`);
-  if (!table.service_role_insert || !table.service_role_update || !table.service_role_delete) {
-    warnings.push(`service role has intentionally or unexpectedly limited write privileges: public.${tableName}`);
-  }
-  if (Number(table.policy_count) < 1) warnings.push(`RLS table has no explicit policy and is therefore closed to non-bypass roles: public.${tableName}`);
+  verifyTableState(tableName, publicTables.get(tableName), { required: true, classification: "active" });
 }
 
 for (const tableName of RETIRED_DATABASE_TABLES) {
   if (DATABASE_TABLES.includes(tableName)) failures.push(`retired table is still present in the canonical runtime contract: public.${tableName}`);
-  if (publicTables.has(tableName)) warnings.push(`retired historical table remains in production and should be reviewed for archival: public.${tableName}`);
+  const table = publicTables.get(tableName);
+  if (!table) continue;
+  verifyTableState(tableName, table, { required: false, classification: "retired" });
+  warnings.push(`retired historical table remains in production and should be reviewed for archival: public.${tableName}`);
 }
 
 for (const version of [...migrationState.versions].sort()) {
@@ -84,12 +74,50 @@ if (Number(snapshot.public_table_count) !== publicTables.size) {
 finish({
   activeDeclaredTables: expectedTables.size,
   retiredHistoricalTables: RETIRED_DATABASE_TABLES.length,
+  deployedRetiredTables: RETIRED_DATABASE_TABLES.filter((table) => publicTables.has(table)).length,
   productionPublicTables: publicTables.size,
   localMigrations: migrationState.versions.size,
   appliedMigrations: appliedMigrations.size,
   requiredFunctions: DATABASE_FUNCTIONS.length + 1,
   requiredBuckets: STORAGE_BUCKETS.length
 });
+
+function verifyTableState(tableName, table, { required, classification }) {
+  const isRetired = classification === "retired";
+  if (!table) {
+    if (required) failures.push(`active application table is missing from production: public.${tableName}`);
+    return;
+  }
+  if (!table.rls_enabled) {
+    failures.push(isRetired
+      ? `retired table has row-level security disabled: public.${tableName}`
+      : `row-level security is disabled: public.${tableName}`);
+  }
+  if (Number(table.column_count) < 1) {
+    failures.push(isRetired
+      ? `retired table has no visible columns: public.${tableName}`
+      : `table has no visible columns: public.${tableName}`);
+  }
+  if (Number(table.primary_key_count) < 1) {
+    failures.push(isRetired
+      ? `retired table has no primary key: public.${tableName}`
+      : `table has no primary key: public.${tableName}`);
+  }
+  if (Number(table.index_count) !== Number(table.valid_index_count)) {
+    failures.push(isRetired
+      ? `retired table has an invalid or unready index: public.${tableName}`
+      : `table has an invalid or unready index: public.${tableName}`);
+  }
+  if (!table.service_role_select) {
+    failures.push(isRetired
+      ? `service role cannot read retired table: public.${tableName}`
+      : `service role cannot read table: public.${tableName}`);
+  }
+  if (!table.service_role_insert || !table.service_role_update || !table.service_role_delete) {
+    warnings.push(`service role has intentionally or unexpectedly limited write privileges on ${classification} table: public.${tableName}`);
+  }
+  if (Number(table.policy_count) < 1) warnings.push(`${classification} RLS table has no explicit policy and is therefore closed to non-bypass roles: public.${tableName}`);
+}
 
 function deriveMigrationState() {
   const files = fs.readdirSync(migrationDirectory)
