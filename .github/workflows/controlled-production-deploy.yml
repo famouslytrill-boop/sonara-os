@@ -132,6 +132,50 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
           supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
 
+      # Capture a rollback checkpoint BEFORE any schema change lands. Migrations
+      # are applied ahead of the deployment, so without this there is no recorded
+      # point to return to if a later step fails.
+      #
+      # Deliberately schema-only: a data dump would copy customer records into a
+      # GitHub artifact. Data recovery is Supabase point-in-time recovery, for
+      # which the recorded UTC timestamp below is the restore target.
+      - name: Record pre-migration rollback checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          checkpoint_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # The currently-live commit, read from the running deployment. This is
+          # the SHA to redeploy if the application half needs reverting.
+          previous_sha="$(curl -sS --max-time 20 "$APEX_URL/api/health" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{process.stdout.write(JSON.parse(s).deployment?.commitSha||'unknown')}catch{process.stdout.write('unknown')}})" \
+            || echo "unknown")"
+
+          supabase db dump --linked --password "$SUPABASE_DB_PASSWORD" -f pre-migration-schema.sql
+
+          {
+            echo "checkpoint_utc=$checkpoint_utc"
+            echo "previous_production_sha=$previous_sha"
+            echo "incoming_sha=$GITHUB_SHA"
+          } > rollback-checkpoint.txt
+
+          {
+            echo "### Rollback checkpoint"
+            echo "- PITR restore target (UTC): \`$checkpoint_utc\`"
+            echo "- Previously live commit: \`$previous_sha\`"
+            echo "- Runbook: docs/PRODUCTION_ROLLBACK_RUNBOOK.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload rollback checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-checkpoint-${{ github.run_id }}
+          path: |
+            rollback-checkpoint.txt
+            pre-migration-schema.sql
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Apply production database migrations
         shell: bash
         run: |
@@ -247,12 +291,36 @@ jobs:
           EXPECTED_COMMIT_SHA="$GITHUB_SHA" \
           node scripts/verify-production-product-catalog.mjs --pages-only
 
+      # Migrations land before the deployment, so a failure past that point
+      # leaves production schema ahead of production code. Surface the recorded
+      # checkpoint rather than leaving the operator to reconstruct it.
+      - name: Surface rollback instructions on failure
+        if: failure()
+        shell: bash
+        run: |
+          set -uo pipefail
+          {
+            echo "### Deployment failed -- rollback may be required"
+            echo ""
+            if [ -f rollback-checkpoint.txt ]; then
+              echo "Schema changes were already applied to production. Checkpoint:"
+              echo '```'
+              cat rollback-checkpoint.txt
+              echo '```'
+              echo "Follow docs/PRODUCTION_ROLLBACK_RUNBOOK.md."
+            else
+              echo "Failure occurred before any schema change was applied."
+              echo "Production database is untouched; no database rollback is needed."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload deployment diagnostics on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: controlled-production-diagnostics-${{ github.run_id }}
           path: |
+            rollback-checkpoint.txt
             release-validation.log
             vercel-deploy.log
             apex-health.json

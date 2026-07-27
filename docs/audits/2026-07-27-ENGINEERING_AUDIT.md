@@ -36,7 +36,7 @@ handoff's picture of the system. The rest of this document is the corrected pict
 | PostgreSQL / Supabase / RLS / multi-tenant | **True** | 64 migrations, 299 tables, extensive RLS. Confirmed live. |
 | pgvector | **Installed, unused** | Extension exists (live advisor confirms `vector` in `public`). Exactly one column declared: `sonara_memory_records.embedding` (`20260528071000`). **No vector index** (no `ivfflat`/`hnsw` anywhere), **no similarity operator** (`<=>`/`<->`) anywhere, **no runtime code reads or writes it**. |
 | Vercel / GitHub Actions | **True** | 8 workflows; controlled deploy pipeline is real and reasonably thorough. |
-| OpenAPI | **Partially true** | `openapi/sonara.yaml` documents **64 paths**. The server registers **309** routes. ~79% of the API surface is undocumented despite `verify:api` being a CI gate. |
+| OpenAPI | **Partially true** | Post-codegen, `openapi/sonara.yaml` documents **187 operations across 136 paths**; the server registers **498 route+method pairs across 423 distinct paths**. So ~62% of the API surface is undocumented. `verify:api` passes because it checks that documented operations *match* the runtime, not that the runtime is *covered*. (The committed spec has only 64 paths — see CRIT-1: the committed tree is not the built artifact.) |
 | "Deep reconciliation verifies RLS enabled, policies, indexes, drift" | **Partially true — has real gaps** | The 8 `sonara_*_registry` / control-plane tables from `20260621020300` are **not in `lib/sonara-database-contract.cjs`** and **not covered by `verify-production-supabase.mjs`**. Their migration never enables RLS, yet production reports RLS *is* enabled on them — meaning production state diverges from the migration files and the reconciler did not catch it. |
 | Production deployment healthy | **Needs confirmation** | The Supabase org contains a project literally named `sonara-industries-prod` (`ltzpppffnwopdxbchajr`) whose status is **INACTIVE** (paused). The project the repo actually pins is `yqncsonkxgwhcxedgevk` — named *"famouslytrill-boop's Project"*. See CRIT-2. |
 | AI architecture exists | **False** | See §6. There is no inference path of any kind in the deployed runtime. |
@@ -61,6 +61,32 @@ fs.writeFileSync(serverPath, source);
 - Every script anchors on **exact string literals** (`app.use(express.json({ limit: "64kb" }));`). Reformatting a single line breaks the build with `process.exit(1)`. This is the most brittle possible coupling.
 - Ordering is significant and implicit across 32 steps. There is no dependency graph, no idempotency contract, and two scripts already exist purely to patch idempotency (`apply-catalog-helper-scope.cjs`, `prompt-security-verifier` in git history).
 - It makes the codebase effectively unmaintainable by anyone who did not write the generators, and blocks any refactor, module split, or framework migration.
+
+**Measured during Phase 0 implementation.** A single `pnpm test` (which fires
+`pretest` → `apply:runtime`) rewrote **23 tracked files: 3,182 insertions, 387
+deletions**, with no source edit by anyone:
+
+```
+server.js  openapi/sonara.yaml  lib/sonara-database-contract.cjs
+lib/sonara-ecosystem-manifest.cjs  lib/sonara-route-registry.cjs
+public/sw.js  public/sonara-one.js  data/open-source-tools.ts
+routes/*.cjs (6 files)  ui/sonara/**  docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md
+scripts/apply-market-intelligence-system.cjs    <-- codegen rewriting codegen
+scripts/verify-supabase-contract.mjs            <-- codegen rewriting a verifier
+```
+
+Three consequences follow directly, and they are worse than "brittle":
+
+1. **The committed tree is not the deployed artifact.** `openapi/sonara.yaml` at
+   `d5093bb` has 64 paths; after `apply:runtime` it has 136. Reading the repo at
+   any commit tells you something different from what production runs.
+2. **Codegen rewrites its own tooling** — including a verifier (`verify-supabase-contract.mjs`),
+   so a generated script is validating generated output.
+3. **Anchors are already stale.** `scripts/apply-last9-routes.cjs` anchors on
+   `app.use(express.json({ limit: "64kb" }));`, but `server.js` now reads
+   `limit: "1mb"`. It only survives because a separate marker check short-circuits
+   first. Remove that marker and the build hard-fails on a string that no longer
+   exists.
 
 **This is the root cause of most other findings in this report** — modularity, testability, and bundle/structure issues all trace back to it.
 
@@ -197,17 +223,46 @@ So a single authenticated page load costs roughly **4–6 sequential HTTPS round
 
 ---
 
-### HIGH-4 — `SECURITY DEFINER` function callable by anonymous users
+### HIGH-4 — Functions in `public` still granting EXECUTE to PUBLIC
 
-**Evidence (live security advisor):**
-> Function `public.capture_initial_sonara_prompt_version()` can be executed by the `anon` role as a `SECURITY DEFINER` function via `/rest/v1/rpc/capture_initial_sonara_prompt_version`.
+**Severity corrected after direct catalog inspection.** The live advisor reports
+`capture_initial_sonara_prompt_version()` as an anon-callable `SECURITY DEFINER`
+function, which reads as critical. Querying `pg_proc` directly gives a smaller
+and more precise picture, and the audit should reflect the smaller one:
 
-This is a trigger helper that was never meant to be an RPC endpoint. It runs with the definer's privileges and is reachable by anyone holding the public anon key.
+| Function | ACL state | SECURITY DEFINER | Returns |
+|---|---|---|---|
+| `capture_initial_sonara_prompt_version()` | NULL → default `EXECUTE TO PUBLIC` | yes | `trigger` |
+| `set_sonara_prompt_updated_at()` | NULL → default `EXECUTE TO PUBLIC` | yes | `trigger` |
+| `current_user_id()` | explicit `=X/postgres` (PUBLIC) | **no** | `uuid` |
 
-Also flagged: `public.current_user_id` has a **mutable `search_path`**. The `20260718064853` hardening migration pinned `search_path` on ten helper functions but missed this one — a `search_path` hijack vector on a `SECURITY DEFINER` function.
+Why this is High and not Critical:
 
-**Fix:** `revoke execute on function public.capture_initial_sonara_prompt_version() from public, anon, authenticated;` and `alter function public.current_user_id() set search_path = '';`. The migration `20260718064853` already establishes exactly this pattern — extend it. Also revoke the 13 other helper functions currently executable by `authenticated` unless they are deliberately public RPCs.
-**Effort:** 1–2 days. **ROI:** High.
+- Both `SECURITY DEFINER` functions return `trigger`. PostgreSQL refuses to
+  invoke a trigger-returning function directly, so the reachable call fails
+  before the body runs. The grant is wrong; it is not a usable escalation.
+- `current_user_id()` is `SECURITY INVOKER`, so its mutable `search_path` is a
+  hardening item, **not** the privilege-escalation vector I first described. It
+  only returns `auth.uid()`.
+
+Two genuinely notable facts came out of the check:
+
+- `current_user_id()` **exists in production but is created by no migration in
+  this repository** — more drift, of the same class as HIGH-5. Zero RLS policies
+  reference it, so it is also dead code.
+- Scoped to non-extension functions, this is the *entire* remaining exposure: all
+  25 app functions are `postgres`-owned and 22 already carry closed ACLs. The
+  `20260718064853` hardening worked; these three post-date or slipped past it.
+
+**Status: fixed in this branch** by `20260727170000_phase0_function_execute_boundary.sql`,
+which revokes the three grants, codifies and pins `current_user_id()`, and adds a
+self-verifying assertion that fails the migration if *any* non-extension function
+in `public` grants EXECUTE to PUBLIC — closing the class, not just these three.
+
+Do **not** revoke the other helper functions executable by `authenticated`: RLS
+policies invoke them, so `authenticated` requires EXECUTE for those policies to
+evaluate. The `20260718064853` grants are correct as written.
+**Effort:** 1–2 days. **ROI:** Medium-high (hygiene and advisor cleanliness rather than a closed breach).
 
 ---
 
@@ -226,9 +281,14 @@ Live advisor also shows the same pattern on **customer-relevant** tables: `custo
 
 ---
 
-### HIGH-6 — ~79% of the API surface is undocumented despite an OpenAPI CI gate
+### HIGH-6 — ~62% of the API surface is undocumented despite an OpenAPI CI gate
 
-**Evidence:** 309 registered Express routes vs **64** documented paths in `openapi/sonara.yaml`. `verify:api` runs in CI and passes — so the gate validates the spec's internal correctness, not its **coverage**.
+**Evidence (measured post-codegen, the state CI actually validates):** the spec
+declares **187 operations across 136 paths**; the runtime registers **498
+route+method pairs across 423 distinct paths**. `verify:api` passes and reports
+*"187 operations across 136 paths match the Express runtime"* — confirming the
+gate checks that documented operations match reality, never that reality is
+covered. Undocumented routes are invisible to it.
 
 **Fix:** Add a coverage assertion to `verify-openapi-contract.mjs`: enumerate registered routes from the Express router stack and fail if any non-internal route is missing from the spec. Backfill the spec.
 **Effort:** 2 weeks. **ROI:** High — required for any enterprise/partner API story.
@@ -256,7 +316,11 @@ Live advisor also shows the same pattern on **customer-relevant** tables: `custo
 - **NICE-3** — Two ESLint configs coexist (`eslint.config.cjs` and `eslint.config.mjs`). Consolidate.
 - **NICE-4** — `server-saas.js` (265 lines) appears orphaned; nothing requires it. Confirm and delete.
 - **NICE-5** — Accessibility and Lighthouse: the app server-renders HTML from template literals with a consistent `escapeHtml` helper (`server.js:4729`, correctly escaping `&<>"'`). I found **no XSS vector** in the escaping itself. However there is no automated a11y testing, no axe/Lighthouse CI, and no bundle analysis — though the last matters little given there is essentially no client-side JS. **[UNVERIFIED]** — a real Lighthouse/axe run against production is needed; static inspection cannot substitute.
-- **NICE-6** — Add `Permissions-Policy` and `Referrer-Policy` headers. CSP is already well-formed (`server.js:88`) — notably `script-src 'self'` with no `unsafe-inline`, which is genuinely good.
+- ~~**NICE-6** — Add `Permissions-Policy` and `Referrer-Policy` headers.~~
+  **Withdrawn — I was wrong.** Both are already set, alongside
+  `X-Content-Type-Options`, `Cross-Origin-Opener-Policy`, and
+  `Cross-Origin-Resource-Policy` (`server.js:82–88`). The response-header posture
+  is complete; nothing to add here.
 
 ---
 
@@ -307,10 +371,16 @@ This is the finding with the largest gap between the handoff and reality, so it 
 Sequenced so that each phase unblocks the next. Effort assumes 1–2 engineers.
 
 **Phase 0 — Stop the bleeding (1–2 weeks)**
-1. CRIT-2 — resolve the Supabase project identity question. *Blocking; owner decision.*
-2. CRIT-4 — rate limiting on auth routes + enable leaked-password protection.
-3. HIGH-4 — revoke the anon-callable RPC, pin `current_user_id` search_path.
-4. CRIT-5 — pre-migration backup + documented rollback runbook.
+1. CRIT-2 — resolve the Supabase project identity question. **Open; owner decision — cannot be resolved from the repository.**
+2. CRIT-4 — rate limiting on auth routes. **Done** (`lib/sonara-rate-limit.cjs`,
+   `20260727171000_phase0_auth_rate_limits.sql`, applied to all six credential
+   endpoints). Leaked-password protection is a **dashboard setting** and is still
+   **off** — it cannot be changed from this repository; enable it under
+   Authentication → Providers → Password.
+3. HIGH-4 — **Done** (`20260727170000_phase0_function_execute_boundary.sql`).
+4. CRIT-5 — **Done** (pre-migration checkpoint step in the deploy workflow +
+   `docs/PRODUCTION_ROLLBACK_RUNBOOK.md`). The deeper fix — reordering the
+   pipeline so the app deploys before expand-only migrations — remains open.
 
 **Phase 1 — Make the codebase workable (4–6 weeks)**
 5. CRIT-1 — freeze codegen, commit generated output, split `server.js` into modules.

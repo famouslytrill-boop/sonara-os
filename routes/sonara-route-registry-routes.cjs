@@ -31,6 +31,8 @@ const TUTORIALS = {
 
 function registerRouteRegistryRoutes(app, deps) {
   const {
+    passwordResetRateLimiter,
+    passwordResetSubmitRateLimiter,
     layout,
     brandCard,
     actionCard,
@@ -56,6 +58,11 @@ function registerRouteRegistryRoutes(app, deps) {
     getDeploymentInfo,
     safeListTable
   } = deps;
+
+  // Fall back to a pass-through so partially-wired callers (tests) still boot.
+  const passThrough = (req, res, next) => next();
+  const forgotPasswordLimiter = passwordResetRateLimiter || passThrough;
+  const resetPasswordLimiter = passwordResetSubmitRateLimiter || passThrough;
 
   const sendPage = (res, input) => res.status(200).type("html").send(layout(input));
   const setupMessage = "This feature is ready in the application, but saving needs the account database to be connected by an administrator.";
@@ -167,7 +174,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/login", "Return to sign in"), linkAction("/support", "Account help")]
   }));
 
-  app.post("/auth/forgot-password", async (req, res) => {
+  app.post("/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
     const email = String(req.body.email || "").trim().toLowerCase();
     const config = getSupabaseAuthConfig();
     if (!email || !email.includes("@")) {
@@ -199,7 +206,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/forgot-password", "Request another link"), linkAction("/support", "Account help")]
   }));
 
-  app.post("/auth/reset-password", async (req, res) => {
+  app.post("/auth/reset-password", resetPasswordLimiter, async (req, res) => {
     const accessToken = String(req.body.accessToken || "").trim();
     const password = String(req.body.password || "");
     const config = getSupabaseAuthConfig();
