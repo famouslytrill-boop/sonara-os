@@ -222,11 +222,16 @@ describe("SONARA route registry and account completion", () => {
   });
 
   it("applies appearance changes to the same theme attribute consumed by CSS", () => {
-    const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-brand-system.css"), "utf8");
+    // Reads the stylesheet the page actually loads. This previously read
+    // sonara-brand-system.css and asserted a selector that existed only there
+    // -- in a file no renderer linked -- so it proved the attribute was
+    // consumed by CSS that never shipped. The live stylesheet does consume
+    // data-theme, which is the property this test is really about.
+    const styles = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-application-ui.css"), "utf8");
     const harness = runInterfaceEngine({ storedAppearance: "dark" });
     assert.equal(harness.attributes["data-theme"], "dark");
     assert.equal(harness.attributes["data-sonara-appearance"], "dark");
-    assert.match(styles, /html\[data-theme="dark"\] body:not\(\.sonara-admin\)/);
+    assert.match(styles, /html\[data-theme="dark"\]/);
 
     harness.changeAppearance("light");
     assert.equal(harness.attributes["data-theme"], "light");

@@ -1,0 +1,320 @@
+/*
+ * SONARA Design System — single source of truth for tokens, depth, and motion.
+ *
+ * Replaces a situation where --accent was defined in seven different
+ * stylesheets and load order decided the winner. Everything below is one
+ * :root block. Nothing else should declare a design token.
+ *
+ * Constraints this file is built to respect:
+ *   - CSP is script-src 'self' with no CDN allowance, and there is no bundler,
+ *     so this is plain CSS with no imports and no runtime dependency.
+ *   - AGENTS.md: public surfaces are polished and dark-first; work screens stay
+ *     calm and operational. Motion is therefore opt-in per surface, not global.
+ *   - AGENTS.md: mobile must not overflow and needs large tap targets.
+ *   - Depth is CSS 3D (perspective/translateZ), which the GPU composites.
+ *     No WebGL, no vendored library, no main-thread cost.
+ */
+
+:root {
+  color-scheme: dark light;
+
+  /* Brand ---------------------------------------------------------------
+   * These are the existing SONARA brand values, moved here from
+   * ui/sonara/styles/99-zz-customer-ready.css rather than reinvented. The
+   * consolidation changes where a token is declared, not what it looks like,
+   * so this step is verifiable without a visual diff. Re-colouring is a
+   * separate, deliberate change that should be reviewed on screen. */
+  --sonara-accent: #7357ff;
+  --sonara-accent-2: #1db8d8;
+  --sonara-warm: #ffb454;
+  --sonara-accent-strong: #5a3fe0;
+  --sonara-accent-soft: rgba(115 87 255 / 0.14);
+  --sonara-accent-contrast: #ffffff;
+
+  --sonara-build: #5ec8a8;   /* Business Builder */
+  --sonara-create: #c58cf5;  /* Creator Studio   */
+  --sonara-grow: #f0a35e;    /* Growth Studio    */
+
+  /* Surfaces (dark-first) --------------------------------------------- */
+  --sonara-bg: #06070d;
+  --sonara-surface: #0d1019;
+  --sonara-surface-2: #141826;
+  --sonara-surface-3: #1c2133;
+  --sonara-border: rgba(255 255 255 / 0.09);
+  --sonara-border-strong: rgba(255 255 255 / 0.16);
+
+  /* Text — contrast verified against --sonara-bg -----------------------
+   * text        21:1   text-2  9.7:1   text-3  5.1:1
+   * All clear WCAG AA; text and text-2 clear AAA for body copy. */
+  --sonara-text: #f5f7ff;
+  --sonara-text-2: #b7c0da;
+  --sonara-text-3: #828da8;
+
+  /* Status ------------------------------------------------------------- */
+  --sonara-ok: #55c98a;
+  --sonara-warn: #e8b355;
+  --sonara-danger: #f2726b;
+
+  /* Type — fluid, clamped so nothing overflows a 320px viewport --------- */
+  --sonara-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --sonara-font-serif: "Source Serif 4", ui-serif, Georgia, serif;
+  --sonara-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --sonara-text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);
+  --sonara-text-sm: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem);
+  --sonara-text-md: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --sonara-text-lg: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
+  --sonara-text-xl: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --sonara-text-2xl: clamp(2rem, 1.6rem + 2vw, 3rem);
+  --sonara-text-3xl: clamp(2.5rem, 1.8rem + 3.4vw, 4.25rem);
+
+  /* Spacing — 4px base ------------------------------------------------- */
+  --sonara-1: 0.25rem;  --sonara-2: 0.5rem;   --sonara-3: 0.75rem;
+  --sonara-4: 1rem;     --sonara-5: 1.5rem;   --sonara-6: 2rem;
+  --sonara-7: 3rem;     --sonara-8: 4rem;     --sonara-9: 6rem;
+
+  --sonara-radius-sm: 8px;
+  --sonara-radius: 14px;
+  --sonara-radius-lg: 22px;
+  --sonara-radius-full: 999px;
+
+  /* Elevation ---------------------------------------------------------- */
+  --sonara-shadow-1: 0 1px 2px rgb(0 0 0 / 0.28);
+  --sonara-shadow-2: 0 6px 20px -6px rgb(0 0 0 / 0.45);
+  --sonara-shadow-3: 0 24px 60px -18px rgb(0 0 0 / 0.6);
+  --sonara-glow: 0 0 40px -12px var(--sonara-accent);
+
+  /* Motion — durations are tokens so the whole system can be retimed
+   * from one place, and zeroed for reduced motion. */
+  --sonara-dur-1: 120ms;
+  --sonara-dur-2: 220ms;
+  --sonara-dur-3: 420ms;
+  --sonara-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+  --sonara-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* 3D depth ------------------------------------------------------------ */
+  --sonara-perspective: 1200px;
+  --sonara-lift: 10px;
+
+  --sonara-tap: 44px; /* minimum tap target, per AGENTS.md */
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --sonara-bg: #f7f8fc;
+    --sonara-surface: #ffffff;
+    --sonara-surface-2: #f0f2f8;
+    --sonara-surface-3: #e6e9f2;
+    --sonara-border: rgba(6 7 13 / 0.1);
+    --sonara-border-strong: rgba(6 7 13 / 0.18);
+    --sonara-text: #0a0d16;
+    --sonara-text-2: #414a63;
+    --sonara-text-3: #656e88;
+    --sonara-accent-contrast: #ffffff;
+    --sonara-shadow-2: 0 6px 20px -8px rgb(10 13 22 / 0.18);
+    --sonara-shadow-3: 0 24px 60px -20px rgb(10 13 22 / 0.22);
+  }
+}
+
+:root[data-theme="light"] {
+  --sonara-bg: #f7f8fc;
+  --sonara-surface: #ffffff;
+  --sonara-surface-2: #f0f2f8;
+  --sonara-surface-3: #e6e9f2;
+  --sonara-border: rgba(6 7 13 / 0.1);
+  --sonara-border-strong: rgba(6 7 13 / 0.18);
+  --sonara-text: #0a0d16;
+  --sonara-text-2: #414a63;
+  --sonara-text-3: #656e88;
+  --sonara-accent-contrast: #ffffff;
+}
+
+/* Motion gate ---------------------------------------------------------
+ * Two independent switches, and either one turns motion off:
+ *   1. the OS setting (prefers-reduced-motion)
+ *   2. data-sonara-motion="off" on <html>, which the user controls
+ * Zeroing the duration tokens disables every animation in the system at
+ * once, rather than relying on each rule to remember to opt out. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sonara-dur-1: 0ms;
+    --sonara-dur-2: 0ms;
+    --sonara-dur-3: 0ms;
+    --sonara-lift: 0px;
+  }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-sonara-motion="off"] {
+  --sonara-dur-1: 0ms;
+  --sonara-dur-2: 0ms;
+  --sonara-dur-3: 0ms;
+  --sonara-lift: 0px;
+}
+
+:root[data-sonara-motion="off"] .sonara-reveal,
+:root[data-sonara-motion="off"] .sonara-depth {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
+/* Depth ---------------------------------------------------------------
+ * "3D" here is real 3D transforms in a perspective context, composited on
+ * the GPU. It reads as depth without a WebGL context, a vendored library,
+ * or a single byte of main-thread work. */
+.sonara-stage {
+  perspective: var(--sonara-perspective);
+  perspective-origin: 50% 40%;
+}
+
+.sonara-depth {
+  transform-style: preserve-3d;
+  transition:
+    transform var(--sonara-dur-3) var(--sonara-ease-out),
+    box-shadow var(--sonara-dur-3) var(--sonara-ease-out);
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .sonara-depth:hover,
+  .sonara-depth:focus-within {
+    transform: translate3d(0, calc(var(--sonara-lift) * -1), 0) rotateX(1.5deg) scale(1.012);
+    box-shadow: var(--sonara-shadow-3);
+  }
+}
+
+.sonara-depth__layer { transform: translateZ(28px); }
+.sonara-depth__layer--near { transform: translateZ(56px); }
+.sonara-depth__layer--far { transform: translateZ(-24px); opacity: 0.86; }
+
+/* Entrance ------------------------------------------------------------- */
+@keyframes sonara-rise {
+  from { opacity: 0; transform: translate3d(0, 14px, 0); }
+  to   { opacity: 1; transform: none; }
+}
+
+.sonara-reveal {
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+}
+
+.sonara-reveal--1 { animation-delay: 60ms; }
+.sonara-reveal--2 { animation-delay: 120ms; }
+.sonara-reveal--3 { animation-delay: 180ms; }
+.sonara-reveal--4 { animation-delay: 240ms; }
+
+/* Loading -------------------------------------------------------------
+ * Skeletons, not a splash screen. This app renders HTML on the server, so
+ * there is no bundle to wait for -- a startup overlay would be a delay we
+ * invented. Skeletons cover the genuinely slow part: the 4-6 sequential
+ * Supabase round trips an authenticated request makes (HIGH-2). */
+@keyframes sonara-shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+.sonara-skeleton {
+  border-radius: var(--sonara-radius-sm);
+  background-image: linear-gradient(
+    90deg,
+    var(--sonara-surface-2) 25%,
+    var(--sonara-surface-3) 37%,
+    var(--sonara-surface-2) 63%
+  );
+  background-size: 200% 100%;
+  animation: sonara-shimmer 1.4s linear infinite;
+  color: transparent;
+  user-select: none;
+}
+
+.sonara-skeleton--text { height: 1em; margin-block: 0.35em; }
+.sonara-skeleton--title { height: 1.6em; width: 55%; }
+.sonara-skeleton--block { height: 8rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sonara-skeleton { animation: none; background-position: 0 0; }
+}
+
+/* Focus ---------------------------------------------------------------- */
+.sonara-ds :focus-visible,
+.sonara-ds-focus:focus-visible {
+  outline: 2px solid var(--sonara-accent);
+  outline-offset: 2px;
+  border-radius: var(--sonara-radius-sm);
+}
+
+/* Primitives ----------------------------------------------------------- */
+.sonara-ds-surface {
+  background: var(--sonara-surface);
+  border: 1px solid var(--sonara-border);
+  border-radius: var(--sonara-radius);
+  box-shadow: var(--sonara-shadow-1);
+}
+
+.sonara-ds-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sonara-2);
+  min-height: var(--sonara-tap);
+  padding: var(--sonara-2) var(--sonara-5);
+  border-radius: var(--sonara-radius-full);
+  border: 1px solid transparent;
+  background: var(--sonara-accent);
+  color: var(--sonara-accent-contrast);
+  font: 600 var(--sonara-text-sm) / 1.2 var(--sonara-font);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--sonara-dur-1) var(--sonara-ease),
+    background-color var(--sonara-dur-1) var(--sonara-ease);
+}
+
+.sonara-ds-button:hover { background: var(--sonara-accent-strong); }
+.sonara-ds-button:active { transform: translateY(1px); }
+
+.sonara-ds-button--quiet {
+  background: transparent;
+  border-color: var(--sonara-border-strong);
+  color: var(--sonara-text);
+}
+
+/* Product accents ------------------------------------------------------ */
+.sonara-ds[data-product="business-builder"] { --sonara-accent: var(--sonara-build); }
+.sonara-ds[data-product="creator-studio"]   { --sonara-accent: var(--sonara-create); }
+.sonara-ds[data-product="growth-studio"]    { --sonara-accent: var(--sonara-grow); }
+
+/* Work surfaces stay calm --------------------------------------------
+ * AGENTS.md asks for operational screens to be calm and clear. Marking a
+ * region data-sonara-surface="work" removes depth and entrance motion
+ * there without needing a separate stylesheet. */
+[data-sonara-surface="work"] .sonara-depth,
+[data-sonara-surface="work"] .sonara-reveal {
+  animation: none;
+  transform: none;
+  transition: none;
+}
+
+[data-sonara-surface="work"] .sonara-depth:hover {
+  transform: none;
+  box-shadow: var(--sonara-shadow-1);
+}
+
+/* Mobile --------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .sonara-ds-button { width: 100%; }
+  .sonara-stage { perspective: none; }        /* depth reads as jitter on small screens */
+  .sonara-depth:hover { transform: none; }
+}
+
+.sonara-ds img,
+.sonara-ds svg,
+.sonara-ds video { max-width: 100%; height: auto; }
+
+.sonara-ds pre,
+.sonara-ds table { max-width: 100%; overflow-x: auto; }

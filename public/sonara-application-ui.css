@@ -330,13 +330,15 @@ html[data-theme="dark"] .sonara-loader::before{opacity:.34}html[data-theme="dark
 /* SONARA MOTION BRAND END */
 
 /* SONARA customer-ready experience — lighter, calmer, geometric, and readable. */
+/* Brand colour tokens (--sonara-accent, --sonara-accent-2, --sonara-warm) now
+ * live in public/sonara-design-system.css, which is the single source of truth.
+ * Their values are unchanged; only the place they are declared has moved, so
+ * nothing shifts visually. Layout tokens below are specific to this layer and
+ * stay here. */
 :root {
   --sonara-brightness: 1.04;
   --sonara-page-max: 1240px;
   --sonara-readable: 68ch;
-  --sonara-accent: #7357ff;
-  --sonara-accent-2: #1db8d8;
-  --sonara-warm: #ffb454;
 }
 
 html { background: #f7f8fc; }

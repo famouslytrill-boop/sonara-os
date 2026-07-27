@@ -190,7 +190,16 @@ describe("icon assets", () => {
     assert.ok(manifest.icons.some((icon) => icon.src === "/icons/icon-512.png"));
   });
 
-  for (const route of ["/sonara-brand-system.css", "/sonara-friendly-premium.css", "/sonara-launch-ui.css", "/sonara-experience.js"]) {
+  // These were sonara-brand-system.css, sonara-friendly-premium.css, and
+  // sonara-launch-ui.css -- three stylesheets that shipped but which no
+  // renderer ever linked, so serving them proved nothing. Now asserts the
+  // assets pages actually load, which is the property worth holding.
+  for (const route of [
+    "/sonara-design-system.css",
+    "/sonara-application-ui.css",
+    "/sonara-experience-controls.js",
+    "/sonara-experience.js"
+  ]) {
     it(`GET ${route} returns public launch asset`, async function() {
       const res = await request(app).get(route);
       assert.equal(res.status, 200);
