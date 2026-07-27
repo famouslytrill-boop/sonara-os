@@ -3,15 +3,68 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), "utf8"); }
+
+function companyBlock(manifest, companyKey) {
+  const match = manifest.match(new RegExp(`key:\\s*"${companyKey}"[\\s\\S]*?(?=\\n    \\{\\n      key:|\\n  \\],\\n  adminControlPlane:)`));
+  assert.ok(match, `Missing company manifest block: ${companyKey}`);
+  return match[0];
+}
+
+function occurrenceCount(source, value) {
+  return source.split(value).length - 1;
+}
 
 describe("Market intelligence integration contract", () => {
   it("prepares route anchors and runs market intelligence before final R&D decisions", function() {
     const pkg = JSON.parse(read("package.json"));
     assert.equal(pkg.scripts["apply:market-intelligence"], "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs");
     assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
+  });
+
+  it("keeps market manifest routes and modules idempotent across repeated runtime passes", function() {
+    this.timeout(15000);
+    for (let pass = 0; pass < 2; pass += 1) {
+      execFileSync(process.execPath, ["scripts/prepare-market-intelligence-anchors.cjs"], { cwd: root, stdio: "pipe" });
+      execFileSync(process.execPath, ["scripts/apply-market-intelligence-system.cjs"], { cwd: root, stdio: "pipe" });
+    }
+
+    const manifest = read("lib/sonara-ecosystem-manifest.cjs");
+    const expected = {
+      business_builder: [
+        "/business-builder/product-lifecycle",
+        "/business-builder/market-intelligence",
+        "Business Market Intelligence",
+        "First Transaction Activation"
+      ],
+      creator_studio: [
+        "/creator-studio/product-lifecycle",
+        "/creator-studio/market-intelligence",
+        "Creator Market Intelligence",
+        "Rights and Provenance Evidence",
+        "Brand Partnership Measurement"
+      ],
+      growth_studio: [
+        "/growth-studio/product-lifecycle",
+        "/growth-studio/market-intelligence",
+        "Growth Market Intelligence",
+        "First-Party Customer Timeline",
+        "Incrementality Planning",
+        "Creator Partnership Measurement"
+      ]
+    };
+
+    for (const [companyKey, values] of Object.entries(expected)) {
+      const block = companyBlock(manifest, companyKey);
+      for (const value of values) assert.equal(occurrenceCount(block, `"${value}"`), 1, `${companyKey} must contain ${value} exactly once`);
+    }
+
+    const applyScript = read("scripts/apply-market-intelligence-system.cjs");
+    assert.match(applyScript, /ensureCompanyManifestValues/);
+    assert.doesNotMatch(applyScript, /Business Builder manifest routes anchor missing/);
   });
 
   it("registers parent and studio workspaces", function() {
