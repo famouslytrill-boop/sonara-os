@@ -108,8 +108,34 @@ Three consequences follow directly, and they are worse than "brittle":
 
 **This is the root cause of most other findings in this report** — modularity, testability, and bundle/structure issues all trace back to it.
 
-**Fix:** Freeze codegen. Run `apply:runtime` once, commit the result, delete the scripts from the build path, and split `server.js` into the `routes/` modules that already exist as a pattern. Remove `apply:runtime` from `pretest` and `vercel-build`.
-**Effort:** 3–4 engineer-weeks. **ROI:** Very high — unblocks essentially every other item.
+**Part A — freeze the generators. Done.** Generated output is committed
+(including the 606-line `product-lifecycle-routes.cjs`), `apply:runtime` is out
+of `pretest`, `vercel-build`, and `verify:launch`, and a new `verify:generated`
+gate re-runs the generators and fails if they would change any tracked file — so
+the freeze is enforced, not merely declared. The committed tree is now the
+deployed artifact.
+
+**A prerequisite surfaced during the freeze: `apply:runtime` was not
+idempotent.** Two consecutive runs produced different output.
+`scripts/apply-prompt-library-system.cjs` guarded its insertion on the string
+`github.com/f/prompts.chat` — text that appears nowhere in the block it inserts,
+nor anywhere in the target document. The guard could never match, so it appended
+nine lines to `docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md` **on every run**: 0
+copies committed, 6 copies after 6 runs, unbounded. The workflow step was named
+*"Apply deterministic runtime transforms"*; it was not deterministic. Fixed, and
+three consecutive runs now produce byte-identical output.
+
+Freezing without finding that would have committed one arbitrary sample of a
+moving artifact. It is also a good illustration of why the freeze matters: a bug
+that ran on every test and every production build for months was invisible
+precisely because nobody could see the generated tree.
+
+**Part B — split `server.js` into modules. Not done; 3–4 engineer-weeks.** The
+file is still 4,700+ lines. Part A is what makes Part B safely possible: the
+generators can no longer overwrite hand-written structure.
+
+**Effort:** Part A ~0.5 weeks (done); Part B 3–4 weeks. **ROI:** Very high —
+unblocks essentially every other item.
 
 ---
 
