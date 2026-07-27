@@ -46,10 +46,9 @@ jobs:
 
       - name: Require protected production credentials
         shell: bash
-        # The RLS-bypassing service-role key is exposed only to this guard and to the
-        # catalog verification step, never at job scope, so unrelated steps (dependency
-        # installation, the build and test suite, and the dynamically fetched Vercel CLI)
-        # never see it.
+        # The RLS-bypassing service-role key is exposed only to explicit database
+        # verification steps, never at job scope or to dependency installation,
+        # application tests, builds, or the dynamically fetched Vercel CLI.
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
@@ -83,7 +82,7 @@ jobs:
           supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Pull production environment for catalog verification
+      - name: Pull production environment for database verification
         shell: bash
         run: |
           set -euo pipefail
@@ -97,17 +96,32 @@ jobs:
 
       - name: Verify production catalog database boundary
         shell: bash
-        # SUPABASE_SERVICE_ROLE_KEY comes from the protected GitHub Actions secret, not from
-        # `vercel env pull`: Vercel does not return the plaintext of variables marked Sensitive,
-        # so the pulled file has no usable service-role key. Process env takes precedence over
-        # --env-file in Node, so this secret wins over any blank/missing value in the file.
-        # It is scoped to this step alone, so the dynamically fetched Vercel CLI in the pull
-        # step above never receives the key.
+        # Sensitive variables pulled from Vercel are not returned as plaintext.
+        # The service-role key is therefore injected from the protected GitHub
+        # environment for this verification step only.
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-production-product-catalog.mjs --database-only
+
+      - name: Verify complete production Supabase state
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          pnpm --silent run verify:production-supabase -- --env-file=.env.production.catalog-verification
+        # package scripts do not forward Node's --env-file switch, so execute the
+        # verifier directly with the production environment after the command is
+        # registered and validated above.
+      - name: Execute production Supabase verifier with environment
+        shell: bash
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
 
       - name: Remove temporary production environment material
         if: always()
