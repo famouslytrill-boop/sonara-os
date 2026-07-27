@@ -56,8 +56,9 @@ describe("Supabase deep database reconciliation", () => {
     assert.ok(applyPosition >= 0);
     assert.ok(verifyPosition > applyPosition);
     assert.ok(deployPosition > verifyPosition);
-    assert.match(productionWorkflow, /node --env-file=\.env\.production\.catalog-verification scripts\/verify-production-supabase\.mjs/);
+    assert.match(productionWorkflow, /node --env-file=\.env\.production\.catalog-verification scripts\/verify-production-supabase\.mjs[\s\\]*2>&1 \| tee supabase-deep-verification\.log/);
     assert.match(productionWorkflow, /SUPABASE_SERVICE_ROLE_KEY: \$\{\{ secrets\.SUPABASE_SERVICE_ROLE_KEY \}\}/);
+    assert.match(productionWorkflow, /supabase-deep-verification\.log/);
   });
 
   it("registers a direct operator command", () => {
