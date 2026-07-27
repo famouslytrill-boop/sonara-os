@@ -83,16 +83,36 @@ finish({
 });
 
 function verifyTableState(tableName, table, { required, classification }) {
+  const isRetired = classification === "retired";
   if (!table) {
-    if (required) failures.push(`${classification} application table is missing from production: public.${tableName}`);
+    if (required) failures.push(`active application table is missing from production: public.${tableName}`);
     return;
   }
-  const prefix = classification === "retired" ? "retired table" : "table";
-  if (!table.rls_enabled) failures.push(`${prefix} has row-level security disabled: public.${tableName}`);
-  if (Number(table.column_count) < 1) failures.push(`${prefix} has no visible columns: public.${tableName}`);
-  if (Number(table.primary_key_count) < 1) failures.push(`${prefix} has no primary key: public.${tableName}`);
-  if (Number(table.index_count) !== Number(table.valid_index_count)) failures.push(`${prefix} has an invalid or unready index: public.${tableName}`);
-  if (!table.service_role_select) failures.push(`service role cannot read ${classification} table: public.${tableName}`);
+  if (!table.rls_enabled) {
+    failures.push(isRetired
+      ? `retired table has row-level security disabled: public.${tableName}`
+      : `row-level security is disabled: public.${tableName}`);
+  }
+  if (Number(table.column_count) < 1) {
+    failures.push(isRetired
+      ? `retired table has no visible columns: public.${tableName}`
+      : `table has no visible columns: public.${tableName}`);
+  }
+  if (Number(table.primary_key_count) < 1) {
+    failures.push(isRetired
+      ? `retired table has no primary key: public.${tableName}`
+      : `table has no primary key: public.${tableName}`);
+  }
+  if (Number(table.index_count) !== Number(table.valid_index_count)) {
+    failures.push(isRetired
+      ? `retired table has an invalid or unready index: public.${tableName}`
+      : `table has an invalid or unready index: public.${tableName}`);
+  }
+  if (!table.service_role_select) {
+    failures.push(isRetired
+      ? `service role cannot read retired table: public.${tableName}`
+      : `service role cannot read table: public.${tableName}`);
+  }
   if (!table.service_role_insert || !table.service_role_update || !table.service_role_delete) {
     warnings.push(`service role has intentionally or unexpectedly limited write privileges on ${classification} table: public.${tableName}`);
   }
