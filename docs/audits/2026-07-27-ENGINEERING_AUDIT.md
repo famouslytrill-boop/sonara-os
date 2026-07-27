@@ -341,8 +341,38 @@ So a single authenticated page load costs roughly **4–6 sequential HTTPS round
 
 **Why it matters:** It makes the repository unnavigable, produces false confidence ("we have a Next.js frontend"), guarantees any search or audit returns misleading results, and means `npm audit`/dependency scanning covers code that isn't deployed while the deployed code has almost no dependency surface at all.
 
-**Fix (owner decision required):** Either (a) commit to the Express app and move these trees to `docs/archive/` or a separate repository, or (b) commit to migrating to Next.js and make the TS tree the real app. Both are defensible; the current state — maintaining both, deploying neither together — is the worst option. Given CRIT-1, I'd recommend (a) first, then reconsider (b) once `server.js` is modularised.
-**Effort:** 1 week to archive; 8–12 weeks for a genuine Next.js migration. **ROI:** High for archiving.
+**Owner decision (2026-07-27): archive.**
+
+**Status: mostly done.** `frontend/`, `my-app/`, `packages/`, `src/`, and
+`sonara-industries/` — 641 files — moved to `archive/`, with
+`archive/README.md` documenting what moved, what was verified before moving,
+and how to restore. Confirmed before the move: the deployed runtime imports
+**zero** `.ts` files, and nothing executed by CI referenced any of those trees.
+
+**What deliberately did not move, and the problem it exposed.** `app/`,
+`components/`, `utils/*.ts`, `types/*.ts`, and the `.ts` files under `lib/` are
+still in place, because two CI tests execute them:
+
+- `tests/brand-routes.test.mjs` asserts brand copy inside `app/*.tsx` and
+  `components/entities/EntityDashboardShell.tsx`.
+- `tests/launch-readiness.test.mjs` transpiles and imports `lib/supabase.ts`,
+  several `lib/sonara/**/*.ts` modules, `utils/*.ts`, and
+  `app/api/stripe/checkout/route.ts`.
+
+Both pass — against code that is **not deployed**. The brand copy that actually
+ships lives in `server.js` and `lib/sonara-brand-registry.cjs`; the Stripe path
+that actually runs is in `server.js`. So a slice of the 525-test suite is
+verifying files that never execute in production, which is the false-confidence
+pattern this audit warned about, now located precisely.
+
+That makes the remainder a **coverage decision, not a file move**: deleting the
+tests removes a signal that was never real, and moving the files without
+addressing the tests just relocates the illusion. The right fix is to point
+equivalent assertions at the deployed `server.js` brand and Stripe paths, then
+archive the rest. Left out of this pass deliberately.
+
+**Effort:** archiving done (~1 hour); the remaining coverage work ~2–3 days;
+8–12 weeks for a genuine Next.js migration if ever chosen. **ROI:** High.
 
 ---
 
@@ -426,7 +456,19 @@ covered. Undocumented routes are invisible to it.
 - **MED-4 — Migration hygiene.** 64 migrations with mixed naming conventions (`003_…` sequential vs `20260528…` timestamped), and at least 6 `retry`/`fix` migrations including two files with near-identical names (`019_sonara_operational_strengthening_retry.sql` and `20260621020000_sonara_operational_strengthening_retry.sql`). Consider a squashed baseline. *Effort: 1 week.*
 - **MED-5 — `pgvector` extension installed in `public` schema.** Advisor WARN. Move to a dedicated `extensions` schema. *Effort: 1 day.*
 - **MED-6 — No structured logging, tracing, or error tracking** in the deployed runtime. No Sentry, no OpenTelemetry, no request ids. Debugging production is limited to Vercel's raw function logs. *Effort: 1–2 weeks.*
-- **MED-7 — `build` does not build.** `"build": "node --check server.js && node -e \"require('./server')\""` — a syntax check plus a module load. Combined with `typecheck` also being `node --check`, **CI has no type safety or compilation step at all** for a system described as TypeScript. *Effort: folded into CRIT-1.*
+- **MED-7 — `build` does not build; `typecheck` did not typecheck.** `"build"` is
+  `node --check server.js && node -e "require('./server')"` — a syntax pass plus a
+  module load. `"typecheck"` was `node --check` over **exactly two files**
+  (`server.js`, `api/index.js`) out of a runtime spanning `server.js`, `api/`,
+  `routes/`, and `lib/`; a syntax error in any route module went undetected
+  unless a test happened to require it.
+  **Partly addressed:** `typecheck` now parse-checks all **54** runtime files
+  (`scripts/typecheck.mjs`). That closes the coverage gap but is still a *parse*,
+  not type checking — and the script says so rather than being named for a
+  guarantee it doesn't provide. Real type checking needs JSDoc annotations with
+  `checkJs`, or a TypeScript migration; now that the dead TS trees are archived
+  (HIGH-3) the runtime is unambiguously CommonJS, which makes `checkJs` the
+  sensible next step. *Effort: done ~1 hour; `checkJs` adoption 1–2 weeks.*
 - **MED-8 — No CI parallelisation or caching beyond pnpm.** `controlled-production-deploy.yml` runs ~15 sequential steps in one job. Test/lint/verify stages are independent and could be a matrix, cutting wall-clock substantially. There is also no `pull_request` validation gate in that workflow — it triggers only on `push` to `main`. *Effort: 1 week.*
 - **MED-9 — Response payloads are unbounded in places.** Some queries use `limit=20` (`server.js:3196`), others (e.g. `launch_checklist_items`, `server.js:3308`) fetch **all rows for an organization with no limit**. No cursor pagination anywhere. *Effort: 2 weeks.*
 
