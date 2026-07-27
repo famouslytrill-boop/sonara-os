@@ -67,6 +67,9 @@ jobs:
       - name: Verify OpenAPI drift contract
         run: pnpm run verify:api
 
+      - name: Verify open-source and external repository controls
+        run: pnpm run verify:open-source
+
       - name: Verify documentation links
         run: pnpm run test:docs
 

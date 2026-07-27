@@ -65,8 +65,65 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level moderate
 
-      - name: Validate complete release candidate
-        run: pnpm run verify:all
+      - name: Apply deterministic runtime transforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run apply:runtime 2>&1 | tee -a release-validation.log
+
+      - name: Build release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run build 2>&1 | tee -a release-validation.log
+
+      - name: Run release test suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm test 2>&1 | tee -a release-validation.log
+
+      - name: Scan release candidate for client-exposed secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run scan:client-secrets 2>&1 | tee -a release-validation.log
+
+      - name: Lint release candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run lint 2>&1 | tee -a release-validation.log
+
+      - name: Verify release route behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run smoke:routes 2>&1 | tee -a release-validation.log
+
+      - name: Verify release database and storage contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run verify:db 2>&1 | tee -a release-validation.log
+
+      - name: Verify release configuration and route registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run verify:config 2>&1 | tee -a release-validation.log
+
+      - name: Verify release OpenAPI contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run verify:api 2>&1 | tee -a release-validation.log
+
+      - name: Verify release open-source controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm run verify:open-source 2>&1 | tee -a release-validation.log
 
       - name: Link and preview production database migrations
         shell: bash
@@ -196,6 +253,7 @@ jobs:
         with:
           name: controlled-production-diagnostics-${{ github.run_id }}
           path: |
+            release-validation.log
             vercel-deploy.log
             apex-health.json
             www-health.json
