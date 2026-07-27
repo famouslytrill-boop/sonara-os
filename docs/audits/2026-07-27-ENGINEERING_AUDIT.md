@@ -87,6 +87,24 @@ Three consequences follow directly, and they are worse than "brittle":
    `limit: "1mb"`. It only survives because a separate marker check short-circuits
    first. Remove that marker and the build hard-fails on a string that no longer
    exists.
+4. **An entire feature exists nowhere in version control.**
+   `routes/product-lifecycle-routes.cjs` is **606 lines with no git history** —
+   `git log` on it returns nothing and it is not `.gitignore`d. Both the module
+   and its `require` line in `server.js` are written at build time by
+   `scripts/apply-product-lifecycle-system.cjs`. It is the only one of seven
+   generated route modules in this state; the other six are committed.
+
+   Consequences: the Product Lifecycle API cannot be code-reviewed, cannot be
+   scanned by any repository-based security tool, and does not appear in any
+   audit of this codebase — including the route and OpenAPI counts elsewhere in
+   this document unless `apply:runtime` has been run first. Five test files
+   (`product-lifecycle-contract`, `product-lifecycle-system`,
+   `market-intelligence-system`, and two Supabase contract suites) exercise code
+   that exists only because `pretest` materialised it moments earlier.
+
+   It also means **a fresh clone of this repository does not boot.** `pnpm start`
+   without `apply:runtime` fails on a missing module. The committed tree is not a
+   runnable program.
 
 **This is the root cause of most other findings in this report** — modularity, testability, and bundle/structure issues all trace back to it.
 
