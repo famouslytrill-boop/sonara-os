@@ -46,18 +46,10 @@ function prepareSupabaseVerifierCompatibility() {
     source = source.replace(countMarker, `${historicalNote}\n${countMarker}`);
   }
 
-  const expandedContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath]";
-  if (!source.includes(expandedContract)) {
-    const promptOnlyContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, promptLibraryMigrationPath]";
-    const marketOnlyContract = "const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath]";
-    if (source.includes(promptOnlyContract)) {
-      source = source.replace(promptOnlyContract, expandedContract);
-    } else if (source.includes(marketOnlyContract)) {
-      source = source.replace(marketOnlyContract, expandedContract);
-    } else {
-      throw new Error("Prompt Library Supabase verifier contractSql marker not found");
-    }
+  if (source.includes("const marketIntelligenceMigrationPath")) {
+    source = ensureConstArrayValue(source, "contractSql", "marketIntelligenceMigrationPath", "promptLibraryMigrationPath");
   }
+  source = ensureConstArrayValue(source, "contractSql", "promptLibraryMigrationPath");
 
   fs.writeFileSync(filePath, source);
 }
@@ -85,6 +77,21 @@ function prepareEcosystemManifest() {
   source = addToAdminControlPlaneRoutes(source, "/admin/prompt-library");
 
   fs.writeFileSync(filePath, source);
+}
+
+function ensureConstArrayValue(source, constantName, value, beforeValue) {
+  const pattern = new RegExp(`(const\\s+${escapeRegExp(constantName)}\\s*=\\s*\\[)([^\\]]*)(\\])`);
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Prompt Library ${constantName} array not found`);
+
+  const items = match[2].split(",").map((item) => item.trim()).filter(Boolean);
+  if (items.includes(value)) return source;
+
+  const insertAt = beforeValue ? items.indexOf(beforeValue) : -1;
+  if (insertAt >= 0) items.splice(insertAt, 0, value);
+  else items.push(value);
+
+  return source.replace(pattern, (_, opening, _body, closing) => `${opening}${items.join(", ")}${closing}`);
 }
 
 function addToNamedArray(source, constantName, value) {
