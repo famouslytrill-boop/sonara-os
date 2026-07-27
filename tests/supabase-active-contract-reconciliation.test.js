@@ -63,7 +63,7 @@ describe("Supabase active contract reconciliation", () => {
     assert.match(verifier, /retired table has row-level security disabled/);
     assert.match(verifier, /retired table has no primary key/);
     assert.match(verifier, /retired table has an invalid or unready index/);
-    assert.match(verifier, /service role cannot read \$\{classification\} table/);
+    assert.match(verifier, /service role cannot read retired table/);
     assert.match(verifier, /deployedRetiredTables/);
   });
 
