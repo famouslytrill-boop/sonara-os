@@ -34,12 +34,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate final runtime
+      # Was `pnpm run apply:runtime`. Regenerating here would defeat the codegen
+      # freeze: every later step in this job would then run against a freshly
+      # generated tree rather than the committed one, so stale committed output
+      # would pass validation and only surface at deploy time. Verify instead.
+      - name: Verify committed output matches the generators
         id: runtime
         shell: bash
         run: |
           set +e
-          pnpm run apply:runtime > /tmp/sonara-runtime.log 2>&1
+          pnpm run verify:generated > /tmp/sonara-runtime.log 2>&1
           status=$?
           cat /tmp/sonara-runtime.log
           echo "status=$status" >> "$GITHUB_OUTPUT"

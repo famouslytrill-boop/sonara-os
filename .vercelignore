@@ -76,3 +76,6 @@ launch-logs/
 supabase_data_backup.sql
 supabase_schema_backup.sql
 *_sync_remote_schema*.sql
+
+# Archived source trees: not part of the deployed application
+archive/
