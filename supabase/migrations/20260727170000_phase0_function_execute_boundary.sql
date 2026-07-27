@@ -85,7 +85,15 @@ begin
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public' and p.proname = 'current_user_id';
 
-  if config is null or not ('search_path=' = any(config)) then
+  -- PostgreSQL normalises `set search_path = ''` and stores the proconfig entry
+  -- as `search_path=""` -- quoted, not bare. An earlier revision of this
+  -- assertion compared against the bare form and failed the migration even
+  -- though the ALTER had succeeded. Accept both spellings.
+  if config is null or not exists (
+    select 1
+    from unnest(config) as entry
+    where entry in ('search_path=', 'search_path=""')
+  ) then
     raise exception
       'public.current_user_id() does not have a pinned empty search_path (got %)', config;
   end if;
