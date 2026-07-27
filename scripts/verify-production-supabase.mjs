@@ -5,6 +5,7 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const migrationDirectory = path.join(root, "supabase", "migrations");
+const diagnosticLogPath = path.join(root, "release-validation.log");
 const { DATABASE_FUNCTIONS, DATABASE_TABLES, STORAGE_BUCKETS } = require(path.join(root, "lib", "sonara-database-contract.cjs"));
 
 const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
@@ -188,7 +189,26 @@ function safeMessage(payload) {
   return String(payload.message || payload.hint || payload.code || "unknown response").slice(0, 500);
 }
 
+function persistDiagnostics(summary) {
+  const lines = [
+    "",
+    "=== Production Supabase deep verification ===",
+    `warnings=${warnings.length}`,
+    ...warnings.map((warning) => `WARNING: ${warning}`),
+    `failures=${failures.length}`,
+    ...failures.map((failure) => `FAILURE: ${failure}`)
+  ];
+  if (summary) lines.push(`summary=${JSON.stringify(summary)}`);
+  lines.push("=== End production Supabase deep verification ===", "");
+  try {
+    fs.appendFileSync(diagnosticLogPath, lines.join("\n"), "utf8");
+  } catch (error) {
+    console.warn(`Unable to persist Supabase verification diagnostics: ${error.message}`);
+  }
+}
+
 function finish(summary = null) {
+  persistDiagnostics(summary);
   if (warnings.length) {
     console.warn(`Supabase deep verification warnings (${warnings.length}):`);
     for (const warning of warnings) console.warn(`- ${warning}`);

@@ -43,6 +43,14 @@ describe("Supabase deep database reconciliation", () => {
     assert.doesNotMatch(verifier, /console\.(?:log|error|warn)\([^\n]*(?:serviceRoleKey|SUPABASE_SERVICE_ROLE_KEY)/);
   });
 
+  it("persists safe production verification diagnostics for failed deployment artifacts", () => {
+    assert.match(verifier, /release-validation\.log/);
+    assert.match(verifier, /function persistDiagnostics\(summary\)/);
+    assert.match(verifier, /fs\.appendFileSync\(diagnosticLogPath/);
+    assert.match(verifier, /FAILURE: \$\{failure\}/);
+    assert.doesNotMatch(verifier, /appendFileSync\([^\n]*(?:serviceRoleKey|SUPABASE_SERVICE_ROLE_KEY)/);
+  });
+
   it("previews linked migrations in pull-request CI", () => {
     assert.match(ciWorkflow, /supabase link --project-ref/);
     assert.match(ciWorkflow, /supabase db push --linked --include-all --dry-run/);
