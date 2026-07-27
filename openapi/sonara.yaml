@@ -181,6 +181,134 @@ paths:
         "200": { $ref: "#/components/responses/Success" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
+  /api/admin/model-safety-resilience:
+    get:
+      operationId: getAdminModelSafetyResilience
+      tags: [Administration]
+      summary: Return the quarantined OBLITERATUS reference, defensive model-safety controls, and execution prohibitions.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/model-safety-resilience/review:
+    post:
+      operationId: reviewAdminModelSafetyProposal
+      tags: [Administration]
+      summary: Classify a proposed model-safety activity without executing models, modifying weights, or changing infrastructure.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, maxLength: 160 }
+                product: { type: string, maxLength: 120 }
+                summary: { type: string, maxLength: 2000 }
+                requestedAction: { type: string, maxLength: 1000 }
+                dataTypes:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                outputs:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                controls:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                environment:
+                  type: string
+                  enum: [documentation, offline_research, isolated_worker, staging, production]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/system-design-intelligence:
+    get:
+      operationId: getAdminSystemDesignIntelligence
+      tags: [Administration]
+      summary: Return the governed reference-only architecture topic catalog and SONARA module mappings.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/system-design-intelligence/review:
+    post:
+      operationId: reviewAdminSystemDesignArchitecture
+      tags: [Administration]
+      summary: Produce a deterministic, review-required architecture mapping for one SONARA module.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [moduleKey]
+              properties:
+                moduleKey: { type: string, maxLength: 160 }
+                product: { type: string, maxLength: 120 }
+                summary: { type: string, maxLength: 2000 }
+                capabilities:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                risks:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                constraints:
+                  type: array
+                  maxItems: 30
+                  items: { type: string, maxLength: 240 }
+                scaleTier:
+                  type: string
+                  enum: [prototype, launch, growth, large_scale]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/database-management:
+    get:
+      operationId: getAdminDatabaseManagement
+      tags: [Administration]
+      summary: Return the founder-only live read-only PostgreSQL and Supabase metadata catalog.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: section
+          required: false
+          schema:
+            type: string
+            enum: [schema-visualizer, tables, functions, triggers, enumerated-types, extensions, indexes, publications, access-control, policies, roles, configuration, settings, platform, replication, backups, migrations]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/admin/reference-intelligence:
+    get:
+      operationId: getAdminReferenceIntelligence
+      tags: [Administration]
+      summary: Return the founder-only governed external-reference catalog and review policy.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/business-builder/employees/invite:
     post:
       operationId: inviteBusinessBuilderEmployee
@@ -433,6 +561,40 @@ paths:
       operationId: getAdminAIIntegrationReadiness
       tags: [Administration]
       summary: Run bounded read-only readiness probes for configured AI service adapters.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/ecosystem/requested-repositories:
+    get:
+      operationId: getRequestedRepositoryCatalog
+      tags: [Ecosystem]
+      summary: Return the governed non-secret catalog for requested external repositories.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/admin/requested-repositories/readiness:
+    get:
+      operationId: getAdminRequestedRepositoryReadiness
+      tags: [Administration]
+      summary: Return owner-only static readiness and governance state for requested repositories.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/ecosystem/huggingface:
+    get:
+      operationId: getHuggingFaceResourceCatalog
+      tags: [Ecosystem]
+      summary: Return the governed non-secret catalog of Hugging Face models, datasets, and specifications.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/admin/huggingface/readiness:
+    get:
+      operationId: getAdminHuggingFaceReadiness
+      tags: [Administration]
+      summary: Return owner-only Hugging Face catalog readiness and run one bounded metadata probe.
       security: [{ bearerAuth: [] }]
       responses:
         "200": { $ref: "#/components/responses/Success" }
@@ -766,6 +928,901 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/generation/providers:
+    get:
+      operationId: listCreatorGenerationProviders
+      tags: [Creator Studio]
+      summary: List governed cloud, connector, and isolated-worker generation providers.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+  /api/creator/generation/readiness:
+    get:
+      operationId: getCreatorGenerationReadiness
+      tags: [Creator Studio]
+      summary: Return non-secret provider, database, storage, rights, and consent readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/creator/generation/jobs:
+    get:
+      operationId: listCreatorGenerationJobs
+      tags: [Creator Studio]
+      summary: List generation jobs for the authenticated organization and user.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createCreatorGenerationJob
+      tags: [Creator Studio]
+      summary: Create and safely dispatch a rights-attested generation job.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator/generation/jobs/{jobId}:
+    parameters:
+      - in: path
+        name: jobId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorGenerationJob
+      tags: [Creator Studio]
+      summary: Get one tenant-scoped generation job and its private asset references.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+  /api/creator/generation/jobs/{jobId}/refresh:
+    post:
+      operationId: refreshCreatorGenerationJob
+      tags: [Creator Studio]
+      summary: Refresh one asynchronous provider or worker generation operation.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/creator/generation/jobs/{jobId}/cancel:
+    post:
+      operationId: cancelCreatorGenerationJob
+      tags: [Creator Studio]
+      summary: Cancel the SONARA job while preserving audit history.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/creator/generation/voice-consents:
+    get:
+      operationId: listCreatorVoiceConsents
+      tags: [Creator Studio]
+      summary: List consent records for voice conversion and cloning workflows.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createCreatorVoiceConsent
+      tags: [Creator Studio]
+      summary: Record explicit voice-generation consent and evidence metadata.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator/reference-analyses:
+    post:
+      operationId: createCreatorReferenceAnalysis
+      tags: [Creator Studio]
+      summary: Create structural analysis of an owned or licensed media reference without identity imitation.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/growth/providers:
+    get:
+      operationId: listGrowthProviders
+      tags: [Growth Studio]
+      summary: List governed growth, analytics, lifecycle, advertising, and publishing providers without credentials.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+  /api/growth/readiness:
+    get:
+      operationId: getGrowthReadiness
+      tags: [Growth Studio]
+      summary: Return non-secret database, provider, consent, approval, and attribution readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/growth/campaigns:
+    get:
+      operationId: listGrowthCampaigns
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthCampaign
+      tags: [Growth Studio]
+      summary: Create a tenant-scoped campaign record.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/growth/campaigns/{campaignId}:
+    parameters:
+      - in: path
+        name: campaignId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getGrowthCampaign
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    patch:
+      operationId: updateGrowthCampaign
+      tags: [Growth Studio]
+      summary: Update or soft-archive a campaign without deleting its evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/growth/leads:
+    get:
+      operationId: listGrowthLeads
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthLead
+      tags: [Growth Studio]
+      summary: Create a tenant-scoped lead.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/leads/{leadId}:
+    patch:
+      operationId: updateGrowthLead
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: leadId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/growth/segments:
+    get:
+      operationId: listGrowthSegments
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthSegment
+      tags: [Growth Studio]
+      summary: Create a declarative audience segment without executable code.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/consents:
+    get:
+      operationId: listGrowthConsents
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: recordGrowthConsent
+      tags: [Growth Studio]
+      summary: Record purpose- and channel-specific contact consent evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/touchpoints:
+    get:
+      operationId: listGrowthTouchpoints
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: recordGrowthTouchpoint
+      tags: [Growth Studio]
+      summary: Record a deduplicated, tracking-basis-attested touchpoint.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/conversions:
+    get:
+      operationId: listGrowthConversions
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: recordGrowthConversion
+      tags: [Growth Studio]
+      summary: Record a conversion with an explicit attribution model and confidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/content:
+    get:
+      operationId: listGrowthContent
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthContent
+      tags: [Growth Studio]
+      summary: Create draft content with consent and approval boundaries.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/content/{contentId}/publish:
+    post:
+      operationId: approveGrowthContentPublish
+      tags: [Growth Studio]
+      summary: Explicitly approve and enqueue one provider publishing operation.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: contentId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "202": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/growth/experiments:
+    get:
+      operationId: listGrowthExperiments
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthExperiment
+      tags: [Growth Studio]
+      summary: Create a planned experiment and weighted variants.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/automations:
+    get:
+      operationId: listGrowthAutomations
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthAutomation
+      tags: [Growth Studio]
+      summary: Create a disabled, allowlisted automation template without arbitrary code.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/growth/provider-jobs:
+    get:
+      operationId: listGrowthProviderJobs
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createGrowthProviderJob
+      tags: [Growth Studio]
+      summary: Create an idempotent, governed provider operation.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/growth/provider-jobs/{jobId}/refresh:
+    post:
+      operationId: refreshGrowthProviderJob
+      tags: [Growth Studio]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/growth/metrics:
+    get:
+      operationId: getGrowthMetrics
+      tags: [Growth Studio]
+      summary: Return first-party totals and provider snapshots with attribution and sampling warnings.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/control-plane:
+    get:
+      operationId: getBusinessBuilderControlPlane
+      tags: [Business Builder]
+      summary: List customer-controlled businesses and operating resource types.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "402": { $ref: "#/components/responses/Forbidden" }
+  /api/business-builder/businesses:
+    get:
+      operationId: listBusinessBuilderBusinesses
+      tags: [Business Builder]
+      summary: List businesses belonging to the authenticated organization.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Create or connect a physical, online, service, restaurant, retail, or hybrid business workspace.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/business-builder/businesses/{businessId}:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Return one business and its organization-scoped operational resources.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+    patch:
+      operationId: updateBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Update the customer-controlled business profile.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: updateBusinessBuilderBusinessForm
+      tags: [Business Builder]
+      summary: Update a business from an HTML-compatible form submission.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      operationId: deleteBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Soft-delete a business while preserving audit and recovery evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/archive:
+    post:
+      operationId: archiveBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Archive a business without deleting customer records.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/restore:
+    post:
+      operationId: restoreBusinessBuilderBusiness
+      tags: [Business Builder]
+      summary: Restore an archived or soft-deleted business.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/ownership-transfers:
+    post:
+      operationId: requestBusinessBuilderOwnershipTransfer
+      tags: [Business Builder]
+      summary: Create an auditable pending ownership-transfer request.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/business-builder/businesses/{businessId}/{resource}:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: resource
+        required: true
+        schema:
+          type: string
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]
+    get:
+      operationId: listBusinessBuilderResourceRecords
+      tags: [Business Builder]
+      summary: List records from one allowlisted business operating resource.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Create a record in one allowlisted business operating resource.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/business-builder/businesses/{businessId}/{resource}/{id}:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: resource
+        required: true
+        schema:
+          type: string
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Update one organization- and business-scoped operating record.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: updateBusinessBuilderResourceRecordForm
+      tags: [Business Builder]
+      summary: Update one operating record from an HTML-compatible form submission.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    delete:
+      operationId: archiveBusinessBuilderResourceRecord
+      tags: [Business Builder]
+      summary: Soft-archive one organization- and business-scoped operating record.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/business-builder/businesses/{businessId}/{resource}/{id}/archive:
+    parameters:
+      - in: path
+        name: businessId
+        required: true
+        schema: { type: string, format: uuid }
+      - in: path
+        name: resource
+        required: true
+        schema:
+          type: string
+          enum: [locations, channels, employees, services, customers, inventory, assets, orders, bookings, integrations, permissions]
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: archiveBusinessBuilderResourceRecordForm
+      tags: [Business Builder]
+      summary: Archive one organization- and business-scoped operating record from the customer interface.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/product-lifecycle/framework:
+    get:
+      operationId: getProductLifecycleFramework
+      tags: [Product Lifecycle]
+      summary: Return the company-wide evidence, MVP, beta, launch, and learning framework without secrets.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/product-lifecycle/initiatives:
+    get:
+      operationId: listProductLifecycleInitiatives
+      tags: [Product Lifecycle]
+      summary: List organization-scoped lifecycle initiatives, optionally filtered by studio.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createProductLifecycleInitiative
+      tags: [Product Lifecycle]
+      summary: Create an evidence-led initiative for SONARA Industries or one of its studios.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/product-lifecycle/initiatives/{initiativeId}:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    patch:
+      operationId: updateProductLifecycleInitiative
+      tags: [Product Lifecycle]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/product-lifecycle/initiatives/{initiativeId}/summary:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getProductLifecycleSummary
+      tags: [Product Lifecycle]
+      summary: Return the initiative evidence bundle and computed stage-gate readiness.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/product-lifecycle/initiatives/{initiativeId}/evidence:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: recordProductLifecycleEvidence
+      tags: [Product Lifecycle]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/product-lifecycle/initiatives/{initiativeId}/requirements:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: recordProductLifecycleRequirement
+      tags: [Product Lifecycle]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/product-lifecycle/initiatives/{initiativeId}/iterations:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: recordProductLifecycleIteration
+      tags: [Product Lifecycle]
+      summary: Record a goal-led iteration with dates, Definition of Done, review notes, and retrospective evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/product-lifecycle/initiatives/{initiativeId}/feedback:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: recordProductLifecycleFeedback
+      tags: [Product Lifecycle]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/product-lifecycle/initiatives/{initiativeId}/reviews:
+    parameters:
+      - in: path
+        name: initiativeId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: recordProductLifecycleStageReview
+      tags: [Product Lifecycle]
+      summary: Record an advance, hold, pivot, stop, or scale decision; advance and scale require a passing stage gate.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "409": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/framework:
+    get:
+      operationId: getMarketIntelligenceFramework
+      tags: [Market Intelligence]
+      summary: Return the source-dated company market framework and transparent scoring model.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/market-intelligence/portfolio:
+    get:
+      operationId: getMarketIntelligencePortfolio
+      tags: [Market Intelligence]
+      summary: Return organization-scoped segments, competitor evidence, market signals, opportunities, and reviews.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/market-intelligence/segments:
+    get:
+      operationId: listMarketIntelligenceSegments
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createMarketIntelligenceSegment
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/competitors:
+    get:
+      operationId: listMarketIntelligenceCompetitors
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createMarketIntelligenceCompetitor
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/signals:
+    get:
+      operationId: listMarketIntelligenceSignals
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createMarketIntelligenceSignal
+      tags: [Market Intelligence]
+      summary: Record a source-dated market signal with confidence and optional expiry evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/opportunities:
+    get:
+      operationId: listMarketIntelligenceOpportunities
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createMarketIntelligenceOpportunity
+      tags: [Market Intelligence]
+      summary: Score an opportunity using demand, willingness to pay, fit, differentiation, delivery, and compliance evidence.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/opportunities/{opportunityId}:
+    parameters:
+      - in: path
+        name: opportunityId
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getMarketIntelligenceOpportunity
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      operationId: updateMarketIntelligenceOpportunity
+      tags: [Market Intelligence]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/market-intelligence/opportunities/{opportunityId}/reviews:
+    parameters:
+      - in: path
+        name: opportunityId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: reviewMarketIntelligenceOpportunity
+      tags: [Market Intelligence]
+      summary: Record a prioritize, validate, watch, hold, or reject decision with rationale and evidence snapshot.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/prompt-library/catalog:
+    get:
+      operationId: listPromptLibraryCatalog
+      tags: [Prompt Library]
+      summary: List original public SONARA prompt templates.
+      parameters:
+        - { in: query, name: product, schema: { type: string, enum: [business_builder, creator_studio, growth_studio] } }
+        - { in: query, name: category, schema: { type: string } }
+        - { in: query, name: q, schema: { type: string } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/prompt-library/discovery:
+    get:
+      operationId: getPromptLibraryDiscovery
+      tags: [Prompt Library]
+      summary: Return portable prompt-library capability and route metadata.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /api/prompt-library/render:
+    post:
+      operationId: renderBuiltinPromptTemplate
+      tags: [Prompt Library]
+      summary: Render one original built-in prompt template without calling an AI provider or saving a record.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, values]
+              properties:
+                slug: { type: string, maxLength: 120 }
+                values: { type: object, additionalProperties: { type: string, maxLength: 6000 } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/prompt-library/templates:
+    get:
+      operationId: listOrganizationPromptTemplates
+      tags: [Prompt Library]
+      summary: List organization-scoped saved prompt templates for one product workspace.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: query, name: product, required: true, schema: { type: string, enum: [business_builder, creator_studio, growth_studio] } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    post:
+      operationId: createOrganizationPromptTemplate
+      tags: [Prompt Library]
+      summary: Validate and save an organization-scoped prompt template.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productArea, title, content]
+              properties:
+                productArea: { type: string, enum: [business_builder, creator_studio, growth_studio] }
+                title: { type: string, maxLength: 160 }
+                slug: { type: string, maxLength: 120 }
+                description: { type: string, maxLength: 1000 }
+                content: { type: string, maxLength: 24000 }
+                promptType: { type: string, enum: [text, image, video, audio, structured, skill, workflow] }
+                visibility: { type: string, enum: [private, organization, public] }
+                status: { type: string, enum: [draft, review_required, published, archived, blocked] }
+                tags: { type: array, maxItems: 20, items: { type: string, maxLength: 160 } }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/prompt-library/templates/{id}/versions:
+    post:
+      operationId: createPromptTemplateVersion
+      tags: [Prompt Library]
+      summary: Atomically create a version and update the current template.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/prompt-library/runs:
+    post:
+      operationId: prepareAndSavePromptRun
+      tags: [Prompt Library]
+      summary: Render and save a prepared prompt run without claiming an AI provider was called.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/prompt-library/collections:
+    get:
+      operationId: listPromptCollections
+      tags: [Prompt Library]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    post:
+      operationId: createPromptCollection
+      tags: [Prompt Library]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /api/prompt-library/collections/{id}/items:
+    post:
+      operationId: addPromptTemplateToCollection
+      tags: [Prompt Library]
+      summary: Add an organization prompt template to a collection in a product workspace.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [productArea, templateId]
+              properties:
+                productArea: { type: string, enum: [business_builder, creator_studio, growth_studio] }
+                templateId: { type: string, format: uuid }
+                order: { type: integer, minimum: 0, maximum: 999 }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/prompt-library/connections:
+    post:
+      operationId: connectPromptTemplates
+      tags: [Prompt Library]
+      summary: Connect two organization templates into an ordered workflow edge.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+  /api/admin/prompt-library/readiness:
+    get:
+      operationId: getAdminPromptLibraryReadiness
+      tags: [Administration, Prompt Library]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+  /api/admin/prompt-library/import-review:
+    post:
+      operationId: reviewPromptImportBatch
+      tags: [Administration, Prompt Library]
+      summary: Review provenance, license, size, and sampled safety before any import.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
 components:
   securitySchemes:
     bearerAuth:

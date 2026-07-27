@@ -29,6 +29,23 @@ export type OpenSourceToolRecord = {
 
 export const openSourceTools: OpenSourceToolRecord[] = [
   {
+    name: "prompts.chat",
+    slug: "prompts-chat-library",
+    category: ["prompt library", "prompt engineering", "self-hosted knowledge library", "MCP research"],
+    useCase: ["prompt catalog architecture", "version history", "collections", "workflow connections", "model compatibility metadata", "reviewed CC0 prompt imports"],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
+    license: "MIT for source code and site-authored content; CC0-1.0 for prompt content and data.",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: ["use original SONARA implementation", "keep one SONARA login and Supabase tenant model", "preserve provenance and license per imported record", "keep remote MCP and prompt fetching disabled by default"],
+    officialUrl: "https://prompts.chat",
+    repoUrl: "https://github.com/f/prompts.chat",
+    notes: "Pinned at a779dadd30bd967bbf1b2e3441ea706a3db1e20f. SONARA adopts product patterns and an optional moderated CC0 import path; the upstream Next.js application is not installed or cloned.",
+    safetyBoundaries: ["no duplicate authentication stack", "no upstream customer-data flow", "no remote telemetry", "no unreviewed prompt imports", "no credential-collection prompts", "no safety-bypass prompts", "organization-scoped RLS"],
+    humanReviewRequired: true,
+  },
+  {
     name: "X/Twitter Recommendation Algorithm",
     slug: "x-twitter-recommendation-algorithm",
     category: [
@@ -687,6 +704,54 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     notes: "Claude Code is explicitly classified as development-only and has no production enable flag or server invocation.",
     safetyBoundaries: ["no customer input", "no production process", "restricted egress", "no permission bypass"],
     blockedUses: ["production agent execution", "permission bypass with untrusted repositories"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "OBLITERATUS",
+    slug: "obliteratus-quarantined-safety-reference",
+    category: ["model safety research", "mechanistic interpretability", "refusal robustness", "high-risk model modification"],
+    useCase: [
+      "defensive refusal-integrity test design",
+      "alignment-regression review",
+      "model artifact provenance and license review",
+      "telemetry and data-egress risk review",
+      "human-reviewed AI safety governance"
+    ],
+    productFit: ["Research Lab", "Admin Command Center", "AI Safety Review", "System Design Intelligence"],
+    license: "AGPL-3.0 upstream with a stated commercial-license option; legal review required before any code use.",
+    licenseRisk: "critical",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "reference-only safety research",
+      "do not install or execute upstream code",
+      "do not modify or export model weights",
+      "do not enable telemetry or Hugging Face uploads",
+      "use SONARA's local defensive policy engine only"
+    ],
+    officialUrl: "https://github.com/elder-plinius/OBLITERATUS",
+    repoUrl: "https://github.com/elder-plinius/OBLITERATUS",
+    notes: "Pinned as a quarantined reference at a5a1ffa5849b442cf188b3c03fd4de71ddf5bdcc. SONARA does not copy, install, run, host, or expose its refusal-removal pipeline. The integration is an original local policy layer for defensive safety review only.",
+    safetyBoundaries: [
+      "admin-only visibility",
+      "no customer prompts or outputs",
+      "no production secrets or credentials",
+      "no model weight changes",
+      "no model exports or publishing",
+      "no telemetry",
+      "no autonomous GPU or shell jobs",
+      "legal and AI-safety review required"
+    ],
+    blockedUses: [
+      "refusal removal",
+      "guardrail weakening",
+      "uncensored customer models",
+      "abliteration or obliteration execution",
+      "modified-model hosting",
+      "Hugging Face push or export",
+      "production runtime integration",
+      "customer-facing access"
+    ],
     humanReviewRequired: true,
   },
   {

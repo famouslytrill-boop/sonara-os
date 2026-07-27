@@ -9,7 +9,9 @@ const migrationsDirectory = path.join(root, "supabase", "migrations");
 const contractMigrationName = "20260722170000_complete_ecosystem_database_contract.sql";
 const referenceContractExtensionName = "20260722201600_extend_database_contract_reference_intelligence.sql";
 const productLifecycleMigrationName = "20260723193000_product_lifecycle_system.sql";
+const marketIntelligenceMigrationName = "20260725120000_market_intelligence_system.sql";
 const promptLibraryMigrationName = "20260726163000_sonara_prompt_library.sql";
+const promptLibrarySecurityMigrationName = "20260726194500_prompt_library_production_boundaries.sql";
 const operationalIndexMigrationName = "20260718193000_operational_query_index_contract.sql";
 const businessControlMigrationNames = [
   "20260723060000_business_builder_control_plane.sql",
@@ -17,6 +19,9 @@ const businessControlMigrationNames = [
 ];
 const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
+];
+const growthStudioMigrationNames = [
+  "20260723120000_growth_studio_control_plane.sql"
 ];
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
@@ -32,6 +37,18 @@ const CREATOR_GENERATION_TABLES = Object.freeze([
   "creator_reference_analyses",
   "creator_generation_events"
 ]);
+const GROWTH_STUDIO_TABLES = Object.freeze([
+  "growth_provider_connections",
+  "growth_audience_segments",
+  "growth_contact_consents",
+  "growth_touchpoints",
+  "growth_conversions",
+  "growth_content_queue",
+  "growth_provider_jobs",
+  "growth_metric_snapshots",
+  "growth_experiment_variants",
+  "growth_control_events"
+]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",
   "product_lifecycle_evidence",
@@ -40,6 +57,14 @@ const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_feedback",
   "product_lifecycle_stage_reviews",
   "product_lifecycle_events"
+]);
+const MARKET_INTELLIGENCE_TABLES = Object.freeze([
+  "market_intelligence_segments",
+  "market_intelligence_competitors",
+  "market_intelligence_signals",
+  "market_intelligence_opportunities",
+  "market_intelligence_reviews",
+  "market_intelligence_events"
 ]);
 const PROMPT_LIBRARY_TABLES = Object.freeze([
   "sonara_prompt_templates",
@@ -56,7 +81,9 @@ const PROMPT_LIBRARY_TABLES = Object.freeze([
 const contractMigrationPath = path.join(migrationsDirectory, contractMigrationName);
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
+const marketIntelligenceMigrationPath = path.join(migrationsDirectory, marketIntelligenceMigrationName);
 const promptLibraryMigrationPath = path.join(migrationsDirectory, promptLibraryMigrationName);
+const promptLibrarySecurityMigrationPath = path.join(migrationsDirectory, promptLibrarySecurityMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
 const {
   DATABASE_FUNCTIONS,
@@ -92,20 +119,23 @@ const migrationFiles = fs.readdirSync(migrationsDirectory)
   .filter((name) => name.endsWith(".sql"))
   .sort();
 const allSql = migrationFiles.map((name) => read(path.join(migrationsDirectory, name))).join("\n").toLowerCase();
-const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, promptLibraryMigrationPath]
+const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath]
   .map(read)
   .join("\n")
   .toLowerCase();
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
+const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
-const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();
+const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
+const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\n").toLowerCase().replace(/\s+/g, " ").trim();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
 const mcp = JSON.parse(mcpText);
 
 if (DATABASE_TABLES.length !== new Set(DATABASE_TABLES).size) fail("the canonical table list contains duplicates");
+// Historical baseline: expected 135 canonical tables before Prompt Library added 10 organization-scoped tables.
 if (DATABASE_TABLES.length !== 145) fail(`expected 145 canonical tables, found ${DATABASE_TABLES.length}`);
 if (Object.values(DATABASE_TABLE_GROUPS).flat().length !== DATABASE_TABLES.length) fail("a table appears in more than one contract group");
 if (DATABASE_FUNCTIONS.length !== 11) fail(`expected 11 contract functions, found ${DATABASE_FUNCTIONS.length}`);
@@ -155,6 +185,28 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerati
   fail("Creator Studio generation tables must not persist provider credentials");
 }
 
+verifyExtension(GROWTH_STUDIO_TABLES, growthStudioSql, "Growth Studio");
+for (const required of [
+  "public.sonara_is_org_member(organization_id)",
+  "auth.role() = ''service_role''",
+  "credential_reference text",
+  "revoke select (credential_reference) on public.growth_provider_connections from anon, authenticated",
+  "purpose- and channel-specific consent evidence",
+  "attribution_model text not null",
+  "attribution_confidence text not null",
+  "sampled boolean not null default false",
+  "approval_required boolean not null default false",
+  "human-approved content scheduling",
+  "revoke insert, update, delete on public.growth_provider_jobs from anon, authenticated",
+  "revoke insert, update, delete on public.growth_control_events from anon, authenticated",
+  "notify pgrst, 'reload schema'"
+]) {
+  if (!growthStudioSql.includes(required)) fail(`Growth Studio extension is missing: ${required}`);
+}
+if (/api_keys+text|secret_keys+text|access_tokens+text|refresh_tokens+text/i.test(growthStudioSql)) {
+  fail("Growth Studio tables must not persist provider credentials");
+}
+
 verifyExtension(PRODUCT_LIFECYCLE_TABLES, productLifecycleSql, "Product lifecycle");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -170,6 +222,24 @@ for (const required of [
   if (!productLifecycleSql.includes(required)) fail(`Product lifecycle extension is missing: ${required}`);
 }
 
+verifyExtension(MARKET_INTELLIGENCE_TABLES, marketIntelligenceSql, "Market intelligence");
+for (const required of [
+  "public.sonara_is_org_member(organization_id)",
+  "auth.role() = ''service_role''",
+  "source_url text not null check (source_url ~ '^https://')",
+  "product_lifecycle_initiative_id uuid references public.product_lifecycle_initiatives(id)",
+  "market_opportunity_id uuid references public.market_intelligence_opportunities(id)",
+  "revoke insert, update, delete on public.market_intelligence_segments from anon, authenticated",
+  "revoke insert, update, delete on public.market_intelligence_competitors from anon, authenticated",
+  "revoke insert, update, delete on public.market_intelligence_signals from anon, authenticated",
+  "revoke insert, update, delete on public.market_intelligence_opportunities from anon, authenticated",
+  "revoke insert, update, delete on public.market_intelligence_reviews from anon, authenticated",
+  "revoke insert, update, delete on public.market_intelligence_events from anon, authenticated",
+  "notify pgrst, 'reload schema'"
+]) {
+  if (!marketIntelligenceSql.includes(required)) fail(`Market intelligence extension is missing: ${required}`);
+}
+
 verifyExtension(PROMPT_LIBRARY_TABLES, promptLibrarySql, "Prompt Library");
 for (const required of [
   "public.is_org_member(organization_id)",
@@ -177,8 +247,12 @@ for (const required of [
   "public.is_org_owner_or_admin(organization_id)",
   "auth.role() = ''service_role''",
   "create or replace function public.create_sonara_prompt_version",
-  "revoke all on function public.create_sonara_prompt_version(uuid,text,text,text,text) from public, anon",
-  "grant execute on function public.create_sonara_prompt_version(uuid,text,text,text,text) to authenticated, service_role"
+  "revoke all on function public.create_sonara_prompt_version(uuid,text,text,text,text) from public, anon, authenticated",
+  "grant execute on function public.create_sonara_prompt_version(uuid,text,text,text,text) to service_role",
+  "grant select, insert, update, delete on table public.%i to service_role",
+  "input_schema = v_input_schema",
+  "members read visible prompt templates",
+  "members read visible prompt collections"
 ]) {
   if (!promptLibrarySql.includes(required)) fail(`Prompt Library extension is missing: ${required}`);
 }
@@ -203,7 +277,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -270,7 +344,7 @@ if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
 }
 

@@ -141,9 +141,9 @@ module.exports = function registerSonaraDatabaseManagementRoutes(app, deps = {})
     });
   });
 
-  app.get("/admin/database-management", requireAdmin, async (req, res) => {
+  const databaseManagementPage = async (req, res, sectionOverride = null) => {
     const result = await getSnapshot();
-    const requestedSection = normalizeSection(req.query.section);
+    const requestedSection = normalizeSection(sectionOverride || req.query.section);
     const activeSection = requestedSection || "schema-visualizer";
 
     await recordAdminAuditEvent(req, "admin.database_management.dashboard", {
@@ -153,7 +153,7 @@ module.exports = function registerSonaraDatabaseManagementRoutes(app, deps = {})
     });
 
     if (!result.ok) {
-      return res.status(result.status).type("html").send(layout({
+      return res.status(200).type("html").send(layout({
         title: "Database Management",
         eyebrow: "Founder operations",
         heading: "Database Management needs setup",
@@ -192,19 +192,10 @@ module.exports = function registerSonaraDatabaseManagementRoutes(app, deps = {})
         linkAction("/admin", "Founder operations")
       ]
     }));
-  });
+  };
 
-  app.get("/admin/database", requireAdmin, (req, res) => {
-    const section = normalizeSection(req.query.section);
-    const destination = section
-      ? `/admin/database-management?section=${encodeURIComponent(section)}`
-      : "/admin/database-management";
-    return res.redirect(302, destination);
-  });
-
-  app.get("/admin/migrations", requireAdmin, (req, res) => {
-    return res.redirect(302, "/admin/database-management?section=migrations");
-  });
+  app.locals.sonaraDatabaseManagementPage = databaseManagementPage;
+  app.get("/admin/database-management", requireAdmin, (req, res) => databaseManagementPage(req, res));
 };
 
 function normalizeSection(value) {

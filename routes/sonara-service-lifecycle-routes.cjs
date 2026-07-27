@@ -6,6 +6,7 @@
 
 const { randomUUID } = require("node:crypto");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
+const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
 
 const PRODUCTS = [
   { slug: "business-builder", productKey: "business_builder", name: "Business Builder" },
@@ -28,7 +29,7 @@ const SERVICE_LIFECYCLE_STATUSES = [
 const SERVICE_REQUEST_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 const DELIVERABLE_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 
-const DEFAULT_SERVICE_CATALOG = [
+const LEGACY_DEFAULT_SERVICE_CATALOG = [
   { slug: "launch-offer-builder", productKey: "business_builder", name: "Launch Offer Builder", summary: "Operator-built launch offer: positioning, package structure, and pricing from your real inputs.", tier: "paid", inputs: "Service type, audience, price idea, proof points", turnaround: "3-5 business days", deliverableType: "Offer document and workspace records", priceNote: "Scoped after intake review." },
   { slug: "customer-intake-setup", productKey: "business_builder", name: "Customer Intake Setup", summary: "Working customer intake path with request records, confirmation email, and review queue.", tier: "paid", inputs: "Business profile, services offered, contact address", turnaround: "3-5 business days", deliverableType: "Configured intake workflow", priceNote: "Requires account database setup." },
   { slug: "payment-readiness-review", productKey: "business_builder", name: "Payment Readiness Review", summary: "Checkout, webhook, and plan configuration reviewed end to end with an action list.", tier: "paid", inputs: "Stripe account state, plan structure", turnaround: "2-3 business days", deliverableType: "Readiness report with fixes", priceNote: "Scoped after intake review." },
@@ -40,12 +41,31 @@ const DEFAULT_SERVICE_CATALOG = [
   { slug: "consent-safe-outreach-checklist", productKey: "growth_studio", name: "Consent-Safe Outreach Checklist", summary: "Outreach reviewed against consent, sender truthfulness, and opt-out requirements.", tier: "free", inputs: "Audience source, message drafts", turnaround: "Immediate output; review in 2 days", deliverableType: "Reviewed checklist", priceNote: "Free tool; operator review is paid." }
 ];
 
+const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DEFAULT_SERVICE_CATALOG];
+
 function catalogCardBody(item) {
   const parts = [item.summary];
+  if (item.customerOutcome) parts.push(`Outcome: ${item.customerOutcome}`);
   if (item.inputs) parts.push(`Inputs: ${item.inputs}.`);
   if (item.turnaround) parts.push(`Turnaround: ${item.turnaround}.`);
   if (item.deliverableType) parts.push(`Deliverable: ${item.deliverableType}.`);
-  parts.push(`Access: ${item.tier === "free" ? "Free tool" : "Paid service"}. Pricing: ${item.priceNote}`);
+  if (item.lifecycleStatus) parts.push(`Availability: ${String(item.lifecycleStatus).replace(/_/g, " ")}.`);
+  if (item.planFloor) parts.push(`Plan floor: ${item.planFloor}.`);
+  else parts.push(`Access: ${item.tier === "free" ? "Free tool" : "Paid service"}.`);
+  if (item.serviceKey) {
+    const lifecycleRestricted = ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
+    const paidVerificationRequired = item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
+    if (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired) {
+      parts.push("Execution: enabled with server-side access checks.");
+    } else if (lifecycleRestricted) {
+      parts.push("Execution: restricted until lifecycle evidence and launch approval are complete.");
+    } else if (paidVerificationRequired) {
+      parts.push("Execution: restricted until a production paid-entitlement test passes.");
+    } else {
+      parts.push("Execution: restricted until setup and production verification are complete.");
+    }
+  }
+  if (item.priceNote) parts.push(`Pricing: ${item.priceNote}`);
   return parts.join(" ");
 }
 
@@ -87,6 +107,75 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     isUuid,
     splitList
   } = deps;
+
+  function catalogActions(item, product) {
+    const governedProduct = Boolean(item.serviceKey);
+    const lifecycleRestricted = governedProduct && ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
+    const paidVerificationRequired = governedProduct && item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
+    const canOpen = !governedProduct || (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired);
+    const requestLabel = lifecycleRestricted
+      ? "Request validation discussion"
+      : paidVerificationRequired
+        ? "Request access verification"
+        : "Request this service";
+    const actions = [linkAction("/requests", requestLabel)];
+    if (canOpen) {
+      const detailPath = item.route || (product ? `/${product.slug}` : "/start");
+      actions.push(linkAction(detailPath, governedProduct && item.planFloor !== "free" ? "Open gated product" : product ? product.name : "Open product"));
+    } else {
+      actions.push(linkAction("/product-lifecycle", "Review lifecycle process"));
+    }
+    return actions;
+  }
+
+  function catalogDirectorySections(items, resolveProduct) {
+    const groups = new Map();
+    for (const item of items) {
+      let product = null;
+      try {
+        product = resolveProduct(item) || null;
+      } catch (_) {
+        product = null;
+      }
+      const groupName = product?.name || (item?.productKey === "sonara_industries" ? "SONARA Industries" : displayStatus(item?.productKey || "Services"));
+      if (!groups.has(groupName)) groups.set(groupName, []);
+      groups.get(groupName).push({ item: item || {}, product });
+    }
+    return [...groups.entries()].map(([groupName, entries]) => {
+      const rows = entries.map(({ item, product }) => {
+        try {
+          const actions = catalogActions(item, product).join("");
+          return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${escapeHtml(item.name || "Catalog item")}</h3><p>${escapeHtml(catalogCardBody(item))}</p></div><div class="actions">${actions}</div></article>`;
+        } catch (_) {
+          const fallbackName = escapeHtml(item?.name || "Catalog item");
+          const fallbackSummary = escapeHtml(item?.summary || "This catalog entry needs review before it can be opened.");
+          return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${fallbackName}</h3><p>${fallbackSummary}</p></div><div class="actions">${linkAction("/requests", "Request catalog review")}</div></article>`;
+        }
+      }).join("");
+      return `<section class="card catalog-directory"><div class="catalog-directory-heading"><h2>${escapeHtml(groupName)}</h2><p>${entries.length} published product${entries.length === 1 ? "" : "s"}</p></div><div class="catalog-list">${rows}</div></section>`;
+    });
+  }
+
+  function registerCatalogRoute(route, handler) {
+    app.get(route, (req, res, next) => {
+      Promise.resolve(handler(req, res, next)).catch((error) => {
+        if (process.env.NODE_ENV === "test") {
+          console.error("SONARA catalog route failure", route, error?.stack || error?.message || error);
+        }
+        if (res.headersSent) return next(error);
+        return res.status(503).type("html").send(
+          layout({
+            title: "Catalog temporarily unavailable",
+            eyebrow: "Catalog boundary",
+            heading: "Catalog temporarily unavailable",
+            body: "The catalog could not be rendered safely. No purchase or access state was changed.",
+            sections: [brandCard("Setup required", "Use the request center while catalog rendering is restored.")],
+            actions: [linkAction("/requests", "Request assistance"), linkAction("/", "Home")]
+          })
+        );
+      });
+    });
+  }
 
   function productByKey(productKey) {
     return PRODUCTS.find((product) => product.productKey === productKey);
@@ -685,19 +774,43 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     );
   });
 
-  app.get("/service-catalog", async (req, res) => {
-    const rows = await safeListTable("service_catalog_items", "?select=id,product_key,name,summary,price_note,status&status=eq.active&order=name.asc&limit=50");
+  registerCatalogRoute("/service-catalog", async (req, res) => {
+    const rows = await safeListTable("service_catalog_items", "?select=id,service_key,product_key,name,summary,price_note,status,sort_order,product_type,plan_floor,lifecycle_status,route_path,entitlement_integration_verified,execution_enabled,metadata&status=eq.active&order=sort_order.asc,name.asc&limit=100");
     const usingDatabase = rows.ok && rows.rows.length > 0;
-    const items = usingDatabase
-      ? rows.rows.map((row) => ({ productKey: row.product_key, name: row.name, summary: row.summary, tier: "paid", priceNote: row.price_note || "Scoped after intake review." }))
-      : DEFAULT_SERVICE_CATALOG;
-    const sections = items.map((item) => {
-      const product = productByKey(item.productKey);
-      return actionCard(item.name, catalogCardBody(item), [
-        linkAction("/requests", "Request this service"),
-        product ? linkAction(`/${product.slug}`, product.name) : linkAction("/start", "Start")
-      ]);
-    });
+    const databaseItems = usingDatabase
+      ? rows.rows.map((row) => {
+          const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+          return {
+            serviceKey: row.service_key,
+            productKey: row.product_key,
+            productType: row.product_type,
+            name: row.name,
+            summary: row.summary,
+            customerOutcome: metadata.customerOutcome,
+            dependencies: Array.isArray(metadata.dependencies) ? metadata.dependencies : [],
+            safetyBoundary: metadata.safetyBoundary,
+            tier: row.plan_floor === "free" ? "free" : "paid",
+            planFloor: row.plan_floor,
+            lifecycleStatus: row.lifecycle_status,
+            route: row.route_path,
+            entitlementIntegrationVerified: row.entitlement_integration_verified === true,
+            executionEnabled: row.execution_enabled === true,
+            deliverableType: row.product_type === "software_product" ? "Software product capability and governed workflow" : "Done-for-you service",
+            priceNote: row.price_note || "Scoped after intake review.",
+            sortOrder: Number(row.sort_order || 100)
+          };
+        })
+      : [];
+    const mergedCatalog = new Map();
+    for (const item of DEFAULT_SERVICE_CATALOG) {
+      mergedCatalog.set(`${item.productKey}:${String(item.serviceKey || item.name).toLowerCase()}`, item);
+    }
+    for (const item of databaseItems) {
+      const key = `${item.productKey}:${String(item.serviceKey || item.name).toLowerCase()}`;
+      mergedCatalog.set(key, { ...(mergedCatalog.get(key) || {}), ...item });
+    }
+    const items = [...mergedCatalog.values()].sort((left, right) => Number(left.sortOrder || 100) - Number(right.sortOrder || 100) || left.name.localeCompare(right.name));
+    const sections = catalogDirectorySections(items, (item) => productByKey(item.productKey));
     if (!usingDatabase) {
       sections.push(
         rows.ok
@@ -707,10 +820,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }
     res.status(200).type("html").send(
       layout({
-        title: "Service catalog",
+        title: "Product and service catalog",
         eyebrow: "Software-in-a-Service",
-        heading: "Service catalog",
-        body: "Done-for-you services across Business Builder, Creator Studio, and Growth Studio. Submit a request and track it from your dashboard.",
+        heading: "Product and service catalog",
+        body: "Published SONARA products, governed capabilities, and done-for-you services across the parent platform, Business Builder, Creator Studio, and Growth Studio. Availability and execution labels distinguish usable workflows from validation, entitlement, and setup boundaries.",
         sections,
         actions: [linkAction("/requests", "My requests"), linkAction("/start", "How it works"), linkAction("/pricing", "Pricing"), linkAction("/contact", "Contact")]
       })
@@ -1016,13 +1129,39 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     });
 
     if (product.slug !== "creator-studio") {
-      app.get(`/${product.slug}/catalog`, async (req, res) => {
-        const rows = await safeListTable("service_catalog_items", `?select=id,product_key,name,summary,price_note,status&status=eq.active&product_key=eq.${encodeURIComponent(product.productKey)}&order=name.asc&limit=50`);
+      registerCatalogRoute(`/${product.slug}/catalog`, async (req, res) => {
+        const rows = await safeListTable("service_catalog_items", `?select=id,service_key,product_key,name,summary,price_note,status,sort_order,product_type,plan_floor,lifecycle_status,route_path,entitlement_integration_verified,execution_enabled,metadata&status=eq.active&product_key=eq.${encodeURIComponent(product.productKey)}&order=sort_order.asc,name.asc&limit=100`);
         const usingDatabase = rows.ok && rows.rows.length > 0;
-        const items = usingDatabase
-          ? rows.rows.map((row) => ({ name: row.name, summary: row.summary, tier: "paid", priceNote: row.price_note || "Scoped after intake review." }))
-          : DEFAULT_SERVICE_CATALOG.filter((item) => item.productKey === product.productKey);
-        const sections = items.map((item) => actionCard(item.name, catalogCardBody(item), [linkAction("/requests", "Request this service")]));
+        const productCatalogItems = new Map();
+        for (const item of DEFAULT_SERVICE_CATALOG.filter((entry) => entry.productKey === product.productKey)) {
+          productCatalogItems.set(String(item.serviceKey || item.name).toLowerCase(), item);
+        }
+        if (usingDatabase) {
+          for (const row of rows.rows) {
+            const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+            const item = {
+              serviceKey: row.service_key,
+              productKey: row.product_key,
+              productType: row.product_type,
+              name: row.name,
+              summary: row.summary,
+              customerOutcome: metadata.customerOutcome,
+              tier: row.plan_floor === "free" ? "free" : "paid",
+              planFloor: row.plan_floor,
+              lifecycleStatus: row.lifecycle_status,
+              route: row.route_path,
+              entitlementIntegrationVerified: row.entitlement_integration_verified === true,
+              executionEnabled: row.execution_enabled === true,
+              deliverableType: row.product_type === "software_product" ? "Software product capability and governed workflow" : "Done-for-you service",
+              priceNote: row.price_note || "Scoped after intake review.",
+              sortOrder: Number(row.sort_order || 100)
+            };
+            const key = String(item.serviceKey || item.name).toLowerCase();
+            productCatalogItems.set(key, { ...(productCatalogItems.get(key) || {}), ...item });
+          }
+        }
+        const items = [...productCatalogItems.values()].sort((left, right) => Number(left.sortOrder || 100) - Number(right.sortOrder || 100) || left.name.localeCompare(right.name));
+        const sections = catalogDirectorySections(items, () => product);
         if (!usingDatabase) {
           sections.push(brandCard("Catalog records", rows.ok ? "No catalog records are published in the account database yet, so the standard catalog is shown." : "Setup required: the service_catalog_items table is not available yet, so the standard catalog is shown."));
         }
@@ -1031,7 +1170,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             title: `${product.name} Catalog`,
             eyebrow: "Service catalog",
             heading: `${product.name} catalog`,
-            body: `Done-for-you ${product.name} services. Submit a request and track it with a reference ID.`,
+            body: `Published ${product.name} products and services. Direct execution remains unavailable until lifecycle and entitlement verification pass.`, 
             sections,
             actions: [linkAction("/service-catalog", "Full catalog"), linkAction("/requests", "My requests"), linkAction(`/${product.slug}`, product.name)]
           })

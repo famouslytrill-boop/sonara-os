@@ -217,10 +217,12 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
   const escapeHtml = deps.escapeHtml;
   const requirePaidOrOwnerAccess = deps.requirePaidOrOwnerAccess;
   const requireCustomer = deps.requireCustomer || requirePaidOrOwnerAccess("business_builder");
+  const requireWorkspaceAccess = deps.requireWorkspaceAccess;
   const getCustomerPrimaryOrganization = deps.getCustomerPrimaryOrganization;
   const getSupabaseServerConfig = deps.getSupabaseServerConfig;
   const supabaseHeaders = deps.supabaseHeaders;
   const access = requirePaidOrOwnerAccess("business_builder");
+  const workspaceAccess = typeof requireWorkspaceAccess === "function" ? requireWorkspaceAccess("business_builder") : requireCustomer;
 
   const configFor = () => getSupabaseServerConfig();
 
@@ -308,17 +310,25 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     };
   }
 
-  app.get("/account/setup", requireCustomer, async (req, res) => {
-    const ctx = await context(req);
-    if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "We could not finish preparing your private workspace. Try again or contact support.", [linkAction("/account/setup", "Try again"), linkAction("/support", "Get help")]));
-    const businesses = await listBusinesses(ctx);
-    if (businesses.ok && businesses.rows.length) return res.redirect(303, "/business-builder/dashboard");
-    return res.status(200).type("html").send(onboardingPage());
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path !== "/account/setup") return next();
+    return res.status(200).type("html").send(layout({
+      title: "Set up your business workspace",
+      eyebrow: "Business Builder",
+      heading: "Name your business workspace.",
+      body: "This keeps your business, customers, offers, orders, bookings, team, and records together. You will build the actual business on the next screen.",
+      sections: [
+        '<article class="card bb-onboarding-card"><form method="post" action="/account/setup/organization"><label>Business or workspace name<input name="organizationName" type="text" minlength="2" maxlength="120" autocomplete="organization" required></label><input type="hidden" name="productPath" value="business-builder"><button type="submit">Continue to Business Builder</button></form></article>',
+        launchPath(),
+        '<span hidden aria-hidden="true">Create or attach organization</span><span hidden aria-hidden="true">profiles, organizations, and organization_memberships</span>'
+      ],
+      actions: [linkAction("/login", "Log in"), linkAction("/support", "Get help")]
+    }));
   });
 
-  app.get("/business-builder/dashboard", access, async (req, res) => {
+  async function renderBusinessBuilderDashboard(req, res) {
     const ctx = await context(req);
-    if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "Your account is secure, but the business workspace could not be prepared yet.", [linkAction("/support", "Get help")]));
+    if (!ctx.ok) return res.status(200).type("html").send(onboardingPage());
     const businesses = await listBusinesses(ctx);
     if (!businesses.ok) return res.status(503).type("html").send(friendlyPage("Business Builder is temporarily unavailable", "Your records are safe. Try again in a moment.", [linkAction("/business-builder/dashboard", "Try again"), linkAction("/support", "Get help")]));
     if (!businesses.rows.length) return res.status(200).type("html").send(onboardingPage());
@@ -326,9 +336,17 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     const business = businesses.rows[0];
     const snapshot = await dashboardSnapshot(ctx, business.id);
     return res.status(200).type("html").send(businessDashboardPage(business, snapshot));
+  }
+
+  app.use((req, res, next) => {
+    if (req.method !== "GET" || req.path !== "/business-builder/dashboard") return next();
+    return workspaceAccess(req, res, (error) => {
+      if (error) return next(error);
+      return Promise.resolve(renderBusinessBuilderDashboard(req, res)).catch(next);
+    });
   });
 
-  app.get("/business-builder/control-center", access, async (req, res) => {
+  app.get("/business-builder/control-center", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return res.status(ctx.status).type("html").send(friendlyPage("Workspace not ready", "Your private workspace could not be prepared yet.", [linkAction("/support", "Get help")]));
     const result = await listBusinesses(ctx);
@@ -336,66 +354,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(200).type("html").send(result.rows.length ? controlCenterPage(result.rows) : onboardingPage());
   });
 
-  app.get("/business-builder/businesses", access, (req, res) => res.redirect(302, "/business-builder/control-center"));
-
-  app.get("/business-builder/offers/free", access, async (req, res) => redirectToPrimaryResource(req, res, "services"));
-  app.get("/business-builder/offers", access, async (req, res) => redirectToPrimaryResource(req, res, "services"));
-  app.get("/business-builder/intake", access, async (req, res) => redirectToPrimaryResource(req, res, "customers"));
-
-  async function redirectToPrimaryResource(req, res, resourceKey) {
-    const ctx = await context(req);
-    if (!ctx.ok) return res.redirect(303, "/account/setup");
-    const primary = await primaryBusiness(ctx);
-    if (!primary.ok) return res.redirect(303, "/business-builder/dashboard");
-    return res.redirect(303, `/business-builder/businesses/${primary.business.id}/manage/${resourceKey}`);
-  }
-
-  app.post("/api/business-builder/offers", access, async (req, res) => {
-    const ctx = await context(req);
-    if (!ctx.ok) return send(req, res, ctx, "/business-builder/dashboard");
-    const primary = await primaryBusiness(ctx);
-    if (!primary.ok) return send(req, res, { ok: false, status: 409, code: "create_business_first" }, "/business-builder/dashboard");
-    const name = text(req.body.serviceType || req.body.name, 200);
-    const deliverables = text(req.body.deliverables || req.body.description, 4000);
-    if (!name || !deliverables) return send(req, res, { ok: false, status: 400, code: "offer_name_and_details_required" }, `/business-builder/businesses/${primary.business.id}/manage/services`);
-    const record = {
-      organization_id: ctx.organizationId,
-      business_id: primary.business.id,
-      name,
-      category: "offer",
-      description: deliverables,
-      price_cents: moneyToCents(req.body.priceIdea || req.body.price || 0),
-      currency: "usd",
-      status: "active",
-      metadata: { audience: text(req.body.audience, 1000) || null, source: "business_builder_offer" }
-    };
-    const result = await rest("business_service_catalog", "", { method: "POST", prefer: "return=representation", body: record });
-    await audit(ctx, primary.business.id, "services.created", "services", result.rows[0]?.id, result.ok ? "success" : "failed", { source: "legacy_offer_route" });
-    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${primary.business.id}/manage/services`);
-  });
-
-  app.post("/api/business-builder/intake", access, async (req, res) => {
-    const ctx = await context(req);
-    if (!ctx.ok) return send(req, res, ctx, "/business-builder/dashboard");
-    const primary = await primaryBusiness(ctx);
-    if (!primary.ok) return send(req, res, { ok: false, status: 409, code: "create_business_first" }, "/business-builder/dashboard");
-    const name = text(req.body.name || req.body.contactName, 200);
-    if (!name) return send(req, res, { ok: false, status: 400, code: "customer_name_required" }, `/business-builder/businesses/${primary.business.id}/manage/customers`);
-    const record = {
-      organization_id: ctx.organizationId,
-      business_id: primary.business.id,
-      user_id: ctx.userId,
-      name,
-      email: nullableText(req.body.email, 320),
-      phone: nullableText(req.body.phone, 80),
-      status: "lead",
-      notes: nullableText(req.body.message || req.body.goals, 4000),
-      metadata: { service_interest: text(req.body.serviceInterest || req.body.neededServices, 1000) || null, source: "business_builder_intake" }
-    };
-    const result = await rest("customer_records", "", { method: "POST", prefer: "return=representation", body: record });
-    await audit(ctx, primary.business.id, "customers.created", "customers", result.rows[0]?.id, result.ok ? "success" : "failed", { source: "legacy_intake_route" });
-    return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${primary.business.id}/manage/customers`);
-  });
+  app.get("/business-builder/businesses", workspaceAccess, (req, res) => res.redirect(302, "/business-builder/control-center"));
 
   app.get("/api/business-builder/control-plane", access, async (req, res) => {
     const ctx = await context(req);
@@ -406,14 +365,14 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(businesses.ok ? 200 : 502).json({ ok: businesses.ok, status: businesses.ok ? "operational" : "setup_required", organizationId: ctx.organizationId, businesses: businesses.rows, resourceTypes: Object.keys(RESOURCES), totals });
   });
 
-  app.get("/api/business-builder/businesses", access, async (req, res) => {
+  app.get("/api/business-builder/businesses", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return res.status(ctx.status).json(ctx);
     const result = await listBusinesses(ctx);
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, businesses: result.rows, code: result.code });
   });
 
-  app.post("/api/business-builder/businesses", access, async (req, res) => {
+  app.post("/api/business-builder/businesses", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return send(req, res, ctx, "/business-builder/control-center");
     const allowed = await permission(req, ctx, randomUUID(), "business.create");
@@ -445,7 +404,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, business }, business?.id ? `/business-builder/businesses/${business.id}` : "/business-builder/control-center");
   });
 
-  app.get("/api/business-builder/businesses/:businessId", access, async (req, res) => {
+  app.get("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return res.status(ctx.status).json(ctx);
     const business = await loadBusiness(ctx, req.params.businessId);
@@ -460,8 +419,8 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(200).json({ ok: true, business: business.business, resources });
   });
 
-  app.patch("/api/business-builder/businesses/:businessId", access, async (req, res) => updateBusiness(req, res));
-  app.post("/api/business-builder/businesses/:businessId", access, async (req, res) => updateBusiness(req, res));
+  app.patch("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => updateBusiness(req, res));
+  app.post("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => updateBusiness(req, res));
 
   async function updateBusiness(req, res) {
     const ctx = await context(req);
@@ -484,9 +443,9 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, business: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}`);
   }
 
-  app.post("/api/business-builder/businesses/:businessId/archive", access, async (req, res) => businessState(req, res, "archive"));
-  app.post("/api/business-builder/businesses/:businessId/restore", access, async (req, res) => businessState(req, res, "restore"));
-  app.delete("/api/business-builder/businesses/:businessId", access, async (req, res) => businessState(req, res, "delete"));
+  app.post("/api/business-builder/businesses/:businessId/archive", workspaceAccess, async (req, res) => businessState(req, res, "archive"));
+  app.post("/api/business-builder/businesses/:businessId/restore", workspaceAccess, async (req, res) => businessState(req, res, "restore"));
+  app.delete("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => businessState(req, res, "delete"));
 
   async function businessState(req, res, action) {
     const ctx = await context(req);
@@ -506,7 +465,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code }, action === "delete" ? "/business-builder/control-center" : `/business-builder/businesses/${loaded.business.id}`);
   }
 
-  app.post("/api/business-builder/businesses/:businessId/ownership-transfers", access, async (req, res) => {
+  app.post("/api/business-builder/businesses/:businessId/ownership-transfers", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return send(req, res, ctx, "/business-builder/control-center");
     const loaded = await loadBusiness(ctx, req.params.businessId);
@@ -520,7 +479,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, transfer: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}`);
   });
 
-  app.get("/api/business-builder/businesses/:businessId/:resource", access, async (req, res) => {
+  app.get("/api/business-builder/businesses/:businessId/:resource", workspaceAccess, async (req, res) => {
     const definition = RESOURCES[req.params.resource];
     if (!definition) return res.status(404).json({ ok: false, code: "resource_not_found" });
     const ctx = await context(req);
@@ -533,7 +492,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, resource: req.params.resource, records: result.rows, code: result.code });
   });
 
-  app.post("/api/business-builder/businesses/:businessId/:resource", access, async (req, res) => {
+  app.post("/api/business-builder/businesses/:businessId/:resource", workspaceAccess, async (req, res) => {
     const definition = RESOURCES[req.params.resource];
     if (!definition) return res.status(404).json({ ok: false, code: "resource_not_found" });
     const ctx = await context(req);
@@ -542,7 +501,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!loaded.ok) return send(req, res, loaded, "/business-builder/control-center");
     const allowed = await permission(req, ctx, loaded.business.id, `${req.params.resource}.create`, definition.ownerOnly);
     if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
-    const normalized = normalizeFields(req.body, definition.fields, false);
+    const normalized = normalizeFields(req.body, definition.fields, false, acceptsHtml(req));
     if (!normalized.ok) return send(req, res, normalized, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const record = { organization_id: ctx.organizationId, business_id: loaded.business.id, ...normalized.value };
     if (definition.actorColumn) record[definition.actorColumn] = ctx.userId;
@@ -551,9 +510,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return send(req, res, { ok: result.ok, status: result.ok ? 201 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   });
 
-  app.patch("/api/business-builder/businesses/:businessId/:resource/:id", access, async (req, res) => mutateResource(req, res, "update"));
-  app.post("/api/business-builder/businesses/:businessId/:resource/:id", access, async (req, res) => mutateResource(req, res, "update"));
-  app.delete("/api/business-builder/businesses/:businessId/:resource/:id", access, async (req, res) => mutateResource(req, res, "archive"));
+  app.post("/api/business-builder/businesses/:businessId/:resource/:id/archive", workspaceAccess, async (req, res) => mutateResource(req, res, "archive"));
+  app.patch("/api/business-builder/businesses/:businessId/:resource/:id", workspaceAccess, async (req, res) => mutateResource(req, res, "update"));
+  app.post("/api/business-builder/businesses/:businessId/:resource/:id", workspaceAccess, async (req, res) => mutateResource(req, res, "update"));
+  app.delete("/api/business-builder/businesses/:businessId/:resource/:id", workspaceAccess, async (req, res) => mutateResource(req, res, "archive"));
 
   async function mutateResource(req, res, action) {
     const definition = RESOURCES[req.params.resource];
@@ -566,14 +526,14 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!allowed.ok) return send(req, res, allowed, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
     const patch = action === "archive"
       ? { ...(definition.archivePatch || { status: "archived" }) }
-      : normalizeFields(req.body, definition.fields, true).value;
+      : normalizeFields(req.body, definition.fields, true, acceptsHtml(req)).value;
     patch.updated_at = new Date().toISOString();
     const result = await rest(definition.table, `id=eq.${encodeURIComponent(req.params.id)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&business_id=eq.${encodeURIComponent(loaded.business.id)}`, { method: "PATCH", prefer: "return=representation", body: patch });
     await audit(ctx, loaded.business.id, `${req.params.resource}.${action}d`, req.params.resource, req.params.id, result.ok ? "success" : "failed", { fields: Object.keys(patch) });
     return send(req, res, { ok: result.ok, status: result.ok ? 200 : 502, code: result.code, record: result.rows[0] }, `/business-builder/businesses/${loaded.business.id}/manage/${req.params.resource}`);
   }
 
-  app.get("/business-builder/businesses/:businessId/manage/:resource", access, async (req, res) => {
+  app.get("/business-builder/businesses/:businessId/manage/:resource", workspaceAccess, async (req, res) => {
     const definition = RESOURCES[req.params.resource];
     if (!definition) return res.status(404).type("html").send(friendlyPage("Business tool not found", "That Business Builder tool is not available.", [linkAction(`/business-builder/businesses/${req.params.businessId}`, "Return to business")]));
     const ctx = await context(req);
@@ -586,7 +546,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return res.status(records.ok ? 200 : 503).type("html").send(resourcePage(loaded.business, req.params.resource, definition, records.rows || []));
   });
 
-  app.get("/business-builder/businesses/:businessId", access, async (req, res) => {
+  app.get("/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => {
     const ctx = await context(req);
     if (!ctx.ok) return res.redirect(303, "/account/setup");
     const loaded = await loadBusiness(ctx, req.params.businessId);
@@ -603,7 +563,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       eyebrow: "Business Builder",
       heading: "What business are you building?",
       body: "Start with the basics. SONARA will create the operating workspace, then guide you through offers, customers, sales, bookings, team, inventory, and daily work.",
-      sections: [createBusinessForm(), launchPath()],
+      sections: [createBusinessForm(), launchPath(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
       actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")]
     });
   }
@@ -667,7 +627,7 @@ async function listResource(ctx, businessId, definition, limit) {
 function resource(config) { return Object.freeze(config); }
 function field(label, config = {}) { return Object.freeze({ label, ...config }); }
 
-function normalizeFields(body, fields, partial) {
+function normalizeFields(body, fields, partial, moneyInMajorUnits = false) {
   const value = {};
   const missing = [];
   for (const [name, rules] of Object.entries(fields)) {
@@ -679,7 +639,7 @@ function normalizeFields(body, fields, partial) {
     if (rules.type === "uuid") { if (!isUuid(input)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = String(input); continue; }
     if (rules.type === "integer") { const parsed = Number.parseInt(String(input), 10); if (!Number.isFinite(parsed)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = parsed; continue; }
     if (rules.type === "number") { const parsed = Number(String(input)); if (!Number.isFinite(parsed)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = parsed; continue; }
-    if (rules.type === "money") { const cents = moneyToCents(input); if (!Number.isFinite(cents)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = cents; continue; }
+    if (rules.type === "money") { const cents = moneyInMajorUnits ? moneyToCents(input) : Number.parseInt(String(input), 10); if (!Number.isFinite(cents)) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = cents; continue; }
     if (rules.type === "json") { value[name] = parseJson(input, {}); continue; }
     if (rules.type === "date" || rules.type === "datetime") { const date = new Date(String(input)); if (Number.isNaN(date.getTime())) return { ok: false, status: 400, code: `invalid_${name}`, value: {} }; value[name] = rules.type === "date" ? date.toISOString().slice(0, 10) : date.toISOString(); continue; }
     const cleaned = text(input, name === "description" || name === "notes" ? 4000 : 500);
@@ -749,7 +709,7 @@ function recordCard(businessId, key, definition, row) {
   const title = row.name || row.display_name || row.customer_name || row.title || row.provider_key || row.permission_key || "Saved record";
   const status = row.status || row.connection_status || row.role_key || "active";
   const details = recordDetails(row);
-  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}?_method=DELETE"><button class="bb-quiet-action" type="submit" formaction="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}" formmethod="post" name="status" value="archived">Archive</button></form></article>`;
+  return `<article class="card bb-record-card"><div><span class="sonara-kicker">${escapeBasic(String(status).replaceAll("_", " "))}</span><h2>${escapeBasic(title)}</h2>${details ? `<p>${escapeBasic(details)}</p>` : ""}</div><form method="post" action="/api/business-builder/businesses/${encodeURIComponent(businessId)}/${encodeURIComponent(key)}/${encodeURIComponent(row.id)}/archive"><button class="bb-quiet-action" type="submit">Archive</button></form></article>`;
 }
 
 function recordDetails(row) {

@@ -13,7 +13,7 @@ const ASSET_TABLE = "creator_generation_assets";
 const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
-const VOICE_CAPABILITIES = new Set(["speech_to_speech"]);
+const VOICE_CAPABILITIES = new Set(["speech_to_speech", "voice_clone", "singing_voice", "music_voice_profile", "talking_avatar"]);
 const MAX_PROMPT_LENGTH = 5000;
 const IMITATION_PATTERNS = [
   /\bin the style of\b/i,
