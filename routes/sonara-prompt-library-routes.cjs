@@ -126,7 +126,9 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
   app.get("/api/prompt-library/templates", selectWorkspace(requireWorkspaceAccess, (req) => req.query.product), async (req, res) => {
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
     if (!context.ok) return res.status(503).json(context);
-    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&select=*&order=updated_at.desc&limit=100`;
+    const visibility = promptVisibilityQuery(req.sonaraUser?.id, true);
+    if (!visibility.ok) return res.status(401).json(visibility);
+    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&${visibility.query}&select=*&order=updated_at.desc&limit=100`;
     const result = await restRequest(context, "sonara_prompt_templates", query);
     return res.status(result.ok ? 200 : 503).json(result.ok ? { ok: true, templates: result.rows } : result);
   });
@@ -172,8 +174,8 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     if (!isUuid(req.params.id)) return res.status(400).json({ ok: false, code: "invalid_template_id" });
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
     if (!context.ok) return res.status(503).json(context);
-    const existing = await getOwnedRecord(context, "sonara_prompt_templates", req.params.id);
-    if (!existing.ok) return res.status(existing.code === "not_found" ? 404 : 503).json(existing);
+    const existing = await getOwnedRecord(context, "sonara_prompt_templates", req.params.id, req.sonaraUser?.id);
+    if (!existing.ok) return res.status(ownedRecordStatus(existing)).json(existing);
     if (existing.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
 
     const validation = validatePromptRecord({
@@ -184,7 +186,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       visibility: existing.row.visibility,
       status: req.body?.status || existing.row.status,
       promptType: existing.row.prompt_type,
-      inputSchema: existing.row.input_schema,
+      inputSchema: {},
       outputSchema: existing.row.output_schema,
       modelCompatibility: existing.row.model_compatibility,
       mcpCompatibility: existing.row.mcp_compatibility,
@@ -219,8 +221,8 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
       source = builtin;
     } else if (isUuid(req.body?.templateId || req.body?.template_id)) {
       templateId = req.body?.templateId || req.body?.template_id;
-      const owned = await getOwnedRecord(context, "sonara_prompt_templates", templateId);
-      if (!owned.ok) return res.status(owned.code === "not_found" ? 404 : 503).json(owned);
+      const owned = await getOwnedRecord(context, "sonara_prompt_templates", templateId, req.sonaraUser?.id);
+      if (!owned.ok) return res.status(ownedRecordStatus(owned)).json(owned);
       if (owned.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
       source = {
         slug: owned.row.slug,
@@ -260,7 +262,9 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
   app.get("/api/prompt-library/collections", selectWorkspace(requireWorkspaceAccess, (req) => req.query.product), async (req, res) => {
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
     if (!context.ok) return res.status(503).json(context);
-    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&select=*,sonara_prompt_collection_items(*)&order=updated_at.desc&limit=100`;
+    const visibility = promptVisibilityQuery(req.sonaraUser?.id, false);
+    if (!visibility.ok) return res.status(401).json(visibility);
+    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&${visibility.query}&select=*,sonara_prompt_collection_items(*)&order=updated_at.desc&limit=100`;
     const result = await restRequest(context, "sonara_prompt_collections", query);
     return res.status(result.ok ? 200 : 503).json(result.ok ? { ok: true, collections: result.rows } : result);
   });
@@ -290,9 +294,10 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     if (!isUuid(req.params.id) || !isUuid(templateId)) return res.status(400).json({ ok: false, code: "invalid_id" });
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
     if (!context.ok) return res.status(503).json(context);
-    const collection = await getOwnedRecord(context, "sonara_prompt_collections", req.params.id);
-    const prompt = await getOwnedRecord(context, "sonara_prompt_templates", templateId);
-    if (!collection.ok || !prompt.ok) return res.status(404).json({ ok: false, code: "collection_or_template_not_found" });
+    const collection = await getOwnedRecord(context, "sonara_prompt_collections", req.params.id, req.sonaraUser?.id);
+    const prompt = await getOwnedRecord(context, "sonara_prompt_templates", templateId, req.sonaraUser?.id);
+    if (!collection.ok) return res.status(ownedRecordStatus(collection)).json(collection);
+    if (!prompt.ok) return res.status(ownedRecordStatus(prompt)).json(prompt);
     if (collection.row.product_area !== req.promptProductArea || prompt.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
     const result = await restRequest(context, "sonara_prompt_collection_items", "", {
       method: "POST",
@@ -312,9 +317,10 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     if (!validation.ok || !isUuid(validation.record.sourceId) || !isUuid(validation.record.targetId)) return res.status(400).json({ ok: false, code: "validation_failed", errors: validation.errors.length ? validation.errors : ["sourceId and targetId must be UUIDs."] });
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
     if (!context.ok) return res.status(503).json(context);
-    const source = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.sourceId);
-    const target = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.targetId);
-    if (!source.ok || !target.ok) return res.status(404).json({ ok: false, code: "template_not_found" });
+    const source = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.sourceId, req.sonaraUser?.id);
+    const target = await getOwnedRecord(context, "sonara_prompt_templates", validation.record.targetId, req.sonaraUser?.id);
+    if (!source.ok) return res.status(ownedRecordStatus(source)).json(source);
+    if (!target.ok) return res.status(ownedRecordStatus(target)).json(target);
     if (source.row.product_area !== req.promptProductArea || target.row.product_area !== req.promptProductArea) return res.status(403).json({ ok: false, code: "workspace_mismatch" });
     const result = await restRequest(context, "sonara_prompt_connections", "", {
       method: "POST",
@@ -452,12 +458,41 @@ async function rpcRequest(context, functionName, body) {
   return { ok: true, rows: Array.isArray(rows) ? rows : rows ? [rows] : [] };
 }
 
-async function getOwnedRecord(context, table, id) {
+async function getOwnedRecord(context, table, id, userId) {
   const query = `?id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&select=*&limit=1`;
   const result = await restRequest(context, table, query);
   if (!result.ok) return result;
   if (!result.rows.length) return { ok: false, code: "not_found", table };
-  return { ok: true, row: result.rows[0] };
+  const row = result.rows[0];
+  if (!canReadVisibilityScopedRecord(row, userId)) return { ok: false, code: "forbidden", table };
+  return { ok: true, row };
+}
+
+function promptVisibilityQuery(userId, includePublic) {
+  if (!isUuid(userId)) return { ok: false, code: "account_identity_required" };
+  const creator = encodeURIComponent(userId);
+  const shared = includePublic
+    ? "visibility.eq.organization,and(visibility.eq.public,status.eq.published)"
+    : "visibility.eq.organization";
+  return {
+    ok: true,
+    query: `or=(${shared},and(visibility.eq.private,created_by.eq.${creator}))`
+  };
+}
+
+function canReadVisibilityScopedRecord(row, userId) {
+  if (!row || !Object.prototype.hasOwnProperty.call(row, "visibility")) return true;
+  if (row.visibility === "private") return Boolean(userId && row.created_by === userId);
+  if (row.visibility === "public" && row.status && row.status !== "published") {
+    return Boolean(userId && row.created_by === userId);
+  }
+  return true;
+}
+
+function ownedRecordStatus(result) {
+  if (result?.code === "not_found") return 404;
+  if (result?.code === "forbidden") return 403;
+  return 503;
 }
 
 function selectWorkspace(requireWorkspaceAccess, resolver) {
@@ -498,10 +533,42 @@ function detectSensitivePayload(value) {
     [/\b(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{12,}\b/, "provider_secret_key"],
     [/\bgh[pousr]_[A-Za-z0-9]{20,}\b/, "github_token"],
     [/\bsb_secret_[A-Za-z0-9_-]{12,}\b/, "supabase_secret"],
-    [/\b(?:password|api[_ -]?key|access[_ -]?token|refresh[_ -]?token)\s*[:=]\s*\S+/i, "credential_like_value"]
+    [/\b(?:password|api[_ -]?key|access[_ -]?token|refresh[_ -]?token)\s*[:=]\s*\S+/i, "credential_like_value"],
+    [/\b(?:cvv|cvc|card security code|security code)\b\s*[:=]?\s*[0-9]{3,4}\b/i, "payment_card_security_code"],
+    [/(?:%B|;)\d{13,19}(?:\^|=)/i, "payment_card_track_data"]
   ];
   for (const [pattern, name] of checks) if (pattern.test(text)) findings.push(name);
-  return findings;
+
+  const cardCandidates = text.match(/(?:\d[ -]?){13,19}/g) || [];
+  for (const candidate of cardCandidates) {
+    const digits = candidate.replace(/\D/g, "");
+    if (digits.length >= 13 && digits.length <= 19 && luhnValid(digits)) {
+      findings.push("payment_card_number");
+      break;
+    }
+  }
+
+  if (/\b(?:card(?: number)?|pan)\b\s*[:=]?\s*(?:\d[ -]?){13,19}/i.test(text)) {
+    findings.push("payment_card_number");
+  }
+
+  return [...new Set(findings)];
+}
+
+function luhnValid(digits) {
+  if (!/^[0-9]{13,19}$/.test(String(digits || ""))) return false;
+  let sum = 0;
+  let doubleDigit = false;
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let value = Number(digits[index]);
+    if (doubleDigit) {
+      value *= 2;
+      if (value > 9) value -= 9;
+    }
+    sum += value;
+    doubleDigit = !doubleDigit;
+  }
+  return sum % 10 === 0;
 }
 
 function formatRenderError(result) {

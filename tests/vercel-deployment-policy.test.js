@@ -15,7 +15,9 @@ describe('Vercel deployment policy', () => {
     assert.match(workflow, /branches:\s*\[main\]/);
 
     const releaseGates = [
-      'pnpm run apply:runtime',
+      // The generators no longer run during the build. Their output is
+      // committed, and this gate proves the committed tree still matches them.
+      'pnpm run verify:generated',
       'pnpm run build',
       'pnpm test',
       'pnpm run scan:client-secrets',

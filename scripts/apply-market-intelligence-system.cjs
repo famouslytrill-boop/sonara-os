@@ -326,30 +326,34 @@ function patchEcosystemManifest() {
   let source = read(file);
   source = source.replace('version: "2026-07-21"', 'version: "2026-07-25"');
 
-  source = replaceOnce(
-    source,
-    'routes: ["/business-builder", "/business-builder/dashboard", "/business-builder/owner", "/business-builder/billing", "/business-builder/employees", "/business-builder/launch-readiness"]',
-    'routes: ["/business-builder", "/business-builder/dashboard", "/business-builder/owner", "/business-builder/billing", "/business-builder/employees", "/business-builder/launch-readiness", "/business-builder/product-lifecycle", "/business-builder/market-intelligence"]',
-    "Business Builder manifest routes"
-  );
-  source = replaceOnce(
-    source,
-    'routes: ["/creator-studio", "/creator-studio/dashboard", "/creator-studio/launch-readiness", "/creator-studio/music-system"]',
-    'routes: ["/creator-studio", "/creator-studio/dashboard", "/creator-studio/launch-readiness", "/creator-studio/music-system", "/creator-studio/product-lifecycle", "/creator-studio/market-intelligence"]',
-    "Creator Studio manifest routes"
-  );
-  source = replaceOnce(
-    source,
-    'routes: ["/growth-studio", "/growth-studio/dashboard", "/growth-studio/launch-readiness"]',
-    'routes: ["/growth-studio", "/growth-studio/dashboard", "/growth-studio/launch-readiness", "/growth-studio/product-lifecycle", "/growth-studio/market-intelligence"]',
-    "Growth Studio manifest routes"
-  );
+  source = ensureCompanyManifestValues(source, "business_builder", "routes", [
+    "/business-builder/product-lifecycle",
+    "/business-builder/market-intelligence"
+  ]);
+  source = ensureCompanyManifestValues(source, "creator_studio", "routes", [
+    "/creator-studio/product-lifecycle",
+    "/creator-studio/market-intelligence"
+  ]);
+  source = ensureCompanyManifestValues(source, "growth_studio", "routes", [
+    "/growth-studio/product-lifecycle",
+    "/growth-studio/market-intelligence"
+  ]);
 
-  for (const [anchor, addition, label] of [
-    ['        "Route Tracking Sessions"', '        "Route Tracking Sessions",\n        "Business Market Intelligence",\n        "First Transaction Activation"', "Business Builder market modules"],
-    ['        "Audio Transcription Segments"', '        "Audio Transcription Segments",\n        "Creator Market Intelligence",\n        "Rights and Provenance Evidence",\n        "Brand Partnership Measurement"', "Creator Studio market modules"],
-    ['        "Booking Conversion"', '        "Booking Conversion",\n        "Growth Market Intelligence",\n        "First-Party Customer Timeline",\n        "Incrementality Planning",\n        "Creator Partnership Measurement"', "Growth Studio market modules"]
-  ]) source = replaceOnce(source, anchor, addition, label);
+  source = ensureCompanyManifestValues(source, "business_builder", "modules", [
+    "Business Market Intelligence",
+    "First Transaction Activation"
+  ]);
+  source = ensureCompanyManifestValues(source, "creator_studio", "modules", [
+    "Creator Market Intelligence",
+    "Rights and Provenance Evidence",
+    "Brand Partnership Measurement"
+  ]);
+  source = ensureCompanyManifestValues(source, "growth_studio", "modules", [
+    "Growth Market Intelligence",
+    "First-Party Customer Timeline",
+    "Incrementality Planning",
+    "Creator Partnership Measurement"
+  ]);
 
   if (!source.includes('domain: "Market intelligence model"')) {
     const anchor = `    {
@@ -411,6 +415,36 @@ function patchCompanyEntryPoints() {
     if (!source.includes(to) && source.includes(from)) source = source.replace(from, to);
   }
   write(file, source);
+}
+
+function ensureCompanyManifestValues(source, companyKey, fieldName, values) {
+  for (const value of values) source = ensureCompanyManifestValue(source, companyKey, fieldName, value);
+  return source;
+}
+
+function ensureCompanyManifestValue(source, companyKey, fieldName, value) {
+  const pattern = new RegExp(
+    `(key:\\s*"${escapeRegExp(companyKey)}"[\\s\\S]*?${escapeRegExp(fieldName)}:\\s*\\[)([^\\]]*)(\\])`
+  );
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Market Intelligence ${companyKey} ${fieldName} array not found`);
+  if (match[2].includes(`"${value}"`)) return source;
+  return source.replace(pattern, (_, opening, body, closing) =>
+    `${opening}${appendManifestArrayValue(body, value)}${closing}`
+  );
+}
+
+function appendManifestArrayValue(body, value) {
+  const trimmed = body.trimEnd();
+  const separator = trimmed.trim() && !trimmed.trim().endsWith(",") ? "," : "";
+  if (!trimmed.includes("\n")) return `${trimmed}${separator} "${value}"`;
+  const lastLine = trimmed.slice(trimmed.lastIndexOf("\n") + 1);
+  const indent = lastLine.match(/^\s*/)?.[0] || "";
+  return `${trimmed}${separator}\n${indent}"${value}"`;
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\function root(...segments) { return path.join(process.cwd(), ...segments); }");
 }
 
 function root(...segments) { return path.join(process.cwd(), ...segments); }

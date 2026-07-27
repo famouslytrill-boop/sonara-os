@@ -380,7 +380,12 @@ function patchExternalRepositoryDocs() {
   const filePath = path.join(__dirname, "..", "docs", "SONARA_EXTERNAL_REPOSITORY_REGISTRY.md");
   if (!fs.existsSync(filePath)) return;
   let source = fs.readFileSync(filePath, "utf8");
-  if (!source.includes("github.com/f/prompts.chat")) {
+  // The guard must match text this block actually writes. It previously tested
+  // for "github.com/f/prompts.chat", which appears nowhere in the block or the
+  // document, so the guard never tripped and the section was appended once per
+  // run -- growing the file by 9 lines on every `pnpm test` and every
+  // production build.
+  if (!source.includes("### prompts.chat")) {
     const marker = "## Agent and orchestration";
     if (!source.includes(marker)) return;
     const block = `### prompts.chat

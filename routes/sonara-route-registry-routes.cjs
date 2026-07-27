@@ -338,8 +338,11 @@ function registerRouteRegistryRoutes(app, deps) {
   });
 
   app.get("/admin/migrations", requireAdmin, async (req, res) => {
-    await recordAdminAuditEvent(req, "admin.migrations.view", { path: req.path });
-    return sendPage(res, { title: "Migration readiness", eyebrow: "Founder operations", heading: "Database migrations", body: "Read-only migration readiness. This page does not execute SQL or modify the production database.", sections: [brandCard("Current application migration", "20260714150000_sonara_notifications_and_integrations.sql"), brandCard("Account preferences extension", "20260715120000_user_preferences_appearance_notifications.sql must be reviewed and applied through the deployment workflow."), brandCard("Safety boundary", "No arbitrary SQL executor is exposed in the web application.")], actions: [linkAction("/admin/database", "Database"), ...adminActions()] });
+    await recordAdminAuditEvent(req, "admin.migrations.view", { path: req.path, delegate: "database_management" });
+    if (typeof app.locals.sonaraDatabaseManagementPage !== "function") {
+      return res.status(503).type("html").send(responsePage("Database Management needs setup", "The database management runtime handler is unavailable.", [linkAction("/admin", "Admin")]));
+    }
+    return app.locals.sonaraDatabaseManagementPage(req, res, "migrations");
   });
 
   app.get("/admin/pipelines", requireAdmin, async (req, res) => {

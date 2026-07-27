@@ -40,6 +40,28 @@ These entries have catalog, database, environment, and admin-readiness integrati
 | RAGFlow | `github.com/infiniflow/ragflow` | `adapter_available_license_review` | Isolated retrieval stack |
 | Claude Code | `github.com/anthropics/claude-code` | `developer_only` | Developer workstation/container only |
 | CrewAI | `github.com/crewAIInc/crewAI` | `adapter_available` | Reviewed background worker only |
+| OBLITERATUS | `github.com/elder-plinius/OBLITERATUS` | `blocked_runtime_reference_only` | Defensive model-safety and refusal-integrity reference only; no installation, model modification, telemetry, export, hosting, or customer execution |
+
+### OBLITERATUS safety boundary
+
+The repository states that it analyzes and removes model refusal behavior. SONARA therefore treats it as a high-risk, quarantined research reference—not as a production dependency or an approved model-modification tool.
+
+- Pinned reviewed source: `elder-plinius/OBLITERATUS@a5a1ffa5849b442cf188b3c03fd4de71ddf5bdcc`.
+- Upstream license: AGPL-3.0 with an upstream commercial-license option; legal review is mandatory before any code use.
+- Upstream code is not copied, installed, imported, cloned, fetched, hosted, or executed by SONARA.
+- Refusal removal, safety weakening, model-weight modification, modified-model export, Hugging Face publishing, and customer-facing uncensored models are prohibited.
+- Telemetry, prompts, outputs, credentials, customer data, production secrets, and model artifacts may not be transmitted upstream.
+- SONARA's integration is an original deterministic policy engine that reviews defensive model-safety proposals and fails closed on safety-weakening intent.
+- Any future isolated research requires a separate founder-approved pull request with legal, AI-safety, privacy, security, provenance, network-egress, incident-response, and rollback evidence.
+
+### prompts.chat
+
+- Source: `f/prompts.chat@a779dadd30bd967bbf1b2e3441ea706a3db1e20f`.
+- License: MIT for code and site-authored content; CC0-1.0 for prompt content and data.
+- Integration: original SONARA Prompt Library runtime plus optional, moderation-gated, provenance-preserving CC0 imports.
+- Not integrated: upstream Next.js application, Prisma database, NextAuth login, remote MCP endpoint, telemetry, webhooks, or deployment stack.
+- Customer data boundary: no prompts, inputs, outputs, credentials, or private records are transmitted upstream.
+- Production capabilities: catalog, deterministic rendering, saved templates, versions, tags, collections, workflow connections, prepared run records, moderation, reports, and import review.
 
 ## Agent and orchestration
 
