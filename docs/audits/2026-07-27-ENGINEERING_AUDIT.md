@@ -108,8 +108,29 @@ The repository pins the **second** one: `scripts/verify-supabase-contract.mjs:26
 
 **Why this is critical:** Customer data, billing records, and auth for a paid product are on a project named after a personal account, while the project carrying the production name is paused. Paused Supabase projects are subject to deletion policies after prolonged inactivity. If `sonara-industries-prod` was ever intended as production, there is a live/dead mismatch nobody's tooling is checking.
 
-**Required action (cannot be resolved from the repo — owner decision):** Confirm which project is authoritative. If `yqncsonkxgwhcxedgevk` is production, rename it, move it to a dedicated org, and either delete or formally archive `ltzpppffnwopdxbchajr` with a documented reason. Add a CI assertion that production's project *status* is `ACTIVE_HEALTHY` and its name matches an expected value.
-**Effort:** 1–3 days (plus migration window if the authoritative project must change). **ROI:** Very high — this is an existential data-custody risk.
+**Severity note after measuring data volume:** the live project holds 4 profiles
+and 2 organizations (see HIGH-1), so the *data-custody* exposure today is small.
+The identity and operational-hygiene problem stands on its own: nothing verified
+which project the pipeline was migrating, and an operator reaching for
+"sonara-industries-prod" during an incident would find the wrong, paused project.
+
+**Owner decision (made 2026-07-27):** keep `yqncsonkxgwhcxedgevk` as production
+and rename it; archive the paused sibling.
+
+**Status: partially closed.** `scripts/verify-production-project-identity.mjs`
+now runs in the deploy workflow before anything is applied, and asserts the
+pinned project ref, `ACTIVE_HEALTHY` status, and — once
+`SONARA_EXPECTED_SUPABASE_PROJECT_NAME` is set — the project name. It also warns
+about any paused sibling named like production.
+
+**Still requires manual action in the Supabase dashboard** (cannot be done from
+this repository):
+1. Rename `yqncsonkxgwhcxedgevk` to `sonara-industries-prod` (or similar), then
+   set `SONARA_EXPECTED_SUPABASE_PROJECT_NAME` so the name check becomes binding.
+2. Archive or delete the paused `ltzpppffnwopdxbchajr` so it cannot be mistaken
+   for the live project.
+
+**Effort:** 1–3 days. **ROI:** High.
 
 ---
 
@@ -173,7 +194,38 @@ Additionally `--include-all` overrides Supabase's ordering safety, and there is 
 
 ## 3. High-priority improvements
 
-### HIGH-1 — Database performance: 2,348 advisor findings on production
+### HIGH-1 — Database performance: 2,348 advisor findings, all currently latent
+
+**Read this first — it changes how the 2,348 findings should be treated.**
+Measured live during Phase 1 work:
+
+| Measure | Value |
+|---|---:|
+| Tables in `public` | 346 |
+| **Total live rows, all tables** | **200** |
+| Tables with any rows | 14 |
+| Largest table | 34 rows |
+| `profiles` / `organizations` / `organization_memberships` | 4 / 2 / 2 |
+
+Most of those 200 rows are seed catalog data (`service_catalog_items`,
+`huggingface_resource_catalog`, `integration_providers`). Actual customer data is
+4 profiles and 2 organizations.
+
+So **none of the 2,348 findings is causing a slow query today** — there is no
+data to be slow over. They are latent scalability debt, not an active
+bottleneck. Any claim that fixing them "speeds up the platform" would be false.
+
+The reason to fix them now is different and still good: **this is the cheapest
+and safest moment**. Altering 300+ policies and building indexes is instant and
+reversible on empty tables. After launch the same work needs `CONCURRENTLY`,
+lock windows, and rehearsal. The benefit is realised later; the cost of buying
+it is lowest today.
+
+There is also a second-order point worth stating plainly: because the
+application uses the service-role key for all traffic (CRIT-3), **RLS policy
+performance currently affects almost nothing the application does** — policies
+are only evaluated for direct anon/authenticated PostgREST access. The RLS
+performance work pays off when, and only when, user-scoped clients land.
 
 Live `get_advisors(type: "performance")` on `yqncsonkxgwhcxedgevk`:
 
@@ -185,13 +237,40 @@ Live `get_advisors(type: "performance")` on `yqncsonkxgwhcxedgevk`:
 | `unused_index` (INFO) | **191** | Write amplification and storage with no read benefit. |
 | `duplicate_index` (WARN) | **4** | e.g. `business_memberships_workspace_id_user_id_key` vs `business_memberships_workspace_user_key`. |
 
-**Fixes, in order of value per hour:**
-1. **`auth_rls_initplan`** — wrap in a scalar subquery: `auth.uid()` → `(select auth.uid())`. Mechanical, scriptable across 312 policies, often 10–100× on large tables. Note the codebase already does this correctly in `is_admin_or_founder()` (`(select auth.uid())`) — the pattern just wasn't applied consistently.
-2. **Consolidate permissive policies** — merge the `service_role` branch into the member policy with `or auth.role() = 'service_role'` (a pattern already used in `20260726163000_sonara_prompt_library.sql`) instead of a second policy. Removes ~half the 1,330.
-3. **Index the 511 FKs** — script generation from the advisor output; review before applying, since many of these tables are currently empty.
-4. Drop the 4 duplicate indexes and audit the 191 unused ones (keep recently-added ones — "unused" may mean "feature not launched yet").
+**Fixes, and what was actually done:**
 
-**Effort:** 2–3 weeks. **ROI:** Very high — this is the cheapest large performance win available.
+1. **`auth_rls_initplan` — done** (`20260727180000_rls_initplan_and_index_hygiene.sql`).
+   Wraps `auth.uid()`/`auth.role()`/`auth.jwt()` in a scalar subquery so the
+   planner folds them into a once-per-query InitPlan. Applied by iterating
+   `pg_policies` rather than hand-listing 312 statements, with the 18
+   already-wrapped policies protected against double-wrapping. Validated
+   read-only before writing: 292 policies change on `qual` alone, zero
+   double-wraps. The codebase already used this pattern correctly in
+   `is_admin_or_founder()`; it just wasn't applied uniformly.
+2. **Duplicate indexes — done.** All 4 dropped.
+3. **FK indexes — scoped deliberately, not applied wholesale.** The advisor
+   reports 511 uncovered foreign keys, but only **5** are on tables with any
+   rows. Creating all 511 would add write amplification across 346 tables to
+   serve queries that do not exist — in a database that *already* carries 191
+   indexes the advisor calls unused. The migration indexes the **218 `ON DELETE
+   CASCADE`** keys plus the 5 populated ones: an uncovered cascade key forces a
+   sequential scan of every child table on parent delete, which is structural
+   and size-independent (deleting one organization would scan dozens of child
+   tables). The remaining ~288 are deferred until query evidence justifies them.
+4. **Consolidating the 1,330 permissive policies — deliberately deferred.**
+   Merging the `service_role` branch into member policies (the pattern in
+   `20260726163000`) would remove roughly half, but it *rewrites authorization
+   logic* rather than just its evaluation strategy. That deserves its own change
+   with cross-tenant tests behind it — ideally after CRIT-3, so those tests
+   exist. Bundling it with a mechanical performance pass would be the wrong risk
+   trade.
+5. **The 191 unused indexes — not touched.** On a 200-row database "unused" is
+   uninformative; it mostly means "feature not launched". Revisit with real
+   traffic.
+
+**Effort:** 2–3 weeks for the full set; items 1–3 are done. **ROI:** Low today,
+high at scale — see the framing above. The value captured now is the *option* to
+have made these changes cheaply.
 
 ---
 
@@ -369,6 +448,22 @@ This is the finding with the largest gap between the handoff and reality, so it 
 ## 8. Proposed implementation order
 
 Sequenced so that each phase unblocks the next. Effort assumes 1–2 engineers.
+
+> **Revised after measuring production data volume (HIGH-1).** The platform has
+> 4 profiles and 2 organizations — it is pre-launch. That is the single most
+> useful scheduling fact in this document, and it argues for doing the
+> *structural* work first, not the performance work:
+>
+> - **CRIT-1 (freeze codegen)** and **CRIT-3 (tenant isolation)** are the two
+>   items whose cost rises fastest with adoption. Rewriting the data-access layer
+>   with 2 organizations is a refactor; with 2,000 it is a migration project.
+> - **CRIT-5 (rollback)** and the DB performance work matter most *after* launch,
+>   but both are cheapest to build now.
+> - Nothing here is currently on fire. There is no incident to outrun, which is
+>   exactly the condition under which the expensive structural fixes are
+>   affordable.
+>
+> If launch is near, do CRIT-1 and CRIT-3 before it, not after.
 
 **Phase 0 — Stop the bleeding (1–2 weeks)**
 1. CRIT-2 — resolve the Supabase project identity question. **Open; owner decision — cannot be resolved from the repository.**

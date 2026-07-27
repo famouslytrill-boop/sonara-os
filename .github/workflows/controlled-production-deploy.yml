@@ -125,6 +125,15 @@ jobs:
           set -euo pipefail
           pnpm run verify:open-source 2>&1 | tee -a release-validation.log
 
+      # Confirm we are pointed at the intended, running production project
+      # before anything is applied to it. A paused sibling project named
+      # "sonara-industries-prod" exists in the same organization.
+      - name: Verify production project identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-production-project-identity.mjs
+
       - name: Link and preview production database migrations
         shell: bash
         run: |
