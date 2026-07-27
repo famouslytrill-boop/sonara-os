@@ -111,16 +111,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           set -euo pipefail
-          pnpm --silent run verify:production-supabase -- --env-file=.env.production.catalog-verification
-        # package scripts do not forward Node's --env-file switch, so execute the
-        # verifier directly with the production environment after the command is
-        # registered and validated above.
-      - name: Execute production Supabase verifier with environment
-        shell: bash
-        env:
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: |
-          set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
 
       - name: Remove temporary production environment material
