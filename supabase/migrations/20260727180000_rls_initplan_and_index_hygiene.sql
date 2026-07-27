@@ -45,35 +45,14 @@
 -- Verified before writing: zero policies in this schema use current_setting(),
 -- so only the auth.* helpers need handling.
 
-create or replace function pg_temp.sonara_wrap_auth_calls(expression text)
-returns text
-language plpgsql
-immutable
-as $$
-declare
-  result text := expression;
-begin
-  if result is null then
-    return null;
-  end if;
-
-  -- Protect calls that are already inside a scalar subquery.
-  result := replace(result, 'SELECT auth.uid()', '@@SONARA_KEEP_UID@@');
-  result := replace(result, 'SELECT auth.role()', '@@SONARA_KEEP_ROLE@@');
-  result := replace(result, 'SELECT auth.jwt()', '@@SONARA_KEEP_JWT@@');
-
-  result := replace(result, 'auth.uid()', '(select auth.uid())');
-  result := replace(result, 'auth.role()', '(select auth.role())');
-  result := replace(result, 'auth.jwt()', '(select auth.jwt())');
-
-  result := replace(result, '@@SONARA_KEEP_UID@@', 'SELECT auth.uid()');
-  result := replace(result, '@@SONARA_KEEP_ROLE@@', 'SELECT auth.role()');
-  result := replace(result, '@@SONARA_KEEP_JWT@@', 'SELECT auth.jwt()');
-
-  return result;
-end;
-$$;
-
+-- The rewrite is expressed in the driving query rather than a helper function,
+-- so the migration creates no temporary objects and the transformation is
+-- visible in one place. The three placeholder swaps protect calls that are
+-- already inside a scalar subquery -- 18 policies are already in the
+-- "( SELECT auth.uid() AS uid)" form, and a naive replace would nest them.
+-- PostgreSQL regex has no lookbehind, hence placeholders rather than a
+-- negative-lookbehind pattern. replace() propagates NULL, so a policy with no
+-- USING or no WITH CHECK keeps that side NULL.
 do $$
 declare
   policy_record record;
@@ -82,13 +61,30 @@ declare
   rewritten integer := 0;
 begin
   for policy_record in
-    select schemaname, tablename, policyname, qual, with_check
-    from pg_policies
-    where schemaname = 'public'
-    order by tablename, policyname
+    select
+      p.schemaname,
+      p.tablename,
+      p.policyname,
+      p.qual,
+      p.with_check,
+      replace(replace(replace(
+        replace(replace(replace(
+          replace(replace(replace(p.qual,
+            'SELECT auth.uid()', '@@U@@'), 'SELECT auth.role()', '@@R@@'), 'SELECT auth.jwt()', '@@J@@'),
+          'auth.uid()', '(select auth.uid())'), 'auth.role()', '(select auth.role())'), 'auth.jwt()', '(select auth.jwt())'),
+        '@@U@@', 'SELECT auth.uid()'), '@@R@@', 'SELECT auth.role()'), '@@J@@', 'SELECT auth.jwt()') as rewritten_qual,
+      replace(replace(replace(
+        replace(replace(replace(
+          replace(replace(replace(p.with_check,
+            'SELECT auth.uid()', '@@U@@'), 'SELECT auth.role()', '@@R@@'), 'SELECT auth.jwt()', '@@J@@'),
+          'auth.uid()', '(select auth.uid())'), 'auth.role()', '(select auth.role())'), 'auth.jwt()', '(select auth.jwt())'),
+        '@@U@@', 'SELECT auth.uid()'), '@@R@@', 'SELECT auth.role()'), '@@J@@', 'SELECT auth.jwt()') as rewritten_check
+    from pg_policies p
+    where p.schemaname = 'public'
+    order by p.tablename, p.policyname
   loop
-    new_qual := pg_temp.sonara_wrap_auth_calls(policy_record.qual);
-    new_check := pg_temp.sonara_wrap_auth_calls(policy_record.with_check);
+    new_qual := policy_record.rewritten_qual;
+    new_check := policy_record.rewritten_check;
 
     -- Only touch policies that actually change.
     if new_qual is not distinct from policy_record.qual
