@@ -17,9 +17,17 @@ describe("design system consolidation", () => {
     // Before consolidation, --accent was defined in seven stylesheets and load
     // order decided the winner, which is why mobile needed a "fix" and then a
     // "final". Exactly one file may declare tokens.
+    // Only :root declarations count. A scoped override -- for example a
+    // product card setting --sonara-accent to its own studio colour -- is the
+    // token system working as intended, not a competing definition.
+    const rootDeclaresAccent = (css) =>
+      (css.replace(/\/\*[\s\S]*?\*\//g, "").match(/:root[^{]*\{[^}]*\}/g) || []).some((block) =>
+        /--sonara-accent\s*:/.test(block)
+      );
+
     const stylesheets = fs.readdirSync(publicDir).filter((name) => name.endsWith(".css"));
     const tokenSources = stylesheets.filter((name) =>
-      /--sonara-accent\s*:/.test(fs.readFileSync(path.join(publicDir, name), "utf8"))
+      rootDeclaresAccent(fs.readFileSync(path.join(publicDir, name), "utf8"))
     );
 
     assert.deepEqual(
@@ -126,6 +134,76 @@ describe("design system respects the platform constraints", () => {
   it("gives work surfaces a calm treatment", () => {
     // AGENTS.md: work screens should be calm, clear, and operational.
     assert.match(designSystem, /\[data-sonara-surface="work"\]/);
+  });
+});
+
+describe("style sources actually reach the served stylesheet", () => {
+  const styleDir = path.join(root, "ui", "sonara", "styles");
+  const assembled = fs.readFileSync(path.join(publicDir, "sonara-application-ui.css"), "utf8");
+
+  // scripts/apply-premium-ui-final.cjs assembles this directory with:
+  //   const canonicalFiles = allFiles.filter((file) => /^99-/.test(file));
+  //   const files = canonicalFiles.length ? canonicalFiles : allFiles;
+  // so anything not named 99-* is silently dropped. Six files -- including
+  // 00-foundation.css -- were excluded that way, which is why later files
+  // ended up redefining tokens the foundation was meant to own. This test
+  // makes the rule visible instead of surprising.
+  const EXCLUDED_BY_DESIGN = new Set([
+    "00-foundation.css",
+    "01-shell-hero.css",
+    "02-products-flow.css",
+    "03-components-responsive.css",
+    "04-mobile-header.css",
+    "05-legacy-layout-compat.css"
+  ]);
+
+  it("ships every style source that is not knowingly excluded", () => {
+    const sources = fs.readdirSync(styleDir).filter((name) => name.endsWith(".css"));
+    const silentlyDropped = sources.filter(
+      (name) => !/^99-/.test(name) && !EXCLUDED_BY_DESIGN.has(name)
+    );
+
+    assert.deepEqual(
+      silentlyDropped,
+      [],
+      "these style sources will be silently dropped by the assembler because they are not named 99-*: " +
+        `${silentlyDropped.join(", ")}. Rename them to 99-* or add them to EXCLUDED_BY_DESIGN.`
+    );
+  });
+
+  it("assembles the marketing surface", () => {
+    assert.match(assembled, /SONARA marketing surface/);
+  });
+
+  it("keeps the marketing surface out of the operational screens", () => {
+    // AGENTS.md: work screens should be calm, clear, and operational.
+    // Not a CSS parser -- an earlier revision tried to be and tripped over an
+    // @media block. This looks for the specific shape of a global rule: a
+    // selector beginning at column zero that is neither an at-rule nor scoped.
+    const marketing = fs
+      .readFileSync(path.join(styleDir, "99-zzzzz-marketing-surface.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+
+    const globalRules = (marketing.match(/^(?![@}\s])(?!body\.sonara-home-v3)(?!:root\[data-sonara-motion).+$/gm) || [])
+      .map((line) => line.trim())
+      .filter((line) => line.endsWith("{") || line.endsWith(","));
+
+    assert.deepEqual(
+      globalRules,
+      [],
+      `marketing rules must stay scoped to the public shell, found global: ${globalRules.join(" | ")}`
+    );
+  });
+
+  it("declares no design tokens at :root", () => {
+    // Scoped overrides are fine -- the studio cards each set their own accent.
+    // Declaring at :root would put it back in competition with the design system.
+    const marketing = fs
+      .readFileSync(path.join(styleDir, "99-zzzzz-marketing-surface.css"), "utf8")
+      .replace(/\/\*[\s\S]*?\*\//g, "");
+    const rootBlocks = marketing.match(/:root[^{]*\{[^}]*\}/g) || [];
+    const declaring = rootBlocks.filter((block) => /--sonara-(accent|bg|surface|text)[a-z0-9-]*\s*:/.test(block));
+    assert.deepEqual(declaring, [], "marketing surface must not declare design tokens at :root");
   });
 });
 

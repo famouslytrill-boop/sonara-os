@@ -816,3 +816,348 @@ html[data-theme="dark"] .bb-today {
     padding: 20px;
   }
 }
+
+/* SONARA marketing surface — the public, persuasive pages.
+ *
+ * NAMING IS LOad-BEARING. scripts/apply-premium-ui-final.cjs assembles this
+ * directory with:
+ *
+ *   const canonicalFiles = allFiles.filter((file) => /^99-/.test(file));
+ *   const files = canonicalFiles.length ? canonicalFiles : allFiles;
+ *
+ * so a file that does not start with "99-" is silently dropped. That is why
+ * 00-foundation.css through 05-legacy-layout-compat.css -- 19,839 bytes that
+ * read like the base of the design system -- never ship, and why later files
+ * ended up redefining tokens the foundation was supposed to own.
+ *
+ * Everything here is scoped to body.sonara-home-v3, the public marketing
+ * shell. Operational screens are deliberately untouched: AGENTS.md asks for
+ * work surfaces to stay calm and clear, so the cinematic treatment stops at
+ * the point where customers start working.
+ *
+ * Tokens come from public/sonara-design-system.css. This file declares none.
+ */
+
+body.sonara-home-v3 {
+  --marketing-gutter: clamp(1rem, 4vw, 2.5rem);
+  --marketing-max: 1180px;
+}
+
+/* Hero ------------------------------------------------------------------ */
+body.sonara-home-v3 .hero.sonara-hero-stage {
+  position: relative;
+  padding-block: clamp(3rem, 9vw, 6.5rem);
+  padding-inline: var(--marketing-gutter);
+  overflow: clip; /* contains the glow without creating a scrollbar */
+}
+
+/* A single soft accent wash. Cheap, no extra element, no image request. */
+body.sonara-home-v3 .hero.sonara-hero-stage::before {
+  content: "";
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 70%;
+  background:
+    radial-gradient(60% 60% at 20% 20%, color-mix(in srgb, var(--sonara-accent) 20%, transparent), transparent 70%),
+    radial-gradient(50% 50% at 85% 10%, color-mix(in srgb, var(--sonara-accent-2) 16%, transparent), transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.sonara-home-v3 .sonara-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 62ch;
+  margin-inline: auto;
+  text-align: center;
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+}
+
+body.sonara-home-v3 .sonara-hero-copy .eyebrow {
+  display: inline-block;
+  padding: 0.35em 0.9em;
+  border: 1px solid var(--sonara-border-strong);
+  border-radius: var(--sonara-radius-full);
+  font-size: var(--sonara-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+  animation-delay: 40ms;
+}
+
+body.sonara-home-v3 .sonara-hero-copy h1 {
+  margin-block: var(--sonara-4) var(--sonara-3);
+  font-size: var(--sonara-text-3xl);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+  animation-delay: 100ms;
+}
+
+body.sonara-home-v3 .sonara-hero-copy .lede {
+  font-size: var(--sonara-text-lg);
+  line-height: 1.55;
+  color: var(--sonara-text-2);
+  text-wrap: pretty;
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+  animation-delay: 160ms;
+}
+
+body.sonara-home-v3 .sonara-hero-copy .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sonara-3);
+  justify-content: center;
+  margin-top: var(--sonara-6);
+  animation: sonara-rise var(--sonara-dur-3) var(--sonara-ease-out) both;
+  animation-delay: 220ms;
+}
+
+/* Actions --------------------------------------------------------------- */
+body.sonara-home-v3 .actions .action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sonara-tap);
+  padding: 0.7em 1.5em;
+  border-radius: var(--sonara-radius-full);
+  border: 1px solid var(--sonara-border-strong);
+  font-weight: 600;
+  font-size: var(--sonara-text-sm);
+  text-decoration: none;
+  transition:
+    transform var(--sonara-dur-1) var(--sonara-ease),
+    border-color var(--sonara-dur-1) var(--sonara-ease),
+    background-color var(--sonara-dur-1) var(--sonara-ease);
+}
+
+/* First action is the primary call to action. */
+body.sonara-home-v3 .actions .action:first-child {
+  background: var(--sonara-accent);
+  border-color: transparent;
+  color: var(--sonara-accent-contrast);
+  box-shadow: var(--sonara-shadow-2);
+}
+
+body.sonara-home-v3 .actions .action:hover { transform: translateY(-1px); }
+body.sonara-home-v3 .actions .action:active { transform: translateY(0); }
+
+body.sonara-home-v3 .actions .action:focus-visible {
+  outline: 2px solid var(--sonara-accent);
+  outline-offset: 3px;
+}
+
+/* Sections -------------------------------------------------------------- */
+body.sonara-home-v3 .sonara-section {
+  max-width: var(--marketing-max);
+  margin-inline: auto;
+  padding-inline: var(--marketing-gutter);
+  padding-block: clamp(2.5rem, 7vw, 5rem);
+}
+
+body.sonara-home-v3 .sonara-section-head {
+  display: grid;
+  gap: var(--sonara-4);
+  margin-bottom: var(--sonara-6);
+  max-width: 68ch;
+}
+
+body.sonara-home-v3 .sonara-kicker {
+  font-size: var(--sonara-text-xs);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sonara-accent);
+}
+
+body.sonara-home-v3 .sonara-section-head h2 {
+  font-size: var(--sonara-text-2xl);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin: 0;
+}
+
+/* Product cards ---------------------------------------------------------
+ * The depth is a real 3D transform inside a perspective context, composited
+ * on the GPU. It costs no main-thread work and no library. */
+body.sonara-home-v3 .sonara-product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: var(--sonara-5);
+  perspective: var(--sonara-perspective);
+}
+
+body.sonara-home-v3 .sonara-product {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sonara-3);
+  padding: var(--sonara-5);
+  border: 1px solid var(--sonara-border);
+  border-radius: var(--sonara-radius-lg);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--sonara-accent) 5%, transparent), transparent 60%),
+    var(--sonara-surface);
+  box-shadow: var(--sonara-shadow-1);
+  transform-style: preserve-3d;
+  transition:
+    transform var(--sonara-dur-3) var(--sonara-ease-out),
+    box-shadow var(--sonara-dur-3) var(--sonara-ease-out),
+    border-color var(--sonara-dur-2) var(--sonara-ease);
+}
+
+/* Each studio keeps its own accent, so the three cards read as siblings
+ * rather than repetitions. */
+body.sonara-home-v3 .sonara-product--forge { --sonara-accent: var(--sonara-build); }
+body.sonara-home-v3 .sonara-product--canvas { --sonara-accent: var(--sonara-create); }
+
+@media (hover: hover) and (pointer: fine) {
+  body.sonara-home-v3 .sonara-product:hover,
+  body.sonara-home-v3 .sonara-product:focus-within {
+    transform: translate3d(0, calc(var(--sonara-lift) * -1), 0) rotateX(1.6deg);
+    box-shadow: var(--sonara-shadow-3);
+    border-color: color-mix(in srgb, var(--sonara-accent) 40%, var(--sonara-border));
+  }
+}
+
+body.sonara-home-v3 .sonara-product-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sonara-3);
+}
+
+body.sonara-home-v3 .sonara-product-mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  transform: translateZ(30px); /* lifts the mark off the card face */
+}
+
+body.sonara-home-v3 .sonara-product-index {
+  font-family: var(--sonara-font-mono);
+  font-size: var(--sonara-text-xs);
+  letter-spacing: 0.06em;
+  color: var(--sonara-text-3);
+  overflow-wrap: anywhere;
+}
+
+body.sonara-home-v3 .sonara-product h3 {
+  margin: 0;
+  font-size: var(--sonara-text-xl);
+  letter-spacing: -0.02em;
+}
+
+body.sonara-home-v3 .sonara-product p {
+  margin: 0;
+  color: var(--sonara-text-2);
+  line-height: 1.55;
+}
+
+body.sonara-home-v3 .sonara-feature-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--sonara-2);
+}
+
+body.sonara-home-v3 .sonara-feature-list li {
+  position: relative;
+  padding-left: 1.4em;
+  font-size: var(--sonara-text-sm);
+  color: var(--sonara-text-2);
+}
+
+body.sonara-home-v3 .sonara-feature-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--sonara-accent);
+}
+
+body.sonara-home-v3 .sonara-product > a {
+  margin-top: auto;
+  align-self: flex-start;
+  min-height: var(--sonara-tap);
+  display: inline-flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: var(--sonara-text-sm);
+  color: var(--sonara-accent);
+  text-decoration: none;
+}
+
+body.sonara-home-v3 .sonara-product > a::after {
+  content: "→";
+  margin-left: 0.4em;
+  transition: transform var(--sonara-dur-1) var(--sonara-ease);
+}
+
+body.sonara-home-v3 .sonara-product > a:hover::after { transform: translateX(3px); }
+
+/* Availability notice ---------------------------------------------------
+ * This block tells customers what is and is not operational. It is one of
+ * the more honest things on the page, so it gets emphasis rather than being
+ * treated as fine print. */
+body.sonara-home-v3 .sonara-launch-boundary {
+  max-width: var(--marketing-max);
+  margin: var(--sonara-6) auto;
+  padding: var(--sonara-5);
+  border: 1px solid var(--sonara-border);
+  border-left: 3px solid var(--sonara-warm);
+  border-radius: var(--sonara-radius);
+  background: var(--sonara-surface-2);
+}
+
+body.sonara-home-v3 .sonara-launch-boundary p {
+  color: var(--sonara-text-2);
+  line-height: 1.55;
+  max-width: 72ch;
+}
+
+body.sonara-home-v3 .card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sonara-3);
+  margin-top: var(--sonara-4);
+}
+
+/* Mobile ---------------------------------------------------------------- */
+@media (max-width: 640px) {
+  body.sonara-home-v3 .sonara-product-grid { perspective: none; }
+  body.sonara-home-v3 .sonara-product-mark { transform: none; }
+  body.sonara-home-v3 .sonara-hero-copy .actions .action { width: 100%; }
+  body.sonara-home-v3 .sonara-product { padding: var(--sonara-4); }
+}
+
+/* Nothing on this surface may exceed the viewport. */
+body.sonara-home-v3 img,
+body.sonara-home-v3 svg,
+body.sonara-home-v3 pre,
+body.sonara-home-v3 table { max-width: 100%; }
+
+/* Reduced motion --------------------------------------------------------
+ * The design system already zeroes the duration tokens, which covers the
+ * transitions. Entrance animations need their delays cleared too, or content
+ * would sit invisible waiting for an animation that will not run. */
+@media (prefers-reduced-motion: reduce) {
+  body.sonara-home-v3 .sonara-hero-copy,
+  body.sonara-home-v3 .sonara-hero-copy * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+:root[data-sonara-motion="off"] body.sonara-home-v3 .sonara-hero-copy,
+:root[data-sonara-motion="off"] body.sonara-home-v3 .sonara-hero-copy * {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
