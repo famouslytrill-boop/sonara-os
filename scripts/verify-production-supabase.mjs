@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const migrationDirectory = path.join(root, "supabase", "migrations");
 const diagnosticLogPath = path.join(root, "release-validation.log");
 const { DATABASE_FUNCTIONS, DATABASE_TABLES, STORAGE_BUCKETS } = require(path.join(root, "lib", "sonara-database-contract.cjs"));
+const { RETIRED_DATABASE_TABLES } = require(path.join(root, "lib", "sonara-database-retirement-contract.cjs"));
 
 const supabaseUrl = String(process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
 const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "");
@@ -18,6 +19,11 @@ if (!serviceRoleKey) failures.push("SUPABASE_SERVICE_ROLE_KEY is not configured"
 if (failures.length) finish();
 
 const migrationState = deriveMigrationState();
+const retiredTables = new Set(RETIRED_DATABASE_TABLES);
+const expectedTables = new Set([
+  ...[...migrationState.tables].filter((table) => !retiredTables.has(table)),
+  ...DATABASE_TABLES
+]);
 const snapshot = await fetchSnapshot();
 const publicTables = new Map((snapshot.public_tables || []).map((table) => [table.name, table]));
 const publicFunctionNames = new Set((snapshot.public_functions || []).map((fn) => fn.name));
@@ -29,11 +35,10 @@ for (const schemaName of ["public", "auth", "storage", "supabase_migrations"]) {
   if (!schemas.get(schemaName)?.available) failures.push(`required schema is unavailable: ${schemaName}`);
 }
 
-const expectedTables = new Set([...migrationState.tables, ...DATABASE_TABLES]);
 for (const tableName of [...expectedTables].sort()) {
   const table = publicTables.get(tableName);
   if (!table) {
-    failures.push(`declared application table is missing from production: public.${tableName}`);
+    failures.push(`active application table is missing from production: public.${tableName}`);
     continue;
   }
   if (!table.rls_enabled) failures.push(`row-level security is disabled: public.${tableName}`);
@@ -45,6 +50,11 @@ for (const tableName of [...expectedTables].sort()) {
     warnings.push(`service role has intentionally or unexpectedly limited write privileges: public.${tableName}`);
   }
   if (Number(table.policy_count) < 1) warnings.push(`RLS table has no explicit policy and is therefore closed to non-bypass roles: public.${tableName}`);
+}
+
+for (const tableName of RETIRED_DATABASE_TABLES) {
+  if (DATABASE_TABLES.includes(tableName)) failures.push(`retired table is still present in the canonical runtime contract: public.${tableName}`);
+  if (publicTables.has(tableName)) warnings.push(`retired historical table remains in production and should be reviewed for archival: public.${tableName}`);
 }
 
 for (const version of [...migrationState.versions].sort()) {
@@ -72,7 +82,8 @@ if (Number(snapshot.public_table_count) !== publicTables.size) {
 }
 
 finish({
-  declaredTables: expectedTables.size,
+  activeDeclaredTables: expectedTables.size,
+  retiredHistoricalTables: RETIRED_DATABASE_TABLES.length,
   productionPublicTables: publicTables.size,
   localMigrations: migrationState.versions.size,
   appliedMigrations: appliedMigrations.size,
@@ -126,7 +137,7 @@ async function fetchSnapshot() {
   return normalized;
 }
 
-async function verifyPostgrestConnectivity(expectedTables) {
+async function verifyPostgrestConnectivity(activeTables) {
   const preferred = [
     "organizations",
     "service_catalog_items",
@@ -136,7 +147,7 @@ async function verifyPostgrestConnectivity(expectedTables) {
     "huggingface_resource_catalog",
     "market_intelligence_segments",
     "product_lifecycle_initiatives"
-  ].filter((table) => expectedTables.has(table));
+  ].filter((table) => activeTables.has(table));
 
   for (const tableName of preferred) {
     const response = await requestWithRetry(
