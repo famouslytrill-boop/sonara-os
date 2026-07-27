@@ -57,23 +57,14 @@ function prepareSupabaseVerifierCompatibility() {
 
 function prepareSecurityHotfixCompatibility() {
   const filePath = path.join(__dirname, "..", "scripts", "apply-prompt-library-security-hotfix.cjs");
-  let source = fs.readFileSync(filePath, "utf8");
-  if (source.includes("const promptLibrarySqlNormalized =")) return;
-
-  const before = `  source = replaceOnce(source,
-    'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();',
-    'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();'
-  );`;
-  const after = `  const promptLibrarySqlBase = 'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();';
-  const promptLibrarySqlSecurity = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();';
-  const promptLibrarySqlNormalized = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase().replace(/\\s+/g, " ").trim();';
-  if (!source.includes(promptLibrarySqlSecurity) && !source.includes(promptLibrarySqlNormalized)) {
-    source = replaceOnce(source, promptLibrarySqlBase, promptLibrarySqlSecurity);
-  }`;
-
-  if (!source.includes(before)) throw new Error("Prompt Library security hotfix SQL reader block not found");
-  source = source.replace(before, after);
-  fs.writeFileSync(filePath, source);
+  const source = fs.readFileSync(filePath, "utf8");
+  for (const marker of [
+    "const promptLibrarySqlNormalized =",
+    'ensureConstArrayValue(source, "contractSql", "promptLibrarySecurityMigrationPath")',
+    "function ensureConstArrayValue(source, constantName, value)"
+  ]) {
+    if (!source.includes(marker)) throw new Error(`Prompt Library security hotfix idempotency marker missing: ${marker}`);
+  }
 }
 
 function prepareRouteRegistry() {
