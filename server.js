@@ -18,6 +18,7 @@ const {
   DATABASE_TABLES,
   STORAGE_BUCKETS
 } = require("./lib/sonara-database-contract.cjs");
+const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
@@ -87,6 +88,91 @@ app.use((req, res, next) => {
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
   next();
+});
+
+// Authentication rate limits.
+//
+// Counters are stored in Postgres, not in process: this deploys as serverless
+// functions, so a per-instance counter would hand each concurrent instance its
+// own budget. See lib/sonara-rate-limit.cjs and the 20260727171000 migration.
+//
+// Every auth limiter charges two buckets. The per-IP bucket stops one host
+// working through many accounts; the per-subject bucket stops many hosts
+// working on one account, which is what credential stuffing looks like and
+// what per-IP limits never catch.
+function renderRateLimitPage({ req, res, retryAfterSeconds }) {
+  if (!acceptsHtml(req)) return false;
+  return res.status(429).type("html").send(
+    responsePage(
+      "Too many attempts",
+      `Wait about ${Math.max(Math.ceil(retryAfterSeconds / 60), 1)} minute(s) before trying again.`,
+      [linkAction("/", "Home"), linkAction("/support", "Get help")]
+    )
+  );
+}
+
+function reportDegradedRateLimit({ name, error }) {
+  // Fail-open is deliberate (see lib/sonara-rate-limit.cjs); make it loud.
+  console.error(`[rate-limit] ${name} degraded to fail-open: ${error}`);
+}
+
+function createAuthRateLimiter(name, { windowSeconds, maxAttempts, scopes, subjectFrom }) {
+  return createRateLimiter({
+    name,
+    windowSeconds,
+    maxAttempts,
+    scopes,
+    subjectFrom,
+    getSupabaseServerConfig,
+    onDegraded: reportDegradedRateLimit,
+    renderDenied: renderRateLimitPage
+  });
+}
+
+const emailFromBody = (req) => req.body?.email;
+
+const loginRateLimiter = createAuthRateLimiter("auth.login", {
+  windowSeconds: 15 * 60,
+  maxAttempts: 10,
+  scopes: ["ip", "subject"],
+  subjectFrom: emailFromBody
+});
+
+const signupRateLimiter = createAuthRateLimiter("auth.signup", {
+  windowSeconds: 60 * 60,
+  maxAttempts: 5,
+  scopes: ["ip", "subject"],
+  subjectFrom: emailFromBody
+});
+
+// Founder operations get a tighter budget than customer login.
+const adminLoginRateLimiter = createAuthRateLimiter("auth.admin_login", {
+  windowSeconds: 15 * 60,
+  maxAttempts: 5,
+  scopes: ["ip", "subject"],
+  subjectFrom: emailFromBody
+});
+
+const passwordResetRateLimiter = createAuthRateLimiter("auth.password_reset", {
+  windowSeconds: 60 * 60,
+  maxAttempts: 5,
+  scopes: ["ip", "subject"],
+  subjectFrom: emailFromBody
+});
+
+// Reset submission and invite acceptance are token-guessing surfaces, so they
+// are limited by origin only -- there is no meaningful subject before the token
+// has been validated.
+const passwordResetSubmitRateLimiter = createAuthRateLimiter("auth.password_reset_submit", {
+  windowSeconds: 60 * 60,
+  maxAttempts: 10,
+  scopes: ["ip"]
+});
+
+const inviteAcceptRateLimiter = createAuthRateLimiter("auth.invite_accept", {
+  windowSeconds: 60 * 60,
+  maxAttempts: 10,
+  scopes: ["ip"]
 });
 
 registerSonaraInfrastructureRoutes(app, {
@@ -190,6 +276,8 @@ registerServiceLifecycleRoutes(app, {
 });
 
 registerRouteRegistryRoutes(app, {
+  passwordResetRateLimiter,
+  passwordResetSubmitRateLimiter,
   layout,
   brandCard,
   actionCard,
@@ -451,7 +539,7 @@ app.get("/signup", (req, res) => {
   );
 });
 
-app.post("/auth/signup", async (req, res) => {
+app.post("/auth/signup", signupRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("signup", req.body);
   return sendEmailAuthResult(req, res, result, "/account/setup?account=created", "/login?account=confirmation_required");
 });
@@ -484,7 +572,7 @@ app.get("/auth/login", (req, res) => {
   return res.redirect(303, "/login");
 });
 
-app.post("/auth/login", async (req, res) => {
+app.post("/auth/login", loginRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
   return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
 });
@@ -762,7 +850,7 @@ app.get("/business-builder/invite/accept", (req, res) => {
   );
 });
 
-app.post("/business-builder/invite/accept", async (req, res) => {
+app.post("/business-builder/invite/accept", inviteAcceptRateLimiter, async (req, res) => {
   const result = await acceptBusinessEmployeeInvite(req.body);
   if (wantsJson(req)) return res.status(result.status).json(result.body);
   return res.status(result.status).type("html").send(
@@ -924,7 +1012,7 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
   );
 });
 
-app.post("/admin/login", rejectCustomerBearerFromAdminLogin, async (req, res) => {
+app.post("/admin/login", adminLoginRateLimiter, rejectCustomerBearerFromAdminLogin, async (req, res) => {
   if (getReadiness().services.adminProtection !== "configured") {
     await recordAdminAuditEvent(req, "admin.login.setup_required", { path: req.path });
     return res.status(503).type("html").send(responsePage("Admin setup required", "Supabase auth is not configured.", [linkAction("/admin/login", "Return to admin login")]));
