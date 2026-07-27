@@ -48,14 +48,23 @@ function occurrences(source, value) {
 }
 
 describe("Supabase active contract reconciliation", () => {
-  it("keeps historical migration versions while excluding only reviewed retired identifiers", () => {
+  it("keeps historical migration versions while excluding only reviewed retired identifiers from required presence", () => {
     assert.equal(RETIRED_DATABASE_TABLES.length, 27);
     assert.equal(new Set(RETIRED_DATABASE_TABLES).size, RETIRED_DATABASE_TABLES.length);
     for (const table of RETIRED_DATABASE_TABLES) assert.ok(!DATABASE_TABLES.includes(table), `${table} is still canonical`);
     assert.match(verifier, /RETIRED_DATABASE_TABLES/);
     assert.match(verifier, /migrationState\.tables\]\.filter\(\(table\) => !retiredTables\.has\(table\)\)/);
     assert.match(verifier, /local migration is not recorded as applied in production/);
-    assert.match(verifier, /active application table is missing from production/);
+    assert.match(verifier, /verifyTableState\(tableName, publicTables\.get\(tableName\), \{ required: true, classification: "active" \}\)/);
+  });
+
+  it("still enforces RLS, keys, indexes, and service access when a retired table remains deployed", () => {
+    assert.match(verifier, /verifyTableState\(tableName, table, \{ required: false, classification: "retired" \}\)/);
+    assert.match(verifier, /retired table has row-level security disabled/);
+    assert.match(verifier, /retired table has no primary key/);
+    assert.match(verifier, /retired table has an invalid or unready index/);
+    assert.match(verifier, /service role cannot read \$\{classification\} table/);
+    assert.match(verifier, /deployedRetiredTables/);
   });
 
   it("grants the service role CRUD access to every active extension table", () => {
