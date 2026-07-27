@@ -13,7 +13,7 @@ function companyBlock(manifest, companyKey) {
   const start = manifest.indexOf(marker);
   assert.notEqual(start, -1, `Missing company manifest block: ${companyKey}`);
   const nextCompany = manifest.indexOf("\n    {\n      key:", start + marker.length);
-  const adminBoundary = manifest.indexOf("\n  ],\n  adminControlPlane:", start + marker.length);
+  const adminBoundary = manifest.indexOf("adminControlPlane:", start + marker.length);
   const endCandidates = [nextCompany, adminBoundary].filter((value) => value > start);
   assert.ok(endCandidates.length, `Missing company manifest boundary: ${companyKey}`);
   return manifest.slice(start, Math.min(...endCandidates));
