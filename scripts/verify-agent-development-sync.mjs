@@ -31,19 +31,24 @@ assert.doesNotMatch(
 );
 
 const secretBindings = workflow.match(/\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/g) || [];
-assert.equal(secretBindings.length, 2, "The service-role key must be bound to exactly two workflow steps");
+assert.equal(secretBindings.length, 3, "The service-role key must be bound to exactly three guarded workflow steps");
 
 const guard = workflowStep(workflow, "Require protected production credentials");
 assert.match(guard, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
 assert.match(guard, /test -n "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
 
-const pull = workflowStep(workflow, "Pull production environment for catalog verification");
+const pull = workflowStep(workflow, "Pull production environment for database verification");
 assert.doesNotMatch(pull, /SUPABASE_SERVICE_ROLE_KEY/);
 assert.match(pull, /vercel@latest env pull/);
 
-const verify = workflowStep(workflow, "Verify production catalog database boundary");
-assert.match(verify, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
-assert.match(verify, /verify-production-product-catalog\.mjs --database-only/);
+const catalogVerify = workflowStep(workflow, "Verify production catalog database boundary");
+assert.match(catalogVerify, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
+assert.match(catalogVerify, /verify-production-product-catalog\.mjs --database-only/);
+
+const databaseVerify = workflowStep(workflow, "Verify complete production Supabase state");
+assert.match(databaseVerify, /SUPABASE_SERVICE_ROLE_KEY:\s*\$\{\{\s*secrets\.SUPABASE_SERVICE_ROLE_KEY\s*\}\}/);
+assert.match(databaseVerify, /verify-production-supabase\.mjs/);
+assert.match(databaseVerify, /--env-file=\.env\.production\.catalog-verification/);
 
 const cleanup = workflowStep(workflow, "Remove temporary production environment material");
 assert.match(cleanup, /rm -f \.env\.production\.catalog-verification/);
@@ -79,4 +84,4 @@ assert.match(claudeSync, /375a2ef1b3809be76ccd4f3a00a107d8d9f788a9/);
 assert.match(claudeSync, /fa9402a8671bae7934925c5c64f147a221bf4e16/);
 assert.doesNotMatch(claudeSync, /service[_ -]?role[_ -]?key\s*[:=]\s*[A-Za-z0-9._-]{20,}/i);
 
-console.log("Agent development sync verified: Claude deployment hardening, catalog idempotency, dependency override, and shared state are aligned.");
+console.log("Agent development sync verified: scoped Supabase secrets, deep database gate, catalog idempotency, dependency override, and shared state are aligned.");

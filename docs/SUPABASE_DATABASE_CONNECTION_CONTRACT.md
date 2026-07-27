@@ -2,73 +2,82 @@
 
 ## Purpose
 
-SONARA uses one Supabase Postgres project as the primary source of truth. The Express runtime connects through server-only Supabase credentials. Browser code may use only the public project URL and anonymous key, and RLS remains mandatory for browser-accessible data.
+SONARA uses one Supabase Postgres project as the primary source of truth. The Express runtime connects through server-only Supabase credentials. Browser code may use only the public project URL and anonymous key, and row-level security remains mandatory for browser-accessible data.
 
 ## Inventory
 
-`lib/sonara-database-contract.cjs` is the shared application inventory. It groups 119 active application tables into:
+`lib/sonara-database-contract.cjs` is the canonical runtime inventory for identity, organizations, billing, support, service lifecycle, Business Builder, Creator Studio, Growth Studio, agents, automation, audit, formulas, integrations, sensory feedback, storage, and shared prompt records.
 
-- identity and organization access
-- platform, page, app, module, publication, and template records
-- billing and entitlements
-- support and email delivery
-- service lifecycle records
-- Business Builder
-- Creator Studio
-- Growth Studio
-- agents and automation
-- operations and audit
-- formula definitions and results
-- integration jobs and user notifications
-- sensory feedback and location zones
+Additional reviewed migrations provide bounded control-plane domains such as Business Builder ownership, Creator Studio generation, Product Lifecycle, Market Intelligence, reference intelligence, and the governed Hugging Face metadata catalog.
 
-The contract also declares 10 authorization/readiness functions, three required schemas, and seven private storage buckets. It does not create a database per customer and does not duplicate existing agent tables.
+The production verifier does not rely on a manually maintained total alone. It derives the complete declared table set from every ordered SQL migration, merges that set with the canonical runtime contract, and compares the result with the connected production database.
 
 ## Runtime Readiness
 
-Migration `20260722170000_complete_ecosystem_database_contract.sql` supersedes the runtime-only readiness snapshot and:
+Migration `20260722170000_complete_ecosystem_database_contract.sql` introduced the service-role-only `public.sonara_database_contract_snapshot()` for canonical schema, table, RLS, and function readiness.
 
-1. Creates the previously undeclared `audio_transcription_segments` table with tenant scoping, indexes, RLS, and service-role-only access.
-2. Fails if any active ecosystem table is absent.
-3. Fails if a required application table does not have RLS enabled.
-4. Makes service-role table privileges explicit.
-5. Creates `public.sonara_database_contract_snapshot()` as a metadata-only, security-invoker function.
-6. Revokes the function from `PUBLIC`, `anon`, and `authenticated` and grants it only to `service_role`.
-7. Reloads the PostgREST schema cache.
+Migration `20260726232000_deep_database_reconciliation.sql` adds `public.sonara_database_deep_snapshot()`. It returns metadata only and reports:
 
-`GET /api/admin/database-readiness` is protected by the existing server-side admin guard. When the RPC is applied, the route reports schema, table/RLS, function, group, and agent-foundation readiness. During rollout it falls back to legacy server-side table checks and remains `setup_required`; it never invents a successful state.
+- required schemas
+- every public application table
+- RLS and forced-RLS state
+- policy, column, primary-key, foreign-key, check-constraint, index, and trigger counts
+- invalid or unready indexes
+- service-role table privileges
+- public functions
+- private storage buckets
+- installed PostgreSQL extensions
+- versions recorded in `supabase_migrations.schema_migrations`
+
+The function is `SECURITY DEFINER` with an empty search path, accepts no arguments, returns no customer rows, and is executable only by `service_role`.
+
+## Production Deployment Gate
+
+Every controlled deployment now performs this sequence:
+
+1. Run the full application, security, route, database, storage, and OpenAPI test suite.
+2. Link the exact protected Supabase project.
+3. Execute `supabase db push --linked --include-all --dry-run`.
+4. Apply all pending migrations once.
+5. List the linked migration history.
+6. Call the deep production snapshot with a step-scoped service-role key.
+7. Compare every local migration version and declared table with production.
+8. Verify RLS, primary keys, index readiness, service-role access, required functions, and private buckets.
+9. Perform zero-row PostgREST connectivity checks against representative operational tables.
+10. Deploy to Vercel only after the database gate passes.
+
+Pull-request CI also links the protected project and runs a dry-run plus migration-list check when the required GitHub secrets are available. It does not apply migrations from pull requests.
 
 ## Agent Boundary
 
-The connected agent foundation stores entity-scoped agents, runs, memory, tool registrations, action approvals, automations, connectors, workflow runs, jobs, and audit records. It does not run arbitrary code, contact customers, charge payments, publish content, deploy, or mutate production without the separate permission, approval, and execution layers required by policy.
+The connected agent foundation stores entity-scoped agents, runs, memory, tool registrations, action approvals, automations, connectors, workflow runs, jobs, and audit records. It does not run arbitrary code, contact customers, charge payments, publish content, deploy, or mutate production without separate permission, approval, and execution layers.
 
 ## MCP Boundary
 
-`.mcp.json` configures the official Supabase MCP server for the linked project in read-only mode. It contains no credential. The operator must restart the client and complete Supabase OAuth. Production writes remain in the reviewed migration flow, not MCP.
+`.mcp.json` configures the official Supabase MCP server for the linked project in read-only mode. It contains no credential. Production writes remain in the reviewed migration workflow, not in an unreviewed interactive MCP session.
 
 ## Verification
+
+Local and static verification:
 
 ```bash
 pnpm run verify:supabase-contract
 pnpm run verify:db
 pnpm exec supabase db lint --local --level error
-pnpm exec supabase migration list --linked
-pnpm exec supabase db push --linked --dry-run
 ```
 
-The linked commands require operator credentials. A successful local/static verification does not prove that production has received pending migrations.
+Linked preview without writes:
 
-## Production Apply Gate
+```bash
+supabase link --project-ref "$SUPABASE_PROJECT_ID" --password "$SUPABASE_DB_PASSWORD"
+supabase db push --linked --include-all --dry-run --password "$SUPABASE_DB_PASSWORD"
+supabase migration list --linked --password "$SUPABASE_DB_PASSWORD"
+```
 
-Before applying migrations:
+Production metadata verification after migrations are applied:
 
-- review every pending SQL file, especially grants, RLS, and storage policies
-- verify the linked project reference
-- take or confirm a current backup
-- run the dry-run and migration list
-- ensure no other migration runner is active
-- apply once with an authorized operator
-- rerun database readiness and Supabase security/performance advisors
-- verify authenticated tenant isolation and anonymous denial
+```bash
+node --env-file=.env.production scripts/verify-production-supabase.mjs
+```
 
-References: [database migrations](https://supabase.com/docs/guides/deployment/database-migrations), [API security](https://supabase.com/docs/guides/api/securing-your-api), and [MCP server](https://supabase.com/docs/guides/ai-tools/mcp).
+A successful local or pull-request verification does not prove that production received pending migrations. Production is considered reconciled only after the controlled deployment applies migrations and the deep connected verification passes.
