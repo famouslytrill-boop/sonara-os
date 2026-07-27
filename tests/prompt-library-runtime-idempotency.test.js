@@ -12,11 +12,11 @@ function count(source, value) {
 }
 
 describe("Prompt Library runtime preparation", () => {
-  it("preserves extended Supabase verifier paths across repeated runtime passes", function() {
-    this.timeout(15000);
+  it("preserves verifier and security paths across repeated complete prompt passes", function() {
+    this.timeout(20000);
 
     for (let pass = 0; pass < 2; pass += 1) {
-      execFileSync(process.execPath, ["scripts/prepare-prompt-library-runtime.cjs"], {
+      execFileSync(process.execPath, ["scripts/apply-market-rd-priorities.cjs"], {
         cwd: root,
         stdio: "pipe"
       });
@@ -36,5 +36,11 @@ describe("Prompt Library runtime preparation", () => {
     ]) {
       assert.equal(count(match[1], required), 1, `${required} must appear exactly once in contractSql`);
     }
+
+    assert.match(verifier, /const promptLibrarySql = \[promptLibraryMigrationPath, promptLibrarySecurityMigrationPath\]/);
+    assert.match(verifier, /\.replace\(\/\\s\+\/g, " "\)\.trim\(\)/);
+
+    const securityHotfix = fs.readFileSync(path.join(root, "scripts", "apply-prompt-library-security-hotfix.cjs"), "utf8");
+    assert.match(securityHotfix, /const promptLibrarySqlNormalized =/);
   });
 });

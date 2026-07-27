@@ -5,10 +5,11 @@ const path = require("node:path");
 
 preparePromptEngine();
 prepareSupabaseVerifierCompatibility();
+prepareSecurityHotfixCompatibility();
 prepareRouteRegistry();
 prepareEcosystemManifest();
 
-console.log("Prompt Library engine, verifier, and route markers prepared for transformed runtime");
+console.log("Prompt Library engine, verifier, security hotfix, and route markers prepared for transformed runtime");
 
 function preparePromptEngine() {
   const filePath = path.join(__dirname, "..", "lib", "sonara-prompt-library.cjs");
@@ -51,6 +52,27 @@ function prepareSupabaseVerifierCompatibility() {
   }
   source = ensureConstArrayValue(source, "contractSql", "promptLibraryMigrationPath");
 
+  fs.writeFileSync(filePath, source);
+}
+
+function prepareSecurityHotfixCompatibility() {
+  const filePath = path.join(__dirname, "..", "scripts", "apply-prompt-library-security-hotfix.cjs");
+  let source = fs.readFileSync(filePath, "utf8");
+  if (source.includes("const promptLibrarySqlNormalized =")) return;
+
+  const before = `  source = replaceOnce(source,
+    'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();',
+    'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();'
+  );`;
+  const after = `  const promptLibrarySqlBase = 'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();';
+  const promptLibrarySqlSecurity = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();';
+  const promptLibrarySqlNormalized = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase().replace(/\\s+/g, " ").trim();';
+  if (!source.includes(promptLibrarySqlSecurity) && !source.includes(promptLibrarySqlNormalized)) {
+    source = replaceOnce(source, promptLibrarySqlBase, promptLibrarySqlSecurity);
+  }`;
+
+  if (!source.includes(before)) throw new Error("Prompt Library security hotfix SQL reader block not found");
+  source = source.replace(before, after);
   fs.writeFileSync(filePath, source);
 }
 

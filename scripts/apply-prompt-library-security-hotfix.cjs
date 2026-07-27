@@ -199,15 +199,14 @@ function patchSupabaseVerifier() {
     );
   }
 
-  source = source.replace(
-    /const contractSql = \[contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath\]/,
-    'const contractSql = [contractMigrationPath, referenceContractExtensionPath, productLifecycleMigrationPath, marketIntelligenceMigrationPath, promptLibraryMigrationPath, promptLibrarySecurityMigrationPath]'
-  );
+  source = ensureConstArrayValue(source, "contractSql", "promptLibrarySecurityMigrationPath");
 
-  source = replaceOnce(source,
-    'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();',
-    'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();'
-  );
+  const promptLibrarySqlBase = 'const promptLibrarySql = read(promptLibraryMigrationPath).toLowerCase();';
+  const promptLibrarySqlSecurity = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase();';
+  const promptLibrarySqlNormalized = 'const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\\n").toLowerCase().replace(/\\s+/g, " ").trim();';
+  if (!source.includes(promptLibrarySqlSecurity) && !source.includes(promptLibrarySqlNormalized)) {
+    source = replaceOnce(source, promptLibrarySqlBase, promptLibrarySqlSecurity);
+  }
 
   source = source.replace(
     '"revoke all on function public.create_sonara_prompt_version(uuid,text,text,text,text) from public, anon",\n  "grant execute on function public.create_sonara_prompt_version(uuid,text,text,text,text) to authenticated, service_role"',
@@ -217,8 +216,22 @@ function patchSupabaseVerifier() {
   fs.writeFileSync(filePath, source);
 }
 
+function ensureConstArrayValue(source, constantName, value) {
+  const pattern = new RegExp(`(const\\s+${escapeRegExp(constantName)}\\s*=\\s*\\[)([^\\]]*)(\\])`);
+  const match = source.match(pattern);
+  if (!match) throw new Error(`Prompt Library security ${constantName} array not found`);
+  const items = match[2].split(",").map((item) => item.trim()).filter(Boolean);
+  if (items.includes(value)) return source;
+  items.push(value);
+  return source.replace(pattern, (_, opening, _body, closing) => `${opening}${items.join(", ")}${closing}`);
+}
+
 function replaceOnce(source, before, after) {
   if (source.includes(after)) return source;
   if (!source.includes(before)) throw new Error(`Prompt Library security hotfix marker not found: ${before.slice(0, 100)}`);
   return source.replace(before, after);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
