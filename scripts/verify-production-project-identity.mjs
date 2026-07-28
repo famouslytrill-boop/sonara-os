@@ -89,6 +89,56 @@ if (!failures.length) {
   }
 }
 
+// Leaked-password protection.
+//
+// Supabase Auth can check submitted passwords against HaveIBeenPwned and refuse
+// known-breached ones. The security advisor reported it disabled on 2026-07-27.
+// For a product taking payment that is worth having on, and worth keeping on --
+// it is a dashboard toggle, so nothing in the repository would otherwise notice
+// if it were switched off again.
+//
+// This reports state on every deploy and becomes binding once
+// SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true is set, the same ratchet used
+// for the project name. It is deliberately not a hard failure by default,
+// because turning a currently-disabled setting into a deploy blocker would stop
+// production releases for a configuration change nobody had agreed to yet.
+const requireLeakedPasswordProtection =
+  String(process.env.SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION || "").toLowerCase() === "true";
+
+if (!failures.length && accessToken && projectId) {
+  const authResponse = await fetch(`${MANAGEMENT_API}/${projectId}/config/auth`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  }).catch(() => undefined);
+
+  if (!authResponse || !authResponse.ok) {
+    notes.push(
+      `could not read auth configuration (${authResponse ? authResponse.status : "request failed"}); ` +
+        "leaked-password protection not checked"
+    );
+  } else {
+    const authConfig = await authResponse.json().catch(() => undefined);
+    const enabled = authConfig?.password_hibp_enabled;
+
+    if (enabled === true) {
+      notes.push("leaked-password protection is enabled");
+    } else if (enabled === false) {
+      const message =
+        "leaked-password protection is DISABLED. Enable it under Authentication -> Providers -> Password " +
+        "(Supabase checks submitted passwords against HaveIBeenPwned). " +
+        "Set SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true once enabled to keep it that way.";
+      if (requireLeakedPasswordProtection) failures.push(message);
+      else notes.push(`WARNING: ${message}`);
+    } else {
+      // Do not guess. If the field is missing the API shape has changed, and
+      // silently passing would be worse than saying so.
+      notes.push(
+        "auth configuration did not include password_hibp_enabled; the Management API shape may have changed, " +
+          "so leaked-password protection could not be confirmed either way"
+      );
+    }
+  }
+}
+
 for (const note of notes) console.log(`[note] ${note}`);
 
 if (failures.length) {
