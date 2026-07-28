@@ -61,7 +61,7 @@
     "verify:production-supabase": "node scripts/verify-production-supabase.mjs",
     "verify:open-source": "node scripts/verify-open-source-registry.mjs",
     "verify:open-source:network": "node scripts/verify-open-source-registry.mjs --network",
-    "verify:launch": "pnpm run verify:generated && pnpm run build && pnpm run test && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:config && pnpm run verify:api && pnpm run verify:open-source",
+    "verify:launch": "pnpm run verify:generated && pnpm run build && pnpm run test && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:config && pnpm run verify:api && pnpm run verify:stripe && pnpm run verify:open-source",
     "verify:all": "pnpm run verify:launch",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
     "verify:env": "node scripts/verify-env.mjs",

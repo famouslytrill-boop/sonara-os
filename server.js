@@ -99,7 +99,44 @@ const STRIPE_PLANS = {
     mode: "payment"
   }
 };
-app.use(express.static(path.join(__dirname, "public")));
+// Static assets were served with `Cache-Control: public, max-age=0`, which is
+// express.static's default and means the browser revalidates every stylesheet,
+// script, and logo on every single navigation. On a phone that is a round trip
+// per asset before the page can paint -- checked against production on
+// 2026-07-28, every asset came back max-age=0.
+//
+// The stylesheets and scripts are already versioned: renderers link them as
+// `/sonara-one.js?v=sonara-ui-20260725-v6-motion3`, and the token changes when
+// the assets are rebuilt. A versioned URL can therefore be cached forever,
+// because a new build asks for a different URL.
+//
+// Anything unversioned -- /favicon.svg, /brand/*.svg, /app.css -- gets a short
+// life instead. Five minutes removes almost every revalidation in a browsing
+// session, and stale-while-revalidate keeps the page fast while the refresh
+// happens in the background. A wrong asset self-heals in five minutes rather
+// than being pinned for a year.
+const ASSET_CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+const ASSET_CACHE_SHORT = "public, max-age=300, stale-while-revalidate=86400";
+
+// The header is chosen from the request but applied from setHeaders, which
+// express.static only calls once it has a real file to send. Setting it in
+// plain middleware would also stamp it on the 404 for a file that does not
+// exist, and pinning a transient 404 for a year is exactly the failure this
+// change is meant to avoid.
+app.use((req, res, next) => {
+  res.locals.assetCacheControl = req.query && req.query.v ? ASSET_CACHE_IMMUTABLE : ASSET_CACHE_SHORT;
+  next();
+});
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: true,
+  lastModified: true,
+  cacheControl: false,
+  setHeaders: (res) => res.set("Cache-Control", res.locals.assetCacheControl || ASSET_CACHE_SHORT)
+}));
+
+// Pages stay uncacheable on purpose. Every rendered page carries the signed-in
+// navigation -- "Log in" or "Account" -- so a shared cache holding one would
+// hand a signed-in header to the next anonymous visitor.
 app.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path)) res.set("Cache-Control", "no-store, max-age=0"); next(); });
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
