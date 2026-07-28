@@ -162,6 +162,60 @@ describe("signed-in workspaces speak plainly", () => {
   });
 });
 
+// A catalog card is assembled from several independent pieces -- the summary,
+// the availability label, the plan floor, why it is not open, the price note.
+// Each was written on its own and read fine on its own. Rendered together they
+// produced this, live on the money page:
+//
+//   "... Included from Starter. Not open yet -- paid access for this is still
+//    being tested. Comes with Starter. We are still testing paid access for
+//    this one, so it is not open yet."
+//
+// The same fact three times. Nothing was wrong or misleading; it just read like
+// a stutter to somebody deciding whether to pay. No test could have caught it,
+// because every individual string was correct.
+describe("catalog cards do not say the same thing twice", () => {
+  let cards;
+
+  before(async function renderCatalog() {
+    this.timeout(30000);
+    const response = await request(app).get("/service-catalog").set("accept", "text/html");
+    assert.equal(response.status, 200);
+    cards = [...response.text.matchAll(/<h3>([^<]*)<\/h3><p>([^<]*)<\/p>/g)].map((match) => ({
+      name: visibleText(match[1]).trim(),
+      body: visibleText(match[2])
+    }));
+    assert.ok(cards.length >= 30, `only ${cards.length} catalog cards rendered; the check would be vacuous`);
+  });
+
+  it("states the plan once per card", () => {
+    const stuttering = cards.filter((card) => /Included from|Included in/.test(card.body) && /Comes with/.test(card.body));
+    assert.deepEqual(
+      stuttering.map((card) => card.name),
+      [],
+      "these cards name the plan twice, once from includedFrom() and once from the price note"
+    );
+  });
+
+  it("explains being closed once per card", () => {
+    const repeated = cards.filter((card) => (card.body.match(/not open yet/gi) || []).length > 1);
+    assert.deepEqual(repeated.map((card) => card.name), [], "these cards say 'not open yet' more than once");
+  });
+
+  it("mentions testing paid access once per card", () => {
+    const repeated = cards.filter((card) => (card.body.match(/testing paid access|paid access .{0,20}being tested/gi) || []).length > 1);
+    assert.deepEqual(repeated.map((card) => card.name), [], "these cards explain the paid-access test twice");
+  });
+
+  it("still tells a done-for-you service what it costs", () => {
+    // The fix was to drop the price note only where the card already says it.
+    // Services with no plan floor have nowhere else to state pricing, so
+    // theirs must survive.
+    const quoted = cards.filter((card) => /We quote you after we have read your brief|Free to use\./.test(card.body));
+    assert.ok(quoted.length > 0, "the done-for-you services must still state their pricing");
+  });
+});
+
 describe("the vocabulary module", () => {
   it("has customer wording for every availability the catalog can hold", () => {
     const { ALLOWED_LIFECYCLE_STATUSES } = require("../lib/sonara-recommended-product-catalog.cjs");

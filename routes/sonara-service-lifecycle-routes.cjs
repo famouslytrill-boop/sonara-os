@@ -65,7 +65,11 @@ function catalogCardBody(item) {
   if (item.planFloor) parts.push(plainLanguage.includedFrom(item.planFloor));
   else parts.push(`Access: ${item.tier === "free" ? "Free tool" : "Paid service"}.`);
   if (item.serviceKey) parts.push(plainLanguage.accessNote(catalogAccessReason(item)));
-  if (item.priceNote) parts.push(item.priceNote);
+  // Only when it adds something. For a governed product the two lines above
+  // already give the plan and the reason it is not open, and printing the price
+  // note as well made every card say it twice. The done-for-you services have no
+  // planFloor and their note is the only place the pricing is stated.
+  if (item.priceNote && !item.planFloor) parts.push(item.priceNote);
   return parts.join(" ");
 }
 
