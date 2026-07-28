@@ -92,7 +92,7 @@ describe("paid launch finalization", () => {
   it("retains the owner-approved affordable pricing catalog", async function() {
     const response = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(response.status, 200);
-    for (const expected of ["$0", "$5/mo", "$15/mo", "$29/mo", "One-time"]) {
+    for (const expected of ["$0", "$7/mo", "$19/mo", "$39/mo", "One-time"]) {
       assert.match(response.text, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
   });

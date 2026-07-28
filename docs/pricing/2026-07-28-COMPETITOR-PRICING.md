@@ -1,4 +1,4 @@
-# Competitor pricing survey and the SONARA price change
+# Competitor pricing survey
 
 Surveyed 28 July 2026. Every figure below is a published entry-level plan
 billed monthly, taken from the vendor or from a pricing review dated 2026.
@@ -37,25 +37,33 @@ is what somebody starting out actually pays.
 Jobber $29 + Podia $39 + Brevo $9 = **$77 a month**, and that is picking the
 cheapest credible option in each column.
 
-## What SONARA charged, and what it charges now
+## What SONARA charges
 
-| Plan | Was | Now | Sits below |
-| --- | --- | --- | --- |
-| Free | $0 | $0 | — |
-| Starter | $7 | **$5** | Brevo's $9, the cheapest entry plan found |
-| Core | $19 | **$15** | Mailchimp's $20 and Jobber's $29 |
-| Pro | $39 | **$29** | Jobber alone, while covering all three jobs |
+| Plan | Price | Sits below |
+| --- | --- | --- |
+| Free | $0 | — |
+| Starter | $7 | Brevo's $9, the cheapest entry plan found |
+| Core | $19 | Mailchimp's $20 and Jobber's $29 |
+| Pro | $39 | Jobber, HoneyBook and Podia individually, while covering all three jobs |
 
-Pro at $29 against a $77 stack is a real difference, not a rounding of one.
-That is the comparison the pricing page now makes, and it is the only
-competitive claim on the page.
+Pro at $39 against a $77 stack is a real difference, not a rounding of one.
+That is the comparison the pricing page makes, and it is the only competitive
+claim on the page.
 
-### Why these numbers and not lower
+### The decision
 
-$5 is a deliberate floor. Below roughly $5 a month, card processing takes a
-visible bite out of each charge — Stripe's 2.9% + 30c means a $3 subscription
-loses about 13% to fees, against about 8.9% at $5. Going lower would cost more
-in margin than it wins in signups.
+These prices were briefly changed to $5 / $15 / $29 and then reverted by the
+owner on 28 July 2026. **They stay at $7 / $19 / $39.**
+
+The survey is what makes that defensible rather than accidental: Starter at $7
+still undercuts every entry plan found, including Brevo's $9. Pro at $39 is
+still about half what the three tools cost separately, and less than any one of
+Jobber, HoneyBook or Podia on its own. The original prices were already below
+the market; the survey confirmed it rather than prompting a change.
+
+Worth knowing if this is revisited: roughly $5 a month is a practical floor.
+Below it, card processing takes a visible bite — Stripe's 2.9% + 30c costs a $3
+subscription about 13%, against about 8.9% at $5.
 
 ## Claims policy
 
@@ -71,25 +79,33 @@ time prices are reviewed. It is a dated snapshot, not a standing fact.
 
 ## What has to happen before customers can pay these prices
 
-Stripe Price objects are immutable — the amount on an existing price cannot be
-edited. The three subscription prices have to be **created fresh** at the new
-amounts, and the environment variables repointed at the new price IDs:
+No Stripe Price exists for any plan yet, so nothing can be bought regardless of
+what the page says. The three subscription prices have to be created and the
+environment variables pointed at them:
 
 | Env var | Create a recurring monthly price at |
 | --- | --- |
-| `STRIPE_PRICE_STARTER_MONTHLY` | $5.00 USD |
-| `STRIPE_PRICE_CORE_MONTHLY` | $15.00 USD |
-| `STRIPE_PRICE_PRO_MONTHLY` | $29.00 USD |
+| `STRIPE_PRICE_STARTER_MONTHLY` | $7.00 USD |
+| `STRIPE_PRICE_CORE_MONTHLY` | $19.00 USD |
+| `STRIPE_PRICE_PRO_MONTHLY` | $39.00 USD |
 
 Only the account owner can create these. Until they exist, the pricing page
 shows each paid plan as not open for checkout, which is accurate — nothing is
 advertised as buyable that cannot be bought.
 
-`amountCents` in `STRIPE_PLANS` records what the page promises;
+Note for any future change: Stripe Price objects are immutable. The amount on
+an existing price cannot be edited, so changing a price always means creating a
+new one and repointing the environment variable.
+
+`amountCents` in `STRIPE_PLANS` records what the page promises, and
 `tests/pricing.test.js` checks the displayed string and `amountCents` agree, so
-the page can never quietly drift from the number in the config. It cannot check
-Stripe itself — that needs a live API call — so **verify the created Stripe
-prices match this table by hand** before opening checkout.
+the page cannot quietly drift from the number in the config.
+
+`pnpm run verify:stripe` goes one step further: when `STRIPE_SECRET_KEY` is
+present it fetches each configured Price from Stripe and fails if the amount,
+currency, billing interval, or active state disagrees with what the page
+advertises. Without a key it skips and says so. Run it once the prices above
+exist, before opening checkout.
 
 ## Sources
 

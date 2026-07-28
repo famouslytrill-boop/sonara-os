@@ -28,7 +28,7 @@ describe("pricing", () => {
   });
 
   it("shows the plans we intend to sell", () => {
-    for (const [name, price] of [["Free", "$0"], ["Starter", "$5/mo"], ["Core", "$15/mo"], ["Pro", "$29/mo"]]) {
+    for (const [name, price] of [["Free", "$0"], ["Starter", "$7/mo"], ["Core", "$19/mo"], ["Pro", "$39/mo"]]) {
       assert.ok(page.includes(`${name} - ${price}`), `the pricing page must offer ${name} at ${price}`);
     }
   });
@@ -61,8 +61,9 @@ describe("pricing", () => {
     );
     assert.ok(
       PLANS.pro_monthly.amountCents < 7700,
-      "Pro must stay well under the ~$77 competitor stack the page compares against"
+      "Pro must stay under the ~$77 competitor stack the page compares against"
     );
+
   });
 
   it("does not promise anything about future pricing", () => {

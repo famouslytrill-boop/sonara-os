@@ -43,9 +43,9 @@ const CUSTOMER_REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
-// Prices are set deliberately below every comparable tool we could find
-// charging for the same job. See docs/pricing/2026-07-28-COMPETITOR-PRICING.md
-// for the survey behind these numbers.
+// These prices already sit below every comparable tool we could find charging
+// for the same job -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md for the
+// survey that confirmed it, and for why they were left where they are.
 //
 // amountCents is the price this page promises. The amount actually charged
 // lives in the Stripe Price object named by `env`, and the two have to agree --
@@ -64,8 +64,8 @@ const STRIPE_PLANS = {
   },
   starter_monthly: {
     name: "Starter",
-    price: "$5/mo",
-    amountCents: 500,
+    price: "$7/mo",
+    amountCents: 700,
     description: "One workspace, your offer, customer enquiries, the checklist tools, and your records saved.",
     env: "STRIPE_PRICE_STARTER_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY"],
@@ -73,8 +73,8 @@ const STRIPE_PLANS = {
   },
   core_monthly: {
     name: "Core",
-    price: "$15/mo",
-    amountCents: 1500,
+    price: "$19/mo",
+    amountCents: 1900,
     description: "Best value. A full studio, your customer and offer records, the launch checklist, and tracked support.",
     env: "STRIPE_PRICE_CORE_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY"],
@@ -82,8 +82,8 @@ const STRIPE_PLANS = {
   },
   pro_monthly: {
     name: "Pro",
-    price: "$29/mo",
-    amountCents: 2900,
+    price: "$39/mo",
+    amountCents: 3900,
     description: "All three studios together, deeper records, campaign planning, the full launch checklist, and priority support.",
     env: "STRIPE_PRICE_PRO_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
@@ -606,11 +606,11 @@ app.get("/pricing", (req, res) => {
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
-      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $29. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
-      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $5 if you want your work saved in one workspace, Core at $15 for a full studio, or Pro at $29 if you need all three.</p></details>
+      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $7 if you want your work saved in one workspace, Core at $19 for a full studio, or Pro at $39 if you need all three.</p></details>
     </div>
   </section>`;
   return res.status(200).type("html").send(
@@ -623,7 +623,7 @@ app.get("/pricing", (req, res) => {
         : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
         ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $29."),
+        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $39."),
         brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],
