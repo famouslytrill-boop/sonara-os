@@ -10,7 +10,25 @@ if (!fs.existsSync(serverPath)) {
   process.exit(1);
 }
 
+// This generator edits two files. The legal and email-validation changes are
+// still in server.js, but the readiness object moved to lib/sonara-readiness.cjs
+// during the server.js split -- and the anchor for it is a pair of lines
+// *inside* getReadiness, not the function name. That is worth stating: an
+// extraction can look clean by every function name and still break a generator
+// that reaches into a body.
+const readinessPath = path.join(process.cwd(), "lib", "sonara-readiness.cjs");
+
 let source = fs.readFileSync(serverPath, "utf8");
+let readinessSource = fs.readFileSync(readinessPath, "utf8");
+
+function replaceInReadiness(label, oldValue, newValue) {
+  if (readinessSource.includes(newValue)) return;
+  if (!readinessSource.includes(oldValue)) {
+    console.error(`Paid launch finalization patch failed: ${label} source was not found in lib/sonara-readiness.cjs.`);
+    process.exit(1);
+  }
+  readinessSource = readinessSource.replace(oldValue, newValue);
+}
 
 function replaceRequired(label, oldValue, newValue) {
   if (source.includes(newValue)) return;
@@ -21,10 +39,10 @@ function replaceRequired(label, oldValue, newValue) {
   source = source.replace(oldValue, newValue);
 }
 
-replaceRequired(
+replaceInReadiness(
   "owner-approved legal and pricing readiness",
-  '    legalPages: "review_required",\n    checkout: enabledPlanCount ? "enabled" : "setup_required",',
-  '    legalPages: "review_required",\n    ownerLegalApproval: "owner_approved",\n    pricingCatalog: "owner_approved",\n    legalReviewBoundary: "not_attorney_reviewed",\n    checkout: enabledPlanCount ? "enabled" : "setup_required",'
+  '      legalPages: "review_required",\n      checkout: enabledPlanCount ? "enabled" : "setup_required",',
+  '      legalPages: "review_required",\n      ownerLegalApproval: "owner_approved",\n      pricingCatalog: "owner_approved",\n      legalReviewBoundary: "not_attorney_reviewed",\n      checkout: enabledPlanCount ? "enabled" : "setup_required",'
 );
 
 replaceRequired(
@@ -60,4 +78,5 @@ function isPlaceholderEmail(value) {
 );
 
 fs.writeFileSync(serverPath, source);
+fs.writeFileSync(readinessPath, readinessSource);
 console.log("SONARA paid launch finalization applied.");

@@ -37,6 +37,22 @@ const EXTRACTED = [
       "productDashboardActions",
       "productLaunchReadinessActions"
     ]
+  },
+  {
+    module: "lib/sonara-readiness.cjs",
+    functions: [
+      "getReadiness",
+      "getAdminEnvReadiness",
+      "buildDatabaseReadinessResult",
+      "getSupabaseReadinessStatus",
+      "getStripeSecretStatus",
+      "getStripeWebhookStatus",
+      "getCheckoutPlanStatuses",
+      "getInvalidStripeEnvStatuses",
+      "combineEnvStatuses",
+      "missingEnvGroups",
+      "databaseGroupForTable"
+    ]
   }
 ];
 
@@ -61,7 +77,16 @@ describe("the server.js split stays safe", () => {
   // So this is deliberately the narrow, reliable version: a generator that
   // names an extracted function must also open the module it moved to. It is an
   // early warning for the obvious case, not a substitute for apply:runtime.
-  it("leaves no generator naming an extracted function without following it", () => {
+  it("leaves no generator naming a function server.js can no longer resolve", () => {
+    // Refined once more, in step 2. A generator referencing an extracted
+    // function is fine when it only *calls* it and the call site stays in
+    // server.js -- getReadiness() is still a binding there, brought back in by
+    // the destructured require, so apply-advanced-builder-ui.cjs and two others
+    // that emit `renderAdvancedBuilderHomepage(getReadiness())` keep working.
+    //
+    // The violation is narrower than "the generator mentions it": the name has
+    // to be unresolvable in server.js *and* the generator has to not open the
+    // module it moved to.
     const generators = generatorSources();
     const violations = [];
 
@@ -70,9 +95,11 @@ describe("the server.js split stays safe", () => {
       for (const generator of generators) {
         if (generator.source.includes(moduleFile)) continue;
         for (const fn of extraction.functions) {
-          if (generator.source.includes(fn)) {
-            violations.push(`scripts/${generator.name} still expects ${fn} in server.js`);
-          }
+          if (!generator.source.includes(fn)) continue;
+          // Still reachable where the generator looks?
+          const boundInServer = new RegExp(`^\\s*${fn},?\\s*$`, "m").test(serverSource);
+          if (boundInServer) continue;
+          violations.push(`scripts/${generator.name} references ${fn}, which server.js can no longer resolve`);
         }
       }
     }
@@ -112,14 +139,60 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 5,047 lines after the first extraction, down
+    // A ratchet, not a target. 4,774 lines after the second extraction, down
     // from 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 5060,
+      lines <= 4790,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
+  });
+});
+
+describe("the readiness module stands on its own", () => {
+  const { createReadiness } = require("../lib/sonara-readiness.cjs");
+
+  const deps = {
+    getEnv: () => undefined,
+    isPlaceholderValue: () => false,
+    isEmailLike: () => true,
+    isPlaceholderEmail: () => false,
+    splitList: (value) => String(value || "").split(",").filter(Boolean),
+    STRIPE_PLANS: { free: { name: "Free" } }
+  };
+
+  it("refuses to build without the helpers it needs", () => {
+    // A missing helper would make every status read "missing", which looks
+    // exactly like a genuinely unconfigured environment -- the failure would
+    // be invisible on the readiness screen.
+    assert.throws(() => createReadiness({}), TypeError);
+    for (const missing of ["getEnv", "isPlaceholderValue", "splitList"]) {
+      const partial = { ...deps };
+      delete partial[missing];
+      assert.throws(() => createReadiness(partial), TypeError, `omitting ${missing} must throw`);
+    }
+    assert.throws(() => createReadiness({ ...deps, STRIPE_PLANS: undefined }), TypeError);
+  });
+
+  it("reports every service as unconfigured when the environment is empty", () => {
+    const readiness = createReadiness(deps).getReadiness();
+    assert.ok(readiness.services, "readiness must report services");
+    assert.ok(Object.keys(readiness.services).length >= 10, "the readiness report looks empty");
+    assert.equal(readiness.services.supabase, "missing");
+    assert.equal(readiness.services.stripe, "missing");
+  });
+
+  it("takes its environment from the injected reader, not from process.env", () => {
+    // The whole point of injecting getEnv is that this module never reaches for
+    // the ambient environment itself.
+    const source = fs.readFileSync(path.join(root, "lib", "sonara-readiness.cjs"), "utf8");
+    assert.ok(!/process\.env/.test(source), "lib/sonara-readiness.cjs must not read process.env directly");
+  });
+
+  it("owns the database contract rather than having it injected", () => {
+    const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
+    assert.ok(readiness, "the database readiness result must build from the contract it requires");
   });
 });
 
