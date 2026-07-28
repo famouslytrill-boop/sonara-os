@@ -205,6 +205,47 @@ Note: the values *are* consistently `encodeURIComponent`-wrapped, so I found **n
 
 **Effort:** 2 weeks for (1)+(3); 4–6 weeks for (2). **ROI:** Very high.
 
+#### Status: (1) done, 2026-07-28 — enforced, not just offered
+
+`lib/sonara-tenant-data.cjs` built the safe helper this recommended. It did not
+work, and the reason is worth recording: **a helper nobody is obliged to use
+protects nothing.** 75 call sites went on writing raw queries, and rewriting all
+of them would have been a large diff through codegen-managed files that still
+would not have stopped the 76th.
+
+The check moved to the only place all 75 pass through — the `fetch` to the
+Supabase REST API. `lib/sonara-tenant-guard.cjs` wraps it, inspects anything
+addressed to `/rest/v1/`, and **throws** when a tenant-scoped table is read or
+written without a tenant. It throws in every environment; a guard that logs and
+continues in production would be another signal reporting success without being
+true.
+
+- The 206 tenant-scoped tables are **derived from the migrations**, not listed by
+  hand (`scripts/generate-tenant-scoped-tables.cjs`, checked by
+  `verify:tenant-tables`). A hand-maintained list would go stale and the guard
+  would wave new tables through while appearing to work.
+- Exercising all 356 GET routes against it produced **14 blocked patterns, all
+  legitimate**: 12 `?select=id&limit=1` existence probes on the readiness
+  screens, and 2 reads scoped by `user_id` instead. Both became stated rules
+  rather than per-table exemptions. Nothing else was blocked, so the rule is
+  consistent with the traffic the application actually makes.
+- Genuinely cross-tenant access — token redemption, Stripe webhooks, the founder
+  support console — is listed in `EXEMPT_PATTERNS`, each with a written reason
+  and a predicate narrow enough that the general case is still refused. A test
+  asserts every exemption carries a reason and names a table that exists.
+
+Recommendation (1) also proposed an ESLint ban on raw `fetch`. Not done, and
+deliberately: with the guard in place a raw call site is no longer unsafe, so
+the ban would add friction without adding safety. `tests/tenant-isolation.test.js`
+previously ratcheted the raw call-site count for that reason; it now checks the
+guard's real gap instead — that every table named literally in a query is one
+the generated list knows about.
+
+**(2) user-scoped clients and (3) cross-tenant integration tests remain open.**
+The guard is a boundary in the application, not in the database. It cannot
+protect against a route that fetches the wrong organization id in the first
+place, and it trusts that a `user_id` filter came from a verified session.
+
 ---
 
 ### CRIT-4 — No rate limiting anywhere, on any route, including authentication

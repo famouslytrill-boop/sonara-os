@@ -32,6 +32,14 @@ const {
   STORAGE_BUCKETS
 } = require("./lib/sonara-database-contract.cjs");
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
+
+// Installed before any route is registered, and before any request can run.
+// Every Supabase call in this application uses the service-role key, which
+// bypasses Row Level Security, so the tenant boundary is whatever the query
+// says. This refuses a query that does not say. See CRIT-3 in
+// docs/audits/2026-07-27-ENGINEERING_AUDIT.md.
+tenantGuard.install();
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";

@@ -9,6 +9,7 @@ const {
   fetchTenantRows,
   TenantScopeError
 } = require("../lib/sonara-tenant-data.cjs");
+const { TENANT_SCOPED_TABLES, GLOBAL_TABLES } = require("../lib/sonara-tenant-scoped-tables.cjs");
 
 describe("tenant-scoped query construction", () => {
   it("refuses to build a tenant query without an organization", () => {
@@ -103,19 +104,21 @@ describe("tenant-scoped query construction", () => {
   });
 });
 
-// Ratchet: prevent new raw PostgREST call sites.
+// Every table a query names must be one the guard knows about.
 //
-// The 69 existing sites were audited on 2026-07-27 and none is missing a tenant
-// scope, so they are grandfathered rather than rewritten. This test stops the
-// count from growing: any new query must go through lib/sonara-tenant-data.cjs,
-// where omitting the scope is impossible.
+// This used to be a ratchet on the number of raw /rest/v1/ call sites, on the
+// theory that fewer raw queries meant fewer chances to forget a tenant scope.
+// lib/sonara-tenant-guard.cjs now enforces the scope itself, at the fetch, so a
+// raw call site is no longer the risk it was and counting them measures style
+// rather than safety.
 //
-// When call sites are migrated to the helper, lower BASELINE to match. It is a
-// ratchet, not a floor.
-describe("raw PostgREST call sites do not grow", () => {
-  const BASELINE = 69;
-
-  it(`has no more than ${BASELINE} raw /rest/v1/ references outside the helper`, () => {
+// The guard does have one real gap: it decides what to enforce from a generated
+// list of tables, and a table missing from that list is waved through. That is
+// deliberate -- blocking an unrecognised name would turn a stale list into an
+// outage -- but it means the list going stale is the way the guard quietly
+// stops guarding. This is the test for that.
+describe("the guard knows every table the code queries by name", () => {
+  it("recognises each literal table name in a PostgREST path", () => {
     const root = path.join(__dirname, "..");
     const files = [
       path.join(root, "server.js"),
@@ -125,26 +128,32 @@ describe("raw PostgREST call sites do not grow", () => {
         .map((name) => path.join(root, "routes", name))
     ];
 
-    const counts = files
-      .map((file) => ({
-        file: path.relative(root, file),
-        count: (fs.readFileSync(file, "utf8").match(/\/rest\/v1\//g) || []).length
-      }))
-      .filter((entry) => entry.count > 0)
-      .sort((a, b) => b.count - a.count);
+    const unknown = new Map();
+    let literalCount = 0;
 
-    const total = counts.reduce((sum, entry) => sum + entry.count, 0);
-
-    assert.ok(
-      total <= BASELINE,
-      `Raw PostgREST call sites grew from ${BASELINE} to ${total}.\n` +
-        `New queries must use lib/sonara-tenant-data.cjs, which cannot build a\n` +
-        `tenant query without an explicit organizationId.\n\n` +
-        counts.map((entry) => `  ${entry.count}  ${entry.file}`).join("\n")
-    );
-
-    if (total < BASELINE) {
-      console.log(`  note: raw call sites down to ${total}; lower BASELINE in this test to ${total} to hold the gain.`);
+    for (const file of files) {
+      const source = fs.readFileSync(file, "utf8");
+      // Literal names only. A `/rest/v1/${table}` is resolved at runtime and
+      // cannot be checked from here -- the guard still inspects it when the
+      // request is actually made.
+      for (const match of source.matchAll(/\/rest\/v1\/([a-z0-9_]+)/g)) {
+        const table = match[1];
+        if (table === "rpc") continue;
+        literalCount += 1;
+        if (TENANT_SCOPED_TABLES.has(table) || GLOBAL_TABLES.has(table)) continue;
+        if (!unknown.has(table)) unknown.set(table, path.relative(root, file));
+      }
     }
+
+    assert.ok(literalCount > 20, `only ${literalCount} literal table names found; the scan is not working`);
+
+    assert.deepEqual(
+      [...unknown.entries()].map(([table, file]) => `${table} (${file})`),
+      [],
+      "These tables are queried but appear in no migration, so the tenant guard does not know " +
+        "whether they carry organization_id and will let their queries through unchecked.\n" +
+        "Either the migration is missing, or lib/sonara-tenant-scoped-tables.cjs is stale -- " +
+        "run `pnpm run gen:tenant-tables`."
+    );
   });
 });
