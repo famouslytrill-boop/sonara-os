@@ -19,7 +19,10 @@ describe("Recommended product catalog production boundary", () => {
     for (const item of paid) {
       assert.equal(item.entitlementIntegrationVerified, false, `${item.serviceKey} must remain unverified`);
       assert.equal(item.executionEnabled, false, `${item.serviceKey} must remain non-executable`);
-      assert.match(item.priceNote, /still testing paid access for this one, so it is not open yet/i);
+      // The price note states price and nothing else now. Availability and the
+      // plan live on the card via accessNote() and includedFrom(); when this
+      // note repeated them, every card ended by saying the same thing twice.
+      assert.match(item.priceNote, /^Included in (Starter and above|Core and above|Pro)\.$/);
     }
     const summary = getRecommendedProductCatalogSummary();
     assert.equal(summary.total, 34);

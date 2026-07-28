@@ -61,7 +61,8 @@ function catalogCardBody(item) {
   if (item.planFloor) parts.push(plainLanguage.includedFrom(item.planFloor));
   else parts.push(\`Access: \${item.tier === "free" ? "Free tool" : "Paid service"}.\`);
   if (item.serviceKey) parts.push(plainLanguage.accessNote(catalogAccessReason(item)));
-  if (item.priceNote) parts.push(item.priceNote);
+  // Only when it adds something -- see the note in the emitted file.
+  if (item.priceNote && !item.planFloor) parts.push(item.priceNote);
   return parts.join(" ");
 }`;
   if (source.includes(oldCardBody)) source = source.replace(oldCardBody, newCardBody);
