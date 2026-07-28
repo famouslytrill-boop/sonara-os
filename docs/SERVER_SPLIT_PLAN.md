@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 5,047 lines.
+**Status:** in progress, in the background. 5,119 → 4,774 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -26,11 +26,19 @@ So the rule is:
 `tests/server-split.test.js` gives an early warning: a generator that names an
 extracted function must also open the module it moved to.
 
-**That check is not sufficient, and it is important to know why.** Step 1 broke
-`apply-growth-studio-public-positioning.cjs`, which never mentions
-`productLandingActions` at all — it anchors on
-`linkAction("/growth-studio/dashboard", "Open dashboard")`, a line *inside* the
-function body. No amount of name matching sees that coming.
+**That check is not sufficient, and it is important to know why.** It has now
+been proven insufficient twice:
+
+- Step 1 broke `apply-growth-studio-public-positioning.cjs`, which never
+  mentions `productLandingActions` — it anchors on
+  `linkAction("/growth-studio/dashboard", "Open dashboard")`, a line *inside*
+  the function body.
+- Step 2 broke `apply-paid-launch-finalization.cjs`, which never mentions
+  `getReadiness` — it anchors on two lines of the readiness object literal
+  inside it.
+
+Both extractions looked clean by every function name involved. No amount of
+name matching sees either coming.
 
 The authoritative check is empirical: run `pnpm run apply:runtime` twice and
 confirm the tree is unchanged. `verify:generated` does this in CI. **Never skip
@@ -43,8 +51,8 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | Step | What moves | Lines | Generators touching it | Status |
 | --- | --- | ---: | ---: | --- |
 | 1 | Product page definitions and action bars | 158 | 0 | **done** — `lib/sonara-product-pages.cjs` |
-| 2 | Readiness computation (`getReadiness`, `getAdminEnvReadiness`, `buildDatabaseReadinessResult`) | ~135 | 3 | next |
-| 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | ready |
+| 2 | Readiness computation — 27 functions | 288 | 4 (calls only) | **done** — `lib/sonara-readiness.cjs` |
+| 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | next |
 | 4 | Admin action bars and forms (`adminActions`, `contactForm`, `authForm`) | ~61 | 3 | ready |
 | 5 | Billing and Stripe (`STRIPE_PLANS`, checkout, webhook) | ~600 | many | needs generator work first |
 | 6 | Auth and sessions | ~700 | many | needs generator work first |
@@ -63,11 +71,13 @@ that out.
    Helpers that generators anchor on — `linkAction`, `layout`, `brandCard`,
    `escapeHtml` — stay in `server.js` and are **injected**. This is the shape
    `routes/*.cjs` already uses.
-3. Bind the factory near the top of `server.js`. Route registration runs at
-   module load and receives these as dependencies; a `const` is not hoisted,
-   and putting the binding where the functions used to sit throws
-   `Cannot access '<name>' before initialization`. (Found the hard way in
-   step 1.)
+3. Bind the factory near the top of `server.js`, but **after anything it reads
+   that is itself a `const`**. Route registration runs at module load and
+   receives these as dependencies, and a `const` is not hoisted — putting the
+   binding where the functions used to sit throws
+   `Cannot access '<name>' before initialization` (step 1), and putting it
+   above `STRIPE_PLANS` throws the same for that (step 2). Injected *function*
+   declarations are hoisted and can be referenced from anywhere.
 4. Add the module and its functions to `EXTRACTED` in
    `tests/server-split.test.js`.
 5. Run, in this order, and do not skip the third:
