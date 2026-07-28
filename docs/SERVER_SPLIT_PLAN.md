@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,774 lines.
+**Status:** in progress, in the background. 5,119 → 4,674 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -53,31 +53,74 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | 1 | Product page definitions and action bars | 158 | 0 | **done** — `lib/sonara-product-pages.cjs` |
 | 2 | Readiness computation — 27 functions | 288 | 4 (calls only) | **done** — `lib/sonara-readiness.cjs` |
 | 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | next |
-| 4 | Admin action bars and forms (`adminActions`, `contactForm`, `authForm`) | ~61 | 3 | ready |
+| 4 | Admin action bars and forms (`adminActions`) | ~40 | 3 | ready |
 | 5 | Billing and Stripe (`STRIPE_PLANS`, checkout, webhook) | ~600 | many | needs generator work first |
 | 6 | Auth and sessions | ~700 | many | needs generator work first |
-| 7 | Rendering shell (`layout`, `renderHomepageContent`) | ~250 | 26 | **do not attempt** until the homepage generator is retired |
+| 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
+| 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 11 | **do not attempt** until the homepage generator is retired |
 
-Steps 5–7 are the bulk of the file and are gated on the generators, not on the
-code. The honest sequence is to retire or rewrite the generators that own those
-regions first; moving the code underneath them is the expensive way to find
-that out.
+Steps 5 and 6 are the bulk of the file and are gated on the generators, not on
+the code. The honest sequence is to retire or rewrite the generators that own
+those regions first; moving the code underneath them is the expensive way to
+find that out.
+
+### Step 7 was mis-graded, and the reason matters
+
+The row above originally read "Rendering shell (`layout`,
+`renderHomepageContent`) — ~250 lines — 26 generators — do not attempt". That
+grade came from counting how many generators *mention* `layout`.
+
+Twenty-six do. **None of them contains `function layout(`.** They mention it
+because they emit `layout({ ... })` call sites — which stay in `server.js`
+either way and are unaffected by where the definition lives. Grading by
+mentions is the same mistake steps 1 and 2 had already disproved from the other
+direction, where the generator that broke never mentioned the function at all.
+
+The question that actually predicts breakage is narrower:
+
+> Does any generator anchor on a string **inside this function's body**?
+
+Asked that way the shell splits cleanly in two. Twelve leaf helpers —
+`escapeHtml`, `brandCard`, `linkAction`, `authForm` and the rest — have zero
+generators anchoring inside them, and moved as step 7a. Five do not: `  </head>`
+alone is a replacement target for four generators (`apply-advanced-builder-ui`,
+`apply-cohesive-2027-ui`, `apply-premium-access-experience`,
+`apply-premium-ui-final`), `apply-motion-brand-system` rewrites the loader
+markup, and six more anchor elsewhere in the same region. `layout` is the anchor
+magnet, not the shell.
+
+A first attempt moved `layout` with the rest. It cascaded into five generator
+repairs before a scan found six more, and was reset rather than pushed. Step 7b
+stays gated for exactly the reason originally stated — it just applies to a
+quarter as much code as the row claimed.
+
+Step 4 shrank as a side effect: `contactForm` and `authForm` were on its list
+and are now in `lib/sonara-shell.cjs`.
 
 ## How to do one
 
-1. Pick a function group with no generator references. Confirm it:
-   `grep -l "<functionName>" scripts/apply-*.cjs` must return nothing.
-2. Move it to `lib/sonara-<area>.cjs` as a factory that takes its dependencies.
-   Helpers that generators anchor on — `linkAction`, `layout`, `brandCard`,
-   `escapeHtml` — stay in `server.js` and are **injected**. This is the shape
-   `routes/*.cjs` already uses.
+1. Pick a function group and check the right thing. A generator *naming* the
+   function is not a blocker — `layout` is named by 26 and defined by none. What
+   blocks a move is a generator anchoring on a string **inside the body**. Take
+   the two or three most distinctive literals from each function and
+   `grep -l` those across `scripts/apply-*.cjs`, then read every hit rather than
+   counting it: most are unrelated markup that happens to share a class name.
+2. Move it to `lib/sonara-<area>.cjs`. Take dependencies as a factory argument
+   when it genuinely has them — anything the generators anchor on stays in
+   `server.js` and is **injected**, which is the shape `routes/*.cjs` uses. When
+   a group depends on nothing outside itself, as `lib/sonara-shell.cjs` does,
+   export the functions directly; a factory with an empty dependency object is
+   one more binding to place wrongly.
 3. Bind the factory near the top of `server.js`, but **after anything it reads
    that is itself a `const`**. Route registration runs at module load and
    receives these as dependencies, and a `const` is not hoisted — putting the
    binding where the functions used to sit throws
    `Cannot access '<name>' before initialization` (step 1), and putting it
    above `STRIPE_PLANS` throws the same for that (step 2). Injected *function*
-   declarations are hoisted and can be referenced from anywhere.
+   declarations are hoisted and can be referenced from anywhere — until they are
+   themselves extracted, at which point they become consts too. That is what
+   step 7a did to `linkAction` and `logoutAction`, which is why the shell require
+   sits above the `createProductPages` call that consumes them.
 4. Add the module and its functions to `EXTRACTED` in
    `tests/server-split.test.js`.
 5. Run, in this order, and do not skip the third:

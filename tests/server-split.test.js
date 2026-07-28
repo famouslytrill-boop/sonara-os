@@ -53,6 +53,23 @@ const EXTRACTED = [
       "missingEnvGroups",
       "databaseGroupForTable"
     ]
+  },
+  {
+    module: "lib/sonara-shell.cjs",
+    functions: [
+      "escapeHtml",
+      "displayStatus",
+      "formatLabel",
+      "adminReadinessText",
+      "brandCard",
+      "actionCard",
+      "checklistCard",
+      "accessCard",
+      "linkAction",
+      "logoutAction",
+      "contactForm",
+      "authForm"
+    ]
   }
 ];
 
@@ -139,12 +156,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,774 lines after the second extraction, down
+    // A ratchet, not a target. 4,674 lines after the shell helpers moved, down
     // from 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4790,
+      lines <= 4690,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -193,6 +210,58 @@ describe("the readiness module stands on its own", () => {
   it("owns the database contract rather than having it injected", () => {
     const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
     assert.ok(readiness, "the database readiness result must build from the contract it requires");
+  });
+});
+
+describe("the rendering helpers stand on their own", () => {
+  const shell = require("../lib/sonara-shell.cjs");
+
+  it("needs nothing injected", () => {
+    // The other two extractions are factories because they read things
+    // server.js owns. These twelve read only each other, so a factory would be
+    // a binding to get wrong for no benefit.
+    const source = fs.readFileSync(path.join(root, "lib", "sonara-shell.cjs"), "utf8");
+    assert.ok(!/process\.env/.test(source), "the shell helpers must not read the environment");
+    assert.ok(!/require\("\.\/sonara-/.test(source), "the shell helpers must not depend on other lib modules");
+  });
+
+  it("escapes what goes into markup", () => {
+    // linkAction and brandCard put caller-supplied text straight into HTML.
+    // This is the whole reason escapeHtml travels with them.
+    assert.equal(shell.escapeHtml(`<script>&"'`), "&lt;script&gt;&amp;&quot;&#39;");
+    assert.match(shell.linkAction("/a\"b", "<x>"), /href="\/a&quot;b">&lt;x&gt;</);
+    assert.match(shell.brandCard("<b>", "&"), /<h2>&lt;b&gt;<\/h2><p>&amp;<\/p>/);
+  });
+
+  it("gives a signup form a different password field id than a login form", () => {
+    // Both render on the same page in some flows; duplicate ids would break
+    // the show-password toggle and the label association.
+    const login = shell.authForm("Log in", "/auth/login");
+    const signup = shell.authForm("Create account", "/auth/signup");
+    const idOf = (html) => html.match(/id="(password-[a-f0-9]+)"/)[1];
+    assert.notEqual(idOf(login), idOf(signup));
+    assert.match(signup, /name="confirmPassword"/);
+    assert.doesNotMatch(login, /name="confirmPassword"/);
+  });
+
+  it("turns internal status keys into something a person can read", () => {
+    assert.equal(shell.displayStatus("setup_required"), "Setup required");
+    assert.equal(shell.displayStatus("review_required"), "Review required");
+    assert.equal(shell.formatLabel("supabase"), "Account database");
+    assert.equal(shell.formatLabel("stripeWebhook"), "Payment updates");
+    // An unknown key must still read as words, not as camelCase.
+    assert.equal(shell.formatLabel("somethingNew"), "Something New");
+  });
+
+  it("says something for every access mode, including none", () => {
+    assert.match(shell.accessCard({ ownerOverride: true }), /Owner\/Admin access/);
+    assert.match(shell.accessCard({ mode: "customer" }), /Free customer access/);
+    assert.match(shell.accessCard(undefined), /Login is required/);
+  });
+
+  it("leaves the action row out when there are no actions", () => {
+    assert.doesNotMatch(shell.actionCard("t", "b"), /card-actions/);
+    assert.match(shell.actionCard("t", "b", ["<a></a>"]), /card-actions/);
   });
 });
 

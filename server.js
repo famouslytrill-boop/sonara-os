@@ -35,6 +35,24 @@ const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
+// The leaf rendering helpers -- cards, links, forms, status wording. Required
+// at the very top because these are consts now rather than hoisted function
+// declarations, and createProductPages below is called at module load with two
+// of them. Nothing in this file can be allowed to run before this line.
+const {
+  accessCard,
+  actionCard,
+  adminReadinessText,
+  authForm,
+  brandCard,
+  checklistCard,
+  contactForm,
+  displayStatus,
+  escapeHtml,
+  formatLabel,
+  linkAction,
+  logoutAction
+} = require("./lib/sonara-shell.cjs");
 
 // getProductPageDefinitions, productLandingActions, productDashboardActions and
 // productLaunchReadinessActions moved to lib/sonara-product-pages.cjs -- pure
@@ -2136,27 +2154,6 @@ function readinessCards(readiness) {
     .map(([key, label]) => brandCard(label, displayStatus(readiness.services[key])));
 }
 
-function displayStatus(value) {
-  return String(value)
-    .replace(/setup_required/g, "Setup required")
-    .replace(/review_required/g, "Review required")
-    .replace(/_/g, " ")
-    .replace(/^./, (char) => char.toUpperCase());
-}
-
-function brandCard(title, body) {
-  return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p></article>`;
-}
-
-function actionCard(title, body, actions = []) {
-  return `<article class="card sonara-action-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p>${actions.length ? `<div class="card-actions">${actions.join("")}</div>` : ""}</article>`;
-}
-
-function accessCard(access) {
-  if (access?.ownerOverride) return brandCard("Owner/Admin access", "Founder operations can open all workspaces for setup, testing, support, and administration. Customer billing rules are unchanged.");
-  if (access?.mode === "customer") return brandCard("Free customer access", "Logged-in users can use free tools. Paid tools require confirmed plan access from payment records.");
-  return brandCard("Access", "Login is required before protected workspace tools can open.");
-}
 
 async function getWorkspaceDashboardSummary(access, productKey) {
   const readiness = getReadiness();
@@ -2264,9 +2261,6 @@ async function getCommandCenterSummary(req) {
   return { workspaceCard, requestsSummary, deliverablesSummary, billingSummary, supportSummary, blockersCard, nextBestAction, adminCard };
 }
 
-function checklistCard(title, items) {
-  return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${items.map((item) => escapeHtml(item)).join(" / ")}</p></article>`;
-}
 
 function priceCard(plan, config, planStatus, readiness) {
   if (plan === "free") return brandCard(`${config.name} - ${config.price}`, `${config.description} No checkout required.`);
@@ -2309,17 +2303,11 @@ function getPriceCardSetupText(planStatus, readiness) {
   return "Not open for checkout yet.";
 }
 
-function linkAction(href, label) {
-  return `<a class="action" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
-}
 
 function adminLogoutAction() {
   return `<form method="post" action="/admin/logout"><button class="action" type="submit">Logout</button></form>`;
 }
 
-function logoutAction() {
-  return `<form method="post" action="/logout"><button class="action" type="submit">Logout</button></form>`;
-}
 
 function adminLoginForm() {
   const inputId = "admin-founder-password";
@@ -2364,25 +2352,6 @@ function businessEmployeeAcceptForm() {
   </article>`;
 }
 
-function contactForm() {
-  return `<article class="card">
-    <h2>Request intake</h2>
-    <form method="post" action="/contact">
-      <label>Name<input name="name" type="text" required></label>
-      <label>Work email<input name="email" type="email" required></label>
-      <label>Subject<input name="subject" type="text" required></label>
-      <select name="category" required>
-        <option value="contact">Contact</option>
-        <option value="support">Support</option>
-        <option value="billing">Billing</option>
-        <option value="feedback">Feedback</option>
-      </select>
-      <label>Launch context<textarea name="message" rows="6" required></textarea></label>
-      <label class="fine"><input name="consent" type="checkbox" value="yes" required> Consent to process this request</label>
-      <button type="submit">Submit request</button>
-    </form>
-  </article>`;
-}
 
 function businessOfferForm() {
   return `<article class="card">
@@ -2469,27 +2438,6 @@ function growthLeadForm() {
   </article>`;
 }
 
-function authForm(label, action) {
-  const inputId = `password-${crypto.createHash("sha1").update(action).digest("hex").slice(0, 8)}`;
-  const isSignup = action === "/auth/signup";
-  const passwordAutocomplete = isSignup ? "new-password" : "current-password";
-  const confirmInputId = `${inputId}-confirm`;
-  const confirmationField = isSignup
-    ? `<label>Confirm password<input id="${confirmInputId}" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" aria-describedby="${inputId}-hint" required></label>
-      <button type="button" data-toggle-password="${confirmInputId}" aria-controls="${confirmInputId}" aria-pressed="false" aria-label="Show confirmed password">Show password</button>`
-    : "";
-  return `<article class="card">
-    <h2>${escapeHtml(label)}</h2>
-    <form method="post" action="${escapeHtml(action)}">
-      <label>Email<input name="email" type="email" autocomplete="${isSignup ? "email" : "username"}" required></label>
-      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="${passwordAutocomplete}" minlength="8" aria-describedby="${inputId}-hint" required></label>
-      <p class="fine" id="${inputId}-hint">Use at least 8 characters.</p>
-      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false" aria-label="Show password">Show password</button>
-      ${confirmationField}
-      <button type="submit">${escapeHtml(label)}</button>
-    </form>
-  </article>`;
-}
 
 function accountSetupCards() {
   return [
@@ -2987,31 +2935,6 @@ async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
 function hashInviteToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
-
-
-
-
-function adminReadinessText(item) {
-  if (item.status === "configured") return "Configured";
-  if (item.status === "invalid") return "Invalid placeholder";
-  if (item.status === "missing") return "Missing";
-  return item.warning || displayStatus(item.status || "setup_required");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4742,33 +4665,10 @@ function supabaseHeaders(config, options = {}) {
   return headers;
 }
 
-function formatLabel(value) {
-  const labels = {
-    supabase: "Account database",
-    stripe: "Payment connection",
-    stripeWebhook: "Payment updates",
-    resend: "Email delivery",
-    googleOAuth: "Google sign-in",
-    adminProtection: "Founder access",
-    legalPages: "Legal pages",
-    checkout: "Checkout",
-    emailDelivery: "Email delivery",
-    accountDatabase: "Account database",
-    paymentConnection: "Payment connection",
-    paymentUpdates: "Payment updates",
-    googleSignIn: "Google sign-in",
-    founderAccess: "Founder access"
-  };
-  return labels[value] || value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
-}
 
 function redactSensitiveText(value) {
   return String(value)
     .replace(/\b(?:sk|pk|rk|whsec)_[A-Za-z0-9_]+/g, "[redacted-token]")
     .replace(/\b\d{13,19}\b/g, "[redacted-card-like-number]")
     .replace(/\b(?:password|passcode|private key|secret key)\s*[:=]\s*\S+/gi, "[redacted-secret]");
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
