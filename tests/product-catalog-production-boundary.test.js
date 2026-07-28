@@ -19,7 +19,7 @@ describe("Recommended product catalog production boundary", () => {
     for (const item of paid) {
       assert.equal(item.entitlementIntegrationVerified, false, `${item.serviceKey} must remain unverified`);
       assert.equal(item.executionEnabled, false, `${item.serviceKey} must remain non-executable`);
-      assert.match(item.priceNote, /restricted until production entitlement verification passes/i);
+      assert.match(item.priceNote, /still testing paid access for this one, so it is not open yet/i);
     }
     const summary = getRecommendedProductCatalogSummary();
     assert.equal(summary.total, 34);
@@ -58,13 +58,16 @@ describe("Recommended product catalog production boundary", () => {
     const routes = read("routes/sonara-service-lifecycle-routes.cjs");
     const server = read("server.js");
     assert.match(routes, /function catalogActions\(item, product\)/);
-    assert.match(routes, /Request validation discussion/);
-    assert.match(routes, /Request access verification/);
-    assert.match(routes, /Review lifecycle process/);
-    assert.match(routes, /item\.executionEnabled === true/);
+    assert.match(routes, /function catalogAccessReason\(item\)/);
+    assert.match(routes, /Ask about this one/);
+    assert.match(routes, /Ask us to open access/);
+    assert.match(routes, /See what is ready now/);
+    assert.match(routes, /item\.executionEnabled !== true/);
     assert.match(routes, /entitlementIntegrationVerified !== true/);
-    assert.match(routes, /Execution: restricted until lifecycle evidence and launch approval are complete/);
-    assert.match(routes, /Execution: restricted until a production paid-entitlement test passes/);
+    // The customer sees the reason in plain words; the reasons themselves live
+    // in lib/sonara-plain-language.cjs so both the card body and its buttons
+    // read from one place.
+    assert.match(routes, /plainLanguage\.accessNote\(catalogAccessReason\(item\)\)/);
     assert.match(routes, /productCatalogItems/);
     assert.match(server, /const timeoutMs = process\.env\.NODE_ENV === "test" \? 100 : 1200/);
     assert.match(server, /const controller = new AbortController\(\)/);

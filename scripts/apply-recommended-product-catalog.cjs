@@ -37,53 +37,53 @@ function patchServiceCatalogRoute() {
   parts.push(\`Access: \${item.tier === "free" ? "Free tool" : "Paid service"}. Pricing: \${item.priceNote}\`);
   return parts.join(" ");
 }`;
-  const newCardBody = `function catalogCardBody(item) {
+  // Why a catalog entry is or is not open to this customer. Both the card body
+  // and the card buttons need the same answer, and used to compute it
+  // separately from the same four fields.
+  const newCardBody = `// Why a catalog entry is or is not open to this customer. Both the card body
+// and the card buttons used to work this out separately from the same four
+// fields, and drifted apart; they now share one answer.
+function catalogAccessReason(item) {
+  if (!item.serviceKey) return "open";
+  if (["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""))) return "awaiting_review";
+  if (item.planFloor !== "free" && item.entitlementIntegrationVerified !== true) return "awaiting_paid_access";
+  if (item.executionEnabled !== true) return "awaiting_setup";
+  return "open";
+}
+
+function catalogCardBody(item) {
   const parts = [item.summary];
-  if (item.customerOutcome) parts.push(\`Outcome: \${item.customerOutcome}\`);
-  if (item.inputs) parts.push(\`Inputs: \${item.inputs}.\`);
+  if (item.customerOutcome) parts.push(\`What you get: \${item.customerOutcome}\`);
+  if (item.inputs) parts.push(\`What we need from you: \${item.inputs}.\`);
   if (item.turnaround) parts.push(\`Turnaround: \${item.turnaround}.\`);
-  if (item.deliverableType) parts.push(\`Deliverable: \${item.deliverableType}.\`);
-  if (item.lifecycleStatus) parts.push(\`Availability: \${String(item.lifecycleStatus).replace(/_/g, " ")}.\`);
-  if (item.planFloor) parts.push(\`Plan floor: \${item.planFloor}.\`);
+  if (item.deliverableType) parts.push(\`You receive: \${item.deliverableType}.\`);
+  if (item.lifecycleStatus) parts.push(\`Availability: \${plainLanguage.availabilityLabel(item.lifecycleStatus)}.\`);
+  if (item.planFloor) parts.push(plainLanguage.includedFrom(item.planFloor));
   else parts.push(\`Access: \${item.tier === "free" ? "Free tool" : "Paid service"}.\`);
-  if (item.serviceKey) {
-    const lifecycleRestricted = ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
-    const paidVerificationRequired = item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
-    if (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired) {
-      parts.push("Execution: enabled with server-side access checks.");
-    } else if (lifecycleRestricted) {
-      parts.push("Execution: restricted until lifecycle evidence and launch approval are complete.");
-    } else if (paidVerificationRequired) {
-      parts.push("Execution: restricted until a production paid-entitlement test passes.");
-    } else {
-      parts.push("Execution: restricted until setup and production verification are complete.");
-    }
-  }
-  if (item.priceNote) parts.push(\`Pricing: \${item.priceNote}\`);
+  if (item.serviceKey) parts.push(plainLanguage.accessNote(catalogAccessReason(item)));
+  if (item.priceNote) parts.push(item.priceNote);
   return parts.join(" ");
 }`;
   if (source.includes(oldCardBody)) source = source.replace(oldCardBody, newCardBody);
-  requireAnchor(source, "Execution: restricted", "catalog execution boundary");
+  requireAnchor(source, "function catalogAccessReason(item)", "catalog access boundary");
 
   if (!source.includes("function catalogActions(item, product)")) {
     const anchor = newCardBody;
     requireAnchor(source, anchor, "catalog actions insertion");
     const helper = `function catalogActions(item, product) {
-  const governedProduct = Boolean(item.serviceKey);
-  const lifecycleRestricted = governedProduct && ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
-  const paidVerificationRequired = governedProduct && item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
-  const canOpen = !governedProduct || (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired);
-  const requestLabel = lifecycleRestricted
-    ? "Request validation discussion"
-    : paidVerificationRequired
-      ? "Request access verification"
+  const reason = catalogAccessReason(item);
+  const canOpen = reason === "open";
+  const requestLabel = reason === "awaiting_review"
+    ? "Ask about this one"
+    : reason === "awaiting_paid_access"
+      ? "Ask us to open access"
       : "Request this service";
   const actions = [linkAction("/requests", requestLabel)];
   if (canOpen) {
     const detailPath = item.route || (product ? \`/\${product.slug}\` : "/start");
-    actions.push(linkAction(detailPath, governedProduct && item.planFloor !== "free" ? "Open gated product" : product ? product.name : "Open product"));
+    actions.push(linkAction(detailPath, item.serviceKey && item.planFloor !== "free" ? "Open paid product" : product ? product.name : "Open product"));
   } else {
-    actions.push(linkAction("/product-lifecycle", "Review lifecycle process"));
+    actions.push(linkAction("/service-catalog", "See what is ready now"));
   }
   return actions;
 }`;
@@ -190,7 +190,7 @@ function patchServiceCatalogRoute() {
   );
   source = source.replace(
     'body: `Done-for-you ${product.name} services. Submit a request and track it with a reference ID.`,',
-    'body: `Published ${product.name} products and services. Direct execution remains unavailable until lifecycle and entitlement verification pass.`, '
+    'body: `Everything ${product.name} offers. Each card says whether it is ready to use today, needs setup first, or is still on the way.`, '
   );
 
   write(file, source);

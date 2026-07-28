@@ -402,12 +402,12 @@ function patchCompanyEntryPoints() {
       '["Market Validation & MVP", "Move from a verified customer problem to a focused service MVP, beta evidence, launch readiness, and post-launch learning."],\n    ["Market Intelligence", "Track customer segments, competitor prices, source-dated signals, scored opportunities, and first-transaction evidence before expanding the product."]'
     ],
     [
-      '["Creator Product Lifecycle", "Validate the creator problem, scope the smallest useful workflow, run representative beta testing, and measure release adoption and retention."]',
-      '["Creator Product Lifecycle", "Validate the creator problem, scope the smallest useful workflow, run representative beta testing, and measure release adoption and retention."],\n    ["Creator Market Intelligence", "Track creator ownership, direct-audience, brand partnership, measurement, pricing, and portability opportunities without promising streams or sponsorship revenue."]'
+      '["From Idea To Release", "Check the problem is real, build the smallest useful version, test it with real people, and see who sticks around after release."]',
+      '["From Idea To Release", "Check the problem is real, build the smallest useful version, test it with real people, and see who sticks around after release."],\n    ["Creator Market Intelligence", "Track creator ownership, direct-audience, brand partnership, measurement, pricing, and portability opportunities without promising streams or sponsorship revenue."]'
     ],
     [
-      '["Market Research & Product Lifecycle", "Connect interviews, audience evidence, pricing, experiments, beta feedback, launch campaigns, activation, retention, and portfolio decisions."]',
-      '["Market Research & Product Lifecycle", "Connect interviews, audience evidence, pricing, experiments, beta feedback, launch campaigns, activation, retention, and portfolio decisions."],\n    ["Growth Market Intelligence", "Connect first-party data, consent, offline conversions, attribution confidence, creator partnerships, experiments, and incrementality evidence."]'
+      '["Research & What To Build Next", "Join up customer interviews, audience evidence, pricing, experiments, early feedback, launches, and what people actually keep using."]',
+      '["Research & What To Build Next", "Join up customer interviews, audience evidence, pricing, experiments, early feedback, launches, and what people actually keep using."],\n    ["Growth Market Intelligence", "Connect first-party data, consent, offline conversions, attribution confidence, creator partnerships, experiments, and incrementality evidence."]'
     ]
   ];
 

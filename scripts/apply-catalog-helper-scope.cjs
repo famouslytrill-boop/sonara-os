@@ -7,21 +7,19 @@ const file = path.join(process.cwd(), "routes", "sonara-service-lifecycle-routes
 let source = fs.readFileSync(file, "utf8");
 
 const moduleBlock = `function catalogActions(item, product) {
-  const governedProduct = Boolean(item.serviceKey);
-  const lifecycleRestricted = governedProduct && ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
-  const paidVerificationRequired = governedProduct && item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
-  const canOpen = !governedProduct || (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired);
-  const requestLabel = lifecycleRestricted
-    ? "Request validation discussion"
-    : paidVerificationRequired
-      ? "Request access verification"
+  const reason = catalogAccessReason(item);
+  const canOpen = reason === "open";
+  const requestLabel = reason === "awaiting_review"
+    ? "Ask about this one"
+    : reason === "awaiting_paid_access"
+      ? "Ask us to open access"
       : "Request this service";
   const actions = [linkAction("/requests", requestLabel)];
   if (canOpen) {
     const detailPath = item.route || (product ? \`/\${product.slug}\` : "/start");
-    actions.push(linkAction(detailPath, governedProduct && item.planFloor !== "free" ? "Open gated product" : product ? product.name : "Open product"));
+    actions.push(linkAction(detailPath, item.serviceKey && item.planFloor !== "free" ? "Open paid product" : product ? product.name : "Open product"));
   } else {
-    actions.push(linkAction("/product-lifecycle", "Review lifecycle process"));
+    actions.push(linkAction("/service-catalog", "See what is ready now"));
   }
   return actions;
 }`;

@@ -50,12 +50,12 @@ function readinessDeploymentCard() {
   const deployment = getDeploymentInfo();
   const environment = String(deployment.environment || "development").toLowerCase();
   const explanation = environment === "preview"
-    ? "Preview deployment. This checklist reports Preview-scoped configuration only; Production may intentionally use different provider credentials."
+    ? "This is a preview copy of the site. It reports its own setup only. The live site may deliberately use different connections."
     : environment === "production"
-      ? "Production deployment. This checklist reflects the live production environment."
-      : "Local or development deployment. This checklist reflects only the current process environment.";
+      ? "This is the live site. Everything below reflects what customers actually get."
+      : "This is a development copy. Everything below reflects this copy only.";
   return brandCard(
-    "Deployment environment",
+    "Which copy of the site this is",
     \`\${displayStatus(environment)}. \${explanation} Commit: \${deployment.commitSha}. Branch: \${deployment.branch}.\`
   );
 }

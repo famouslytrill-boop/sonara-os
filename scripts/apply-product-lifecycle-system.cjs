@@ -237,11 +237,11 @@ function patchCompanyEntryPoints() {
     ],
     [
       '["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."]',
-      '["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."],\n    ["Creator Product Lifecycle", "Validate the creator problem, scope the smallest useful workflow, run representative beta testing, and measure release adoption and retention."]'
+      '["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."],\n    ["From Idea To Release", "Check the problem is real, build the smallest useful version, test it with real people, and see who sticks around after release."]'
     ],
     [
       '["Touchpoints, Conversion & Attribution", "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."]',
-      '["Touchpoints, Conversion & Attribution", "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."],\n    ["Market Research & Product Lifecycle", "Connect interviews, audience evidence, pricing, experiments, beta feedback, launch campaigns, activation, retention, and portfolio decisions."]'
+      '["Touchpoints, Conversion & Attribution", "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."],\n    ["Research & What To Build Next", "Join up customer interviews, audience evidence, pricing, experiments, early feedback, launches, and what people actually keep using."]'
     ]
   ];
 

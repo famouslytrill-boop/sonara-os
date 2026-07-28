@@ -113,11 +113,11 @@ describe("public site", () => {
   it("pricing uses readable setup text", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Checkout setup required/);
+    assert.match(res.text, /Not open for checkout yet/);
     assert.match(res.text, /payment connection/);
     assert.doesNotMatch(res.text, /setup_required/);
     assert.doesNotMatch(res.text, /Public readiness shell/);
-    assert.match(res.text, /Public readiness checklist/);
+    assert.match(res.text, /free tools in all three studios/);
   });
 
   it("public pages use customer-facing setup language", async function() {
@@ -658,7 +658,7 @@ describe("auth setup", () => {
     assert.match(businessBuilder.text, /Business Builder Dashboard/);
     assert.match(businessBuilder.text, /Logout/);
     assert.equal(businessIntake.status, 200);
-    assert.match(businessIntake.text, /Intake &amp; Request Queue/);
+    assert.match(businessIntake.text, /Customer Enquiries/);
     assert.match(businessIntake.text, /Record intake/);
     assert.equal(creatorAssets.status, 200);
     assert.match(creatorAssets.text, /Asset Catalog/);
@@ -1261,7 +1261,7 @@ describe("product module APIs", () => {
     assert.equal(res.status, 200);
     assert.match(res.text, /Billing actions/);
     assert.match(res.text, /Manage billing portal/);
-    assert.match(res.text, /Upgrade: Starter monthly/);
+    assert.match(res.text, /Upgrade: Starter/);
   });
 });
 
@@ -1510,9 +1510,9 @@ describe("pricing and checkout", () => {
   it("GET /pricing returns pricing cards", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Starter monthly/);
-    assert.match(res.text, /Core monthly/);
-    assert.match(res.text, /Pro monthly/);
+    assert.match(res.text, /Starter - \$5\/mo/);
+    assert.match(res.text, /Core - \$15\/mo/);
+    assert.match(res.text, /Pro - \$29\/mo/);
     assert.match(res.text, /Business Builder setup/);
   });
 
@@ -1540,7 +1540,7 @@ describe("pricing and checkout", () => {
   it("GET /pricing does not count the free plan as paid checkout readiness", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Checkout setup required until the payment connection and plan settings are configured/);
+    assert.match(res.text, /Paid plans are not open for checkout yet; we are still connecting payments/);
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.body.services.checkout, "setup_required");

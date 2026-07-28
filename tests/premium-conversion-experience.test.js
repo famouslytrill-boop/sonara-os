@@ -34,9 +34,9 @@ describe("premium public conversion experience", () => {
       "Transparent availability",
       "Active or beta",
       "Setup required",
-      "Planned or validation required",
-      "Direct execution blocked",
-      "verified plan access"
+      "Coming soon, or in review",
+      "Not open yet",
+      "your plan covers it"
     ]) {
       assert.match(res.text, new RegExp(text, "i"));
     }
