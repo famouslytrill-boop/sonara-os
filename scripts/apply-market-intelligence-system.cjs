@@ -372,7 +372,7 @@ function patchEcosystemManifest() {
     requireAnchor(source, anchor, "market intelligence launch priority");
     source = source.replace(anchor, `${anchor}
     "Review source-dated market evidence and scored opportunities before approving new product work.",
-    "Link prioritized market opportunities to Product Lifecycle initiatives.",`);
+    "Link the opportunities you have prioritised to items on the roadmap.",`);
   }
   write(file, source);
 }
@@ -386,16 +386,16 @@ function patchCompanyEntryPoints() {
       '<a class="action" href="/start">See how SONARA One works</a><a class="action" href="/product-lifecycle">Product lifecycle</a><a class="action" href="/market-intelligence">Market intelligence</a><a class="action" href="/service-catalog">Service catalog</a>'
     ],
     [
-      'linkAction("/business-builder/product-lifecycle", "Product lifecycle")\n        ])',
-      'linkAction("/business-builder/product-lifecycle", "Product lifecycle"),\n          linkAction("/business-builder/market-intelligence", "Market intelligence")\n        ])'
+      'linkAction("/business-builder/product-lifecycle", "Roadmap")\n        ])',
+      'linkAction("/business-builder/product-lifecycle", "Roadmap"),\n          linkAction("/business-builder/market-intelligence", "Market intelligence")\n        ])'
     ],
     [
-      'linkAction("/creator-studio/product-lifecycle", "Product lifecycle")\n        ])',
-      'linkAction("/creator-studio/product-lifecycle", "Product lifecycle"),\n          linkAction("/creator-studio/market-intelligence", "Market intelligence")\n        ])'
+      'linkAction("/creator-studio/product-lifecycle", "Roadmap")\n        ])',
+      'linkAction("/creator-studio/product-lifecycle", "Roadmap"),\n          linkAction("/creator-studio/market-intelligence", "Market intelligence")\n        ])'
     ],
     [
-      'linkAction("/growth-studio/product-lifecycle", "Product lifecycle")\n        ])',
-      'linkAction("/growth-studio/product-lifecycle", "Product lifecycle"),\n          linkAction("/growth-studio/market-intelligence", "Market intelligence")\n        ])'
+      'linkAction("/growth-studio/product-lifecycle", "Roadmap")\n        ])',
+      'linkAction("/growth-studio/product-lifecycle", "Roadmap"),\n          linkAction("/growth-studio/market-intelligence", "Market intelligence")\n        ])'
     ],
     [
       '["Market Validation & MVP", "Move from a verified customer problem to a focused service MVP, beta evidence, launch readiness, and post-launch learning."]',

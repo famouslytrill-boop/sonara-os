@@ -1006,7 +1006,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   app.get("/deliverables", requireCustomer, async (req, res) => {
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
     const sections = await deliverableSections(organization);
-    sections.push(brandCard("Deliverable lifecycle", `Statuses move through: ${DELIVERABLE_STATUSES.map((status) => displayStatus(status)).join(", ")}.`));
+    sections.push(brandCard("How a deliverable moves along", `Statuses move through: ${DELIVERABLE_STATUSES.map((status) => displayStatus(status)).join(", ")}.`));
     res.status(200).type("html").send(
       layout({
         title: "Deliverables",

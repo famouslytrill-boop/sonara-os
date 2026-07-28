@@ -1510,9 +1510,9 @@ describe("pricing and checkout", () => {
   it("GET /pricing returns pricing cards", async function() {
     const res = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /Starter - \$5\/mo/);
-    assert.match(res.text, /Core - \$15\/mo/);
-    assert.match(res.text, /Pro - \$29\/mo/);
+    assert.match(res.text, /Starter - \$7\/mo/);
+    assert.match(res.text, /Core - \$19\/mo/);
+    assert.match(res.text, /Pro - \$39\/mo/);
     assert.match(res.text, /Business Builder setup/);
   });
 

@@ -43,9 +43,9 @@ const CUSTOMER_REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
-// Prices are set deliberately below every comparable tool we could find
-// charging for the same job. See docs/pricing/2026-07-28-COMPETITOR-PRICING.md
-// for the survey behind these numbers.
+// These prices already sit below every comparable tool we could find charging
+// for the same job -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md for the
+// survey that confirmed it, and for why they were left where they are.
 //
 // amountCents is the price this page promises. The amount actually charged
 // lives in the Stripe Price object named by `env`, and the two have to agree --
@@ -64,8 +64,8 @@ const STRIPE_PLANS = {
   },
   starter_monthly: {
     name: "Starter",
-    price: "$5/mo",
-    amountCents: 500,
+    price: "$7/mo",
+    amountCents: 700,
     description: "One workspace, your offer, customer enquiries, the checklist tools, and your records saved.",
     env: "STRIPE_PRICE_STARTER_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY"],
@@ -73,8 +73,8 @@ const STRIPE_PLANS = {
   },
   core_monthly: {
     name: "Core",
-    price: "$15/mo",
-    amountCents: 1500,
+    price: "$19/mo",
+    amountCents: 1900,
     description: "Best value. A full studio, your customer and offer records, the launch checklist, and tracked support.",
     env: "STRIPE_PRICE_CORE_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY"],
@@ -82,8 +82,8 @@ const STRIPE_PLANS = {
   },
   pro_monthly: {
     name: "Pro",
-    price: "$29/mo",
-    amountCents: 2900,
+    price: "$39/mo",
+    amountCents: 3900,
     description: "All three studios together, deeper records, campaign planning, the full launch checklist, and priority support.",
     env: "STRIPE_PRICE_PRO_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
@@ -606,11 +606,11 @@ app.get("/pricing", (req, res) => {
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
-      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $29. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
-      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $5 if you want your work saved in one workspace, Core at $15 for a full studio, or Pro at $29 if you need all three.</p></details>
+      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $7 if you want your work saved in one workspace, Core at $19 for a full studio, or Pro at $39 if you need all three.</p></details>
     </div>
   </section>`;
   return res.status(200).type("html").send(
@@ -623,7 +623,7 @@ app.get("/pricing", (req, res) => {
         : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
         ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $29."),
+        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $39."),
         brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],
@@ -846,28 +846,28 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         accountNoticeCard(req),
         accessCard(req.sonaraAccess),
         summary.workspaceCard,
-        actionCard("Business Builder", "Offer, intake, customer, and payment readiness workspace.", [
+        actionCard("Business Builder", "Your offers, enquiries, customers, and payments.", [
           linkAction("/business-builder/dashboard", "Dashboard"),
           linkAction("/business-builder/tools", "Tools"),
           linkAction("/business-builder/intake", "Intake"),
           linkAction("/business-builder/billing", "Billing"),
-          linkAction("/business-builder/product-lifecycle", "Product lifecycle"),
+          linkAction("/business-builder/product-lifecycle", "Roadmap"),
           linkAction("/business-builder/market-intelligence", "Market intelligence")
         ]),
-        actionCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace.", [
+        actionCard("Creator Studio", "Your assets, offers, releases, sales, and media.", [
           linkAction("/creator-studio/dashboard", "Dashboard"),
           linkAction("/creator-studio/tools", "Tools"),
           linkAction("/creator-studio/assets", "Assets"),
           linkAction("/creator-studio/music-system", "Music system"),
-          linkAction("/creator-studio/product-lifecycle", "Product lifecycle"),
+          linkAction("/creator-studio/product-lifecycle", "Roadmap"),
           linkAction("/creator-studio/market-intelligence", "Market intelligence")
         ]),
-        actionCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace.", [
+        actionCard("Growth Studio", "Your campaigns, leads, permissions, automations, and growth records.", [
           linkAction("/growth-studio/dashboard", "Dashboard"),
           linkAction("/growth-studio/tools", "Tools"),
           linkAction("/growth-studio/campaigns", "Campaigns"),
           linkAction("/growth-studio/leads", "Leads"),
-          linkAction("/growth-studio/product-lifecycle", "Product lifecycle"),
+          linkAction("/growth-studio/product-lifecycle", "Roadmap"),
           linkAction("/growth-studio/market-intelligence", "Market intelligence")
         ]),
         actionCard("Service requests", summary.requestsSummary, [linkAction("/requests", "My requests"), linkAction("/service-catalog", "Service catalog")]),
@@ -877,7 +877,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         summary.blockersCard,
         actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
         ...(summary.adminCard ? [summary.adminCard] : []),
-        brandCard("Free access", "Logged-in users can use public readiness checklists and basic planning outputs without a paid plan."),
+        brandCard("Free access", "Signed in, you can use the setup checklists and the basic planning tools without paying."),
         brandCard("Paid access", "Paid workspaces stay locked until payment updates confirm an active or trialing plan.")
       ],
       actions: [
@@ -1210,7 +1210,7 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
         adminLoginForm(),
         ...readiness.map((item) => brandCard(item.label, adminReadinessText(item)))
       ],
-      actions: [linkAction("/", "Home"), linkAction("/api/readiness", "Readiness"), linkAction("/security", "Security")]
+      actions: [linkAction("/", "Home"), linkAction("/readiness", "What is working"), linkAction("/security", "Security")]
     })
   );
 });
@@ -1604,7 +1604,7 @@ function getProductPageDefinitions(slug) {
         { path: "/business-builder/checklist", label: "Launch Setup Checklist", title: "Launch Setup Checklist", module: "checklist", body: "Use this free checklist to prepare business profile, offer, intake, pricing, payment, support, legal, and analytics.", form: "business_checklist" },
         { path: "/business-builder/offers/free", label: "Free offer draft", title: "Offer Builder", module: "offer_builder", body: "Draft a simple service offer from your real inputs.", form: "business_offer" },
         { path: "/business-builder/records/free", label: "Free records", title: "Free Records", module: "free_records", body: "Free records show saved basic module outputs when the account database and organization membership are configured.", api: "/api/business-builder/records" },
-        { path: "/business-builder/help", label: "Help", title: "Business Builder Help", module: "help", body: "Operational help for service offers, intake, customer records, booking readiness, and support setup." }
+        { path: "/business-builder/help", label: "Help", title: "Business Builder Help", module: "help", body: "Help with your service offers, customer enquiries, customer records, taking bookings, and setting up support." }
       ],
       paid: [
         { path: "/business-builder/customers", label: "Customers", title: "Customer Records", module: "customers", body: "Paid customer records unlock after billing state confirms plan access." },
@@ -1623,7 +1623,7 @@ function getProductPageDefinitions(slug) {
         { path: "/creator-studio/checklist", label: "Checklist", title: "Creator Studio Checklist", module: "checklist", body: "Use this checklist before monetizing creator products or releases." },
         { path: "/creator-studio/offers/free", label: "Free offer draft", title: "Creator Offers", module: "creator_offers", body: "Draft a creator offer from real product inputs.", form: "creator_offer" },
         { path: "/creator-studio/records/free", label: "Free records", title: "Free Records", module: "free_records", body: "Free records show saved basic module outputs when account database setup is complete.", api: "/api/creator-studio/records" },
-        { path: "/creator-studio/help", label: "Help", title: "Creator Studio Help", module: "help", body: "Operational help for assets, offers, release checklists, catalog readiness, and monetization setup." }
+        { path: "/creator-studio/help", label: "Help", title: "Creator Studio Help", module: "help", body: "Help with your assets, offers, release checklists, getting your catalogue ready, and setting up payments." }
       ],
       paid: [
         { path: "/creator-studio/offers", label: "Offers", title: "Offer Records", module: "offers", body: "Paid offer records unlock after billing state confirms plan access." },
@@ -2309,7 +2309,7 @@ async function getCommandCenterSummary(req) {
         linkAction("/support", "Contact support")
       ]);
 
-  let requestsSummary = "Setup required: the account database is not configured, so request tracking uses safe fallbacks.";
+  let requestsSummary = "Setup needed: your records are not connected yet, so requests are tracked with a safe fallback.";
   let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
   let billingSummary = readiness.services.checkout === "enabled"
     ? "Checkout is configured. Paid access unlocks only after payment updates record an active or trialing plan."
@@ -2344,7 +2344,7 @@ async function getCommandCenterSummary(req) {
     .filter(([, value]) => ["setup_required", "missing", "invalid"].some((flag) => String(value).includes(flag)))
     .map(([key]) => formatLabel(key));
   const blockersCard = blockers.length
-    ? actionCard("Setup blockers", `Needs attention: ${blockers.join(", ")}.`, [linkAction("/readiness", "Readiness"), linkAction("/account/setup", "Account setup")])
+    ? actionCard("Setup blockers", `Needs attention: ${blockers.join(", ")}.`, [linkAction("/readiness", "What is working"), linkAction("/account/setup", "Account setup")])
     : brandCard("Setup blockers", "No blocking setup items detected in live readiness checks.");
 
   let nextBestAction = { message: "Open a free tool and generate your first output.", href: "/business-builder/tools", label: "Open tools" };

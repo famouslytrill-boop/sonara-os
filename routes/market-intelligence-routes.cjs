@@ -314,7 +314,7 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui) {
       body: "Track customer segments, competitor evidence, pricing, market signals, scored opportunities, and portfolio decisions without turning estimates into facts.",
       sections,
       actions: [
-        ui.link("/product-lifecycle", "Product lifecycle"),
+        ui.link("/product-lifecycle", "Roadmap"),
         ui.link("/service-catalog", "Service catalog"),
         ui.link(studioKey ? `/${studioKey.replaceAll("_", "-")}/dashboard` : "/", studioKey ? `${label} dashboard` : "SONARA home")
       ]
