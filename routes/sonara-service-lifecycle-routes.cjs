@@ -7,6 +7,7 @@
 const { randomUUID } = require("node:crypto");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
+const plainLanguage = require("../lib/sonara-plain-language.cjs");
 
 const PRODUCTS = [
   { slug: "business-builder", productKey: "business_builder", name: "Business Builder" },
@@ -30,42 +31,41 @@ const SERVICE_REQUEST_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 const DELIVERABLE_STATUSES = SERVICE_LIFECYCLE_STATUSES;
 
 const LEGACY_DEFAULT_SERVICE_CATALOG = [
-  { slug: "launch-offer-builder", productKey: "business_builder", name: "Launch Offer Builder", summary: "Operator-built launch offer: positioning, package structure, and pricing from your real inputs.", tier: "paid", inputs: "Service type, audience, price idea, proof points", turnaround: "3-5 business days", deliverableType: "Offer document and workspace records", priceNote: "Scoped after intake review." },
-  { slug: "customer-intake-setup", productKey: "business_builder", name: "Customer Intake Setup", summary: "Working customer intake path with request records, confirmation email, and review queue.", tier: "paid", inputs: "Business profile, services offered, contact address", turnaround: "3-5 business days", deliverableType: "Configured intake workflow", priceNote: "Requires account database setup." },
-  { slug: "payment-readiness-review", productKey: "business_builder", name: "Payment Readiness Review", summary: "Checkout, webhook, and plan configuration reviewed end to end with an action list.", tier: "paid", inputs: "Stripe account state, plan structure", turnaround: "2-3 business days", deliverableType: "Readiness report with fixes", priceNote: "Scoped after intake review." },
-  { slug: "creator-offer-builder", productKey: "creator_studio", name: "Creator Offer Builder", summary: "Creator product offer: package, pricing posture, and rights-safe positioning.", tier: "paid", inputs: "Offer type, audience, deliverables, price idea", turnaround: "3-5 business days", deliverableType: "Offer document and catalog records", priceNote: "Scoped after intake review." },
-  { slug: "release-readiness-checklist", productKey: "creator_studio", name: "Release Readiness Checklist", summary: "Release-specific checklist with dates, platform specs, and completion tracking.", tier: "free", inputs: "Release title, type, date, platforms", turnaround: "Immediate output; review in 2 days", deliverableType: "Tracked release checklist", priceNote: "Free tool; operator review is paid." },
-  { slug: "music-system-blueprint", productKey: "creator_studio", name: "Music System Blueprint", summary: "Song planning blueprint: structure, production notes, prompts, and quality checks.", tier: "free", inputs: "Working title, genre, mood, references", turnaround: "Immediate output; setup in 3 days", deliverableType: "Blueprint plus music-system records", priceNote: "Free tool; system setup is paid." },
-  { slug: "campaign-setup", productKey: "growth_studio", name: "Campaign Setup", summary: "Consent-safe campaign configured with plan, angles, follow-up scripts, and tracking sheet.", tier: "paid", inputs: "Goal, audience, offer, channel, timeline, consent posture", turnaround: "3-5 business days", deliverableType: "Campaign package", priceNote: "Scoped after intake review." },
-  { slug: "lead-followup-plan", productKey: "growth_studio", name: "Lead Follow-Up Plan", summary: "Three-touch follow-up system with consent rules and lead records.", tier: "paid", inputs: "Lead list state, service, consent status", turnaround: "2-4 business days", deliverableType: "Follow-up scripts and lead records", priceNote: "Requires account database setup." },
-  { slug: "consent-safe-outreach-checklist", productKey: "growth_studio", name: "Consent-Safe Outreach Checklist", summary: "Outreach reviewed against consent, sender truthfulness, and opt-out requirements.", tier: "free", inputs: "Audience source, message drafts", turnaround: "Immediate output; review in 2 days", deliverableType: "Reviewed checklist", priceNote: "Free tool; operator review is paid." }
+  { slug: "launch-offer-builder", productKey: "business_builder", name: "Launch Offer, Built For You", summary: "We write your launch offer for you: how you are positioned, what is in the package, and what to charge, all from your real numbers.", tier: "paid", inputs: "Service type, audience, price idea, proof points", turnaround: "3-5 business days", deliverableType: "A written offer, saved into your workspace", priceNote: "We quote you after we have read your brief." },
+  { slug: "customer-intake-setup", productKey: "business_builder", name: "Customer Enquiry Setup", summary: "A working way for customers to reach you: the enquiry form, saved records, a confirmation email, and a list for you to work through.", tier: "paid", inputs: "Business profile, services offered, contact address", turnaround: "3-5 business days", deliverableType: "A working enquiry form, set up for you", priceNote: "Your records need to be set up first." },
+  { slug: "payment-readiness-review", productKey: "business_builder", name: "Payment Setup Review", summary: "We check your whole payment path end to end, from checkout to the confirmation coming back, and hand you a list of what to fix.", tier: "paid", inputs: "Stripe account state, plan structure", turnaround: "2-3 business days", deliverableType: "A written review with a fix list", priceNote: "We quote you after we have read your brief." },
+  { slug: "creator-offer-builder", productKey: "creator_studio", name: "Creator Offer, Built For You", summary: "Your creator offer: what is in it, what to charge, and how to describe it without overclaiming rights you do not have.", tier: "paid", inputs: "Offer type, audience, deliverables, price idea", turnaround: "3-5 business days", deliverableType: "A written offer, saved into your catalog", priceNote: "We quote you after we have read your brief." },
+  { slug: "release-readiness-checklist", productKey: "creator_studio", name: "Release Checklist", summary: "A checklist for your specific release, with dates, what each platform needs, and what is still outstanding.", tier: "free", inputs: "Release title, type, date, platforms", turnaround: "Immediate output; review in 2 days", deliverableType: "A release checklist you can tick off", priceNote: "Free to use. Having our team review it is paid." },
+  { slug: "music-system-blueprint", productKey: "creator_studio", name: "Song Plan", summary: "A plan for the song: how it is structured, production notes, ideas to work from, and what to check before you call it finished.", tier: "free", inputs: "Working title, genre, mood, references", turnaround: "Immediate output; setup in 3 days", deliverableType: "A song plan, saved to your workspace", priceNote: "Free to use. Having us set the rest up is paid." },
+  { slug: "campaign-setup", productKey: "growth_studio", name: "Campaign Setup", summary: "A campaign you are allowed to send, with the plan, the angles to try, the follow-up wording, and a sheet to track how it goes.", tier: "paid", inputs: "Goal, audience, offer, channel, timeline, consent posture", turnaround: "3-5 business days", deliverableType: "A complete campaign, ready to run", priceNote: "We quote you after we have read your brief." },
+  { slug: "lead-followup-plan", productKey: "growth_studio", name: "Lead Follow-Up Plan", summary: "A three-step follow-up you can repeat, with clear rules about who you are allowed to contact, and a record of every lead.", tier: "paid", inputs: "Lead list state, service, consent status", turnaround: "2-4 business days", deliverableType: "Follow-up wording plus your lead list", priceNote: "Your records need to be set up first." },
+  { slug: "consent-safe-outreach-checklist", productKey: "growth_studio", name: "Safe Outreach Checklist", summary: "Your outreach checked against the rules: do you have permission, is the sender honest, and can people opt out easily.", tier: "free", inputs: "Audience source, message drafts", turnaround: "Immediate output; review in 2 days", deliverableType: "A checked-over outreach list", priceNote: "Free to use. Having our team review it is paid." }
 ];
 
 const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DEFAULT_SERVICE_CATALOG];
 
+// Why a catalog entry is or is not open to this customer. Both the card body
+// and the card buttons used to work this out separately from the same four
+// fields, and drifted apart; they now share one answer.
+function catalogAccessReason(item) {
+  if (!item.serviceKey) return "open";
+  if (["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""))) return "awaiting_review";
+  if (item.planFloor !== "free" && item.entitlementIntegrationVerified !== true) return "awaiting_paid_access";
+  if (item.executionEnabled !== true) return "awaiting_setup";
+  return "open";
+}
+
 function catalogCardBody(item) {
   const parts = [item.summary];
-  if (item.customerOutcome) parts.push(`Outcome: ${item.customerOutcome}`);
-  if (item.inputs) parts.push(`Inputs: ${item.inputs}.`);
+  if (item.customerOutcome) parts.push(`What you get: ${item.customerOutcome}`);
+  if (item.inputs) parts.push(`What we need from you: ${item.inputs}.`);
   if (item.turnaround) parts.push(`Turnaround: ${item.turnaround}.`);
-  if (item.deliverableType) parts.push(`Deliverable: ${item.deliverableType}.`);
-  if (item.lifecycleStatus) parts.push(`Availability: ${String(item.lifecycleStatus).replace(/_/g, " ")}.`);
-  if (item.planFloor) parts.push(`Plan floor: ${item.planFloor}.`);
+  if (item.deliverableType) parts.push(`You receive: ${item.deliverableType}.`);
+  if (item.lifecycleStatus) parts.push(`Availability: ${plainLanguage.availabilityLabel(item.lifecycleStatus)}.`);
+  if (item.planFloor) parts.push(plainLanguage.includedFrom(item.planFloor));
   else parts.push(`Access: ${item.tier === "free" ? "Free tool" : "Paid service"}.`);
-  if (item.serviceKey) {
-    const lifecycleRestricted = ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
-    const paidVerificationRequired = item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
-    if (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired) {
-      parts.push("Execution: enabled with server-side access checks.");
-    } else if (lifecycleRestricted) {
-      parts.push("Execution: restricted until lifecycle evidence and launch approval are complete.");
-    } else if (paidVerificationRequired) {
-      parts.push("Execution: restricted until a production paid-entitlement test passes.");
-    } else {
-      parts.push("Execution: restricted until setup and production verification are complete.");
-    }
-  }
-  if (item.priceNote) parts.push(`Pricing: ${item.priceNote}`);
+  if (item.serviceKey) parts.push(plainLanguage.accessNote(catalogAccessReason(item)));
+  if (item.priceNote) parts.push(item.priceNote);
   return parts.join(" ");
 }
 
@@ -109,21 +109,19 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   } = deps;
 
   function catalogActions(item, product) {
-    const governedProduct = Boolean(item.serviceKey);
-    const lifecycleRestricted = governedProduct && ["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""));
-    const paidVerificationRequired = governedProduct && item.planFloor !== "free" && item.entitlementIntegrationVerified !== true;
-    const canOpen = !governedProduct || (item.executionEnabled === true && !lifecycleRestricted && !paidVerificationRequired);
-    const requestLabel = lifecycleRestricted
-      ? "Request validation discussion"
-      : paidVerificationRequired
-        ? "Request access verification"
+    const reason = catalogAccessReason(item);
+    const canOpen = reason === "open";
+    const requestLabel = reason === "awaiting_review"
+      ? "Ask about this one"
+      : reason === "awaiting_paid_access"
+        ? "Ask us to open access"
         : "Request this service";
     const actions = [linkAction("/requests", requestLabel)];
     if (canOpen) {
       const detailPath = item.route || (product ? `/${product.slug}` : "/start");
-      actions.push(linkAction(detailPath, governedProduct && item.planFloor !== "free" ? "Open gated product" : product ? product.name : "Open product"));
+      actions.push(linkAction(detailPath, item.serviceKey && item.planFloor !== "free" ? "Open paid product" : product ? product.name : "Open product"));
     } else {
-      actions.push(linkAction("/product-lifecycle", "Review lifecycle process"));
+      actions.push(linkAction("/service-catalog", "See what is ready now"));
     }
     return actions;
   }
@@ -176,6 +174,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       });
     });
   }
+
 
   function productByKey(productKey) {
     return PRODUCTS.find((product) => product.productKey === productKey);
@@ -362,10 +361,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       slug: "business-builder",
       productKey: "business_builder",
       path: "/business-builder/tools/readiness",
-      title: "Business Readiness Score",
+      title: "Business Setup Score",
       module: "business_readiness_score",
-      description: "Score launch readiness across profile, offer, pricing, payment, support, and legal foundations.",
-      submitLabel: "Score readiness",
+      description: "See how ready you are to launch across your profile, offer, pricing, payments, support, and legal basics.",
+      submitLabel: "Score my setup",
       fields: BUSINESS_READINESS_CHECKS.map((check) => yesNoField(check.name, check.label)),
       requiredFields: BUSINESS_READINESS_CHECKS.map((check) => check.name),
       build: (body) => scoreReadiness(body, BUSINESS_READINESS_CHECKS)
@@ -510,10 +509,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       slug: "creator-studio",
       productKey: "creator_studio",
       path: "/creator-studio/tools/music-blueprint",
-      title: "Music System Blueprint",
+      title: "Song Plan",
       module: "music_blueprint",
-      description: "Create a song blueprint with structure, production notes, and quality checks.",
-      submitLabel: "Create blueprint",
+      description: "Plan a song: how it is structured, production notes, and what to check before you call it finished.",
+      submitLabel: "Create song plan",
       fields: [
         { name: "workingTitle", label: "Working title", required: true },
         { name: "genre", label: "Genre", required: true },
@@ -692,10 +691,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       slug: "growth-studio",
       productKey: "growth_studio",
       path: "/growth-studio/tools/readiness",
-      title: "Growth Readiness Score",
+      title: "Growth Setup Score",
       module: "growth_readiness_score",
-      description: "Score growth readiness across consent, audience, offer, tracking, follow-up, and budget.",
-      submitLabel: "Score readiness",
+      description: "See how ready you are to grow across permissions, audience, offer, tracking, follow-up, and budget.",
+      submitLabel: "Score my setup",
       fields: GROWTH_READINESS_CHECKS.map((check) => yesNoField(check.name, check.label)),
       requiredFields: GROWTH_READINESS_CHECKS.map((check) => check.name),
       build: (body) => scoreReadiness(body, GROWTH_READINESS_CHECKS)
@@ -795,7 +794,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             route: row.route_path,
             entitlementIntegrationVerified: row.entitlement_integration_verified === true,
             executionEnabled: row.execution_enabled === true,
-            deliverableType: row.product_type === "software_product" ? "Software product capability and governed workflow" : "Done-for-you service",
+            deliverableType: row.product_type === "software_product" ? "A tool you use yourself, with clear steps built in" : "Work our team does for you",
             priceNote: row.price_note || "Scoped after intake review.",
             sortOrder: Number(row.sort_order || 100)
           };
@@ -814,8 +813,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     if (!usingDatabase) {
       sections.push(
         rows.ok
-          ? brandCard("Catalog records", "No custom catalog is published yet, so the standard services are shown.")
-          : brandCard("Catalog status", "Setup required: the service_catalog_items catalog isn't connected yet, so the standard services are shown. You can still submit a request, and every request returns a reference ID.")
+          ? brandCard("What you are seeing", "This is the standard SONARA catalog. Nothing custom has been published for your account yet.")
+          : brandCard("What you are seeing", "This is the standard SONARA catalog — your account's own catalog isn't connected yet. You can still send a request, and you will get a reference number back either way.")
       );
     }
     res.status(200).type("html").send(
@@ -823,7 +822,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Product and service catalog",
         eyebrow: "Software-in-a-Service",
         heading: "Product and service catalog",
-        body: "Published SONARA products, governed capabilities, and done-for-you services across the parent platform, Business Builder, Creator Studio, and Growth Studio. Availability and execution labels distinguish usable workflows from validation, entitlement, and setup boundaries.",
+        body: "Everything SONARA offers across Business Builder, Creator Studio, and Growth Studio — the things you can use yourself, and the work our team can do for you. Each card says plainly whether it is ready to use today, needs a little setup first, or is still on the way.",
         sections,
         actions: [linkAction("/requests", "My requests"), linkAction("/start", "How it works"), linkAction("/pricing", "Pricing"), linkAction("/contact", "Contact")]
       })
@@ -833,12 +832,12 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   app.get("/readiness", (req, res) => {
     res.status(200).type("html").send(
       layout({
-        title: "Platform readiness",
+        title: "What's working right now",
         eyebrow: "Live status",
-        heading: "Platform readiness",
-        body: "A live, honest view of what's set up and what still needs attention — no secrets shown. Anything that isn't ready says so, instead of pretending to work.",
+        heading: "What's working right now",
+        body: "A live, honest view of what is set up and what still needs attention. Nothing here is a secret, and anything that isn't working says so instead of pretending.",
         sections: readinessCards(getReadiness()),
-        actions: [linkAction("/api/readiness", "Readiness JSON"), linkAction("/start", "Start"), linkAction("/", "Home")]
+        actions: [linkAction("/start", "Start"), linkAction("/support", "Get help"), linkAction("/", "Home")]
       })
     );
   });
@@ -973,7 +972,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       }
     }
     sections.push(serviceRequestForm());
-    sections.push(brandCard("Request lifecycle", `Statuses move through: ${SERVICE_REQUEST_STATUSES.map((status) => displayStatus(status)).join(", ")}.`));
+    sections.push(brandCard("How a request moves along", `Every request goes through these stages: ${SERVICE_REQUEST_STATUSES.map((status) => displayStatus(status)).join(", ")}.`));
     res.status(200).type("html").send(
       layout({
         title: "Service requests",
@@ -1054,7 +1053,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         body: "Submit a support request and get a reference ID right away. Every request is tracked, so you always have that ID to follow up.",
         sections: [
           supportForm("support"),
-          brandCard("Support queue status", readiness.services.supabase === "configured" ? "Support requests are recorded and tracked." : "Support requests are queued safely with a reference ID, so nothing gets lost while setup finishes."),
+          brandCard("What happens to your request", readiness.services.supabase === "configured" ? "Your request is saved and tracked, and you get a reference number." : "Your request is saved safely with a reference number, so nothing gets lost while setup finishes."),
           actionCard("Other paths", "Billing questions, account access, and general contact all route through the same tracked intake.", [linkAction("/contact", "Contact form"), linkAction("/api/support/status", "Support status JSON")])
         ],
         actions: [linkAction("/", "Home"), linkAction("/dashboard", "Dashboard"), linkAction("/help", "Help")]
@@ -1152,7 +1151,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
               route: row.route_path,
               entitlementIntegrationVerified: row.entitlement_integration_verified === true,
               executionEnabled: row.execution_enabled === true,
-              deliverableType: row.product_type === "software_product" ? "Software product capability and governed workflow" : "Done-for-you service",
+              deliverableType: row.product_type === "software_product" ? "A tool you use yourself, with clear steps built in" : "Work our team does for you",
               priceNote: row.price_note || "Scoped after intake review.",
               sortOrder: Number(row.sort_order || 100)
             };
@@ -1170,7 +1169,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             title: `${product.name} Catalog`,
             eyebrow: "Service catalog",
             heading: `${product.name} catalog`,
-            body: `Published ${product.name} products and services. Direct execution remains unavailable until lifecycle and entitlement verification pass.`, 
+            body: `Everything ${product.name} offers. Each card says whether it is ready to use today, needs setup first, or is still on the way.`, 
             sections,
             actions: [linkAction("/service-catalog", "Full catalog"), linkAction("/requests", "My requests"), linkAction(`/${product.slug}`, product.name)]
           })

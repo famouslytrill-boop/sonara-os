@@ -10,16 +10,16 @@ describe("Growth Studio public positioning", () => {
 
     assert.equal(response.status, 200);
     assert.match(response.text, /Governed growth operating system for CRM/i);
-    assert.match(response.text, /Audience Segments &amp; Consent/i);
+    assert.match(response.text, /Audience Lists &amp; Permissions/i);
     assert.match(response.text, /Touchpoints, Conversion &amp; Attribution/i);
-    assert.match(response.text, /Provider &amp; Automation Readiness/i);
+    assert.match(response.text, /Connections &amp; Automations/i);
     assert.match(response.text, /href="\/growth-studio\/control-center"/);
     assert.match(response.text, /href="\/growth-studio\/segments"/);
     assert.match(response.text, /href="\/growth-studio\/attribution"/);
     assert.match(response.text, /href="\/growth-studio\/experiments"/);
     assert.match(response.text, /href="\/growth-studio\/providers"/);
     assert.match(response.text, /experiments, analytics snapshots/i);
-    assert.match(response.text, /without pretending unapproved sends, posts, or ad mutations are live/i);
+    assert.match(response.text, /Nothing sends, posts, or spends without your say-so/i);
     assert.doesNotMatch(
       response.text,
       /Growth workspace for campaign planning, lead follow-up, consent-safe checklists, automation readiness, and growth records\./i

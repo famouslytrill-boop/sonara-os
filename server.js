@@ -43,34 +43,48 @@ const CUSTOMER_REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
+// Prices are set deliberately below every comparable tool we could find
+// charging for the same job. See docs/pricing/2026-07-28-COMPETITOR-PRICING.md
+// for the survey behind these numbers.
+//
+// amountCents is the price this page promises. The amount actually charged
+// lives in the Stripe Price object named by `env`, and the two have to agree --
+// tests/pricing.test.js checks the page never shows a number the config does
+// not hold, and the pricing doc records what each Stripe Price must be created
+// at. Changing a price here means creating a new Stripe Price: Stripe prices
+// are immutable once created.
 const STRIPE_PLANS = {
   free: {
     name: "Free",
     price: "$0",
-    description: "Public readiness checklist and product path selection.",
+    amountCents: 0,
+    description: "A real account, the free tools in all three studios, and your saved work. No card needed.",
     env: undefined,
     mode: undefined
   },
   starter_monthly: {
-    name: "Starter monthly",
-    price: "$7/mo",
-    description: "Low-cost entry for one workspace, basic offer, intake, checklist tools, and limited records.",
+    name: "Starter",
+    price: "$5/mo",
+    amountCents: 500,
+    description: "One workspace, your offer, customer enquiries, the checklist tools, and your records saved.",
     env: "STRIPE_PRICE_STARTER_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY"],
     mode: "subscription"
   },
   core_monthly: {
-    name: "Core monthly",
-    price: "$19/mo",
-    description: "Best value for one studio, customer records, offer records, launch readiness, and support queue.",
+    name: "Core",
+    price: "$15/mo",
+    amountCents: 1500,
+    description: "Best value. A full studio, your customer and offer records, the launch checklist, and tracked support.",
     env: "STRIPE_PRICE_CORE_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY"],
     mode: "subscription"
   },
   pro_monthly: {
-    name: "Pro monthly",
-    price: "$39/mo",
-    description: "All three studios, deeper records, campaign planning, advanced readiness, and priority support queue.",
+    name: "Pro",
+    price: "$29/mo",
+    amountCents: 2900,
+    description: "All three studios together, deeper records, campaign planning, the full launch checklist, and priority support.",
     env: "STRIPE_PRICE_PRO_MONTHLY",
     envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
     mode: "subscription"
@@ -78,13 +92,51 @@ const STRIPE_PLANS = {
   business_builder_one_time: {
     name: "Business Builder setup",
     price: "One-time",
-    description: "Manual setup package for service launch infrastructure.",
+    amountCents: null,
+    description: "A one-off package where our team sets your business up for you.",
     env: "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
     envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME", "STRIPE_PRICE_BUSINESS_BUILDER_ONETIME"],
     mode: "payment"
   }
 };
-app.use(express.static(path.join(__dirname, "public")));
+// Static assets were served with `Cache-Control: public, max-age=0`, which is
+// express.static's default and means the browser revalidates every stylesheet,
+// script, and logo on every single navigation. On a phone that is a round trip
+// per asset before the page can paint -- checked against production on
+// 2026-07-28, every asset came back max-age=0.
+//
+// The stylesheets and scripts are already versioned: renderers link them as
+// `/sonara-one.js?v=sonara-ui-20260725-v6-motion3`, and the token changes when
+// the assets are rebuilt. A versioned URL can therefore be cached forever,
+// because a new build asks for a different URL.
+//
+// Anything unversioned -- /favicon.svg, /brand/*.svg, /app.css -- gets a short
+// life instead. Five minutes removes almost every revalidation in a browsing
+// session, and stale-while-revalidate keeps the page fast while the refresh
+// happens in the background. A wrong asset self-heals in five minutes rather
+// than being pinned for a year.
+const ASSET_CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+const ASSET_CACHE_SHORT = "public, max-age=300, stale-while-revalidate=86400";
+
+// The header is chosen from the request but applied from setHeaders, which
+// express.static only calls once it has a real file to send. Setting it in
+// plain middleware would also stamp it on the 404 for a file that does not
+// exist, and pinning a transient 404 for a year is exactly the failure this
+// change is meant to avoid.
+app.use((req, res, next) => {
+  res.locals.assetCacheControl = req.query && req.query.v ? ASSET_CACHE_IMMUTABLE : ASSET_CACHE_SHORT;
+  next();
+});
+app.use(express.static(path.join(__dirname, "public"), {
+  etag: true,
+  lastModified: true,
+  cacheControl: false,
+  setHeaders: (res) => res.set("Cache-Control", res.locals.assetCacheControl || ASSET_CACHE_SHORT)
+}));
+
+// Pages stay uncacheable on purpose. Every rendered page carries the signed-in
+// navigation -- "Log in" or "Account" -- so a shared cache holding one would
+// hand a signed-in header to the next anonymous visitor.
 app.use((req, res, next) => { if (req.method === "GET" && !path.extname(req.path)) res.set("Cache-Control", "no-store, max-age=0"); next(); });
 
 app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), handleStripeWebhook);
@@ -450,7 +502,7 @@ app.get("/", (req, res) => {
     heading: "Launch your work. Run it professionally. Grow with evidence.",
     variant: "home",
     body: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",
-    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what is operational. See what still requires setup or validation.</strong></div>\n    <p>Product availability varies by lifecycle stage, provider configuration, and verified plan access. Planned, validation-required, and setup-required products remain restricted until their workflows and controls are genuinely operational.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">Check readiness</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company has a clear job, its own workflow, and honest availability while identity, billing, evidence, and support stay connected.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organized operation with readiness planning, customer intake, quotes, billing, booking, and business records.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You see the real status, the next required action, and the boundary that must be satisfied before execution.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Missing records, providers, permissions, and plan access remain visible.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, destructive changes, and sensitive actions stay approval-gated.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Saved records, delivery evidence, billing state, and next actions remain connected.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest lifecycle states</span><h2 id=\"lifecycle-heading\">A published product is not automatically an executable product.</h2></div><p>The catalog separates visibility from operational maturity so roadmap products can be discussed without being misrepresented as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"available\"><span>Active or beta</span><h3>Meaningful workflow available</h3><p>Core work may be used subject to configuration, security, and verified plan access.</p></article>\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"setup\"><span>Setup required</span><h3>Dependencies are incomplete</h3><p>Provider, customer, database, or production configuration must be completed before execution.</p></article>\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"restricted\"><span>Planned or validation required</span><h3>Direct execution blocked</h3><p>These products remain restricted until evidence, implementation, security testing, approval, and required entitlements are complete.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Affordable professional infrastructure</span><h2 id=\"value-heading\">Start free. Pay for verified depth—not vague promises.</h2><p>Pricing and access must match real entitlements. Provider costs are disclosed when they apply, and incomplete paid workflows are not advertised as operational.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about free access, paid plans, lifecycle status, customer data, and operational readiness.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. Paid access must be confirmed by the real production entitlement system before paid execution is advertised.</p></details>\n      <details><summary>Does every catalog product work today?</summary><p>No. Every product displays a lifecycle state. Planned, validation-required, and setup-required products remain restricted until their workflows and controls are operational.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, provider execution, destructive changes, and other sensitive actions remain permission- and approval-gated.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA provides operating tools, evidence, diagnostics, and guided workflows without guaranteeing business outcomes, legal compliance, cybersecurity, attribution, or placement.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Records are organization-scoped and private by default. Access is controlled through authenticated roles and production authorization boundaries.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid systems only when they are verified.</h2><p>Choose the workspace that fits the job, complete honest setup, and keep every sensitive action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
+    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what works today. See what still needs setting up or checking.</strong></div>\n    <p>What you can open depends on how far along a product is, which accounts you have connected, and your plan. Anything that is not finished stays closed until it genuinely works.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">See what is working</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organised business, with a setup plan, customer enquiries, quotes, billing, bookings, and your records in one place.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal\"><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome\"><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You always see where things stand, what to do next, and what has to be true before anything can run.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Anything missing stays visible: records, connected accounts, permissions, and plan.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, and anything you cannot undo wait for your approval.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Your saved records, proof of delivery, billing, and next steps all stay joined up.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest about what is ready</span><h2 id=\"lifecycle-heading\">Being listed here does not mean it is finished.</h2></div><p>We show what is coming as well as what is done, and we label the difference, so nothing on the roadmap gets sold to you as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"available\"><span>Active or beta</span><h3>You can get real work done</h3><p>You can do the main work now, once your account is set up and your plan covers it.</p></article>\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"setup\"><span>Setup required</span><h3>A little setup first</h3><p>Some setup has to be finished first: a connected account, your records, or your customer details.</p></article>\n      <article class=\"sonara-lifecycle-card\" data-lifecycle=\"restricted\"><span>Coming soon, or in review</span><h3>Not open yet</h3><p>These stay closed until the work is built, tested, security-checked, approved, and covered by your plan.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Professional tools at a price that works</span><h2 id=\"value-heading\">Start free. Pay for what is proven to work, not vague promises.</h2><p>What you pay for and what you can open have to match. Where a connected service costs extra we say so, and we do not advertise an unfinished paid feature as working.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about what is free, what is paid, what is ready, and what happens to your data.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. We only advertise a paid feature as working once a real payment has actually unlocked it.</p></details>\n      <details><summary>Does everything in the catalog work today?</summary><p>No. Every product says where it stands. Anything marked coming soon, in review, or needs setup stays closed until it genuinely works.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, running a connected service, and anything you cannot undo all wait for your permission and approval.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA gives you the tools, the records, and the steps. It cannot promise you sales, keep you legal, make you secure, or get you ranked.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Your records belong to your organisation and are private by default. Only people you have given a role to can reach them.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid tools only once they are proven to work.</h2><p>Pick the workspace that fits the job, work through the setup honestly, and keep every important action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
     actions: [linkAction("/signup", "Create free account"), linkAction("#companies-heading", "Explore the three studios"), linkAction("/pricing", "Compare plans")]
   }));
 });
@@ -463,8 +515,8 @@ registerProduct("business-builder", {
   body: "Launch offers, organize customers, take bookings and payments, and run daily operations from one place.",
   cards: [
     ["Offer Builder", "Shape the launch offer, scope, proof points, and customer next action."],
-    ["Intake & Request Queue", "Capture customer requests and move them through a clear review workflow."],
-    ["Booking & Payment Readiness", "Keep checkout gated until payments are fully configured — no charges before you are ready."],
+    ["Customer Enquiries", "Take customer requests and move them through a clear review process."],
+    ["Bookings & Payment Setup", "Checkout stays closed until your payments are fully set up. Nobody is charged before you are ready."],
     ["Customer Records", "Keep customer records private and organization-scoped, ready for real operations."]
   ],
   checklist: ["Business profile", "Offer", "Intake", "Pricing", "Payment", "Support", "Legal", "Analytics"]
@@ -480,12 +532,12 @@ registerProduct("creator-studio", {
     ["Asset Catalog", "Organize creator assets, catalog items, and provenance-ready records."],
     ["Creator Offers", "Prepare creator products and customer-facing offers."],
     ["Release & Content Checklist", "Track release and content tasks without claiming automation is live."],
-    ["Monetization Readiness", "Surface payment and email setup requirements before selling."],
+    ["Ready To Sell", "Shows you what payment and email setup is still missing before you start selling."],
     ["Media & Customer Records", "Track contacts, buyers, collaborators, campaign records, and media records."],
-    ["Creator Product Lifecycle", "Validate the creator problem, scope the smallest useful workflow, run representative beta testing, and measure release adoption and retention."],
+    ["From Idea To Release", "Check the problem is real, build the smallest useful version, test it with real people, and see who sticks around after release."],
     ["Creator Market Intelligence", "Track creator ownership, direct-audience, brand partnership, measurement, pricing, and portability opportunities without promising streams or sponsorship revenue."]
   ],
-  checklist: ["Review asset catalog", "Prepare creator offer", "Confirm release checklist", "Verify monetization readiness"]
+  checklist: ["Review asset catalog", "Prepare creator offer", "Confirm release checklist", "Check you are ready to sell"]
 });
 
 registerProduct("growth-studio", {
@@ -496,14 +548,14 @@ registerProduct("growth-studio", {
   body: "Governed growth operating system for CRM, cross-channel campaigns, audience segments, consent, content approvals, first-party touchpoints, conversions, attribution evidence, experiments, analytics snapshots, safe automation, and provider operations.",
   cards: [
     ["Campaign Operations", "Plan cross-channel campaigns, goals, audiences, approvals, and provider operations while retaining an auditable campaign record."],
-    ["CRM & Lead Pipeline", "Capture, qualify, segment, and follow up with leads while keeping source, lifecycle stage, consent, and ownership evidence connected."],
-    ["Audience Segments & Consent", "Build declarative audience segments and maintain purpose- and channel-specific consent before lifecycle messaging or personalization."],
-    ["Provider & Automation Readiness", "Configure governed provider jobs and disabled-by-default automation templates without pretending unapproved sends, posts, or ad mutations are live."],
+    ["Leads & Follow-Up", "Capture leads, sort them, and follow up, while keeping track of where each one came from, how far along they are, and what they agreed to."],
+    ["Audience Lists & Permissions", "Build audience lists from plain rules, and record exactly what each person agreed to be contacted about, and how."],
+    ["Connections & Automations", "Set up connected services and automation templates that stay switched off until you approve them. Nothing sends, posts, or spends without your say-so."],
     ["Touchpoints, Conversion & Attribution", "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."],
-    ["Market Research & Product Lifecycle", "Connect interviews, audience evidence, pricing, experiments, beta feedback, launch campaigns, activation, retention, and portfolio decisions."],
+    ["Research & What To Build Next", "Join up customer interviews, audience evidence, pricing, experiments, early feedback, launches, and what people actually keep using."],
     ["Growth Market Intelligence", "Connect first-party data, consent, offline conversions, attribution confidence, creator partnerships, experiments, and incrementality evidence."]
   ],
-  checklist: ["Plan campaign", "Review consent posture", "Confirm email readiness", "Prepare growth records"]
+  checklist: ["Plan campaign", "Review consent posture", "Check email is connected", "Prepare growth records"]
 });
 
 app.get("/contact", (req, res) => {
@@ -554,10 +606,11 @@ app.get("/pricing", (req, res) => {
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $29. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
-      <details><summary>Which plan should I pick?</summary><p>Start free, then move to Starter for one workspace, Core for the best all-round value, or Pro for all three studios and priority support.</p></details>
+      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $5 if you want your work saved in one workspace, Core at $15 for a full studio, or Pro at $29 if you need all three.</p></details>
     </div>
   </section>`;
   return res.status(200).type("html").send(
@@ -567,10 +620,11 @@ app.get("/pricing", (req, res) => {
       heading: "Start free. Pay only when it pays off.",
       body: enabledPlanCount
         ? "Every plan starts free — no card to begin. Upgrade for deeper records, more workspaces, and priority support, and cancel anytime."
-        : "Every plan starts free — no card to begin. Checkout setup required until the payment connection and plan settings are configured.",
+        : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
         ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("Every plan includes", "Real records, private organization-scoped data, honest setup-required states, and cancel-anytime billing. No fake activity, no hidden enterprise maze."),
+        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $29."),
+        brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],
       actions: [linkAction("/signup", "Start free"), linkAction("/login", "Log in"), linkAction("/business-builder/billing", "Billing")]
@@ -744,11 +798,11 @@ app.get("/account", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account",
-      eyebrow: "Account readiness",
+      eyebrow: "Your account",
       heading: "Account",
       body: getReadiness().services.supabase === "configured"
-        ? "Email login and renewable HttpOnly browser sessions are configured. Production account creation still requires an owner smoke test before customer launch."
-        : "Setup required: Connect account login to enable account sessions.",
+        ? "Email sign-in is set up and your session stays signed in safely. Real sign-ups still need one live test before we open this to customers."
+        : "Setup needed: sign-in has to be connected before anyone can log in.",
       sections: accountSetupCards(),
       actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
     })
@@ -759,9 +813,9 @@ app.get("/account/setup", (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account setup",
-      eyebrow: "Account readiness",
+      eyebrow: "Your account",
       heading: "Account setup",
-      body: "Complete these items after email login is configured and owner-tested.",
+      body: "Work through these once sign-in is connected and tested.",
       sections: [accountNoticeCard(req), ...accountSetupCards()],
       actions: [linkAction("/account", "Account"), linkAction("/contact", "Request setup"), linkAction("/", "Home")]
     })
@@ -900,7 +954,7 @@ app.get("/settings", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Settings",
-      eyebrow: "Account readiness",
+      eyebrow: "Your account",
       heading: "Settings",
       body: "Choose device-level presentation settings here, or save account preferences for use across signed-in devices.",
       sections: [
@@ -1468,6 +1522,11 @@ app.use((error, req, res, next) => {
 
 module.exports = app;
 
+// The plan table is the one piece of config where a mistake charges somebody
+// the wrong amount, so tests/pricing.test.js reads it directly rather than
+// inferring the prices back out of rendered HTML.
+module.exports.STRIPE_PLANS = STRIPE_PLANS;
+
 function registerProduct(slug, config) {
   const productKey = config.productKey || slug.replace(/-/g, "_");
   const routes = getProductPageDefinitions(slug);
@@ -1541,7 +1600,7 @@ function getProductPageDefinitions(slug) {
     "business-builder": {
       free: [
         { path: "/business-builder/readiness", label: "Launch Setup Checklist", title: "Business Builder Launch Setup Checklist", module: "readiness", body: "Track the launch basics before paid operations are enabled.", form: "business_checklist" },
-        { path: "/business-builder/intake", label: "Intake", title: "Intake & Request Queue", module: "intake", body: "Capture a real service request. Saved records require account database setup.", form: "business_intake" },
+        { path: "/business-builder/intake", label: "Intake", title: "Customer Enquiries", module: "intake", body: "Take a real service request. Saving it needs your records set up first.", form: "business_intake" },
         { path: "/business-builder/checklist", label: "Launch Setup Checklist", title: "Launch Setup Checklist", module: "checklist", body: "Use this free checklist to prepare business profile, offer, intake, pricing, payment, support, legal, and analytics.", form: "business_checklist" },
         { path: "/business-builder/offers/free", label: "Free offer draft", title: "Offer Builder", module: "offer_builder", body: "Draft a simple service offer from your real inputs.", form: "business_offer" },
         { path: "/business-builder/records/free", label: "Free records", title: "Free Records", module: "free_records", body: "Free records show saved basic module outputs when the account database and organization membership are configured.", api: "/api/business-builder/records" },
@@ -1571,7 +1630,7 @@ function getProductPageDefinitions(slug) {
         { path: "/creator-studio/records", label: "Records", title: "Media & Customer Records", module: "records", body: "Paid media and customer records unlock after billing state confirms plan access." },
         { path: "/creator-studio/settings", label: "Settings", title: "Creator Studio Settings", module: "settings", body: "Workspace settings require paid plan access or owner/admin operations." },
         { path: "/creator-studio/catalog", label: "Catalog", title: "Catalog", module: "catalog", body: "Catalog operations require paid plan access and account database records." },
-        { path: "/creator-studio/monetization", label: "Monetization", title: "Monetization Readiness", module: "monetization", body: "Monetization requires payment setup, rights review, and owner-approved terms." },
+        { path: "/creator-studio/monetization", label: "Monetization", title: "Ready To Sell", module: "monetization", body: "Before you sell, you need payments set up, your rights checked, and terms you have approved." },
         { path: "/creator-studio/media-kit", label: "Media kit", title: "Media Kit", module: "media_kit", body: "Paid media kit operations unlock after billing state confirms plan access." },
         { path: "/creator-studio/automations", label: "Automations", title: "Automations", module: "automations", body: "Automation remains setup required until owner-approved workflows and audit logging are configured." }
       ]
@@ -2156,12 +2215,12 @@ function readinessDeploymentCard() {
   const deployment = getDeploymentInfo();
   const environment = String(deployment.environment || "development").toLowerCase();
   const explanation = environment === "preview"
-    ? "Preview deployment. This checklist reports Preview-scoped configuration only; Production may intentionally use different provider credentials."
+    ? "This is a preview copy of the site. It reports its own setup only. The live site may deliberately use different connections."
     : environment === "production"
-      ? "Production deployment. This checklist reflects the live production environment."
-      : "Local or development deployment. This checklist reflects only the current process environment.";
+      ? "This is the live site. Everything below reflects what customers actually get."
+      : "This is a development copy. Everything below reflects this copy only.";
   return brandCard(
-    "Deployment environment",
+    "Which copy of the site this is",
     `${displayStatus(environment)}. ${explanation} Commit: ${deployment.commitSha}. Branch: ${deployment.branch}.`
   );
 }
@@ -2313,7 +2372,7 @@ function priceCard(plan, config, planStatus, readiness) {
     <p>${escapeHtml(`${config.description} ${enabled ? "Checkout available." : setupText}`)}</p>
     <form method="post" action="/api/checkout/session">
       <input type="hidden" name="plan" value="${escapeHtml(plan)}">
-      <button type="submit">${enabled ? "Start checkout" : "Checkout setup required"}</button>
+      <button type="submit">${enabled ? "Start checkout" : "Not open yet"}</button>
     </form>
   </article>`;
 }
@@ -2328,7 +2387,7 @@ function billingPanel(readiness, billing) {
     .join("");
   return `<article class="card">
     <h2>Billing actions</h2>
-    <p>${escapeHtml(readiness.services.checkout === "enabled" ? "Checkout can start for configured plans." : "Checkout setup required before paid plans can be purchased.")}</p>
+    <p>${escapeHtml(readiness.services.checkout === "enabled" ? "You can check out on any plan that is set up." : "Paid plans are not open for checkout yet.")}</p>
     ${planForms}
     <form method="post" action="/api/billing/create-portal-session">
       <button type="submit">Manage billing portal</button>
@@ -2338,11 +2397,11 @@ function billingPanel(readiness, billing) {
 }
 
 function getPriceCardSetupText(planStatus, readiness) {
-  if (readiness.services.stripe !== "configured") return "Checkout setup required: payment connection is missing or invalid.";
+  if (readiness.services.stripe !== "configured") return "Not open for checkout yet: our payment connection is still being set up.";
   if (planStatus.reason === "missing") return "Checkout is not configured for this plan yet.";
-  if (planStatus.reason === "invalid_placeholder") return "Checkout setup required: plan price settings are placeholders.";
-  if (planStatus.reason === "invalid_prefix") return "Checkout setup required: plan price settings are invalid.";
-  return "Checkout setup required.";
+  if (planStatus.reason === "invalid_placeholder") return "Not open for checkout yet: this price is still a placeholder.";
+  if (planStatus.reason === "invalid_prefix") return "Not open for checkout yet: this price is not set correctly.";
+  return "Not open for checkout yet.";
 }
 
 function linkAction(href, label) {
@@ -2530,16 +2589,16 @@ function authForm(label, action) {
 function accountSetupCards() {
   return [
     organizationSetupForm(),
-    actionCard("Create or attach organization", "Logged-in users need an organization membership before saved records and product workspaces can be trusted. If the required tables are missing, this action returns setup-required with the table checklist.", [
-      linkAction("/api/readiness", "Readiness JSON"),
-      linkAction("/admin/database", "Database readiness")
+    actionCard("Create or join an organisation", "Everything you save belongs to an organisation, so you need one before your work has a home. If something is still missing, this tells you exactly what.", [
+      linkAction("/readiness", "See what is working"),
+      linkAction("/support", "Get help")
     ]),
-    brandCard("Required tables", "profiles, organizations, and organization_memberships must be migrated and exposed to server-side Supabase access before organization setup can complete."),
+    brandCard("What has to exist first", "Your profile, your organisation, and your membership of it all have to be in place before setup can finish."),
     brandCard("Product path", "Choose Business Builder, Creator Studio, Growth Studio, or all three."),
-    brandCard("First offer", "Draft the first offer before checkout activation."),
+    brandCard("First offer", "Write your first offer before you turn on checkout."),
     brandCard("Contact email", "Confirm the support and customer contact address."),
-    brandCard("Payment readiness", "Connect Stripe to enable checkout."),
-    brandCard("Support preference", "Connect the account database and email delivery to enable the support queue.")
+    brandCard("Taking payments", "Connect your payment account to turn on checkout."),
+    brandCard("Support", "Connect your records and email so support requests reach you.")
   ];
 }
 
@@ -2554,7 +2613,7 @@ function organizationSetupForm() {
         <option value="growth-studio">Growth Studio</option>
         <option value="dashboard">All workspaces</option>
       </select></label>
-      <p class="fine">This uses server-side Supabase access only. It never exposes service-role credentials to the browser.</p>
+      <p class="fine">This is handled entirely on our servers. No credentials are ever sent to your browser.</p>
       <button type="submit">Create organization</button>
     </form>
   </article>`;
@@ -4409,7 +4468,7 @@ async function handleCheckoutSessionRequest(req, res) {
   if (priceStatus.status !== "configured") {
     const payload = { ok: false, code: "setup_required", service: "stripe_price", plan, reason: priceStatus.status, env: priceStatus.env };
     if (acceptsHtml(req)) {
-      return res.status(503).type("html").send(responsePage("Checkout setup required", "Checkout is not configured for this plan yet.", [
+      return res.status(503).type("html").send(responsePage("Not open for checkout yet", "This plan is not ready to buy yet. Nothing has been charged.", [
         linkAction("/pricing", "Pricing"),
         linkAction("/contact", "Request setup")
       ]));

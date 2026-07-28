@@ -15,7 +15,7 @@ const TUTORIALS = {
   "/tutorials/business-builder": {
     title: "Business Builder tutorial",
     body: "Move from an offer idea to an operating business without filling an empty dashboard first.",
-    steps: ["Describe the customer problem and first offer.", "Use pricing and readiness tools to test the offer.", "Create the workspace records you actually need.", "Track requests, customers, and operational follow-up.", "Use paid records only after billing access is verified."]
+    steps: ["Describe the customer problem and first offer.", "Use the pricing and setup tools to test the offer.", "Create the workspace records you actually need.", "Track requests, customers, and operational follow-up.", "Use paid records only after billing access is verified."]
   },
   "/tutorials/creator-studio": {
     title: "Creator Studio tutorial",
@@ -119,9 +119,9 @@ function registerRouteRegistryRoutes(app, deps) {
     heading: "Get a real result in your first few minutes.",
     body: "Sign in and use the free planning tools in every workspace — no sales call, no service request first. You sign in so your work saves to your own account and stays there.",
     sections: [
-      actionCard("Business Builder tools", "Offer outline, pricing calculator, readiness score, launch checklist, customer starter, and service-package builder.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
-      actionCard("Creator Studio tools", "Creator profile, asset checklist, release checklist, content brief, content plan, and music-system blueprint.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
-      actionCard("Growth Studio tools", "Campaign outline, follow-up script, consent checklist, offer angles, KPI calculator, and growth readiness score.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
+      actionCard("Business Builder tools", "Offer outline, pricing calculator, setup score, launch checklist, first customer record, and package builder.", [linkAction("/business-builder/tools", "Open Business Builder tools")]),
+      actionCard("Creator Studio tools", "Creator profile, asset checklist, release checklist, content brief, content plan, and song plan.", [linkAction("/creator-studio/tools", "Open Creator Studio tools")]),
+      actionCard("Growth Studio tools", "Campaign outline, follow-up wording, permission checklist, offer angles, numbers calculator, and growth setup score.", [linkAction("/growth-studio/tools", "Open Growth Studio tools")])
     ],
     actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
   }));

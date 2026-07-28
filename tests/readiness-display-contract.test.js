@@ -63,7 +63,7 @@ describe("readiness display contract", () => {
 
       assert.equal(response.status, 200);
       const headings = [
-        "Deployment environment",
+        "Which copy of the site this is",
         "Account database",
         "Payment connection",
         "Payment updates",
@@ -81,8 +81,8 @@ describe("readiness display contract", () => {
         assert.equal(cardHeadingCount(response.text, heading), 1, `${heading} should render exactly once`);
       }
 
-      assert.match(response.text, /Preview deployment/);
-      assert.match(response.text, /Preview-scoped configuration only/);
+      assert.match(response.text, /preview copy of the site/);
+      assert.match(response.text, /reports its own setup only/);
       assert.match(response.text, /preview123/);
       assert.match(response.text, /codex\/readiness-preview/);
       assert.doesNotMatch(response.text, /<h2>Founder access<\/h2>/);

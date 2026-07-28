@@ -23,9 +23,9 @@
       heroHeading: "Launch your work. Run it professionally. Grow with evidence.",
       heroBody: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",
       productsKicker: "Three connected companies", productsHeading: "Choose the studio that matches the work.",
-      productsBody: "Each company has a clear job, its own workflow, and honest availability while identity, billing, evidence, and support stay connected.",
+      productsBody: "Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.",
       flowKicker: "One connected operating path", flowHeading: "Move from first setup to measurable progress.",
-      ctaKicker: "Start with the next real step", ctaHeading: "Create a free account. Add paid systems only when they are verified.",
+      ctaKicker: "Start with the next real step", ctaHeading: "Create a free account. Add paid tools only once they are proven to work.",
       searchPlaceholder: "Search companies, pages, and actions", settingsTitle: "Experience settings", language: "Language",
       languageHelp: "Updates the core interface language.", appearance: "Appearance", appearanceHelp: "Follow your device or choose light or dark.",
       motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"

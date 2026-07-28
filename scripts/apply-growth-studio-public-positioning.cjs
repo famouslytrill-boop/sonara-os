@@ -17,22 +17,22 @@ replaceRequired(
   "Plan cross-channel campaigns, goals, audiences, approvals, and provider operations while retaining an auditable campaign record."
 );
 
-replaceRequired("Lead & Customer Follow-Up", "CRM & Lead Pipeline");
+replaceRequired("Lead & Customer Follow-Up", "Leads & Follow-Up");
 replaceRequired(
   "Prepare follow-up workflows with consent and owner review.",
-  "Capture, qualify, segment, and follow up with leads while keeping source, lifecycle stage, consent, and ownership evidence connected."
+  "Capture leads, sort them, and follow up, while keeping track of where each one came from, how far along they are, and what they agreed to."
 );
 
-replaceRequired("Consent-Safe Campaign Checklist", "Audience Segments & Consent");
+replaceRequired("Consent-Safe Campaign Checklist", "Audience Lists & Permissions");
 replaceRequired(
   "Keep outbound actions reviewable and audit-ready.",
-  "Build declarative audience segments and maintain purpose- and channel-specific consent before lifecycle messaging or personalization."
+  "Build audience lists from plain rules, and record exactly what each person agreed to be contacted about, and how."
 );
 
-replaceRequired("Automation Readiness", "Provider & Automation Readiness");
+replaceRequired("Automation Readiness", "Connections & Automations");
 replaceRequired(
   "Show setup requirements instead of pretending automations are live.",
-  "Configure governed provider jobs and disabled-by-default automation templates without pretending unapproved sends, posts, or ad mutations are live."
+  "Set up connected services and automation templates that stay switched off until you approve them. Nothing sends, posts, or spends without your say-so."
 );
 
 replaceRequired("Growth Records", "Touchpoints, Conversion & Attribution");
@@ -59,7 +59,7 @@ for (const marker of [
   'linkAction("/growth-studio/experiments", "Experiments")',
   'linkAction("/growth-studio/providers", "Providers")',
   "Touchpoints, Conversion & Attribution",
-  "Provider & Automation Readiness"
+  "Connections & Automations"
 ]) {
   if (!source.includes(marker)) throw new Error(`Growth Studio public-positioning marker missing: ${marker}`);
 }

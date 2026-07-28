@@ -154,8 +154,10 @@ describe("software-in-a-service platform upgrade", () => {
         const res = await request(app).get("/service-catalog").set("Accept", "text/html");
         assert.equal(res.status, 200);
         assert.match(res.text, /Request this service/);
-        assert.match(res.text, /service_catalog_items/);
-        assert.match(res.text, /Setup required/);
+        // The customer is told the catalog is the standard one, without being
+        // shown the name of the table that failed to load.
+        assert.match(res.text, /account&#39;s own catalog isn&#39;t connected yet/);
+        assert.doesNotMatch(res.text, /service_catalog_items/);
       } finally {
         restoreEnv(snapshot);
       }
@@ -166,21 +168,21 @@ describe("software-in-a-service platform upgrade", () => {
       assert.equal(res.status, 200);
       assert.match(res.text, /Offer Outline Generator/);
       assert.match(res.text, /Pricing Calculator/);
-      assert.match(res.text, /Business Readiness Score/);
+      assert.match(res.text, /Business Setup Score/);
       assert.match(res.text, /Service Package Builder/);
       assert.match(res.text, /Customer Record Starter/);
       const creator = await request(app).get("/creator-studio/tools").set("Accept", "text/html");
       assert.match(creator.text, /Creator Profile Outline/);
       assert.match(creator.text, /Prompt and Brief Builder/);
       assert.match(creator.text, /Release Checklist Builder/);
-      assert.match(creator.text, /Music System Blueprint/);
+      assert.match(creator.text, /Song Plan/);
       assert.match(creator.text, /Basic Content Plan/);
       const growth = await request(app).get("/growth-studio/tools").set("Accept", "text/html");
       assert.match(growth.text, /Campaign Outline/);
       assert.match(growth.text, /Lead Follow-Up Script/);
       assert.match(growth.text, /Offer Angle Generator/);
       assert.match(growth.text, /Simple KPI Calculator/);
-      assert.match(growth.text, /Growth Readiness Score/);
+      assert.match(growth.text, /Growth Setup Score/);
     });
   });
 

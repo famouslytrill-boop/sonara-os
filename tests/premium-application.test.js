@@ -140,11 +140,11 @@ describe("premium application rebuild", () => {
     it("catalog items carry inputs, turnaround, deliverable type, and access tier", async function() {
       const res = await request(app).get("/service-catalog").set("Accept", "text/html");
       assert.equal(res.status, 200);
-      assert.match(res.text, /Launch Offer Builder/);
-      assert.match(res.text, /Consent-Safe Outreach Checklist/);
-      assert.match(res.text, /Inputs:/);
+      assert.match(res.text, /Launch Offer, Built For You/);
+      assert.match(res.text, /Safe Outreach Checklist/);
+      assert.match(res.text, /What we need from you:/);
       assert.match(res.text, /Turnaround:/);
-      assert.match(res.text, /Deliverable:/);
+      assert.match(res.text, /You receive:/);
       assert.match(res.text, /Access: (Free tool|Paid service)/);
     });
 
