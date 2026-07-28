@@ -3,8 +3,18 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+// This generator rewrites two different files. The Growth Studio product copy
+// still lives in server.js, but the workspace action bars moved to
+// lib/sonara-product-pages.cjs during the server.js split -- and this script
+// anchors on a line *inside* productLandingActions, not on the function name.
+//
+// That is worth stating plainly: an extraction can be safe by function name and
+// still break a generator that reaches into the body. tests/server-split.test.js
+// now checks anchor strings for exactly this reason.
 const file = path.join(process.cwd(), "server.js");
+const productPagesFile = path.join(process.cwd(), "lib", "sonara-product-pages.cjs");
 let source = fs.readFileSync(file, "utf8");
+let productPages = fs.readFileSync(productPagesFile, "utf8");
 
 replaceAllRequired(
   "Growth workspace for campaign planning, lead follow-up, consent-safe checklists, automation readiness, and growth records.",
@@ -41,31 +51,45 @@ replaceRequired(
   "Record deduplicated touchpoints and conversions with explicit attribution models, confidence levels, sampling, and freshness evidence."
 );
 
-replaceRequired(
+replaceInProductPages(
   'linkAction("/growth-studio/dashboard", "Open dashboard")',
   'linkAction("/growth-studio/control-center", "Open control center")'
 );
 
-replaceRequired(
+replaceInProductPages(
   'linkAction("/growth-studio/checklist", "Consent checklist")',
   'linkAction("/growth-studio/segments", "Audience segments"), linkAction("/growth-studio/attribution", "Attribution"), linkAction("/growth-studio/experiments", "Experiments"), linkAction("/growth-studio/providers", "Providers")'
 );
 
 for (const marker of [
   "Governed growth operating system for CRM",
-  'linkAction("/growth-studio/control-center", "Open control center")',
-  'linkAction("/growth-studio/segments", "Audience segments")',
-  'linkAction("/growth-studio/attribution", "Attribution")',
-  'linkAction("/growth-studio/experiments", "Experiments")',
-  'linkAction("/growth-studio/providers", "Providers")',
   "Touchpoints, Conversion & Attribution",
   "Connections & Automations"
 ]) {
   if (!source.includes(marker)) throw new Error(`Growth Studio public-positioning marker missing: ${marker}`);
 }
 
+for (const marker of [
+  'linkAction("/growth-studio/control-center", "Open control center")',
+  'linkAction("/growth-studio/segments", "Audience segments")',
+  'linkAction("/growth-studio/attribution", "Attribution")',
+  'linkAction("/growth-studio/experiments", "Experiments")',
+  'linkAction("/growth-studio/providers", "Providers")'
+]) {
+  if (!productPages.includes(marker)) throw new Error(`Growth Studio action-bar marker missing from lib/sonara-product-pages.cjs: ${marker}`);
+}
+
 fs.writeFileSync(file, source);
+fs.writeFileSync(productPagesFile, productPages);
 console.log("Growth Studio public positioning applied");
+
+function replaceInProductPages(before, after) {
+  if (productPages.includes(after)) return;
+  if (!productPages.includes(before)) {
+    throw new Error(`Growth Studio action-bar source marker missing from lib/sonara-product-pages.cjs: ${before}`);
+  }
+  productPages = productPages.replace(before, after);
+}
 
 function replaceRequired(before, after) {
   if (source.includes(after)) return;

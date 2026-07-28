@@ -41,18 +41,37 @@ const EXTRACTED = [
 ];
 
 describe("the server.js split stays safe", () => {
-  it("moved nothing a generator anchors on", () => {
-    // This is the check that matters. A generator that anchors on a function
-    // still in server.js keeps working; one that anchors on a function which
-    // has moved fails at apply:runtime, long after the diff looked fine.
+  // What this test can and cannot do, stated plainly.
+  //
+  // The authoritative check that an extraction has not broken code generation
+  // is empirical: run `pnpm run apply:runtime` twice and confirm the tree is
+  // unchanged. verify:generated does exactly that in CI, and it is what caught
+  // the one real breakage in this split -- apply-growth-studio-public-positioning.cjs
+  // anchors on `linkAction("/growth-studio/dashboard", "Open dashboard")`, a
+  // line *inside* productLandingActions rather than the function name, so no
+  // amount of name matching would have seen it coming.
+  //
+  // I tried to catch that statically by scanning generators for any long quoted
+  // string that had moved. It flagged six more cases, every one of them false:
+  // route paths like "/growth-studio/experiments" that those generators write
+  // into routes/ and lib/sonara-route-registry.cjs, and never anchored on in
+  // server.js at all. A check with that false-positive rate gets muted, and
+  // then it catches nothing.
+  //
+  // So this is deliberately the narrow, reliable version: a generator that
+  // names an extracted function must also open the module it moved to. It is an
+  // early warning for the obvious case, not a substitute for apply:runtime.
+  it("leaves no generator naming an extracted function without following it", () => {
     const generators = generatorSources();
     const violations = [];
 
     for (const extraction of EXTRACTED) {
-      for (const fn of extraction.functions) {
-        for (const generator of generators) {
+      const moduleFile = path.basename(extraction.module);
+      for (const generator of generators) {
+        if (generator.source.includes(moduleFile)) continue;
+        for (const fn of extraction.functions) {
           if (generator.source.includes(fn)) {
-            violations.push(`${fn} moved to ${extraction.module} but scripts/${generator.name} still references it`);
+            violations.push(`scripts/${generator.name} still expects ${fn} in server.js`);
           }
         }
       }
@@ -61,8 +80,8 @@ describe("the server.js split stays safe", () => {
     assert.deepEqual(
       violations,
       [],
-      `These extractions will break code generation:\n  ${violations.join("\n  ")}\n\n` +
-        "Either leave the function in server.js, or update the generator in the same commit."
+      `These generators reference code that has moved:\n  ${violations.join("\n  ")}\n\n` +
+        "Either leave it in server.js, or point the generator at the module it moved to."
     );
   });
 

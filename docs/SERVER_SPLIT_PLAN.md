@@ -23,8 +23,18 @@ So the rule is:
 
 > Extract only what no generator anchors on, and prove it in the same commit.
 
-`tests/server-split.test.js` is that proof. It cross-references every extracted
-function against all 44 generators and fails if any still mentions it.
+`tests/server-split.test.js` gives an early warning: a generator that names an
+extracted function must also open the module it moved to.
+
+**That check is not sufficient, and it is important to know why.** Step 1 broke
+`apply-growth-studio-public-positioning.cjs`, which never mentions
+`productLandingActions` at all — it anchors on
+`linkAction("/growth-studio/dashboard", "Open dashboard")`, a line *inside* the
+function body. No amount of name matching sees that coming.
+
+The authoritative check is empirical: run `pnpm run apply:runtime` twice and
+confirm the tree is unchanged. `verify:generated` does this in CI. **Never skip
+step 5 below on the grounds that the unit test passed.**
 
 ## The order
 
