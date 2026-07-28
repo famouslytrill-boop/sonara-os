@@ -76,6 +76,31 @@ describe("design system consolidation", () => {
   });
 });
 
+describe("the live production smoke test probes assets that exist", () => {
+  // scripts/smoke-live-routes.mjs requests these URLs against the deployed
+  // site on a 6-hourly schedule. It listed six stylesheets that no renderer
+  // linked; when they were deleted during the design-system consolidation the
+  // check went red against a production deployment that was working correctly.
+  //
+  // Deleting a probed asset should fail here, in seconds, rather than against
+  // production hours later.
+  it("has a public/ file behind every static asset it probes", () => {
+    const smoke = fs.readFileSync(path.join(root, "scripts", "smoke-live-routes.mjs"), "utf8");
+    const assetBlock = smoke.slice(smoke.indexOf("const assets = ["), smoke.indexOf("];", smoke.indexOf("const assets = [")));
+    const probed = [...assetBlock.matchAll(/\["(\/[^"]+)"/g)].map((match) => match[1]);
+
+    assert.ok(probed.length > 0, "could not parse the probed asset list");
+
+    const missing = probed.filter((urlPath) => !fs.existsSync(path.join(publicDir, urlPath.replace(/^\//, ""))));
+
+    assert.deepEqual(
+      missing,
+      [],
+      `smoke-live-routes.mjs probes assets with no file in public/: ${missing.join(", ")}`
+    );
+  });
+});
+
 describe("motion, sound, and haptics default to off", () => {
   // AGENTS.md: "Sounds, voice announcements, haptics, SMS, push, and email
   // alerts must be off or explicitly user-controlled by default."
