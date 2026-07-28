@@ -39,3 +39,25 @@ The behaviour they gestured at is covered against the code that actually runs:
 
 If the TypeScript tree is ever revived, add `typescript` as a dependency, give
 the imports explicit extensions, and move the file back to `tests/`.
+
+## monorepo-smoke.test.mjs (retired 2026-07-28)
+
+Asserted that `sonara-industries/package.json`, its `apps/web` and `apps/api`
+manifests, and one of its migrations existed at the repository root. That tree
+was archived earlier the same day, so the assertions were repointed at
+`archive/`.
+
+That repoint broke production deploys. `vercel-build` re-ran the test suite
+inside Vercel's build environment, where `archive/` does not exist because
+`.vercelignore` excludes it — correctly, since archived code should not be
+uploaded. The test therefore passed locally and in CI, and failed only inside
+the deployment, taking two production deploys down with it.
+
+The test is retired rather than repaired: it verified the shape of a monorepo
+that is not deployed, which the archive README already records.
+
+`vercel-build` no longer runs the test suite either. Tests gate the release
+twice before Vercel is ever invoked — in pull-request CI and at the "Run
+release test suite" step of the controlled production deployment. Running them
+a third time inside the deployment, against a deliberately different file set,
+could only produce false failures of exactly this kind.
