@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
-const manifest = JSON.parse(readFileSync("public/manifest.webmanifest", "utf8"));
+const manifest = JSON.parse(readFileSync("public/site.webmanifest", "utf8"));
 
 for (const script of ["verify:all", "verify:postdeploy", "verify:env", "verify:stripe", "workers:smoke", "test:security", "test:docs"]) {
   assert.ok(packageJson.scripts[script], `missing package script ${script}`);
