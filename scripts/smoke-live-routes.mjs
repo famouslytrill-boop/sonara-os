@@ -246,17 +246,23 @@ async function checkManifestAndAssets() {
 
   await checkRedirect("/manifest.webmanifest", 308, "/site.webmanifest");
 
+  // Assets a page actually links. This list previously named six stylesheets --
+  // brand-system, friendly-premium, interface-engine, launch-ui, cohesive-2027,
+  // and cohesive-2027-base -- which no renderer referenced and which were
+  // removed during the design-system consolidation. Probing them proved only
+  // that dead files were still uploaded, and once they were deleted this smoke
+  // test failed against a production deployment that was working correctly.
+  //
+  // The two stylesheets below are the two the document head links, so a 404
+  // here means a page really would render unstyled.
   const assets = [
     ["/sw.js", "javascript"],
-    ["/sonara-brand-system.css", "css"],
-    ["/sonara-friendly-premium.css", "css"],
-    ["/sonara-interface-engine.css", "css"],
-    ["/sonara-launch-ui.css", "css"],
-    ["/sonara-cohesive-2027.css", "css"],
-    ["/sonara-cohesive-2027-base.css", "css"],
+    ["/sonara-design-system.css", "css"],
+    ["/sonara-application-ui.css", "css"],
     ["/sonara-experience.js", "javascript"],
-    ["/sonara-interface-engine.js", "javascript"],
-    ["/sonara-cohesive-2027.js", "javascript"],
+    ["/sonara-experience-controls.js", "javascript"],
+    ["/sonara-one.js", "javascript"],
+    ["/sonara-prepaint.js", "javascript"],
     ["/brand/sonara-industries-mark.svg", "image/svg+xml"]
   ];
 
