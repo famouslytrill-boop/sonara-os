@@ -5,7 +5,7 @@
 // Before this test, /service-catalog said "entitlement" fifty times, the home
 // page explained that "product availability varies by lifecycle stage", and
 // /account offered a "Readiness JSON" link. None of that means anything to
-// somebody deciding whether to pay $15 a month.
+// somebody deciding whether to pay for this.
 //
 // This renders every GET page the app serves and fails when a banned term
 // reaches the screen. Operator and legal surfaces are exempt -- see
@@ -44,42 +44,121 @@ function visibleText(html) {
     .replace(/\s+/g, " ");
 }
 
-describe("customer-facing pages speak plainly", () => {
+// Most of the app is behind a login, and the first version of this test only
+// scanned what an anonymous visitor could reach -- 56 pages. The rest
+// redirected to the login screen and were never looked at, which meant
+// /dashboard, every workspace screen, and the market-intelligence pages went
+// unchecked. Those are where a paying customer actually spends their day, and
+// they were still saying "Readiness JSON" and "Deliverable lifecycle".
+//
+// Standing in a signed-in session brings 138 pages into view. server.js
+// resolves a bearer token by asking Supabase who it belongs to, so stubbing
+// that one call is enough to be somebody.
+async function scan(headers) {
   const findings = [];
   let renderedCount = 0;
 
+  for (const route of customerFacingRoutes()) {
+    const response = await request(app).get(route).set("accept", "text/html").set(headers);
+    if (response.status !== 200) continue;
+    // sitemap.xml lists route paths, which are URLs rather than copy.
+    if (!/html/.test(response.headers["content-type"] || "")) continue;
+    renderedCount += 1;
+    const text = visibleText(response.text);
+    for (const term of plainLanguage.BANNED_ON_CUSTOMER_PAGES) {
+      const pattern = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}`, "gi");
+      const hits = text.match(pattern);
+      if (hits) findings.push({ route, term, count: hits.length });
+    }
+  }
+  return { findings, renderedCount };
+}
+
+function report(findings) {
+  return findings.map((finding) => `  ${finding.route}: "${finding.term}" x${finding.count}`).join("\n");
+}
+
+const FIX_HINT =
+  "\n\nRewrite the copy, or take the word out of BANNED_ON_CUSTOMER_PAGES if it has become customer language.";
+
+describe("public pages speak plainly", () => {
+  let result;
+
   before(async function beforeAll() {
     this.timeout(60000);
-    for (const route of customerFacingRoutes()) {
-      const response = await request(app).get(route).set("accept", "text/html");
-      if (response.status !== 200) continue;
-      if (!/html/.test(response.headers["content-type"] || "")) continue;
-      renderedCount += 1;
-      const text = visibleText(response.text);
-      for (const term of plainLanguage.BANNED_ON_CUSTOMER_PAGES) {
-        const pattern = new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}`, "gi");
-        const hits = text.match(pattern);
-        if (hits) findings.push({ route, term, count: hits.length });
-      }
-    }
+    result = await scan({});
   });
 
   it("renders enough pages for the check to mean something", () => {
     // If a refactor stops these routes rendering, the check would pass by
-    // examining nothing. It found 60 customer-facing pages when written.
-    assert.ok(renderedCount >= 40, `only ${renderedCount} customer-facing pages rendered; the scan is not covering the app`);
+    // examining nothing. It found 56 public pages when written.
+    assert.ok(result.renderedCount >= 50, `only ${result.renderedCount} public pages rendered; the scan is not covering the app`);
   });
 
   it("prints no engineering vocabulary", () => {
-    const report = findings
-      .map((finding) => `  ${finding.route}: "${finding.term}" x${finding.count}`)
-      .join("\n");
-    assert.deepEqual(
-      findings,
-      [],
-      `these pages show internal vocabulary to customers:\n${report}\n\n` +
-        "Rewrite the copy, or take the word out of BANNED_ON_CUSTOMER_PAGES if it has become customer language."
+    assert.deepEqual(result.findings, [], `these public pages show internal vocabulary:\n${report(result.findings)}${FIX_HINT}`);
+  });
+});
+
+describe("signed-in workspaces speak plainly", () => {
+  let result;
+  let originalFetch;
+  let savedEnv;
+
+  function restoreEnv() {
+    if (!savedEnv) return;
+    for (const [key, value] of Object.entries(savedEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    savedEnv = undefined;
+  }
+
+  before(async function beforeAll() {
+    this.timeout(60000);
+    // tests/setup-env.cjs strips every SUPABASE_ variable so the suite cannot
+    // reach a real project. Signing in needs the app to believe it has one.
+    savedEnv = {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
+    };
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+
+    originalFetch = global.fetch;
+    global.fetch = async (url) => {
+      if (String(url).includes("/auth/v1/user")) {
+        return { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000001", email: "customer@example.com" }) };
+      }
+      // Everything else fails, so each page renders its own unconfigured
+      // state -- which is exactly the copy that used to leak table names and
+      // setup jargon at whoever was unlucky enough to see it.
+      return { ok: false, status: 404, json: async () => [] };
+    };
+    result = await scan({ Authorization: "Bearer customer-session" });
+    global.fetch = originalFetch;
+    restoreEnv();
+  });
+
+  after(() => {
+    if (originalFetch) global.fetch = originalFetch;
+    restoreEnv();
+  });
+
+  it("reaches the pages a login was hiding", () => {
+    // 138 rendered when written, against 56 anonymously. If this drops back
+    // toward the public count, the session stopped being recognised and the
+    // workspaces have quietly gone unchecked again.
+    assert.ok(
+      result.renderedCount >= 120,
+      `only ${result.renderedCount} pages rendered signed in; the session is not being recognised and the workspaces are not being checked`
     );
+  });
+
+  it("prints no engineering vocabulary", () => {
+    assert.deepEqual(result.findings, [], `these workspace pages show internal vocabulary:\n${report(result.findings)}${FIX_HINT}`);
   });
 });
 

@@ -248,7 +248,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       heading: "Video, audio, music, and voice generation",
       body: "Create governed media jobs, route them to configured providers, retain private outputs, and preserve rights, consent, provenance, and audit evidence.",
       sections,
-      actions: [ui.link("/api/creator/generation/readiness", "Readiness JSON"), ui.link("/api/creator/generation/jobs", "Jobs JSON"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
+      actions: [ui.link("/api/creator/generation/readiness", "Setup status"), ui.link("/api/creator/generation/jobs", "Your jobs"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
     }));
   });
 

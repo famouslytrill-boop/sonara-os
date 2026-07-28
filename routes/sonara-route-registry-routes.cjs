@@ -65,7 +65,7 @@ function registerRouteRegistryRoutes(app, deps) {
   const resetPasswordLimiter = passwordResetSubmitRateLimiter || passThrough;
 
   const sendPage = (res, input) => res.status(200).type("html").send(layout(input));
-  const setupMessage = "This feature is ready in the application, but saving needs the account database to be connected by an administrator.";
+  const setupMessage = "This feature works, but saving needs your records connected by an administrator first.";
 
   app.get("/api/routes/public", (req, res) => {
     return res.status(200).json({
@@ -313,12 +313,12 @@ function registerRouteRegistryRoutes(app, deps) {
 
   const workspacePages = [
     ["/business-builder/routes", "business_builder", "Routes", "Plan service or delivery routes after a workspace and the required records are connected."],
-    ["/business-builder/vehicles", "business_builder", "Vehicles", "Track vehicle readiness only when the business needs delivery or field operations."],
+    ["/business-builder/vehicles", "business_builder", "Vehicles", "Track whether your vehicles are ready to go, if you deliver or work on the road."],
     ["/creator-studio/calendar", "creator_studio", "Content calendar", "Organize release and content dates without publishing automatically."],
     ["/creator-studio/rights", "creator_studio", "Rights", "Track ownership, consent, licensing notes, and review status for creator assets."]
   ];
   for (const [route, productKey, title, body] of workspacePages) {
-    app.get(route, requireWorkspaceAccess(productKey), (req, res) => sendPage(res, { title, eyebrow: "Workspace module", heading: title, body, sections: [accountNoticeCard(req), brandCard("Module readiness", setupMessage)], actions: [linkAction(`/${productKey.replace(/_/g, "-")}/dashboard`, "Dashboard"), linkAction("/support", "Get help")] }));
+    app.get(route, requireWorkspaceAccess(productKey), (req, res) => sendPage(res, { title, eyebrow: "Workspace module", heading: title, body, sections: [accountNoticeCard(req), brandCard("Feature status", setupMessage)], actions: [linkAction(`/${productKey.replace(/_/g, "-")}/dashboard`, "Dashboard"), linkAction("/support", "Get help")] }));
   }
 
   app.get("/admin/organizations", requireAdmin, async (req, res) => {

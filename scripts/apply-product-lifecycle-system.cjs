@@ -221,15 +221,15 @@ function patchCompanyEntryPoints() {
     ],
     [
       'linkAction("/business-builder/billing", "Billing")\n        ])',
-      'linkAction("/business-builder/billing", "Billing"),\n          linkAction("/business-builder/product-lifecycle", "Product lifecycle")\n        ])'
+      'linkAction("/business-builder/billing", "Billing"),\n          linkAction("/business-builder/product-lifecycle", "Roadmap")\n        ])'
     ],
     [
       'linkAction("/creator-studio/music-system", "Music system")\n        ])',
-      'linkAction("/creator-studio/music-system", "Music system"),\n          linkAction("/creator-studio/product-lifecycle", "Product lifecycle")\n        ])'
+      'linkAction("/creator-studio/music-system", "Music system"),\n          linkAction("/creator-studio/product-lifecycle", "Roadmap")\n        ])'
     ],
     [
       'linkAction("/growth-studio/leads", "Leads")\n        ])',
-      'linkAction("/growth-studio/leads", "Leads"),\n          linkAction("/growth-studio/product-lifecycle", "Product lifecycle")\n        ])'
+      'linkAction("/growth-studio/leads", "Leads"),\n          linkAction("/growth-studio/product-lifecycle", "Roadmap")\n        ])'
     ],
     [
       '["Customer Records", "Prepare organization-scoped customer records for Supabase-backed operations."]',

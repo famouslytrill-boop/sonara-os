@@ -846,28 +846,28 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         accountNoticeCard(req),
         accessCard(req.sonaraAccess),
         summary.workspaceCard,
-        actionCard("Business Builder", "Offer, intake, customer, and payment readiness workspace.", [
+        actionCard("Business Builder", "Your offers, enquiries, customers, and payments.", [
           linkAction("/business-builder/dashboard", "Dashboard"),
           linkAction("/business-builder/tools", "Tools"),
           linkAction("/business-builder/intake", "Intake"),
           linkAction("/business-builder/billing", "Billing"),
-          linkAction("/business-builder/product-lifecycle", "Product lifecycle"),
+          linkAction("/business-builder/product-lifecycle", "Roadmap"),
           linkAction("/business-builder/market-intelligence", "Market intelligence")
         ]),
-        actionCard("Creator Studio", "Asset, offer, release, monetization, and media records workspace.", [
+        actionCard("Creator Studio", "Your assets, offers, releases, sales, and media.", [
           linkAction("/creator-studio/dashboard", "Dashboard"),
           linkAction("/creator-studio/tools", "Tools"),
           linkAction("/creator-studio/assets", "Assets"),
           linkAction("/creator-studio/music-system", "Music system"),
-          linkAction("/creator-studio/product-lifecycle", "Product lifecycle"),
+          linkAction("/creator-studio/product-lifecycle", "Roadmap"),
           linkAction("/creator-studio/market-intelligence", "Market intelligence")
         ]),
-        actionCard("Growth Studio", "Campaign, lead follow-up, consent, automation, and growth records workspace.", [
+        actionCard("Growth Studio", "Your campaigns, leads, permissions, automations, and growth records.", [
           linkAction("/growth-studio/dashboard", "Dashboard"),
           linkAction("/growth-studio/tools", "Tools"),
           linkAction("/growth-studio/campaigns", "Campaigns"),
           linkAction("/growth-studio/leads", "Leads"),
-          linkAction("/growth-studio/product-lifecycle", "Product lifecycle"),
+          linkAction("/growth-studio/product-lifecycle", "Roadmap"),
           linkAction("/growth-studio/market-intelligence", "Market intelligence")
         ]),
         actionCard("Service requests", summary.requestsSummary, [linkAction("/requests", "My requests"), linkAction("/service-catalog", "Service catalog")]),
@@ -877,7 +877,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         summary.blockersCard,
         actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
         ...(summary.adminCard ? [summary.adminCard] : []),
-        brandCard("Free access", "Logged-in users can use public readiness checklists and basic planning outputs without a paid plan."),
+        brandCard("Free access", "Signed in, you can use the setup checklists and the basic planning tools without paying."),
         brandCard("Paid access", "Paid workspaces stay locked until payment updates confirm an active or trialing plan.")
       ],
       actions: [
@@ -1210,7 +1210,7 @@ app.get("/admin/login", rejectCustomerBearerFromAdminLogin, (req, res) => {
         adminLoginForm(),
         ...readiness.map((item) => brandCard(item.label, adminReadinessText(item)))
       ],
-      actions: [linkAction("/", "Home"), linkAction("/api/readiness", "Readiness"), linkAction("/security", "Security")]
+      actions: [linkAction("/", "Home"), linkAction("/readiness", "What is working"), linkAction("/security", "Security")]
     })
   );
 });
@@ -1604,7 +1604,7 @@ function getProductPageDefinitions(slug) {
         { path: "/business-builder/checklist", label: "Launch Setup Checklist", title: "Launch Setup Checklist", module: "checklist", body: "Use this free checklist to prepare business profile, offer, intake, pricing, payment, support, legal, and analytics.", form: "business_checklist" },
         { path: "/business-builder/offers/free", label: "Free offer draft", title: "Offer Builder", module: "offer_builder", body: "Draft a simple service offer from your real inputs.", form: "business_offer" },
         { path: "/business-builder/records/free", label: "Free records", title: "Free Records", module: "free_records", body: "Free records show saved basic module outputs when the account database and organization membership are configured.", api: "/api/business-builder/records" },
-        { path: "/business-builder/help", label: "Help", title: "Business Builder Help", module: "help", body: "Operational help for service offers, intake, customer records, booking readiness, and support setup." }
+        { path: "/business-builder/help", label: "Help", title: "Business Builder Help", module: "help", body: "Help with your service offers, customer enquiries, customer records, taking bookings, and setting up support." }
       ],
       paid: [
         { path: "/business-builder/customers", label: "Customers", title: "Customer Records", module: "customers", body: "Paid customer records unlock after billing state confirms plan access." },
@@ -1623,7 +1623,7 @@ function getProductPageDefinitions(slug) {
         { path: "/creator-studio/checklist", label: "Checklist", title: "Creator Studio Checklist", module: "checklist", body: "Use this checklist before monetizing creator products or releases." },
         { path: "/creator-studio/offers/free", label: "Free offer draft", title: "Creator Offers", module: "creator_offers", body: "Draft a creator offer from real product inputs.", form: "creator_offer" },
         { path: "/creator-studio/records/free", label: "Free records", title: "Free Records", module: "free_records", body: "Free records show saved basic module outputs when account database setup is complete.", api: "/api/creator-studio/records" },
-        { path: "/creator-studio/help", label: "Help", title: "Creator Studio Help", module: "help", body: "Operational help for assets, offers, release checklists, catalog readiness, and monetization setup." }
+        { path: "/creator-studio/help", label: "Help", title: "Creator Studio Help", module: "help", body: "Help with your assets, offers, release checklists, getting your catalogue ready, and setting up payments." }
       ],
       paid: [
         { path: "/creator-studio/offers", label: "Offers", title: "Offer Records", module: "offers", body: "Paid offer records unlock after billing state confirms plan access." },
@@ -2309,7 +2309,7 @@ async function getCommandCenterSummary(req) {
         linkAction("/support", "Contact support")
       ]);
 
-  let requestsSummary = "Setup required: the account database is not configured, so request tracking uses safe fallbacks.";
+  let requestsSummary = "Setup needed: your records are not connected yet, so requests are tracked with a safe fallback.";
   let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
   let billingSummary = readiness.services.checkout === "enabled"
     ? "Checkout is configured. Paid access unlocks only after payment updates record an active or trialing plan."
@@ -2344,7 +2344,7 @@ async function getCommandCenterSummary(req) {
     .filter(([, value]) => ["setup_required", "missing", "invalid"].some((flag) => String(value).includes(flag)))
     .map(([key]) => formatLabel(key));
   const blockersCard = blockers.length
-    ? actionCard("Setup blockers", `Needs attention: ${blockers.join(", ")}.`, [linkAction("/readiness", "Readiness"), linkAction("/account/setup", "Account setup")])
+    ? actionCard("Setup blockers", `Needs attention: ${blockers.join(", ")}.`, [linkAction("/readiness", "What is working"), linkAction("/account/setup", "Account setup")])
     : brandCard("Setup blockers", "No blocking setup items detected in live readiness checks.");
 
   let nextBestAction = { message: "Open a free tool and generate your first output.", href: "/business-builder/tools", label: "Open tools" };

@@ -472,21 +472,21 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     }
     const providers = getGrowthProviderCatalog();
     const sections = [
-      ui.card("Growth operating system", "Manage campaigns, leads, dynamic segments, consent, content approvals, touchpoints, conversions, experiments, metrics, and provider jobs from one tenant-scoped control plane."),
+      ui.card("Growth operating system", "Run your campaigns, leads, audience lists, permissions, content approvals, contacts, sales, experiments, numbers, and connected services from one place."),
       summaryTable(dashboard, ui.escape),
-      ui.card("Approval boundary", "Public posts, campaign sends, ad changes, budget changes, and high-volume lifecycle messaging require explicit human approval. Automation rules are created disabled and cannot contain arbitrary code."),
+      ui.card("Approval boundary", "Public posts, campaign sends, ad changes, budget changes, and high-volume follow-up messaging require explicit human approval. Automation rules are created disabled and cannot contain arbitrary code."),
       ui.card("Attribution boundary", "Every conversion records an attribution model and confidence level. Provider sampling and data freshness are preserved instead of presenting estimates as exact causal truth."),
       ...providers.slice(0, 9).map((provider) => ui.card(`${provider.label}: ${display(provider.readiness.status)}`, `${provider.capabilities.join(", ")}. ${(provider.notes || []).join(" ")}`))
     ];
     return res.status(200).type("html").send(ui.layout({
       title: "Growth Studio Control Center",
       eyebrow: "Growth Studio",
-      heading: "Campaigns, CRM, attribution, experiments, and lifecycle growth",
+      heading: "Campaigns, customers, results, experiments, and follow-up",
       body: "Operate a measurable growth system without fake publishing, fabricated attribution, purchased lists, or autonomous ad spend.",
       sections,
       actions: [
-        ui.link("/api/growth/readiness", "Readiness JSON"),
-        ui.link("/api/growth/metrics", "Metrics JSON"),
+        ui.link("/api/growth/readiness", "Setup status"),
+        ui.link("/api/growth/metrics", "Live numbers"),
         ui.link("/api/growth/campaigns", "Campaigns"),
         ui.link("/api/growth/leads", "Leads"),
         ui.link("/api/growth/provider-jobs", "Provider jobs")
