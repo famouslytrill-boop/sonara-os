@@ -66,7 +66,12 @@ const contents = `"use strict";
 // CREATE TABLE body or is added by a later ALTER TABLE. lib/sonara-tenant-guard.cjs
 // refuses an unscoped query against anything in TENANT_SCOPED_TABLES.
 //
-// Parsed from ${files.length} migrations: ${scoped.length} tenant-scoped, ${unscoped.length} not.
+// ${scoped.length} tenant-scoped, ${unscoped.length} global.
+//
+// The migration count is deliberately not recorded here. It was, and adding any
+// unrelated migration then marked this file stale and failed verify:tenant-tables
+// for a reason that had nothing to do with what it guards. Only the table
+// classification belongs in the compared content.
 
 const TENANT_SCOPED_TABLES = Object.freeze(new Set([
 ${scoped.map((name) => `  "${name}"`).join(",\n")}
