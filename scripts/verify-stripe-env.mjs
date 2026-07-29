@@ -43,7 +43,13 @@ const skip = (message) => console.log(`[SKIP] ${message}`);
 // 1. Offline checks
 // ---------------------------------------------------------------------------
 
-const paidPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.env);
+// Quoted plans declare no price environment variable on purpose, so they are
+// not part of the price comparison. Named rather than silently absent, because
+// "no env var" used to be how the undisclosed $197 charge stayed invisible.
+const quotedPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.quoted);
+for (const [plan] of quotedPlans) ok(`${plan} is quoted, so it is not sold through checkout and has no price to compare`);
+
+const paidPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.env && !config.quoted);
 if (!paidPlans.length) fail("no paid plan declares a Stripe price environment variable");
 
 const envExample = existsSync(".env.example") ? readFileSync(".env.example", "utf8") : "";

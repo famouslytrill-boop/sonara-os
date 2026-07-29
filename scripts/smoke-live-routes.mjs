@@ -181,9 +181,13 @@ async function checkReadiness() {
     assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google OAuth should remain explicitly deferred until configured`);
     assertCheck(payload?.services?.legalPages === "review_required", `${path}: legal review boundary must remain explicit`);
 
-    for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]) {
+    for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly"]) {
       assertCheck(payload?.checkoutPlans?.[plan]?.checkout === "enabled", `${path}: checkout plan ${plan} is not enabled`);
     }
+    assertCheck(
+      payload?.checkoutPlans?.business_builder_one_time?.checkout === "quoted",
+      `${path}: the Business Builder setup package must stay quoted, not sold through checkout`
+    );
 
     for (const service of ["supabase", "stripe", "resend", "adminProtection"]) {
       assertCheck(Array.isArray(payload?.missing?.[service]) && payload.missing[service].length === 0, `${path}: ${service} reports missing configuration`);
