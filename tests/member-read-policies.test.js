@@ -121,17 +121,40 @@ describe("member read policies cover what the application actually reads", () =>
     assert.deepEqual(opened, [], `These are service-role only on purpose:\n  ${opened.join("\n  ")}`);
   });
 
-  it("does not edit a migration that has already been applied", () => {
-    // supabase db push tracks migrations by filename. Editing an applied one
-    // changes the repo and nothing else, silently -- which is how the ten new
-    // policies would have failed to reach production.
-    const generator = fs.readFileSync(path.join(root, "scripts", "generate-member-read-policies.cjs"), "utf8");
-    const target = /const migrationName = "([^"]+)"/.exec(generator);
-    assert.ok(target, "the generator must name the migration it writes");
-    assert.notEqual(
-      target[1],
-      "20260728120000_member_read_policies.sql",
-      "20260728120000 is already applied in production; write a new migration instead of editing it"
+});
+
+// An applied migration is finished. supabase db push tracks migrations by
+// filename, so rewriting one changes this repository and nothing else --
+// every check here reads the file and would pass while production sat without
+// the new policies.
+//
+// This nearly happened when creator_voice_consents and location_zones were
+// added: the generator still pointed at 20260729040000, which was already on
+// main.
+//
+// A check for this already existed and did not catch it. It compared the
+// generator's target against one hard-coded filename, 20260728120000. When
+// 20260729040000 was written and applied, nobody added it, so the check went on
+// guarding against the previous mistake while the next one walked past. A list
+// of one that nothing makes grow is not a check.
+//
+// So the list lives with the generator, both read it, and the generator refuses
+// to write rather than only being tested about it.
+describe("applied migrations are never rewritten", () => {
+  const { APPLIED_MIGRATIONS, migrationName } = require("../scripts/generate-member-read-policies.cjs");
+
+  it("writes to a migration that has not already been applied", () => {
+    assert.equal(
+      APPLIED_MIGRATIONS.includes(migrationName),
+      false,
+      `${migrationName} is already applied in production. Point migrationName at a new file; rewriting this one would change nothing in the database.`
     );
+  });
+
+  it("keeps every applied migration present on disk", () => {
+    const missing = APPLIED_MIGRATIONS.filter(
+      (name) => !fs.existsSync(path.join(__dirname, "..", "supabase", "migrations", name))
+    );
+    assert.deepEqual(missing, [], `these applied migrations have been deleted: ${missing.join(", ")}`);
   });
 });

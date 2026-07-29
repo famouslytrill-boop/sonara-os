@@ -311,15 +311,80 @@ function registerRouteRegistryRoutes(app, deps) {
   app.get("/creator-studio/billing", requireWorkspaceAccess("creator_studio"), (req, res) => res.redirect(303, "/billing"));
   app.get("/growth-studio/billing", requireWorkspaceAccess("growth_studio"), (req, res) => res.redirect(303, "/billing"));
 
-  const workspacePages = [
-    ["/business-builder/routes", "business_builder", "Routes", "Plan service or delivery routes after a workspace and the required records are connected."],
-    ["/business-builder/vehicles", "business_builder", "Vehicles", "Track whether your vehicles are ready to go, if you deliver or work on the road."],
-    ["/creator-studio/calendar", "creator_studio", "Content calendar", "Organize release and content dates without publishing automatically."],
-    ["/creator-studio/rights", "creator_studio", "Rights", "Track ownership, consent, licensing notes, and review status for creator assets."]
-  ];
-  for (const [route, productKey, title, body] of workspacePages) {
-    app.get(route, requireWorkspaceAccess(productKey), (req, res) => sendPage(res, { title, eyebrow: "Workspace module", heading: title, body, sections: [accountNoticeCard(req), brandCard("Feature status", setupMessage)], actions: [linkAction(`/${productKey.replace(/_/g, "-")}/dashboard`, "Dashboard"), linkAction("/support", "Get help")] }));
-  }
+  // These four pages used to render one card reading "This feature works, but
+  // saving needs your records connected by an administrator first." None of
+  // that was true. Nothing was connected, nothing saved, and there was no
+  // administrator to wait for -- the customer is the administrator. Two of them
+  // described records that already existed somewhere else in the product.
+  //
+  // A page now either shows the records or says plainly that it is not built.
+  // "Not built yet" is a worse thing to read and a better thing to be told.
+
+  // Vehicles are kept in one place. This page described the same records the
+  // owner area lists, so it goes there rather than growing a second view of
+  // them that could drift.
+  app.get("/business-builder/vehicles", requireWorkspaceAccess("business_builder"), (req, res) => res.redirect(302, "/business-builder/owner/vehicles"));
+
+  app.get("/business-builder/routes", requireWorkspaceAccess("business_builder"), async (req, res) => {
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    const listed = organization.ok
+      ? await safeListTable("location_zones", `?select=id,name,zone_type,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
+      : { ok: false, rows: [] };
+    const sections = listed.ok && listed.rows.length
+      ? listed.rows.map((row) => brandCard(row.name || "Unnamed area", `${String(row.zone_type || "area").replaceAll("_", " ")} · ${String(row.status || "active").replaceAll("_", " ")}`))
+      : [brandCard("No areas yet", listed.ok
+        ? "Add the areas you cover and they will appear here. Routes are planned from your locations and the areas you work in."
+        : "We could not load your areas just now. Try again shortly.")];
+    return sendPage(res, {
+      title: "Routes",
+      eyebrow: "Workspace module",
+      heading: "Routes and areas you cover",
+      body: "The places you deliver to or work in. Nothing is dispatched automatically.",
+      sections,
+      actions: [linkAction("/business-builder/owner/locations", "Locations"), linkAction("/business-builder/owner/vehicles", "Vehicles"), linkAction("/business-builder/dashboard", "Dashboard")]
+    });
+  });
+
+  app.get("/creator-studio/rights", requireWorkspaceAccess("creator_studio"), async (req, res) => {
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    // Consent evidence, never the evidence document itself.
+    const listed = organization.ok
+      ? await safeListTable("creator_voice_consents", `?select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
+      : { ok: false, rows: [] };
+    const sections = listed.ok && listed.rows.length
+      ? listed.rows.map((row) => brandCard(row.subject_name || "Consent record", [
+        `${consentState(row)}.`,
+        `Covers ${String(row.consent_scope || "voice work").replaceAll("_", " ")}.`,
+        row.evidence_type ? `Evidence: ${String(row.evidence_type).replaceAll("_", " ")}.` : "",
+        row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
+      ].filter(Boolean).join(" ")))
+      : [brandCard("No consent records yet", listed.ok
+        ? "Voice work needs a consent record before it will run. Records you add appear here with the evidence you attached."
+        : "We could not load your consent records just now. Try again shortly.")];
+    return sendPage(res, {
+      title: "Rights",
+      eyebrow: "Workspace module",
+      heading: "Rights and consent",
+      body: "Who has agreed to what, and the evidence behind it. Voice work is held until a matching record exists.",
+      sections,
+      actions: [linkAction("/creator-studio/generation", "Generation Studio"), linkAction("/creator-studio/generation/jobs", "Your generation work"), linkAction("/creator-studio/dashboard", "Dashboard")]
+    });
+  });
+
+  // Nothing stores creator release dates yet, so this says so rather than
+  // claiming to work. When there is a table behind it, it becomes a list like
+  // the two above.
+  app.get("/creator-studio/calendar", requireWorkspaceAccess("creator_studio"), (req, res) => sendPage(res, {
+    title: "Content calendar",
+    eyebrow: "Workspace module",
+    heading: "Content calendar",
+    body: "Not built yet.",
+    sections: [
+      accountNoticeCard(req),
+      brandCard("Not built yet", "There is nowhere to save release dates at the moment, so this page would only look like it worked. Your music projects hold the work itself in the meantime, and nothing here publishes anything on its own.")
+    ],
+    actions: [linkAction("/creator-studio/music-projects", "Music projects"), linkAction("/creator-studio/dashboard", "Dashboard"), linkAction("/support", "Ask us for this")]
+  }));
 
   app.get("/admin/organizations", requireAdmin, async (req, res) => {
     await recordAdminAuditEvent(req, "admin.organizations.view", { path: req.path });
@@ -355,6 +420,17 @@ function registerRouteRegistryRoutes(app, deps) {
     const deployment = getDeploymentInfo();
     return sendPage(res, { title: "Deployments", eyebrow: "Founder operations", heading: "Deployment status", body: "Safe public deployment identifiers only.", sections: [brandCard("Commit", deployment.commitSha || "Not returned by the hosting environment."), brandCard("Branch", deployment.branch || "Not returned by the hosting environment."), brandCard("Environment", deployment.environment || "Not returned by the hosting environment."), brandCard("Verification", "Confirm the production commit and run post-deploy route checks before announcing a release.")], actions: adminActions() });
   });
+}
+
+// A consent record has no status column -- it has an attestation, an expiry and
+// a revocation, and the state is whichever of those applies first. Deriving it
+// here keeps the page from claiming somebody agreed to something after they
+// withdrew it or after it ran out.
+function consentState(row) {
+  if (row.revoked_at) return "Withdrawn";
+  if (row.expires_at && new Date(String(row.expires_at)).getTime() < Date.now()) return "Ran out";
+  if (row.consent_attested) return "Agreed";
+  return "Not confirmed yet";
 }
 
 module.exports = registerRouteRegistryRoutes;
