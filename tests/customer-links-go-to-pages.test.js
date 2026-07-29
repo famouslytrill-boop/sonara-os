@@ -7,16 +7,20 @@
 // the same failure the plain-language work removed from /account when it was
 // offering a "Readiness JSON" link.
 //
-// Five now point at real pages. The rest are left deliberately and this test
-// records why, so the next person does not "finish the job" by deleting them:
+// There are now none. Every one of them has a page.
 //
-//   /api/growth/metrics          /growth-studio/analytics is behind a paid plan
-//   /api/growth/provider-jobs    /growth-studio/provider-jobs redirects
+// The last three went in this order. /api/creator/generation/jobs was kept
+// because removing the link would have taken away the only access to the data
+// -- the hollow-page problem in reverse -- and went when
+// /creator-studio/generation/jobs started rendering the work itself.
+// /api/growth/provider-jobs was kept because /growth-studio/provider-jobs was a
+// 302 to that same JSON, and went when the page started rendering records.
+// /api/growth/metrics was labelled "Live numbers" and was the harder one: it
+// computes totals that no table holds, so the page had to carry the totals
+// across before the link could go.
 //
-// /api/creator/generation/jobs was the third, kept because removing the link
-// would have taken away the only access to the data -- the hollow-page problem
-// in reverse. That exception is gone now that /creator-studio/generation/jobs
-// renders the work itself.
+// If a fourth is ever needed, add it with the reason. An empty list is worth
+// more than a list of good excuses, but a wrong link is worth less than either.
 //
 // The prompt-library links were on this list until the workspace prompt pages
 // started rendering saved templates and collections themselves. The final test
@@ -31,10 +35,7 @@ const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const app = require("../server");
 
 // Known-good exceptions, each with the reason it cannot point at a page yet.
-const ALLOWED_API_LINKS = new Map([
-  ["/api/growth/metrics", "the analytics page is behind a paid plan"],
-  ["/api/growth/provider-jobs", "the provider-jobs page redirects"]
-]);
+const ALLOWED_API_LINKS = new Map([]);
 
 // One row, shaped to satisfy whichever renderer receives it. Renderers read
 // different fields, so this carries the common ones rather than a per-table
@@ -73,6 +74,7 @@ function customerPages() {
 
 describe("customer links point at pages, not JSON", () => {
   let found;
+  let redirects;
   let renderedCount;
   let restore;
 
@@ -98,9 +100,14 @@ describe("customer links point at pages, not JSON", () => {
         : { ok: true, headers: { get: () => null }, json: async () => [sampleRow()] };
 
     found = [];
+    redirects = [];
     renderedCount = 0;
     for (const page of customerPages()) {
       const response = await request(app).get(page).set("accept", "text/html").set({ Authorization: "Bearer session" });
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        redirects.push({ page, location: String(response.headers.location || "") });
+        continue;
+      }
       if (response.status !== 200 || !/html/.test(response.headers["content-type"] || "")) continue;
       renderedCount += 1;
       for (const match of String(response.text).matchAll(/<a[^>]+href="(\/api\/[^"?]*)[^"]*"[^>]*>([^<]*)<\/a>/g)) {
@@ -141,6 +148,23 @@ describe("customer links point at pages, not JSON", () => {
     // sent.
     const shouting = found.filter((link) => /json/i.test(link.label)).map((link) => `${link.page}: "${link.label}"`);
     assert.deepEqual(shouting, [], `These labels name a data format at a customer:\n  ${shouting.join("\n  ")}`);
+  });
+
+  it("has no page that redirects a customer to raw JSON", () => {
+    // The scan above only reads links out of pages that return 200, so a page
+    // that is itself a 302 to an /api/ URL was invisible to it. Six Growth
+    // Studio routes -- segments, experiments, attribution, providers, consent
+    // and provider-jobs -- were exactly that, listed in the route registry with
+    // titles and reachable from navigation, for as long as they existed.
+    const offenders = redirects
+      .filter((entry) => entry.location.startsWith("/api/"))
+      .map((entry) => `${entry.page} -> ${entry.location}`);
+    assert.deepEqual(
+      offenders,
+      [],
+      `These pages send somebody straight to raw JSON:\n  ${offenders.join("\n  ")}\n\n` +
+        "A catalogued page has to render the records. Redirecting to the API is the hollow page with an extra step."
+    );
   });
 
   it("keeps every exception honest about why it is one", () => {

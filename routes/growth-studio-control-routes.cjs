@@ -7,6 +7,7 @@ const {
   getGrowthProviderCatalog,
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
+const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 
 const TABLES = Object.freeze({
   campaigns: "growth_campaigns",
@@ -484,33 +485,97 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       heading: "Campaigns, customers, results, experiments, and follow-up",
       body: "Operate a measurable growth system without fake publishing, fabricated attribution, purchased lists, or autonomous ad spend.",
       sections,
-      // Point a customer at pages, not at JSON. Campaigns and leads now have
-      // real screens that list the records and let them be corrected or
-      // archived, and the dashboard already links them this way.
-      //
-      // Live numbers and provider jobs still point at the API: /growth-studio/analytics
-      // is behind a paid plan and /growth-studio/provider-jobs redirects, so
-      // linking either from here would send somebody somewhere worse than the
-      // raw data.
+      // Point a customer at pages, not at JSON. The last two here used to be
+      // the exceptions: /growth-studio/analytics is behind a paid plan, and
+      // /growth-studio/provider-jobs was a redirect to raw data, so linking
+      // either was worse than linking the API. Both now have pages.
       actions: [
         ui.link("/growth-studio/launch-readiness", "Setup status"),
-        ui.link("/api/growth/metrics", "Live numbers"),
+        ui.link("/growth-studio/attribution", "Where results came from"),
         ui.link("/growth-studio/campaigns", "Campaigns"),
         ui.link("/growth-studio/leads", "Leads"),
-        ui.link("/api/growth/provider-jobs", "Provider jobs")
+        ui.link("/growth-studio/provider-jobs", "Work sent to services")
       ]
     }));
   });
 
-  for (const [path, target] of [
-    ["/growth-studio/segments", "/api/growth/segments"],
-    ["/growth-studio/experiments", "/api/growth/experiments"],
-    ["/growth-studio/attribution", "/api/growth/metrics"],
-    ["/growth-studio/providers", "/api/growth/providers"],
-    ["/growth-studio/consent", "/api/growth/consents"],
-    ["/growth-studio/provider-jobs", "/api/growth/provider-jobs"]
-  ]) app.get(path, access, (req, res) => res.redirect(302, target));
+  // These six were 302s to /api/ URLs. See lib/sonara-growth-record-pages.cjs
+  // for why that survived so long without a test objecting.
+  for (const page of GROWTH_RECORD_PAGES) {
+    app.get(page.path, access, async (req, res) => {
+      const context = await resolveContext(req, deps);
+      const config = getConfig(deps);
+      let rows = [];
+      let unavailable = null;
+      if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
+      else if (!config.ok) unavailable = "Your account database is not connected yet, so these records cannot be listed.";
+      else {
+        const result = await rest(config, TABLES[page.tableKey], `select=${page.select}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=${page.order}&limit=${clamp(req.query.limit, 1, 200, 100)}`);
+        if (!result.ok) unavailable = "We could not load these records just now. Try again shortly.";
+        else rows = result.rows;
+      }
+      const sections = unavailable ? [ui.card("Not available right now", unavailable)] : [];
+      if (!unavailable && page.includesTotals) sections.push(await growthTotalsCard(config, context, ui));
+      if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape));
+
+      return res.status(200).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Growth Studio",
+        heading: page.heading,
+        body: page.body,
+        sections,
+        actions: [ui.link("/growth-studio/control-center", "Growth Control Center"), ui.link("/growth-studio/dashboard", "Dashboard")]
+      }));
+    });
+  }
 };
+
+// The totals that /api/growth/metrics computes, on a page. Counted from the
+// records as they stand -- nothing here is estimated, projected or filled in.
+async function growthTotalsCard(config, context, ui) {
+  const [campaigns, leads, conversions, content] = await Promise.all([
+    list(config, TABLES.campaigns, context, 500),
+    list(config, TABLES.leads, context, 1000),
+    list(config, TABLES.conversions, context, 1000),
+    list(config, TABLES.content, context, 500)
+  ]);
+  if (!campaigns.ok && !leads.ok && !conversions.ok && !content.ok) {
+    return ui.card("Your totals", "We could not count these just now. Try again shortly.");
+  }
+  const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+  const totals = [
+    ["Campaigns", campaigns.rows.length],
+    ["Campaigns running", campaigns.rows.filter((row) => row.status === "active").length],
+    ["People who got in touch", leads.rows.length],
+    ["Worth following up", leads.rows.filter((row) => ["qualified", "won"].includes(row.status)).length],
+    ["Sales recorded", conversions.rows.length],
+    ["Value of those sales", conversionValue],
+    ["Pieces of content", content.rows.length],
+    ["Published", content.rows.filter((row) => row.publish_status === "published").length]
+  ];
+  const rows = totals.map(([label, value]) => `<tr><th scope="row">${ui.escape(label)}</th><td>${ui.escape(String(value))}</td></tr>`).join("");
+  // Kept from the API response, because it is the honest part: attribution is
+  // what a source reported, not proof that it caused the sale.
+  return `<article class="card"><h2>Your totals</h2><table><tbody>${rows}</tbody></table><p>These are counted from your own records. Where a figure says a campaign brought in a sale, that is what the source reported, not proof it caused it.</p></article>`;
+}
+
+function recordTableCard(page, rows, escape) {
+  const head = page.columns.map((column) => `<th>${escape(column.label)}</th>`).join("");
+  const body = rows.length
+    ? rows.map((row) => `<tr>${page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`).join("")}</tr>`).join("")
+    : `<tr><td colspan="${page.columns.length}">${escape(page.empty)}</td></tr>`;
+  return `<article class="card"><h2>${escape(page.heading)}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+// A column reads fields off a record that a provider may have left in an
+// unexpected shape. One bad row should cost that cell, not the whole page.
+function safeValue(column, row) {
+  try {
+    return column.value(row);
+  } catch {
+    return "Not recorded";
+  }
+}
 
 async function createProviderJob(config, context, input) {
   if (!config.ok) return { ok: false, status: 503, code: "supabase_setup_required" };

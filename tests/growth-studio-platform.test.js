@@ -239,4 +239,60 @@ describe("Growth Studio operating system", () => {
     const result = await request(buildApp()).post("/api/growth/provider-jobs").send({ provider_key: "tiktok_content", capability: "direct_post", operation: "direct_post", idempotency_key: "tiktok-post-1", request_payload: { caption: "Launch" } });
     assert.equal(result.body.job.status, "approval_required");
   });
+  // These six pages were 302s to /api/ URLs -- catalogued in the route
+  // registry, reachable from navigation, and delivering raw JSON.
+
+  it("renders every Growth Studio record page instead of redirecting to JSON", async () => {
+    global.fetch = async () => jsonResponse(200, []);
+    for (const path of ["/growth-studio/segments", "/growth-studio/experiments", "/growth-studio/attribution", "/growth-studio/providers", "/growth-studio/consent", "/growth-studio/provider-jobs"]) {
+      const result = await request(buildApp()).get(path).set("accept", "text/html");
+      assert.equal(result.status, 200, `${path} did not render`);
+      assert.match(result.headers["content-type"], /html/, `${path} is not a page`);
+    }
+  });
+
+  it("says what is there in words, and says nothing when there is nothing", async () => {
+    global.fetch = async () => jsonResponse(200, [{ id: JOB_ID, provider_key: "google_analytics", capability: "run_report", operation: "run_report", status: "completed", progress_percent: 100, approval_required: true, approved_at: null, created_at: "2026-01-01T00:00:00Z" }]);
+    const listed = await request(buildApp()).get("/growth-studio/provider-jobs").set("accept", "text/html");
+    assert.match(listed.text, /Finished/);
+    assert.match(listed.text, /Waiting on you/);
+    assert.doesNotMatch(listed.text, /approval_required/);
+
+    global.fetch = async () => jsonResponse(200, []);
+    const bare = await request(buildApp()).get("/growth-studio/provider-jobs").set("accept", "text/html");
+    assert.match(bare.text, /Nothing has been sent to a connected service yet/);
+  });
+
+  it("keeps the totals that the metrics summary used to carry", async () => {
+    global.fetch = async (url) => {
+      const stringUrl = String(url);
+      if (stringUrl.includes("growth_campaigns")) return jsonResponse(200, [{ id: CAMPAIGN_ID, status: "active" }, { id: SNAPSHOT_ID, status: "draft" }]);
+      if (stringUrl.includes("growth_conversions")) return jsonResponse(200, [{ id: CONTENT_ID, value: 250 }]);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp()).get("/growth-studio/attribution").set("accept", "text/html");
+    assert.match(result.text, /Your totals/);
+    assert.match(result.text, /Campaigns running/);
+    assert.match(result.text, /250/);
+    // Attribution is what a source reported, not proof it caused the sale.
+    assert.match(result.text, /not proof it caused it/);
+  });
+
+  it("never puts a credential or a stored blob on a connected-services page", async () => {
+    global.fetch = async () => jsonResponse(200, [{
+      id: JOB_ID,
+      provider_key: "google_analytics",
+      external_account_id: "acct-123",
+      connection_status: "connected",
+      credential_reference: "vault://super-secret",
+      configuration: { refresh_token: "leak-me" },
+      last_verified_at: "2026-01-01T00:00:00Z"
+    }]);
+    const result = await request(buildApp()).get("/growth-studio/providers").set("accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Connected/);
+    assert.doesNotMatch(result.text, /super-secret/);
+    assert.doesNotMatch(result.text, /leak-me/);
+    assert.doesNotMatch(result.text, /acct-123/);
+  });
 });
