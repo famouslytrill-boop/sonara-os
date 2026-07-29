@@ -299,3 +299,55 @@ describe("saved records are visible on the tool that made them", () => {
     }
   });
 });
+
+// A page called "Free Records" that lists no records is the same bug as a tool
+// page promising "recent results appear in your private workspace" and showing
+// nothing. The results were already being fetched on every request; nothing
+// rendered them.
+describe("saved tool results appear on the records page", () => {
+  const { renderSavedOutputCards } = require("../lib/sonara-module-crud.cjs");
+
+  it("lists each saved result with the tool that made it", () => {
+    const html = renderSavedOutputCards({
+      records: [{ id: "a", module_key: "offer_builder", created_at: "2026-07-01T00:00:00Z", output_payload: { summary: "Weekend photography package" } }],
+      productLabel: "Business Builder"
+    });
+    assert.match(html, /Offer builder/);
+    assert.match(html, /Weekend photography package/);
+    assert.match(html, /Jul 2026/);
+  });
+
+  it("skips nested output rather than printing an object at somebody", () => {
+    // output_payload is free-form JSON per tool. Rendering it wholesale puts
+    // [object Object] on a customer's screen.
+    const html = renderSavedOutputCards({
+      records: [{ id: "a", module_key: "x", output_payload: { good: "readable", nested: { a: 1 }, list: [1, 2] } }],
+      productLabel: "Growth Studio"
+    });
+    assert.match(html, /readable/);
+    assert.doesNotMatch(html, /object Object/);
+    assert.doesNotMatch(html, /nested/);
+  });
+
+  it("escapes saved output rather than rendering it", () => {
+    const html = renderSavedOutputCards({
+      records: [{ id: "a", module_key: "x", output_payload: { summary: '<img src=x onerror=alert(1)>' } }],
+      productLabel: "Creator Studio"
+    });
+    assert.doesNotMatch(html, /<img/);
+    assert.match(html, /&lt;img/);
+  });
+
+  it("says nothing is saved yet instead of promising it will appear", () => {
+    const html = renderSavedOutputCards({ records: [], productLabel: "Creator Studio" });
+    assert.match(html, /Nothing saved yet/);
+    assert.match(html, /Creator Studio/);
+    assert.doesNotMatch(html, /appear in your private workspace/);
+  });
+
+  it("copes with a result that has no summary and no date", () => {
+    const html = renderSavedOutputCards({ records: [{ id: "a", module_key: "x" }], productLabel: "P" });
+    assert.match(html, /no summary to show/);
+    assert.match(html, /recently/);
+  });
+});

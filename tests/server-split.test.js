@@ -222,12 +222,13 @@ describe("the server.js split stays safe", () => {
     // A ratchet, not a target. Down from 5,119 to 3,824 across seven
     // extractions, then up 33 for workspaceRecordCards -- the tool pages now
     // show a customer their own saved records instead of promising that results
-    // "appear in your private workspace" and showing nothing. That is a
-    // feature, not split drift, which is the question this test exists to ask. If a change adds to server.js instead of a module, this asks
+    // "appear in your private workspace" and showing nothing, then 10 more for
+    // the records pages, which were named after records and listed none. That is
+    // a feature, not split drift, which is the question this test exists to ask. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3870,
+      lines <= 3880,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
