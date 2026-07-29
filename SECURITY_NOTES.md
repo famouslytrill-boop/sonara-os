@@ -19,3 +19,32 @@ The repo uses pnpm only. `package-lock.json` files were removed, and CI installs
 ## Secret Handling
 
 No real secrets should be committed. `.env.example` contains variable names and empty placeholders only. Service-role keys, Stripe secrets, webhook secrets, and database passwords must stay server-side.
+
+## Entitlement Gate Scan Scope
+
+`scripts/verify-production-product-catalog.mjs` enforces a fail-closed contract
+on paid access: nine markers must be present in the deployed runtime, covering
+`requirePaidOrOwnerAccess`, `getCustomerPaidEntitlement`, the two billing
+PostgREST reads, the `status=in.(active,trialing)` filter, the per-product
+entitlement key lists, and the locked-access copy.
+
+The scan read `server.js` alone. It now reads `server.js` plus every `.cjs`,
+`.js` and `.mjs` under `lib/` and `routes/` — the same set `vercel.json`
+bundles.
+
+**This is a scope correction, not a relaxation.** No marker was removed,
+softened, or made optional; all nine are still required, and the failure is
+still fatal to the deploy. What changed is where they are allowed to live.
+Splitting `server.js` moved `getPaidEntitlementKeys` into
+`lib/sonara-billing.cjs`, and three markers went with it. The enforcement was
+intact and shipped, but the gate could not see it, so the production deploy
+failed on correct code one directory over.
+
+Narrowing the scan back to `server.js` would not make the check stricter — it
+would make it blind to most of the runtime, which is the direction the split
+keeps moving code.
+
+`tests/product-catalog-production-boundary.test.js` now resolves each marker
+against that same source, so this fails in the test suite rather than at the
+post-deploy gate. The marker list is parsed out of the verifier rather than
+copied, so the two cannot drift into agreeing with each other.
