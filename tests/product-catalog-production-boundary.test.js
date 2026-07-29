@@ -95,6 +95,48 @@ describe("Recommended product catalog production boundary", () => {
     assert.match(verifier, /pro_monthly/);
   });
 
+  // The test above reads the verifier's text. That is not the same as checking
+  // that the contract it asserts still holds, and the difference cost a
+  // production deploy: moving getPaidEntitlementKeys into lib/sonara-billing.cjs
+  // took three markers with it, the whole suite stayed green, and the deploy
+  // failed at the post-deploy gate on code that was present and correct one
+  // directory over.
+  //
+  // So resolve the markers here, against the same source the gate reads. The
+  // list is parsed out of the verifier rather than copied, because a copy would
+  // drift and then agree with itself.
+  it("resolves every entitlement marker the production gate requires", () => {
+    const verifier = read("scripts/verify-production-product-catalog.mjs");
+    const block = verifier.slice(
+      verifier.indexOf("function verifyEntitlementSourceContract()"),
+      verifier.indexOf("Paid entitlement fail-closed contract is missing")
+    );
+    const markers = [...block.matchAll(/^\s*(["'])((?:(?!\1)[^\\]|\\.)+)\1,\s*$/gm)]
+      .map((match) => match[2].replace(/\\(["'\\])/g, "$1"));
+    assert.ok(markers.length >= 8, `only ${markers.length} markers parsed; the verifier's shape changed and this check has gone blind`);
+
+    const runtimeFiles = [path.join(root, "server.js")];
+    for (const dir of ["lib", "routes"]) {
+      const walk = (current) => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+          const full = path.join(current, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (/\.(cjs|js|mjs)$/.test(entry.name)) runtimeFiles.push(full);
+        }
+      };
+      walk(path.join(root, dir));
+    }
+    const runtime = runtimeFiles.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+
+    const missing = markers.filter((marker) => !runtime.includes(marker));
+    assert.deepEqual(
+      missing,
+      [],
+      `The production deploy gate requires these strings in the shipped runtime, and none of them is there:\n  ${missing.join("\n  ")}\n\n` +
+        "If code moved, it is still shipped and this is fine -- but the gate reads server.js plus lib/ and routes/, so anything outside that is invisible to it."
+    );
+  });
+
   it("runs database proof before deployment and page proof after deployment without retaining production env material", () => {
     const workflow = read(".github/workflows/controlled-production-deploy.yml");
     const applyIndex = workflow.indexOf("Apply production database migrations");

@@ -115,8 +115,34 @@ async function verifyProductionDatabase() {
   };
 }
 
+// The runtime that Vercel actually serves, which is what this contract is about.
+//
+// This used to read server.js alone. That was accurate while server.js was the
+// whole application, and stopped being accurate the moment the split started
+// moving code into lib/ -- getPaidEntitlementKeys went to lib/sonara-billing.cjs
+// and three markers went with it, so a deploy gate failed on code that was
+// present and correct, one directory over.
+//
+// The markers are unchanged and every one is still required. Only where they may
+// live has widened, to the same set vercel.json bundles.
+function runtimeSource() {
+  const files = [path.join(root, "server.js")];
+  for (const dir of ["lib", "routes"]) {
+    const base = path.join(root, dir);
+    const walk = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(cjs|js|mjs)$/.test(entry.name)) files.push(full);
+      }
+    };
+    if (fs.existsSync(base)) walk(base);
+  }
+  return files.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+}
+
 function verifyEntitlementSourceContract() {
-  const server = fs.readFileSync(path.join(root, "server.js"), "utf8");
+  const server = runtimeSource();
   for (const marker of [
     "function requirePaidOrOwnerAccess(productKey)",
     "async function getCustomerPaidEntitlement(user, productKey)",
@@ -127,7 +153,7 @@ function verifyEntitlementSourceContract() {
     'creator_studio: ["core_monthly", "pro_monthly"]',
     'growth_studio: ["pro_monthly"]',
     "Paid access is locked until payment updates show an active or trialing plan"
-  ]) assert.ok(server.includes(marker), `Paid entitlement fail-closed contract is missing: ${marker}`);
+  ]) assert.ok(server.includes(marker), `Paid entitlement fail-closed contract is missing from the deployed runtime: ${marker}`);
 
   const summary = getRecommendedProductCatalogSummary();
   assert.equal(summary.total, 34);
