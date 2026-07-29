@@ -19,6 +19,11 @@
 //      what the page advertises. Stripe prices are immutable, so a price
 //      created at the wrong amount can only be found by looking.
 //
+// The online half also refuses a plan that advertises no amount at all while
+// Stripe holds a real one. That was previously skipped, and it is the case
+// where a customer can least tell what they are agreeing to: the page says
+// "One-time", and the first number they see is on Stripe's checkout page.
+//
 // Without a key the online half is skipped and said to be skipped. It never
 // prints a key, a price ID, or any other secret.
 
@@ -38,7 +43,13 @@ const skip = (message) => console.log(`[SKIP] ${message}`);
 // 1. Offline checks
 // ---------------------------------------------------------------------------
 
-const paidPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.env);
+// Quoted plans declare no price environment variable on purpose, so they are
+// not part of the price comparison. Named rather than silently absent, because
+// "no env var" used to be how the undisclosed $197 charge stayed invisible.
+const quotedPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.quoted);
+for (const [plan] of quotedPlans) ok(`${plan} is quoted, so it is not sold through checkout and has no price to compare`);
+
+const paidPlans = Object.entries(STRIPE_PLANS).filter(([, config]) => config.env && !config.quoted);
 if (!paidPlans.length) fail("no paid plan declares a Stripe price environment variable");
 
 const envExample = existsSync(".env.example") ? readFileSync(".env.example", "utf8") : "";
@@ -95,6 +106,22 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
       continue;
     }
 
+    // A plan that advertises no amount is the quiet case. Until now the
+    // comparison was skipped whenever amountCents was null, which is exactly
+    // when nobody can tell what a customer will be charged: the page says
+    // "One-time", the button says "Start checkout", and the first number the
+    // customer sees is on Stripe's page after they have committed.
+    //
+    // This does not decide what the price should be. It refuses to let a real
+    // charge stay undisclosed.
+    if ((config.amountCents === null || config.amountCents === undefined) && Number.isFinite(price.unit_amount) && price.unit_amount > 0) {
+      fail(
+        `${plan}: the pricing page shows no amount, but Stripe will charge ` +
+          `${(price.unit_amount / 100).toFixed(2)} ${String(price.currency).toUpperCase()}. ` +
+          "Put the amount on the page, or make this a quoted service that does not go through checkout."
+      );
+      continue;
+    }
     if (config.amountCents !== null && config.amountCents !== undefined && price.unit_amount !== config.amountCents) {
       fail(`${plan}: the pricing page says ${config.price} but Stripe charges ${(price.unit_amount / 100).toFixed(2)} ${String(price.currency).toUpperCase()}`);
       continue;

@@ -201,14 +201,25 @@ const STRIPE_PLANS = {
     envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
     mode: "subscription"
   },
+  // Quoted, not sold through checkout.
+  //
+  // This used to carry a Stripe price and a Start checkout button while
+  // advertising no amount at all -- the live price was $197 and the first
+  // number a customer saw was on Stripe's page, after committing. It is
+  // done-for-you work whose scope varies, so a fixed self-serve price was the
+  // wrong shape for it anyway.
+  //
+  // The plan stays in this table rather than being deleted: it is an
+  // entitlement key, so anyone who has already been granted the package keeps
+  // their access. `quoted` is what removes it from checkout everywhere.
   business_builder_one_time: {
     name: "Business Builder setup",
-    price: "One-time",
+    price: "We quote you",
     amountCents: null,
-    description: "A one-off package where our team sets your business up for you.",
-    env: "STRIPE_PRICE_BUSINESS_BUILDER_ONE_TIME",
-    envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_ONETIME", "STRIPE_PRICE_BUSINESS_BUILDER_ONETIME"],
-    mode: "payment"
+    description: "A one-off package where our team sets your business up for you. Tell us what you need and we will quote it.",
+    quoted: true,
+    env: undefined,
+    mode: undefined
   }
 };
 
@@ -230,6 +241,7 @@ const {
   getOrCreateStripeCustomer,
   getPaidEntitlementKeys,
   isValidPlan,
+  isQuotedPlan,
   normalizeCheckoutPlan,
   priceCard,
   recordBillingWebhookEvent,
@@ -3438,6 +3450,12 @@ function wantsJson(req) {
 async function handleCheckoutSessionRequest(req, res) {
   const plan = normalizeCheckoutPlan(req.body);
   if (!isValidPlan(plan)) return res.status(400).json({ ok: false, code: "invalid_plan" });
+  // Quoted work never reaches Stripe. Send somebody who asked for it to the
+  // place where they can actually ask, rather than refusing with a code.
+  if (isQuotedPlan(plan)) {
+    if (wantsJson(req)) return res.status(400).json({ ok: false, code: "quoted_plan", message: "This package is quoted. Tell us what you need and we will price it." });
+    return res.redirect(303, "/contact?about=business-builder-setup");
+  }
   if (plan === "free") {
     if (wantsJson(req)) return res.status(200).json({ ok: true, code: "free_plan", redirect_url: "/dashboard" });
     return res.redirect(303, "/dashboard");

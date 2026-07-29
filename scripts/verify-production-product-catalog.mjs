@@ -182,9 +182,18 @@ async function verifyProductionPages() {
   assert.equal(readiness.services?.stripe, "configured", "Production Stripe must be configured");
   assert.equal(readiness.services?.stripeWebhook, "configured", "Production Stripe webhook must be configured");
   assert.equal(readiness.services?.checkout, "enabled", "Production checkout must be enabled");
-  for (const plan of ["starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]) {
+  for (const plan of ["starter_monthly", "core_monthly", "pro_monthly"]) {
     assert.equal(readiness.checkoutPlans?.[plan]?.checkout, "enabled", `${plan} checkout must be configured`);
   }
+  // The setup package is quoted rather than sold self-serve -- it is
+  // done-for-you work whose scope varies, and it previously carried a Stripe
+  // price while the page advertised no amount. Asserting the state rather than
+  // dropping the plan, so it cannot drift back into checkout unnoticed.
+  assert.equal(
+    readiness.checkoutPlans?.business_builder_one_time?.checkout,
+    "quoted",
+    "the Business Builder setup package must stay quoted, not sold through checkout"
+  );
 
   const catalogResponse = await fetch(`${baseUrl}/service-catalog`, { headers: { Accept: "text/html" } });
   const html = await catalogResponse.text();

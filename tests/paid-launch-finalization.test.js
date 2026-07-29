@@ -89,7 +89,10 @@ describe("paid launch finalization", () => {
   it("retains the owner-approved affordable pricing catalog", async function() {
     const response = await request(app).get("/pricing").set("Accept", "text/html");
     assert.equal(response.status, 200);
-    for (const expected of ["$0", "$7/mo", "$19/mo", "$39/mo", "One-time"]) {
+    // The setup package is quoted rather than priced -- it is done-for-you
+    // work whose scope varies, and it previously carried a live $197 Stripe
+    // price while the page advertised no amount at all.
+    for (const expected of ["$0", "$7/mo", "$19/mo", "$39/mo", "We quote you"]) {
       assert.match(response.text, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     }
   });
@@ -102,9 +105,12 @@ describe("paid launch finalization", () => {
       assert.equal(readiness.body.services.stripe, "configured");
       assert.equal(readiness.body.services.stripeWebhook, "configured");
       assert.equal(readiness.body.services.checkout, "enabled");
-      for (const plan of ["starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]) {
+      for (const plan of ["starter_monthly", "core_monthly", "pro_monthly"]) {
         assert.equal(readiness.body.checkoutPlans[plan].checkout, "enabled");
       }
+      // Asserted rather than dropped, so the setup package cannot drift back
+      // into self-serve checkout without somebody deciding to.
+      assert.equal(readiness.body.checkoutPlans.business_builder_one_time.checkout, "quoted");
 
       const billing = await request(app).get("/api/billing/status").set("Accept", "application/json");
       assert.equal(billing.status, 200);

@@ -181,9 +181,18 @@ async function checkReadiness() {
     assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google OAuth should remain explicitly deferred until configured`);
     assertCheck(payload?.services?.legalPages === "review_required", `${path}: legal review boundary must remain explicit`);
 
-    for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]) {
+    for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly"]) {
       assertCheck(payload?.checkoutPlans?.[plan]?.checkout === "enabled", `${path}: checkout plan ${plan} is not enabled`);
     }
+    // The setup package is quoted rather than sold self-serve. That is asserted
+    // in scripts/verify-production-product-catalog.mjs, which runs *after* the
+    // Vercel deploy, not here.
+    //
+    // This script runs against the site that is currently live, including on a
+    // pull request. Asserting a new deployed state here would mean the change
+    // could never merge: it cannot pass until it deploys, and it cannot deploy
+    // until it passes. That is a property of where the check runs, not of what
+    // it checks.
 
     for (const service of ["supabase", "stripe", "resend", "adminProtection"]) {
       assertCheck(Array.isArray(payload?.missing?.[service]) && payload.missing[service].length === 0, `${path}: ${service} reports missing configuration`);
