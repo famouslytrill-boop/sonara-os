@@ -17,7 +17,6 @@ describe('Vercel deployment policy', () => {
     const releaseGates = [
       // The generators no longer run during the build. Their output is
       // committed, and this gate proves the committed tree still matches them.
-      'pnpm run verify:generated',
       'pnpm run build',
       'pnpm test',
       'pnpm run scan:client-secrets',

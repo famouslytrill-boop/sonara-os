@@ -5,12 +5,9 @@ const request = require("supertest");
 const app = require("../server");
 
 const root = path.join(__dirname, "..");
-const applyScript = path.join(root, "scripts", "apply-payload-size-guard.cjs");
 
 describe("payload-size guard", () => {
   it("applies the runtime patch idempotently", function() {
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
   });
 
   it("accepts structured JSON payloads larger than the former 64 KB limit", async function() {

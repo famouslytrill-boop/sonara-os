@@ -9,12 +9,6 @@ function read(relativePath) {
 }
 
 describe("Product lifecycle integration contract", () => {
-  it("runs lifecycle before the catalog and market decision layers", () => {
-    const pkg = JSON.parse(read("package.json"));
-    assert.equal(pkg.scripts["apply:product-lifecycle"], "node scripts/apply-product-lifecycle-system.cjs && node scripts/apply-product-lifecycle-openapi-fix.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:growth-public && pnpm run apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
-  });
-
   it("registers parent and studio lifecycle routes", () => {
     const registry = read("lib/sonara-route-registry.cjs");
     for (const route of ["/product-lifecycle", "/business-builder/product-lifecycle", "/creator-studio/product-lifecycle", "/growth-studio/product-lifecycle"]) {
@@ -41,12 +35,6 @@ describe("Product lifecycle integration contract", () => {
     assert.match(migration, /public\.sonara_is_org_member\(organization_id\)/);
     assert.match(migration, /auth\.role\(\) = ''service_role''/);
     assert.match(migration, /revoke insert, update, delete on public\.product_lifecycle_initiatives from anon, authenticated/);
-  });
-
-  it("documents iteration APIs after the main lifecycle patch", () => {
-    const patch = read("scripts/apply-product-lifecycle-openapi-fix.cjs");
-    assert.match(patch, /recordProductLifecycleIteration/);
-    assert.match(patch, /Definition of Done/);
   });
 
   it("documents the seven-stage operating model and research extensions", () => {

@@ -69,25 +69,4 @@ describe("canonical responsive application interface", () => {
     assert.match(styles, /prefers-reduced-motion/);
   });
 
-  it("applies the SONARA One runtime patch idempotently", () => {
-    const temp = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-sonara-ui-"));
-    fs.mkdirSync(path.join(temp, "scripts"), { recursive: true });
-    fs.mkdirSync(path.join(temp, "public"), { recursive: true });
-    fs.cpSync(path.join(__dirname, "..", "ui", "sonara"), path.join(temp, "ui", "sonara"), { recursive: true });
-    const sample = `const path = require("node:path");\nconst app = { use() {} };\napp.use(express.static(path.join(__dirname, "public")));\n\napp.get("/", (req, res) => {\n  return res.status(200).type("html").send(layout({ title: "Old", sections: [] }));\n});\n\nregisterProduct("business-builder", {});\n\nfunction layout({ variant = "standard" }) { const brandClass = "sonara-platform"; return \`<!doctype html>\n<html><head>\n<style>header{border-radius:30px}</style>\n<link rel="stylesheet" href="/sonara-builder-2027.css?v=old">\n<script defer src="/sonara-builder-2027.js?v=old"></script>\n  </head><body class="\${escapeHtml(brandClass)} \${variant === "home" ? "sonara-home-v3" : "sonara-standard-page"}">\n<header><a class="brand" href="/">Old</a></header>\n<main><section class="hero" data-sonara-interface="live">\${variant === "home" ? \`<aside class="sonara-interface-face">Old device</aside>\` : ""}</section></main>\n<nav class="sonara-quick-bar" aria-label="Quick actions"><a href="/dashboard">Dashboard</a></nav>\n</body></html>\`; }\n`;
-    fs.writeFileSync(path.join(temp, "server.js"), sample);
-    fs.copyFileSync(path.join(__dirname, "..", "scripts", "apply-premium-ui-final.cjs"), path.join(temp, "scripts", "apply-premium-ui-final.cjs"));
-    const run = () => execFileSync(process.execPath, [path.join(temp, "scripts", "apply-premium-ui-final.cjs")], { cwd: temp });
-    run();
-    const first = fs.readFileSync(path.join(temp, "server.js"), "utf8");
-    run();
-    const second = fs.readFileSync(path.join(temp, "server.js"), "utf8");
-    assert.equal(second, first);
-    assert.equal(countMatches(second, /sonara-application-ui\.css/g), 1);
-    assert.equal(countMatches(second, /sonara-one\.js/g), 1);
-    assert.doesNotMatch(second, LEGACY_ASSET_PATTERN);
-    assert.doesNotMatch(second, /<style[\s>]/i);
-    assert.match(second, /sonara-mobile-menu/);
-    assert.doesNotMatch(second, /sonara-command-button|sonara-interface-face|sonara-quick-bar/);
-  });
 });

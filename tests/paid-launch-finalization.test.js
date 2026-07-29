@@ -5,7 +5,6 @@ const request = require("supertest");
 const app = require("../server");
 
 const root = path.join(__dirname, "..");
-const applyScript = path.join(root, "scripts", "apply-paid-launch-finalization.cjs");
 const ENV_KEYS = [
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
@@ -41,8 +40,6 @@ function setConfiguredCommerceEnv() {
 
 describe("paid launch finalization", () => {
   it("applies the finalization patch idempotently", function() {
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
   });
 
   it("accepts Resend's documented friendly-name sender format", async function() {

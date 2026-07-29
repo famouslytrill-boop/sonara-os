@@ -18,15 +18,6 @@ describe("application-wide route presentation", () => {
     assert.match(builderManifest.builders.base44, /isolated prototypes only/i);
   });
 
-  it("does not regenerate retired UI systems during builds or tests", () => {
-    const runtime = packageJson.scripts["apply:runtime"];
-    assert.doesNotMatch(runtime, /apply:cohesive-ui/);
-    assert.doesNotMatch(runtime, /apply:builder-ui/);
-    assert.equal(packageJson.scripts["apply:cohesive-ui"], undefined);
-    assert.equal(packageJson.scripts["apply:builder-ui"], undefined);
-    assert.match(runtime, /apply:premium-ui-final/);
-  });
-
   it("uses the same SONARA One application frame on public and product routes", async () => {
     for (const route of ["/", "/business-builder", "/creator-studio", "/growth-studio", "/login", "/pricing", "/support"]) {
       const response = await request(app).get(route).set("Accept", "text/html");

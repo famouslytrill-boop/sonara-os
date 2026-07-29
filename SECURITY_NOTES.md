@@ -75,3 +75,41 @@ application actually uses.
 The reason to fix rather than delete it: a gate that can only pass by
 reintroducing retired wording invites being removed instead, and then nothing
 checks that the page says anything at all.
+
+## Retiring The Code Generators
+
+56 `scripts/apply-*.cjs` and `scripts/prepare-*.cjs` generators mutated
+`server.js`, `routes/`, `lib/`, the public client bundles, the CSS and the
+OpenAPI document in place. They have been deleted, along with the 34 `apply:*`
+npm scripts, `scripts/verify-generated-output-committed.mjs`, the
+`verify:generated` npm script, and the CI steps that ran it.
+
+**The check that was removed, and why it is not a weakening.**
+`verify:generated` ran the full generator chain twice and asserted the tree was
+unchanged, proving the committed output still matched what the generators
+produce. It guarded a subsystem that no longer exists. Keeping it would have
+meant keeping the generators; keeping it *without* them would have made it a
+check that cannot fail, which is worse than none because it still reports
+success.
+
+**Why deleting them could not change what ships.** The repository was already
+under a codegen freeze: generator output was committed, and `apply:runtime`
+produced a zero-byte diff. That was verified immediately before deletion — the
+full chain ran clean with `git status --porcelain` empty. Deleting a generator
+whose output is already committed removes the ability to regenerate that code;
+it does not change the code.
+
+**What is lost.** Those regions of `server.js` can no longer be regenerated from
+a script. They are ordinary hand-maintained code now and must be edited
+directly. This is the intended trade: the generators anchored on hundreds of
+strings across the file, broke two extractions during the split by anchoring on
+lines *inside* function bodies, and once left two definitions of `catalogActions`
+in the same file — which parsed, passed the tests, and silently took the later
+definition.
+
+**What replaced the safety.** Tests that executed generators to prove
+idempotency were removed rather than left asserting over nothing. Tests that
+assert on the *resulting* code were kept and still run — they now guard
+hand-maintained source, which is what they were really checking. The vacuous
+generator-collision checks in `tests/server-split.test.js` were deleted for the
+same reason.

@@ -100,11 +100,4 @@ describe("SONARA motion brand system", () => {
     assert.match(worker, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6-motion3/);
   });
 
-  it("keeps motion before governance transforms and Market R&D last", () => {
-    const pkg = JSON.parse(read("package.json"));
-    const runtime = pkg.scripts["apply:runtime"];
-    assert.ok(runtime.indexOf("apply:conversion-brand") < runtime.indexOf("apply:motion-brand"));
-    assert.ok(runtime.indexOf("apply:motion-brand") < runtime.indexOf("apply:growth-public"));
-    assert.ok(runtime.trim().endsWith("pnpm run apply:market-rd"));
-  });
 });

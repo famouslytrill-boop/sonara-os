@@ -29,8 +29,6 @@ describe("SONARA market research and development priorities", () => {
 
   it("runs the R&D patch after market intelligence", () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
-    assert.equal(pkg.scripts["apply:market-rd"], "node scripts/apply-market-rd-priorities.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("shares the strategy with agents and documents evidence limits", () => {

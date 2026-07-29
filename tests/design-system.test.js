@@ -3,6 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { runtimeSource } = require("./helpers/runtime-source.cjs");
 const request = require("supertest");
 
 const root = path.join(__dirname, "..");
@@ -62,13 +63,9 @@ describe("design system consolidation", () => {
   });
 
   it("keeps every served stylesheet reachable from a renderer", () => {
-    const runtime = [
-      fs.readFileSync(path.join(root, "server.js"), "utf8"),
-      ...fs
-        .readdirSync(path.join(root, "routes"))
-        .filter((name) => name.endsWith(".cjs"))
-        .map((name) => fs.readFileSync(path.join(root, "routes", name), "utf8"))
-    ].join("\n");
+    // server.js plus routes/ used to be the whole application. renderHead, which
+    // links the stylesheets, now lives in lib/sonara-page-frame.cjs.
+    const runtime = runtimeSource();
 
     for (const name of fs.readdirSync(publicDir).filter((entry) => entry.endsWith(".css"))) {
       assert.ok(runtime.includes(name), `${name} ships but no renderer links it`);
