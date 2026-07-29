@@ -223,13 +223,51 @@ describe("the server.js split stays safe", () => {
     }
   });
 
+  it("keeps no dead binding from a module it has already extracted", () => {
+    // Each extraction leaves a destructured name in server.js for every function
+    // it moved, and most are never called from here again. Thirty-six had
+    // accumulated by step 6. They are not free: the first test in this file
+    // treats "the name is bound in server.js" as proof a generator can still
+    // reach it, so a dead binding quietly vouches for a call site nobody
+    // checked.
+    //
+    // Two are deliberately kept -- apply-growth-studio-verifier.cjs writes code
+    // into server.js calling DATABASE_FUNCTIONS and DATABASE_SCHEMAS, so the
+    // binding is what keeps that generated call resolvable. Anything else bound
+    // and never used is dead.
+    //
+    // eslint reports these as warnings, which is why thirty-six of them piled
+    // up. This is the same finding with teeth.
+    const KEPT_FOR_GENERATORS = new Set(["DATABASE_FUNCTIONS", "DATABASE_SCHEMAS"]);
+    const generators = generatorSources();
+    const dead = [];
+
+    for (const extraction of EXTRACTED) {
+      for (const fn of extraction.functions) {
+        if (KEPT_FOR_GENERATORS.has(fn)) continue;
+        if (!new RegExp(`^\\s*${fn},?\\s*$`, "m").test(serverSource)) continue;
+        const uses = (serverSource.match(new RegExp(`\\b${fn}\\b`, "g")) || []).length;
+        if (uses > 1) continue;
+        if (generators.some((generator) => generator.source.includes(fn))) continue;
+        dead.push(fn);
+      }
+    }
+
+    assert.deepEqual(
+      dead,
+      [],
+      `server.js binds these and never uses them, and no generator needs them:\n  ${dead.join("\n  ")}\n\n` +
+        "Drop them from the destructured require. A binding that exists only to satisfy a reader is one the split test will mistake for reachability."
+    );
+  });
+
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,172 lines after customer sessions moved, down
+    // A ratchet, not a target. 4,143 lines after the dead bindings went, down
     // from 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4190,
+      lines <= 4160,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

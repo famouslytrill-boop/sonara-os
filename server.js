@@ -24,10 +24,16 @@ const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
+// DATABASE_FUNCTIONS and DATABASE_SCHEMAS read as unused and are not. Lint sees
+// this file; apply-growth-studio-verifier.cjs writes code into it that calls
+// them, so removing the binding turns a generated call site into a
+// ReferenceError at request time -- which node --check and the test suite both
+// pass straight over. Thirty-six genuinely dead bindings were removed here after
+// the split; these two survived the same check because that generator names
+// them. Leave them.
 const {
   DATABASE_FUNCTIONS,
   DATABASE_SCHEMAS,
-  DATABASE_TABLE_GROUPS,
   DATABASE_TABLES,
   STORAGE_BUCKETS
 } = require("./lib/sonara-database-contract.cjs");
@@ -99,25 +105,16 @@ const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 // declaration or a require at the top of this file, so nothing is read before it
 // exists.
 const {
-  clearCustomerRefreshCookie,
   clearCustomerSessionCookie,
   createAuthRateLimiter,
   createEmployeeAuthUser,
-  customerCookieOptions,
   getCookie,
-  getCustomerRefreshToken,
-  getCustomerSessionToken,
   getSupabaseAuthConfig,
   handleEmailAuth,
   hashInviteToken,
-  isSupabaseAuthConfigured,
-  refreshCustomerSession,
   rejectCustomerBearerFromAdminLogin,
   resolveCustomerSession,
   sendEmailAuthResult,
-  setCustomerRefreshCookie,
-  setCustomerSessionCookie,
-  setCustomerSessionCookies,
   verifySupabaseAccessToken,
   wantsAuthReadinessJson
 } = createCustomerAuth({
@@ -213,16 +210,13 @@ const {
   createStripeCheckoutSession,
   getBillingPanelSummary,
   getBillingSummary,
-  getCheckoutRedirectUrls,
   getOrCreateStripeCustomer,
   getPaidEntitlementKeys,
-  getPriceCardSetupText,
   isValidPlan,
   normalizeCheckoutPlan,
   priceCard,
   recordBillingWebhookEvent,
   synchronizeBillingFromStripeEvent,
-  synchronizeCheckoutSessionCompleted,
   verifyStripeWebhookSignature
 } = createBilling({
   STRIPE_PLANS,
@@ -243,9 +237,6 @@ const {
 // getSupabaseAdminClient and supabaseHeaders are function declarations and
 // hoisted, so this binding is free to sit with the other requires.
 const {
-  buildDomainModuleRecord,
-  normalizeAssetType,
-  normalizeCreatorAssetStatus,
   safeInsertDomainModuleRecord,
   safeInsertModuleOutput,
   safeReadOrganizationScopedRecords
@@ -258,32 +249,12 @@ const {
 // hoisted and the route registrations below need these at module load.
 const {
   buildDatabaseReadinessResult,
-  combineEnvStatuses,
   databaseGroupForTable,
-  getAdminAuthorizationSourceStatus,
   getAdminEnvReadiness,
-  getAdminProtectionStatus,
   getCheckoutPlanStatuses,
-  getEmailValueStatus,
-  getFounderAccessStatus,
-  getInvalidStripeEnvStatuses,
-  getPlanEnvLabel,
-  getPlanEnvNames,
   getReadiness,
-  getResendApiKeyStatus,
-  getResendStatus,
-  getSecretValueStatus,
   getStripePlanPriceStatus,
-  getStripePriceWarning,
   getStripeSecretStatus,
-  getStripeWebhookStatus,
-  getSupabaseAuthReadinessStatus,
-  getSupabaseReadinessStatus,
-  getSupabaseUrlStatus,
-  isStripePriceId,
-  missingEnvGroups,
-  readinessItem,
-  startsWithAny
 } = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS });
 // Static assets were served with `Cache-Control: public, max-age=0`, which is
 // express.static's default and means the browser revalidates every stylesheet,
