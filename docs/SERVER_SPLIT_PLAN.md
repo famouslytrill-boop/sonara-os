@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,462 lines.
+**Status:** in progress, in the background. 5,119 → 4,172 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -52,16 +52,75 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | --- | --- | ---: | ---: | --- |
 | 1 | Product page definitions and action bars | 158 | 0 | **done** — `lib/sonara-product-pages.cjs` |
 | 2 | Readiness computation — 27 functions | 288 | 4 (calls only) | **done** — `lib/sonara-readiness.cjs` |
-| 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | next |
-| 4 | Admin action bars and forms (`adminActions`) | ~40 | 3 | ready |
+| 3 | Module records — 6 functions | 102 | 0 | **done** — `lib/sonara-module-records.cjs` |
+| 4 | Admin action bars and forms | — | 3 | **dropped** — see below |
 | 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
-| 6 | Auth and sessions | ~700 | many | needs generator work first |
+| 6 | Customer sessions — 21 functions | 250 | 1 (boundary) | **done** — `lib/sonara-customer-auth.cjs` |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
 | 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 11 | **do not attempt** until the homepage generator is retired |
 
-Step 6 is the largest remaining region and is gated on the generators, not on
-the code. The honest sequence is to retire or rewrite the generators that own
-it first; moving the code underneath them is the expensive way to find that out.
+Only step 7b is left, and it is the one row whose original grade survived
+contact with the evidence.
+
+### Step 6 was mis-graded too — that is now three out of three
+
+Graded "auth and sessions, ~700 lines, many generators, needs generator work
+first". Measured, **one** generator constrains it:
+`apply-customer-ready-production-experience.cjs` runs
+
+    replaceBetween(server, "async function verifyAdminRequest(req) {",
+                           "function getBearerToken(req) {", ...)
+
+so both of those declaration lines are boundaries of a region it rewrites, and
+both functions stayed. Every other function in the region — twenty-one of them,
+250 lines — had no generator anchoring inside it and no generator defining it.
+
+Three rows in this table were graded "many generators / needs generator work
+first" by counting mentions. All three were wrong, and each cost less to check
+than it did to believe: the check is a few minutes of grep, the belief was
+months of not touching the file.
+
+What the region genuinely needed was care of a different kind. It holds session
+cookies and token verification, so the move was made strictly relocation-only,
+with one substitution made explicit rather than assumed:
+`process.env.NODE_ENV === "production"` became an injected
+`isProductionEnvironment()` that performs exactly that check, so the cookie
+`secure` flag is provably unchanged rather than equivalently changed.
+
+### Step 4 no longer exists
+
+Graded "admin action bars and forms, ~61 lines, 3 generators, ready". Nothing is
+left in it.
+
+`contactForm` and `authForm` moved in step 7a. `adminRowsPage` is eight lines
+that call `layout`, so extracting it would inject the one helper the shell could
+not move, to save eight lines. And `adminActions` cannot move at all:
+`apply-ecosystem-routes.cjs`, `apply-formula-routes.cjs` and
+`apply-infrastructure-routes.cjs` each anchor on a line *inside* its body —
+
+    linkAction("/admin/ecosystem", "Ecosystem"),
+    linkAction("/admin/formulas", "Formulas"),
+    linkAction("/admin/infrastructure", "Infrastructure"),
+
+— which is the same shape that broke steps 1 and 2, caught this time before
+anything moved.
+
+### What step 3 could not take
+
+`saveModuleOutput`, `readModuleRecords` and
+`safeInsertBusinessBuilderOperatingRecord` stayed in `server.js`. This is the
+one blocker worse than an anchor: `apply-business-builder-operating-system.cjs`
+and `apply-customer-ready-production-experience.cjs` each contain a **full
+definition** of one of them. Moving the code would not break the build — it
+would leave two definitions of the same function next time `apply:runtime` runs,
+the file would parse, the tests would pass, and the later definition would
+silently win. That is exactly what `apply-catalog-helper-scope.cjs` did to
+`catalogActions`.
+
+So the check before an extraction now has two questions, not one:
+
+> Does any generator anchor on a string inside this function's body?
+> Does any generator contain `function <name>(` — that is, define it outright?
 
 ### Step 5 was also mis-graded, and differently
 

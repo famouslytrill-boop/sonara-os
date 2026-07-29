@@ -36,6 +36,8 @@ const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
+const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
+const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -83,12 +85,60 @@ tenantGuard.install();
 
 const app = express();
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
-const CUSTOMER_SESSION_COOKIE = "sonara_customer_session";
-const CUSTOMER_REFRESH_COOKIE = "sonara_customer_refresh";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
-const CUSTOMER_SESSION_MAX_AGE_SECONDS = 60 * 60;
-const CUSTOMER_REFRESH_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
+
+// Customer sessions moved to lib/sonara-customer-auth.cjs, and took the
+// customer cookie names and lifetimes with them -- that module is what decides
+// them. CUSTOMER_SESSION_COOKIE comes back out because verifyAdminRequest still
+// reads the customer cookie when telling a founder from a customer.
+//
+// This binding sits here, well above where the functions used to be, because
+// createAuthRateLimiter builds six rate limiters as consts a little further down
+// and those run at module load. Every injected name below is a hoisted function
+// declaration or a require at the top of this file, so nothing is read before it
+// exists.
+const {
+  clearCustomerRefreshCookie,
+  clearCustomerSessionCookie,
+  createAuthRateLimiter,
+  createEmployeeAuthUser,
+  customerCookieOptions,
+  getCookie,
+  getCustomerRefreshToken,
+  getCustomerSessionToken,
+  getSupabaseAuthConfig,
+  handleEmailAuth,
+  hashInviteToken,
+  isSupabaseAuthConfigured,
+  refreshCustomerSession,
+  rejectCustomerBearerFromAdminLogin,
+  resolveCustomerSession,
+  sendEmailAuthResult,
+  setCustomerRefreshCookie,
+  setCustomerSessionCookie,
+  setCustomerSessionCookies,
+  verifySupabaseAccessToken,
+  wantsAuthReadinessJson
+} = createCustomerAuth({
+  acceptsHtml,
+  createRateLimiter,
+  getBearerToken,
+  getEnv,
+  getSupabaseServerClient,
+  getSupabaseServerConfig,
+  isProductionEnvironment,
+  isSupabaseAdminUser,
+  renderRateLimitPage,
+  reportDegradedRateLimit,
+  responsePage
+});
+
+// Kept as its own function so the cookie `secure` flag is provably the same
+// check it was before the move, rather than an equivalent one.
+function isProductionEnvironment() {
+  return process.env.NODE_ENV === "production";
+}
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
 // These prices already sit below every comparable tool we could find charging
@@ -185,6 +235,21 @@ const {
   formatMetric,
   insertActivityEvent
 });
+
+// How a saved module result becomes a row moved to lib/sonara-module-records.cjs.
+// saveModuleOutput and readModuleRecords call into it and stayed here, because
+// two generators each carry a full definition of one of them.
+//
+// getSupabaseAdminClient and supabaseHeaders are function declarations and
+// hoisted, so this binding is free to sit with the other requires.
+const {
+  buildDomainModuleRecord,
+  normalizeAssetType,
+  normalizeCreatorAssetStatus,
+  safeInsertDomainModuleRecord,
+  safeInsertModuleOutput,
+  safeReadOrganizationScopedRecords
+} = createModuleRecords({ getSupabaseAdminClient, supabaseHeaders });
 
 // The readiness cluster moved to lib/sonara-readiness.cjs -- 27 functions that
 // all answer "what is configured right now". Three generators call
@@ -302,18 +367,6 @@ function reportDegradedRateLimit({ name, error }) {
   console.error(`[rate-limit] ${name} degraded to fail-open: ${error}`);
 }
 
-function createAuthRateLimiter(name, { windowSeconds, maxAttempts, scopes, subjectFrom }) {
-  return createRateLimiter({
-    name,
-    windowSeconds,
-    maxAttempts,
-    scopes,
-    subjectFrom,
-    getSupabaseServerConfig,
-    onDegraded: reportDegradedRateLimit,
-    renderDenied: renderRateLimitPage
-  });
-}
 
 const emailFromBody = (req) => req.body?.email;
 
@@ -2897,24 +2950,6 @@ async function acceptBusinessEmployeeInvite(body) {
   return { status: 200, body: { ok: true, code: "invite_accepted", message: "Invite accepted. Use Business Builder login with your email and password." } };
 }
 
-async function createEmployeeAuthUser(email, password) {
-  const config = getSupabaseServerClient();
-  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
-  if (!config.ok || !anonKey) return { ok: false, status: 503, code: "setup_required" };
-  const response = await fetch(`${config.url}/auth/v1/signup`, {
-    method: "POST",
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email, password })
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false, status: 401, code: "auth_not_completed" };
-  const payload = await response.json().catch(() => ({}));
-  const userId = payload.user?.id || payload.id;
-  return { ok: Boolean(userId), userId };
-}
 
 async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
   if (getReadiness().services.emailDelivery !== "enabled") return { ok: false, error: "resend_not_configured" };
@@ -2930,13 +2965,6 @@ async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
   }).catch(() => undefined);
   return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
 }
-
-function hashInviteToken(token) {
-  return crypto.createHash("sha256").update(String(token)).digest("hex");
-}
-
-
-
 
 
 function isPlaceholderValue(value) {
@@ -2972,16 +3000,6 @@ function isSupabaseConfigured() {
   return getReadiness().services.supabase === "configured";
 }
 
-function isSupabaseAuthConfigured() {
-  return Boolean(getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]) && getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]));
-}
-
-function getSupabaseAuthConfig() {
-  const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
-  const anonKey = getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]);
-  if (!url || !anonKey) return { ok: false };
-  return { ok: true, url: url.replace(/\/$/, ""), anonKey };
-}
 
 function getSupabaseServerClient() {
   return getSupabaseServerConfig();
@@ -3002,113 +3020,6 @@ async function safeInsertSupportRequest(record) {
   return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
 }
 
-async function safeInsertModuleOutput(organizationId, productKey, moduleKey, input, output) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: false, code: "setup_required" };
-  if (!organizationId) return { ok: false, code: "organization_setup_required" };
-  const response = await fetch(`${config.url}/rest/v1/module_outputs`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify({ organization_id: organizationId, product_key: productKey, module_key: moduleKey, input_payload: input, output_payload: output })
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
-}
-
-async function safeInsertDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok || !organizationId) return { ok: false, code: "setup_required" };
-  const domain = buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output);
-  if (!domain) return { ok: false, code: "not_applicable" };
-  const response = await fetch(`${config.url}/rest/v1/${domain.table}`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify(domain.record)
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok), table: domain.table, rows: response?.ok ? await response.json().catch(() => []) : [] };
-}
-
-function buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
-  if (productKey === "creator_studio" && moduleKey === "asset_catalog") {
-    const assetType = normalizeAssetType(input.type || input.assetType);
-    return {
-      table: "creator_assets",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        title: String(input.title || "Untitled asset").trim(),
-        asset_type: assetType,
-        status: normalizeCreatorAssetStatus(input.status),
-        metadata: {
-          platform: String(input.platform || "").trim() || null,
-          rights_notes: String(input.rightsNotes || input.rights_notes || "").trim() || null,
-          source: "creator_studio_asset_form",
-          output
-        }
-      }
-    };
-  }
-  if (productKey === "growth_studio" && moduleKey === "campaign_workspace") {
-    return {
-      table: "growth_campaigns",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        name: String(input.goal || "Growth campaign").trim(),
-        goal: String(input.goal || "").trim() || null,
-        channel: String(input.channel || "").trim() || null,
-        status: "draft",
-        metadata: {
-          audience: String(input.audience || "").trim() || null,
-          offer: String(input.offer || "").trim() || null,
-          timeline: String(input.timeline || "").trim() || null,
-          source: "growth_studio_campaign_form",
-          output
-        }
-      }
-    };
-  }
-  if (productKey === "growth_studio" && moduleKey === "lead_follow_up") {
-    return {
-      table: "growth_leads",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        name: String(input.name || "").trim() || null,
-        email: String(input.email || "").trim() || null,
-        source: String(input.source || "").trim() || null,
-        status: "new",
-        metadata: {
-          consent_status: String(input.consentStatus || input.consent_status || "").trim() || null,
-          compliance_warning: "Phone, SMS, and voicemail outreach may be regulated. Confirm valid consent and honor opt-outs before contacting anyone.",
-          source: "growth_studio_lead_form",
-          output
-        }
-      }
-    };
-  }
-  return null;
-}
-
-function normalizeAssetType(value) {
-  const normalized = String(value || "file").trim().toLowerCase().replace(/\s+/g, "_");
-  return ["image", "video", "audio", "document", "link", "file", "other"].includes(normalized) ? normalized : "other";
-}
-
-function normalizeCreatorAssetStatus(value) {
-  const normalized = String(value || "draft").trim().toLowerCase().replace(/\s+/g, "_");
-  return ["draft", "ready", "published", "archived"].includes(normalized) ? normalized : "draft";
-}
-
-async function safeReadOrganizationScopedRecords(organizationId, productKey) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: false, code: "setup_required", records: [] };
-  if (!organizationId) return { ok: false, code: "organization_setup_required", records: [] };
-  const response = await fetch(`${config.url}/rest/v1/module_outputs?select=id,module_key,created_at,output_payload&organization_id=eq.${encodeURIComponent(organizationId)}&product_key=eq.${encodeURIComponent(productKey)}&order=created_at.desc&limit=20`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false, code: "read_failed", records: [] };
-  return { ok: true, records: await response.json().catch(() => []) };
-}
 
 async function safeInsertBusinessBuilderOperatingRecord(organizationId, userId, productKey, moduleKey, input, output) {
   if (productKey !== "business_builder" || moduleKey !== "offer_builder") return { ok: false, code: "not_applicable", rows: [] };
@@ -3497,106 +3408,6 @@ function safePublicEnvValue(value) {
   return cleaned || "local";
 }
 
-async function handleEmailAuth(mode, body) {
-  if (!isSupabaseAuthConfigured()) {
-    return { status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
-  }
-  const email = String(body.email || "").trim();
-  const password = String(body.password || "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter a valid email and a password with at least 8 characters." } };
-  }
-  if (mode === "signup" && password !== String(body.confirmPassword || body.confirm_password || "")) {
-    return { status: 400, body: { ok: false, code: "password_mismatch", message: "The password confirmation does not match." } };
-  }
-
-  const endpoint = mode === "signup" ? "/auth/v1/signup" : "/auth/v1/token?grant_type=password";
-  const config = getSupabaseAuthConfig();
-  const response = await fetch(`${config.url}${endpoint}`, {
-    method: "POST",
-    headers: {
-      apikey: getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]),
-      Authorization: `Bearer ${getEnv(["SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"])}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ email, password })
-  }).catch(() => undefined);
-
-  if (!response?.ok) return { status: 401, body: { ok: false, code: "auth_not_completed" } };
-  const data = await response.json().catch(() => ({}));
-  const accessToken = typeof data.access_token === "string" ? data.access_token : "";
-  const refreshToken = typeof data.refresh_token === "string" ? data.refresh_token : "";
-  const reportedExpiresIn = Number(data.expires_in);
-  const expiresIn = Number.isFinite(reportedExpiresIn) ? Math.max(60, Math.min(reportedExpiresIn, CUSTOMER_SESSION_MAX_AGE_SECONDS)) : CUSTOMER_SESSION_MAX_AGE_SECONDS;
-  const code = mode === "signup"
-    ? accessToken ? "signup_ready" : "signup_confirmation_required"
-    : "login_ready";
-  return {
-    status: 200,
-    body: {
-      ok: true,
-      code,
-      sessionStored: Boolean(accessToken),
-      message: code === "signup_confirmation_required" ? "Confirm your email address before logging in." : undefined
-    },
-    session: accessToken ? { accessToken, refreshToken, maxAgeSeconds: expiresIn } : undefined
-  };
-}
-
-function sendEmailAuthResult(req, res, result, sessionRedirect, fallbackRedirect) {
-  if (result.session?.accessToken) setCustomerSessionCookies(res, result.session);
-
-  if (acceptsHtml(req)) {
-    if (result.status >= 200 && result.status < 300) {
-      return res.redirect(303, result.session?.accessToken ? sessionRedirect : fallbackRedirect);
-    }
-
-    const message = result.body?.message || (result.body?.code === "setup_required"
-      ? "Account login setup is required before email/password access can complete."
-      : "Email/password access was not completed.");
-    return res.status(result.status).type("html").send(responsePage("Access not completed", message, [linkAction("/login", "Login"), linkAction("/signup", "Create account")]));
-  }
-
-  return res.status(result.status).json(result.body);
-}
-
-function setCustomerSessionCookies(res, session) {
-  setCustomerSessionCookie(res, session.accessToken, session.maxAgeSeconds);
-  if (session.refreshToken) setCustomerRefreshCookie(res, session.refreshToken);
-  else clearCustomerRefreshCookie(res);
-}
-
-function setCustomerSessionCookie(res, accessToken, maxAgeSeconds = CUSTOMER_SESSION_MAX_AGE_SECONDS) {
-  res.cookie(CUSTOMER_SESSION_COOKIE, accessToken, {
-    ...customerCookieOptions(),
-    maxAge: Math.max(60, Math.min(Number(maxAgeSeconds) || CUSTOMER_SESSION_MAX_AGE_SECONDS, CUSTOMER_SESSION_MAX_AGE_SECONDS)) * 1000
-  });
-}
-
-function setCustomerRefreshCookie(res, refreshToken) {
-  res.cookie(CUSTOMER_REFRESH_COOKIE, refreshToken, {
-    ...customerCookieOptions(),
-    maxAge: CUSTOMER_REFRESH_MAX_AGE_SECONDS * 1000
-  });
-}
-
-function customerCookieOptions() {
-  return {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/"
-  };
-}
-
-function clearCustomerRefreshCookie(res) {
-  res.clearCookie(CUSTOMER_REFRESH_COOKIE, customerCookieOptions());
-}
-
-function clearCustomerSessionCookie(res) {
-  res.clearCookie(CUSTOMER_SESSION_COOKIE, customerCookieOptions());
-  clearCustomerRefreshCookie(res);
-}
 
 async function requireCustomer(req, res, next) {
   const customer = await resolveCustomerSession(req, res);
@@ -3692,82 +3503,6 @@ async function resolveWorkspaceAccess(req, res, productKey) {
   };
 }
 
-async function resolveCustomerSession(req, res) {
-  if (!isSupabaseAuthConfigured()) {
-    return { ok: false, status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
-  }
-
-  const sessionToken = getCustomerSessionToken(req);
-  if (sessionToken) {
-    const verification = await verifySupabaseAccessToken(sessionToken);
-    if (verification.ok) return { ok: true, user: verification.user };
-  }
-
-  if (!getBearerToken(req) && res) {
-    const refreshed = await refreshCustomerSession(req, res);
-    if (refreshed.ok) {
-      const verification = await verifySupabaseAccessToken(refreshed.accessToken);
-      if (verification.ok) return { ok: true, user: verification.user, refreshed: true };
-    }
-  }
-
-  return { ok: false, status: 401, body: { ok: false, code: "customer_auth_required" } };
-}
-
-async function refreshCustomerSession(req, res) {
-  const refreshToken = getCustomerRefreshToken(req);
-  const config = getSupabaseAuthConfig();
-  if (!refreshToken || !config.ok) return { ok: false };
-
-  const response = await fetch(`${config.url}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    headers: {
-      apikey: config.anonKey,
-      Authorization: `Bearer ${config.anonKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ refresh_token: refreshToken })
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false };
-
-  const data = await response.json().catch(() => ({}));
-  const accessToken = typeof data.access_token === "string" ? data.access_token : "";
-  const rotatedRefreshToken = typeof data.refresh_token === "string" ? data.refresh_token : refreshToken;
-  if (!accessToken) return { ok: false };
-
-  const reportedExpiresIn = Number(data.expires_in);
-  const maxAgeSeconds = Number.isFinite(reportedExpiresIn)
-    ? Math.max(60, Math.min(reportedExpiresIn, CUSTOMER_SESSION_MAX_AGE_SECONDS))
-    : CUSTOMER_SESSION_MAX_AGE_SECONDS;
-  setCustomerSessionCookies(res, { accessToken, refreshToken: rotatedRefreshToken, maxAgeSeconds });
-  return { ok: true, accessToken };
-}
-
-async function verifySupabaseAccessToken(accessToken) {
-  const config = getSupabaseAuthConfig();
-  if (!config.ok) return { ok: false };
-  const response = await fetch(`${config.url}/auth/v1/user`, {
-    headers: {
-      apikey: config.anonKey,
-      Authorization: `Bearer ${accessToken}`
-    }
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false };
-  return { ok: true, user: await response.json().catch(() => undefined) };
-}
-
-async function rejectCustomerBearerFromAdminLogin(req, res, next) {
-  const bearerToken = getBearerToken(req);
-  if (!bearerToken) return next();
-
-  const verification = await verifySupabaseAccessToken(bearerToken);
-  if (!verification.ok) return next();
-  const admin = await isSupabaseAdminUser(verification.user);
-  if (admin.ok) return next();
-
-  if (acceptsHtml(req)) return res.status(403).type("html").send(responsePage("Admin access denied", "Customer sessions cannot open founder operations.", [linkAction("/", "Home")]));
-  return res.status(403).json({ ok: false, code: "admin_forbidden" });
-}
 
 async function requireAdmin(req, res, next) {
   const admin = await verifyAdminRequest(req);
@@ -3927,13 +3662,6 @@ function getBearerToken(req) {
   return authHeader.match(/^Bearer\s+(.+)$/i)?.[1] || "";
 }
 
-function getCustomerSessionToken(req) {
-  return getBearerToken(req) || getCookie(req, CUSTOMER_SESSION_COOKIE);
-}
-
-function getCustomerRefreshToken(req) {
-  return getCookie(req, CUSTOMER_REFRESH_COOKIE);
-}
 
 async function isSupabaseAdminUser(user) {
   const roles = await getUserRoles(user);
@@ -3999,24 +3727,6 @@ function acceptsHtml(req) {
 
 function wantsJson(req) {
   return Boolean(req.is("application/json")) || String(req.get("accept") || "").includes("application/json");
-}
-
-function wantsAuthReadinessJson(req) {
-  const format = String(req.query?.format || "").trim().toLowerCase();
-  const explicitApiClient = String(req.get("x-sonara-api-client") || "").trim().toLowerCase();
-  return format === "json" || explicitApiClient === "true";
-}
-
-function getCookie(req, name) {
-  const cookieHeader = String(req.get("cookie") || "");
-  const cookies = cookieHeader.split(";").map((part) => part.trim()).filter(Boolean);
-  for (const cookie of cookies) {
-    const separator = cookie.indexOf("=");
-    if (separator === -1) continue;
-    const key = decodeURIComponent(cookie.slice(0, separator));
-    if (key === name) return decodeURIComponent(cookie.slice(separator + 1));
-  }
-  return "";
 }
 
 
