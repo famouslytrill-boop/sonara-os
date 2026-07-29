@@ -24,11 +24,10 @@ COPY scripts ./scripts
 COPY ui ./ui
 COPY public ./public
 
-# Apply the exact same deterministic runtime patch chain used by Vercel, then
-# verify that the production entry point parses and starts without importing
-# development-only packages.
-RUN pnpm run apply:runtime \
-  && pnpm run build
+# Verify that the production entry point parses and starts without importing
+# development-only packages. There is no longer a runtime patch chain to apply
+# first -- the code generators are retired and their output is the source.
+RUN pnpm run build
 
 RUN chown -R node:node /app
 USER node
