@@ -86,6 +86,7 @@ const ORGANIZATION_READ_TABLES = [
   "automation_rules",
   "business_workspaces",
   "creator_generation_jobs",
+  "creator_voice_consents",
   "employee_time_entries",
   "growth_audience_segments",
   "growth_campaigns",
@@ -99,6 +100,7 @@ const ORGANIZATION_READ_TABLES = [
   "growth_touchpoints",
   "inventory_items",
   "location_events",
+  "location_zones",
   "market_intelligence_competitors",
   "market_intelligence_opportunities",
   "market_intelligence_reviews",
@@ -188,17 +190,34 @@ const blocks = [
   ...PERSONAL_READ_TABLES.map((table) => policyBlock(table, "auth.uid() = user_id", `${table}_select_own`))
 ];
 
-// A new file rather than an edit to 20260728120000. That one is already applied
-// in production, and supabase db push tracks migrations by filename -- editing
-// an applied migration changes the repo and nothing else, silently. Every policy
-// here is `drop policy if exists` then `create policy`, so re-asserting the
-// thirty-three from the earlier file is idempotent and the ten new ones land.
-const migrationName = "20260729040000_member_read_policies_core_tables.sql";
+// A new file each time this list grows, never an edit to an applied one.
+//
+// supabase db push tracks migrations by filename. Once a migration has been
+// applied in production it is recorded as done and never read again, so editing
+// it changes the repo and nothing else -- silently. Every check in this
+// repository reads the file, so they would all pass while production sat
+// without the policies. That is the failure this comment exists to prevent, and
+// it was nearly repeated when creator_voice_consents and location_zones were
+// added: the generator rewrote 20260729040000, which was already on main.
+//
+// Every policy is `drop policy if exists` then `create policy`, so re-asserting
+// the earlier ones is idempotent and only the new ones actually change anything.
+//
+// Migrations that have already been applied in production. Writing to one of
+// these is refused below rather than merely discouraged: the comment above did
+// not stop the mistake, so the rule is enforced. Add a filename here when its
+// migration reaches main, and point migrationName at a new one.
+const APPLIED_MIGRATIONS = Object.freeze([
+  "20260728120000_member_read_policies.sql",
+  "20260729040000_member_read_policies_core_tables.sql"
+]);
+
+const migrationName = "20260729220000_member_read_policies_consent_and_zones.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 
 
-module.exports = { ORGANIZATION_READ_TABLES, PERSONAL_READ_TABLES };
+module.exports = { ORGANIZATION_READ_TABLES, PERSONAL_READ_TABLES, APPLIED_MIGRATIONS, migrationName };
 
 // Requiring this module must not write anything. report-user-scoped-readiness.cjs
 // imports the table lists, and an import whose side effect rewrites a migration
@@ -215,6 +234,16 @@ function main() {
       `Member read policies verified: ${ORGANIZATION_READ_TABLES.length} organization-scoped, ${PERSONAL_READ_TABLES.length} person-scoped.`
     );
     return;
+  }
+
+  if (APPLIED_MIGRATIONS.includes(migrationName)) {
+    console.error(
+      `Refusing to write ${migrationName}: it has already been applied in production.\n` +
+        "supabase db push tracks migrations by filename, so rewriting an applied one changes this repository and nothing else --\n" +
+        "every check here would pass while production sat without the new policies.\n" +
+        "Point migrationName at a new file instead."
+    );
+    process.exit(1);
   }
 
   fs.writeFileSync(outputPath, contents);
