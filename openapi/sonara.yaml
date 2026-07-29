@@ -537,6 +537,21 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+    post:
+      operationId: updateCreatorStudioAssetFromForm
+      tags: [Creator Studio]
+      summary: Correct one asset from a submitted HTML form.
+      description: Identical to PATCH on this path. HTML forms cannot send PATCH, and the workspace pages are server-rendered and work without JavaScript. A browser is redirected back to its records; a client sending Accept application/json receives the updated record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: "Form submission accepted; the browser is redirected back to the records list." }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/creator-studio/assets/{id}/archive:
     parameters:
       - in: path
@@ -629,6 +644,21 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/BadRequest" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+    post:
+      operationId: updateGrowthStudioCampaignFromForm
+      tags: [Growth Studio]
+      summary: Correct one campaign from a submitted HTML form.
+      description: Identical to PATCH on this path. HTML forms cannot send PATCH, and the workspace pages are server-rendered and work without JavaScript. A browser is redirected back to its records; a client sending Accept application/json receives the updated record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: "Form submission accepted; the browser is redirected back to the records list." }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/growth-studio/campaigns/{id}/archive:
     parameters:
       - in: path
@@ -716,6 +746,21 @@ paths:
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses:
         "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    post:
+      operationId: updateGrowthStudioLeadFromForm
+      tags: [Growth Studio]
+      summary: Correct one lead from a submitted HTML form.
+      description: Identical to PATCH on this path. HTML forms cannot send PATCH, and the workspace pages are server-rendered and work without JavaScript. A browser is redirected back to its records; a client sending Accept application/json receives the updated record.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonOrFormBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "303": { description: "Form submission accepted; the browser is redirected back to the records list." }
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
