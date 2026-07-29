@@ -591,6 +591,9 @@ registerLastNineHoursRoutes(app, {
 });
 
 registerServiceLifecycleRoutes(app, {
+  // Resolves a session without requiring one. /support is a public page that
+  // shows a signed-in customer their own requests and a visitor nothing.
+  resolveCustomerSession,
   layout,
   brandCard,
   actionCard,
