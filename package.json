@@ -75,7 +75,8 @@
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
     "workers:smoke": "echo Optional Creator Studio GPU workers and Growth Studio automation workers are disabled by default and use reviewed contracts when configured",
     "test:security": "pnpm run scan:client-secrets",
-    "test:docs": "node scripts/check-doc-links.mjs"
+    "test:docs": "node scripts/check-doc-links.mjs",
+    "verify:member-read-access": "node scripts/verify-member-read-access.mjs"
   },
   "license": "MIT",
   "devDependencies": {
