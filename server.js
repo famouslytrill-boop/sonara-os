@@ -37,7 +37,7 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
-const { createModuleCrud, resourceForForm, renderRecordCards } = require("./lib/sonara-module-crud.cjs");
+const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
@@ -1750,14 +1750,14 @@ function registerProduct(slug, config) {
 
   for (const page of routes.free) {
     app.get(page.path, requireWorkspaceAccess(productKey), async (req, res) => {
-      const records = await workspaceRecordCards(req, page);
+      const records = await workspaceRecordCards(req, page, config);
       res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: false, records }));
     });
   }
 
   for (const page of routes.paid) {
     app.get(page.path, requirePaidOrOwnerAccess(productKey), async (req, res) => {
-      const records = await workspaceRecordCards(req, page);
+      const records = await workspaceRecordCards(req, page, config);
       res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: true, records }));
     });
   }
@@ -1826,7 +1826,16 @@ function workspaceRecordSections(page) {
 // Returns "" for pages with no editable resource, and for any failure. A
 // records list that cannot load should leave the tool usable rather than take
 // the page down with it.
-async function workspaceRecordCards(req, page) {
+async function workspaceRecordCards(req, page, config) {
+  // The records pages list saved tool results. Everything already fetched them;
+  // nothing rendered them, so a page called Records showed no records.
+  if (page.module === "free_records") {
+    const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
+    const result = await readModuleRecords(req, productKey).catch(() => undefined);
+    if (!result?.saved) return "";
+    return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace" });
+  }
+
   const match = page.form ? resourceForForm(page.form) : null;
   if (!match) return "";
   const result = await moduleCrud
