@@ -223,3 +223,79 @@ describe("workspace record CRUD", () => {
     }
   });
 });
+
+// The API existing is not the same as a customer being able to use it. Before
+// this, every workspace tool page said "recent results appear in your private
+// workspace" and then showed nothing -- the records were reachable only through
+// an aggregate JSON feed, which no customer opens.
+describe("saved records are visible on the tool that made them", () => {
+  const { resourceForForm, renderRecordCards } = require("../lib/sonara-module-crud.cjs");
+
+  it("finds the resource a tool page edits from the form it renders", () => {
+    for (const [form, expected] of [
+      ["creator_asset", "assets"],
+      ["growth_campaign", "campaigns"],
+      ["growth_lead", "leads"]
+    ]) {
+      const match = resourceForForm(form);
+      assert.ok(match, `${form} must resolve to a resource`);
+      assert.equal(match.resource, expected);
+    }
+    assert.equal(resourceForForm("business_checklist"), null, "a tool with no editable resource resolves to nothing");
+  });
+
+  it("shows each saved record with its values filled in", () => {
+    const { spec } = resourceForForm("growth_lead");
+    const html = renderRecordCards({
+      records: [{ id: "a", name: "Ada Lovelace", email: "ada@example.com", source: "referral", status: "new" }],
+      spec,
+      basePath: "/api/growth-studio/leads"
+    });
+    assert.match(html, /value="Ada Lovelace"/);
+    assert.match(html, /value="ada@example\.com"/);
+    assert.match(html, /<option value="new" selected>/);
+    assert.match(html, /action="\/api\/growth-studio\/leads\/a"/);
+  });
+
+  it("escapes record values rather than rendering them", () => {
+    // These are customer-supplied. A lead named with a script tag must not run.
+    const { spec } = resourceForForm("growth_lead");
+    const html = renderRecordCards({
+      records: [{ id: "a", name: '"><script>alert(1)</script>', status: "new" }],
+      spec,
+      basePath: "/api/growth-studio/leads"
+    });
+    assert.doesNotMatch(html, /<script>alert/);
+    assert.match(html, /&lt;script&gt;/);
+  });
+
+  it("offers to take a record off the list, and to put it back", () => {
+    const { spec } = resourceForForm("creator_asset");
+    const active = renderRecordCards({ records: [{ id: "a", title: "Cover", status: "draft" }], spec, basePath: "/b" });
+    assert.match(active, /\/b\/a\/archive/);
+    assert.match(active, /Take off the list/);
+
+    const archived = renderRecordCards({ records: [{ id: "a", title: "Cover", status: "archived" }], spec, basePath: "/b" });
+    assert.match(archived, /\/b\/a\/restore/);
+    assert.match(archived, /Put back on the list/);
+  });
+
+  it("says nothing is saved yet rather than showing an empty box", () => {
+    const { spec } = resourceForForm("growth_campaign");
+    const html = renderRecordCards({ records: [], spec, basePath: "/b" });
+    assert.match(html, /Nothing saved yet/);
+    assert.doesNotMatch(html, /<form/, "an empty list has nothing to submit");
+  });
+
+  it("never offers an input for a field the API would refuse", () => {
+    // The form and the allow-list come from the same spec, so a field can only
+    // appear on screen if a patch carrying it would be accepted.
+    const { RESOURCES } = require("../lib/sonara-module-crud.cjs");
+    for (const spec of Object.values(RESOURCES)) {
+      const html = renderRecordCards({ records: [{ id: "a", status: spec.statuses[0] }], spec, basePath: "/b" });
+      for (const name of [...html.matchAll(/name="([a-z_]+)"/g)].map((m) => m[1])) {
+        assert.ok(spec.editable.includes(name), `${spec.table} renders an input for ${name}, which the API would reject`);
+      }
+    }
+  });
+});

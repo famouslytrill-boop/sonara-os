@@ -15,11 +15,24 @@
 const { RESOURCES } = require("../lib/sonara-module-crud.cjs");
 
 function registerModuleCrudRoutes(app, deps = {}) {
-  const { moduleCrud, requireWorkspaceAccess } = deps;
+  const { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction } = deps;
   if (!moduleCrud) throw new TypeError("registerModuleCrudRoutes requires moduleCrud");
   if (typeof requireWorkspaceAccess !== "function") throw new TypeError("registerModuleCrudRoutes requires requireWorkspaceAccess");
 
   const send = (res, result) => res.status(result.status).json(result.body);
+
+  // A browser that submitted a form gets sent back to the page it came from, so
+  // the change is visible immediately. An API client gets the JSON it asked for.
+  function respond(req, res, result, backHref) {
+    if (wantsJson?.(req) || !responsePage) return send(res, result);
+    if (result.ok) return res.redirect(303, backHref);
+    return res.status(result.status).type("html").send(
+      responsePage("That change was not saved", result.body.message || "Check the values and try again.", [
+        linkAction(backHref, "Back to your records"),
+        linkAction("/support", "Get help")
+      ])
+    );
+  }
 
   for (const key of Object.keys(RESOURCES)) {
     const [productKey, resource] = key.split(":");
@@ -35,11 +48,18 @@ function registerModuleCrudRoutes(app, deps = {}) {
     app.patch(`/api/${slug}/${resource}/:id`, guard, async (req, res) =>
       send(res, await moduleCrud.update(req, productKey, resource, req.params.id, req.body)));
 
+    // POST is the same update. HTML forms cannot send PATCH, and the rest of
+    // this application is server-rendered and works without JavaScript --
+    // correcting a mistyped customer email should not be the one screen that
+    // needs it.
+    app.post(`/api/${slug}/${resource}/:id`, guard, async (req, res) =>
+      respond(req, res, await moduleCrud.update(req, productKey, resource, req.params.id, req.body), `/${slug}/${resource}`));
+
     app.post(`/api/${slug}/${resource}/:id/archive`, guard, async (req, res) =>
-      send(res, await moduleCrud.archive(req, productKey, resource, req.params.id)));
+      respond(req, res, await moduleCrud.archive(req, productKey, resource, req.params.id), `/${slug}/${resource}`));
 
     app.post(`/api/${slug}/${resource}/:id/restore`, guard, async (req, res) =>
-      send(res, await moduleCrud.restore(req, productKey, resource, req.params.id)));
+      respond(req, res, await moduleCrud.restore(req, productKey, resource, req.params.id), `/${slug}/${resource}`));
   }
 }
 

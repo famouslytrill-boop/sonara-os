@@ -37,7 +37,7 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
-const { createModuleCrud } = require("./lib/sonara-module-crud.cjs");
+const { createModuleCrud, resourceForForm, renderRecordCards } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
@@ -1316,7 +1316,7 @@ app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(produ
 
 // Listing, correcting and retiring the records a customer creates. These six
 // tools were create-only until now -- see routes/sonara-module-crud-routes.cjs.
-registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess });
+registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
@@ -1749,25 +1749,29 @@ function registerProduct(slug, config) {
   });
 
   for (const page of routes.free) {
-    app.get(page.path, requireWorkspaceAccess(productKey), (req, res) => {
-      res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: false }));
+    app.get(page.path, requireWorkspaceAccess(productKey), async (req, res) => {
+      const records = await workspaceRecordCards(req, page);
+      res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: false, records }));
     });
   }
 
   for (const page of routes.paid) {
-    app.get(page.path, requirePaidOrOwnerAccess(productKey), (req, res) => {
-      res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: true }));
+    app.get(page.path, requirePaidOrOwnerAccess(productKey), async (req, res) => {
+      const records = await workspaceRecordCards(req, page);
+      res.status(200).type("html").send(workspaceToolPage({ slug, config, page, access: req.sonaraAccess, paid: true, records }));
     });
   }
 }
 
 
-function workspaceToolPage({ slug, config, page, access, paid }) {
+function workspaceToolPage({ slug, config, page, access, paid, records = "" }) {
   const sections = [
     ...workspaceFormSections(page),
     brandCard("What this tool does", page.body),
     workspaceServiceCard(page, paid),
-    ...workspaceRecordSections(page)
+    // The customer's own saved records, when this tool has any to show. The
+    // generic "your saved work" card stays for tools that do not.
+    ...(records ? [records] : workspaceRecordSections(page))
   ];
   return layout({
     title: page.title,
@@ -1810,6 +1814,31 @@ function workspaceFormSections(page) {
 function workspaceRecordSections(page) {
   if (!page.api) return [];
   return [brandCard("Your saved work", "Recent results appear in your private workspace after they are saved.")];
+}
+
+// The customer's own saved records, rendered on the tool that made them.
+//
+// Before this, every tool page said "recent results appear in your private
+// workspace" and then showed nothing -- the records were reachable only through
+// an aggregate JSON feed. A tool that can create a lead and never show it back
+// is not finished.
+//
+// Returns "" for pages with no editable resource, and for any failure. A
+// records list that cannot load should leave the tool usable rather than take
+// the page down with it.
+async function workspaceRecordCards(req, page) {
+  const match = page.form ? resourceForForm(page.form) : null;
+  if (!match) return "";
+  const result = await moduleCrud
+    .list({ ...req, query: { ...req.query, limit: 20 } }, match.productKey, match.resource)
+    .catch(() => ({ ok: false }));
+  if (!result.ok) return "";
+  const slug = match.productKey.replace(/_/g, "-");
+  return renderRecordCards({
+    records: result.body.records || [],
+    spec: match.spec,
+    basePath: `/api/${slug}/${match.resource}`
+  });
 }
 
 
