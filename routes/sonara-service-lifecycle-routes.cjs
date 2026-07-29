@@ -75,6 +75,7 @@ function catalogCardBody(item) {
 
 module.exports = function registerServiceLifecycleRoutes(app, deps) {
   const {
+    resolveCustomerSession,
     layout,
     brandCard,
     actionCard,
@@ -1047,8 +1048,55 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   </article>`;
   }
 
-  app.get("/support", (req, res) => {
+
+  // The customer's own support requests.
+  //
+  // Somebody who submits a request gets a reference number and then had nowhere
+  // to look it up again -- support_requests was read only by /admin/support,
+  // which is an operator surface listing every tenant. "I asked for help, what
+  // happened?" had no answer in the product.
+  //
+  // Organization-scoped, like every other customer read. Returns "" when there
+  // is no session, no workspace, or no database, because /support is a public
+  // page and must still render for a signed-out visitor.
+  async function customerSupportRequestCards(req, res) {
+    // /support carries no auth middleware, so nothing has resolved a session by
+    // the time this runs. Resolve one without requiring it: a visitor simply
+    // gets no list.
+    let user = req.sonaraUser || req.sonaraAccess?.user;
+    if (!user && typeof resolveCustomerSession === "function") {
+      const session = await resolveCustomerSession(req, res).catch(() => ({ ok: false }));
+      if (session.ok) user = session.user;
+    }
+    if (!user) return "";
+    const config = getSupabaseServerConfig();
+    if (!config.ok) return "";
+    const organization = await getCustomerPrimaryOrganization(user).catch(() => ({ ok: false }));
+    if (!organization.ok || !organization.organizationId) return "";
+
+    const url = `${config.url}/rest/v1/support_requests?select=reference_id,subject,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=10`;
+    const response = await fetch(url, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!response?.ok) return "";
+    const requests = await response.json().catch(() => []);
+    if (!requests.length) return "";
+
+    const rows = requests.map((entry) => {
+      const when = entry.created_at ? new Date(entry.created_at) : null;
+      const raised = when && !Number.isNaN(when.getTime())
+        ? when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+        : "recently";
+      const status = String(entry.status || "open").replace(/_/g, " ");
+      const reference = String(entry.reference_id || "").slice(0, 8);
+      return `<p><strong>${escapeHtml(String(entry.subject || "Support request"))}</strong><br>
+        Reference ${escapeHtml(reference)} &middot; ${escapeHtml(status)} &middot; raised ${escapeHtml(raised)}</p>`;
+    }).join("");
+
+    return `<article class="card"><h2>Your support requests</h2><p>The ten most recent from your workspace, newest first.</p>${rows}</article>`;
+  }
+
+  app.get("/support", async (req, res) => {
     const readiness = getReadiness();
+    const yourRequests = await customerSupportRequestCards(req, res);
     res.status(200).type("html").send(
       layout({
         title: "Support",
@@ -1057,6 +1105,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         body: "Submit a support request and get a reference ID right away. Every request is tracked, so you always have that ID to follow up.",
         sections: [
           supportForm("support"),
+          // Only shown when there is something to show; a signed-out visitor
+          // sees the page exactly as before.
+          ...(yourRequests ? [yourRequests] : []),
           brandCard("What happens to your request", readiness.services.supabase === "configured" ? "Your request is saved and tracked, and you get a reference number." : "Your request is saved safely with a reference number, so nothing gets lost while setup finishes."),
           actionCard("Other paths", "Billing questions, account access, and general contact all route through the same tracked intake.", [linkAction("/contact", "Contact form"), linkAction("/api/support/status", "Support status JSON")])
         ],
