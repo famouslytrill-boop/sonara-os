@@ -484,11 +484,19 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       heading: "Campaigns, customers, results, experiments, and follow-up",
       body: "Operate a measurable growth system without fake publishing, fabricated attribution, purchased lists, or autonomous ad spend.",
       sections,
+      // Point a customer at pages, not at JSON. Campaigns and leads now have
+      // real screens that list the records and let them be corrected or
+      // archived, and the dashboard already links them this way.
+      //
+      // Live numbers and provider jobs still point at the API: /growth-studio/analytics
+      // is behind a paid plan and /growth-studio/provider-jobs redirects, so
+      // linking either from here would send somebody somewhere worse than the
+      // raw data.
       actions: [
-        ui.link("/api/growth/readiness", "Setup status"),
+        ui.link("/growth-studio/launch-readiness", "Setup status"),
         ui.link("/api/growth/metrics", "Live numbers"),
-        ui.link("/api/growth/campaigns", "Campaigns"),
-        ui.link("/api/growth/leads", "Leads"),
+        ui.link("/growth-studio/campaigns", "Campaigns"),
+        ui.link("/growth-studio/leads", "Leads"),
         ui.link("/api/growth/provider-jobs", "Provider jobs")
       ]
     }));

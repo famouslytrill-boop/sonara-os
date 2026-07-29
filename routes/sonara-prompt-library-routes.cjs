@@ -13,6 +13,7 @@ const {
   validatePromptRecord
 } = require("../lib/sonara-prompt-library.cjs");
 const { PROMPT_LIBRARY_TABLES } = require("../data/prompts-chat-reference.cjs");
+const { escapeHtml } = require("../lib/sonara-shell.cjs");
 
 const LIVE_PROBE_TIMEOUT_MS = 900;
 
@@ -119,9 +120,10 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     return res.status(result.ok ? 200 : 400).json(result);
   });
 
-  registerWorkspacePage(app, "business_builder", requireWorkspaceAccess, layout, brandCard, linkAction);
-  registerWorkspacePage(app, "creator_studio", requireWorkspaceAccess, layout, brandCard, linkAction);
-  registerWorkspacePage(app, "growth_studio", requireWorkspaceAccess, layout, brandCard, linkAction);
+  const promptPageDeps = { requireWorkspaceAccess, layout, brandCard, linkAction, escapeHtml, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders };
+  registerWorkspacePage(app, "business_builder", promptPageDeps);
+  registerWorkspacePage(app, "creator_studio", promptPageDeps);
+  registerWorkspacePage(app, "growth_studio", promptPageDeps);
 
   app.get("/api/prompt-library/templates", selectWorkspace(requireWorkspaceAccess, (req) => req.query.product), async (req, res) => {
     const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders });
@@ -372,21 +374,59 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
   });
 };
 
-function registerWorkspacePage(app, productArea, requireWorkspaceAccess, layout, brandCard, linkAction) {
+function registerWorkspacePage(app, productArea, deps) {
+  const { requireWorkspaceAccess, layout, brandCard, linkAction, escapeHtml, getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders } = deps;
   const path = `/${productArea.replace("_", "-")}/prompts`;
-  app.get(path, requireWorkspaceAccess(productArea), (req, res) => {
+
+  // A customer's own saved templates and collections.
+  //
+  // This page listed the starter templates and then offered two links labelled
+  // "My saved templates JSON" and "My collections JSON". Clicking either gave a
+  // wall of JSON, and it was the only way to see anything you had saved.
+  //
+  // Returns "" on any failure, so the starter templates still render.
+  async function savedWorkCards(req) {
+    const context = await customerContext(req, { getSupabaseServerConfig, getCustomerPrimaryOrganization, supabaseHeaders }).catch(() => ({ ok: false }));
+    if (!context.ok) return "";
+    const visibility = promptVisibilityQuery(req.sonaraUser?.id, false);
+    if (!visibility.ok) return "";
+
+    const scope = `?organization_id=eq.${context.organizationId}&product_area=eq.${productArea}&${visibility.query}`;
+    const [templates, collections] = await Promise.all([
+      restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false })),
+      restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false }))
+    ]);
+
+    const cards = [];
+    const saved = templates.ok ? templates.rows || [] : [];
+    const sets = collections.ok ? collections.rows || [] : [];
+
+    if (saved.length) {
+      cards.push(`<article class="card"><h2>Your saved instructions</h2>${saved
+        .map((row) => `<p>${escapeHtml(String(row.title || "Untitled"))}</p>`)
+        .join("")}</article>`);
+    }
+    if (sets.length) {
+      cards.push(`<article class="card"><h2>Your collections</h2>${sets
+        .map((row) => `<p>${escapeHtml(String(row.name || "Untitled collection"))}</p>`)
+        .join("")}</article>`);
+    }
+    if (!cards.length && (templates.ok || collections.ok)) {
+      cards.push('<article class="card"><h2>Your saved instructions</h2><p>Nothing saved yet. Anything you save here will be private to your workspace and listed on this page.</p></article>');
+    }
+    return cards.join("");
+  }
+
+  app.get(path, requireWorkspaceAccess(productArea), async (req, res) => {
     const templates = listPromptTemplates({ productArea });
+    const savedWork = await savedWorkCards(req);
     return res.status(200).type("html").send(layout({
       title: `${PRODUCT_LABELS[productArea]} Prompt Library`,
       eyebrow: PRODUCT_LABELS[productArea],
       heading: "Prompt Library",
-      body: "Use original starter instructions immediately, or use the authenticated APIs to save private organization templates, create versions, build collections, connect workflows, and record prepared runs.",
-      sections: templates.map((item) => promptCard(item, brandCard, linkAction)),
-      actions: [
-        linkAction(`/api/prompt-library/templates?product=${productArea}`, "My saved templates JSON"),
-        linkAction(`/api/prompt-library/collections?product=${productArea}`, "My collections JSON"),
-        linkAction("/prompt-library", "Public Prompt Library")
-      ]
+      body: "Use these starter instructions straight away, or save your own. Anything you save stays private to your workspace.",
+      sections: [...(savedWork ? [savedWork] : []), ...templates.map((item) => promptCard(item, brandCard, linkAction))],
+      actions: [linkAction("/prompt-library", "Public Prompt Library")]
     }));
   });
 }

@@ -1109,7 +1109,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           // sees the page exactly as before.
           ...(yourRequests ? [yourRequests] : []),
           brandCard("What happens to your request", readiness.services.supabase === "configured" ? "Your request is saved and tracked, and you get a reference number." : "Your request is saved safely with a reference number, so nothing gets lost while setup finishes."),
-          actionCard("Other paths", "Billing questions, account access, and general contact all route through the same tracked intake.", [linkAction("/contact", "Contact form"), linkAction("/api/support/status", "Support status JSON")])
+          actionCard("Other paths", "Billing questions, account access, and general contact all route through the same tracked intake.", [linkAction("/contact", "Contact form"), linkAction("/readiness", "Check what is working")])
         ],
         actions: [linkAction("/", "Home"), linkAction("/dashboard", "Dashboard"), linkAction("/help", "Help")]
       })
