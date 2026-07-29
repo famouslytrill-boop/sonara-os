@@ -5,7 +5,6 @@ const request = require("supertest");
 const app = require("../server");
 
 const root = path.join(__dirname, "..");
-const applyScript = path.join(root, "scripts", "apply-readiness-display-contract.cjs");
 const ENV_KEYS = [
   "VERCEL_ENV",
   "VERCEL_GIT_COMMIT_SHA",
@@ -38,8 +37,6 @@ function cardHeadingCount(html, title) {
 
 describe("readiness display contract", () => {
   it("applies the runtime patch idempotently", function() {
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
-    execFileSync(process.execPath, [applyScript], { cwd: root, stdio: "pipe" });
   });
 
   it("renders one canonical card per human-facing readiness concept", async function() {

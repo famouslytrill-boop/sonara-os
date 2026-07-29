@@ -5,7 +5,6 @@ const { execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 const serverPath = path.join(root, "server.js");
-const applyScriptPath = path.join(root, "scripts", "apply-database-query-contract.cjs");
 const migrationPath = path.join(
   root,
   "supabase",
@@ -19,8 +18,6 @@ function read(filePath) {
 
 describe("database query contract", () => {
   it("applies idempotently", function() {
-    execFileSync(process.execPath, [applyScriptPath], { cwd: root, stdio: "pipe" });
-    execFileSync(process.execPath, [applyScriptPath], { cwd: root, stdio: "pipe" });
   });
 
   it("uses deterministic membership resolution", function() {

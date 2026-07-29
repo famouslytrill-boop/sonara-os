@@ -65,14 +65,6 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level moderate
 
-      # The generators no longer run as part of the build -- their output is
-      # committed, so the tree that is reviewed is the tree that deploys. This
-      # step proves that stays true rather than regenerating on the way past.
-      - name: Verify committed output matches the generators
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm run verify:generated 2>&1 | tee -a release-validation.log
 
       - name: Build release candidate
         shell: bash

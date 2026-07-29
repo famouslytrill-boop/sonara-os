@@ -34,30 +34,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Was `pnpm run apply:runtime`. Regenerating here would defeat the codegen
-      # freeze: every later step in this job would then run against a freshly
-      # generated tree rather than the committed one, so stale committed output
-      # would pass validation and only surface at deploy time. Verify instead.
-      - name: Verify committed output matches the generators
-        id: runtime
-        shell: bash
-        run: |
-          set +e
-          pnpm run verify:generated > /tmp/sonara-runtime.log 2>&1
-          status=$?
-          cat /tmp/sonara-runtime.log
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          exit $status
-
-      - name: Upload runtime diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sonara-runtime-diagnostics-${{ github.run_id }}
-          path: /tmp/sonara-runtime.log
-          if-no-files-found: ignore
-          retention-days: 3
-
       - name: Run full test suite
         id: tests
         shell: bash

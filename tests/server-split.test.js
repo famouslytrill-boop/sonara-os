@@ -1,16 +1,21 @@
 "use strict";
 
-// Guard rails for splitting server.js, so the split can run in the background
-// without ever being the reason a release is held.
+// Guard rails for splitting server.js.
 //
-// server.js was 5,119 lines and 44 scripts/apply-*.cjs mutate it in place. That
-// combination is what makes the split risky: 765 distinct strings in the file
-// are replacement targets or anchors for those generators, and moving one
-// breaks the build in a way that surfaces only when apply:runtime next runs --
-// which, before the codegen freeze, was during a production build.
+// For most of this split the danger was code generation: 56 scripts/apply-*.cjs
+// mutated server.js in place, anchored on hundreds of strings in it, and moving
+// one broke the build at apply:runtime rather than at the diff. Two extractions
+// were broken that way -- by generators that never mentioned the function they
+// broke, only a line inside its body.
 //
-// So the rule is: extract only what no generator anchors on, and prove it each
-// time rather than remembering it.
+// The generators are retired. server.js is ordinary hand-maintained code now, so
+// the checks that watched for generator collisions are gone rather than kept as
+// assertions over an empty set: a check that cannot fail is worse than no check,
+// because it still reports success.
+//
+// What remains is what still has teeth -- no function may be declared here and
+// in a module at once, each module must own what it claims, no binding may
+// linger that nothing uses, and the file may not grow.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -26,13 +31,6 @@ function codeOnly(source) {
   return String(source)
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
-}
-
-function generatorSources() {
-  return fs
-    .readdirSync(path.join(root, "scripts"))
-    .filter((name) => name.startsWith("apply-") && name.endsWith(".cjs"))
-    .map((name) => ({ name, source: fs.readFileSync(path.join(root, "scripts", name), "utf8") }));
 }
 
 // Modules lifted out of server.js so far. Each entry names what moved and the
@@ -140,66 +138,12 @@ const EXTRACTED = [
 ];
 
 describe("the server.js split stays safe", () => {
-  // What this test can and cannot do, stated plainly.
-  //
-  // The authoritative check that an extraction has not broken code generation
-  // is empirical: run `pnpm run apply:runtime` twice and confirm the tree is
-  // unchanged. verify:generated does exactly that in CI, and it is what caught
-  // the one real breakage in this split -- apply-growth-studio-public-positioning.cjs
-  // anchors on `linkAction("/growth-studio/dashboard", "Open dashboard")`, a
-  // line *inside* productLandingActions rather than the function name, so no
-  // amount of name matching would have seen it coming.
-  //
-  // I tried to catch that statically by scanning generators for any long quoted
-  // string that had moved. It flagged six more cases, every one of them false:
-  // route paths like "/growth-studio/experiments" that those generators write
-  // into routes/ and lib/sonara-route-registry.cjs, and never anchored on in
-  // server.js at all. A check with that false-positive rate gets muted, and
-  // then it catches nothing.
-  //
-  // So this is deliberately the narrow, reliable version: a generator that
-  // names an extracted function must also open the module it moved to. It is an
-  // early warning for the obvious case, not a substitute for apply:runtime.
-  it("leaves no generator naming a function server.js can no longer resolve", () => {
-    // Refined once more, in step 2. A generator referencing an extracted
-    // function is fine when it only *calls* it and the call site stays in
-    // server.js -- getReadiness() is still a binding there, brought back in by
-    // the destructured require, so apply-advanced-builder-ui.cjs and two others
-    // that emit `renderAdvancedBuilderHomepage(getReadiness())` keep working.
-    //
-    // The violation is narrower than "the generator mentions it": the name has
-    // to be unresolvable in server.js *and* the generator has to not open the
-    // module it moved to.
-    const generators = generatorSources();
-    const violations = [];
-
-    for (const extraction of EXTRACTED) {
-      const moduleFile = path.basename(extraction.module);
-      for (const generator of generators) {
-        if (generator.source.includes(moduleFile)) continue;
-        for (const fn of extraction.functions) {
-          if (!generator.source.includes(fn)) continue;
-          // Still reachable where the generator looks?
-          const boundInServer = new RegExp(`^\\s*${fn},?\\s*$`, "m").test(serverSource);
-          if (boundInServer) continue;
-          violations.push(`scripts/${generator.name} references ${fn}, which server.js can no longer resolve`);
-        }
-      }
-    }
-
-    assert.deepEqual(
-      violations,
-      [],
-      `These generators reference code that has moved:\n  ${violations.join("\n  ")}\n\n` +
-        "Either leave it in server.js, or point the generator at the module it moved to."
-    );
-  });
-
   it("left no orphan definition behind in server.js", () => {
     // Two definitions of the same function is what happened when
-    // apply-catalog-helper-scope.cjs reinserted a helper that had been edited
-    // in place: the file parsed, the tests passed, and the later definition
-    // silently won.
+    // apply-catalog-helper-scope.cjs reinserted a helper that had been edited in
+    // place: the file parsed, the tests passed, and the later definition
+    // silently won. That generator is gone, but a duplicate declaration is still
+    // silent -- an extraction that forgets to delete the original leaves both.
     for (const extraction of EXTRACTED) {
       for (const fn of extraction.functions) {
         // `async` matters: most of what lib/sonara-billing.cjs owns is async, and
@@ -231,24 +175,21 @@ describe("the server.js split stays safe", () => {
     // reach it, so a dead binding quietly vouches for a call site nobody
     // checked.
     //
-    // Two are deliberately kept -- apply-growth-studio-verifier.cjs writes code
-    // into server.js calling DATABASE_FUNCTIONS and DATABASE_SCHEMAS, so the
-    // binding is what keeps that generated call resolvable. Anything else bound
-    // and never used is dead.
+    // Two used to be exempt: apply-growth-studio-verifier.cjs wrote code into
+    // server.js calling DATABASE_FUNCTIONS and DATABASE_SCHEMAS, so the binding
+    // kept that generated call resolvable. That generator is retired and the
+    // exemption went with it -- nothing writes into this file any more, so a
+    // binding nothing uses is simply dead.
     //
     // eslint reports these as warnings, which is why thirty-six of them piled
     // up. This is the same finding with teeth.
-    const KEPT_FOR_GENERATORS = new Set(["DATABASE_FUNCTIONS", "DATABASE_SCHEMAS"]);
-    const generators = generatorSources();
     const dead = [];
 
     for (const extraction of EXTRACTED) {
       for (const fn of extraction.functions) {
-        if (KEPT_FOR_GENERATORS.has(fn)) continue;
         if (!new RegExp(`^\\s*${fn},?\\s*$`, "m").test(serverSource)) continue;
         const uses = (serverSource.match(new RegExp(`\\b${fn}\\b`, "g")) || []).length;
         if (uses > 1) continue;
-        if (generators.some((generator) => generator.source.includes(fn))) continue;
         dead.push(fn);
       }
     }
@@ -262,12 +203,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,143 lines after the dead bindings went, down
-    // from 5,119. If a change adds to server.js instead of a module, this asks
+    // A ratchet, not a target. 4,135 lines after the generators were retired,
+    // down from 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4160,
+      lines <= 4150,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

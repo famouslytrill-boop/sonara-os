@@ -57,7 +57,7 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
 | 6 | Customer sessions — 21 functions | 250 | 1 (boundary) | **done** — `lib/sonara-customer-auth.cjs` |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
-| 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 11 | **do not attempt** until the homepage generator is retired |
+| 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 0 (retired) | unblocked — next |
 
 Only step 7b is left, and it is the one row whose original grade survived
 contact with the evidence.

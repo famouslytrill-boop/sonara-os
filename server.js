@@ -24,19 +24,11 @@ const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
-// DATABASE_FUNCTIONS and DATABASE_SCHEMAS read as unused and are not. Lint sees
-// this file; apply-growth-studio-verifier.cjs writes code into it that calls
-// them, so removing the binding turns a generated call site into a
-// ReferenceError at request time -- which node --check and the test suite both
-// pass straight over. Thirty-six genuinely dead bindings were removed here after
-// the split; these two survived the same check because that generator names
-// them. Leave them.
-const {
-  DATABASE_FUNCTIONS,
-  DATABASE_SCHEMAS,
-  DATABASE_TABLES,
-  STORAGE_BUCKETS
-} = require("./lib/sonara-database-contract.cjs");
+// DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
+// because apply-growth-studio-verifier.cjs wrote code into this file that called
+// them. That generator is retired along with the other fifty-five, so nothing
+// writes here any more and the two bindings went with it.
+const { DATABASE_TABLES, STORAGE_BUCKETS } = require("./lib/sonara-database-contract.cjs");
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");

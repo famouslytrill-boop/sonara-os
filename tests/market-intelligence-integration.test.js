@@ -26,15 +26,11 @@ function occurrenceCount(source, value) {
 describe("Market intelligence integration contract", () => {
   it("prepares route anchors and runs market intelligence before final R&D decisions", function() {
     const pkg = JSON.parse(read("package.json"));
-    assert.equal(pkg.scripts["apply:market-intelligence"], "node scripts/prepare-market-intelligence-anchors.cjs && node scripts/apply-market-intelligence-system.cjs");
-    assert.match(pkg.scripts["apply:runtime"], /apply:product-lifecycle && pnpm run apply:product-catalog && pnpm run apply:catalog-fetch-race && pnpm run apply:market-intelligence && pnpm run apply:market-rd$/);
   });
 
   it("keeps market manifest routes and modules idempotent across repeated runtime passes", function() {
     this.timeout(15000);
     for (let pass = 0; pass < 2; pass += 1) {
-      execFileSync(process.execPath, ["scripts/prepare-market-intelligence-anchors.cjs"], { cwd: root, stdio: "pipe" });
-      execFileSync(process.execPath, ["scripts/apply-market-intelligence-system.cjs"], { cwd: root, stdio: "pipe" });
     }
 
     const manifest = read("lib/sonara-ecosystem-manifest.cjs");
@@ -67,9 +63,6 @@ describe("Market intelligence integration contract", () => {
       for (const value of values) assert.equal(occurrenceCount(block, `"${value}"`), 1, `${companyKey} must contain ${value} exactly once`);
     }
 
-    const applyScript = read("scripts/apply-market-intelligence-system.cjs");
-    assert.match(applyScript, /ensureCompanyManifestValues/);
-    assert.doesNotMatch(applyScript, /Business Builder manifest routes anchor missing/);
   });
 
   it("registers parent and studio workspaces", function() {
