@@ -39,13 +39,25 @@ const OWNER_PAGES = [
   ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: locations, staff, services, bookings, inventory, vendors, invoices, food costs, vehicles, and maintenance."]
 ];
 
+// The staff portal.
+//
+// The owner area can now add people, shifts, time entries and tasks. These are
+// the pages the people themselves see, and until now every one of them rendered
+// three cards explaining what it would show.
+//
+// The boundary here is one level in from the tenant one. An organization filter
+// is not enough: a colleague is inside the same organization. Shifts, time
+// entries and tasks belong to one person, so they are scoped by that person's
+// employee record, and a signed-in user who has no employee record sees nothing
+// rather than everything. Announcements are the exception -- they are addressed
+// to the business, so they are scoped by organization on purpose.
 const STAFF_PAGES = [
-  ["/staff", "Staff Portal", "Staff can see schedule, tasks, announcements, time entries, and assigned job information."],
-  ["/staff/schedule", "My Schedule", "View assigned shifts and locations."],
-  ["/staff/time", "My Time", "Start and stop work entries when owner access rules allow it."],
-  ["/staff/tasks", "My Tasks", "Review assigned tasks and due dates."],
-  ["/staff/announcements", "Announcements", "Read business updates from the owner or manager."],
-  ["/staff/location", "My Location", "Use approved location check-ins for job sites, routes, deliveries, and mobile vendors."]
+  ["/staff", "Staff Portal", "Your shifts, hours, tasks and updates from whoever runs your workplace."],
+  ["/staff/schedule", "My Schedule", "When you are working and where."],
+  ["/staff/time", "My Time", "Hours you have recorded."],
+  ["/staff/tasks", "My Tasks", "What has been assigned to you."],
+  ["/staff/announcements", "Announcements", "Updates from whoever runs your workplace."],
+  ["/staff/location", "My Location", "Check-ins you have recorded for job sites, routes and deliveries."]
 ];
 
 const CREATOR_PAGES = [
@@ -117,18 +129,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   });
 
   STAFF_PAGES.forEach(([path, title, body]) => {
-    app.get(path, requireCustomer, (req, res) => {
+    app.get(path, requireCustomer, async (req, res) => {
+      const config = getConfig(deps);
+      const org = await resolveOrganization(req, deps);
+      const me = await resolveEmployee(config, org, req);
+      const sections = await staffSections(config, org, me, path, ui);
       return res.status(200).type("html").send(ui.layout({
         title,
         eyebrow: "Staff portal",
         heading: title,
         body,
-        sections: [
-          ui.card("Limited access", "Staff users see only assigned schedule, tasks, announcements, time entries, and allowed job information."),
-          ui.card("Owner controlled", "Business owners decide what staff can access. Staff users are not business administrators."),
-          ui.card("Device support", "Location, sound, vibration, and motion features require user permission and compatible devices.")
-        ],
-        actions: [ui.link("/staff/schedule", "Schedule"), ui.link("/staff/time", "Time"), ui.link("/staff/tasks", "Tasks"), ui.link("/staff/location", "Location")]
+        sections,
+        actions: [ui.link("/staff", "Staff Portal"), ui.link("/staff/schedule", "Schedule"), ui.link("/staff/time", "Time"), ui.link("/staff/tasks", "Tasks"), ui.link("/staff/announcements", "Announcements")]
       }));
     });
   });
@@ -296,6 +308,113 @@ function registerRestResource(app, path, resource, deps, middleware) {
     const saved = await supabaseInsert(config, resource.table, payload);
     return respond(saved?.ok === false ? 502 : 200, saved);
   });
+}
+
+// Which employee record belongs to the signed-in person. Everything personal in
+// the staff portal hangs off this: no record, no rows. Returning nothing when we
+// cannot identify somebody is the whole point -- the alternative is showing them
+// the whole workplace.
+async function resolveEmployee(config, org, req) {
+  const user = req.sonaraUser || req.sonaraCustomer?.user || req.sonaraAccess?.user || null;
+  if (!config.ok || !org.ok || !user?.id) return { ok: false };
+  const found = await supabaseList(
+    config,
+    "business_employee_profiles",
+    `?select=id,display_name,job_title,employment_type,status,location_id&organization_id=eq.${encodeURIComponent(org.organizationId)}&user_id=eq.${encodeURIComponent(user.id)}&limit=1`
+  );
+  const profile = found.ok ? found.rows[0] : undefined;
+  return profile ? { ok: true, profile } : { ok: false };
+}
+
+const STAFF_EMPTY = "Nothing here yet.";
+
+async function staffSections(config, org, me, path, ui) {
+  if (!config.ok) return [ui.card("Not available right now", "Your workplace account is not connected yet, so there is nothing to show.")];
+  if (!org.ok) return [ui.card("Not available right now", "We could not tell which workplace you belong to. Sign in again and this will fill up.")];
+
+  // Announcements are addressed to the business, so they are the one thing here
+  // that is not scoped to one person.
+  if (path === "/staff/announcements") {
+    const listed = await supabaseList(config, "employee_announcements", `?select=title,message,published_at,status&organization_id=eq.${encodeURIComponent(org.organizationId)}&status=eq.published&order=published_at.desc&limit=50`);
+    if (!listed.ok) return [ui.card("Not available right now", "We could not load updates just now. Try again shortly.")];
+    return listed.rows.length
+      ? listed.rows.map((row) => ui.card(row.title || "Update", `${row.message || ""} ${row.published_at ? `Posted ${String(row.published_at).slice(0, 10)}.` : ""}`.trim()))
+      : [ui.card("No updates", "Nothing has been posted to your workplace yet.")];
+  }
+
+  if (!me.ok) {
+    return [ui.card("You are not set up as staff here yet", "Whoever runs your workplace needs to add you before your shifts, hours and tasks appear. Nothing is shown until then.")];
+  }
+
+  const employeeId = encodeURIComponent(me.profile.id);
+  if (path === "/staff") {
+    const profile = me.profile;
+    return [
+      ui.card(profile.display_name || "Your details", [
+        profile.job_title ? `${profile.job_title}.` : "",
+        `Working as ${String(profile.employment_type || "staff").replaceAll("_", " ")}.`,
+        `Your access is ${String(profile.status || "active").replaceAll("_", " ")}.`
+      ].filter(Boolean).join(" ")),
+      ui.card("What you can see here", "Your own shifts, hours, tasks and check-ins, plus updates posted to the whole workplace. You do not see other people's.")
+    ];
+  }
+
+  if (path === "/staff/schedule") {
+    const listed = await supabaseList(config, "employee_schedules", `?select=role_label,starts_at,ends_at,status,notes&organization_id=eq.${encodeURIComponent(org.organizationId)}&employee_id=eq.${employeeId}&order=starts_at.desc&limit=50`);
+    if (!listed.ok) return [ui.card("Not available right now", "We could not load your shifts just now.")];
+    return listed.rows.length
+      ? listed.rows.map((row) => ui.card(row.role_label || "Shift", `${when(row.starts_at)} to ${when(row.ends_at)}. ${String(row.status || "scheduled").replaceAll("_", " ")}.${row.notes ? ` ${row.notes}` : ""}`))
+      : [ui.card("No shifts", "You have no shifts scheduled.")];
+  }
+
+  if (path === "/staff/time") {
+    const listed = await supabaseList(config, "employee_time_entries", `?select=clock_in_at,clock_out_at,break_minutes,status&organization_id=eq.${encodeURIComponent(org.organizationId)}&employee_id=eq.${employeeId}&order=clock_in_at.desc&limit=50`);
+    if (!listed.ok) return [ui.card("Not available right now", "We could not load your hours just now.")];
+    return listed.rows.length
+      ? listed.rows.map((row) => ui.card(when(row.clock_in_at), `${row.clock_out_at ? `Until ${when(row.clock_out_at)}. ${workedHours(row)}.` : "Still open."} ${String(row.status || "open").replaceAll("_", " ")}.`))
+      : [ui.card("No hours recorded", STAFF_EMPTY)];
+  }
+
+  if (path === "/staff/tasks") {
+    const listed = await supabaseList(config, "employee_tasks", `?select=title,description,due_at,priority,status&organization_id=eq.${encodeURIComponent(org.organizationId)}&assigned_employee_id=eq.${employeeId}&order=due_at.asc&limit=50`);
+    if (!listed.ok) return [ui.card("Not available right now", "We could not load your tasks just now.")];
+    return listed.rows.length
+      ? listed.rows.map((row) => ui.card(row.title || "Task", [
+        row.description || "",
+        row.due_at ? `Due ${when(row.due_at)}.` : "No due date.",
+        `${String(row.priority || "normal").replaceAll("_", " ")} priority, ${String(row.status || "todo").replaceAll("_", " ")}.`
+      ].filter(Boolean).join(" ")))
+      : [ui.card("No tasks", "Nothing has been assigned to you.")];
+  }
+
+  if (path === "/staff/location") {
+    const listed = await supabaseList(config, "location_events", `?select=event_type,created_at,privacy_mode&organization_id=eq.${encodeURIComponent(org.organizationId)}&employee_id=eq.${employeeId}&order=created_at.desc&limit=50`);
+    if (!listed.ok) return [ui.card("Not available right now", "We could not load your check-ins just now.")];
+    return [
+      ui.card("Nothing runs on its own", "Check-ins happen when you choose to record one and your device allows it. Nothing here tracks you in the background."),
+      ...(listed.rows.length
+        ? listed.rows.map((row) => ui.card(String(row.event_type || "check-in").replaceAll("_", " "), `${when(row.created_at)}.`))
+        : [ui.card("No check-ins", STAFF_EMPTY)])
+    ];
+  }
+
+  return [ui.card("Nothing here yet", STAFF_EMPTY)];
+}
+
+function when(value) {
+  if (!value) return "Not set";
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return "Not set";
+  return parsed.toISOString().replace("T", " ").slice(0, 16);
+}
+
+function workedHours(row) {
+  const start = new Date(String(row.clock_in_at));
+  const end = new Date(String(row.clock_out_at));
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "Length not recorded";
+  const minutes = (end - start) / 60000 - Number(row.break_minutes || 0);
+  if (!Number.isFinite(minutes) || minutes < 0) return "Length not recorded";
+  return `${(minutes / 60).toFixed(2)} hours`;
 }
 
 // An empty text box means "I did not fill this in", not "set this column to
