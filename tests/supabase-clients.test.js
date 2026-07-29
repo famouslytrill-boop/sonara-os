@@ -113,7 +113,15 @@ describe("choosing a client", () => {
 });
 
 describe("the policies that make user-scoped reads possible", () => {
-  const migration = path.join(__dirname, "..", "supabase", "migrations", "20260728120000_member_read_policies.sql");
+  // Read whichever migration the generator currently writes, rather than naming
+  // one here. 20260728120000 is already applied in production and cannot be
+  // edited -- supabase db push tracks migrations by filename -- so the generator
+  // emits a new file when the table list grows. A hardcoded path here would keep
+  // asserting against the old one and pass while the new policies went
+  // unchecked.
+  const generatorPath = path.join(__dirname, "..", "scripts", "generate-member-read-policies.cjs");
+  const migrationName = /const migrationName = "([^"]+)"/.exec(fs.readFileSync(generatorPath, "utf8"))[1];
+  const migration = path.join(__dirname, "..", "supabase", "migrations", migrationName);
   const sql = fs.readFileSync(migration, "utf8");
   const { ORGANIZATION_READ_TABLES, PERSONAL_READ_TABLES } = require("../scripts/generate-member-read-policies.cjs");
 
