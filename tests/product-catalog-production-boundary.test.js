@@ -8,6 +8,7 @@ const {
   RECOMMENDED_PRODUCT_CATALOG,
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
+const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
 
 const root = path.join(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -134,6 +135,44 @@ describe("Recommended product catalog production boundary", () => {
       [],
       `The production deploy gate requires these strings in the shipped runtime, and none of them is there:\n  ${missing.join("\n  ")}\n\n` +
         "If code moved, it is still shipped and this is fine -- but the gate reads server.js plus lib/ and routes/, so anything outside that is invisible to it."
+    );
+  });
+
+  // The other half of the same deploy failure, and the more serious half.
+  //
+  // The gate required five literal strings on the live catalog page, among them
+  // "execution: restricted until lifecycle evidence and launch approval are
+  // complete". That is exactly the vocabulary the plain-language work took off
+  // every customer-facing screen, and that AGENTS.md forbids putting back. So
+  // the gate demanded copy the codebase is not allowed to have, and failed on a
+  // page that states the boundary perfectly well in words a customer can read.
+  //
+  // Nothing about paid access was actually unguarded. But a gate that can only
+  // pass by reintroducing retired wording is worse than no gate: the tempting
+  // fix is to delete it.
+  it("states the access boundary on the rendered catalog page", async function renderCatalog() {
+    this.timeout(30000);
+    const request = require("supertest");
+    const app = require("../server");
+    const response = await request(app).get("/service-catalog").set("accept", "text/html");
+    assert.equal(response.status, 200);
+
+    const visible = String(response.text)
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;|&apos;/g, "'")
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+    const missing = CATALOG_BOUNDARY_TEXT.filter((text) => !visible.includes(text.toLowerCase().replace(/\s+/g, " ")));
+    assert.deepEqual(
+      missing,
+      [],
+      `The catalog page no longer tells a customer why a product is closed, or how to ask:\n  ${missing.join("\n  ")}\n\n` +
+        "If the wording changed, change it in lib/sonara-plain-language.cjs -- the production gate reads the same list."
     );
   });
 

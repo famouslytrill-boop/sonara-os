@@ -10,6 +10,7 @@ const {
   RECOMMENDED_PRODUCT_CATALOG,
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
+const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -200,13 +201,23 @@ async function verifyProductionPages() {
     "the standard services are shown"
   ]) assert.equal(visibleText.includes(forbiddenFallback), false, `Production catalog is using fallback content: ${forbiddenFallback}`);
 
-  for (const requiredBoundary of [
-    "execution: restricted until lifecycle evidence and launch approval are complete",
-    "execution: restricted until a production paid-entitlement test passes",
-    "request validation discussion",
-    "request access verification",
-    "review lifecycle process"
-  ]) assert.ok(visibleText.includes(requiredBoundary), `Production catalog is missing boundary text: ${requiredBoundary}`);
+  // The catalog page must still tell a customer, in the open, that a governed
+  // product is not available and why -- and still offer them a way to ask.
+  //
+  // These used to be five literal strings: "execution: restricted until
+  // lifecycle evidence and launch approval are complete" and four like it. That
+  // is the vocabulary the plain-language work removed from every customer-facing
+  // screen, so this gate was requiring copy that AGENTS.md forbids putting back.
+  // It failed on a page that states the boundary perfectly well, in words a
+  // customer can read.
+  //
+  // The list now lives in lib/sonara-plain-language.cjs, read by this gate and
+  // by tests/product-catalog-production-boundary.test.js, so the gate follows
+  // the vocabulary instead of pinning it and the two cannot disagree.
+  for (const requiredBoundary of CATALOG_BOUNDARY_TEXT) {
+    const needle = normalizeText(requiredBoundary);
+    assert.ok(visibleText.includes(needle), `Production catalog is missing boundary text: ${needle}`);
+  }
 
   return {
     baseUrl,
