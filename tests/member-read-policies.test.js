@@ -50,7 +50,17 @@ function tablesTheRuntimeReads() {
   }
 
   const tables = new Set();
-  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
+  // Every read helper in the tree, not just the three this check first knew
+  // about. It listed safeListTable, safeCountTable and safeCountFiltered, so
+  // reads made through supabaseList in routes/sonara-last9-routes.cjs were
+  // invisible to it -- that helper builds its URL from `${config.url}/rest/v1/
+  // ${table}`, a variable, so the literal pattern below misses it too. Seven
+  // tables were being read without this check ever seeing them.
+  //
+  // Adding a helper is easy and forgetting to add it here is easier, so the
+  // final assertion in this file fails when a `(config, "table_name")` call
+  // uses a name that is not listed.
+  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered|supabaseList|supabaseCount|supabaseInsert|supabasePatch|rest)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
   const literal = /\/rest\/v1\/([a-z_]+)[?"'`]/g;
   for (const file of files) {
     const source = fs.readFileSync(file, "utf8");
@@ -66,7 +76,15 @@ const SERVICE_ROLE_ONLY = new Map([
   ["billing_webhook_events", "no organization_id; Stripe's own event record"],
   ["support_email_delivery_attempts", "no organization_id; delivery diagnostics"],
   ["business_employee_invites", "holds token_hash and pending invitee emails; owner review before members read invites"],
-  ["user_roles", "keyed by user_id, not organization_id; who may read the privilege table is a decision"]
+  ["user_roles", "keyed by user_id, not organization_id; who may read the privilege table is a decision"],
+  // Surfaced when this check learned about supabaseList and rest(). All three
+  // are organization-scoped and none is ordinary workspace data: who holds which
+  // permission, who did what, and who is handing the business over. Opening them
+  // to every member would let a colleague read the privilege table -- the same
+  // reason user_roles is above. Owner review before any of them changes.
+  ["business_permission_grants", "the privilege table for a business; a member reading who holds what is a decision, not a gap"],
+  ["business_control_audit_events", "who did what inside the business; owner surface, not member-readable"],
+  ["business_ownership_transfers", "a transfer in progress; owner-level and sensitive before it completes"]
 ]);
 
 // Not tenant data at all, so member scoping does not apply.
@@ -140,6 +158,54 @@ describe("member read policies cover what the application actually reads", () =>
 //
 // So the list lives with the generator, both read it, and the generator refuses
 // to write rather than only being tested about it.
+// The check above can only police reads it can see, and it sees them by
+// recognising the name of the function that made them. That is a list, and a
+// list nothing makes grow is how supabaseList went unnoticed.
+describe("no read helper hides from the policy check", () => {
+  const KNOWN_READ_HELPERS = [
+    "safeListTable",
+    "safeCountTable",
+    "safeCountFiltered",
+    "supabaseList",
+    "supabaseCount",
+    "supabaseInsert",
+    "supabasePatch",
+    "rest"
+  ];
+
+  it("recognises every function that is handed a table name", () => {
+    const root = path.join(__dirname, "..");
+    const files = [path.join(root, "server.js")];
+    for (const dir of ["lib", "routes"]) {
+      const walk = (current) => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+          const full = path.join(current, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (/\.cjs$/.test(entry.name)) files.push(full);
+        }
+      };
+      walk(path.join(root, dir));
+    }
+
+    // Any call shaped `something(config, "a_table_name")` is a read helper.
+    const shaped = /\b([a-zA-Z][a-zA-Z0-9_]*)\(\s*config,\s*["'][a-z_]+["']/g;
+    const unknown = new Set();
+    for (const file of files) {
+      const source = fs.readFileSync(file, "utf8");
+      for (const match of source.matchAll(shaped)) {
+        if (!KNOWN_READ_HELPERS.includes(match[1])) unknown.add(match[1]);
+      }
+    }
+
+    assert.deepEqual(
+      [...unknown].sort(),
+      [],
+      `These take a table name and the policy check does not know them, so every table they touch is unchecked:\n  ${[...unknown].join("\n  ")}\n\n` +
+        "Add each to KNOWN_READ_HELPERS here and to the helper pattern in tablesTheRuntimeReads()."
+    );
+  });
+});
+
 describe("applied migrations are never rewritten", () => {
   const { APPLIED_MIGRATIONS, migrationName } = require("../scripts/generate-member-read-policies.cjs");
 

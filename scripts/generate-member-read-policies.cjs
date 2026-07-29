@@ -87,6 +87,9 @@ const ORGANIZATION_READ_TABLES = [
   "business_workspaces",
   "creator_generation_jobs",
   "creator_voice_consents",
+  "employee_announcements",
+  "employee_schedules",
+  "employee_tasks",
   "employee_time_entries",
   "growth_audience_segments",
   "growth_campaigns",
@@ -209,10 +212,15 @@ const blocks = [
 // migration reaches main, and point migrationName at a new one.
 const APPLIED_MIGRATIONS = Object.freeze([
   "20260728120000_member_read_policies.sql",
-  "20260729040000_member_read_policies_core_tables.sql"
+  "20260729040000_member_read_policies_core_tables.sql",
+  "20260729220000_member_read_policies_consent_and_zones.sql"
 ]);
 
-const migrationName = "20260729220000_member_read_policies_consent_and_zones.sql";
+// 20260728120000 -- first thirty-three
+// 20260729040000 -- core tables, applied
+// 20260729220000 -- consent records and location zones, applied
+// 20260729233000 -- staff schedules, tasks and announcements
+const migrationName = "20260729233000_member_read_policies_staff_tables.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 
