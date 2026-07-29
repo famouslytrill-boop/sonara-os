@@ -2,6 +2,7 @@
 
 const {
   OWNER_RECORD_PAGES,
+  CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
@@ -58,11 +59,6 @@ const STAFF_PAGES = [
   ["/staff/tasks", "My Tasks", "What has been assigned to you."],
   ["/staff/announcements", "Announcements", "Updates from whoever runs your workplace."],
   ["/staff/location", "My Location", "Check-ins you have recorded for job sites, routes and deliveries."]
-];
-
-const CREATOR_PAGES = [
-  ["/creator-studio/music-projects", "Music Projects", "Create songs, albums, EPs, DAW sessions, audio assets, sound analysis records, and visual cue plans."],
-  ["/creator-studio/device-cues", "Sound and Motion Cues", "Plan sound feedback, vibration cues, motion events, GPS cues, and animation timing for premium creator projects."]
 ];
 
 module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
@@ -145,19 +141,38 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
   });
 
-  CREATOR_PAGES.forEach(([path, title, body]) => {
-    app.get(path, requireWorkspaceAccess("creator_studio"), (req, res) => {
+  CREATOR_RECORD_PAGES.forEach((page) => {
+    app.get(page.path, requireWorkspaceAccess("creator_studio"), async (req, res) => {
+      const config = getConfig(deps);
+      const org = await resolveOrganization(req, deps);
+      let rows = [];
+      let extra = [];
+      let unavailable = null;
+      if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
+      else if (!org.ok) unavailable = "We could not tell which workspace you are in. Sign in again and this will fill up.";
+      else {
+        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
+        else rows = listed.rows;
+        extra = await Promise.all((page.also || []).map(async (side) => {
+          const sideRows = await supabaseList(config, side.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+          return { side, rows: sideRows.ok ? sideRows.rows : [] };
+        }));
+      }
+      const sections = unavailable
+        ? [ui.card("Not available right now", unavailable)]
+        : [
+          recordsCard(page, rows, ui),
+          ...extra.map(({ side, rows: sideRows }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui)),
+          ...(page.form ? [formCard(page, {}, ui)] : [])
+        ];
       return res.status(200).type("html").send(ui.layout({
-        title,
+        title: page.title,
         eyebrow: "Creator Studio",
-        heading: title,
-        body,
-        sections: [
-          ui.card("Music production records", "Track projects, DAW sessions, audio assets, sound analysis, cue timing, and export packages."),
-          ui.card("Connected audio services", "Work sent to a connected service is recorded as sent, needing a manual step, or needing setup. Nothing is reported as done unless it was."),
-          ui.card("Premium feel", "Sound, vibration, motion, and GPS are available only when the user enables supported browser features.")
-        ],
-        actions: [ui.link("/creator-studio/music-projects", "Music Projects"), ui.link("/creator-studio/device-cues", "Sound and Motion"), ui.link("/creator-studio/dashboard", "Dashboard")]
+        heading: page.title,
+        body: page.body,
+        sections,
+        actions: [ui.link("/creator-studio/music-projects", "Music projects"), ui.link("/creator-studio/device-cues", "Sound and motion"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/dashboard", "Dashboard")]
       }));
     });
   });
