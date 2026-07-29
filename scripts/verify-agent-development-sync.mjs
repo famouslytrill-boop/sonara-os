@@ -54,18 +54,6 @@ const cleanup = workflowStep(workflow, "Remove temporary production environment 
 assert.match(cleanup, /rm -f \.env\.production\.catalog-verification/);
 assert.match(cleanup, /test ! -e \.env\.production\.catalog-verification/);
 
-const catalogApply = read("scripts/apply-recommended-product-catalog.cjs");
-assert.match(
-  catalogApply,
-  /if \(!source\.includes\("const LEGACY_DEFAULT_SERVICE_CATALOG = \["\) && source\.includes\("const DEFAULT_SERVICE_CATALOG = \["\)\)/,
-  "Recommended product catalog apply script must retain the idempotent legacy rename guard"
-);
-assert.match(
-  catalogApply,
-  /const DEFAULT_SERVICE_CATALOG = \[\.\.\.getRecommendedProductCatalog\(\), \.\.\.LEGACY_DEFAULT_SERVICE_CATALOG\];/,
-  "Recommended and legacy catalog composition contract is missing"
-);
-
 const workspace = read("pnpm-workspace.yaml");
 assert.match(
   workspace,

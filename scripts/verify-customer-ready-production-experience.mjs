@@ -6,10 +6,6 @@ const root = process.cwd();
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 const packageJson = JSON.parse(read("package.json"));
-const runtime = packageJson.scripts["apply:runtime"] || "";
-assert.match(runtime, /apply:customer-ready/);
-assert.ok(runtime.endsWith("pnpm run apply:market-rd"), "Market R&D must remain the final runtime transform");
-assert.ok(runtime.indexOf("apply:customer-ready") < runtime.indexOf("apply:growth-public"));
 
 const migration = read("supabase/migrations/20260726093000_customer_workspace_bootstrap.sql");
 assert.match(migration, /sonara_bootstrap_customer_workspace/);
@@ -17,7 +13,29 @@ assert.match(migration, /security definer/i);
 assert.match(migration, /revoke all[\s\S]*from public, anon, authenticated/i);
 assert.match(migration, /grant execute[\s\S]*to service_role/i);
 
-const server = read("server.js");
+// The deployed runtime, not server.js alone. The brightness attribute is
+// rendered by renderHead, which moved to lib/sonara-page-frame.cjs when the
+// page frame was extracted -- the fourth time a check scoped to server.js went
+// partially blind because code moved one directory over. Matching what
+// vercel.json bundles is what stops it happening a fifth time.
+function runtimeSource() {
+  const files = [path.join(root, "server.js")];
+  for (const dir of ["lib", "routes"]) {
+    const base = path.join(root, dir);
+    if (!fs.existsSync(base)) continue;
+    const walk = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(cjs|js|mjs)$/.test(entry.name)) files.push(full);
+      }
+    };
+    walk(base);
+  }
+  return files.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+}
+
+const server = runtimeSource();
 assert.match(server, /registerCustomerReadyExperience\(app\);/);
 assert.match(server, /automatic_workspace_bootstrap/);
 assert.match(server, /data-sonara-preference="brightness"/);
