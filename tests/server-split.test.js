@@ -19,6 +19,15 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const serverSource = fs.readFileSync(path.join(root, "server.js"), "utf8");
 
+// Comments explain why a module does not reach for the ambient environment, and
+// saying so means writing the words. The checks below are about code, so strip
+// comments before looking.
+function codeOnly(source) {
+  return String(source)
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+}
+
 function generatorSources() {
   return fs
     .readdirSync(path.join(root, "scripts"))
@@ -52,6 +61,26 @@ const EXTRACTED = [
       "combineEnvStatuses",
       "missingEnvGroups",
       "databaseGroupForTable"
+    ]
+  },
+  {
+    module: "lib/sonara-billing.cjs",
+    functions: [
+      "priceCard",
+      "billingPanel",
+      "getPriceCardSetupText",
+      "getPaidEntitlementKeys",
+      "isValidPlan",
+      "normalizeCheckoutPlan",
+      "createStripeCheckoutSession",
+      "getOrCreateStripeCustomer",
+      "getCheckoutRedirectUrls",
+      "verifyStripeWebhookSignature",
+      "recordBillingWebhookEvent",
+      "synchronizeBillingFromStripeEvent",
+      "synchronizeCheckoutSessionCompleted",
+      "getBillingSummary",
+      "getBillingPanelSummary"
     ]
   },
   {
@@ -136,7 +165,9 @@ describe("the server.js split stays safe", () => {
     // silently won.
     for (const extraction of EXTRACTED) {
       for (const fn of extraction.functions) {
-        const declarations = (serverSource.match(new RegExp(`^function ${fn}\\(`, "gm")) || []).length;
+        // `async` matters: most of what lib/sonara-billing.cjs owns is async, and
+        // a check anchored on `^function` alone would not see any of it come back.
+        const declarations = (serverSource.match(new RegExp(`^(?:async )?function ${fn}\\(`, "gm")) || []).length;
         assert.equal(
           declarations,
           0,
@@ -156,12 +187,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,674 lines after the shell helpers moved, down
-    // from 5,119. If a change adds to server.js instead of a module, this asks
+    // A ratchet, not a target. 4,462 lines after billing moved, down from
+    // 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4690,
+      lines <= 4480,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -203,13 +234,146 @@ describe("the readiness module stands on its own", () => {
   it("takes its environment from the injected reader, not from process.env", () => {
     // The whole point of injecting getEnv is that this module never reaches for
     // the ambient environment itself.
-    const source = fs.readFileSync(path.join(root, "lib", "sonara-readiness.cjs"), "utf8");
+    const source = codeOnly(fs.readFileSync(path.join(root, "lib", "sonara-readiness.cjs"), "utf8"));
     assert.ok(!/process\.env/.test(source), "lib/sonara-readiness.cjs must not read process.env directly");
   });
 
   it("owns the database contract rather than having it injected", () => {
     const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
     assert.ok(readiness, "the database readiness result must build from the contract it requires");
+  });
+});
+
+describe("the billing module stands on its own", () => {
+  const crypto = require("node:crypto");
+  const { createBilling, REQUIRED } = require("../lib/sonara-billing.cjs");
+
+  const STRIPE_PLANS = {
+    free: { name: "Free", price: "$0", description: "Free.", mode: undefined },
+    core_monthly: { name: "Core", price: "$19/mo", description: "Core.", mode: "subscription" }
+  };
+
+  function deps(overrides = {}) {
+    return {
+      STRIPE_PLANS,
+      getEnv: () => "",
+      getPublicAppUrl: () => "https://app.example.com",
+      getSafeAbsoluteUrl: (value, fallback) => value || fallback,
+      getSupabaseServerConfig: () => ({ ok: false }),
+      supabaseHeaders: () => ({}),
+      safeCountTable: async () => 0,
+      formatMetric: (label, value) => `${label}: ${value}`,
+      insertActivityEvent: async () => undefined,
+      ...overrides
+    };
+  }
+
+  it("refuses to build without any one of the helpers it needs", () => {
+    // A silently missing dependency on the payment path fails as
+    // "undefined is not a function" mid-checkout, which is the worst place to
+    // discover a wiring mistake.
+    assert.throws(() => createBilling({}), TypeError);
+    for (const name of REQUIRED) {
+      const partial = deps();
+      delete partial[name];
+      assert.throws(() => createBilling(partial), TypeError, `omitting ${name} must throw`);
+    }
+  });
+
+  it("accepts a Stripe signature it just computed, and nothing else", () => {
+    const billing = createBilling(deps());
+    const secret = "whsec_test";
+    const body = Buffer.from(JSON.stringify({ id: "evt_1", type: "checkout.session.completed" }));
+    const t = "1700000000";
+    const sign = (payload) => crypto.createHmac("sha256", secret).update(payload).digest("hex");
+
+    assert.equal(billing.verifyStripeWebhookSignature(body, `t=${t},v1=${sign(`${t}.${body}`)}`, secret).ok, true);
+    // Wrong secret, tampered body, and a timestamp not covered by the signature
+    // must each be rejected.
+    assert.equal(billing.verifyStripeWebhookSignature(body, `t=${t},v1=${sign(`${t}.${body}`)}`, "whsec_other").ok, false);
+    assert.equal(billing.verifyStripeWebhookSignature(Buffer.from("{}"), `t=${t},v1=${sign(`${t}.${body}`)}`, secret).ok, false);
+    assert.equal(billing.verifyStripeWebhookSignature(body, `t=1,v1=${sign(`${t}.${body}`)}`, secret).ok, false);
+  });
+
+  it("rejects a signature header that is missing or malformed", () => {
+    const billing = createBilling(deps());
+    const body = Buffer.from("{}");
+    assert.equal(billing.verifyStripeWebhookSignature(body, "", "s").ok, false);
+    assert.equal(billing.verifyStripeWebhookSignature(body, undefined, "s").ok, false);
+    assert.equal(billing.verifyStripeWebhookSignature(body, "t=1", "s").ok, false);
+    assert.equal(billing.verifyStripeWebhookSignature(body, "v1=abc", "s").ok, false);
+    // A short v1 must not throw -- timingSafeEqual raises on a length mismatch,
+    // so the length is checked before it is called.
+    assert.doesNotThrow(() => billing.verifyStripeWebhookSignature(body, "t=1,v1=ab", "s"));
+    assert.equal(billing.verifyStripeWebhookSignature(body, "t=1,v1=ab", "s").ok, false);
+    // A body that is not a Buffer means express.raw did not run on this route.
+    assert.equal(billing.verifyStripeWebhookSignature("{}", "t=1,v1=abc", "s").ok, false);
+  });
+
+  it("resolves the plan a customer asked for, including the old names", () => {
+    const billing = createBilling(deps());
+    assert.equal(billing.normalizeCheckoutPlan({ plan: "creator_studio_monthly" }), "core_monthly");
+    assert.equal(billing.normalizeCheckoutPlan({ price_key: " core_monthly " }), "core_monthly");
+    assert.equal(billing.normalizeCheckoutPlan({}), "");
+    assert.equal(billing.isValidPlan("core_monthly"), true);
+    assert.equal(billing.isValidPlan("not_a_plan"), false);
+    // Object.prototype keys are not plans.
+    assert.equal(billing.isValidPlan("constructor"), false);
+  });
+
+  it("falls back to this deployment's own URLs when none are configured", () => {
+    const billing = createBilling(deps());
+    assert.deepEqual(billing.getCheckoutRedirectUrls({}), {
+      successUrl: "https://app.example.com/account",
+      cancelUrl: "https://app.example.com/pricing"
+    });
+  });
+
+  it("does not offer a checkout button for a plan that cannot be bought", () => {
+    const billing = createBilling(deps());
+    const readiness = { services: { stripe: "missing", checkout: "setup_required" } };
+    const card = billing.priceCard("core_monthly", STRIPE_PLANS.core_monthly, { checkout: "setup_required", reason: "missing" }, readiness);
+    assert.match(card, /Not open yet/);
+    assert.doesNotMatch(card, /Start checkout/);
+    // The free plan has no checkout at all, so it renders as a plain card.
+    assert.doesNotMatch(billing.priceCard("free", STRIPE_PLANS.free, {}, readiness), /<form/);
+  });
+
+  it("says nothing was charged when the account database is unreachable", () => {
+    const billing = createBilling(deps());
+    return Promise.all([
+      billing.getBillingSummary().then((summary) => assert.match(summary.subscriptions, /Setup required/)),
+      billing.getBillingPanelSummary("org-1").then((panel) => {
+        assert.match(panel.status, /Setup required/);
+        assert.deepEqual(panel.rows, []);
+      })
+    ]);
+  });
+
+  it("ignores a Stripe event it has no rule for rather than recording a purchase", async () => {
+    const billing = createBilling(deps());
+    const result = await billing.synchronizeBillingFromStripeEvent({ type: "invoice.created", data: { object: {} } });
+    assert.deepEqual(result, { ok: true, ignored: true });
+  });
+
+  it("will not grant access from a checkout session that was not paid", async () => {
+    // The entitlement write is what opens paid tools. It must not happen for a
+    // session that is complete but unpaid.
+    let wrote = false;
+    const billing = createBilling(deps({
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co" }),
+      insertActivityEvent: async () => { wrote = true; }
+    }));
+    const result = await billing.synchronizeCheckoutSessionCompleted({
+      data: { object: { id: "cs_1", mode: "payment", payment_status: "unpaid", metadata: { organization_id: "org-1", plan: "core_monthly" } } }
+    });
+    assert.deepEqual(result, { ok: true, ignored: true });
+    assert.equal(wrote, false, "an unpaid session must not record a purchase");
+  });
+
+  it("takes its environment from the injected reader, not from process.env", () => {
+    const source = codeOnly(fs.readFileSync(path.join(root, "lib", "sonara-billing.cjs"), "utf8"));
+    assert.ok(!/process\.env/.test(source), "lib/sonara-billing.cjs must not read process.env directly");
   });
 });
 
@@ -220,7 +384,7 @@ describe("the rendering helpers stand on their own", () => {
     // The other two extractions are factories because they read things
     // server.js owns. These twelve read only each other, so a factory would be
     // a binding to get wrong for no benefit.
-    const source = fs.readFileSync(path.join(root, "lib", "sonara-shell.cjs"), "utf8");
+    const source = codeOnly(fs.readFileSync(path.join(root, "lib", "sonara-shell.cjs"), "utf8"));
     assert.ok(!/process\.env/.test(source), "the shell helpers must not read the environment");
     assert.ok(!/require\("\.\/sonara-/.test(source), "the shell helpers must not depend on other lib modules");
   });

@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,674 lines.
+**Status:** in progress, in the background. 5,119 → 4,462 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -54,15 +54,41 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | 2 | Readiness computation — 27 functions | 288 | 4 (calls only) | **done** — `lib/sonara-readiness.cjs` |
 | 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | next |
 | 4 | Admin action bars and forms (`adminActions`) | ~40 | 3 | ready |
-| 5 | Billing and Stripe (`STRIPE_PLANS`, checkout, webhook) | ~600 | many | needs generator work first |
+| 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
 | 6 | Auth and sessions | ~700 | many | needs generator work first |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
 | 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 11 | **do not attempt** until the homepage generator is retired |
 
-Steps 5 and 6 are the bulk of the file and are gated on the generators, not on
+Step 6 is the largest remaining region and is gated on the generators, not on
 the code. The honest sequence is to retire or rewrite the generators that own
-those regions first; moving the code underneath them is the expensive way to
-find that out.
+it first; moving the code underneath them is the expensive way to find that out.
+
+### Step 5 was also mis-graded, and differently
+
+Graded "~600 lines, many generators, needs generator work first". Both halves
+were wrong, and not in the same direction as step 7.
+
+Exactly **one** generator constrains billing:
+`apply-customer-ready-production-experience.cjs` uses
+`async function getCustomerPaidEntitlement(user, productKey) {` as the *end
+boundary* of a `replaceBetween`. That declaration line has to stay in
+`server.js` verbatim or the generator fails, so `getCustomerPaidEntitlement`
+stayed. Nothing else in the region is anchored on at all.
+
+The real constraint was the dependency surface. Moving all of billing meant a
+factory with **eighteen** injected dependencies — which does not reduce
+coupling, it relocates it into a wiring surface where a typo surfaces as
+`undefined is not a function` mid-checkout. So the cut is at the HTTP seam
+instead: `handleCheckoutSessionRequest` and `handleStripeWebhook` stayed in
+`server.js`, and with them go nine dependencies that exist only to turn a result
+into a response (`acceptsHtml`, `wantsJson`, `responsePage`,
+`sendSetupRequired`, `resolveCustomerSession`, `getCustomerPrimaryOrganization`,
+and the three readiness statuses). Everything that knows about Stripe or writes
+a billing record moved, on nine dependencies.
+
+The general lesson, which applies to step 6 as well: when a region resists
+extraction, check whether it is the generators or the dependency count. They
+need different fixes, and the plan had been recording only the first.
 
 ### Step 7 was mis-graded, and the reason matters
 
