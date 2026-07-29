@@ -36,6 +36,7 @@ const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
+const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -185,6 +186,21 @@ const {
   formatMetric,
   insertActivityEvent
 });
+
+// How a saved module result becomes a row moved to lib/sonara-module-records.cjs.
+// saveModuleOutput and readModuleRecords call into it and stayed here, because
+// two generators each carry a full definition of one of them.
+//
+// getSupabaseAdminClient and supabaseHeaders are function declarations and
+// hoisted, so this binding is free to sit with the other requires.
+const {
+  buildDomainModuleRecord,
+  normalizeAssetType,
+  normalizeCreatorAssetStatus,
+  safeInsertDomainModuleRecord,
+  safeInsertModuleOutput,
+  safeReadOrganizationScopedRecords
+} = createModuleRecords({ getSupabaseAdminClient, supabaseHeaders });
 
 // The readiness cluster moved to lib/sonara-readiness.cjs -- 27 functions that
 // all answer "what is configured right now". Three generators call
@@ -3002,113 +3018,6 @@ async function safeInsertSupportRequest(record) {
   return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
 }
 
-async function safeInsertModuleOutput(organizationId, productKey, moduleKey, input, output) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: false, code: "setup_required" };
-  if (!organizationId) return { ok: false, code: "organization_setup_required" };
-  const response = await fetch(`${config.url}/rest/v1/module_outputs`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify({ organization_id: organizationId, product_key: productKey, module_key: moduleKey, input_payload: input, output_payload: output })
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok), rows: response?.ok ? await response.json().catch(() => []) : [] };
-}
-
-async function safeInsertDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok || !organizationId) return { ok: false, code: "setup_required" };
-  const domain = buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output);
-  if (!domain) return { ok: false, code: "not_applicable" };
-  const response = await fetch(`${config.url}/rest/v1/${domain.table}`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify(domain.record)
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok), table: domain.table, rows: response?.ok ? await response.json().catch(() => []) : [] };
-}
-
-function buildDomainModuleRecord(organizationId, userId, productKey, moduleKey, input, output) {
-  if (productKey === "creator_studio" && moduleKey === "asset_catalog") {
-    const assetType = normalizeAssetType(input.type || input.assetType);
-    return {
-      table: "creator_assets",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        title: String(input.title || "Untitled asset").trim(),
-        asset_type: assetType,
-        status: normalizeCreatorAssetStatus(input.status),
-        metadata: {
-          platform: String(input.platform || "").trim() || null,
-          rights_notes: String(input.rightsNotes || input.rights_notes || "").trim() || null,
-          source: "creator_studio_asset_form",
-          output
-        }
-      }
-    };
-  }
-  if (productKey === "growth_studio" && moduleKey === "campaign_workspace") {
-    return {
-      table: "growth_campaigns",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        name: String(input.goal || "Growth campaign").trim(),
-        goal: String(input.goal || "").trim() || null,
-        channel: String(input.channel || "").trim() || null,
-        status: "draft",
-        metadata: {
-          audience: String(input.audience || "").trim() || null,
-          offer: String(input.offer || "").trim() || null,
-          timeline: String(input.timeline || "").trim() || null,
-          source: "growth_studio_campaign_form",
-          output
-        }
-      }
-    };
-  }
-  if (productKey === "growth_studio" && moduleKey === "lead_follow_up") {
-    return {
-      table: "growth_leads",
-      record: {
-        organization_id: organizationId,
-        user_id: userId || null,
-        name: String(input.name || "").trim() || null,
-        email: String(input.email || "").trim() || null,
-        source: String(input.source || "").trim() || null,
-        status: "new",
-        metadata: {
-          consent_status: String(input.consentStatus || input.consent_status || "").trim() || null,
-          compliance_warning: "Phone, SMS, and voicemail outreach may be regulated. Confirm valid consent and honor opt-outs before contacting anyone.",
-          source: "growth_studio_lead_form",
-          output
-        }
-      }
-    };
-  }
-  return null;
-}
-
-function normalizeAssetType(value) {
-  const normalized = String(value || "file").trim().toLowerCase().replace(/\s+/g, "_");
-  return ["image", "video", "audio", "document", "link", "file", "other"].includes(normalized) ? normalized : "other";
-}
-
-function normalizeCreatorAssetStatus(value) {
-  const normalized = String(value || "draft").trim().toLowerCase().replace(/\s+/g, "_");
-  return ["draft", "ready", "published", "archived"].includes(normalized) ? normalized : "draft";
-}
-
-async function safeReadOrganizationScopedRecords(organizationId, productKey) {
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: false, code: "setup_required", records: [] };
-  if (!organizationId) return { ok: false, code: "organization_setup_required", records: [] };
-  const response = await fetch(`${config.url}/rest/v1/module_outputs?select=id,module_key,created_at,output_payload&organization_id=eq.${encodeURIComponent(organizationId)}&product_key=eq.${encodeURIComponent(productKey)}&order=created_at.desc&limit=20`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false, code: "read_failed", records: [] };
-  return { ok: true, records: await response.json().catch(() => []) };
-}
 
 async function safeInsertBusinessBuilderOperatingRecord(organizationId, userId, productKey, moduleKey, input, output) {
   if (productKey !== "business_builder" || moduleKey !== "offer_builder") return { ok: false, code: "not_applicable", rows: [] };

@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,462 lines.
+**Status:** in progress, in the background. 5,119 → 4,371 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -52,8 +52,8 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | --- | --- | ---: | ---: | --- |
 | 1 | Product page definitions and action bars | 158 | 0 | **done** — `lib/sonara-product-pages.cjs` |
 | 2 | Readiness computation — 27 functions | 288 | 4 (calls only) | **done** — `lib/sonara-readiness.cjs` |
-| 3 | Domain module records (`buildDomainModuleRecord`) | ~61 | 0 | next |
-| 4 | Admin action bars and forms (`adminActions`) | ~40 | 3 | ready |
+| 3 | Module records — 6 functions | 102 | 0 | **done** — `lib/sonara-module-records.cjs` |
+| 4 | Admin action bars and forms | — | 3 | **dropped** — see below |
 | 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
 | 6 | Auth and sessions | ~700 | many | needs generator work first |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
@@ -62,6 +62,41 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 Step 6 is the largest remaining region and is gated on the generators, not on
 the code. The honest sequence is to retire or rewrite the generators that own
 it first; moving the code underneath them is the expensive way to find that out.
+
+### Step 4 no longer exists
+
+Graded "admin action bars and forms, ~61 lines, 3 generators, ready". Nothing is
+left in it.
+
+`contactForm` and `authForm` moved in step 7a. `adminRowsPage` is eight lines
+that call `layout`, so extracting it would inject the one helper the shell could
+not move, to save eight lines. And `adminActions` cannot move at all:
+`apply-ecosystem-routes.cjs`, `apply-formula-routes.cjs` and
+`apply-infrastructure-routes.cjs` each anchor on a line *inside* its body —
+
+    linkAction("/admin/ecosystem", "Ecosystem"),
+    linkAction("/admin/formulas", "Formulas"),
+    linkAction("/admin/infrastructure", "Infrastructure"),
+
+— which is the same shape that broke steps 1 and 2, caught this time before
+anything moved.
+
+### What step 3 could not take
+
+`saveModuleOutput`, `readModuleRecords` and
+`safeInsertBusinessBuilderOperatingRecord` stayed in `server.js`. This is the
+one blocker worse than an anchor: `apply-business-builder-operating-system.cjs`
+and `apply-customer-ready-production-experience.cjs` each contain a **full
+definition** of one of them. Moving the code would not break the build — it
+would leave two definitions of the same function next time `apply:runtime` runs,
+the file would parse, the tests would pass, and the later definition would
+silently win. That is exactly what `apply-catalog-helper-scope.cjs` did to
+`catalogActions`.
+
+So the check before an extraction now has two questions, not one:
+
+> Does any generator anchor on a string inside this function's body?
+> Does any generator contain `function <name>(` — that is, define it outright?
 
 ### Step 5 was also mis-graded, and differently
 

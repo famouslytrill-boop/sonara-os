@@ -84,6 +84,17 @@ const EXTRACTED = [
     ]
   },
   {
+    module: "lib/sonara-module-records.cjs",
+    functions: [
+      "buildDomainModuleRecord",
+      "safeInsertModuleOutput",
+      "safeInsertDomainModuleRecord",
+      "safeReadOrganizationScopedRecords",
+      "normalizeAssetType",
+      "normalizeCreatorAssetStatus"
+    ]
+  },
+  {
     module: "lib/sonara-shell.cjs",
     functions: [
       "escapeHtml",
@@ -187,12 +198,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,462 lines after billing moved, down from
-    // 5,119. If a change adds to server.js instead of a module, this asks
-    // whether that was deliberate.
+    // A ratchet, not a target. 4,371 lines after the module records moved,
+    // down from 5,119. If a change adds to server.js instead of a module, this
+    // asks whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4480,
+      lines <= 4390,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -241,6 +252,83 @@ describe("the readiness module stands on its own", () => {
   it("owns the database contract rather than having it injected", () => {
     const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
     assert.ok(readiness, "the database readiness result must build from the contract it requires");
+  });
+});
+
+describe("the module records module stands on its own", () => {
+  const { createModuleRecords, REQUIRED } = require("../lib/sonara-module-records.cjs");
+
+  const deps = { getSupabaseAdminClient: () => ({ ok: false }), supabaseHeaders: () => ({}) };
+
+  it("refuses to build without the helpers it needs", () => {
+    assert.throws(() => createModuleRecords({}), TypeError);
+    for (const name of REQUIRED) {
+      const partial = { ...deps };
+      delete partial[name];
+      assert.throws(() => createModuleRecords(partial), TypeError, `omitting ${name} must throw`);
+    }
+  });
+
+  it("puts each saved result in the table that owns it", () => {
+    // Getting this mapping wrong writes a customer's campaign into the assets
+    // table, where nothing will ever read it back.
+    const records = createModuleRecords(deps);
+    const cases = [
+      ["creator_studio", "asset_catalog", "creator_assets"],
+      ["growth_studio", "campaign_workspace", "growth_campaigns"],
+      ["growth_studio", "lead_follow_up", "growth_leads"]
+    ];
+    for (const [productKey, moduleKey, table] of cases) {
+      const record = records.buildDomainModuleRecord("org-1", "user-1", productKey, moduleKey, {}, {});
+      assert.equal(record.table, table, `${productKey}/${moduleKey} belongs in ${table}`);
+      assert.equal(record.record.organization_id, "org-1", "every row must carry the tenant");
+    }
+  });
+
+  it("says null for a module with no typed home rather than guessing one", () => {
+    // Most modules only have a generic module_outputs row. Returning null is the
+    // ordinary case, not a failure -- if this ever started guessing a table,
+    // rows would land somewhere plausible and wrong.
+    const records = createModuleRecords(deps);
+    assert.equal(records.buildDomainModuleRecord("org-1", "u", "business_builder", "offer_builder", {}, {}), null);
+    assert.equal(records.buildDomainModuleRecord("org-1", "u", "growth_studio", "not_a_module", {}, {}), null);
+    assert.equal(records.buildDomainModuleRecord("org-1", "u", "creator_studio", "campaign_workspace", {}, {}), null);
+  });
+
+  it("keeps a missing user id null rather than writing the string", () => {
+    const records = createModuleRecords(deps);
+    const record = records.buildDomainModuleRecord("org-1", undefined, "creator_studio", "asset_catalog", {}, {});
+    assert.equal(record.record.user_id, null);
+  });
+
+  it("falls back to a known value for an asset type or status it does not recognise", () => {
+    // These reach a database column with a check constraint on it, so an
+    // unrecognised value has to become a known one rather than travel.
+    const records = createModuleRecords(deps);
+    assert.equal(records.normalizeAssetType("VIDEO"), "video");
+    assert.equal(records.normalizeAssetType("motion capture"), "other");
+    assert.equal(records.normalizeAssetType(""), "file");
+    assert.equal(records.normalizeCreatorAssetStatus("Published"), "published");
+    assert.equal(records.normalizeCreatorAssetStatus("nonsense"), "draft");
+    assert.equal(records.normalizeCreatorAssetStatus(undefined), "draft");
+  });
+
+  it("still warns about outreach consent on a saved lead", () => {
+    // AGENTS.md requires consent and anti-clone safety to be enforced, and this
+    // warning travels with the row rather than living only in the form.
+    const records = createModuleRecords(deps);
+    const lead = records.buildDomainModuleRecord("org-1", "u", "growth_studio", "lead_follow_up", {}, {});
+    assert.match(lead.record.metadata.compliance_warning, /consent/i);
+    assert.match(lead.record.metadata.compliance_warning, /opt-out/i);
+  });
+
+  it("refuses to write anything without a tenant", async () => {
+    const records = createModuleRecords({ getSupabaseAdminClient: () => ({ ok: true, url: "https://x.supabase.co" }), supabaseHeaders: () => ({}) });
+    assert.deepEqual(await records.safeInsertModuleOutput("", "p", "m", {}, {}), { ok: false, code: "organization_setup_required" });
+    assert.deepEqual(await records.safeInsertDomainModuleRecord("", "u", "creator_studio", "asset_catalog", {}, {}), { ok: false, code: "setup_required" });
+    const read = await records.safeReadOrganizationScopedRecords("", "creator_studio");
+    assert.equal(read.ok, false);
+    assert.deepEqual(read.records, []);
   });
 });
 
