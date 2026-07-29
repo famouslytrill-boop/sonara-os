@@ -6,7 +6,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const request = require("supertest");
 const app = require("../server");
-const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES } = require("../lib/sonara-route-registry.cjs");
+const { ROUTE_REGISTRY, PUBLIC_SITEMAP_ROUTES, untrackedProductRoutes } = require("../lib/sonara-route-registry.cjs");
 
 function runThemePrepaint(source, { storedAppearance, prefersDark }) {
   const dataset = {};
@@ -164,8 +164,18 @@ describe("SONARA route registry and account completion", () => {
     assert.deepEqual(missing, []);
     assert.deepEqual([...new Set(duplicates)], []);
     const registryPaths = ROUTE_REGISTRY.map((record) => record.route);
-    const productRoutes = routes.filter((route) => /^\/(business-builder|creator-studio|growth-studio)(?:\/|$)/.test(route));
-    assert.deepEqual(productRoutes.filter((route) => !registryPaths.includes(route)), []);
+    assert.deepEqual(untrackedProductRoutes(routes, registryPaths), []);
+  });
+
+  it("still catches a product page that hides behind a parameter", () => {
+    // The rule allows /creator-studio/generation/jobs/:jobId because its parent
+    // page is catalogued. It must not therefore allow anything with a colon in
+    // it, or a whole area could ship with no title, placement or indexing
+    // policy simply by taking an argument.
+    const catalogued = ["/creator-studio/generation/jobs"];
+    assert.deepEqual(untrackedProductRoutes(["/creator-studio/generation/jobs/:jobId/outputs/:assetId"], catalogued), []);
+    assert.deepEqual(untrackedProductRoutes(["/creator-studio/secret-area/:id"], catalogued), ["/creator-studio/secret-area/:id"]);
+    assert.deepEqual(untrackedProductRoutes(["/creator-studio/secret-page"], catalogued), ["/creator-studio/secret-page"]);
   });
 
   it("keeps protected routes out of sitemap metadata", () => {

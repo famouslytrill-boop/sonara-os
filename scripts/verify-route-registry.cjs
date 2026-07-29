@@ -5,7 +5,8 @@ const app = require("../server");
 const {
   PRODUCTION_ORIGIN,
   ROUTE_REGISTRY,
-  PUBLIC_SITEMAP_ROUTES
+  PUBLIC_SITEMAP_ROUTES,
+  untrackedProductRoutes
 } = require("../lib/sonara-route-registry.cjs");
 
 const registrations = [];
@@ -27,8 +28,7 @@ assert.deepEqual([...new Set(duplicateRegistryPaths)], [], "Route registry has d
 const registeredGets = new Set(registrations.filter((entry) => entry.startsWith("GET ")).map((entry) => entry.slice(4)));
 const missingGets = registryPaths.filter((route) => !registeredGets.has(route));
 assert.deepEqual(missingGets, [], `Registered GET routes are missing: ${missingGets.join(", ")}`);
-const registeredProductGets = [...registeredGets].filter((route) => /^\/(business-builder|creator-studio|growth-studio)(?:\/|$)/.test(route));
-const untrackedProductGets = registeredProductGets.filter((route) => !registryPaths.includes(route));
+const untrackedProductGets = untrackedProductRoutes([...registeredGets], registryPaths);
 assert.deepEqual(untrackedProductGets, [], `Product GET routes are absent from the canonical registry: ${untrackedProductGets.join(", ")}`);
 
 for (const record of ROUTE_REGISTRY) {

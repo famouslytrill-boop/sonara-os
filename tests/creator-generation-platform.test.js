@@ -257,6 +257,91 @@ describe("Creator Studio generation platform", () => {
     assert.equal(workerCall.headers.Authorization, "Bearer worker-token");
   });
 
+  // Generation work used to be reachable only as JSON: the studio page linked
+  // "Your jobs" at /api/creator/generation/jobs, every row of its table linked
+  // the job's API record, and submitting the create form landed the customer on
+  // the same. These cover the pages that replaced that.
+
+  it("lists your generation work as a page, linking each piece at a page", async () => {
+    global.fetch = async () => jsonResponse(200, [jobRecord({ title: "Warehouse door", status: "running", progress_percent: 40 })]);
+    const result = await request(buildApp()).get("/creator-studio/generation/jobs").set("accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Warehouse door/);
+    assert.match(result.text, new RegExp(`/creator-studio/generation/jobs/${JOB_ID}`));
+    assert.doesNotMatch(result.text, /\/api\/creator\/generation\/jobs/);
+  });
+
+  it("says where a piece of work is up to in words, not job states", async () => {
+    global.fetch = async () => jsonResponse(200, [jobRecord({ status: "review_required", policy_status: "review_required", policy_reasons: ["identity_imitation"] })]);
+    const result = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}`).set("accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Held for review/);
+    assert.match(result.text, /identity imitation/);
+    assert.doesNotMatch(result.text, /review_required/);
+  });
+
+  it("offers a download for a finished file and nothing to collect before then", async () => {
+    const asset = { id: ASSET_ID, job_id: JOB_ID, asset_role: "output", media_type: "audio", bucket_id: "creator-assets", object_path: "org/user/job/out.mp3", byte_size: 4096, created_at: "2026-01-01T00:00:00.000Z" };
+    global.fetch = async (url) => jsonResponse(200, String(url).includes("creator_generation_assets") ? [asset] : [jobRecord({ status: "completed", progress_percent: 100 })]);
+    const done = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}`).set("accept", "text/html");
+    assert.match(done.text, new RegExp(`/creator-studio/generation/jobs/${JOB_ID}/outputs/${ASSET_ID}`));
+
+    global.fetch = async (url) => jsonResponse(200, String(url).includes("creator_generation_assets") ? [] : [jobRecord({ status: "running" })]);
+    const waiting = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}`).set("accept", "text/html");
+    assert.match(waiting.text, /Nothing to collect yet/);
+  });
+
+  it("signs a private output on the server and never hands over the storage key", async () => {
+    const calls = [];
+    global.fetch = async (url, options = {}) => {
+      const stringUrl = String(url);
+      calls.push({ url: stringUrl, method: options.method || "GET", headers: options.headers });
+      if (stringUrl.includes("/storage/v1/object/sign/")) return jsonResponse(200, { signedURL: "/object/sign/creator-assets/out.mp3?token=short-lived" });
+      if (stringUrl.includes("creator_generation_assets")) return jsonResponse(200, [{ id: ASSET_ID, bucket_id: "creator-assets", object_path: "org/user/job/out.mp3" }]);
+      return jsonResponse(200, [jobRecord({ status: "completed" })]);
+    };
+    const result = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}/outputs/${ASSET_ID}`);
+    assert.equal(result.status, 302);
+    assert.match(result.headers.location, /token=short-lived/);
+    assert.doesNotMatch(result.headers.location, /server-only/);
+    const signing = calls.find((call) => call.url.includes("/storage/v1/object/sign/"));
+    assert.equal(signing.method, "POST");
+    assert.equal(signing.headers.Authorization, "Bearer server-only");
+  });
+
+  it("will not hand somebody another workspace's file", async () => {
+    // The asset query is scoped by job, organization and user, so a mismatched
+    // id returns nothing rather than a signed link.
+    let signed = false;
+    global.fetch = async (url) => {
+      const stringUrl = String(url);
+      if (stringUrl.includes("/storage/v1/object/sign/")) { signed = true; return jsonResponse(200, { signedURL: "/leak" }); }
+      if (stringUrl.includes("creator_generation_assets")) return jsonResponse(200, []);
+      return jsonResponse(200, [jobRecord()]);
+    };
+    const result = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}/outputs/${ASSET_ID}`);
+    assert.equal(result.status, 303);
+    assert.equal(result.headers.location, `/creator-studio/generation/jobs/${JOB_ID}`);
+    assert.equal(signed, false);
+  });
+
+  it("returns a form submission to the page, not to the record behind it", async () => {
+    let job = jobRecord({ status: "running" });
+    global.fetch = async (url, options = {}) => {
+      if (String(url).includes("creator_generation_jobs") && (options.method || "GET") === "PATCH") {
+        job = { ...job, ...JSON.parse(options.body) };
+        return jsonResponse(200, [job]);
+      }
+      return jsonResponse(200, [job]);
+    };
+    const result = await request(buildApp())
+      .post(`/api/creator/generation/jobs/${JOB_ID}/cancel`)
+      .set("accept", "text/html")
+      .send("confirm=1");
+    assert.equal(result.status, 303);
+    assert.equal(result.headers.location, `/creator-studio/generation/jobs/${JOB_ID}`);
+  });
+
   it("ships a private-output, RLS-first schema with no provider credential columns", () => {
     const migration = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20260723080000_creator_generation_control_plane.sql"), "utf8");
     assert.match(migration, /creator_generation_jobs/);

@@ -7,6 +7,11 @@ const {
   getCreatorGenerationCatalog,
   chooseProvider
 } = require("../lib/creator-generation-provider-registry.cjs");
+const {
+  generationStatus,
+  generationStatusLabel,
+  generationCapabilityLabel
+} = require("../lib/sonara-plain-language.cjs");
 
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
@@ -140,7 +145,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       job = dispatched.job || job;
     }
 
-    return send(req, res, { ok: true, status: 201, job }, `/api/creator/generation/jobs/${job.id}`);
+    return send(req, res, { ok: true, status: 201, job }, jobPath(job.id));
   });
 
   app.post("/api/creator/generation/jobs/:jobId/refresh", access, async (req, res) => {
@@ -153,7 +158,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const provider = getProvider(loaded.job.provider_key);
     if (!provider) return res.status(409).json({ ok: false, code: "provider_not_found" });
     const refreshed = await refreshJob(config, context, loaded.job, provider);
-    return res.status(refreshed.ok ? 200 : refreshed.status || 502).json(refreshed);
+    return send(req, res, { ...refreshed, status: refreshed.ok ? 200 : refreshed.status || 502 }, jobPath(loaded.job.id));
   });
 
   app.post("/api/creator/generation/jobs/:jobId/cancel", access, async (req, res) => {
@@ -163,10 +168,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const loaded = await loadJob(config, context, req.params.jobId);
     if (!loaded.ok) return res.status(loaded.status).json(loaded);
-    if (["completed", "failed", "cancelled"].includes(loaded.job.status)) return res.status(409).json({ ok: false, code: "job_not_cancellable" });
+    if (["completed", "failed", "cancelled"].includes(loaded.job.status)) return send(req, res, { ok: false, status: 409, code: "job_not_cancellable" }, jobPath(loaded.job.id));
     const updated = await updateJob(config, context, loaded.job.id, { status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     await event(config, context, loaded.job.id, "generation.job_cancelled", "success", { provider_key: loaded.job.provider_key });
-    return res.status(updated.ok ? 200 : 502).json({ ok: updated.ok, job: updated.rows[0], code: updated.code });
+    return send(req, res, { ok: updated.ok, status: updated.ok ? 200 : 502, job: updated.rows[0], code: updated.code }, jobPath(loaded.job.id));
   });
 
   app.get("/api/creator/generation/voice-consents", access, async (req, res) => {
@@ -248,8 +253,100 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       heading: "Video, audio, music, and voice generation",
       body: "Create governed media jobs, route them to configured providers, retain private outputs, and preserve rights, consent, provenance, and audit evidence.",
       sections,
-      actions: [ui.link("/creator-studio/launch-readiness", "Setup status"), ui.link("/api/creator/generation/jobs", "Your jobs"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
+      actions: [ui.link("/creator-studio/launch-readiness", "Setup status"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/music-system", "Music System"), ui.link("/creator-studio/dashboard", "Dashboard")]
     }));
+  });
+
+  // Everything below renders jobs as pages. Before these existed the only way
+  // to see your own work was /api/creator/generation/jobs -- raw JSON, linked
+  // from the studio page and from every row of its table, and the place a
+  // customer landed after submitting the create form. The data was reachable
+  // and unreadable at the same time.
+  app.get("/creator-studio/generation/jobs", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    let jobs = [];
+    let unavailable = null;
+    if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
+    else if (!config.ok) unavailable = "Your account database is not connected yet, so saved work cannot be listed.";
+    else {
+      const listed = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
+      if (!listed.ok) unavailable = "We could not load your work just now. Try again shortly.";
+      else jobs = listed.rows;
+    }
+    return res.status(200).type("html").send(ui.layout({
+      title: "Your generation work",
+      eyebrow: "Creator Studio",
+      heading: "Your generation work",
+      body: "Everything you have asked us to make, newest first, with what it is waiting on.",
+      sections: unavailable ? [ui.card("Not available right now", unavailable)] : [jobListCard(jobs, ui.escape)],
+      actions: [ui.link("/creator-studio/generation", "Make something new"), ui.link("/creator-studio/dashboard", "Dashboard")]
+    }));
+  });
+
+  app.get("/creator-studio/generation/jobs/:jobId", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    if (!context.ok || !config.ok) return res.status(context.ok ? 200 : 401).type("html").send(ui.layout({
+      title: "Generation work",
+      eyebrow: "Creator Studio",
+      heading: "We cannot show this right now",
+      body: context.ok ? "Your account database is not connected yet." : "We could not confirm your workspace. Sign in and try again.",
+      sections: [],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work")]
+    }));
+
+    const loaded = await loadJob(config, context, req.params.jobId);
+    if (!loaded.ok) return res.status(loaded.status === 404 ? 404 : loaded.status).type("html").send(ui.layout({
+      title: "Generation work",
+      eyebrow: "Creator Studio",
+      heading: "We could not find that piece of work",
+      body: "It may have been removed, or it belongs to a different workspace.",
+      sections: [],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work")]
+    }));
+
+    const job = loaded.job;
+    const [assets, events] = await Promise.all([
+      rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
+      rest(config, EVENT_TABLE, `select=event_type,event_status,details,created_at&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.desc&limit=50`)
+    ]);
+
+    return res.status(200).type("html").send(ui.layout({
+      title: jobTitle(job),
+      eyebrow: "Creator Studio",
+      heading: jobTitle(job),
+      body: generationStatus(job.status).detail,
+      sections: [
+        jobSummaryCard(job, ui.escape),
+        jobOutputsCard(job, assets.ok ? assets.rows : [], ui.escape),
+        jobControlsCard(job, ui.escape),
+        jobRequestCard(job, ui.escape),
+        jobHistoryCard(events.ok ? events.rows : [], ui.escape)
+      ],
+      actions: [ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/generation", "Make something new")]
+    }));
+  });
+
+  // Private outputs were unreachable: the file lands in a private bucket and
+  // nothing minted a URL for it, so a finished job produced something the
+  // customer owned and could not collect. The signing happens here so the
+  // service key stays on the server and the link expires.
+  app.get("/creator-studio/generation/jobs/:jobId/outputs/:assetId", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    const config = getConfig(deps);
+    if (!config.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    const loaded = await loadJob(config, context, req.params.jobId);
+    if (!loaded.ok) return res.redirect(303, "/creator-studio/generation/jobs");
+    if (!validUuid(req.params.assetId)) return res.redirect(303, jobPath(loaded.job.id));
+    const found = await rest(config, ASSET_TABLE, `select=bucket_id,object_path&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+    const asset = found.ok ? found.rows[0] : undefined;
+    if (!asset) return res.redirect(303, jobPath(loaded.job.id));
+    const signed = await signAsset(config, asset);
+    if (!signed.ok) return res.redirect(303, jobPath(loaded.job.id));
+    await event(config, context, loaded.job.id, "generation.output_downloaded", "success", { asset_id: req.params.assetId });
+    return res.redirect(302, signed.url);
   });
 
   for (const [path, title, capability] of [
@@ -587,9 +684,142 @@ function generationForm(providers, escape) {
   return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability"><option value="text_to_speech">Text to speech</option><option value="sound_effects">Sound effects</option><option value="text_to_music">Music</option><option value="music_plan">Music plan</option><option value="text_to_video">Text to video</option><option value="image_to_video">Image to video</option><option value="video_extend">Extend video</option></select></label><label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
 }
 
+function jobPath(jobId) { return `/creator-studio/generation/jobs/${encodeURIComponent(jobId)}`; }
+function jobTitle(job) { return clean(job?.title, 200) || `${generationCapabilityLabel(job?.capability)} request`; }
+
+function jobRows(jobs, escape) {
+  return jobs.map((job) => `<tr><td><a href="${escape(jobPath(job.id))}">${escape(jobTitle(job))}</a></td><td>${escape(generationCapabilityLabel(job.capability))}</td><td>${escape(generationStatusLabel(job.status))}</td><td>${escape(String(job.progress_percent || 0))}%</td><td>${escape(whenText(job.created_at))}</td></tr>`).join("");
+}
+
+function jobsTable(jobs, escape, emptyText) {
+  const rows = jobRows(jobs, escape) || `<tr><td colspan="5">${escape(emptyText)}</td></tr>`;
+  return `<table><thead><tr><th>What</th><th>Kind</th><th>Where it is</th><th>Progress</th><th>Started</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 function jobTable(jobs, escape) {
-  const rows = jobs.map((job) => `<tr><td><a href="/api/creator/generation/jobs/${encodeURIComponent(job.id)}">${escape(job.title || job.id)}</a></td><td>${escape(job.capability)}</td><td>${escape(job.provider_key)}</td><td>${escape(job.status)}</td><td>${escape(String(job.progress_percent || 0))}%</td></tr>`).join("") || '<tr><td colspan="5">No generation jobs yet.</td></tr>';
-  return `<article class="card"><h2>Recent jobs</h2><table><thead><tr><th>Job</th><th>Capability</th><th>Provider</th><th>Status</th><th>Progress</th></tr></thead><tbody>${rows}</tbody></table></article>`;
+  return `<article class="card"><h2>Recent work</h2>${jobsTable(jobs, escape, "Nothing yet. Use the form above to make your first one.")}<p><a class="action" href="/creator-studio/generation/jobs">See all your work</a></p></article>`;
+}
+
+function jobListCard(jobs, escape) {
+  return `<article class="card"><h2>Everything you have made</h2>${jobsTable(jobs, escape, "You have not asked for anything yet.")}</article>`;
+}
+
+function jobSummaryCard(job, escape) {
+  const status = generationStatus(job.status);
+  const rows = [
+    ["Where it is", `${status.label} — ${status.detail}`],
+    ["Progress", `${Number(job.progress_percent || 0)}%`],
+    ["Kind", generationCapabilityLabel(job.capability)],
+    ["Started", whenText(job.created_at)],
+    ["Finished", job.completed_at ? whenText(job.completed_at) : "Not yet"]
+  ];
+  if (job.policy_status === "review_required" || job.policy_status === "rejected") {
+    rows.push(["Why it is held", reasonText(job.policy_reasons)]);
+  }
+  if (job.status === "failed") {
+    rows.push(["What went wrong", clean(job.error_message, 500) || "The service did not say."]);
+  }
+  const body = rows.map(([label, value]) => `<tr><th scope="row">${escape(label)}</th><td>${escape(value)}</td></tr>`).join("");
+  return `<article class="card"><h2>Where this is up to</h2><table><tbody>${body}</tbody></table></article>`;
+}
+
+function jobOutputsCard(job, assets, escape) {
+  const outputs = assets.filter((asset) => asset.asset_role === "output" || asset.asset_role === "preview" || asset.asset_role === "stem");
+  if (!outputs.length) {
+    const waiting = ["completed", "failed", "cancelled"].includes(String(job.status))
+      ? "Nothing was produced for this one."
+      : "Nothing to collect yet. Files appear here as soon as they are made.";
+    return `<article class="card"><h2>Your files</h2><p>${escape(waiting)}</p></article>`;
+  }
+  const rows = outputs.map((asset) => `<tr><td><a href="${escape(`${jobPath(job.id)}/outputs/${encodeURIComponent(asset.id)}`)}">Download</a></td><td>${escape(fileKind(asset))}</td><td>${escape(sizeText(asset.byte_size))}</td><td>${escape(whenText(asset.created_at))}</td></tr>`).join("");
+  return `<article class="card"><h2>Your files</h2><table><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Made</th></tr></thead><tbody>${rows}</tbody></table><p>Download links are private to your workspace and expire after a few minutes.</p></article>`;
+}
+
+function jobControlsCard(job, escape) {
+  const finished = ["completed", "failed", "cancelled"].includes(String(job.status));
+  const controls = [];
+  if (!finished) {
+    // Where these come back to is derived from the job, never posted, so the
+    // form cannot be used to bounce somebody off the site.
+    controls.push(`<form method="post" action="${escape(`/api/creator/generation/jobs/${encodeURIComponent(job.id)}/refresh`)}"><button type="submit">Check for an update</button></form>`);
+    controls.push(`<form method="post" action="${escape(`/api/creator/generation/jobs/${encodeURIComponent(job.id)}/cancel`)}"><button type="submit">Stop this</button></form>`);
+  }
+  if (!controls.length) return `<article class="card"><h2>What you can do</h2><p>This one is finished, so there is nothing left to change. Start a new request whenever you need another.</p></article>`;
+  return `<article class="card"><h2>What you can do</h2>${controls.join("")}</article>`;
+}
+
+function jobRequestCard(job, escape) {
+  const prompt = clean(job.prompt, 5000);
+  const negative = clean(job.negative_prompt, 2000);
+  return `<article class="card"><h2>What you asked for</h2><p>${escape(prompt || "No description was given.")}</p>${negative ? `<p><strong>Asked to avoid:</strong> ${escape(negative)}</p>` : ""}<p><strong>Rights confirmed:</strong> ${escape(job.rights_attested ? "Yes" : "No")}</p></article>`;
+}
+
+function jobHistoryCard(events, escape) {
+  if (!events.length) return `<article class="card"><h2>History</h2><p>Nothing has happened yet.</p></article>`;
+  const rows = events.map((entry) => `<tr><td>${escape(whenText(entry.created_at))}</td><td>${escape(eventText(entry))}</td></tr>`).join("");
+  return `<article class="card"><h2>History</h2><table><tbody>${rows}</tbody></table></article>`;
+}
+
+// Event types are written for the audit record ("generation.dispatch_started"),
+// so they are translated rather than printed.
+const EVENT_TEXT = Object.freeze({
+  "generation.job_created": "You asked for this.",
+  "generation.dispatch_started": "Sent off to be made.",
+  "generation.dispatch_failed": "We could not send it off.",
+  "generation.job_cancelled": "You stopped this.",
+  "generation.completed": "Finished.",
+  "generation.failed": "It did not finish.",
+  "generation.output_stored": "A file was saved for you.",
+  "generation.output_downloaded": "A file was downloaded.",
+  "generation.status_checked": "We checked for an update."
+});
+
+function eventText(entry) {
+  const known = EVENT_TEXT[String(entry?.event_type)];
+  if (known) return known;
+  return String(entry?.event_type || "Something happened").replace(/^generation\./, "").replaceAll("_", " ");
+}
+
+function reasonText(reasons) {
+  const list = Array.isArray(reasons) ? reasons.map((reason) => String(reason).replaceAll("_", " ")).filter(Boolean) : [];
+  return list.length ? list.join("; ") : "We check this kind of request by hand.";
+}
+
+function fileKind(asset) {
+  const media = String(asset?.media_type || "").trim();
+  if (media && media !== "other") return media[0].toUpperCase() + media.slice(1);
+  return "File";
+}
+
+function sizeText(bytes) {
+  const size = Number(bytes);
+  if (!Number.isFinite(size) || size <= 0) return "Unknown";
+  if (size < 1024) return `${size} bytes`;
+  if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function whenText(value) {
+  if (!value) return "Unknown";
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) return "Unknown";
+  return parsed.toISOString().replace("T", " ").slice(0, 16);
+}
+
+// Supabase storage returns a relative signed path; it is only useful joined
+// back onto the project URL.
+async function signAsset(config, asset) {
+  const objectPath = String(asset.object_path || "").split("/").map(encodeURIComponent).join("/");
+  const response = await fetch(`${config.url}/storage/v1/object/sign/${encodeURIComponent(asset.bucket_id)}/${objectPath}`, {
+    method: "POST",
+    headers: { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ expiresIn: 300 })
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false };
+  const payload = await response.json().catch(() => undefined);
+  const signedPath = payload?.signedURL || payload?.signedUrl;
+  if (!signedPath) return { ok: false };
+  return { ok: true, url: `${config.url}/storage/v1${String(signedPath).startsWith("/") ? "" : "/"}${signedPath}` };
 }
 
 function buildUi(deps) {
