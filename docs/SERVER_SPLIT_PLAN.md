@@ -1,48 +1,35 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,172 lines.
+**Status:** complete. 5,119 → 3,824 lines across seven extractions, and the code generators that made it risky are retired.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
 them without leaving anything half-migrated.
 
-## Why it is not simply a matter of moving code
+## Why it was not simply a matter of moving code
 
-44 `scripts/apply-*.cjs` generators mutate `server.js` in place. Between them
-they anchor on **765 distinct strings** in the file — replacement targets,
-`requireAnchor` assertions, `replaceBetween` boundaries. Move one of those and
-the build breaks at `apply:runtime`, not at the diff.
+56 `scripts/apply-*.cjs` generators mutated `server.js` in place. Between them
+they anchored on hundreds of strings in the file — replacement targets,
+`requireAnchor` assertions, `replaceBetween` boundaries. Moving one broke the
+build at `apply:runtime`, not at the diff.
 
-That is not hypothetical. During the plain-language work,
+That was not hypothetical. During the plain-language work,
 `apply-catalog-helper-scope.cjs` reinserted a helper that had been edited in
-place, leaving **two definitions of `catalogActions` in the same file**. The
-file parsed. The tests passed. The later definition silently won, and the
-change appeared to have been reverted by nothing.
+place, leaving **two definitions of `catalogActions` in the same file**. The file
+parsed. The tests passed. The later definition silently won, and the change
+appeared to have been reverted by nothing.
 
-So the rule is:
+The rule that got the split done was:
 
-> Extract only what no generator anchors on, and prove it in the same commit.
+> Extract only what no generator anchors on, and prove it in the same commit —
+> where "prove" means running `apply:runtime` twice and confirming the tree is
+> byte-identical, not that a unit test passed.
 
-`tests/server-split.test.js` gives an early warning: a generator that names an
-extracted function must also open the module it moved to.
-
-**That check is not sufficient, and it is important to know why.** It has now
-been proven insufficient twice:
-
-- Step 1 broke `apply-growth-studio-public-positioning.cjs`, which never
-  mentions `productLandingActions` — it anchors on
-  `linkAction("/growth-studio/dashboard", "Open dashboard")`, a line *inside*
-  the function body.
-- Step 2 broke `apply-paid-launch-finalization.cjs`, which never mentions
-  `getReadiness` — it anchors on two lines of the readiness object literal
-  inside it.
-
-Both extractions looked clean by every function name involved. No amount of
-name matching sees either coming.
-
-The authoritative check is empirical: run `pnpm run apply:runtime` twice and
-confirm the tree is unchanged. `verify:generated` does this in CI. **Never skip
-step 5 below on the grounds that the unit test passed.**
+**The generators are now retired.** `server.js` and everything under `lib/` and
+`routes/` is ordinary hand-maintained code. None of the above applies to future
+work on this file; it is recorded because it explains the shape of the modules,
+which functions stayed behind and why, and why the grades in the table below
+were wrong.
 
 ## The order
 
@@ -57,10 +44,28 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
 | 6 | Customer sessions — 21 functions | 250 | 1 (boundary) | **done** — `lib/sonara-customer-auth.cjs` |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
-| 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 0 (retired) | unblocked — next |
+| 7b | Page frame — 11 functions | 330 | 0 (retired) | **done** — `lib/sonara-page-frame.cjs` |
 
-Only step 7b is left, and it is the one row whose original grade survived
-contact with the evidence.
+Every step is done. Step 7b was the one row whose original grade survived
+contact with the evidence — eleven generators really did anchor on markup inside
+`layout`, four of them on `  </head>` alone — and it was unblocked by retiring
+the generators rather than by out-arguing them.
+
+## What the grades were worth, in the end
+
+| Step | Graded | Actually |
+| --- | --- | --- |
+| 3 | 0 generators | correct |
+| 4 | 3 generators, "ready" | nothing left to move |
+| 5 | many, "generator work first" | one, a `replaceBetween` boundary |
+| 6 | many, "generator work first" | one, the same boundary pair |
+| 7a | 26, "do not attempt" | zero |
+| 7b | 11, "do not attempt" | correct |
+
+Four of six were wrong, all in the same direction, all because they counted how
+many generators *mentioned* a name rather than how many anchored on a string
+inside its body. The check that distinguishes those is a few minutes of grep.
+The belief cost months of not touching the file.
 
 ### Step 6 was mis-graded too — that is now three out of three
 

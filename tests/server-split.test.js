@@ -119,6 +119,22 @@ const EXTRACTED = [
     ]
   },
   {
+    module: "lib/sonara-page-frame.cjs",
+    functions: [
+      "layout",
+      "responsePage",
+      "renderHomepageContent",
+      "renderHead",
+      "pageBrandClass",
+      "renderInterfaceStatusPanel",
+      "adminActions",
+      "adminRowsPage",
+      "adminLoginForm",
+      "adminLogoutAction",
+      "adminRoleForm"
+    ]
+  },
+  {
     module: "lib/sonara-shell.cjs",
     functions: [
       "escapeHtml",
@@ -203,12 +219,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,135 lines after the generators were retired,
-    // down from 5,119. If a change adds to server.js instead of a module, this asks
+    // A ratchet, not a target. 3,828 lines after the page frame moved -- step
+    // 7b, the last one, unblocked by retiring the generators. Down from 5,119. If a change adds to server.js instead of a module, this asks
     // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4150,
+      lines <= 3840,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -257,6 +273,62 @@ describe("the readiness module stands on its own", () => {
   it("owns the database contract rather than having it injected", () => {
     const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
     assert.ok(readiness, "the database readiness result must build from the contract it requires");
+  });
+});
+
+describe("the page frame stands on its own", () => {
+  const { createPageFrame, REQUIRED } = require("../lib/sonara-page-frame.cjs");
+
+  const deps = { legalPages: () => [], readinessStatusClass: () => "ok", safeListTable: async () => ({ ok: false, rows: [] }) };
+
+  it("refuses to build without the helpers it needs", () => {
+    assert.throws(() => createPageFrame({}), TypeError);
+    for (const name of REQUIRED) {
+      const partial = { ...deps };
+      delete partial[name];
+      assert.throws(() => createPageFrame(partial), TypeError, `omitting ${name} must throw`);
+    }
+  });
+
+  it("renders a complete document, not a fragment", () => {
+    // layout is what every screen is poured into. A missing doctype or head
+    // would put the whole application into quirks mode at once.
+    const html = createPageFrame(deps).layout({ title: "T", heading: "H", body: "B", sections: [], actions: [] });
+    assert.match(html, /^<!doctype html>/i);
+    assert.match(html, /<html[^>]*>[\s\S]*<\/html>\s*$/i);
+    assert.match(html, /<head>[\s\S]*<\/head>/i);
+    assert.match(html, /<meta name="viewport"/i);
+  });
+
+  it("escapes the title and heading it is given", () => {
+    // These come from route handlers, and some carry customer-supplied text.
+    const html = createPageFrame(deps).layout({ title: '<script>x</script>', heading: '"&<>', body: "", sections: [], actions: [] });
+    assert.doesNotMatch(html, /<script>x<\/script>/);
+    assert.match(html, /&lt;script&gt;/);
+  });
+
+  it("renders an empty page, and insists on being told it is empty", () => {
+    // Several screens render with no cards while setup is incomplete, so empty
+    // arrays have to work. A *missing* sections array throws instead of
+    // defaulting -- that is existing behaviour, kept as-is because this
+    // extraction was a relocation. Worth pinning either way: the throw is loud,
+    // and a silent default would hide a route that forgot to pass its content.
+    const frame = createPageFrame(deps);
+    assert.doesNotThrow(() => frame.layout({ title: "T", heading: "H", body: "B", sections: [], actions: [] }));
+    assert.throws(() => frame.layout({ title: "T" }), TypeError);
+  });
+
+  it("puts the message on the one-message page", () => {
+    const html = createPageFrame(deps).responsePage("Checkout unavailable", "Nothing has been charged.", []);
+    assert.match(html, /Checkout unavailable/);
+    assert.match(html, /Nothing has been charged/);
+  });
+
+  it("offers a logout on the founder bar and never a bare admin password field", () => {
+    const frame = createPageFrame(deps);
+    assert.ok(frame.adminActions().some((action) => /admin\/logout/.test(action)));
+    assert.match(frame.adminLoginForm(), /type="password"/);
+    assert.match(frame.adminLoginForm(), /autocomplete="current-password"/);
   });
 });
 
