@@ -1,5 +1,11 @@
 "use strict";
 
+const {
+  OWNER_RECORD_PAGES,
+  REFERENCE_SOURCES,
+  pageForApi
+} = require("../lib/sonara-owner-record-pages.cjs");
+
 const RESOURCE_MAP = {
   "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" } },
   "/api/business/services": { table: "business_service_catalog", required: ["name"], defaults: { status: "active" } },
@@ -26,22 +32,11 @@ const PUBLIC_GETS = new Map([
   ["/api/integrations/providers", { table: "integration_providers", query: "?select=provider_key,name,category,connection_mode,capabilities,status&order=category.asc,provider_key.asc&limit=200" }]
 ]);
 
+// The dashboard. The fourteen pages under it are described in
+// lib/sonara-owner-record-pages.cjs, which is also where the reason they
+// needed rewriting is recorded.
 const OWNER_PAGES = [
-  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: locations, staff, services, bookings, inventory, vendors, invoices, food costs, vehicles, and maintenance."],
-  ["/business-builder/owner/locations", "Locations", "Manage storefronts, mobile stops, food trucks, trailers, job sites, and service areas."],
-  ["/business-builder/owner/services", "Services", "Build the services, menu items, appointments, and customer offers your business sells."],
-  ["/business-builder/owner/bookings", "Bookings", "Review requested, confirmed, completed, cancelled, and no-show bookings."],
-  ["/business-builder/owner/staff", "Staff", "Create employee profiles, assign job information, and prepare staff access."],
-  ["/business-builder/owner/schedules", "Schedule", "Plan shifts and staff coverage by location."],
-  ["/business-builder/owner/time", "Time Clock", "Review staff time entries and clock activity."],
-  ["/business-builder/owner/inventory", "Inventory", "Track items, counts, movement, waste, reorder levels, and value."],
-  ["/business-builder/owner/vendors", "Vendors", "Manage vendors, account details, invoices, and purchasing."],
-  ["/business-builder/owner/invoices", "Invoices", "Track vendor invoices, line items, approval state, bill status, and accounting export readiness."],
-  ["/business-builder/owner/recipes", "Recipes", "Build recipes and ingredient costs for menu and product costing."],
-  ["/business-builder/owner/menu", "Menu", "Connect selling prices, recipe costs, and menu margin."],
-  ["/business-builder/owner/costs", "Food Costs", "Review sales, food cost, labor cost, waste, menu mix, and daily profit snapshots."],
-  ["/business-builder/owner/vehicles", "Vehicles", "Track vehicles, trailers, food trucks, registrations, inspections, and assigned routes."],
-  ["/business-builder/owner/maintenance", "Maintenance", "Log equipment, vehicle, trailer, and location maintenance records."]
+  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: locations, staff, services, bookings, inventory, vendors, invoices, food costs, vehicles, and maintenance."]
 ];
 
 const STAFF_PAGES = [
@@ -85,6 +80,38 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           ui.link("/business-builder/owner/inventory", "Inventory"),
           ui.link("/business-builder/dashboard", "Dashboard")
         ]
+      }));
+    });
+  });
+
+  // The fourteen owner record pages: the customer's own records, and a form to
+  // add one. Before this they rendered a description of themselves and nothing
+  // else, while the API behind them already worked.
+  OWNER_RECORD_PAGES.forEach((page) => {
+    app.get(page.path, requireBusinessManager, async (req, res) => {
+      const config = getConfig(deps);
+      const org = await resolveOrganization(req, deps);
+      let rows = [];
+      let references = {};
+      let unavailable = null;
+      if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
+      else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
+      else {
+        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
+        else rows = listed.rows;
+        references = await loadReferences(config, org.organizationId, page);
+      }
+      const sections = unavailable
+        ? [ui.card("Not available right now", unavailable)]
+        : [recordsCard(page, rows, ui), ...(page.form ? [formCard(page, references, ui)] : [])];
+      return res.status(200).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.body,
+        sections,
+        actions: ownerActions(ui, page.path)
       }));
     });
   });
@@ -248,15 +275,104 @@ function registerRestResource(app, path, resource, deps, middleware) {
   });
 
   app.post(path, middleware, async (req, res) => {
+    // A form submission is a person, not a script. Send them back to the page
+    // they were on rather than to the record they just created rendered as
+    // JSON, which is where this used to leave them.
+    const page = pageForApi(path);
+    const returnTo = page ? page.path : null;
+    const respond = (status, payload) => {
+      if (!returnTo || !acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, returnTo);
+      return res.redirect(303, `${returnTo}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+    };
+
     const missing = resource.required.filter((key) => !String(req.body[key] || "").trim());
-    if (missing.length) return res.status(400).json({ ok: false, code: "validation_failed", missing });
+    if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
-    if (!org.ok) return res.status(403).json(org);
-    const payload = sanitizeObject({ ...resource.defaults, ...req.body, organization_id: org.organizationId, user_id: org.userId || req.body.user_id || null });
-    return res.status(200).json(await supabaseInsert(config, resource.table, payload));
+    if (!org.ok) return respond(403, org);
+    const payload = sanitizeObject({ ...resource.defaults, ...dropBlanks(req.body), organization_id: org.organizationId, user_id: org.userId || req.body.user_id || null });
+    const saved = await supabaseInsert(config, resource.table, payload);
+    return respond(saved?.ok === false ? 502 : 200, saved);
   });
+}
+
+// An empty text box means "I did not fill this in", not "set this column to
+// an empty string" -- which would fail a date or number column outright.
+function dropBlanks(body) {
+  return Object.fromEntries(Object.entries(body || {}).filter(([, value]) => !(typeof value === "string" && value.trim() === "")));
+}
+
+function acceptsHtml(req) {
+  return String(req.get?.("accept") || "").includes("text/html")
+    || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
+}
+
+async function loadReferences(config, organizationId, page) {
+  const needed = (page.form?.fields || []).filter((field) => field.type === "reference");
+  const loaded = {};
+  await Promise.all(needed.map(async (field) => {
+    const source = REFERENCE_SOURCES[field.from];
+    if (!source) return;
+    const result = await supabaseList(config, source.table, `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
+    loaded[field.from] = result.ok ? result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) : [];
+  }));
+  return loaded;
+}
+
+function recordsCard(page, rows, ui) {
+  const head = page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
+  const body = rows.length
+    ? rows.map((row) => `<tr>${page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
+    : `<tr><td colspan="${page.columns.length}">${ui.escape(page.empty)}</td></tr>`;
+  const count = rows.length === 1 ? "1 record" : `${rows.length} records`;
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+// One awkward value should cost its own cell, not the whole page.
+function safeCell(column, row) {
+  try {
+    return column.value(row);
+  } catch {
+    return "Not set";
+  }
+}
+
+function formCard(page, references, ui) {
+  const fields = page.form.fields.map((field) => formField(field, references, ui)).join("");
+  return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(page.api)}">${fields}<button type="submit">Save</button></form></article>`;
+}
+
+function formField(field, references, ui) {
+  const required = field.required ? " required" : "";
+  const label = ui.escape(field.label);
+  const hint = field.hint ? `<span class="fine">${ui.escape(field.hint)}</span>` : "";
+  const name = ui.escape(field.name);
+  if (field.type === "reference") {
+    const options = (references[field.from] || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    if (!options) return `<label>${label}<select name="${name}"${required}><option value="">Nothing to choose yet — add one first</option></select></label>${hint}`;
+    return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
+  }
+  if (field.type === "select") {
+    const options = (field.options || []).map((option) => `<option value="${ui.escape(option)}">${ui.escape(String(option).replaceAll("_", " "))}</option>`).join("");
+    return `<label>${label}<select name="${name}"${required}>${options}</select></label>${hint}`;
+  }
+  if (field.type === "textarea") {
+    return `<label>${label}<textarea name="${name}" rows="4" maxlength="${Number(field.maxLength || 2000)}"${required}></textarea></label>${hint}`;
+  }
+  const type = ui.escape(field.type || "text");
+  const step = field.step ? ` step="${ui.escape(field.step)}"` : "";
+  const maxLength = field.maxLength ? ` maxlength="${Number(field.maxLength)}"` : "";
+  return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${required}></label>${hint}`;
+}
+
+function ownerActions(ui, currentPath) {
+  return [
+    ui.link("/business-builder/owner", "Owner Dashboard"),
+    ...OWNER_RECORD_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
+    ui.link("/business-builder/dashboard", "Dashboard")
+  ];
 }
 
 function buildUi(deps) {
@@ -264,7 +380,8 @@ function buildUi(deps) {
   return {
     layout: deps.layout || (({ title, eyebrow, heading, body, sections, actions }) => `<!doctype html><html><head><title>${escape(title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/app.css"></head><body><main><p>${escape(eyebrow)}</p><h1>${escape(heading)}</h1><p>${escape(body)}</p><div>${(actions || []).join("")}</div><section>${(sections || []).join("")}</section></main></body></html>`),
     card: deps.brandCard || ((title, body) => `<article class="card"><h2>${escape(title)}</h2><p>${escape(body)}</p></article>`),
-    link: deps.linkAction || ((href, label) => `<a class="action" href="${escape(href)}">${escape(label)}</a>`)
+    link: deps.linkAction || ((href, label) => `<a class="action" href="${escape(href)}">${escape(label)}</a>`),
+    escape
   };
 }
 
