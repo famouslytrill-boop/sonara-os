@@ -35,6 +35,25 @@ const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
+const { createBilling } = require("./lib/sonara-billing.cjs");
+// The leaf rendering helpers -- cards, links, forms, status wording. Required
+// at the very top because these are consts now rather than hoisted function
+// declarations, and createProductPages below is called at module load with two
+// of them. Nothing in this file can be allowed to run before this line.
+const {
+  accessCard,
+  actionCard,
+  adminReadinessText,
+  authForm,
+  brandCard,
+  checklistCard,
+  contactForm,
+  displayStatus,
+  escapeHtml,
+  formatLabel,
+  linkAction,
+  logoutAction
+} = require("./lib/sonara-shell.cjs");
 
 // getProductPageDefinitions, productLandingActions, productDashboardActions and
 // productLaunchReadinessActions moved to lib/sonara-product-pages.cjs -- pure
@@ -128,6 +147,45 @@ const STRIPE_PLANS = {
     mode: "payment"
   }
 };
+
+// Stripe and the billing records moved to lib/sonara-billing.cjs. The cut is at
+// the HTTP seam: handleCheckoutSessionRequest and handleStripeWebhook are still
+// declared below because they are Express handlers and app.post() references
+// them at module load, and getCustomerPaidEntitlement is still declared below
+// because apply-customer-ready-production-experience.cjs uses its declaration
+// line as the end boundary of a replaceBetween.
+//
+// This binding has to sit here rather than at the top with the others: it reads
+// STRIPE_PLANS, which is the const immediately above, and a const is not
+// hoisted. Putting it with the shell require is the exact failure step 2 hit.
+const {
+  billingPanel,
+  createStripeCheckoutSession,
+  getBillingPanelSummary,
+  getBillingSummary,
+  getCheckoutRedirectUrls,
+  getOrCreateStripeCustomer,
+  getPaidEntitlementKeys,
+  getPriceCardSetupText,
+  isValidPlan,
+  normalizeCheckoutPlan,
+  priceCard,
+  recordBillingWebhookEvent,
+  synchronizeBillingFromStripeEvent,
+  synchronizeCheckoutSessionCompleted,
+  verifyStripeWebhookSignature
+} = createBilling({
+  STRIPE_PLANS,
+  getEnv,
+  getPublicAppUrl,
+  getSafeAbsoluteUrl,
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  safeCountTable,
+  formatMetric,
+  insertActivityEvent
+});
+
 // The readiness cluster moved to lib/sonara-readiness.cjs -- 27 functions that
 // all answer "what is configured right now". Three generators call
 // getReadiness(); none anchors on its definition, and the call sites stayed
@@ -2136,27 +2194,6 @@ function readinessCards(readiness) {
     .map(([key, label]) => brandCard(label, displayStatus(readiness.services[key])));
 }
 
-function displayStatus(value) {
-  return String(value)
-    .replace(/setup_required/g, "Setup required")
-    .replace(/review_required/g, "Review required")
-    .replace(/_/g, " ")
-    .replace(/^./, (char) => char.toUpperCase());
-}
-
-function brandCard(title, body) {
-  return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p></article>`;
-}
-
-function actionCard(title, body, actions = []) {
-  return `<article class="card sonara-action-card"><h2>${escapeHtml(title)}</h2><p>${escapeHtml(body)}</p>${actions.length ? `<div class="card-actions">${actions.join("")}</div>` : ""}</article>`;
-}
-
-function accessCard(access) {
-  if (access?.ownerOverride) return brandCard("Owner/Admin access", "Founder operations can open all workspaces for setup, testing, support, and administration. Customer billing rules are unchanged.");
-  if (access?.mode === "customer") return brandCard("Free customer access", "Logged-in users can use free tools. Paid tools require confirmed plan access from payment records.");
-  return brandCard("Access", "Login is required before protected workspace tools can open.");
-}
 
 async function getWorkspaceDashboardSummary(access, productKey) {
   const readiness = getReadiness();
@@ -2264,62 +2301,12 @@ async function getCommandCenterSummary(req) {
   return { workspaceCard, requestsSummary, deliverablesSummary, billingSummary, supportSummary, blockersCard, nextBestAction, adminCard };
 }
 
-function checklistCard(title, items) {
-  return `<article class="card"><h2>${escapeHtml(title)}</h2><p>${items.map((item) => escapeHtml(item)).join(" / ")}</p></article>`;
-}
 
-function priceCard(plan, config, planStatus, readiness) {
-  if (plan === "free") return brandCard(`${config.name} - ${config.price}`, `${config.description} No checkout required.`);
-  const enabled = planStatus.checkout === "enabled";
-  const setupText = getPriceCardSetupText(planStatus, readiness);
-  return `<article class="card">
-    <h2>${escapeHtml(`${config.name} - ${config.price}`)}</h2>
-    <p>${escapeHtml(`${config.description} ${enabled ? "Checkout available." : setupText}`)}</p>
-    <form method="post" action="/api/checkout/session">
-      <input type="hidden" name="plan" value="${escapeHtml(plan)}">
-      <button type="submit">${enabled ? "Start checkout" : "Not open yet"}</button>
-    </form>
-  </article>`;
-}
-
-function billingPanel(readiness, billing) {
-  const planForms = Object.entries(STRIPE_PLANS)
-    .filter(([plan]) => plan !== "free")
-    .map(([plan, config]) => `<form method="post" action="/api/billing/create-checkout-session">
-      <input type="hidden" name="plan" value="${escapeHtml(plan)}">
-      <button type="submit">${escapeHtml(`Upgrade: ${config.name}`)}</button>
-    </form>`)
-    .join("");
-  return `<article class="card">
-    <h2>Billing actions</h2>
-    <p>${escapeHtml(readiness.services.checkout === "enabled" ? "You can check out on any plan that is set up." : "Paid plans are not open for checkout yet.")}</p>
-    ${planForms}
-    <form method="post" action="/api/billing/create-portal-session">
-      <button type="submit">Manage billing portal</button>
-    </form>
-    <p class="fine">${escapeHtml(billing.rows?.length ? "Current records come from the account database." : "No billing records returned yet.")}</p>
-  </article>`;
-}
-
-function getPriceCardSetupText(planStatus, readiness) {
-  if (readiness.services.stripe !== "configured") return "Not open for checkout yet: our payment connection is still being set up.";
-  if (planStatus.reason === "missing") return "Checkout is not configured for this plan yet.";
-  if (planStatus.reason === "invalid_placeholder") return "Not open for checkout yet: this price is still a placeholder.";
-  if (planStatus.reason === "invalid_prefix") return "Not open for checkout yet: this price is not set correctly.";
-  return "Not open for checkout yet.";
-}
-
-function linkAction(href, label) {
-  return `<a class="action" href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
-}
 
 function adminLogoutAction() {
   return `<form method="post" action="/admin/logout"><button class="action" type="submit">Logout</button></form>`;
 }
 
-function logoutAction() {
-  return `<form method="post" action="/logout"><button class="action" type="submit">Logout</button></form>`;
-}
 
 function adminLoginForm() {
   const inputId = "admin-founder-password";
@@ -2364,25 +2351,6 @@ function businessEmployeeAcceptForm() {
   </article>`;
 }
 
-function contactForm() {
-  return `<article class="card">
-    <h2>Request intake</h2>
-    <form method="post" action="/contact">
-      <label>Name<input name="name" type="text" required></label>
-      <label>Work email<input name="email" type="email" required></label>
-      <label>Subject<input name="subject" type="text" required></label>
-      <select name="category" required>
-        <option value="contact">Contact</option>
-        <option value="support">Support</option>
-        <option value="billing">Billing</option>
-        <option value="feedback">Feedback</option>
-      </select>
-      <label>Launch context<textarea name="message" rows="6" required></textarea></label>
-      <label class="fine"><input name="consent" type="checkbox" value="yes" required> Consent to process this request</label>
-      <button type="submit">Submit request</button>
-    </form>
-  </article>`;
-}
 
 function businessOfferForm() {
   return `<article class="card">
@@ -2469,27 +2437,6 @@ function growthLeadForm() {
   </article>`;
 }
 
-function authForm(label, action) {
-  const inputId = `password-${crypto.createHash("sha1").update(action).digest("hex").slice(0, 8)}`;
-  const isSignup = action === "/auth/signup";
-  const passwordAutocomplete = isSignup ? "new-password" : "current-password";
-  const confirmInputId = `${inputId}-confirm`;
-  const confirmationField = isSignup
-    ? `<label>Confirm password<input id="${confirmInputId}" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" aria-describedby="${inputId}-hint" required></label>
-      <button type="button" data-toggle-password="${confirmInputId}" aria-controls="${confirmInputId}" aria-pressed="false" aria-label="Show confirmed password">Show password</button>`
-    : "";
-  return `<article class="card">
-    <h2>${escapeHtml(label)}</h2>
-    <form method="post" action="${escapeHtml(action)}">
-      <label>Email<input name="email" type="email" autocomplete="${isSignup ? "email" : "username"}" required></label>
-      <label>Password<input id="${inputId}" name="password" type="password" autocomplete="${passwordAutocomplete}" minlength="8" aria-describedby="${inputId}-hint" required></label>
-      <p class="fine" id="${inputId}-hint">Use at least 8 characters.</p>
-      <button type="button" data-toggle-password="${inputId}" aria-controls="${inputId}" aria-pressed="false" aria-label="Show password">Show password</button>
-      ${confirmationField}
-      <button type="submit">${escapeHtml(label)}</button>
-    </form>
-  </article>`;
-}
 
 function accountSetupCards() {
   return [
@@ -2987,31 +2934,6 @@ async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
 function hashInviteToken(token) {
   return crypto.createHash("sha256").update(String(token)).digest("hex");
 }
-
-
-
-
-function adminReadinessText(item) {
-  if (item.status === "configured") return "Configured";
-  if (item.status === "invalid") return "Invalid placeholder";
-  if (item.status === "missing") return "Missing";
-  return item.warning || displayStatus(item.status || "setup_required");
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -3981,14 +3903,6 @@ async function getCustomerPaidEntitlement(user, productKey) {
   };
 }
 
-function getPaidEntitlementKeys(productKey) {
-  const map = {
-    business_builder: ["starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"],
-    creator_studio: ["core_monthly", "pro_monthly"],
-    growth_studio: ["pro_monthly"]
-  };
-  return map[productKey] || [];
-}
 
 async function verifyAdminRequest(req) {
   const candidates = [
@@ -4105,22 +4019,6 @@ function getCookie(req, name) {
   return "";
 }
 
-function isValidPlan(plan) {
-  return Object.prototype.hasOwnProperty.call(STRIPE_PLANS, plan);
-}
-
-function normalizeCheckoutPlan(body) {
-  const requested = String(body.plan || body.priceKey || body.price_key || body.product || body.product_key || "").trim();
-  const aliases = {
-    business_builder_monthly: "starter_monthly",
-    business_builder_starter_monthly: "starter_monthly",
-    creator_studio_monthly: "core_monthly",
-    growth_studio_monthly: "pro_monthly",
-    business_builder_onetime: "business_builder_one_time",
-    business_builder_setup: "business_builder_one_time"
-  };
-  return aliases[requested] || requested;
-}
 
 async function handleCheckoutSessionRequest(req, res) {
   const plan = normalizeCheckoutPlan(req.body);
@@ -4177,78 +4075,6 @@ function sendSetupRequired(req, res, status, service, reason) {
   return res.status(status).json(payload);
 }
 
-async function createStripeCheckoutSession(req, plan, priceId, organizationId, user, stripeCustomerId) {
-  const urls = getCheckoutRedirectUrls(req);
-  const params = new URLSearchParams({
-    mode: STRIPE_PLANS[plan].mode,
-    success_url: urls.successUrl,
-    cancel_url: urls.cancelUrl,
-    customer: stripeCustomerId,
-    "line_items[0][price]": priceId,
-    "line_items[0][quantity]": "1",
-    "metadata[plan]": plan,
-    "metadata[organization_id]": organizationId,
-    "metadata[user_id]": user?.id || "",
-    "metadata[price_id]": priceId
-  });
-  if (STRIPE_PLANS[plan].mode === "subscription") {
-    params.set("subscription_data[metadata][plan]", plan);
-    params.set("subscription_data[metadata][organization_id]", organizationId);
-    params.set("subscription_data[metadata][user_id]", user?.id || "");
-  }
-  const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString()
-  }).catch(() => undefined);
-  if (!response?.ok) return { ok: false };
-  const session = await response.json();
-  return { ok: true, url: session.url };
-}
-
-async function getOrCreateStripeCustomer(user, organizationId) {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { ok: false, code: "supabase" };
-  const userId = String(user?.id || "").trim();
-  if (!userId || !organizationId) return { ok: false, code: "customer_organization" };
-
-  const existing = await fetch(`${config.url}/rest/v1/stripe_customers?select=stripe_customer_id&organization_id=eq.${encodeURIComponent(organizationId)}&user_id=eq.${encodeURIComponent(userId)}&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (existing?.ok) {
-    const rows = await existing.json().catch(() => []);
-    if (rows[0]?.stripe_customer_id) return { ok: true, stripeCustomerId: rows[0].stripe_customer_id, source: "database" };
-  }
-
-  const params = new URLSearchParams({
-    email: user.email || "",
-    "metadata[user_id]": userId,
-    "metadata[organization_id]": organizationId
-  });
-  const created = await fetch("https://api.stripe.com/v1/customers", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getEnv("STRIPE_SECRET_KEY")}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString()
-  }).catch(() => undefined);
-  if (!created?.ok) return { ok: false, code: "stripe_customer_create_failed" };
-  const customer = await created.json().catch(() => ({}));
-  if (!customer.id) return { ok: false, code: "stripe_customer_missing" };
-
-  await fetch(`${config.url}/rest/v1/stripe_customers?on_conflict=stripe_customer_id`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "resolution=ignore-duplicates" }),
-    body: JSON.stringify({ user_id: userId, organization_id: organizationId, stripe_customer_id: customer.id })
-  }).catch(() => undefined);
-  return { ok: true, stripeCustomerId: customer.id, source: "stripe" };
-}
-
-function getCheckoutRedirectUrls(req) {
-  const baseUrl = getPublicAppUrl(req);
-  return {
-    successUrl: getSafeAbsoluteUrl(process.env.STRIPE_SUCCESS_URL, `${baseUrl}/account`),
-    cancelUrl: getSafeAbsoluteUrl(process.env.STRIPE_CANCEL_URL, `${baseUrl}/pricing`)
-  };
-}
 
 function getPublicAppUrl(req) {
   const configured = getEnv(["APP_URL", "PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_SITE_URL"]);
@@ -4298,57 +4124,6 @@ async function handleStripeWebhook(req, res) {
   return res.status(200).json({ ok: true, received: true, audited: audit.ok, synchronized: sync.ok, event_id: event.id });
 }
 
-function verifyStripeWebhookSignature(rawBody, header, secret) {
-  if (!header || !Buffer.isBuffer(rawBody)) return { ok: false };
-  const parts = Object.fromEntries(header.split(",").map((part) => part.split("=")));
-  if (!parts.t || !parts.v1) return { ok: false };
-  const expected = crypto.createHmac("sha256", secret).update(`${parts.t}.${rawBody.toString("utf8")}`).digest("hex");
-  const a = Buffer.from(expected);
-  const b = Buffer.from(parts.v1);
-  return { ok: a.length === b.length && crypto.timingSafeEqual(a, b) };
-}
-
-async function recordBillingWebhookEvent(event) {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { ok: false };
-  const response = await fetch(`${config.url}/rest/v1/billing_webhook_events?on_conflict=provider,provider_event_id`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "resolution=ignore-duplicates" }),
-    body: JSON.stringify({
-      provider: "stripe",
-      provider_event_id: event.id,
-      event_type: event.type,
-      livemode: Boolean(event.livemode),
-      payload: event,
-      processing_status: "processed",
-      processed_at: new Date().toISOString(),
-      metadata: { object: event.data?.object?.object, customer: event.data?.object?.customer, subscription: event.data?.object?.subscription || event.data?.object?.id }
-    })
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok) };
-}
-
-async function synchronizeBillingFromStripeEvent(event) {
-  if (event.type === "checkout.session.completed") return synchronizeCheckoutSessionCompleted(event);
-  if (!["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(event.type)) return { ok: true, ignored: true };
-  const config = getSupabaseServerConfig();
-  const subscription = event.data?.object;
-  const organizationId = subscription?.metadata?.organization_id;
-  if (!config.ok || !subscription?.id || !organizationId) return { ok: false };
-  const planSlug = subscription.metadata?.plan || "core_monthly";
-  const currentPeriodEnd = Number.isFinite(subscription.current_period_end) ? new Date(subscription.current_period_end * 1000).toISOString() : null;
-  const response = await fetch(`${config.url}/rest/v1/billing_subscriptions?on_conflict=provider,provider_subscription_ref`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-    body: JSON.stringify({ organization_id: organizationId, provider: "stripe", provider_customer_ref: subscription.customer, provider_subscription_ref: subscription.id, plan_slug: planSlug, status: subscription.status, current_period_end: currentPeriodEnd, cancel_at_period_end: Boolean(subscription.cancel_at_period_end), metadata: { source: "stripe_webhook" } })
-  }).catch(() => undefined);
-  await fetch(`${config.url}/rest/v1/billing_entitlements?on_conflict=organization_id,entitlement_key`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-    body: JSON.stringify({ organization_id: organizationId, entitlement_key: planSlug, status: ["active", "trialing"].includes(subscription.status) ? "active" : "disabled", source: "billing", metadata: { provider: "stripe", provider_subscription_ref: subscription.id } })
-  }).catch(() => undefined);
-  return { ok: Boolean(response?.ok) };
-}
 
 async function updateSupportEmailStatus(supportRequestId, email) {
   const config = getSupabaseServerConfig();
@@ -4395,34 +4170,6 @@ async function getAdminMetrics() {
   };
 }
 
-async function getBillingSummary() {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { webhookEvents: "Setup required: Supabase is not configured.", subscriptions: "Setup required: Supabase is not configured." };
-  const [webhookEvents, subscriptions] = await Promise.all([
-    safeCountTable(config, "billing_webhook_events"),
-    safeCountTable(config, "billing_subscriptions")
-  ]);
-  return {
-    webhookEvents: formatMetric("Recorded events", webhookEvents),
-    subscriptions: formatMetric("Subscription records", subscriptions)
-  };
-}
-
-async function getBillingPanelSummary(organizationId) {
-  const config = getSupabaseServerConfig();
-  if (!config.ok) return { status: "Setup required: account database is not configured.", rows: [] };
-  if (!organizationId) return { status: "Setup required: organization membership is missing.", rows: [] };
-  const response = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status,current_period_end&organization_id=eq.${encodeURIComponent(organizationId)}&order=updated_at.desc&limit=5`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!response?.ok) return { status: "No subscription records returned.", rows: [] };
-  const rows = await response.json().catch(() => []);
-  const active = rows.find((row) => ["active", "trialing"].includes(row.status));
-  return {
-    status: active ? `${displayStatus(active.plan_slug)}: ${displayStatus(active.status)}` : "No active paid plan found.",
-    rows
-  };
-}
 
 async function getAdminOverviewJson() {
   const config = getSupabaseServerConfig();
@@ -4685,42 +4432,6 @@ async function recordAdminAuditEvent(req, action, metadata = {}) {
   return { ok: Boolean(response?.ok) };
 }
 
-async function synchronizeCheckoutSessionCompleted(event) {
-  const config = getSupabaseServerConfig();
-  const session = event.data?.object;
-  const organizationId = session?.metadata?.organization_id;
-  const planSlug = session?.metadata?.plan;
-  if (!config.ok || !session?.id || !organizationId || !planSlug) return { ok: true, ignored: true };
-  if (session.mode === "payment" && session.payment_status === "paid") {
-    await fetch(`${config.url}/rest/v1/purchases?on_conflict=stripe_checkout_session_id`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-      body: JSON.stringify({
-        user_id: session.metadata?.user_id || null,
-        organization_id: organizationId,
-        stripe_checkout_session_id: session.id,
-        stripe_payment_intent_id: session.payment_intent || null,
-        product_key: planSlug,
-        price_id: session.metadata?.price_id || null,
-        status: "paid"
-      })
-    }).catch(() => undefined);
-    const entitlement = await fetch(`${config.url}/rest/v1/billing_entitlements?on_conflict=organization_id,entitlement_key`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-      body: JSON.stringify({
-        organization_id: organizationId,
-        entitlement_key: planSlug,
-        status: "active",
-        source: "billing",
-        metadata: { provider: "stripe", checkout_session_id: session.id }
-      })
-    }).catch(() => undefined);
-    await insertActivityEvent(organizationId, session.metadata?.user_id || null, "billing.purchase_completed", { plan: planSlug, checkout_session_id: session.id });
-    return { ok: Boolean(entitlement?.ok) };
-  }
-  return { ok: true, ignored: true };
-}
 
 function getSupabaseServerConfig() {
   const url = getEnv(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]);
@@ -4742,33 +4453,10 @@ function supabaseHeaders(config, options = {}) {
   return headers;
 }
 
-function formatLabel(value) {
-  const labels = {
-    supabase: "Account database",
-    stripe: "Payment connection",
-    stripeWebhook: "Payment updates",
-    resend: "Email delivery",
-    googleOAuth: "Google sign-in",
-    adminProtection: "Founder access",
-    legalPages: "Legal pages",
-    checkout: "Checkout",
-    emailDelivery: "Email delivery",
-    accountDatabase: "Account database",
-    paymentConnection: "Payment connection",
-    paymentUpdates: "Payment updates",
-    googleSignIn: "Google sign-in",
-    founderAccess: "Founder access"
-  };
-  return labels[value] || value.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
-}
 
 function redactSensitiveText(value) {
   return String(value)
     .replace(/\b(?:sk|pk|rk|whsec)_[A-Za-z0-9_]+/g, "[redacted-token]")
     .replace(/\b\d{13,19}\b/g, "[redacted-card-like-number]")
     .replace(/\b(?:password|passcode|private key|secret key)\s*[:=]\s*\S+/gi, "[redacted-secret]");
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
