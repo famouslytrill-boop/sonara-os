@@ -150,3 +150,54 @@ describe("Business Builder owner pages show real records", () => {
     assert.deepEqual(orphans, [], `these pages offer a form with nowhere to send it: ${orphans.join(", ")}`);
   });
 });
+
+// Creator Studio's two record pages went the same way as the owner ones: three
+// cards describing what they would show, over tables that already existed.
+describe("Creator Studio record pages show real records", () => {
+  const { CREATOR_RECORD_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+  let originalFetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it("renders a table and a form on each", async () => {
+    const app = buildApp();
+    for (const page of CREATOR_RECORD_PAGES) {
+      const result = await request(app).get(page.path).set("accept", "text/html");
+      assert.equal(result.status, 200, `${page.path} did not render`);
+      assert.match(result.text, /<table/, `${page.path} shows no records`);
+      assert.match(result.text, new RegExp(`<form[^>]+action="${page.api}"`), `${page.path} offers no way to add one`);
+    }
+  });
+
+  it("shows a music project as a person would describe it", async () => {
+    const app = buildApp({ music_projects: [{ id: "p1", title: "Night Drive", artist_name: "Alex", project_type: "song", bpm: 122, musical_key: "F minor", status: "writing" }] });
+    const result = await request(app).get("/creator-studio/music-projects").set("accept", "text/html");
+    assert.match(result.text, /Night Drive/);
+    assert.match(result.text, /122 bpm/);
+    assert.match(result.text, /F minor/);
+  });
+
+  it("lists vibration patterns beside the sound cues", async () => {
+    const app = buildApp({
+      sound_cues: [{ id: "c1", name: "Saved", event_name: "save_success", sound_type: "tone", duration_ms: 120, status: "active" }],
+      haptic_patterns: [{ id: "h1", name: "Gentle tap", event_name: "save_success", accessibility_notes: "Short", status: "active" }]
+    });
+    const result = await request(app).get("/creator-studio/device-cues").set("accept", "text/html");
+    assert.match(result.text, /Saved/);
+    assert.match(result.text, /Gentle tap/);
+    assert.match(result.text, /Vibration patterns/);
+  });
+
+  it("says nothing plays or vibrates on its own", async () => {
+    // AGENTS.md: sounds, haptics and motion are off or explicitly
+    // user-controlled by default, and the page has to say so.
+    const result = await request(buildApp()).get("/creator-studio/device-cues").set("accept", "text/html");
+    assert.match(result.text, /Nothing plays, vibrates or moves on its own/);
+  });
+});
