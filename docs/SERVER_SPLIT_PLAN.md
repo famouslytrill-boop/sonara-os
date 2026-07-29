@@ -1,6 +1,6 @@
 # Splitting server.js
 
-**Status:** in progress, in the background. 5,119 → 4,371 lines.
+**Status:** in progress, in the background. 5,119 → 4,172 lines.
 
 This runs alongside feature work and must never be the reason a release is
 held. Every step leaves the tree shippable; the split can stop after any one of
@@ -55,13 +55,37 @@ Ordered by risk, lowest first. Each step is its own commit and its own release.
 | 3 | Module records — 6 functions | 102 | 0 | **done** — `lib/sonara-module-records.cjs` |
 | 4 | Admin action bars and forms | — | 3 | **dropped** — see below |
 | 5 | Stripe and billing records — 15 functions | 212 | 1 (boundary) | **done** — `lib/sonara-billing.cjs` |
-| 6 | Auth and sessions | ~700 | many | needs generator work first |
+| 6 | Customer sessions — 21 functions | 250 | 1 (boundary) | **done** — `lib/sonara-customer-auth.cjs` |
 | 7a | Leaf rendering helpers — 12 functions | 100 | 0 | **done** — `lib/sonara-shell.cjs` |
 | 7b | `layout`, `renderHomepageContent`, `responsePage`, `adminRowsPage` | ~150 | 11 | **do not attempt** until the homepage generator is retired |
 
-Step 6 is the largest remaining region and is gated on the generators, not on
-the code. The honest sequence is to retire or rewrite the generators that own
-it first; moving the code underneath them is the expensive way to find that out.
+Only step 7b is left, and it is the one row whose original grade survived
+contact with the evidence.
+
+### Step 6 was mis-graded too — that is now three out of three
+
+Graded "auth and sessions, ~700 lines, many generators, needs generator work
+first". Measured, **one** generator constrains it:
+`apply-customer-ready-production-experience.cjs` runs
+
+    replaceBetween(server, "async function verifyAdminRequest(req) {",
+                           "function getBearerToken(req) {", ...)
+
+so both of those declaration lines are boundaries of a region it rewrites, and
+both functions stayed. Every other function in the region — twenty-one of them,
+250 lines — had no generator anchoring inside it and no generator defining it.
+
+Three rows in this table were graded "many generators / needs generator work
+first" by counting mentions. All three were wrong, and each cost less to check
+than it did to believe: the check is a few minutes of grep, the belief was
+months of not touching the file.
+
+What the region genuinely needed was care of a different kind. It holds session
+cookies and token verification, so the move was made strictly relocation-only,
+with one substitution made explicit rather than assumed:
+`process.env.NODE_ENV === "production"` became an injected
+`isProductionEnvironment()` that performs exactly that check, so the cookie
+`secure` flag is provably unchanged rather than equivalently changed.
 
 ### Step 4 no longer exists
 

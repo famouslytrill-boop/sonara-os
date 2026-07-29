@@ -84,6 +84,32 @@ const EXTRACTED = [
     ]
   },
   {
+    module: "lib/sonara-customer-auth.cjs",
+    functions: [
+      "handleEmailAuth",
+      "resolveCustomerSession",
+      "refreshCustomerSession",
+      "verifySupabaseAccessToken",
+      "setCustomerSessionCookies",
+      "setCustomerSessionCookie",
+      "setCustomerRefreshCookie",
+      "customerCookieOptions",
+      "clearCustomerSessionCookie",
+      "clearCustomerRefreshCookie",
+      "getCustomerSessionToken",
+      "getCustomerRefreshToken",
+      "getCookie",
+      "createAuthRateLimiter",
+      "createEmployeeAuthUser",
+      "hashInviteToken",
+      "isSupabaseAuthConfigured",
+      "getSupabaseAuthConfig",
+      "sendEmailAuthResult",
+      "rejectCustomerBearerFromAdminLogin",
+      "wantsAuthReadinessJson"
+    ]
+  },
+  {
     module: "lib/sonara-module-records.cjs",
     functions: [
       "buildDomainModuleRecord",
@@ -198,12 +224,12 @@ describe("the server.js split stays safe", () => {
   });
 
   it("keeps server.js shrinking rather than growing", () => {
-    // A ratchet, not a target. 4,371 lines after the module records moved,
-    // down from 5,119. If a change adds to server.js instead of a module, this
-    // asks whether that was deliberate.
+    // A ratchet, not a target. 4,172 lines after customer sessions moved, down
+    // from 5,119. If a change adds to server.js instead of a module, this asks
+    // whether that was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4390,
+      lines <= 4190,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
@@ -252,6 +278,140 @@ describe("the readiness module stands on its own", () => {
   it("owns the database contract rather than having it injected", () => {
     const readiness = createReadiness(deps).buildDatabaseReadinessResult({ tables: [], functions: [], schemas: [] });
     assert.ok(readiness, "the database readiness result must build from the contract it requires");
+  });
+});
+
+describe("the customer auth module stands on its own", () => {
+  const auth = require("../lib/sonara-customer-auth.cjs");
+  const { createCustomerAuth, REQUIRED } = auth;
+
+  function deps(overrides = {}) {
+    const noop = () => undefined;
+    return {
+      acceptsHtml: () => false,
+      createRateLimiter: (options) => options,
+      getBearerToken: () => "",
+      getEnv: () => "",
+      getSupabaseServerClient: noop,
+      getSupabaseServerConfig: () => ({ ok: false }),
+      isProductionEnvironment: () => false,
+      isSupabaseAdminUser: async () => ({ ok: false }),
+      renderRateLimitPage: noop,
+      reportDegradedRateLimit: noop,
+      responsePage: (title) => title,
+      ...overrides
+    };
+  }
+
+  it("refuses to build without any one of the helpers it needs", () => {
+    assert.throws(() => createCustomerAuth({}), TypeError);
+    for (const name of REQUIRED) {
+      const partial = deps();
+      delete partial[name];
+      assert.throws(() => createCustomerAuth(partial), TypeError, `omitting ${name} must throw`);
+    }
+  });
+
+  it("keeps the session cookie off limits to scripts, and secure in production", () => {
+    // httpOnly is what stops a cross-site script reading the session token, and
+    // secure is what stops it crossing the network in the clear. Both are the
+    // reason this module exists rather than routes setting cookies themselves.
+    const local = createCustomerAuth(deps()).customerCookieOptions();
+    assert.equal(local.httpOnly, true);
+    assert.equal(local.sameSite, "lax");
+    assert.equal(local.path, "/");
+    assert.equal(local.secure, false, "a local dev server has no TLS, so secure would break sign-in");
+
+    const production = createCustomerAuth(deps({ isProductionEnvironment: () => true })).customerCookieOptions();
+    assert.equal(production.secure, true, "production sessions must not travel over plain http");
+    assert.equal(production.httpOnly, true);
+  });
+
+  it("never lets a session cookie outlive the ceiling, whatever Supabase reports", () => {
+    // The access token's own lifetime is attacker-influenced only in theory, but
+    // a cookie that outlives the token it holds is a session that looks valid
+    // and is not.
+    const cookies = [];
+    const res = { cookie: (name, value, options) => cookies.push({ name, value, options }) };
+    const session = createCustomerAuth(deps());
+
+    session.setCustomerSessionCookie(res, "token", 999999);
+    assert.equal(cookies[0].options.maxAge, auth.CUSTOMER_SESSION_MAX_AGE_SECONDS * 1000);
+
+    session.setCustomerSessionCookie(res, "token", 5);
+    assert.equal(cookies[1].options.maxAge, 60 * 1000, "a tiny lifetime is floored, not honoured");
+
+    session.setCustomerSessionCookie(res, "token", "nonsense");
+    assert.equal(cookies[2].options.maxAge, auth.CUSTOMER_SESSION_MAX_AGE_SECONDS * 1000);
+  });
+
+  it("clears the refresh cookie when a sign-in returns no refresh token", () => {
+    // Otherwise a stale refresh token from a previous session survives the new
+    // one and can mint access tokens for it.
+    const set = [];
+    const cleared = [];
+    const res = { cookie: (name) => set.push(name), clearCookie: (name) => cleared.push(name) };
+    createCustomerAuth(deps()).setCustomerSessionCookies(res, { accessToken: "a", maxAgeSeconds: 60 });
+    assert.deepEqual(set, [auth.CUSTOMER_SESSION_COOKIE]);
+    assert.deepEqual(cleared, [auth.CUSTOMER_REFRESH_COOKIE]);
+  });
+
+  it("clears both cookies on sign-out, not just the session one", () => {
+    const cleared = [];
+    const res = { clearCookie: (name) => cleared.push(name) };
+    createCustomerAuth(deps()).clearCustomerSessionCookie(res);
+    assert.deepEqual(cleared.sort(), [auth.CUSTOMER_REFRESH_COOKIE, auth.CUSTOMER_SESSION_COOKIE].sort());
+  });
+
+  it("reads one cookie without being confused by the ones around it", () => {
+    const session = createCustomerAuth(deps());
+    const req = { get: () => `other=1; ${auth.CUSTOMER_SESSION_COOKIE}=wanted; ${auth.CUSTOMER_SESSION_COOKIE}_extra=no` };
+    assert.equal(session.getCookie(req, auth.CUSTOMER_SESSION_COOKIE), "wanted");
+    assert.equal(session.getCookie(req, "missing"), "");
+    assert.equal(session.getCookie({ get: () => "" }, "any"), "");
+    // A value containing "=" must survive; base64 and JWTs both do.
+    assert.equal(createCustomerAuth(deps()).getCookie({ get: () => "t=a=b=c" }, "t"), "a=b=c");
+  });
+
+  it("prefers an explicit bearer token over the cookie", () => {
+    const session = createCustomerAuth(deps({ getBearerToken: () => "from-header" }));
+    assert.equal(session.getCustomerSessionToken({ get: () => `${auth.CUSTOMER_SESSION_COOKIE}=from-cookie` }), "from-header");
+  });
+
+  it("refuses to sign anybody in when Supabase auth is not configured", () => {
+    // Failing closed matters here: the alternative is an endpoint that appears
+    // to accept credentials and silently does nothing with them.
+    const session = createCustomerAuth(deps());
+    return session.handleEmailAuth("login", { email: "a@b.co", password: "12345678" }).then((result) => {
+      assert.equal(result.status, 503);
+      assert.equal(result.body.code, "setup_required");
+      assert.equal(result.session, undefined, "no session may be issued without a configured provider");
+    });
+  });
+
+  it("rejects a weak or malformed credential before it reaches the network", async () => {
+    const session = createCustomerAuth(deps({ getEnv: () => "https://project.supabase.co" }));
+    for (const body of [
+      { email: "not-an-email", password: "12345678" },
+      { email: "a@b.co", password: "short" },
+      { email: "", password: "" }
+    ]) {
+      const result = await session.handleEmailAuth("login", body);
+      assert.equal(result.status, 400, `${JSON.stringify(body)} must be refused`);
+      assert.equal(result.body.code, "validation_failed");
+    }
+  });
+
+  it("will not create an account when the password confirmation does not match", async () => {
+    const session = createCustomerAuth(deps({ getEnv: () => "https://project.supabase.co" }));
+    const result = await session.handleEmailAuth("signup", { email: "a@b.co", password: "12345678", confirmPassword: "87654321" });
+    assert.equal(result.status, 400);
+    assert.equal(result.body.code, "password_mismatch");
+  });
+
+  it("takes its environment from the injected readers, not from process.env", () => {
+    const source = codeOnly(fs.readFileSync(path.join(root, "lib", "sonara-customer-auth.cjs"), "utf8"));
+    assert.ok(!/process\.env/.test(source), "lib/sonara-customer-auth.cjs must not read process.env directly");
   });
 });
 
