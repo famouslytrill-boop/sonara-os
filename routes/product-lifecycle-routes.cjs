@@ -191,7 +191,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
         feedbackForm(initiative.id, ui.escape),
         reviewForm(initiative.id, initiative.lifecycle_stage, data.readiness.score, ui.escape)
       ],
-      actions: [ui.link("/product-lifecycle", "Portfolio"), ui.link(`/api/product-lifecycle/initiatives/${initiative.id}/summary`, "Summary JSON"), ui.link("/api/product-lifecycle/framework", "Framework JSON")]
+      actions: [ui.link("/product-lifecycle", "Portfolio")]
     }));
   });
 
@@ -430,7 +430,9 @@ async function renderLifecycleDashboard(req, res, deps, ui, studioKey) {
     heading: `${studioLabel(studioKey)} discovery, MVP, beta, launch, and learning`,
     body: "Turn ideas into evidence-backed products through one tenant-scoped operating model shared across SONARA Industries, Business Builder, Creator Studio, and Growth Studio.",
     sections,
-    actions: [ui.link("/api/product-lifecycle/framework", "Framework JSON"), ui.link(`/api/product-lifecycle/initiatives?studio_key=${encodeURIComponent(studioKey)}`, "Initiatives JSON"), ui.link("/dashboard", "Command center")]
+    // The framework and the initiatives are both rendered as cards on this
+    // page, so linking a customer at the raw data said the page was not enough.
+    actions: [ui.link("/product-lifecycle", "All initiatives"), ui.link("/dashboard", "Command center")]
   }));
 }
 
@@ -522,7 +524,7 @@ function reviewForm(id, stage, score, escape) {
 }
 
 function initiativeCard(initiative, ui) {
-  return `<article class="card"><h2>${ui.escape(initiative.name)}</h2><p>${ui.escape(stageLabel(initiative.lifecycle_stage))} · ${ui.escape(String(initiative.status).replaceAll("_", " "))}</p><p>${ui.escape(initiative.product_goal || initiative.problem_statement || "Evidence and Product Goal required.")}</p><div class="card-actions">${ui.link(`/product-lifecycle/initiatives/${initiative.id}`, "Open initiative")}${ui.link(`/api/product-lifecycle/initiatives/${initiative.id}/summary`, "Summary JSON")}</div></article>`;
+  return `<article class="card"><h2>${ui.escape(initiative.name)}</h2><p>${ui.escape(stageLabel(initiative.lifecycle_stage))} · ${ui.escape(String(initiative.status).replaceAll("_", " "))}</p><p>${ui.escape(initiative.product_goal || initiative.problem_statement || "Evidence and Product Goal required.")}</p><div class="card-actions">${ui.link(`/product-lifecycle/initiatives/${initiative.id}`, "Open initiative")}</div></article>`;
 }
 
 function scoreCard(readiness, escape) {

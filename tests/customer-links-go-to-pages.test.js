@@ -12,11 +12,11 @@
 //
 //   /api/growth/metrics          /growth-studio/analytics is behind a paid plan
 //   /api/growth/provider-jobs    /growth-studio/provider-jobs redirects
-//   /api/creator/generation/jobs no page renders generation jobs
 //
-// For that last one the API link is the only way to reach the data at all.
-// Removing it would take the access away, which is the hollow-page problem in
-// reverse. Rendering generation jobs properly is separate work.
+// /api/creator/generation/jobs was the third, kept because removing the link
+// would have taken away the only access to the data -- the hollow-page problem
+// in reverse. That exception is gone now that /creator-studio/generation/jobs
+// renders the work itself.
 //
 // The prompt-library links were on this list until the workspace prompt pages
 // started rendering saved templates and collections themselves. The final test
@@ -33,9 +33,36 @@ const app = require("../server");
 // Known-good exceptions, each with the reason it cannot point at a page yet.
 const ALLOWED_API_LINKS = new Map([
   ["/api/growth/metrics", "the analytics page is behind a paid plan"],
-  ["/api/growth/provider-jobs", "the provider-jobs page redirects"],
-  ["/api/creator/generation/jobs", "no page renders generation jobs yet"]
+  ["/api/growth/provider-jobs", "the provider-jobs page redirects"]
 ]);
+
+// One row, shaped to satisfy whichever renderer receives it. Renderers read
+// different fields, so this carries the common ones rather than a per-table
+// fixture: the check only needs a row to exist so row-level markup renders.
+function sampleRow() {
+  return {
+    id: "00000000-0000-0000-0000-0000000000aa",
+    organization_id: "00000000-0000-0000-0000-0000000000bb",
+    user_id: "00000000-0000-0000-0000-000000000001",
+    job_id: "00000000-0000-0000-0000-0000000000aa",
+    title: "Sample",
+    name: "Sample",
+    label: "Sample",
+    slug: "sample",
+    status: "completed",
+    state: "active",
+    capability: "text_to_music",
+    provider_key: "sonara",
+    media_type: "audio",
+    asset_role: "output",
+    bucket_id: "creator-assets",
+    object_path: "org/user/job/file.mp3",
+    byte_size: 2048,
+    progress_percent: 100,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-01T00:00:00.000Z"
+  };
+}
 
 function customerPages() {
   return app._router.stack
@@ -60,10 +87,15 @@ describe("customer links point at pages, not JSON", () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     const originalFetch = global.fetch;
+    // Returning [] for every read made this scan blind to the links that only
+    // exist once there is data: a table renders no rows, so a row linking to
+    // raw JSON is invisible to the check. The generation job table linked every
+    // row at /api/creator/generation/jobs/<id> for exactly as long as this mock
+    // returned nothing. One representative row is enough to make those render.
     global.fetch = async (url) =>
       String(url).includes("/auth/v1/user")
         ? { ok: true, json: async () => ({ id: "00000000-0000-0000-0000-000000000001" }) }
-        : { ok: true, headers: { get: () => null }, json: async () => [] };
+        : { ok: true, headers: { get: () => null }, json: async () => [sampleRow()] };
 
     found = [];
     renderedCount = 0;
