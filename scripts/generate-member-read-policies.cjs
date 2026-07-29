@@ -34,8 +34,54 @@ const root = process.cwd();
 
 // Measured by exercising every GET route against a recording Supabase stand-in
 // (tests/helpers/fake-supabase.cjs) and collecting the tenant tables read.
-// Regenerate with scripts/report-user-scoped-readiness.cjs.
+//
+// That measurement was run anonymously the first time, and anonymous is not a
+// customer. Every read behind getCustomerPrimaryOrganization needs a session, so
+// none of the core tables executed: of the thirty-three tables this list
+// produced, the runtime names only three. The other thirty are product-module
+// tables that a future feature will read, kept because the migration is
+// additive and they cost nothing.
+//
+// The same blind spot had already been found and fixed once, in
+// tests/plain-language.test.js -- it scanned 56 anonymous pages and missed the
+// 138 a signed-in customer sees. Finding it twice is the reason it is written
+// down here.
+//
+// The ten tables below the divider are the ones a real read path touches and
+// nothing had a policy for. Deliberately NOT here, and why:
+//
+//   billing_webhook_events            no organization_id; Stripe's own record.
+//   support_email_delivery_attempts   no organization_id; delivery diagnostics.
+//                                     Both are operator surfaces and stay
+//                                     service-role only.
+//   business_employee_invites         organization-scoped, but holds token_hash
+//                                     and pending invitee emails, and no
+//                                     customer read path needs it. Owner review
+//                                     before any member can read invites.
+//   user_roles                        keyed by user_id, not organization_id.
+//                                     Who may read the privilege table is a
+//                                     decision, not a gap. Owner review.
+//   product_modules                   reference data, not tenant data.
+//   service_catalog_items             the published catalog; already public.
+//
+// Ten more already had an `authenticated` SELECT policy from earlier
+// migrations and need nothing here: activity_events, admin_audit_logs (gated by
+// is_admin_or_founder()), intake_requests, launch_checklist_items,
+// organization_memberships, organizations, profiles, purchases, stripe_customers,
+// support_requests.
 const ORGANIZATION_READ_TABLES = [
+  // Touched by a real read path, and previously unpolicied.
+  "billing_entitlements",
+  "billing_subscriptions",
+  "business_memberships",
+  "business_service_catalog",
+  "customer_records",
+  "module_outputs",
+  "service_deliverables",
+  "service_request_events",
+  "service_requests",
+  "sonara_formula_results",
+  // ---- measured anonymously; kept because additive, see above ----
   "audio_assets",
   "automation_rules",
   "business_workspaces",
@@ -142,7 +188,12 @@ const blocks = [
   ...PERSONAL_READ_TABLES.map((table) => policyBlock(table, "auth.uid() = user_id", `${table}_select_own`))
 ];
 
-const migrationName = "20260728120000_member_read_policies.sql";
+// A new file rather than an edit to 20260728120000. That one is already applied
+// in production, and supabase db push tracks migrations by filename -- editing
+// an applied migration changes the repo and nothing else, silently. Every policy
+// here is `drop policy if exists` then `create policy`, so re-asserting the
+// thirty-three from the earlier file is idempotent and the ten new ones land.
+const migrationName = "20260729040000_member_read_policies_core_tables.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 
