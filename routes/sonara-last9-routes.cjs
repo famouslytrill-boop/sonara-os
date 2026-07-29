@@ -66,15 +66,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
   OWNER_PAGES.forEach(([path, title, body]) => {
     app.get(path, requireBusinessManager, async (req, res) => {
-      const summary = await operationsSummary(getConfig(deps));
+      const org = await resolveOrganization(req, deps);
+      const summary = await operationsSummary(getConfig(deps), org.ok ? org.organizationId : null);
       return res.status(200).type("html").send(ui.layout({
         title,
         eyebrow: "Business Builder operations",
         heading: title,
         body,
         sections: [
-          ui.card("Real business records", "This area is backed by Supabase operations tables. If a table is missing, the page reports setup required instead of pretending."),
-          ui.card("Owner controlled", "Owners and managers control staff access, locations, services, invoices, inventory, vehicles, and business operations."),
+          ui.card("Your own records", "Everything here belongs to your business and is only visible to you and the people you give access to. If something has not been set up yet, the page says so rather than showing a number it made up."),
+          ui.card("You decide who sees what", "Owners and managers control staff access, locations, services, invoices, inventory, vehicles, and day-to-day operations."),
           ...summary.map((item) => ui.card(item.label, item.value))
         ],
         actions: [
@@ -114,7 +115,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         body,
         sections: [
           ui.card("Music production records", "Track projects, DAW sessions, audio assets, sound analysis, cue timing, and export packages."),
-          ui.card("AI/audio integrations", "Provider jobs are tracked as API, manual export, or setup-required records. The system does not fake provider access."),
+          ui.card("Connected audio services", "Work sent to a connected service is recorded as sent, needing a manual step, or needing setup. Nothing is reported as done unless it was."),
           ui.card("Premium feel", "Sound, vibration, motion, and GPS are available only when the user enables supported browser features.")
         ],
         actions: [ui.link("/creator-studio/music-projects", "Music Projects"), ui.link("/creator-studio/device-cues", "Sound and Motion"), ui.link("/creator-studio/dashboard", "Dashboard")]
@@ -234,7 +235,15 @@ function registerRestResource(app, path, resource, deps, middleware) {
   app.get(path, middleware, async (req, res) => {
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
-    const query = `?select=*&order=created_at.desc&limit=${Math.min(Number(req.query.limit || 50) || 50, 100)}`;
+    // This read goes out with the service key, which bypasses row level
+    // security, so the filter here is the only thing separating one business
+    // from another. Without it this returned every organization's staff
+    // profiles, bookings and vendor invoices to any signed-in manager. The
+    // POST below had always scoped correctly; the GET never did.
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return res.status(403).json(org);
+    const limit = Math.min(Number(req.query.limit || 50) || 50, 100);
+    const query = `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=${limit}`;
     return res.status(200).json(await supabaseList(config, resource.table, query));
   });
 
@@ -259,8 +268,12 @@ function buildUi(deps) {
   };
 }
 
-async function operationsSummary(config) {
-  if (!config.ok) return [{ label: "Database", value: "Setup required: Supabase service role is not configured." }];
+// Counts of the customer's own records. These were counted across every
+// organization on the system and printed on each owner page, so a business
+// with no staff at all could be shown someone else's headcount.
+async function operationsSummary(config, organizationId) {
+  if (!config.ok) return [{ label: "Your records", value: "Not connected yet, so there is nothing to count." }];
+  if (!organizationId) return [{ label: "Your records", value: "Sign in to your business to see your own counts." }];
   const tables = [
     ["Staff", "business_employee_profiles"],
     ["Time entries", "employee_time_entries"],
@@ -273,8 +286,8 @@ async function operationsSummary(config) {
     ["Music projects", "music_projects"],
     ["Location events", "location_events"]
   ];
-  const results = await Promise.all(tables.map(async ([label, table]) => ({ label, result: await supabaseCount(config, table) })));
-  return results.map(({ label, result }) => ({ label, value: result.ok ? `${result.count} records` : "Setup required: table not available." }));
+  const results = await Promise.all(tables.map(async ([label, table]) => ({ label, result: await supabaseCount(config, table, organizationId) })));
+  return results.map(({ label, result }) => ({ label, value: result.ok ? `${result.count} saved` : "Not set up yet." }));
 }
 
 async function resolveOrganization(req, deps) {
@@ -307,8 +320,9 @@ async function supabaseList(config, table, query) {
   return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
 }
 
-async function supabaseCount(config, table) {
-  const response = await fetch(`${config.url}/rest/v1/${table}?select=id&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
+async function supabaseCount(config, table, organizationId) {
+  const scope = organizationId ? `&organization_id=eq.${encodeURIComponent(organizationId)}` : "";
+  const response = await fetch(`${config.url}/rest/v1/${table}?select=id${scope}&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, count: null };
   const range = response.headers?.get?.("content-range") || "";
   const match = range.match(/\/(\d+)$/);
