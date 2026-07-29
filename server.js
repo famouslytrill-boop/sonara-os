@@ -37,6 +37,8 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
+const { createModuleCrud } = require("./lib/sonara-module-crud.cjs");
+const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -93,6 +95,12 @@ const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 // Bound this early because route registration below runs at module load and
 // receives responsePage among its dependencies. legalPages, readinessStatusClass
 // and safeListTable are hoisted function declarations, so they resolve from here.
+const moduleCrud = createModuleCrud({
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  getCustomerPrimaryOrganization
+});
+
 const {
   adminActions,
   adminLoginForm,
@@ -1305,6 +1313,10 @@ app.post("/api/growth-studio/leads", async (req, res) => {
 
 app.get("/api/growth-studio/records", requirePaidOrOwnerAccess("growth_studio"), async (req, res) => res.status(200).json(await readModuleRecords(req, "growth_studio")));
 app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(productReadinessJson("growth_studio")));
+
+// Listing, correcting and retiring the records a customer creates. These six
+// tools were create-only until now -- see routes/sonara-module-crud-routes.cjs.
+registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,

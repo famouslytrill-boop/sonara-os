@@ -482,6 +482,282 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/assets:
+    get:
+      operationId: listCreatorStudioAssets
+      tags: [Creator Studio]
+      summary: List every saved creative asset in the caller's organization.
+      description: Archived records are hidden unless include_archived=true.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: include_archived
+          required: false
+          schema: { type: string, enum: ["true"] }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/assets/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getCreatorStudioAsset
+      tags: [Creator Studio]
+      summary: Get one saved creative asset.
+      description: A record belonging to another organization reports 404 rather than 403, so the response cannot confirm that the identifier exists.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    patch:
+      operationId: updateCreatorStudioAsset
+      tags: [Creator Studio]
+      summary: Correct one saved creative asset.
+      description: Only the fields this resource declares editable are accepted; any other field is refused rather than ignored.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/assets/{id}/archive:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: archiveCreatorStudioAsset
+      tags: [Creator Studio]
+      summary: Take one saved creative asset off the active list.
+      description: Sets status to archived. The record is retained and can be restored.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-studio/assets/{id}/restore:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: restoreCreatorStudioAsset
+      tags: [Creator Studio]
+      summary: Return one archived saved creative asset to the active list.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/campaigns:
+    get:
+      operationId: listGrowthStudioCampaigns
+      tags: [Growth Studio]
+      summary: List every saved campaign in the caller's organization.
+      description: Archived records are hidden unless include_archived=true.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: include_archived
+          required: false
+          schema: { type: string, enum: ["true"] }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/campaigns/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getGrowthStudioCampaign
+      tags: [Growth Studio]
+      summary: Get one saved campaign.
+      description: A record belonging to another organization reports 404 rather than 403, so the response cannot confirm that the identifier exists.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    patch:
+      operationId: updateGrowthStudioCampaign
+      tags: [Growth Studio]
+      summary: Correct one saved campaign.
+      description: Only the fields this resource declares editable are accepted; any other field is refused rather than ignored.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/campaigns/{id}/archive:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: archiveGrowthStudioCampaign
+      tags: [Growth Studio]
+      summary: Take one saved campaign off the active list.
+      description: Sets status to archived. The record is retained and can be restored.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/campaigns/{id}/restore:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: restoreGrowthStudioCampaign
+      tags: [Growth Studio]
+      summary: Return one archived saved campaign to the active list.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/leads:
+    get:
+      operationId: listGrowthStudioLeads
+      tags: [Growth Studio]
+      summary: List every saved lead in the caller's organization.
+      description: Archived records are hidden unless include_archived=true.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: include_archived
+          required: false
+          schema: { type: string, enum: ["true"] }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/leads/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getGrowthStudioLead
+      tags: [Growth Studio]
+      summary: Get one saved lead.
+      description: A record belonging to another organization reports 404 rather than 403, so the response cannot confirm that the identifier exists.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+    patch:
+      operationId: updateGrowthStudioLead
+      tags: [Growth Studio]
+      summary: Correct one saved lead.
+      description: Only the fields this resource declares editable are accepted; any other field is refused rather than ignored.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/leads/{id}/archive:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: archiveGrowthStudioLead
+      tags: [Growth Studio]
+      summary: Take one saved lead off the active list.
+      description: Sets status to archived. The record is retained and can be restored.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/growth-studio/leads/{id}/restore:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: restoreGrowthStudioLead
+      tags: [Growth Studio]
+      summary: Return one archived saved lead to the active list.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/BadRequest" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/growth-studio/records:
     get:
       operationId: listGrowthStudioRecords
