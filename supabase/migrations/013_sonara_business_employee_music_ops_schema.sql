@@ -297,7 +297,20 @@ create table if not exists public.integration_providers (
   category text not null check (category in ('payments','email','storage','analytics','ai_music','ai_audio','ai_visual','daw','calendar','payroll','other')),
   connection_mode text not null default 'manual' check (connection_mode in ('api','oauth','manual','webhook','export')),
   capabilities jsonb not null default '{}'::jsonb,
-  status text not null default 'active' check (status in ('active','inactive','manual_review')),
+  -- 'disabled' is here because 20260726170000 inserts it: unverified external
+  -- sources are catalogued so they are visible, and marked disabled so nothing
+  -- can run them. That is a different statement from 'inactive', which means a
+  -- provider that could be switched on.
+  --
+  -- It was missing, so replaying this history from empty failed at that insert
+  -- with integration_providers_status_check. Production accepts those rows --
+  -- they exist there -- so the constraint was widened out of band and the
+  -- repository never caught up. Adding the value here changes nothing in
+  -- production and lets a fresh database reach the same state, which is the
+  -- second instance of this exact drift found in one replay; see the note on
+  -- sonara_control_plane_checks in 20260621020300 for why the fix belongs in
+  -- the migration that creates the object rather than in a new one.
+  status text not null default 'active' check (status in ('active','inactive','manual_review','disabled')),
   created_at timestamptz default now()
 );
 

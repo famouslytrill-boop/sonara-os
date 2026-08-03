@@ -689,3 +689,37 @@ comment on table public.entity_automations is
   'Automation-ready schedules and triggers. Human approval is required for destructive or high-risk work.';
 comment on table public.entity_connectors is
   'Connector-ready records. Secrets must live only in environment or secret storage, never config_json.';
+
+-- Row level security for the entity tables.
+--
+-- 20260722170000's ecosystem contract preflight requires every contract table
+-- to have RLS, and all thirteen of these are on that list. None of them enabled
+-- it, so replaying this history from empty raised there. Production is
+-- unaffected: it was built one migration at a time and these were switched on
+-- out of band, which is exactly how the repository and the live database came
+-- to disagree without anything noticing.
+--
+-- This is the third instance of that drift found in one replay -- the others
+-- were sonara_control_plane_checks (20260621020300) and the
+-- integration_providers status constraint (013). tests/migration-replay-contract.test.js
+-- now looks for all three shapes in one pass rather than waiting for a preview
+-- branch to surface them one per push.
+--
+-- No policies are added here. These tables hold tenant and agent state reached
+-- through the service role, which bypasses RLS; enabled and unpolicied closes
+-- them to every other role, which is the safe default. Opening any of them to
+-- members is a separate decision, made in the member-read-policy generator
+-- where the reasoning is recorded per table.
+alter table public.entities enable row level security;
+alter table public.entity_memberships enable row level security;
+alter table public.entity_agents enable row level security;
+alter table public.entity_agent_runs enable row level security;
+alter table public.entity_agent_memory enable row level security;
+alter table public.entity_agent_tool_registry enable row level security;
+alter table public.entity_proactive_actions enable row level security;
+alter table public.entity_action_runs enable row level security;
+alter table public.entity_action_approvals enable row level security;
+alter table public.entity_automations enable row level security;
+alter table public.entity_automation_runs enable row level security;
+alter table public.entity_connectors enable row level security;
+alter table public.entity_connector_events enable row level security;

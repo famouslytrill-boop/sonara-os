@@ -101,3 +101,23 @@ create table if not exists public.sonara_control_plane_checks (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- RLS was missing here, and 20260722170000's ecosystem contract preflight
+-- requires every contract table to have it. Production never noticed: it was
+-- built one migration at a time and has RLS on this table already, so the
+-- preflight passed there. Replaying the history from empty did not -- which is
+-- what a Supabase preview branch does, and none had been created for weeks
+-- while the project sat at its concurrent branch limit. The first branch after
+-- that was cleared failed here at once.
+--
+-- Editing an applied migration is normally the wrong move, and two generators
+-- in this repository now refuse to do it, because the edit reaches the file and
+-- never reaches the database. That reasoning inverts here: production already
+-- has RLS on this table, so it needs no change, and the only environment that
+-- needs one is a fresh replay, which reads exactly this file. A new migration
+-- could not fix it, because the preflight that fails runs first.
+--
+-- No policy: this is operator state reached through the service role, which
+-- bypasses RLS. Enabled and unpolicied closes it to everybody else, which is
+-- both the intent and what production does today.
+alter table public.sonara_control_plane_checks enable row level security;

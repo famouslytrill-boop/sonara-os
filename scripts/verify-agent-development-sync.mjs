@@ -55,10 +55,25 @@ assert.match(cleanup, /rm -f \.env\.production\.catalog-verification/);
 assert.match(cleanup, /test ! -e \.env\.production\.catalog-verification/);
 
 const workspace = read("pnpm-workspace.yaml");
+// The pin moves when the advisory does. GHSA-rgw5-rvv9-x895 made 5.0.8
+// vulnerable in turn -- it bypassed the CVE-2026-14257 mitigation this pin was
+// added for -- so the floor is 5.0.9. Asserting the range rather than one exact
+// string would have let the pin silently fall behind the advisory, which is the
+// failure this line exists to prevent.
 assert.match(
   workspace,
-  /"brace-expansion@<=5\.0\.7": "5\.0\.8"/,
+  /"brace-expansion@>=4\.0\.0 <5\.0\.9": "5\.0\.9"/,
   "Claude dependency hardening for brace-expansion must remain pinned"
+);
+assert.match(
+  workspace,
+  /"undici@<6\.28\.0": "6\.28\.0"/,
+  "undici must stay pinned above GHSA-v3r7-h72x-cjcm"
+);
+assert.match(
+  workspace,
+  /"fast-uri@>=3\.0\.0 <3\.1\.5": "3\.1\.5"/,
+  "fast-uri must stay pinned above GHSA-7p8r-x3mc-p8w7"
 );
 
 const currentState = read(".ai/shared/CURRENT_STATE.md");
