@@ -10,6 +10,7 @@ const {
 } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
 const { hasEnforcedPaidAccess } = require("../lib/sonara-paid-access.cjs");
+const { catalogItemToRow, catalogRowBoundaryViolations } = require("../lib/sonara-catalog-boundary.cjs");
 
 const root = path.join(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
@@ -48,6 +49,35 @@ describe("Recommended product catalog production boundary", () => {
     const unmapped = paid.filter((item) => !hasEnforcedPaidAccess(item.productKey));
     assert.equal(summary.entitlementVerificationRequired, unmapped.length);
     assert.deepEqual([...new Set(unmapped.map((item) => item.productKey))], ["sonara_industries"]);
+  });
+
+  // The production gate asserts a boundary against the live database. Nothing
+  // here could run it, so nothing here could notice when the gate's rule and the
+  // catalog's rule stopped agreeing -- and they did. The gate required every
+  // paid row to be unverified, forty lines after requiring every row to match
+  // the catalog field for field; once the catalog marked thirteen paid products
+  // verified, one assertion wanted true and the other wanted false for the same
+  // rows. The gate could not pass. The first thing able to say so was a
+  // production deploy, by which point the migration had applied and the deploy
+  // step was skipped.
+  //
+  // The rule now lives in lib/sonara-catalog-boundary.cjs and this runs it
+  // against the catalog projected into the row shape the sync migration writes
+  // -- which is exactly what the next deploy will put in the database. If the
+  // gate cannot pass, it cannot pass here either, before the push.
+  it("ships a catalog the production gate can actually pass", () => {
+    const rows = RECOMMENDED_PRODUCT_CATALOG.map(catalogItemToRow);
+    const violations = catalogRowBoundaryViolations(rows);
+    assert.deepEqual(
+      violations,
+      [],
+      `The catalog this repository ships would be rejected by the production deploy gate:\n  ${violations.join("\n  ")}`
+    );
+
+    // And the gate has to be reading this rule rather than keeping its own copy,
+    // which is how the two came apart in the first place.
+    const verifier = read("scripts/verify-production-product-catalog.mjs");
+    assert.match(verifier, /catalogRowBoundaryViolations/, "the production gate no longer shares the boundary rule");
   });
 
   it("never enables planned, validation-required, or setup-required products", () => {
