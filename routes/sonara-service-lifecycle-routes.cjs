@@ -1321,28 +1321,21 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }
   }
 
+  // Three signposts to the owner pages, from when those pages had nothing to
+  // show. They rendered no records themselves and explained that "records are
+  // stored in the inventory_items table" -- a table name read out to a customer
+  // -- before pointing at the operations area.
+  //
+  // The owner pages list the real records now, so a customer who asks for
+  // locations should get locations rather than a page about where locations
+  // live. /business-builder/vehicles was the same shape and went the same way.
   const BUSINESS_OPERATIONS_PAGES = [
-    { path: "/business-builder/inventory", title: "Inventory", table: "inventory_items", ownerPath: "/business-builder/owner/inventory", body: "Track stock items, counts, and reorder notes for your business workspace." },
-    { path: "/business-builder/vendors", title: "Vendors", table: "vendor_accounts", ownerPath: "/business-builder/owner/vendors", body: "Track vendor accounts, terms, and invoices for your business workspace." },
-    { path: "/business-builder/locations", title: "Locations", table: "business_locations", ownerPath: "/business-builder/owner/locations", body: "Track business locations used for scheduling, staffing, and operations." }
+    ["/business-builder/inventory", "/business-builder/owner/inventory"],
+    ["/business-builder/vendors", "/business-builder/owner/vendors"],
+    ["/business-builder/locations", "/business-builder/owner/locations"]
   ];
-  for (const operationsPage of BUSINESS_OPERATIONS_PAGES) {
-    app.get(operationsPage.path, requireWorkspaceAccess("business_builder"), (req, res) => {
-      res.status(200).type("html").send(
-        layout({
-          title: `Business ${operationsPage.title}`,
-          eyebrow: "Business operations",
-          heading: `Business ${operationsPage.title.toLowerCase()}`,
-          body: operationsPage.body,
-          sections: [
-            accessCard(req.sonaraAccess),
-            brandCard(`${operationsPage.title} records`, `Records are stored in the ${operationsPage.table} table, scoped to your organization, and managed through the owner operations area. If the table is not migrated yet, pages show setup-required instead of fake data.`),
-            actionCard(`Manage ${operationsPage.title.toLowerCase()}`, "Owner and manager accounts manage these records in the operations area. Employees see only what their role allows.", [linkAction(operationsPage.ownerPath, "Open operations area"), linkAction("/business-builder/employees", "Team access")])
-          ],
-          actions: [linkAction("/business-builder/dashboard", "Product dashboard"), linkAction("/business-builder/tools", "All tools"), linkAction("/dashboard", "Dashboard"), logoutAction()]
-        })
-      );
-    });
+  for (const [path, ownerPath] of BUSINESS_OPERATIONS_PAGES) {
+    app.get(path, requireWorkspaceAccess("business_builder"), (req, res) => res.redirect(302, ownerPath));
   }
 
   // ---------------------------------------------------------------------------

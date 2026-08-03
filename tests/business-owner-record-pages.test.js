@@ -201,3 +201,33 @@ describe("Creator Studio record pages show real records", () => {
     assert.match(result.text, /Nothing plays, vibrates or moves on its own/);
   });
 });
+
+// Three Business Builder paths were signposts to the owner pages, from when
+// those pages had nothing to show. They rendered no records and told the
+// customer that "records are stored in the inventory_items table" -- a table
+// name read out to somebody trying to look at their own stock.
+//
+// Now that the owner pages list the records, asking for locations should give
+// locations. /business-builder/vehicles was the same shape and was redirected
+// earlier for the same reason.
+describe("the operations signposts go to the records themselves", () => {
+  const SIGNPOSTS = [
+    ["/business-builder/inventory", "/business-builder/owner/inventory"],
+    ["/business-builder/vendors", "/business-builder/owner/vendors"],
+    ["/business-builder/locations", "/business-builder/owner/locations"],
+    ["/business-builder/vehicles", "/business-builder/owner/vehicles"]
+  ];
+
+  it("sends each one to the page that lists the records", async () => {
+    const app = require("../server");
+    for (const [from, to] of SIGNPOSTS) {
+      const result = await request(app).get(from).set("accept", "text/html");
+      // Unauthenticated these bounce to sign-in; what matters is that none of
+      // them renders a page of its own describing where the records live.
+      assert.ok([302, 303].includes(result.status), `${from} answered ${result.status} instead of going somewhere`);
+      if (result.headers.location && result.headers.location.startsWith("/business-builder/owner")) {
+        assert.equal(result.headers.location, to, `${from} pointed at the wrong owner page`);
+      }
+    }
+  });
+});
