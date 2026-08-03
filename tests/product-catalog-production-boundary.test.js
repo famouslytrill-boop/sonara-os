@@ -9,25 +9,45 @@ const {
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
+const { hasEnforcedPaidAccess } = require("../lib/sonara-paid-access.cjs");
 
 const root = path.join(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
 describe("Recommended product catalog production boundary", () => {
-  it("keeps every paid product restricted until a positive production entitlement test is recorded", () => {
+  // This used to assert that EVERY paid product stayed unverified and
+  // non-executable. It passed because the catalog defined "paid access is
+  // verified" as `planFloor === "free"` -- so the assertion was true by
+  // construction and could never have failed. Thirty-one of thirty-four
+  // products were shut to paying customers, permanently, and the check
+  // confirmed it rather than questioning it.
+  //
+  // The boundary is still real, it is just no longer a tautology: a paid
+  // product may execute only where the server enforces an entitlement for its
+  // product family. Where it does not, the product stays shut.
+  it("opens paid products only where the server actually enforces an entitlement", () => {
     const paid = RECOMMENDED_PRODUCT_CATALOG.filter((item) => item.planFloor !== "free");
     assert.ok(paid.length > 0);
     for (const item of paid) {
-      assert.equal(item.entitlementIntegrationVerified, false, `${item.serviceKey} must remain unverified`);
-      assert.equal(item.executionEnabled, false, `${item.serviceKey} must remain non-executable`);
-      // The price note states price and nothing else now. Availability and the
-      // plan live on the card via accessNote() and includedFrom(); when this
-      // note repeated them, every card ended by saying the same thing twice.
+      assert.equal(
+        item.entitlementIntegrationVerified,
+        hasEnforcedPaidAccess(item.productKey),
+        `${item.serviceKey} claims a different paid-access state than ${item.productKey} actually enforces`
+      );
+      if (!hasEnforcedPaidAccess(item.productKey)) {
+        assert.equal(item.executionEnabled, false, `${item.serviceKey} has no enforced entitlement and must stay shut`);
+      }
       assert.match(item.priceNote, /^Included in (Starter and above|Core and above|Pro)\.$/);
     }
     const summary = getRecommendedProductCatalogSummary();
     assert.equal(summary.total, 34);
-    assert.equal(summary.entitlementVerificationRequired, paid.length);
+    // sonara_industries has no entitlement mapping, so its paid entries are the
+    // ones still awaiting one. If that ever reaches zero it should be because a
+    // mapping was added, not because the question stopped being asked.
+    assert.ok(summary.entitlementVerificationRequired > 0, "no paid product is awaiting entitlement work; check this is deliberate");
+    const unmapped = paid.filter((item) => !hasEnforcedPaidAccess(item.productKey));
+    assert.equal(summary.entitlementVerificationRequired, unmapped.length);
+    assert.deepEqual([...new Set(unmapped.map((item) => item.productKey))], ["sonara_industries"]);
   });
 
   it("never enables planned, validation-required, or setup-required products", () => {
@@ -36,13 +56,19 @@ describe("Recommended product catalog production boundary", () => {
     for (const item of restricted) assert.equal(item.executionEnabled, false, `${item.serviceKey} cannot execute`);
   });
 
-  it("enables only free active or beta entries by default", () => {
+  it("enables only active or beta entries that are free or have enforced paid access", () => {
     const enabled = RECOMMENDED_PRODUCT_CATALOG.filter((item) => item.executionEnabled);
     assert.ok(enabled.length > 0);
     for (const item of enabled) {
-      assert.equal(item.planFloor, "free");
-      assert.equal(item.entitlementIntegrationVerified, true);
-      assert.ok(EXECUTABLE_LIFECYCLE_STATUSES.includes(item.lifecycleStatus));
+      assert.equal(item.entitlementIntegrationVerified, true, `${item.serviceKey} executes without verified access`);
+      assert.ok(
+        item.planFloor === "free" || hasEnforcedPaidAccess(item.productKey),
+        `${item.serviceKey} executes on a paid plan with no entitlement the server enforces`
+      );
+      assert.ok(
+        EXECUTABLE_LIFECYCLE_STATUSES.includes(item.lifecycleStatus),
+        `${item.serviceKey} executes while still ${item.lifecycleStatus}`
+      );
     }
   });
 
@@ -89,7 +115,11 @@ describe("Recommended product catalog production boundary", () => {
     assert.match(verifier, /billing_entitlements/);
     assert.match(verifier, /billing_subscriptions/);
     assert.match(verifier, /positiveSubscribedUserTest: "pending"/);
-    assert.match(verifier, /paid execution remains restricted until positive production entitlement verification/);
+    // The old wording said paid execution "remains restricted until positive
+    // production entitlement verification", which the deploy printed on every
+    // release. It described a wait that could not end, because verification was
+    // defined as being free.
+    assert.match(verifier, /paid execution is open only where the server enforces an entitlement for the product/);
     assert.match(verifier, /Production catalog page is missing/);
     assert.match(verifier, /starter_monthly/);
     assert.match(verifier, /core_monthly/);
