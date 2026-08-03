@@ -11,6 +11,7 @@ const {
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
+const { RESTRICTED_LIFECYCLE_STATUSES, catalogRowBoundaryViolations } = require("../lib/sonara-catalog-boundary.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -90,20 +91,27 @@ async function verifyProductionDatabase() {
     sonara_industries: 10
   });
 
-  const restrictedLifecycleRows = rows.filter((row) => ["planned", "validation_required", "setup_required"].includes(row.lifecycle_status));
+  const restrictedLifecycleRows = rows.filter((row) => RESTRICTED_LIFECYCLE_STATUSES.includes(row.lifecycle_status));
   assert.ok(restrictedLifecycleRows.length > 0, "The production catalog must retain explicitly restricted lifecycle records");
-  assert.equal(restrictedLifecycleRows.some((row) => row.execution_enabled), false, "Restricted lifecycle products cannot execute");
 
   const paidRows = rows.filter((row) => row.plan_floor !== "free");
   assert.ok(paidRows.length > 0, "The production catalog must contain paid-plan products");
-  assert.equal(paidRows.some((row) => row.execution_enabled && row.entitlement_integration_verified !== true), false, "Unverified paid products cannot execute");
-  assert.equal(paidRows.some((row) => row.entitlement_integration_verified === true), false, "Paid product verification must remain false until a real subscribed-user production test is recorded");
+
+  // One rule, shared with lib/sonara-catalog-boundary.cjs, so this gate cannot
+  // hold a boundary the catalog has stopped holding. It did: this line used to
+  // require every paid row to be unverified, forty lines after requiring every
+  // row to match the catalog exactly, and the catalog now marks thirteen paid
+  // products verified. Both could not be true, and a production deploy was the
+  // first thing able to say so.
+  const violations = catalogRowBoundaryViolations(rows);
+  assert.deepEqual(
+    violations,
+    [],
+    `The production catalog crosses the paid-access boundary:\n  ${violations.join("\n  ")}\n\n` +
+      "A paid product may execute only where the server enforces an entitlement for its product family."
+  );
 
   const enabledRows = rows.filter((row) => row.execution_enabled);
-  for (const row of enabledRows) {
-    assert.ok(["active", "beta"].includes(row.lifecycle_status), `${row.service_key} execution requires active or beta lifecycle`);
-    assert.ok(row.plan_floor === "free" || row.entitlement_integration_verified === true, `${row.service_key} paid execution requires verified entitlement integration`);
-  }
 
   return {
     records: rows.length,
