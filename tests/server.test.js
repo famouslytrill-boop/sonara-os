@@ -1497,6 +1497,21 @@ describe("pricing and checkout", () => {
       if (String(url).includes("api.stripe.com/v1/customers")) {
         return { ok: true, json: async () => ({ id: "cus_test_customer" }) };
       }
+      // Checkout reads the price back from Stripe and refuses to sell if it
+      // does not charge what the pricing page advertises. The amount is taken
+      // from the plan rather than written as a number here, so this fixture
+      // cannot quietly disagree with the page it is standing in for.
+      if (String(url).includes("api.stripe.com/v1/prices/")) {
+        return {
+          ok: true,
+          json: async () => ({
+            id: "price_test_starter",
+            unit_amount: app.STRIPE_PLANS.starter_monthly.amountCents,
+            currency: "usd",
+            active: true
+          })
+        };
+      }
       if (String(url).includes("api.stripe.com/v1/checkout/sessions")) {
         return { ok: true, json: async () => ({ url: "https://checkout.stripe.com/c/session_test" }) };
       }
