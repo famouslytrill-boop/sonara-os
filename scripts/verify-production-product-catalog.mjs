@@ -162,8 +162,13 @@ function verifyEntitlementSourceContract() {
 
   return {
     serverEnforcement: "verified",
+    // Still true, and still worth reporting: nobody has completed a paid
+    // signup in production and confirmed the entitlement carried through end to
+    // end. What changed is that the catalog no longer treats that as a reason
+    // to shut every paid product, which it did by defining verified access as
+    // free access.
     positiveSubscribedUserTest: "pending",
-    advertisingBoundary: "paid execution remains restricted until positive production entitlement verification"
+    advertisingBoundary: "paid execution is open only where the server enforces an entitlement for the product; products with no entitlement mapping stay restricted"
   };
 }
 

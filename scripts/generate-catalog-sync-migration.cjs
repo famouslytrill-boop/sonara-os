@@ -38,7 +38,23 @@ function quote(value) {
   return `'${String(value).replace(/'/g, "''")}'`;
 }
 
-const migrationName = "20260728130000_sync_published_catalog_names.sql";
+// Migrations already applied in production. Writing to one of these is refused
+// in main() rather than merely discouraged.
+//
+// supabase db push tracks migrations by filename, so rewriting an applied one
+// changes this repository and nothing else. Every check here reads the file, so
+// all of them would pass while production kept the old catalog rows. The same
+// guard exists in scripts/generate-member-read-policies.cjs, where it caught a
+// real attempt one change after it was added.
+//
+// Add a filename here once its migration reaches main, and point migrationName
+// at a new one.
+//
+// 20260728130000 -- published catalog names, applied
+// 20260803180000 -- paid access driven by real entitlement enforcement
+const APPLIED_MIGRATIONS = Object.freeze(["20260728130000_sync_published_catalog_names.sql"]);
+
+const migrationName = "20260803180000_sync_catalog_paid_access.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 
 const rows = RECOMMENDED_PRODUCT_CATALOG.map((item) =>
@@ -51,7 +67,14 @@ const rows = RECOMMENDED_PRODUCT_CATALOG.map((item) =>
     quote(item.planFloor),
     quote(item.lifecycleStatus),
     quote(item.route),
-    String(item.sortOrder)
+    String(item.sortOrder),
+    // These two decide whether a paying customer can run anything at all.
+    // verify-production-product-catalog.mjs compares both against the catalog
+    // and gates the deploy on them, so leaving them out of the sync would fail
+    // the release rather than quietly disagreeing -- which is the better of the
+    // two outcomes, and still not one worth shipping.
+    String(item.entitlementIntegrationVerified),
+    String(item.executionEnabled)
   ].join(", ")})`
 ).join(",\n");
 
@@ -81,7 +104,7 @@ begin
 end
 $$;
 
-with published (service_key, product_key, name, summary, price_note, plan_floor, lifecycle_status, route_path, sort_order) as (
+with published (service_key, product_key, name, summary, price_note, plan_floor, lifecycle_status, route_path, sort_order, entitlement_integration_verified, execution_enabled) as (
   values
 ${rows}
 )
@@ -95,6 +118,8 @@ set
   lifecycle_status = published.lifecycle_status,
   route_path = published.route_path,
   sort_order = published.sort_order,
+  entitlement_integration_verified = published.entitlement_integration_verified,
+  execution_enabled = published.execution_enabled,
   product_type = 'software_product',
   status = 'active',
   metadata = coalesce(target.metadata, '{}'::jsonb) || jsonb_build_object('catalogVersion', ${quote(CATALOG_VERSION)})
@@ -131,10 +156,20 @@ function main() {
     return;
   }
 
+  if (APPLIED_MIGRATIONS.includes(migrationName)) {
+    console.error(
+      `Refusing to write ${migrationName}: it has already been applied in production.\n` +
+        "supabase db push tracks migrations by filename, so rewriting an applied one changes this repository and nothing else --\n" +
+        "every check here would pass while production kept the old catalog rows.\n" +
+        "Point migrationName at a new file instead."
+    );
+    process.exit(1);
+  }
+
   fs.writeFileSync(outputPath, contents);
   console.log(`Wrote ${migrationName}: ${RECOMMENDED_PRODUCT_CATALOG.length} products at version ${CATALOG_VERSION}.`);
 }
 
 if (require.main === module) main();
 
-module.exports = { migrationName };
+module.exports = { migrationName, APPLIED_MIGRATIONS };
