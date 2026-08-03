@@ -754,6 +754,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   app.get("/start", (req, res) => {
     res.status(200).type("html").send(
       layout({
+        surface: "marketing",
         title: "Start",
         eyebrow: "Get started",
         heading: "Start with SONARA",
@@ -824,6 +825,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }
     res.status(200).type("html").send(
       layout({
+        surface: "marketing",
         title: "Product and service catalog",
         eyebrow: "Software-in-a-Service",
         heading: "Product and service catalog",

@@ -224,12 +224,16 @@ describe("the server.js split stays safe", () => {
     // show a customer their own saved records instead of promising that results
     // "appear in your private workspace" and showing nothing, then 10 more for
     // the records pages, which were named after records and listed none, then a
-    // few for taking the quoted setup package out of checkout. That is features,
-    // not split drift, which is the question this test exists to ask. If a change adds to server.js instead of a module, this asks
-    // whether that was deliberate.
+    // few for taking the quoted setup package out of checkout, then 9 for
+    // declaring which pages are marketing surfaces -- six `surface: "marketing"`
+    // lines and a note on the product overview, which is a marketing screen
+    // while the dashboard registered immediately below it is not. That is
+    // features, not split drift, which is the question this test exists to ask.
+    // If a change adds to server.js instead of a module, this asks whether that
+    // was deliberate.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3900,
+      lines <= 3910,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

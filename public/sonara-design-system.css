@@ -158,10 +158,24 @@
 }
 
 :root[data-sonara-motion="off"] .sonara-reveal,
-:root[data-sonara-motion="off"] .sonara-depth {
+:root[data-sonara-motion="off"] .sonara-depth,
+:root[data-sonara-motion="off"] .sonara-stage [data-sonara-enter],
+:root[data-sonara-motion="off"] .sonara-stage .sonara-hero-stage {
   animation: none !important;
   transform: none !important;
   opacity: 1 !important;
+}
+
+/* Turning motion off mid-visit must also reveal anything the entrance
+ * observer had not reached yet. Without this, content already scrolled past
+ * the viewport would stay at opacity 0 -- motion off would mean content
+ * missing, which is worse than the animation it switched off. */
+@media (prefers-reduced-motion: reduce) {
+  .sonara-stage [data-sonara-enter],
+  .sonara-stage .sonara-hero-stage {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Depth ---------------------------------------------------------------
@@ -178,8 +192,15 @@
   transition:
     transform var(--sonara-dur-3) var(--sonara-ease-out),
     box-shadow var(--sonara-dur-3) var(--sonara-ease-out);
-  will-change: transform;
 }
+
+/* will-change promotes an element to its own compositor layer, and it used to
+ * sit on .sonara-depth unconditionally. The card helpers in lib/sonara-shell.cjs
+ * carry that class now, and a work screen can render hundreds of cards -- that
+ * would have been hundreds of layers on exactly the screens AGENTS.md asks to
+ * keep calm. Scoped to a stage, so only the marketing surfaces that actually
+ * animate pay for it. */
+.sonara-stage .sonara-depth { will-change: transform; }
 
 @media (hover: hover) and (pointer: fine) {
   .sonara-depth:hover,
@@ -192,6 +213,61 @@
 .sonara-depth__layer { transform: translateZ(28px); }
 .sonara-depth__layer--near { transform: translateZ(56px); }
 .sonara-depth__layer--far { transform: translateZ(-24px); opacity: 0.86; }
+
+/* Pointer tilt --------------------------------------------------------
+ * public/sonara-depth.js writes --sonara-tilt-x/y from the pointer position
+ * and marks the card data-sonara-tilt="on". The :hover rule above is the
+ * fallback: with no JavaScript, with motion off, or on a touch device, that
+ * is what happens and none of this applies. The script never sets the
+ * attribute in those cases, so this cannot strand a card mid-rotation. */
+@media (hover: hover) and (pointer: fine) {
+  .sonara-stage .sonara-depth[data-sonara-tilt="on"],
+  .sonara-stage .sonara-depth[data-sonara-tilt="on"]:hover {
+    transform:
+      translate3d(0, calc(var(--sonara-lift) * -1), 0)
+      rotateX(var(--sonara-tilt-x, 0deg))
+      rotateY(var(--sonara-tilt-y, 0deg))
+      scale(1.012);
+    box-shadow: var(--sonara-shadow-3);
+  }
+
+  /* Follows the pointer, so it has to keep up rather than ease into place. */
+  .sonara-stage .sonara-depth[data-sonara-tilt="on"] {
+    transition:
+      transform var(--sonara-dur-1) linear,
+      box-shadow var(--sonara-dur-3) var(--sonara-ease-out);
+  }
+}
+
+/* Scroll entrance ------------------------------------------------------
+ * Gated behind an attribute the script sets on <html> only once it has
+ * decided motion is allowed. Without that attribute these selectors do not
+ * match, so a script that never loads, is blocked, or bails out leaves the
+ * content visible instead of hiding it forever. That failure mode is the
+ * whole reason the gate is on :root and not on the element. */
+:root[data-sonara-depth="ready"] .sonara-stage [data-sonara-enter] {
+  opacity: 0;
+  transform: translate3d(0, 20px, -60px);
+  transition:
+    opacity var(--sonara-dur-3) var(--sonara-ease-out),
+    transform var(--sonara-dur-3) var(--sonara-ease-out);
+}
+
+:root[data-sonara-depth="ready"] .sonara-stage [data-sonara-enter="in"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Hero depth ----------------------------------------------------------
+ * The hero copy sits forward of its own backdrop, and the script eases the
+ * whole plane back as the page scrolls. One transform on one element. */
+.sonara-stage .sonara-hero-stage {
+  transform-style: preserve-3d;
+  transform: translate3d(0, 0, calc(var(--sonara-hero-depth, 0) * -1px));
+  transition: transform var(--sonara-dur-1) linear;
+}
+
+.sonara-stage .sonara-hero-stage > * { transform: translateZ(40px); }
 
 /* Entrance ------------------------------------------------------------- */
 @keyframes sonara-rise {

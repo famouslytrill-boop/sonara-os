@@ -65,6 +65,10 @@ function registerRouteRegistryRoutes(app, deps) {
   const resetPasswordLimiter = passwordResetSubmitRateLimiter || passThrough;
 
   const sendPage = (res, input) => res.status(200).type("html").send(layout(input));
+  // Public overview screens get depth; the account and workspace screens in
+  // this same file do not. sendPage serves both, so marking it wholesale would
+  // have animated /account/security along with /products.
+  const sendMarketingPage = (res, input) => sendPage(res, { ...input, surface: "marketing" });
   const setupMessage = "This feature works, but saving needs your records connected by an administrator first.";
 
   app.get("/api/routes/public", (req, res) => {
@@ -100,7 +104,7 @@ function registerRouteRegistryRoutes(app, deps) {
     ].join("\n"));
   });
 
-  app.get("/products", (req, res) => sendPage(res, {
+  app.get("/products", (req, res) => sendMarketingPage(res, {
     title: "Products",
     eyebrow: "Build. Create. Grow.",
     heading: "Three focused ways to move your work forward.",
@@ -113,7 +117,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/free-tools", "Try a free tool"), linkAction("/pricing", "See pricing"), linkAction("/start", "Get started")]
   }));
 
-  app.get("/free-tools", (req, res) => sendPage(res, {
+  app.get("/free-tools", (req, res) => sendMarketingPage(res, {
     title: "Free tools",
     eyebrow: "Useful before you pay a cent",
     heading: "Get a real result in your first few minutes.",
@@ -126,7 +130,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/signup", "Create account"), linkAction("/login", "Sign in"), linkAction("/tutorials", "Tutorials")]
   }));
 
-  app.get("/how-it-works", (req, res) => sendPage(res, {
+  app.get("/how-it-works", (req, res) => sendMarketingPage(res, {
     title: "How SONARA works",
     eyebrow: "From goal to done",
     heading: "Every step shows you the next honest move.",
@@ -141,7 +145,7 @@ function registerRouteRegistryRoutes(app, deps) {
     actions: [linkAction("/start", "Get started"), linkAction("/service-catalog", "Service catalog"), linkAction("/tutorials/getting-started", "Getting started")]
   }));
 
-  app.get("/tutorials", (req, res) => sendPage(res, {
+  app.get("/tutorials", (req, res) => sendMarketingPage(res, {
     title: "Tutorials",
     eyebrow: "Learn at your pace",
     heading: "Short guides for the work in front of you.",
@@ -151,7 +155,7 @@ function registerRouteRegistryRoutes(app, deps) {
   }));
 
   for (const [route, tutorial] of Object.entries(TUTORIALS)) {
-    app.get(route, (req, res) => sendPage(res, {
+    app.get(route, (req, res) => sendMarketingPage(res, {
       title: tutorial.title,
       eyebrow: "SONARA tutorial",
       heading: tutorial.title,

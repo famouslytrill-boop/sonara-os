@@ -38,7 +38,9 @@ const PUBLIC_STAGE = [
   "/brand/creator-studio-mark-v3.svg",
   "/brand/growth-studio-mark-v3.svg",
   "/sonara-application-ui.css?v=sonara-ui-20260725-v6-motion3",
-  "/sonara-one.js?v=sonara-ui-20260725-v6-motion3"
+  "/sonara-one.js?v=sonara-ui-20260725-v6-motion3",
+  "/sonara-design-system.css?v=sonara-ui-20260725-v6-motion3",
+  "/sonara-depth.js?v=sonara-ui-20260725-v6-motion3"
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest)$/;
 
