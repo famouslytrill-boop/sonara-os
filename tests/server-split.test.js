@@ -241,9 +241,15 @@ describe("the server.js split stays safe", () => {
     // sentence, which replaced a template that glued two humanised status
     // codes together and rendered "Customer organization is Workspace not
     // ready." to customers. The sentences live in lib/sonara-plain-language.cjs.
+    // Then 11 more for the contact rejection path. It used to be a one-line
+    // responsePage with a "Try again" link back to an empty form, which threw
+    // away up to 4000 characters the customer had just written. It is now the
+    // contact page re-rendered with their answers still in it. The form itself
+    // lives in lib/sonara-shell.cjs; these lines are the layout call that puts
+    // it back on screen with the validator's sentence attached.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3918,
+      lines <= 3930,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

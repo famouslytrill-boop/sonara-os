@@ -356,7 +356,13 @@ describe("contact support", () => {
   it("POST /contact validates required fields", async function() {
     const res = await request(app).post("/contact").type("form").send({ category: "contact" });
     assert.equal(res.status, 400);
-    assert.match(res.text, /Request not accepted|validation_failed/);
+    // Was /Request not accepted|validation_failed/, the title of the dead-end
+    // page a rejection used to produce. That page has been replaced by the form
+    // itself, re-rendered with what the customer typed still in it, so the
+    // title is gone -- see tests/contact-form-recovery.test.js. What this check
+    // is for is that a bad submission is refused and says why, which is still
+    // true and is what it asserts now.
+    assert.match(res.text, /Enter your name/);
   });
 
   it("POST /contact returns setup_required fallback safely when providers are missing", async function() {
