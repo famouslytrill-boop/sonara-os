@@ -1,8 +1,23 @@
 name: Controlled Production Deployment
 
+# workflow_dispatch exists because its absence caused an outage.
+#
+# On 2026-08-04 this workflow deployed main, verified the apex was serving the
+# expected commit, and reported success. Ten seconds later a manual "Redeploy"
+# of a deployment from that morning was created in the Vercel dashboard, became
+# the newest production deployment, and took the alias. Production ran the older
+# build for hours while four merged pull requests sat unshipped and every signal
+# stayed green.
+#
+# The dashboard button was reached for because there was no other way in: this
+# workflow only ran on push, so redeploying production meant pushing a commit or
+# going around the pipeline. Going around it skips the migration gate, the
+# catalog boundary gate, and the post-deploy checks. A gated path that can be
+# run on demand is what makes the ungated one unnecessary.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
