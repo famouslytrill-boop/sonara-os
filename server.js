@@ -293,7 +293,7 @@ const {
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20260804-v7-entrance`, and the token changes when
+// `/sonara-one.js?v=sonara-ui-20260804-v8-print`, and the token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //

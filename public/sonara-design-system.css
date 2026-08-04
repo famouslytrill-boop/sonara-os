@@ -183,6 +183,41 @@
   }
 }
 
+/* Print ----------------------------------------------------------------
+ * Paper has no scrolling, so the entrance never fires and everything it was
+ * waiting to reveal prints blank.
+ *
+ * Measured before this rule existed, with print media emulated: the homepage
+ * printed nine of nine entrance elements at opacity 0 -- all three product
+ * cards, all three availability cards, all three eyebrow strips -- leaving a
+ * hero and empty paper. /pricing lost "What it would cost elsewhere" and
+ * "Every plan includes".
+ *
+ * And this is the common case rather than an edge one. Printing or saving to
+ * PDF usually happens on arrival, before scrolling anywhere, which is exactly
+ * when the most content is still hidden. Someone printing the pricing page to
+ * show a partner would get the plans and none of what surrounds them.
+ *
+ * Transforms go too: a translate3d on paper only shifts content off its own
+ * layout position, and perspective means nothing in a static medium. */
+@media print {
+  .sonara-stage [data-sonara-enter],
+  .sonara-stage .sonara-hero-stage,
+  .sonara-reveal,
+  .sonara-depth {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* The skip link is fixed-position and would otherwise print over the top of
+   * the first page. It is a keyboard affordance; paper has no keyboard. */
+  .sonara-skip {
+    display: none !important;
+  }
+}
+
 /* Depth ---------------------------------------------------------------
  * "3D" here is real 3D transforms in a perspective context, composited on
  * the GPU. It reads as depth without a WebGL context, a vendored library,

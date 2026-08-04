@@ -1205,3 +1205,36 @@ body > header .sonara-brand-copy strong {
   .sonara-desktop-nav { display: none; }
   .sonara-mobile-menu { display: block; }
 }
+
+/* Print ----------------------------------------------------------------
+ * Three things in this file are hidden on screen and have to be decided
+ * separately for paper, because "hidden until something reveals it" and
+ * "hidden because it is finished" print very differently.
+ *
+ * [data-sonara-reveal] is a second entrance mechanism, parallel to the one in
+ * sonara-design-system.css: opacity 0 until .is-visible is added. It already
+ * has a reduced-motion escape and had no print escape, so anything using it
+ * would print blank for the same reason the marketing cards did.
+ *
+ * .sonara-loader is the full-bleed startup overlay -- position fixed, inset 0,
+ * z-index 9999, opaque background. It is dismissed by adding .is-ready from
+ * script. Printing before that happens, or with script blocked, would put a
+ * page of loader in front of the content. It is hidden outright here rather
+ * than relying on the dismissal having run.
+ *
+ * .sonara-route-progress is a navigation progress bar. There is no navigation
+ * on paper. */
+@media print {
+  [data-sonara-reveal],
+  .sonara-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  .sonara-loader,
+  .sonara-route-progress {
+    display: none !important;
+  }
+}
