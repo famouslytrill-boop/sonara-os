@@ -6,6 +6,7 @@ const {
   PUBLIC_SITEMAP_ROUTES
 } = require("../lib/sonara-route-registry.cjs");
 const { isPasswordLeaked, LEAKED_PASSWORD_MESSAGE } = require("../lib/sonara-leaked-password.cjs");
+const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { getGuide } = require("../lib/sonara-guides.cjs");
 
 const TUTORIALS = {
@@ -195,9 +196,18 @@ function registerRouteRegistryRoutes(app, deps) {
       return res.status(400).type("html").send(responsePage("Check your email address", payload.message, [linkAction("/forgot-password", "Try again")]));
     }
     if (!config.ok) {
-      const payload = { ok: false, code: "setup_required", service: "supabase_auth", message: "Account recovery is unavailable until the administrator finishes account setup." };
+      // Was "unavailable until the administrator finishes account setup".
+      // A customer reading that has no idea who the administrator is, or
+      // whether it means them. It is our setup, they cannot affect it, and the
+      // only useful thing they can do is ask us -- so say that.
+      const payload = {
+        ok: false,
+        code: "setup_required",
+        service: "supabase_auth",
+        message: `${plainLanguage.setupRequiredSentence("supabase_auth")} Nothing you can do from here — contact us and we will reset your password by hand.`
+      };
       if (wantsJson(req)) return res.status(503).json(payload);
-      return res.status(503).type("html").send(responsePage("Account recovery needs setup", payload.message, [linkAction("/support", "Get help")]));
+      return res.status(503).type("html").send(responsePage("We cannot send a reset link yet", payload.message, [linkAction("/contact", "Contact us"), linkAction("/support", "Get help")]));
     }
     await fetch(`${config.url}/auth/v1/recover`, {
       method: "POST",
@@ -214,7 +224,25 @@ function registerRouteRegistryRoutes(app, deps) {
     eyebrow: "Account recovery",
     heading: "Create a new password.",
     body: "Open this page from the secure recovery link in your email. Your recovery token is removed from the address bar before the form is submitted.",
-    sections: [`<form class="card" method="post" action="/auth/reset-password" data-sonara-recovery-form><input type="hidden" name="accessToken" data-sonara-recovery-token><label>New password<input id="account-recovery-password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button type="button" data-toggle-password="account-recovery-password" aria-controls="account-recovery-password" aria-pressed="false" aria-label="Show password">Show password</button><p data-sonara-recovery-status role="status">Checking the recovery link…</p><button type="submit" disabled data-sonara-recovery-submit>Update password</button></form><script src="/sonara-auth-recovery.js" defer></script>`],
+    // The status line starts as the failure explanation, not as "Checking the
+    // recovery link…".
+    //
+    // The token arrives in the URL fragment, which never reaches the server, so
+    // only the browser can read it -- public/sonara-auth-recovery.js lifts it
+    // into the hidden field and enables the button. If that script is blocked,
+    // fails, 404s, or is refused by the CSP, none of that happens.
+    //
+    // With "Checking the recovery link…" as the default, the outcome was a page
+    // that claimed to be working on it forever, next to a permanently greyed-out
+    // button, with nothing to say why. The person reading it has just clicked a
+    // reset link from their email because they are already locked out, and the
+    // page told them to wait for something that was never going to happen.
+    //
+    // The script runs synchronously and rewrites this line immediately, so the
+    // default is only ever seen when the script did not run -- which is exactly
+    // when it needs to be true. Same principle as the scroll entrance: never
+    // show a state you might not be able to move on from.
+    sections: [`<form class="card" method="post" action="/auth/reset-password" data-sonara-recovery-form><input type="hidden" name="accessToken" data-sonara-recovery-token><label>New password<input id="account-recovery-password" type="password" name="password" autocomplete="new-password" minlength="12" maxlength="128" required></label><button type="button" data-toggle-password="account-recovery-password" aria-controls="account-recovery-password" aria-pressed="false" aria-label="Show password">Show password</button><p data-sonara-recovery-status role="status">This step needs JavaScript, because your recovery link can only be read by your browser. Turn it on for this site and reload, or contact us and we will reset your password by hand.</p><button type="submit" disabled data-sonara-recovery-submit>Update password</button></form><noscript><p class="fine">JavaScript is turned off, so this page cannot read your recovery link. Contact us and we will reset your password for you.</p></noscript><script src="/sonara-auth-recovery.js" defer></script>`],
     actions: [linkAction("/forgot-password", "Request another link"), linkAction("/support", "Account help")]
   }));
 
@@ -222,7 +250,15 @@ function registerRouteRegistryRoutes(app, deps) {
     const accessToken = String(req.body.accessToken || "").trim();
     const password = String(req.body.password || "");
     const config = getSupabaseAuthConfig();
-    if (!config.ok) return res.status(503).type("html").send(responsePage("Account recovery needs setup", "The administrator needs to finish account setup.", [linkAction("/support", "Get help")]));
+    if (!config.ok) {
+      return res.status(503).type("html").send(
+        responsePage(
+          "We cannot change your password yet",
+          `${plainLanguage.setupRequiredSentence("supabase_auth")} Nothing you can do from here — contact us and we will reset your password by hand.`,
+          [linkAction("/contact", "Contact us"), linkAction("/support", "Get help")]
+        )
+      );
+    }
     if (!accessToken || password.length < 12 || password.length > 128) return res.status(400).type("html").send(responsePage("Check the reset form", "Use a valid recovery link and a password with at least 12 characters.", [linkAction("/forgot-password", "Request another link")]));
     // The other point a password is chosen. Someone resetting after a breach
     // notice is exactly the person most likely to reach for a password they
