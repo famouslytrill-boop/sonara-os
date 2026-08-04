@@ -497,7 +497,7 @@ describe("auth setup", () => {
     assert.match(res.text, /data-toggle-password/);
     assert.match(res.text, /Confirm password/);
     assert.equal((res.text.match(/autocomplete="new-password"/g) || []).length, 2);
-    assert.equal((res.text.match(/minlength="8"/g) || []).length, 2);
+    assert.equal((res.text.match(/minlength="12"/g) || []).length, 2);
   });
 
   it("the loaded SONARA One client toggles password visibility and accessible state", function() {
@@ -552,7 +552,7 @@ describe("auth setup", () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
     const res = await request(app).post("/auth/signup").send({
       email: "owner@example.com",
-      password: "password123",
+      password: "password123456",
       confirmPassword: "different-password"
     });
     assert.equal(res.status, 400);
@@ -572,7 +572,7 @@ describe("auth setup", () => {
       .post("/auth/signup")
       .set("Accept", "text/html")
       .type("form")
-      .send({ email: "owner@example.com", password: "password123", confirmPassword: "password123" });
+      .send({ email: "owner@example.com", password: "password123456", confirmPassword: "password123456" });
     const login = await request(app).get("/login?account=confirmation_required").set("Accept", "text/html");
     global.fetch = originalFetch;
 
@@ -597,7 +597,7 @@ describe("auth setup", () => {
       .post("/auth/signup")
       .set("Accept", "text/html")
       .type("form")
-      .send({ email: "owner@example.com", password: "password123", confirmPassword: "password123" });
+      .send({ email: "owner@example.com", password: "password123456", confirmPassword: "password123456" });
     global.fetch = originalFetch;
 
     assert.equal(signup.status, 303);
@@ -685,7 +685,7 @@ describe("auth setup", () => {
       .post("/auth/signup")
       .set("Accept", "text/html")
       .type("form")
-      .send({ email: "owner@example.com", password: "password123" });
+      .send({ email: "owner@example.com", password: "password123456" });
 
     for (const key of keys) {
       if (original[key] === undefined) delete process.env[key];
@@ -834,7 +834,7 @@ describe("auth setup", () => {
     const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
     for (const key of keys) delete process.env[key];
 
-    const res = await request(app).post("/auth/signup").send({ email: "owner@example.com", password: "password123" });
+    const res = await request(app).post("/auth/signup").send({ email: "owner@example.com", password: "password123456" });
 
     for (const key of keys) {
       if (original[key] === undefined) delete process.env[key];

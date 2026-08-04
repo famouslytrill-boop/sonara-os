@@ -115,13 +115,18 @@ template scaffolding left in place.
 Not changed here. Turning "should" into "does" is a commitment, and which
 commitments to make is exactly the judgement being bought.
 
-### F-4. Password floor is inconsistent between the two paths
+### F-4. Password floor was inconsistent between the two paths — RESOLVED
 
-Signup accepts 8 characters (`lib/sonara-customer-auth.cjs`); password reset
-requires 12 (`routes/sonara-route-registry-routes.cjs`). The stricter rule is
-therefore avoidable by signing up rather than resetting. An engineering
-decision, not a legal one, but it sits under any security representation the
-policy pages make.
+Signup accepted 8 characters while password reset required 12, so the stricter
+rule was avoidable by signing up rather than resetting. Signup now matches reset
+at 12.
+
+Login deliberately keeps a lower floor. `handleEmailAuth` serves both signup and
+login, and raising it for both would have refused the existing password of every
+customer who set one between 8 and 11 characters — locking them out at the
+sign-in screen, with no route through to the reset flow that would let them fix
+it. A password already in use is not made safer by refusing to accept it. The
+two floors are named constants and a test holds them apart.
 
 ### F-5. Supabase leaked-password protection is still disabled
 
