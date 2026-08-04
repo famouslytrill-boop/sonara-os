@@ -1,0 +1,96 @@
+name: Production Commit Drift
+
+# Does production still run what main says it runs?
+#
+# The deploy workflow already answers that at the moment of deploying: it polls
+# the apex until /api/health reports the deployed commit, then reports success.
+# On 2026-08-04 it did exactly that, correctly, and production was still wrong.
+#
+# A manual "Redeploy" of a morning deployment was created ten seconds after the
+# pipeline's deploy, became the newest production deployment, and took the
+# alias. The gate had already passed. Nothing looked again. Production served a
+# build from twelve hours earlier for three and a half hours, with four merged
+# pull requests unshipped, while the repository, the pull requests and the
+# deploy runs were all green.
+#
+# A deploy-time check cannot catch that, because the drift happens after it. So
+# this asks the question on a schedule instead, and the only thing it compares
+# is the live commit against the tip of main -- the one fact that was wrong and
+# that nothing was watching.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every two hours, offset off the hour so it does not queue behind the
+    # other scheduled workflows.
+    - cron: "41 */2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-commit-drift
+  cancel-in-progress: true
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    env:
+      APEX_URL: https://sonaraindustries.com
+      # A deploy takes a couple of minutes, and a merge lands on main before the
+      # deploy finishes. Below this age a mismatch means "deploying", not
+      # "drifted", so it is reported and not failed.
+      GRACE_SECONDS: "900"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Needed to read the commit date of the tip of main.
+          fetch-depth: 2
+
+      - name: Compare the live commit against the tip of main
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected="$(git rev-parse HEAD)"
+          committed_at="$(git show -s --format=%ct HEAD)"
+          now="$(date -u +%s)"
+          age=$((now - committed_at))
+
+          status="$(curl -sS --max-time 30 -o health.json -w '%{http_code}' "$APEX_URL/api/health" || true)"
+          if [ "$status" != "200" ]; then
+            echo "::error::Production /api/health returned ${status}."
+            exit 1
+          fi
+
+          live="$(node -e "
+            const health = require('./health.json');
+            process.stdout.write(String(health.deployment?.commitSha || 'unknown'));
+          ")"
+          branch="$(node -e "
+            const health = require('./health.json');
+            process.stdout.write(String(health.deployment?.branch || 'unknown'));
+          ")"
+
+          {
+            echo "### Production commit drift"
+            echo "- Expected (tip of main): \`${expected}\`"
+            echo "- Live (/api/health): \`${live}\`"
+            echo "- Live branch: \`${branch}\`"
+            echo "- Tip of main is ${age}s old"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$live" = "$expected" ]; then
+            echo "Production is running the tip of main."
+            exit 0
+          fi
+
+          if [ "$age" -lt "$GRACE_SECONDS" ]; then
+            echo "::notice::Production is on ${live}, main is ${expected}, but main is only ${age}s old -- a deploy is probably still in flight."
+            exit 0
+          fi
+
+          echo "::error::Production is running ${live} while main is ${expected}, and main has been that way for ${age}s."
+          echo "Something took the production alias away from the deployed commit."
+          echo "Re-run Controlled Production Deployment (it now accepts workflow_dispatch) rather than redeploying from the dashboard, so the migration and catalog gates run."
+          exit 1
