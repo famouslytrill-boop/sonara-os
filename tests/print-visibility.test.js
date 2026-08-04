@@ -129,6 +129,73 @@ describe("printing a marketing page", () => {
     }
   });
 
+  // Custom properties declared inside a selector block.
+  function propertiesIn(block) {
+    return new Set([...block.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((match) => match[1]));
+  }
+
+  // The body of the first block whose selector matches `pattern`.
+  function ruleBody(css, pattern) {
+    const match = css.match(pattern);
+    if (!match) return "";
+    const start = css.indexOf("{", match.index) + 1;
+    let depth = 1;
+    let index = start;
+    while (index < css.length && depth > 0) {
+      if (css[index] === "{") depth += 1;
+      else if (css[index] === "}") depth -= 1;
+      index += 1;
+    }
+    return css.slice(start, index - 1);
+  }
+
+  it("does not print a dark theme as white on white", () => {
+    // Printers drop background colours. The dark navy page background is simply
+    // not there, but the text keeps its near-white colour and lands on paper.
+    //
+    // Measured on /pricing with prefers-color-scheme: dark, before the fix:
+    // h1 at 1.05:1 against paper and body text at 2.02:1, where WCAG AA asks
+    // for 4.5:1. The same page in light theme printed at 17.92:1 and 5.79:1.
+    //
+    // The theme follows the operating system, so this was not a rare setting --
+    // anyone whose machine is in dark mode printed a page that looked blank.
+    const appCss = read("sonara-application-ui.css");
+    const darkTokens = propertiesIn(ruleBody(appCss, /html\[data-theme="dark"\]\s*\{/));
+    assert.ok(darkTokens.size >= 10, `only ${darkTokens.size} dark tokens parsed; this check has gone blind`);
+    const printed = propertiesIn(printBlocks(appCss).join("\n"));
+    const unreset = [...darkTokens].filter((token) => !printed.has(token));
+    assert.deepEqual(unreset, [], `these dark-theme tokens are never reset for print: ${unreset.join(", ")}`);
+  });
+
+  it("resets the design system's own tokens for print too", () => {
+    // This file's defaults are the dark values; the light ones live behind
+    // prefers-color-scheme. Neither scheme applies usefully to paper, so print
+    // has to pin them rather than inherit whichever the visitor happens to be
+    // in.
+    const dsCss = read("sonara-design-system.css");
+    const lightTokens = propertiesIn(ruleBody(dsCss, /:root\[data-theme="light"\]\s*\{/));
+    assert.ok(lightTokens.size >= 8, `only ${lightTokens.size} light tokens parsed; this check has gone blind`);
+    const printed = propertiesIn(printBlocks(dsCss).join("\n"));
+    const unreset = [...lightTokens].filter((token) => !printed.has(token));
+    assert.deepEqual(unreset, [], `these tokens are never pinned for print: ${unreset.join(", ")}`);
+  });
+
+  it("does not print buttons as white text on white paper", () => {
+    // A primary action is white text on an accent background. The background
+    // does not print and the text stays white, so the button prints as nothing.
+    // Not theme-dependent: --sonara-accent-contrast is #ffffff in every theme,
+    // so this happened in light mode as well. Measured on /pricing: five
+    // controls at exactly 1:1 against paper, "Start free" among them.
+    const combined = printBlocks(read("sonara-application-ui.css")).join("\n");
+    assert.match(combined, /(^|[\s,]).action[\s,{]/, "@media print never mentions .action");
+    assert.match(combined, /(^|[\s,])button[\s,{]/, "@media print never mentions button");
+    // The colour has to move off white; an outline alone would still be white
+    // lettering.
+    const buttonRule = ruleBody(combined, /\.action[\s\S]{0,220}?\{/);
+    assert.match(buttonRule, /color:\s*#(?!fff)/i, "printed buttons keep a white text colour");
+    assert.match(buttonRule, /border:\s*[^;]*#/, "printed buttons have no outline to replace the dropped background");
+  });
+
   it("does not print the skip link over the first page", () => {
     // Fixed-position and visually hidden on screen; on paper it would land on
     // top of the content. It is a keyboard affordance, and paper has no
