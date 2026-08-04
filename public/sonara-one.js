@@ -99,6 +99,15 @@
   }
 
   let preferences = readPreferences();
+
+  // Motion is off when the operating system says so OR when the person turned
+  // it off in Experience settings. Both matter, and the second was being missed
+  // by the startup loader -- the one animation everybody sees, on first visit,
+  // before anything else. Written once here because it was already being
+  // spelled out at three call sites and got left out of the fourth.
+  function motionSuppressed() {
+    return reducedMotion || preferences.motion === "off";
+  }
   let audioContext;
   let lastFocusedElement;
 
@@ -163,7 +172,7 @@
   function installRevealMotion() {
     const items = document.querySelectorAll("main>section:not(.hero),.sonara-section,.sonara-cta,.card,.sonara-product");
     items.forEach((item) => { item.dataset.sonaraReveal = ""; });
-    if (reducedMotion || preferences.motion === "off" || !window.IntersectionObserver) {
+    if (motionSuppressed() || !window.IntersectionObserver) {
       items.forEach((item) => item.classList.add("is-visible"));
       return;
     }
@@ -177,7 +186,7 @@
 
   function installDepth() {
     const target = document.querySelector("[data-sonara-depth]");
-    if (!target || reducedMotion || preferences.motion === "off" || window.innerWidth < 920) return;
+    if (!target || motionSuppressed() || window.innerWidth < 920) return;
     window.addEventListener("pointermove", (event) => {
       const x = (event.clientX / window.innerWidth - 0.5) * 7;
       const y = (event.clientY / window.innerHeight - 0.5) * -6;
@@ -329,11 +338,11 @@
       closed = true;
       loader.classList.add("is-ready");
       root.classList.add("sonara-ready");
-      window.setTimeout(() => { loader.hidden = true; }, reducedMotion ? 0 : 320);
+      window.setTimeout(() => { loader.hidden = true; }, motionSuppressed() ? 0 : 320);
     };
 
     const elapsed = (window.performance?.now?.() || Date.now()) - startupStartedAt;
-    const minimum = reducedMotion ? 0 : (firstVisit ? 680 : 100);
+    const minimum = motionSuppressed() ? 0 : (firstVisit ? 680 : 100);
     const finish = () => window.setTimeout(hide, Math.max(0, minimum - elapsed));
 
     if (document.readyState === "complete") finish();

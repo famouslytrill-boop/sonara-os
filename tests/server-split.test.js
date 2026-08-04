@@ -464,7 +464,9 @@ describe("the customer auth module stands on its own", () => {
 
   it("will not create an account when the password confirmation does not match", async () => {
     const session = createCustomerAuth(deps({ getEnv: () => "https://project.supabase.co" }));
-    const result = await session.handleEmailAuth("signup", { email: "a@b.co", password: "12345678", confirmPassword: "87654321" });
+    // Both sides must clear the 12-character signup floor, or this stops at
+    // validation_failed and never reaches the mismatch check it is testing.
+    const result = await session.handleEmailAuth("signup", { email: "a@b.co", password: "123456789012", confirmPassword: "210987654321" });
     assert.equal(result.status, 400);
     assert.equal(result.body.code, "password_mismatch");
   });

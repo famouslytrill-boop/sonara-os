@@ -57,7 +57,12 @@
 
   /* Type — fluid, clamped so nothing overflows a 320px viewport --------- */
   --sonara-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --sonara-font-serif: "Source Serif 4", ui-serif, Georgia, serif;
+  /* Source Serif 4 was named here and used by nothing -- no rule, no markup,
+   * anywhere in the tree -- while the page frame loaded it from Google on every
+   * request. Dropping it saved 463 KB of the 743 KB self-hosting would have
+   * cost. The token stays so a future use resolves; it just resolves to the
+   * fonts the device already has instead of a family nothing renders with. */
+  --sonara-font-serif: ui-serif, Georgia, "Times New Roman", serif;
   --sonara-font-mono: "Geist Mono", ui-monospace, SFMono-Regular, monospace;
 
   --sonara-text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem);

@@ -132,3 +132,40 @@ describe("experience preferences have one source of truth", () => {
     }
   });
 });
+
+describe("the startup animation honours the motion preference", () => {
+  const one = read("public/sonara-one.js");
+
+  // The loader is the first animation anybody sees, on first visit, before
+  // anything else on the page. It checked prefers-reduced-motion and nothing
+  // else, so turning motion off in Experience settings switched off the reveal
+  // animations and the pointer effects and left the startup sequence running.
+  //
+  // Two other call sites already spelled the full condition out. This one was
+  // missed, which is the argument for it being a named function rather than an
+  // expression repeated at each site.
+  it("checks the in-app preference, not only the operating system", () => {
+    assert.match(one, /function motionSuppressed\(\)/, "the shared motion check is gone");
+    assert.match(one, /return reducedMotion \|\| preferences\.motion === "off";/);
+
+    const startup = one.slice(one.indexOf("function installStartupExperience()"), one.indexOf("/* SONARA MOTION END */"));
+    assert.ok(startup.length > 200, "the startup block did not parse");
+    assert.match(startup, /motionSuppressed\(\)/, "the startup loader ignores the in-app motion preference");
+    assert.doesNotMatch(
+      startup,
+      /\breducedMotion\s*\?/,
+      "the startup loader still branches on the operating-system setting alone"
+    );
+  });
+
+  it("uses the shared check everywhere motion is gated", () => {
+    // If the expression is spelled out again at a new site, that site is one
+    // edit away from being the next one left behind.
+    const gates = [...one.matchAll(/reducedMotion \|\| preferences\.motion === "off"/g)];
+    assert.equal(
+      gates.length,
+      1,
+      `the motion condition is written out ${gates.length} times; it should exist once, inside motionSuppressed()`
+    );
+  });
+});
