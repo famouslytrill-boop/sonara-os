@@ -839,9 +839,14 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   app.get("/readiness", (req, res) => {
     res.status(200).type("html").send(
       layout({
-        title: "What's working right now",
+        // "What's working right now" promised more than this page delivers.
+        // It reports configuration -- which credentials are present and
+        // well-formed -- not liveness. A configured payment key and a working
+        // payment connection are different claims, and the body already said
+        // "set up" while the heading said "working".
+        title: "What's set up right now",
         eyebrow: "Live status",
-        heading: "What's working right now",
+        heading: "What's set up right now",
         body: "A live, honest view of what is set up and what still needs attention. Nothing here is a secret, and anything that isn't working says so instead of pretending.",
         sections: readinessCards(getReadiness()),
         actions: [linkAction("/start", "Start"), linkAction("/support", "Get help"), linkAction("/", "Home")]
