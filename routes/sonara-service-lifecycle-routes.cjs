@@ -855,8 +855,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         title: "Legal",
         eyebrow: "Legal center",
         heading: "Legal center",
-        body: "All SONARA Industries legal drafts in one place. These drafts need qualified legal review and are not legal advice.",
-        sections: legalPages().map((page) => actionCard(page.title, "Read the current draft. This draft needs qualified legal review and is not legal advice.", [linkAction(page.href, "Read")])),
+        body: "All SONARA Industries legal terms in one place. These terms are not legal advice.",
+        sections: legalPages().map((page) => actionCard(page.title, "Read the current terms. These terms are not legal advice.", [linkAction(page.href, "Read")])),
         actions: [linkAction("/", "Home"), linkAction("/contact", "Contact")]
       })
     );

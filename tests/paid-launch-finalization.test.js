@@ -70,14 +70,28 @@ describe("paid launch finalization", () => {
     }
   });
 
-  it("records owner approval while preserving the legal-review gate", async function() {
+  // The legal pages used to describe their own review status to customers --
+  // "Owner-approved launch baseline; qualified legal review remains required;
+  // not represented as attorney-reviewed". That was internal tracking on a
+  // customer-facing page and it read as unfinished, so it was removed at the
+  // owner's direction.
+  //
+  // The gate itself did not move. Readiness still reports legalPages as
+  // review_required, docs/legal/LEGAL_REVIEW_REQUIRED.md and
+  // COUNSEL_REVIEW_BRIEF.md still track it, and the pages still must not claim
+  // a review that has not happened. Removing a statement and making the
+  // opposite one are different things, and only the first was asked for.
+  it("keeps the legal-review gate while the pages stop reporting their own status", async function() {
     const response = await request(app).get("/legal/terms").set("Accept", "text/html");
     assert.equal(response.status, 200);
-    assert.match(response.text, /Owner-approved launch baseline/);
-    assert.match(response.text, /qualified legal review remains required/);
-    assert.match(response.text, /not represented as attorney-reviewed/);
     assert.match(response.text, /not legal advice/);
+    assert.match(response.text, /subject to applicable law/);
     assert.doesNotMatch(response.text, /Owner-review-required draft/);
+    assert.doesNotMatch(
+      response.text,
+      /attorney[- ]reviewed|reviewed by (?:our |a )?(?:attorney|lawyer|counsel)|legally (?:reviewed|approved|vetted)/i,
+      "a legal page claims a review that has not happened"
+    );
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
     assert.equal(readiness.body.services.legalPages, "review_required");

@@ -2459,7 +2459,12 @@ function legalPage(res, title, points) {
       title,
       eyebrow: "Legal",
       heading: title,
-      body: "Owner-approved launch baseline for SONARA Industries; qualified legal review remains required. These terms are not legal advice and are not represented as attorney-reviewed. They remain subject to applicable law and future revision.",
+      // The review-status sentence was internal tracking on a customer-facing
+      // page and came off at the owner's direction. The disclaimer stays. No
+      // claim that counsel reviewed these may be added, because none has --
+      // dropping a statement is not the same as asserting its opposite. Still
+      // tracked in docs/legal/LEGAL_REVIEW_REQUIRED.md.
+      body: "These terms are not legal advice. They remain subject to applicable law and future revision. Questions about them can be sent through the contact route.",
       sections: points.map((point, index) => Array.isArray(point) ? brandCard(point[0], point[1]) : brandCard(`Section ${index + 1}`, point)),
       actions: [linkAction("/", "Home"), linkAction("/contact", "Contact")]
     })
@@ -2481,7 +2486,7 @@ function legalPages() {
     { href: "/legal/security-policy", title: "Security Policy", points: ["Report security issues through the contact route or configured support address.", "Do not submit secrets through public forms.", "Administrative routes require authenticated, authorised access, and administrative actions are recorded in an audit trail."] },
     { href: "/legal/disclaimer", title: "General Disclaimer", points: ["SONARA Industries provides operational software and setup tools, not legal, tax, financial, or business guarantees.", "Customers remain responsible for reviewing outputs before use.", "No revenue, customer, or compliance outcome is guaranteed."] },
     { href: "/legal/can-spam", title: "Commercial Email Reminder", points: ["Commercial email should use truthful subject and from information.", "Include unsubscribe language and a physical mailing address when required.", "Keep consent and audience-source notes before outreach."] },
-    { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: [["Service providers", "This template explains how SONARA Industries may use subprocessors for hosting, payments, email delivery, analytics, authentication, monitoring, and support operations."], ["Data handling", "Subprocessors should receive only the data needed to operate the service, subject to provider terms, contracts, and production configuration."], ["Review required", "This is a legal template and requires qualified legal review before production use. It is not legal advice."]] }
+    { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: [["Service providers", "This template explains how SONARA Industries may use subprocessors for hosting, payments, email delivery, analytics, authentication, monitoring, and support operations."], ["Data handling", "Subprocessors should receive only the data needed to operate the service, subject to provider terms, contracts, and production configuration."], ["Changes to this list", "Subprocessors may change as the service changes. This notice describes current operational practice and is not legal advice."]] }
   ];
 }
 
