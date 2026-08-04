@@ -2216,13 +2216,17 @@ describe("legal pages", () => {
     "/legal/can-spam",
     "/legal/subprocessor-notice"
   ]) {
-    it(`GET ${route} returns legal draft`, async function() {
+    it(`GET ${route} returns legal terms`, async function() {
       const res = await request(app).get(route).set("Accept", "text/html");
       assert.equal(res.status, 200);
       assert.equal(res.type, "text/html");
       assert.doesNotMatch(res.text, /\[To be added\]/);
-      assert.match(res.text, /qualified legal review/);
       assert.match(res.text, /not legal advice/);
+      // The pages no longer report their own review status to customers, but
+      // they must never claim the opposite either. Counsel has not reviewed
+      // them, and asserting otherwise would be a false claim rather than an
+      // omitted one.
+      assert.doesNotMatch(res.text, /attorney[- ]reviewed|reviewed by (?:our |a )?(?:attorney|lawyer|counsel)|legally (?:reviewed|approved|vetted)/i);
     });
   }
 
@@ -2230,8 +2234,8 @@ describe("legal pages", () => {
     it(`GET ${route} returns legal alias`, async function() {
       const res = await request(app).get(route).set("Accept", "text/html");
       assert.equal(res.status, 200);
-      assert.match(res.text, /qualified legal review/);
       assert.match(res.text, /not legal advice/);
+      assert.doesNotMatch(res.text, /attorney[- ]reviewed|reviewed by (?:our |a )?(?:attorney|lawyer|counsel)|legally (?:reviewed|approved|vetted)/i);
     });
   }
 });

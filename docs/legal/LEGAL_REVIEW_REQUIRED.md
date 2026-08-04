@@ -2,6 +2,11 @@
 
 The public legal pages are review-ready templates, not final legal advice.
 
+`COUNSEL_REVIEW_BRIEF.md` in this directory states what the system actually does
+— cookies, third-party recipients, what is refused — and records the places where
+the policy text and the code disagree. Take it into the review so the engagement
+is spent on judgement rather than on discovery.
+
 Before paid public launch:
 
 - Review terms, privacy, refund, billing, AI usage, acceptable use, security, accessibility, cookie, DPA, subprocessor, and service-level pages with qualified counsel.

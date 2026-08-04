@@ -5,6 +5,7 @@ const {
   ROUTE_REGISTRY,
   PUBLIC_SITEMAP_ROUTES
 } = require("../lib/sonara-route-registry.cjs");
+const { isPasswordLeaked, LEAKED_PASSWORD_MESSAGE } = require("../lib/sonara-leaked-password.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -216,6 +217,14 @@ function registerRouteRegistryRoutes(app, deps) {
     const config = getSupabaseAuthConfig();
     if (!config.ok) return res.status(503).type("html").send(responsePage("Account recovery needs setup", "The administrator needs to finish account setup.", [linkAction("/support", "Get help")]));
     if (!accessToken || password.length < 12 || password.length > 128) return res.status(400).type("html").send(responsePage("Check the reset form", "Use a valid recovery link and a password with at least 12 characters.", [linkAction("/forgot-password", "Request another link")]));
+    // The other point a password is chosen. Someone resetting after a breach
+    // notice is exactly the person most likely to reach for a password they
+    // have used elsewhere, so this is the more important of the two checks.
+    // It fails open: see lib/sonara-leaked-password.cjs.
+    const breach = await isPasswordLeaked(password);
+    if (breach.leaked) {
+      return res.status(400).type("html").send(responsePage("Choose a different password", LEAKED_PASSWORD_MESSAGE, [linkAction("/forgot-password", "Request another link")]));
+    }
     const response = await fetch(`${config.url}/auth/v1/user`, {
       method: "PUT",
       headers: { apikey: config.anonKey, Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
