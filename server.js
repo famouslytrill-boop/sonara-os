@@ -2847,9 +2847,16 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
 }
 
 function sendValidationFailure(req, res, validation, backHref) {
+  // The JSON body keeps the raw field names -- a developer needs them, and they
+  // are what a client would key off. Only the prose is translated. See
+  // FIELD_LABELS in lib/sonara-plain-language.cjs: this used to print
+  // "Please complete: productKey, serviceName." to customers.
   if (wantsJson(req)) return res.status(400).json(validation);
-  const missing = validation.missing?.length ? validation.missing.join(", ") : "required fields";
-  return res.status(400).type("html").send(responsePage("Required fields missing", `Please complete: ${missing}.`, [linkAction(backHref, "Return to form")]));
+  return res.status(400).type("html").send(
+    responsePage("Something is missing", plainLanguage.missingFieldsSentence(validation.missing), [
+      linkAction(backHref, "Return to form")
+    ])
+  );
 }
 
 function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
