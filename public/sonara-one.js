@@ -27,7 +27,7 @@
       flowKicker: "One connected operating path", flowHeading: "Move from first setup to measurable progress.",
       ctaKicker: "Start with the next real step", ctaHeading: "Create a free account. Add paid tools only once they are proven to work.",
       searchPlaceholder: "Search companies, pages, and actions", settingsTitle: "Experience settings", language: "Language",
-      languageHelp: "Updates the core interface language.", appearance: "Appearance", appearanceHelp: "Follow your device or choose light or dark.",
+      languageHelp: "Translates menus, buttons, and page headings. Page content stays in English for now.", appearance: "Appearance", appearanceHelp: "Follow your device or choose light or dark.",
       motion: "Motion", sound: "Sound feedback", haptics: "Tactile feedback"
     },
     es: {
@@ -41,7 +41,7 @@
       flowKicker: "Una ruta operativa conectada", flowHeading: "Pasa de la configuración inicial al progreso medible.",
       ctaKicker: "Empieza con el siguiente paso real", ctaHeading: "Crea una cuenta gratis. Añade sistemas de pago solo cuando estén verificados.",
       searchPlaceholder: "Buscar empresas, páginas y acciones", settingsTitle: "Ajustes de experiencia", language: "Idioma",
-      languageHelp: "Actualiza el idioma principal de la interfaz.", appearance: "Apariencia", appearanceHelp: "Sigue tu dispositivo o elige claro u oscuro.",
+      languageHelp: "Traduce los menús, los botones y los títulos. Por ahora, el contenido de las páginas permanece en inglés.", appearance: "Apariencia", appearanceHelp: "Sigue tu dispositivo o elige claro u oscuro.",
       motion: "Movimiento", sound: "Sonido", haptics: "Respuesta táctil"
     },
     fr: {
@@ -55,7 +55,7 @@
       flowKicker: "Un parcours opérationnel connecté", flowHeading: "Passez de la configuration initiale à des progrès mesurables.",
       ctaKicker: "Commencez par la prochaine étape réelle", ctaHeading: "Créez un compte gratuit. Ajoutez des systèmes payants uniquement après vérification.",
       searchPlaceholder: "Rechercher des entreprises, pages et actions", settingsTitle: "Réglages de l’expérience", language: "Langue",
-      languageHelp: "Met à jour la langue principale de l’interface.", appearance: "Apparence", appearanceHelp: "Suivez l’appareil ou choisissez clair ou sombre.",
+      languageHelp: "Traduit les menus, les boutons et les titres. Le contenu des pages reste en anglais pour le moment.", appearance: "Apparence", appearanceHelp: "Suivez l’appareil ou choisissez clair ou sombre.",
       motion: "Animation", sound: "Retour sonore", haptics: "Retour tactile"
     },
     de: {
@@ -69,7 +69,7 @@
       flowKicker: "Ein verbundener Betriebsweg", flowHeading: "Von der ersten Einrichtung zu messbarem Fortschritt.",
       ctaKicker: "Mit dem nächsten echten Schritt beginnen", ctaHeading: "Erstellen Sie ein kostenloses Konto. Fügen Sie bezahlte Systeme erst nach der Verifizierung hinzu.",
       searchPlaceholder: "Unternehmen, Seiten und Aktionen durchsuchen", settingsTitle: "Erlebniseinstellungen", language: "Sprache",
-      languageHelp: "Aktualisiert die zentrale Oberflächensprache.", appearance: "Darstellung", appearanceHelp: "Gerät verwenden oder Hell/Dunkel wählen.",
+      languageHelp: "Übersetzt Menüs, Schaltflächen und Überschriften. Die Seiteninhalte bleiben vorerst auf Englisch.", appearance: "Darstellung", appearanceHelp: "Gerät verwenden oder Hell/Dunkel wählen.",
       motion: "Bewegung", sound: "Klangfeedback", haptics: "Haptisches Feedback"
     },
     pt: {
@@ -83,7 +83,7 @@
       flowKicker: "Um caminho operacional conectado", flowHeading: "Passe da configuração inicial para um progresso mensurável.",
       ctaKicker: "Comece com o próximo passo real", ctaHeading: "Crie uma conta gratuita. Adicione sistemas pagos somente quando forem verificados.",
       searchPlaceholder: "Pesquisar empresas, páginas e ações", settingsTitle: "Configurações de experiência", language: "Idioma",
-      languageHelp: "Atualiza o idioma principal da interface.", appearance: "Aparência", appearanceHelp: "Siga o dispositivo ou escolha claro ou escuro.",
+      languageHelp: "Traduz menus, botões e títulos. Por enquanto, o conteúdo das páginas permanece em inglês.", appearance: "Aparência", appearanceHelp: "Siga o dispositivo ou escolha claro ou escuro.",
       motion: "Movimento", sound: "Som", haptics: "Resposta tátil"
     }
   };
