@@ -78,6 +78,45 @@ describe("checkout will not sell at a price the page never showed", () => {
     assert.equal(result.code, "price_archived");
   });
 
+  // Added after reading the live account. Archiving a product in Stripe does
+  // not flip its prices' active flag, so all three retired plans read
+  // active: true and only the product says otherwise:
+  //
+  //   price_1TS4jf ($9.99)  active: true  product prod_UQwcES2WvMoNqT active: false
+  //   price_1TS4l7 ($19.99) active: true  product prod_UQweXvXZN6R2lI active: false
+  //   price_1TS4lc ($49.99) active: true  product prod_UQwekSKHXBZLVV active: false
+  //
+  // The archived-price check above cannot see that shape. Stripe refuses these
+  // at session creation either way, so this is not the difference between
+  // selling and not selling -- it is the difference between refusing here with
+  // a reason and letting Stripe reject in front of the customer.
+  it("asks Stripe for the product, not just the price", async () => {
+    let requested = "";
+    global.fetch = async (url) => {
+      requested = String(url);
+      return stripePriceResponse({ id: "price_ok", unit_amount: 700, currency: "usd", active: true, product: { active: true } });
+    };
+    await build().assertPriceMatchesAdvertised("starter_monthly", "price_ok");
+    assert.match(requested, /expand\[\]=product/, "the product is not expanded, so an archived product cannot be seen");
+  });
+
+  it("refuses a live price whose product is archived", async () => {
+    global.fetch = async () =>
+      stripePriceResponse({ id: "price_stale", unit_amount: 700, currency: "usd", active: true, product: { active: false } });
+    const result = await build().assertPriceMatchesAdvertised("starter_monthly", "price_stale");
+    assert.equal(result.ok, false, "a price on an archived product was allowed through to checkout");
+    assert.equal(result.code, "price_product_archived");
+  });
+
+  it("treats a bare product id as unknown rather than archived", async () => {
+    // Without expand, or on an older API version, `product` is a string.
+    // Unknown must not become a refusal to sell a valid plan.
+    global.fetch = async () =>
+      stripePriceResponse({ id: "price_ok", unit_amount: 700, currency: "usd", active: true, product: "prod_something" });
+    const result = await build().assertPriceMatchesAdvertised("starter_monthly", "price_ok");
+    assert.equal(result.ok, true, "a string product id was treated as an archived product");
+  });
+
   it("refuses when Stripe will not say what the price is", async () => {
     // Selling blind is worse than not selling.
     global.fetch = async () => ({ ok: false, status: 404, json: async () => ({}) });
