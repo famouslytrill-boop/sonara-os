@@ -6,6 +6,7 @@ const {
   PUBLIC_SITEMAP_ROUTES
 } = require("../lib/sonara-route-registry.cjs");
 const { isPasswordLeaked, LEAKED_PASSWORD_MESSAGE } = require("../lib/sonara-leaked-password.cjs");
+const { getGuide } = require("../lib/sonara-guides.cjs");
 
 const TUTORIALS = {
   "/tutorials/getting-started": {
@@ -161,7 +162,13 @@ function registerRouteRegistryRoutes(app, deps) {
       eyebrow: "SONARA tutorial",
       heading: tutorial.title,
       body: tutorial.body,
-      sections: tutorial.steps.map((step, index) => brandCard(`Step ${index + 1}`, step)),
+      // Steps first, then the longer guidance behind them. The steps say what
+      // order to do things in; the guide says what you need to know to do them
+      // well, which is the part these pages were missing.
+      sections: [
+        ...tutorial.steps.map((step, index) => brandCard(`Step ${index + 1}`, step)),
+        ...getGuide(route).map(([heading, detail]) => brandCard(heading, detail))
+      ],
       actions: [linkAction("/tutorials", "All tutorials"), linkAction("/start", "Start"), linkAction("/help", "Get help")]
     }));
   }
