@@ -1225,6 +1225,95 @@ body > header .sonara-brand-copy strong {
  * .sonara-route-progress is a navigation progress bar. There is no navigation
  * on paper. */
 @media print {
+  /* Dark theme prints white on white -------------------------------------
+   * Browsers drop background colours when printing, so the dark navy page
+   * background is simply not there -- but the text keeps its near-white
+   * colour and lands on white paper.
+   *
+   * Measured on /pricing with prefers-color-scheme: dark and print media
+   * emulated, before this block:
+   *
+   *   h1        rgb(247, 249, 255)   1.05:1 against paper
+   *   body text rgb(174, 183, 200)   2.02:1 against paper
+   *
+   * WCAG AA asks for 4.5:1 on body text. 1.05:1 is nothing. The same page in
+   * light theme printed at 17.92:1 and 5.79:1.
+   *
+   * The theme follows the visitor's operating system, so this is not an
+   * unusual setting a few people have chosen -- anyone whose machine is in
+   * dark mode prints a page that looks blank, and would reasonably conclude
+   * the site is broken rather than that their theme is.
+   *
+   * Forcing colours on individual elements would mean chasing every rule that
+   * uses a token. Re-declaring the tokens themselves is one place, and
+   * everything downstream follows. */
+  html[data-theme="dark"],
+  :root {
+    color-scheme: light !important;
+    --nx-bg: #ffffff !important;
+    --nx-bg-soft: #ffffff !important;
+    --nx-surface: #ffffff !important;
+    --nx-surface-2: #ffffff !important;
+    --nx-ink: #11162a !important;
+    --nx-text: #1d2437 !important;
+    --nx-muted: #4a5468 !important;
+    --nx-faint: #5c6678 !important;
+    --nx-line: #b6c0ce !important;
+    --nx-line-strong: #8d99ab !important;
+    --nx-violet: #5b3fd0 !important;
+    --nx-blue: #3a55d9 !important;
+    --nx-pink: #c9346e !important;
+    --nx-orange: #b85a1c !important;
+    --nx-cyan: #0e7f93 !important;
+    --nx-mint: #0f7a58 !important;
+    --nx-success: #0f6b4c !important;
+    --nx-warning: #7a4f00 !important;
+    --nx-danger: #a32f3c !important;
+    --nx-focus: #2b47c4 !important;
+    --nx-shadow: none !important;
+    --nx-shadow-high: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #1d2437 !important;
+  }
+
+  /* Decorative full-bleed gradients. They print as grey wash at best, and
+   * they exist to light the dark theme, which is gone by here. */
+  body::before,
+  body::after {
+    display: none !important;
+  }
+
+  /* Buttons print white on white ----------------------------------------
+   * A primary action is white text on an accent background. Printers drop the
+   * background, the text stays white, and the button prints as nothing at all.
+   * This is not theme-dependent -- --sonara-accent-contrast is #ffffff in
+   * every theme -- so it happened in light mode too.
+   *
+   * Measured on /pricing under print emulation, before this rule: five
+   * controls at exactly 1:1 against paper, including "Start free", the
+   * primary call to action on the page.
+   *
+   * Printing the accent background instead would need print-color-adjust:
+   * exact, which spends ink on a block of colour and which the reader can
+   * switch off. An outlined button reads correctly on paper either way. */
+  .action,
+  .actions .action,
+  .card-actions .action,
+  button,
+  .sonara-ds .sonara-button,
+  body.sonara-home-v3 .actions .action:first-child {
+    background: transparent !important;
+    background-image: none !important;
+    color: #11162a !important;
+    border: 1px solid #6b7688 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
   [data-sonara-reveal],
   .sonara-reveal {
     opacity: 1 !important;

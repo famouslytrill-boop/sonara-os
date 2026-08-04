@@ -201,6 +201,32 @@
  * Transforms go too: a translate3d on paper only shifts content off its own
  * layout position, and perspective means nothing in a static medium. */
 @media print {
+  /* This file's own tokens default to dark (--sonara-bg: #06070d,
+   * --sonara-text: #f5f7ff) and are lightened only under
+   * prefers-color-scheme: light or an explicit data-theme="light". Neither
+   * applies when a dark-mode visitor prints, so anything styled with these
+   * would land near-white on white paper the same way the nx tokens did.
+   * Pinned to the light values here rather than left to the scheme. */
+  :root,
+  :root[data-theme="dark"] {
+    --sonara-bg: #ffffff !important;
+    --sonara-surface: #ffffff !important;
+    --sonara-surface-2: #ffffff !important;
+    --sonara-surface-3: #ffffff !important;
+    --sonara-border: rgb(6 7 13 / 0.22) !important;
+    --sonara-border-strong: rgb(6 7 13 / 0.34) !important;
+    --sonara-text: #0a0d16 !important;
+    --sonara-text-2: #333c53 !important;
+    --sonara-text-3: #4c5570 !important;
+    /* White in every theme, because it is text on an accent background. The
+     * accent background does not print, so white here means invisible. The
+     * button rules in sonara-application-ui.css cover the elements this is
+     * used on today; this covers anything that starts using it tomorrow. */
+    --sonara-accent-contrast: #0a0d16 !important;
+    --sonara-shadow-2: none !important;
+    --sonara-shadow-3: none !important;
+  }
+
   .sonara-stage [data-sonara-enter],
   .sonara-stage .sonara-hero-stage,
   .sonara-reveal,
