@@ -80,16 +80,19 @@ describe("checkout will not sell at a price the page never showed", () => {
 
   // Added after reading the live account. Archiving a product in Stripe does
   // not flip its prices' active flag, so all three retired plans read
-  // active: true and only the product says otherwise:
+  // active: true while only the product said otherwise:
   //
   //   price_1TS4jf ($9.99)  active: true  product prod_UQwcES2WvMoNqT active: false
   //   price_1TS4l7 ($19.99) active: true  product prod_UQweXvXZN6R2lI active: false
   //   price_1TS4lc ($49.99) active: true  product prod_UQwekSKHXBZLVV active: false
   //
-  // The archived-price check above cannot see that shape. Stripe refuses these
-  // at session creation either way, so this is not the difference between
-  // selling and not selling -- it is the difference between refusing here with
-  // a reason and letting Stripe reject in front of the customer.
+  // Those three prices were archived directly on 2026-08-04, so the live
+  // account no longer has this shape. The guard stays: nothing stops the shape
+  // recurring the next time a product is archived without its prices, and it is
+  // the only check that can see it. Stripe refuses such a price at session
+  // creation either way, so this is not the difference between selling and not
+  // selling -- it is the difference between refusing here with a reason and
+  // letting Stripe reject in front of the customer.
   it("asks Stripe for the product, not just the price", async () => {
     let requested = "";
     global.fetch = async (url) => {
