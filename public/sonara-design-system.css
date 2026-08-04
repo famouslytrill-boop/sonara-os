@@ -321,6 +321,35 @@
   .sonara-skeleton { animation: none; background-position: 0 0; }
 }
 
+/* Skip link ------------------------------------------------------------
+ * This is styled in ui/sonara/styles/00-foundation.css, which no page loads:
+ * the frame links sonara-design-system.css and sonara-application-ui.css and
+ * nothing else. So the rule that moves it off-screen never arrived and "Skip
+ * to content" rendered as plain text at the top of every page, above the
+ * header, on every screenshot anybody ever took.
+ *
+ * It must stay reachable by keyboard -- hiding it with display:none would
+ * remove the only way a keyboard user skips the navigation -- so it is moved
+ * out of view and brought back on focus. */
+.sonara-skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10000;
+  padding: 10px 14px;
+  border-radius: var(--sonara-radius-sm);
+  background: var(--sonara-text);
+  color: var(--sonara-bg);
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform var(--sonara-dur-2) var(--sonara-ease);
+}
+
+.sonara-skip:focus,
+.sonara-skip:focus-visible {
+  transform: none;
+}
+
 /* Focus ---------------------------------------------------------------- */
 .sonara-ds :focus-visible,
 .sonara-ds-focus:focus-visible {
@@ -399,3 +428,33 @@
 
 .sonara-ds pre,
 .sonara-ds table { max-width: 100%; overflow-x: auto; }
+
+/* Checklist ------------------------------------------------------------
+ * lib/sonara-shell.cjs used to join checklist steps with " / " inside a
+ * paragraph, so a six-step path wrapped mid-sequence and read as one long
+ * sentence. It is an ordered list now; this styles it without the default
+ * indent, which sits oddly inside a card. */
+.sonara-checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: sonara-step;
+  display: grid;
+  gap: var(--sonara-2);
+}
+
+.sonara-checklist li {
+  counter-increment: sonara-step;
+  display: grid;
+  grid-template-columns: 1.6em 1fr;
+  align-items: baseline;
+  gap: var(--sonara-2);
+  line-height: 1.45;
+}
+
+.sonara-checklist li::before {
+  content: counter(sonara-step) ".";
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--sonara-text-3);
+}

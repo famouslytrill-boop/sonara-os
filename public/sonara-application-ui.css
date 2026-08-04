@@ -162,7 +162,7 @@ p,li,label,dd,small{color:var(--nx-muted)}p{margin:14px 0 0;line-height:1.7;over
 .sonara-operation{min-height:140px;padding:20px;background:var(--nx-surface)}.sonara-operation strong{display:block;color:var(--nx-ink)}.sonara-operation small{display:block;margin-top:7px}
 .sonara-cta{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:end}.sonara-cta .card-actions{justify-content:flex-end}
 
-.sonara-standard-page .hero{min-height:auto;padding:60px 0 42px;grid-template-columns:minmax(0,1fr)}.sonara-standard-page .hero .sonara-hero-scene{display:none}
+.sonara-standard-page .hero{min-height:auto;padding:28px 0 30px;grid-template-columns:minmax(0,1fr)}.sonara-standard-page .hero .sonara-hero-scene{display:none}
 .sonara-standard-page h1{max-width:900px;font-size:clamp(42px,5.5vw,68px)}
 .sonara-standard-page .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
 .sonara-standard-page .card{padding:22px}.sonara-standard-page .card h2,.sonara-standard-page .card h3{font-size:clamp(20px,2vw,27px)}
@@ -1160,4 +1160,48 @@ body.sonara-home-v3 table { max-width: 100%; }
   animation: none !important;
   opacity: 1 !important;
   transform: none !important;
+}
+
+/* Header fit ------------------------------------------------------------
+ * The primary nav has eight items and the tools have three controls. Below
+ * roughly 1200px they do not both fit, and the nav ran underneath the tools --
+ * the "Create account" button sat behind "Command" at 1280px, which is an
+ * ordinary laptop width.
+ *
+ * The tool labels are the cheapest ~180px to reclaim: each button already
+ * carries an aria-label and a recognisable icon, so dropping the visible word
+ * costs nothing to a screen reader and nothing to recognition. */
+@media (max-width: 1400px) {
+  .sonara-tool-label { display: none; }
+  .sonara-icon-button .sonara-key { display: none; }
+}
+
+/* The brand must not be the thing that gets clipped ---------------------
+ * The header is a flex row of brand, primary nav and tools. The nav has eight
+ * items and, when the row runs out of room, the brand was shrinking first --
+ * "SONARA Industries" rendered as "SONARA Industr" at 1280px, an ordinary
+ * laptop width, while the nav kept its full size.
+ *
+ * The brand is the one element that identifies the product, so it holds its
+ * width and the nav gives way instead. */
+.sonara-site-header .brand,
+body > header .brand {
+  flex: 0 0 auto;
+  min-width: max-content;
+}
+
+.sonara-site-header .sonara-brand-copy strong,
+body > header .sonara-brand-copy strong {
+  white-space: nowrap;
+}
+
+/* Eight nav items, a brand and three tools do not fit on a 1280px laptop, and
+ * something has to give. Clipping the nav hid whole links; shrinking the brand
+ * truncated the product name. Handing over to the mobile menu is the only
+ * option that loses nothing -- that menu carries every link the desktop nav
+ * does, so this changes where the links live at a given width, not whether
+ * they are reachable. The full nav returns once there is genuinely room. */
+@media (max-width: 1300px) {
+  .sonara-desktop-nav { display: none; }
+  .sonara-mobile-menu { display: block; }
 }

@@ -36,6 +36,7 @@ const { createReadiness } = require("./lib/sonara-readiness.cjs");
 const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
+const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
@@ -2013,7 +2014,7 @@ async function getWorkspaceDashboardSummary(access, productKey) {
 }
 
 function workspaceRecordsCard(summary) {
-  if (!summary.ok) return brandCard("Records", `Setup required: ${displayStatus(summary.service || summary.code || "account_database")} is not ready.`);
+  if (!summary.ok) return brandCard("Records", plainLanguage.setupRequiredSentence(summary.service || summary.code || "account_database"));
   const counts = summary.counts || {};
   return brandCard("Records", [
     `Intake: ${countLabel(counts.intake)}.`,
@@ -3518,7 +3519,9 @@ async function handleCheckoutSessionRequest(req, res) {
 function sendSetupRequired(req, res, status, service, reason) {
   const payload = { ok: false, code: "setup_required", service, reason };
   if (acceptsHtml(req)) {
-    return res.status(status).type("html").send(responsePage("Setup required", `Setup required: ${displayStatus(service)} is ${displayStatus(reason || "missing")}.`, [
+    // The reason code stays in the JSON payload above and out of the prose.
+    // Gluing it in produced "Customer organization is Workspace not ready."
+    return res.status(status).type("html").send(responsePage("Setup required", `${plainLanguage.setupRequiredSentence(service)} Once that is done, this page will work normally.`, [
       linkAction("/pricing", "Pricing"),
       linkAction("/docs", "Setup details")
     ]));
