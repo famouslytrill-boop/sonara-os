@@ -788,6 +788,101 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     blockedUses: ["unrestricted shell", "autonomous publishing", "autonomous billing", "unapproved deletion"],
     humanReviewRequired: true,
   },
+  {
+    name: "UI/UX Pro Max Skill",
+    slug: "ui-ux-pro-max-design-reference",
+    category: ["design system reference", "UI style catalogue", "colour and type pairing research"],
+    useCase: [
+      "compare SONARA's palette and type choices against a catalogued set",
+      "sanity-check contrast and pairing decisions",
+      "read industry-specific layout reasoning as a second opinion"
+    ],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read it, do not install it",
+      "keep SONARA's own design system as the only source of tokens",
+      "never present generated styling as a SONARA product capability"
+    ],
+    officialUrl: "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    repoUrl: "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    notes:
+      "A catalogue of UI styles, colour palettes, font pairings and per-industry layout rules, packaged as a skill for AI coding assistants. Reference only, for two reasons. It ships Python search scripts and a Node CLI installer, and SONARA's frontend has no bundler and no build step -- public/ is served as authored, which is what keeps the CSP at script-src 'self'. And it is a design-time aid for whoever is writing the code, never a runtime feature: SONARA does not describe its systems as AI, so nothing here may surface to a customer as generated or intelligent design.",
+    safetyBoundaries: [
+      "no installation into the runtime",
+      "no generated CSS shipped unreviewed",
+      "no customer-facing claim of automated design",
+      "SONARA design tokens remain the single source"
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "ads-proposals",
+    slug: "ads-proposals-unlicensed-proposal-template",
+    category: ["proposal presentation", "client-facing document layout"],
+    useCase: ["none permitted until a licence exists"],
+    productFit: ["Business Builder"],
+    license: "No licence file. Default copyright applies, which means all rights reserved.",
+    licenseRisk: "critical",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy code, markup, styling or copy from it",
+      "ask the owner to add an explicit licence before any reuse",
+      "build any proposal feature from SONARA's own components"
+    ],
+    officialUrl: "https://github.com/AmanLegendDev/ads-proposals",
+    repoUrl: "https://github.com/AmanLegendDev/ads-proposals",
+    notes:
+      "A Next.js proposal presentation app. Public on GitHub, but public is not the same as licensed: with no LICENSE file the default is exclusive copyright, so nobody has permission to copy, modify or distribute it. That is stricter than any copyleft licence in this registry, and it is why this record is blocked rather than reference-only. Recorded here so the question is answered once, in writing, rather than re-litigated the next time someone finds the link. If the owner adds a licence, this record should be revisited on its terms.",
+    safetyBoundaries: [
+      "no code reuse",
+      "no markup or stylesheet reuse",
+      "no copy or layout reuse",
+      "no dependency on the deployed instance"
+    ],
+    blockedUses: [
+      "copying source into SONARA",
+      "adapting its components",
+      "shipping its styling",
+      "treating public visibility as a licence"
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Full Stack FastAPI Template",
+    slug: "full-stack-fastapi-template-reference",
+    category: ["application template", "backend architecture reference", "tenancy and auth patterns"],
+    useCase: [
+      "compare password recovery and JWT session handling against SONARA's",
+      "read its Docker Compose and CI layout as a second opinion",
+      "compare its generated API client approach with SONARA's OpenAPI contract"
+    ],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the patterns, do not adopt the stack",
+      "keep one Express runtime and one Supabase tenant model",
+      "compare against SONARA's own auth rather than importing any of it"
+    ],
+    officialUrl: "https://fastapi.tiangolo.com",
+    repoUrl: "https://github.com/fastapi/full-stack-fastapi-template",
+    notes:
+      "FastAPI, SQLModel, PostgreSQL and a React/Vite frontend, with JWT auth, password recovery and Traefik. Well-built and MIT-licensed, and still reference only: SONARA runs one Express CommonJS server on Vercel against Supabase, and adopting this would mean a second backend language, a second ORM, a second auth implementation and a second deployment topology alongside the one already in production. Its auth and recovery flows are worth reading against lib/sonara-customer-auth.cjs; its Postgres schema is worth reading against the migrations. Neither is worth a second stack.",
+    safetyBoundaries: [
+      "no second backend runtime",
+      "no second auth implementation",
+      "no Python service in the deployment",
+      "Supabase remains the only database"
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
