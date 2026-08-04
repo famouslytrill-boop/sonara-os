@@ -758,7 +758,20 @@ app.post("/contact", async (req, res) => {
   if (!request.ok) {
     const payload = { ok: false, code: "validation_failed", message: request.message };
     if (wantsJson) return res.status(400).json(payload);
-    return res.status(400).type("html").send(responsePage("Request not accepted", request.message, [linkAction("/contact", "Try again")]));
+    // Re-render the form with what was typed rather than sending the customer
+    // to an empty one. "Try again" used to mean "type all 4000 characters
+    // again". See contactForm in lib/sonara-shell.cjs.
+    return res.status(400).type("html").send(
+      layout({
+        surface: "marketing",
+        title: "Contact",
+        eyebrow: "We're here to help",
+        heading: "Get in touch.",
+        body: "Something in the form needs a change. Your message is still here — fix the one thing below and send it again.",
+        sections: [contactForm(req.body, request.message)],
+        actions: [linkAction("/", "Return home"), linkAction("/help", "Help"), linkAction("/pricing", "Pricing")]
+      })
+    );
   }
 
   const result = await saveSupportRequest(request.value);
