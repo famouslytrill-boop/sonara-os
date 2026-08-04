@@ -1,6 +1,7 @@
 const assert = require("node:assert");
 const request = require("supertest");
 const app = require("../server");
+const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 describe("premium access experience", () => {
   it("keeps infrastructure implementation language out of the public login experience", async () => {
@@ -13,8 +14,8 @@ describe("premium access experience", () => {
     assert.doesNotMatch(response.text, /sessions are configured/i);
     assert.doesNotMatch(response.text, /server-side authorization/i);
     assert.doesNotMatch(response.text, /service-role|webhook secret|environment variable/i);
-    assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6/);
-    assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260725-v6/);
+    assert.match(response.text, assetUrlPattern("sonara-application-ui.css"));
+    assert.match(response.text, assetUrlPattern("sonara-one.js"));
   });
 
   it("protects product workspaces and founder routes when no valid session exists", async () => {

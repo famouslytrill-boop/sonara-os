@@ -3,6 +3,7 @@ const assert = require("assert");
 const fs = require("node:fs");
 const path = require("node:path");
 const app = require("../server");
+const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 describe("SONARA One interface QA", () => {
   it("serves the canonical stylesheet, prepaint, and interaction engine", async () => {
@@ -22,9 +23,9 @@ describe("SONARA One interface QA", () => {
   it("renders a responsive brand interface with command and experience controls", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6/);
-    assert.match(res.text, /sonara-prepaint\.js\?v=sonara-ui-20260725-v6/);
-    assert.match(res.text, /sonara-one\.js\?v=sonara-ui-20260725-v6/);
+    assert.match(res.text, assetUrlPattern("sonara-application-ui.css"));
+    assert.match(res.text, assetUrlPattern("sonara-prepaint.js"));
+    assert.match(res.text, assetUrlPattern("sonara-one.js"));
     assert.doesNotMatch(res.text, /<style[\s>]/i);
     assert.doesNotMatch(res.text, /<script(?![^>]+src=)[^>]*>/i);
     assert.match(res.text, /<header class="sonara-site-header">/);

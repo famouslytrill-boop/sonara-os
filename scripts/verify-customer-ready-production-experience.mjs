@@ -58,8 +58,20 @@ assert.match(styles, /min-height:\s*48px/);
 assert.match(styles, /prefers-reduced-motion/);
 assert.match(styles, /grid-template-columns:\s*repeat\(2/);
 
+// The worker's cache version has to be the same token the frame renders, or
+// the activate handler never sweeps stale entries and a returning visitor keeps
+// running the previous build's scripts.
+//
+// This gate used to assert the literal "preferences-motion3-customer-ready1",
+// which is why the two drifted: bumping the token failed the gate, so the
+// worker's VERSION was left two releases behind while the comment above it
+// claimed they stayed aligned. Deriving it means a bump is one edit in
+// lib/sonara-page-frame.cjs.
 const worker = read("public/sw.js");
-assert.match(worker, /preferences-motion3-customer-ready1/);
-assert.match(worker, /sonara-ui-20260725-v6-motion3/);
+const assetToken = (read("lib/sonara-page-frame.cjs").match(/\/sonara-design-system\.css\?v=([A-Za-z0-9._-]+)/) || [])[1];
+assert.ok(assetToken, "no ?v= asset token found in lib/sonara-page-frame.cjs");
+const workerVersion = (worker.match(/const VERSION = "([^"]+)";/) || [])[1];
+assert.equal(workerVersion, assetToken, "the service worker cache version and the rendered asset token have drifted apart");
+assert.ok(worker.includes(`?v=${assetToken}`), "the worker does not precache assets at the rendered token");
 
 console.log("Customer-ready production experience verified: atomic workspace bootstrap, one visible login, customer-safe language, brightness, geometry, cache refresh, and motion safeguards are present without duplicate routes.");

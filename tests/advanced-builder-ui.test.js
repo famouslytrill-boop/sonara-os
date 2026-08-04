@@ -5,6 +5,7 @@ const path = require("node:path");
 const app = require("../server");
 const builderManifest = require("../config/sonara-builder-system.json");
 const packageJson = require("../package.json");
+const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 const LEGACY_ASSET_PATTERN = /sonara-(?:cohesive-2027|builder-2027|premium-mobile-fix|interface-engine|launch-ui|premium-access-2027|premium-ux)/i;
 
@@ -22,9 +23,9 @@ describe("application-wide route presentation", () => {
     for (const route of ["/", "/business-builder", "/creator-studio", "/growth-studio", "/login", "/pricing", "/support"]) {
       const response = await request(app).get(route).set("Accept", "text/html");
       assert.equal(response.status, 200, `${route} unavailable`);
-      assert.match(response.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6/);
-      assert.match(response.text, /sonara-prepaint\.js\?v=sonara-ui-20260725-v6/);
-      assert.match(response.text, /sonara-one\.js\?v=sonara-ui-20260725-v6/);
+      assert.match(response.text, assetUrlPattern("sonara-application-ui.css"));
+      assert.match(response.text, assetUrlPattern("sonara-prepaint.js"));
+      assert.match(response.text, assetUrlPattern("sonara-one.js"));
       assert.doesNotMatch(response.text, /<style[\s>]/i);
       assert.doesNotMatch(response.text, /<script(?![^>]+src=)[^>]*>/i);
       assert.match(response.text, /class="sonara-site-header"/);

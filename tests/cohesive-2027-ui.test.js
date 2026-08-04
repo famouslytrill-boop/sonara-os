@@ -6,6 +6,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const app = require("../server");
 const { SONARA_BRAND_REGISTRY } = require("../lib/sonara-brand-registry.cjs");
+const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 const LEGACY_ASSET_PATTERN = /sonara-(?:brand-system|friendly-premium|interface-engine|launch-ui|cohesive-2027|builder-2027|premium-mobile|premium-access|premium-ux)/i;
 const countMatches = (value, pattern) => (value.match(pattern) || []).length;
@@ -23,7 +24,7 @@ describe("canonical responsive application interface", () => {
   it("renders one clean SONARA One homepage without retired visual systems", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6/);
+    assert.match(res.text, assetUrlPattern("sonara-application-ui.css"));
     assert.equal(countMatches(res.text, /sonara-application-ui\.css/g), 1);
     assert.doesNotMatch(res.text, LEGACY_ASSET_PATTERN);
     assert.doesNotMatch(res.text, /<style[\s>]/i);

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const app = require("../server");
 const { SONARA_BRAND_REGISTRY } = require("../lib/sonara-brand-registry.cjs");
+const { ASSET_VERSION, assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 const root = path.join(__dirname, "..");
 
@@ -15,7 +16,7 @@ describe("SONARA motion brand system", () => {
   it("renders the light and dark startup experience without fake progress", async () => {
     const res = await request(app).get("/").set("Accept", "text/html");
     assert.equal(res.status, 200);
-    assert.match(res.text, /sonara-ui-20260725-v6-motion3/);
+    assert.match(res.text, new RegExp(ASSET_VERSION));
     assert.match(res.text, /class="sonara-startup-stage"/);
     assert.match(res.text, /sonara-one-mark-v3\.svg/);
     assert.match(res.text, /sonara-one-mark-v3-dark\.svg/);
@@ -95,9 +96,13 @@ describe("SONARA motion brand system", () => {
     assert.deepEqual(SONARA_BRAND_REGISTRY.plans.map((plan) => plan.price), ["$0", "$7/mo", "$19/mo", "$39/mo"]);
 
     const worker = read("public/sw.js");
-    assert.match(worker, /preferences-motion3/);
+    // Was /preferences-motion3/ -- a fragment of a cache version that has since
+    // been retired. Which token it is belongs in tests/asset-version.test.js;
+    // what matters here is that the worker stages the versioned stylesheet at
+    // whatever token the frame is currently rendering.
+    assert.match(worker, /const VERSION = "[^"]+";/);
     assert.match(worker, /sonara-one-mark-v3\.svg/);
-    assert.match(worker, /sonara-application-ui\.css\?v=sonara-ui-20260725-v6-motion3/);
+    assert.match(worker, assetUrlPattern("sonara-application-ui.css"));
   });
 
 });

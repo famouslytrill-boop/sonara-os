@@ -18,8 +18,10 @@ const request = require("supertest");
 const app = require("../server");
 const root = path.join(__dirname, "..");
 
-// The version token the renderers put on their asset links.
-const VERSIONED = "/sonara-one.js?v=sonara-ui-20260725-v6-motion3";
+// The version token the renderers put on their asset links. Read from the page
+// frame rather than typed out, so bumping it stays a one-line change there.
+const { ASSET_VERSION } = require("./helpers/asset-version.cjs");
+const VERSIONED = `/sonara-one.js?v=${ASSET_VERSION}`;
 
 describe("static asset caching", () => {
   it("caches a versioned asset for a year", async () => {
