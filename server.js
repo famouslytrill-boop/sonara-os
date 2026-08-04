@@ -1660,11 +1660,11 @@ app.get("/admin/creator-studio", requireAdmin, async (req, res) => res.status(20
 app.get("/admin/growth-studio", requireAdmin, async (req, res) => res.status(200).type("html").send(await adminProductOperationsPage(req, "growth-studio")));
 
 for (const page of legalPages()) {
-  app.get(page.href, (req, res) => legalPage(res, page.title, page.points));
+  app.get(page.href, (req, res) => legalPage(res, page.title, page.points, page.href));
 }
 
 for (const page of legalAliasPages()) {
-  app.get(page.href, (req, res) => legalPage(res, page.title, page.points));
+  app.get(page.href, (req, res) => legalPage(res, page.title, page.points, page.source));
 }
 
 app.use((req, res) => {
@@ -2453,9 +2453,12 @@ function slugify(value) {
     .slice(0, 72) || `organization-${randomUUID().slice(0, 8)}`;
 }
 
-function legalPage(res, title, points) {
+function legalPage(res, title, points, canonical = "") {
   return res.status(200).type("html").send(
     layout({
+      // Aliases serve identical text at a second URL by design; each points
+      // back at its /legal/ page rather than competing with it.
+      canonical,
       title,
       eyebrow: "Legal",
       heading: title,
@@ -2501,7 +2504,9 @@ function legalAliasPages() {
     { href: "/accessibility", source: "/legal/accessibility" },
     { href: "/earnings-disclaimer", source: "/legal/earnings-disclaimer" },
     { href: "/subprocessor-notice", source: "/legal/subprocessor-notice" }
-  ].map((alias) => ({ ...byHref[alias.source], href: alias.href }));
+    // `source` must survive the spread -- it is the canonical target. Dropping
+    // it left every alias with no canonical, the reason they needed one.
+  ].map((alias) => ({ ...byHref[alias.source], href: alias.href, source: alias.source }));
 }
 
 function normalizeSupportRequest(body) {

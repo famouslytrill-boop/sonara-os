@@ -231,9 +231,15 @@ describe("the server.js split stays safe", () => {
     // features, not split drift, which is the question this test exists to ask.
     // If a change adds to server.js instead of a module, this asks whether that
     // was deliberate.
+    //
+    // Then 5 more for page canonicals: legalPage takes the canonical target and
+    // legalAliasPages preserves `source` through its spread, so the eight
+    // alias URLs point at the /legal/ page they duplicate instead of competing
+    // with it. The metadata itself lives in lib/sonara-page-frame.cjs; what is
+    // here is the routing that knows which page is the original.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3910,
+      lines <= 3915,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
