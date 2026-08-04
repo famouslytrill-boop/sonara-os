@@ -40,9 +40,14 @@ const PUBLIC_STAGE = [
   "/sonara-application-ui.css?v=sonara-ui-20260725-v6-motion3",
   "/sonara-one.js?v=sonara-ui-20260725-v6-motion3",
   "/sonara-design-system.css?v=sonara-ui-20260725-v6-motion3",
-  "/sonara-depth.js?v=sonara-ui-20260725-v6-motion3"
+  "/sonara-depth.js?v=sonara-ui-20260725-v6-motion3",
+  // Fonts are first-party now, so they are cacheable here. While they came from
+  // fonts.gstatic.com they were cross-origin and this worker never saw them.
+  "/sonara-fonts.css?v=sonara-ui-20260725-v6-motion3",
+  "/fonts/geist-latin.woff2?v=sonara-ui-20260725-v6-motion3",
+  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20260725-v6-motion3"
 ];
-const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest)$/;
+const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
 
 function isPublicNavigation(pathname) {
   return PUBLIC_NAVIGATION_PATHS.has(pathname) || pathname.startsWith("/legal/");

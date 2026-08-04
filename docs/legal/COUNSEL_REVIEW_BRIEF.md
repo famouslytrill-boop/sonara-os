@@ -49,8 +49,12 @@ Device preferences (appearance, brightness, motion, sound, haptics) are held in
 | Vercel | Every request | Hosting; request metadata |
 | Stripe | Checkout and billing | Payment identifiers. No card data or CVV is stored by SONARA |
 | Resend | Transactional email, when configured | Recipient address and message |
-| **Google Fonts** | **Every page load, before sign-in or consent** | **Visitor IP address and browser details** |
 | HaveIBeenPwned | Signup and password reset | The first five characters of a SHA-1 password hash — never the password, never the full hash |
+
+Loading a page contacts no third party at all. The document requests fonts,
+stylesheets, and scripts from this origin only — verified by rendering the page
+and looking for any external host, which `tests/no-third-party-requests.test.js`
+now does on every run.
 
 ### Data the product refuses to hold
 
@@ -61,27 +65,33 @@ credentials are server-only and a client-secret scan runs on every release.
 
 ## 2. Findings — where the pages and the code disagree
 
-### F-1. Google Fonts is an undisclosed recipient — now disclosed, remedy still open
+### F-1. Google Fonts was an undisclosed recipient — RESOLVED
 
-`lib/sonara-page-frame.cjs` loads `fonts.googleapis.com` and `fonts.gstatic.com`
-on **every** page, including public marketing pages, before any sign-in or
-consent interaction. Every visitor's browser therefore contacts Google and
-Google receives their IP address.
+`lib/sonara-page-frame.cjs` loaded `fonts.googleapis.com` and `fonts.gstatic.com`
+on every page, including public marketing pages, before any sign-in or consent
+interaction, so every visitor's browser contacted Google and Google received
+their IP address. The Data Processing page listed "Supabase, Vercel, Stripe,
+Resend, and analytics providers" and did not mention Google.
 
-The Data Processing page listed "Supabase, Vercel, Stripe, Resend, and analytics
-providers" and did not mention Google. It does now, and so does the Cookie
-Policy — that is a factual correction, not a legal opinion.
+Disclosing it was the interim step. It is now removed instead: the fonts are
+served from this origin and the document makes no third-party request at all.
+The disclosure has come back off both pages, because it is no longer true, and
+keeping it would have been its own inaccuracy.
 
-**For counsel:** whether disclosure alone is sufficient in the jurisdictions
-being sold into, or whether the request must not happen at all before consent.
+**There is nothing here for counsel to weigh any more.** A request that does not
+happen needs neither disclosure nor a transfer basis.
 
-**Recommended engineering remedy, not yet done:** self-host the fonts. Geist,
-Geist Mono, and Source Serif 4 are all openly licensed and can be served from
-this origin, which removes the third-party request entirely rather than
-disclosing it. That also settles the question without depending on how the
-disclosure is judged, and it is consistent with the rest of the stack — the
-design system already notes the CSP allows no CDN for scripts, while stylesheets
-and fonts currently come from Google's.
+Two things fell out of doing it, both recorded because they change the numbers
+rather than the conclusion:
+
+- Google served **one file per family**. The four Geist weights and the three
+  Geist Mono weights were byte-identical, same URL. The `@font-face`
+  declarations are unchanged, so rendering is the same.
+- **Source Serif 4 was requested and never used.** `--sonara-font-serif` was
+  declared in the design system and referenced by no rule and no markup
+  anywhere. Dropping it removed 463 KB of the 743 KB self-hosting would
+  otherwise have cost. Total shipped: 82 KB, latin and latin-ext only, which
+  covers all five interface languages.
 
 ### F-2. A public security page carried an internal backlog item
 
