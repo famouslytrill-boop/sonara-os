@@ -1398,9 +1398,35 @@ app.get("/api/admin/env-status", requireAdmin, async (req, res) => {
 
 app.get("/manifest.webmanifest", (req, res) => res.redirect(308, "/site.webmanifest"));
 
+// What the service worker serves when a navigation cannot reach the network.
+//
+// It used to be titled "System response" with the line "The SONARA interface is
+// available again when network access returns." That never says the one thing
+// the reader needs -- that they are offline -- and it is written from the
+// software's point of view rather than theirs.
+//
+// The single "Home" link was worse than useless: following it makes the same
+// network request that just failed. The pages listed here are the ones
+// public/sw.js precaches, so they are the ones that genuinely still open with
+// no connection. Anything else would be a link to another copy of this page.
 app.get("/offline", (req, res) => {
   return res.status(200).type("html").send(
-    responsePage("Offline", "The SONARA interface is available again when network access returns.", [linkAction("/", "Home")])
+    layout({
+      surface: "marketing",
+      title: "Offline",
+      eyebrow: "No connection",
+      heading: "You are offline.",
+      body: "This page could not load because your device has no internet connection right now. Nothing has been lost — anything you had already saved is still saved.",
+      sections: [
+        checklistCard("What you can do", [
+          "Check your wifi or mobile data and try again",
+          "Reload this page once you are back online",
+          "Open a page you have already visited — some still work offline"
+        ]),
+        brandCard("Saved work is safe", "Records you had already saved are stored on our servers, not in this browser tab. They will be there when you reconnect.")
+      ],
+      actions: [linkAction("/", "Home"), linkAction("/pricing", "Pricing"), linkAction("/help", "Help")]
+    })
   );
 });
 
@@ -1700,14 +1726,43 @@ app.use((req, res) => {
     });
   }
 
+  // The JSON body above keeps "Unknown route." -- that is for a developer
+  // reading an API response. The page is for somebody who followed a link that
+  // no longer works, and it used to say "Unknown route." and "The page or
+  // action you requested is not registered in SONARA Industries."
+  //
+  // "Route" is our word for it, not theirs. And "not registered in SONARA
+  // Industries" reads as though the customer is the thing that is not
+  // registered, which on a site that has accounts is a genuinely alarming
+  // sentence to land on.
+  //
+  // A 404 is also a navigation problem, and two links to Home and Help is not
+  // navigation. The most likely reasons to be here are a stale bookmark, a
+  // mistyped address, or a link from somewhere else -- so the page offers the
+  // places people were most likely heading.
   return res.status(404).type("html").send(
     layout({
+      surface: "marketing",
       title: "Page not found",
-      eyebrow: "Not found",
-      heading: "Page not found",
-      body: "Unknown route.",
-      sections: [brandCard("Route unavailable", "The page or action you requested is not registered in SONARA Industries.")],
-      actions: [linkAction("/", "Home"), linkAction("/help", "Help")]
+      eyebrow: "Nothing here",
+      heading: "That page does not exist.",
+      body: "The address may have changed, or the link that brought you here may be out of date. Nothing is wrong with your account.",
+      sections: [
+        checklistCard("Try one of these", [
+          "Check the address for a typo",
+          "Start from the home page and follow the navigation",
+          "Search from any page with the search button in the header",
+          "Ask us if you were sent here by a link from us"
+        ]),
+        brandCard("Still stuck?", "Send us the address you were trying to reach and we will tell you where it went.")
+      ],
+      actions: [
+        linkAction("/", "Home"),
+        linkAction("/products", "Products"),
+        linkAction("/pricing", "Pricing"),
+        linkAction("/help", "Help"),
+        linkAction("/contact", "Contact us")
+      ]
     })
   );
 });

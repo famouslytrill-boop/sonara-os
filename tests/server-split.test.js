@@ -257,9 +257,16 @@ describe("the server.js split stays safe", () => {
     // who left a box blank read "Please complete: productKey, serviceName." The
     // labels live in lib/sonara-plain-language.cjs; these lines are the call
     // and the note about why the JSON body still carries the raw names.
+    // Then 55 more for the 404 and offline pages, which were two one-line
+    // responsePage calls written from the software's point of view -- "Unknown
+    // route", "not registered in SONARA Industries", "System response". Both
+    // are now real pages with somewhere to go, and both carry the explanation
+    // of what was wrong with the old wording, which is most of the added
+    // length. These are the two screens a customer reaches when something has
+    // already gone wrong, so they are worth the lines.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3946,
+      lines <= 4001,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
