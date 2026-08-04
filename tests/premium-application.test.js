@@ -221,7 +221,16 @@ describe("premium application rebuild", () => {
     it("service worker uses a versioned cache with stale-asset replacement", async function() {
       const res = await request(app).get("/sw.js");
       assert.equal(res.status, 200);
-      assert.match(res.text, /clark-ui-20260718-preferences/);
+      // This used to assert the literal string "clark-ui-20260718-preferences",
+      // which made bumping the cache version fail the test. So it was never
+      // bumped: the worker's VERSION sat two asset tokens behind while its own
+      // comment said "the cache version stays aligned with the rendered asset
+      // token". A test that pins a value it is meant to let change is a lock,
+      // not a check. What matters is that a version exists and is derived into
+      // the cache name, which is what this asserts now -- the specific token is
+      // checked against the pages in tests/asset-version.test.js.
+      assert.match(res.text, /const VERSION = "[^"]+";/, "the worker has no version constant");
+      assert.match(res.text, /CACHE_NAME\s*=\s*CACHE_PREFIX\s*\+\s*VERSION/, "the cache name is not derived from the version");
       assert.match(res.text, /stale-while-revalidate/i);
       assert.match(res.text, /caches\.delete/);
     });
