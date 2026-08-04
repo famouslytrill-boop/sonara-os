@@ -374,14 +374,30 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["video rendering", "map visualization", "creator campaign assets"],
     useCase: ["map animation drafts", "service-area visuals", "campaign explainers", "creator video planning"],
     productFit: ["Creator Studio", "Growth Studio", "Research Lab"],
-    license: "Review exact dependency licenses before implementation.",
+    // Licences read from the projects themselves rather than assumed. Remotion
+    // is commonly taken for MIT and is not: LICENSE.md opens "# Remotion
+    // License" and sets out a two-tier arrangement -- free for individuals and
+    // small companies, a paid company licence required for for-profit
+    // organisations above a size threshold. SONARA is a for-profit company, so
+    // that threshold is a real question and not a formality, which is why this
+    // stays needs_review with the reason stated instead of a vague one.
+    //
+    // MapLibre GL JS is separate and permissive (BSD-3-Clause style, "Copyright
+    // (c) 2023, MapLibre contributors ... Redistribution and use ...").
+    license:
+      "Remotion: source-available under the Remotion License — free for individuals and small companies, paid company licence required for for-profit organisations above a size threshold. MapLibre GL JS: BSD-3-Clause.",
     licenseRisk: "medium",
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
-    recommendedAction: ["reference depending on license", "no tracking or routing claims", "review rendering costs"],
-    officialUrl: "https://github.com/",
-    repoUrl: "https://github.com/",
-    notes: "References for creator visuals and planning only.",
+    recommendedAction: [
+      "confirm whether SONARA exceeds the Remotion company-licence threshold before any implementation",
+      "no tracking or routing claims",
+      "review rendering costs",
+    ],
+    officialUrl: "https://www.remotion.dev",
+    repoUrl: "https://github.com/remotion-dev/remotion",
+    notes:
+      "References for creator visuals and planning only. Remotion is not OSI open source; using it in the product would need a licence decision, not just a dependency install. MapLibre GL JS (https://github.com/maplibre/maplibre-gl-js) is the permissive half of this pairing.",
     safetyBoundaries: ["no real-time tracking", "no stalking", "no unsafe routing claims", "no emergency navigation"],
     blockedUses: ["stalking", "employee tracking", "emergency routing"],
     humanReviewRequired: true,
