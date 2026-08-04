@@ -252,9 +252,14 @@ describe("the server.js split stays safe", () => {
     // with the email still in it. Two copies of a layout would drift the moment
     // either page was edited, so each is now one function called from both the
     // GET route and the rejection path.
+    // Then 7 more in sendValidationFailure, which nine form endpoints share. It
+    // printed the request-body keys straight into the sentence, so a customer
+    // who left a box blank read "Please complete: productKey, serviceName." The
+    // labels live in lib/sonara-plain-language.cjs; these lines are the call
+    // and the note about why the JSON body still carries the raw names.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3939,
+      lines <= 3946,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
