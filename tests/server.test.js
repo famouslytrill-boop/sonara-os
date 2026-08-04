@@ -700,7 +700,13 @@ describe("auth setup", () => {
 
     assert.equal(res.status, 503);
     assert.equal(res.type, "text/html");
-    assert.match(res.text, /Access not completed/);
+    // Was /Access not completed/ -- the title of the dead-end page a refused
+    // attempt used to produce. A refusal now re-renders the signup form itself
+    // with the email still in it, so that title is gone. What this test is for
+    // is that a browser gets a page rather than a JSON body, which is what the
+    // next two assertions check: a real form, and no raw JSON.
+    assert.match(res.text, /<form method="post" action="\/auth\/signup"/);
+    assert.match(res.text, /Sign-in is not connected yet/);
     assert.doesNotMatch(res.text, /\{"ok":/);
   });
 

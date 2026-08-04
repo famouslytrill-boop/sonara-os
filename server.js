@@ -897,44 +897,52 @@ app.get("/docs", (req, res) => {
   );
 });
 
+// Both sign-in pages are built here rather than inline, because a rejected
+// attempt has to render the same page again with the email still in it. Two
+// copies of the layout would drift the moment either page was edited.
+function loginPage(req, { email = "", error = "" } = {}) {
+  return layout({
+    title: "Login",
+    eyebrow: "Welcome back",
+    heading: "Continue your work.",
+    body: "Sign in to return to your private SONARA workspace, saved projects, requests, billing, and support.",
+    sections: [
+      accountNoticeCard(req),
+      authForm("Login with email", "/auth/login", { email, error }),
+      brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
+      brandCard("Private by default", "Only you and approved members can access protected workspace content.")
+    ],
+    actions: [linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
+  });
+}
+
+function signupPage({ email = "", error = "" } = {}) {
+  return layout({
+    title: "Signup",
+    eyebrow: "Start building",
+    heading: "Create your SONARA account.",
+    body: "Begin with one secure account for Business Builder, Creator Studio, and Growth Studio.",
+    sections: [
+      authForm("Create account", "/auth/signup", { email, error }),
+      brandCard("Start free", "Set up your workspace, choose a product path, and save your first project before upgrading."),
+      brandCard("Built to expand", "Add products, teammates, customer records, and paid services as your operation grows.")
+    ],
+    actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
+  });
+}
+
 app.get("/login", (req, res) => {
-  return res.status(200).type("html").send(
-    layout({
-      title: "Login",
-      eyebrow: "Welcome back",
-      heading: "Continue your work.",
-      body: "Sign in to return to your private SONARA workspace, saved projects, requests, billing, and support.",
-      sections: [
-        accountNoticeCard(req),
-        authForm("Login with email", "/auth/login"),
-        brandCard("One connected workspace", "Your business, creator, and growth tools stay organized under one account."),
-        brandCard("Private by default", "Only you and approved members can access protected workspace content.")
-      ],
-      actions: [linkAction("/signup", "Create account"), linkAction("/support", "Get help"), linkAction("/", "Home")]
-    })
-  );
+  return res.status(200).type("html").send(loginPage(req));
 });
 
 app.get("/signup", (req, res) => {
-  return res.status(200).type("html").send(
-    layout({
-      title: "Signup",
-      eyebrow: "Start building",
-      heading: "Create your SONARA account.",
-      body: "Begin with one secure account for Business Builder, Creator Studio, and Growth Studio.",
-      sections: [
-        authForm("Create account", "/auth/signup"),
-        brandCard("Start free", "Set up your workspace, choose a product path, and save your first project before upgrading."),
-        brandCard("Built to expand", "Add products, teammates, customer records, and paid services as your operation grows.")
-      ],
-      actions: [linkAction("/login", "Login"), linkAction("/", "Home")]
-    })
-  );
+  return res.status(200).type("html").send(signupPage());
 });
 
 app.post("/auth/signup", signupRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("signup", req.body);
-  return sendEmailAuthResult(req, res, result, "/account/setup?account=created", "/login?account=confirmation_required");
+  return sendEmailAuthResult(req, res, result, "/account/setup?account=created", "/login?account=confirmation_required", ({ message }) =>
+    signupPage({ email: req.body?.email, error: message }));
 });
 
 app.get("/auth/signup", (req, res) => {
@@ -967,7 +975,8 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", loginRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
-  return sendEmailAuthResult(req, res, result, "/dashboard", "/login");
+  return sendEmailAuthResult(req, res, result, "/dashboard", "/login", ({ message }) =>
+    loginPage(req, { email: req.body?.email, error: message }));
 });
 
 app.get("/logout", (req, res) => {

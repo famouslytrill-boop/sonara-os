@@ -247,9 +247,14 @@ describe("the server.js split stays safe", () => {
     // contact page re-rendered with their answers still in it. The form itself
     // lives in lib/sonara-shell.cjs; these lines are the layout call that puts
     // it back on screen with the validator's sentence attached.
+    // Then 9 more for loginPage and signupPage. Both pages were built inline in
+    // their GET routes, and a refused sign-in has to render the same page again
+    // with the email still in it. Two copies of a layout would drift the moment
+    // either page was edited, so each is now one function called from both the
+    // GET route and the rejection path.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3930,
+      lines <= 3939,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
