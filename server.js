@@ -352,13 +352,28 @@ app.use((req, res, next) => {
 // working through many accounts; the per-subject bucket stops many hosts
 // working on one account, which is what credential stuffing looks like and
 // what per-IP limits never catch.
+// What somebody sees after too many sign-in attempts.
+//
+// It used to say "Wait about 1 minute(s) before trying again." -- the
+// parenthesised plural is a template shortcut that should never have reached a
+// customer -- and offered Home and Get help.
+//
+// Neither is what this person needs. Almost everybody who trips a login rate
+// limit has forgotten their password: that is what repeated failed attempts
+// are. The one useful link was the one page not offered.
+//
+// It also said nothing about why, which on a security screen matters. Being
+// told to wait, with no explanation, reads as though something is wrong with
+// your account rather than as a limit that applies to everyone.
 function renderRateLimitPage({ req, res, retryAfterSeconds }) {
   if (!acceptsHtml(req)) return false;
+  const minutes = Math.max(Math.ceil(retryAfterSeconds / 60), 1);
+  const wait = minutes === 1 ? "about a minute" : `about ${minutes} minutes`;
   return res.status(429).type("html").send(
     responsePage(
       "Too many attempts",
-      `Wait about ${Math.max(Math.ceil(retryAfterSeconds / 60), 1)} minute(s) before trying again.`,
-      [linkAction("/", "Home"), linkAction("/support", "Get help")]
+      `Sign-in is paused on this connection for ${wait}. This happens automatically after several failed attempts, and it is not a problem with your account. If you cannot remember your password, resetting it will get you back in faster than waiting.`,
+      [linkAction("/forgot-password", "Reset your password"), linkAction("/login", "Back to sign in"), linkAction("/support", "Get help")]
     )
   );
 }
