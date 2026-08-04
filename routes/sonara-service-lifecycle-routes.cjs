@@ -212,7 +212,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     if (result.saved) {
       sections.push(brandCard("Record saved", `Saved for your organization. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
     } else {
-      sections.push(brandCard("Save requires account database setup.", `Your output was generated and is shown above. Saving needs ${escapeHtml(displayStatus(result.service || result.code || "account database"))} to be ready. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+      sections.push(brandCard("Save requires account database setup.", `Your output was generated and is shown above. ${escapeHtml(plainLanguage.setupRequiredSentence(result.service || result.code))} Saving it needs that finished first. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
     }
     return res.status(200).type("html").send(
       layout({

@@ -237,9 +237,13 @@ describe("the server.js split stays safe", () => {
     // alias URLs point at the /legal/ page they duplicate instead of competing
     // with it. The metadata itself lives in lib/sonara-page-frame.cjs; what is
     // here is the routing that knows which page is the original.
+    // Then 2 more for the plain-language require and the setup-required
+    // sentence, which replaced a template that glued two humanised status
+    // codes together and rendered "Customer organization is Workspace not
+    // ready." to customers. The sentences live in lib/sonara-plain-language.cjs.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3915,
+      lines <= 3918,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
