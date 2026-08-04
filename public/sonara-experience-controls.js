@@ -22,6 +22,22 @@
   "use strict";
 
   var STORAGE_KEY = "sonara.experience.v1";
+
+  // The settings dialog is owned by sonara-one.js, which persists here. This
+  // file used to keep its own store, and nothing ever wrote to it -- no caller
+  // anywhere reached window.sonaraExperience.set(). So this store sat at its
+  // defaults forever while the user's real choices went somewhere else.
+  //
+  // That was not merely redundant. This file loads after sonara-one.js and
+  // calls apply() unconditionally, so on every page load it overwrote
+  // data-sonara-motion, -sound and -haptics with those defaults. Turning motion
+  // off in the settings dialog survived until the next navigation and then
+  // silently came back on -- while the checkbox still showed "off", because
+  // sonara-one.js ticks it from the store that did get written.
+  //
+  // A control that reports a setting it is not applying is worse than no
+  // control. One store, written by the dialog, read by both.
+  var SHARED_STORAGE_KEY = "sonara:nexus:preferences:v2";
   var root = document.documentElement;
 
   var defaults = {
@@ -32,29 +48,56 @@
 
   var state = load();
 
-  function load() {
+  function readStore(key) {
     try {
-      var raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return Object.assign({}, defaults);
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return null;
       var parsed = JSON.parse(raw);
-      return {
-        motion: parsed.motion === "off" ? "off" : "auto",
-        sound: parsed.sound === "on" ? "on" : "off",
-        haptics: parsed.haptics === "on" ? "on" : "off"
-      };
+      return parsed && typeof parsed === "object" ? parsed : null;
     } catch (error) {
       // Private browsing, disabled storage, corrupt value -- fall back to the
       // safe defaults rather than letting a preference read break the page.
-      return Object.assign({}, defaults);
+      return null;
     }
+  }
+
+  function load() {
+    // The dialog's store wins. STORAGE_KEY is still read as a fallback so
+    // anyone who has a value under the old key keeps it rather than being
+    // silently reset.
+    var parsed = readStore(SHARED_STORAGE_KEY) || readStore(STORAGE_KEY);
+    if (!parsed) return Object.assign({}, defaults);
+    return {
+      // sonara-one.js writes "on"/"off"; this file has always used
+      // "auto"/"off", where "auto" means "allowed, still subject to the OS
+      // setting". "on" maps to "auto" rather than to a hard on, so an explicit
+      // in-app "on" can never override prefers-reduced-motion.
+      motion: parsed.motion === "off" ? "off" : "auto",
+      sound: parsed.sound === "on" ? "on" : "off",
+      haptics: parsed.haptics === "on" ? "on" : "off"
+    };
   }
 
   function save() {
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      // Merge, never replace. The dialog's store also holds language and theme,
+      // and writing only these three keys would drop them.
+      var existing = readStore(SHARED_STORAGE_KEY) || {};
+      existing.motion = state.motion === "off" ? "off" : "on";
+      existing.sound = state.sound;
+      existing.haptics = state.haptics;
+      window.localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(existing));
     } catch (error) {
       /* Not being able to persist a preference is not worth an error. */
     }
+  }
+
+  // Re-read before applying. apply() on its own would use whatever `state` held
+  // when this file loaded, and the dialog can have written since -- that stale
+  // read is how the two copies diverged in the first place.
+  function refresh() {
+    state = load();
+    apply();
   }
 
   function systemPrefersReducedMotion() {
@@ -179,9 +222,16 @@
   // system takes effect without a reload.
   if (window.matchMedia) {
     var query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (query.addEventListener) query.addEventListener("change", apply);
-    else if (query.addListener) query.addListener(apply);
+    if (query.addEventListener) query.addEventListener("change", refresh);
+    else if (query.addListener) query.addListener(refresh);
   }
+
+  // The dialog writes the store directly, and another tab may write it too.
+  // Without this, a change made in one tab would not reach the others until a
+  // reload -- and the OS-change handler above would apply a stale value.
+  window.addEventListener("storage", function (event) {
+    if (!event.key || event.key === SHARED_STORAGE_KEY) refresh();
+  });
 
   // Opt-in feedback for anything that asks for it by attribute. Nothing is
   // wired implicitly -- an element must declare data-sonara-feedback, so no
