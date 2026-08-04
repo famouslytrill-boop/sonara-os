@@ -264,9 +264,13 @@ describe("the server.js split stays safe", () => {
     // of what was wrong with the old wording, which is most of the added
     // length. These are the two screens a customer reaches when something has
     // already gone wrong, so they are worth the lines.
+    // Then 15 more in renderRateLimitPage, which said "Wait about 1 minute(s)"
+    // and offered Home and Get help. Almost everybody who trips a login rate
+    // limit has forgotten their password, so the one useful link was the one
+    // not offered.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4001,
+      lines <= 4016,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
