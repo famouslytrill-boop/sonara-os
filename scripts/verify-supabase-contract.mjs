@@ -338,12 +338,33 @@ if (/grant\s+/i.test(operationalIndexSql)) fail("operational index migration mus
 if (!/auto_expose_new_tables\s*=\s*false/.test(config)) fail("local Data API must not auto-expose new tables");
 if (!/\[db\.seed\][\s\S]*?enabled\s*=\s*false/.test(config)) fail("local seed execution must remain disabled until a reviewed seed exists");
 if (!/minimum_password_length\s*=\s*8/.test(config)) fail("local Supabase Auth must enforce the application 8-character minimum password length");
+// "50MiB", "500KB", "1GB" -> MiB. Returns null for anything unparseable so a
+// new unit form fails loudly at the comparison rather than silently passing.
+function toMebibytes(value) {
+  const match = String(value || "").trim().match(/^(\d+(?:\.\d+)?)\s*(B|KB|KiB|MB|MiB|GB|GiB)$/i);
+  if (!match) return null;
+  const size = Number(match[1]);
+  const unit = match[2].toLowerCase();
+  const factors = { b: 1 / 1048576, kb: 1000 / 1048576, kib: 1 / 1024, mb: 1000000 / 1048576, mib: 1, gb: 1000000000 / 1048576, gib: 1024 };
+  return size * factors[unit];
+}
+
+const globalStorageLimit = toMebibytes(config.match(/\[storage\]([\s\S]*?)(?=\n\[)/)?.[1]?.match(/file_size_limit\s*=\s*"([^"]+)"/)?.[1]);
+if (globalStorageLimit === null) fail("[storage] has no readable file_size_limit, so bucket limits cannot be checked against it");
+
 for (const bucket of STORAGE_BUCKETS) {
   const escaped = bucket.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const section = config.match(new RegExp(`\\[storage\\.buckets\\.${escaped}\\]([\\s\\S]*?)(?=\\n\\[|$)`))?.[1] || "";
   if (!section) fail(`local config is missing storage bucket ${bucket}`);
   if (!/public\s*=\s*false/.test(section)) fail(`storage bucket ${bucket} must be private`);
   if (!/file_size_limit\s*=/.test(section)) fail(`storage bucket ${bucket} needs a file size limit`);
+  // A bucket may not accept a file the storage service as a whole refuses.
+  // Three buckets declared limits above the global one, so they advertised
+  // uploads that would have been rejected on arrival.
+  const bucketLimit = toMebibytes(section.match(/file_size_limit\s*=\s*"([^"]+)"/)?.[1]);
+  if (bucketLimit !== null && globalStorageLimit !== null && bucketLimit > globalStorageLimit) {
+    fail(`storage bucket ${bucket} allows ${bucketLimit} MiB but [storage] file_size_limit is ${globalStorageLimit} MiB`);
+  }
   if (!/allowed_mime_types\s*=/.test(section)) fail(`storage bucket ${bucket} needs a MIME allowlist`);
 }
 

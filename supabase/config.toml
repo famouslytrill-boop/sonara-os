@@ -137,7 +137,17 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
+#
+# 150MiB because that is the largest limit any bucket below declares, and a
+# bucket cannot accept a file the service as a whole refuses. This said 50MiB
+# while music-stems and release-packages declared 150MiB and creator-assets
+# 100MiB -- so those three promised uploads that would have been rejected, and a
+# musician uploading a 90MiB stem would have been told it was too large by a
+# bucket configured to take it.
+#
+# scripts/verify-supabase-contract.mjs only checked that each bucket declared
+# some limit, not that the limit fitted inside this one. It checks both now.
+file_size_limit = "150MiB"
 
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]
