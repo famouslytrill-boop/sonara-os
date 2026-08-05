@@ -8,6 +8,7 @@ const {
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
+const { GROWTH_CREATE_SPECS, getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
 
 const TABLES = Object.freeze({
   campaigns: "growth_campaigns",
@@ -517,6 +518,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       const sections = unavailable ? [ui.card("Not available right now", unavailable)] : [];
       if (!unavailable && page.includesTotals) sections.push(await growthTotalsCard(config, context, ui));
       if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape));
+      // The form goes on the page that lists the records, so the way to add one
+      // is where somebody looking at an empty list already is. A create route
+      // reachable only by knowing its URL is the same as not having one.
+      const createSpec = getGrowthCreateSpec(page.tableKey);
+      if (!unavailable && createSpec) sections.push(createFormCard(createSpec, ui.escape));
 
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
@@ -824,6 +830,28 @@ async function loadOne(config, table, context, id) {
 }
 async function controlEvent(config, context, type, status, details, campaignId = null, jobId = null) {
   return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, campaign_id: validUuid(campaignId) ? campaignId : null, job_id: validUuid(jobId) ? jobId : null, event_type: type, event_status: status, details: sanitizeProviderPayload(details) });
+}
+
+// The form for a spec, rendered onto the record page the customer already
+// reaches. Values are not carried back on a rejection here because this posts
+// as JSON from the page; the server-side refusal names the fields it wants.
+function createFormCard(spec, escape) {
+  const fields = spec.fields.map(([column, kind, options = {}]) => {
+    const label = escape(options.label || column);
+    const required = options.required ? " required" : "";
+    if (kind === "choice") {
+      const opts = (options.values || [])
+        .map((value) => `<option value="${escape(value)}"${value === options.fallback ? " selected" : ""}>${escape(value.replace(/_/g, " "))}</option>`)
+        .join("");
+      return `<label>${label}<select name="${escape(column)}"${required}>${opts}</select></label>`;
+    }
+    if (kind === "longText") return `<label>${label}<textarea name="${escape(column)}" rows="4" maxlength="${options.max || 4000}"${required}></textarea></label>`;
+    if (kind === "date") return `<label>${label}<input name="${escape(column)}" type="date"${required}></label>`;
+    if (kind === "number") return `<label>${label}<input name="${escape(column)}" type="number" step="0.01"${required}></label>`;
+    return `<label>${label}<input name="${escape(column)}" type="text" maxlength="${options.max || 240}"${required}></label>`;
+  }).join("");
+  const note = spec.safetyNote ? `<p class="fine">${escape(spec.safetyNote)}</p>` : "";
+  return `<article class="card"><h2>Add a ${escape(spec.noun)}</h2><p>${escape(spec.intro)}</p>${note}<form method="post" action="/api/growth/${escape(spec.key)}">${fields}<button type="submit">Save ${escape(spec.noun)}</button></form></article>`;
 }
 
 function buildUi(deps) {
