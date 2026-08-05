@@ -10,7 +10,8 @@ const {
 const {
   generationStatus,
   generationStatusLabel,
-  generationCapabilityLabel
+  generationCapabilityLabel,
+  generationFailureText
 } = require("../lib/sonara-plain-language.cjs");
 
 const JOB_TABLE = "creator_generation_jobs";
@@ -717,7 +718,10 @@ function jobSummaryCard(job, escape) {
     rows.push(["Why it is held", reasonText(job.policy_reasons)]);
   }
   if (job.status === "failed") {
-    rows.push(["What went wrong", clean(job.error_message, 500) || "The service did not say."]);
+    // error_code is the machine value and stays in the record; this is the
+    // sentence. Before, the code itself was printed, so a customer whose audio
+    // was too large to save read "storage_upload_failed_413".
+    rows.push(["What went wrong", generationFailureText(job.error_code, job.error_message)]);
   }
   const body = rows.map(([label, value]) => `<tr><th scope="row">${escape(label)}</th><td>${escape(value)}</td></tr>`).join("");
   return `<article class="card"><h2>Where this is up to</h2><table><tbody>${body}</tbody></table></article>`;
