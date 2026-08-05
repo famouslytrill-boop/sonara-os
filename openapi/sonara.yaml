@@ -911,6 +911,13 @@ paths:
       summary: Return the governed non-secret catalog of Hugging Face models, datasets, and specifications.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/ecosystem/open-source:
+    get:
+      operationId: getOpenSourceRegister
+      tags: [Ecosystem]
+      summary: Return the reviewed open-source repository register with licence, integration and refusal status.
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
   /api/admin/huggingface/readiness:
     get:
       operationId: getAdminHuggingFaceReadiness

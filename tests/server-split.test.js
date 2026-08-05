@@ -268,9 +268,13 @@ describe("the server.js split stays safe", () => {
     // and offered Home and Get help. Almost everybody who trips a login rate
     // limit has forgotten their password, so the one useful link was the one
     // not offered.
+    // Then 10 more to register routes/sonara-open-source-routes.cjs.
+    // /research-lab/open-source was linked from two research-lab pages and had
+    // no route behind it, so both links 404ed in production. The page itself
+    // lives in the route module; these lines are the require and the wiring.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4016,
+      lines <= 4026,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

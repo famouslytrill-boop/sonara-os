@@ -8,6 +8,7 @@ const registerSonaraEcosystemRoutes = require("./routes/sonara-ecosystem-routes.
 const registerSonaraAIIntegrationRoutes = require("./routes/sonara-ai-integrations-routes.cjs");
 const registerSonaraRequestedRepositoryRoutes = require("./routes/sonara-requested-repositories-routes.cjs");
 const registerSonaraHuggingFaceRoutes = require("./routes/sonara-huggingface-routes.cjs");
+const registerSonaraOpenSourceRoutes = require("./routes/sonara-open-source-routes.cjs");
 const registerSonaraBusinessControlPlaneRoutes = require("./routes/sonara-business-control-plane-routes.cjs");
 const registerSonaraDatabaseManagementRoutes = require("./routes/sonara-database-management-routes.cjs");
 const registerSonaraReferenceIntelligenceRoutes = require("./routes/sonara-reference-intelligence-routes.cjs");
@@ -471,6 +472,15 @@ registerSonaraHuggingFaceRoutes(app, {
   linkAction,
   requireAdmin,
   recordAdminAuditEvent
+});
+
+// /research-lab/open-source was linked from two pages and had no route behind
+// it, so both links 404ed in production.
+registerSonaraOpenSourceRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml
 });
 
 registerSonaraBusinessControlPlaneRoutes(app, {
