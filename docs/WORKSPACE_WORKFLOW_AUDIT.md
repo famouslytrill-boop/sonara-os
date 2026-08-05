@@ -6,14 +6,15 @@ could not give a reliable answer it says so rather than guessing.
 
 ## The short version
 
-Business Builder is a real workspace. Creator Studio and Growth Studio are
-mostly places to look at records that nothing can create.
+Business Builder is a real workspace. Creator Studio is thin. Growth Studio had
+the endpoints all along and no forms to reach them — see the correction below,
+which replaces what this section originally claimed.
 
 | | Business Builder | Creator Studio | Growth Studio |
 | --- | --- | --- | --- |
 | Pages registered | 60 | 49 | 40 |
-| Record types you can create | 19 | 2 | 2 |
-| Record types you can only read | few | many | 12 |
+| Record types with a create endpoint | 19 | 2 | 10 |
+| Record types with a form to reach it | 19 | 2 | 3 |
 
 ## How the numbers were taken
 
@@ -31,7 +32,44 @@ got a different wrong answer each time, because table names are looked up at
 runtime (`TABLES[resource]`) and static matching cannot resolve them. The maps
 are the ground truth; the regex results are not in this document.
 
-## Finding 1 — Growth Studio: 12 of 14 record types have no way in
+## Correction, 2026-08-05
+
+**Finding 1 as first published was wrong.** It said twelve of the fourteen
+Growth Studio record types had no create endpoint. They have one. I checked
+`/api/growth-studio/<type>` and the routes are registered at
+`/api/growth/<type>`, so a whole family of endpoints was invisible to the check
+and I reported their absence.
+
+Ten of the fourteen have a POST handler that validates input, scopes to the
+organization and writes an audit event: campaigns, leads, segments,
+experiments, consents, automations, content, conversions, touchpoints and
+provider jobs. Four do not: variants, metrics, control events and provider
+connections.
+
+The mistake was caught by acting on it. Wiring create handlers for the
+"missing" types produced two POST registrations on the same paths, which is
+what surfaced the existing ones. Had the audit stayed on paper it would still
+read as true.
+
+The real finding is below and is narrower, but it is not nothing.
+
+## Finding 1 (corrected) — ten create endpoints, and no form for any of them
+
+Before 2026-08-05 no page in the application rendered a form posting to
+`/api/growth/*`. Not one of the ten. The only way a customer could create a
+segment was to hand-craft an HTTP request.
+
+The record page listed segments, correctly showed none, and offered no way to
+add one. From the customer's seat the workflow was missing, and the server had
+been ready for it the whole time. A create route reachable only by knowing its
+URL is the same as not having one.
+
+Three now have a form on their record page — segments, experiments and
+consents, the three with a page in `lib/sonara-growth-record-pages.cjs`.
+Content, automations, conversions and touchpoints have endpoints and no record
+page, so giving them forms means giving them pages first.
+
+## The original Finding 1, kept for the record
 
 `routes/growth-studio-control-routes.cjs` defines fourteen record types in its
 `TABLES` map. Cross-referenced against the POST routes the app actually
@@ -74,9 +112,12 @@ capabilities listed as "lead forms | lead records | segments | source tracking |
 lead scoring | follow-up priority".
 
 `beta` renders to a customer as "Early access — usable now, still being
-refined" (`lib/sonara-plain-language.cjs`). Segments cannot be created.
+refined" (`lib/sonara-plain-language.cjs`). Segments had an endpoint and no way
+to reach it, so the row was advertising something a customer could not do. It
+has a form as of 2026-08-05, which is the narrow sense in which this finding is
+now closed.
 
-Lead records can, so the entry is not wholly unfounded, and this is the only
+Lead records also work, so the entry was not wholly unfounded, and this is the only
 catalog row I am confident enough about to name. A fuller catalog-to-workflow
 audit needs the workspace path of every row checked by hand against what that
 page can do; my attempt to compute it conflated dashboards with record
