@@ -387,7 +387,13 @@ if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fai
 
 if (!process.exitCode) {
   console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
-  console.log(`Agent foundation verified as schema-only and approval-gated: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; autonomous execution remains disabled.`);
+  // "schema-only" stopped being true when /research-lab/subsystems gained
+  // forms: an operator can now add a tool registration, a note, a bookmark or a
+  // setting. What has not changed, and is the part worth asserting, is that
+  // nothing executes -- there is no agent runtime in this product, and the
+  // tables that record runs, approvals and memory are refused a form precisely
+  // so nothing can fabricate evidence of a run that never happened.
+  console.log(`Agent foundation verified as approval-gated with no runtime: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; records of runs, approvals and memory are read-only and autonomous execution remains disabled.`);
 }
 
 function verifyExtension(tables, sql, label) {

@@ -281,9 +281,13 @@ describe("the server.js split stays safe", () => {
     // and without this dep they would have been served by the signed-in-only
     // gate -- turning a plan-gated workspace into a free one as a side effect
     // of building the real page.
+    // Then 1 more passing getCustomerPrimaryOrganization into the subsystem
+    // routes. Eight of the writable subsystem tables declare organization_id
+    // NOT NULL, and taking it from the submitted body would let a row be
+    // written into another tenant.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4041,
+      lines <= 4042,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
