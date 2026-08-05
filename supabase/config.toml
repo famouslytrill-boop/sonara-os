@@ -138,16 +138,34 @@ port = 54324
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 #
-# 150MiB because that is the largest limit any bucket below declares, and a
-# bucket cannot accept a file the service as a whole refuses. This said 50MiB
-# while music-stems and release-packages declared 150MiB and creator-assets
-# 100MiB -- so those three promised uploads that would have been rejected, and a
-# musician uploading a 90MiB stem would have been told it was too large by a
-# bucket configured to take it.
+# 50MiB, and deliberately lower than three of the buckets below. That looks
+# wrong and is the better of two bad options -- the reasoning is worth keeping
+# because the obvious change makes things worse.
 #
-# scripts/verify-supabase-contract.mjs only checked that each bucket declared
-# some limit, not that the limit fitted inside this one. It checks both now.
-file_size_limit = "150MiB"
+# music-stems and release-packages declare 150MiB and creator-assets 100MiB.
+# Raising this to 150MiB to match them is the tidy fix, and it was tried: the
+# Supabase branching integration then failed at Configurations with
+#
+#   402 File size limit more than 52,428,800 bytes. Please upgrade the project
+#   to a paid plan to unlock higher file size limits.
+#
+# 52,428,800 bytes is exactly 50MiB -- the free-plan cap on preview branch
+# projects. Failing at Configurations means the run stops before Migrations,
+# so no migration is applied to a real Postgres at all. At 50MiB the run gets
+# through Configurations and Migrations and only fails at Seeding, which is how
+# supabase/migrations/20260805120000_retire_superseded_tables.sql was verified
+# against a real database.
+#
+# So this stays at 50MiB to keep that verification working. The three buckets
+# above it are recorded as known exceptions in
+# scripts/verify-supabase-contract.mjs with this reason, and a fourth bucket
+# exceeding this limit still fails that gate.
+#
+# The real fix is a paid plan for branching, at which point this becomes 150MiB
+# and the exception list empties. Until then, whether production itself allows
+# 150MiB is unverified -- if it does not, those three buckets have never
+# accepted the files they advertise.
+file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]
