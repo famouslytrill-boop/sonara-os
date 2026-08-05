@@ -338,17 +338,11 @@ if (/grant\s+/i.test(operationalIndexSql)) fail("operational index migration mus
 if (!/auto_expose_new_tables\s*=\s*false/.test(config)) fail("local Data API must not auto-expose new tables");
 if (!/\[db\.seed\][\s\S]*?enabled\s*=\s*false/.test(config)) fail("local seed execution must remain disabled until a reviewed seed exists");
 if (!/minimum_password_length\s*=\s*8/.test(config)) fail("local Supabase Auth must enforce the application 8-character minimum password length");
-// Three buckets declare more than [storage] file_size_limit, and that is
-// recorded rather than fixed. Raising the global to match them makes the
-// Supabase branching integration fail at Configurations with a 402 naming the
-// free plan's 50MiB cap, which stops the run before Migrations -- so no
-// migration is applied to a real Postgres at all. At 50MiB the run reaches
-// Migrations and only fails at Seeding. Keeping the verification is worth more
-// than a consistent declaration.
-//
-// A bucket not on this list that exceeds the global still fails. supabase/config.toml
-// carries the same reasoning next to the setting.
-const OVERSIZED_BUCKETS = Object.freeze(["creator-assets", "music-stems", "release-packages"]);
+// This used to exempt three buckets from the check below. They declared 100MiB
+// and 150MiB against a free plan that caps a bucket at 50MiB, so storage refused
+// them outright -- never capacity, only a promise rejected on arrival. They sit
+// at 50MiB now and the exemption is gone, which is the state worth keeping: an
+// exception list nobody has to remember to empty.
 
 // "50MiB", "500KB", "1GB" -> MiB. Returns null for anything unparseable so a
 // new unit form fails loudly at the comparison rather than silently passing.
@@ -373,7 +367,7 @@ for (const bucket of STORAGE_BUCKETS) {
   // A bucket may not accept a file the storage service as a whole refuses,
   // except for the three recorded above. A fourth still fails here.
   const bucketLimit = toMebibytes(section.match(/file_size_limit\s*=\s*"([^"]+)"/)?.[1]);
-  if (bucketLimit !== null && globalStorageLimit !== null && bucketLimit > globalStorageLimit && !OVERSIZED_BUCKETS.includes(bucket)) {
+  if (bucketLimit !== null && globalStorageLimit !== null && bucketLimit > globalStorageLimit) {
     fail(`storage bucket ${bucket} allows ${bucketLimit} MiB but [storage] file_size_limit is ${globalStorageLimit} MiB`);
   }
   if (!/allowed_mime_types\s*=/.test(section)) fail(`storage bucket ${bucket} needs a MIME allowlist`);

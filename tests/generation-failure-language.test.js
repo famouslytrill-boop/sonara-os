@@ -22,10 +22,18 @@ const assert = require("node:assert/strict");
 const { generationFailureText, GENERATION_FAILURE } = require("../lib/sonara-plain-language.cjs");
 
 describe("what a customer reads when generation fails", () => {
-  it("explains a file that was too large to save", () => {
-    const text = generationFailureText("storage_upload_failed_413");
-    assert.match(text, /too large/i, "the size limit is not mentioned");
-    assert.match(text, /shorter|storage limit/i, "the customer is not told what to do about it");
+  it("names the actual size limit rather than saying the file was too big", () => {
+    // Stricter than it looks. An earlier version said "too large" and offered
+    // to "raise your storage limit" -- vague, and a promise nobody was going to
+    // keep, since the limit is a plan the business decided not to buy rather
+    // than a setting somebody can turn up. A number a customer can measure
+    // against is the useful thing.
+    for (const code of ["storage_upload_failed_413", "storage_upload_failed_402"]) {
+      const text = generationFailureText(code);
+      assert.match(text, /\b\d+\s?(MB|MiB)\b/, `${code} does not name a size the customer can act on`);
+      assert.match(text, /shorter/i, `${code} does not say what would work instead`);
+      assert.doesNotMatch(text, /ask us to raise|upgrade|contact us to increase/i, `${code} offers to raise a limit that is not going to be raised`);
+    }
   });
 
   it("never shows the raw code", () => {
