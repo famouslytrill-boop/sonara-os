@@ -138,33 +138,27 @@ port = 54324
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 #
-# 50MiB, and deliberately lower than three of the buckets below. That looks
-# wrong and is the better of two bad options -- the reasoning is worth keeping
-# because the obvious change makes things worse.
+# 50MiB, and every bucket below is now at or under it.
 #
-# music-stems and release-packages declare 150MiB and creator-assets 100MiB.
-# Raising this to 150MiB to match them is the tidy fix, and it was tried: the
-# Supabase branching integration then failed at Configurations with
+# creator-assets asked for 100MiB, music-stems and release-packages for 150MiB.
+# None of those ever worked. The free plan caps a bucket at 52,428,800 bytes --
+# exactly 50MiB -- and the service refuses anything larger outright:
 #
 #   402 File size limit more than 52,428,800 bytes. Please upgrade the project
 #   to a paid plan to unlock higher file size limits.
 #
-# 52,428,800 bytes is exactly 50MiB -- the free-plan cap on preview branch
-# projects. Failing at Configurations means the run stops before Migrations,
-# so no migration is applied to a real Postgres at all. At 50MiB the run gets
-# through Configurations and Migrations and only fails at Seeding, which is how
-# supabase/migrations/20260805120000_retire_superseded_tables.sql was verified
-# against a real database.
+# So those three were not capacity. They were a promise storage rejected on
+# arrival, and a customer uploading a 90MiB stem was told it was too large by a
+# bucket configured to accept it.
 #
-# So this stays at 50MiB to keep that verification working. The three buckets
-# above it are recorded as known exceptions in
-# scripts/verify-supabase-contract.mjs with this reason, and a fourth bucket
-# exceeding this limit still fails that gate.
+# Lowering them was refused once, on the grounds that it would remove capacity
+# the products were designed around. That reasoning assumed a paid plan was on
+# the table. It is not, so the capacity does not exist and never did, and 50MiB
+# is the only honest thing this file can say.
 #
-# The real fix is a paid plan for branching, at which point this becomes 150MiB
-# and the exception list empties. Until then, whether production itself allows
-# 150MiB is unverified -- if it does not, those three buckets have never
-# accepted the files they advertise.
+# One change to undo if this ever moves to a paid plan: raise this and the three
+# buckets together. They must move together -- a bucket above the global is what
+# started this.
 file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
@@ -186,17 +180,23 @@ allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "application/pdf"
 
 [storage.buckets.creator-assets]
 public = false
-file_size_limit = "100MiB"
+# Was 100MiB. The free plan caps a bucket at 50MiB and the service refused
+# anything larger, so that figure was never capacity.
+file_size_limit = "50MiB"
 allowed_mime_types = ["image/jpeg", "image/png", "image/webp", "audio/mpeg", "audio/wav", "video/mp4", "application/pdf"]
 
 [storage.buckets.music-stems]
 public = false
-file_size_limit = "150MiB"
+# Was 150MiB. The free plan caps a bucket at 50MiB and the service refused
+# anything larger, so that figure was never capacity.
+file_size_limit = "50MiB"
 allowed_mime_types = ["audio/mpeg", "audio/wav", "audio/x-wav", "audio/flac"]
 
 [storage.buckets.release-packages]
 public = false
-file_size_limit = "150MiB"
+# Was 150MiB. The free plan caps a bucket at 50MiB and the service refused
+# anything larger, so that figure was never capacity.
+file_size_limit = "50MiB"
 allowed_mime_types = ["application/zip", "application/pdf", "audio/mpeg", "audio/wav"]
 
 [storage.buckets.support-attachments]
