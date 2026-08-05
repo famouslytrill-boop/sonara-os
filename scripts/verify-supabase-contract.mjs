@@ -31,7 +31,9 @@ const growthStudioMigrationNames = [
 const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "purchase_orders",
   "inventory_count_sessions",
-  "location_transfers"
+  "location_transfers",
+  "bill_payment_records",
+  "accounting_exports"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",

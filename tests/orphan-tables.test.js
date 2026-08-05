@@ -23,17 +23,43 @@ const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
 const DECISIONS = new Set(["retire", "keep", "build", "build-with-parent", "defer", "await direction"]);
 
 describe("the tables nothing queries", () => {
-  it("still holds the entries that matter, so it has not gone blind", () => {
-    // Not a count. The list legitimately shrinks as tables get built -- it went
-    // from 87 to 36 when /research-lab/subsystems began reading 51 of them --
-    // so a floor would have to be lowered every time and would stop meaning
-    // anything. What must not vanish silently is the retirement list: those are
-    // the thirteen a migration acts on.
-    const retiring = tablesWithDecision("retire");
-    assert.ok(retiring.length >= 10, `only ${retiring.length} tables marked for retirement; this check has gone blind`);
-    for (const expected of ["billing_customers", "contact_records", "audit_events"]) {
-      assert.ok(ORPHAN_TABLES.includes(expected), `${expected} is no longer classified, and nothing queries it`);
+  it("still fails when a table nothing reads appears", function () {
+    this.timeout(60000);
+    // The registry is empty now: every table is either built or dropped. An
+    // empty list is exactly when a check stops being watched, so this proves the
+    // gate can still fail rather than asserting the list has entries -- which is
+    // what the previous version did, and which stopped meaning anything the
+    // moment the last entry was cleared.
+    //
+    // A migration creating a table nothing references is written, the real
+    // script is run against it, and the file is removed whatever happens.
+    const fs = require("node:fs");
+    const migration = path.join(__dirname, "..", "supabase", "migrations", "99999999999999_orphan_gate_selftest.sql");
+    const script = path.join(__dirname, "..", "scripts", "report-orphan-tables.mjs");
+    fs.writeFileSync(migration, "create table if not exists public.sonara_orphan_gate_selftest (\n  id uuid primary key default gen_random_uuid()\n);\n");
+    try {
+      let failed = false;
+      let output = "";
+      try {
+        execFileSync(process.execPath, [script, "--check"], { encoding: "utf8", stdio: "pipe" });
+      } catch (error) {
+        failed = true;
+        output = `${error.stdout || ""}${error.stderr || ""}`;
+      }
+      assert.ok(failed, "the gate passed with an unread table in the migrations; it can no longer fail");
+      assert.match(output, /sonara_orphan_gate_selftest/, "the gate failed without naming the table it objected to");
+    } finally {
+      fs.rmSync(migration, { force: true });
     }
+  });
+
+  it("leaves no self-test migration behind", () => {
+    // If the check above ever dies mid-run, the file it writes would become a
+    // real migration. This is the second line of defence.
+    const fs = require("node:fs");
+    const dir = path.join(__dirname, "..", "supabase", "migrations");
+    const strays = fs.readdirSync(dir).filter((name) => name.includes("orphan_gate_selftest"));
+    assert.deepEqual(strays, [], `a self-test migration was left in supabase/migrations: ${strays.join(", ")}`);
   });
 
   it("names only tables the migrations actually create", () => {
