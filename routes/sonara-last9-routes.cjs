@@ -49,7 +49,11 @@ const RESOURCE_MAP = {
   // detached from its order or count is an orphaned row.
   "/api/business/purchase-orders": { table: "purchase_orders", required: [], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/stock-counts": { table: "inventory_count_sessions", required: [], person: "counted_by", defaults: { status: "draft" } },
-  "/api/business/transfers": { table: "location_transfers", required: [], person: "created_by", defaults: { status: "draft" } }
+  "/api/business/transfers": { table: "location_transfers", required: [], person: "created_by", defaults: { status: "draft" } },
+  // Supplier payments and accounting exports. bill_payment_records records no
+  // person; accounting_exports has created_by.
+  "/api/business/bill-payments": { table: "bill_payment_records", required: [], defaults: { status: "scheduled", currency: "usd" } },
+  "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
 };
 
 const PUBLIC_GETS = new Map([

@@ -52,15 +52,36 @@ const INVENTORIES = [
 const SOURCE_DIRS = ["lib", "routes", "api", "scripts", "data", "public", "openapi"];
 const SOURCE_FILES = /\.(cjs|js|mjs|ts|tsx|json)$/;
 
+// Tables that exist at the end of a replay: created, minus dropped.
+//
+// Counting creates alone was right until something was actually dropped. The
+// create statements stay in the old migrations forever, so a dropped table would
+// have gone on being reported as an unused table that exists -- the report
+// describing a database that no longer matches the migrations.
+//
+// Drops are read from both the literal form and the format() call inside a
+// do-block, which is how 20260806000000_drop_retired_superseded_tables.sql
+// removes them: the table names live in an array above it, so the pattern here
+// matches the array entries rather than the format string.
 function createdTables() {
   const dir = path.join(root, "supabase", "migrations");
   const tables = new Set();
+  const dropped = new Set();
   for (const name of fs.readdirSync(dir).filter((file) => file.endsWith(".sql")).sort()) {
     const sql = fs.readFileSync(path.join(dir, name), "utf8");
     for (const match of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?"?([a-z0-9_]+)"?/gi)) {
       tables.add(match[1].toLowerCase());
     }
+    for (const match of sql.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?(?:public\.|retired\.)?"?([a-z0-9_]+)"?/gi)) {
+      dropped.add(match[1].toLowerCase());
+    }
+    // drop table retired.%I cascade, driven by an array of names above it.
+    if (/drop\s+table\s+retired\.%I/i.test(sql)) {
+      const list = sql.match(/superseded\s+constant\s+text\[\]\s*:=\s*array\[([\s\S]*?)\]/i);
+      if (list) for (const entry of list[1].matchAll(/'([a-z0-9_]+)'/gi)) dropped.add(entry[1].toLowerCase());
+    }
   }
+  for (const table of dropped) tables.delete(table);
   return tables;
 }
 
