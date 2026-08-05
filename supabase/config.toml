@@ -68,7 +68,29 @@ schema_paths = []
 enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+#
+# Empty because seeding is disabled above and this repository has no seed file.
+# It used to name ./seed.sql, which does not exist. That is worth not having,
+# but it is housekeeping and nothing more -- do not read it as a fix for
+# anything.
+#
+# It was changed while trying to fix the Supabase branching integration, which
+# fails the Seeding task with "Error status 400: 413 EntityTooLarge" on every
+# pull request touching this directory. The theory was that the integration was
+# being asked to seed from a path with no file behind it. It was wrong: with
+# sql_paths empty and seeding disabled, the Seeding task fails identically.
+# Configurations and Migrations both pass in the same run.
+#
+# So the cause is still unknown and is not in this file. EntityTooLarge is a
+# Supabase Storage error on an object upload, and the only large thing here is
+# supabase/migrations -- 75 files, about 850 KB -- which the integration may be
+# uploading whole. Squashing those migrations would be the next thing to try and
+# is not a change to make casually.
+#
+# This matters more than a red tick. The preview branch is the only thing that
+# applies a migration to a real Postgres before it reaches production, so while
+# this is broken that check tells us nothing.
+sql_paths = []
 
 [db.network_restrictions]
 # Enable management of network restrictions.
@@ -115,6 +137,34 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
+#
+# 50MiB, and deliberately lower than three of the buckets below. That looks
+# wrong and is the better of two bad options -- the reasoning is worth keeping
+# because the obvious change makes things worse.
+#
+# music-stems and release-packages declare 150MiB and creator-assets 100MiB.
+# Raising this to 150MiB to match them is the tidy fix, and it was tried: the
+# Supabase branching integration then failed at Configurations with
+#
+#   402 File size limit more than 52,428,800 bytes. Please upgrade the project
+#   to a paid plan to unlock higher file size limits.
+#
+# 52,428,800 bytes is exactly 50MiB -- the free-plan cap on preview branch
+# projects. Failing at Configurations means the run stops before Migrations,
+# so no migration is applied to a real Postgres at all. At 50MiB the run gets
+# through Configurations and Migrations and only fails at Seeding, which is how
+# supabase/migrations/20260805120000_retire_superseded_tables.sql was verified
+# against a real database.
+#
+# So this stays at 50MiB to keep that verification working. The three buckets
+# above it are recorded as known exceptions in
+# scripts/verify-supabase-contract.mjs with this reason, and a fourth bucket
+# exceeding this limit still fails that gate.
+#
+# The real fix is a paid plan for branching, at which point this becomes 150MiB
+# and the exception list empties. Until then, whether production itself allows
+# 150MiB is unverified -- if it does not, those three buckets have never
+# accepted the files they advertise.
 file_size_limit = "50MiB"
 
 # Uncomment to configure local storage buckets
