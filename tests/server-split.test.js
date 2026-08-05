@@ -272,9 +272,14 @@ describe("the server.js split stays safe", () => {
     // /research-lab/open-source was linked from two research-lab pages and had
     // no route behind it, so both links 404ed in production. The page itself
     // lives in the route module; these lines are the require and the wiring.
+    // Then 1 more passing requirePaidOrOwnerAccess into the Growth Studio
+    // control routes. Four record pages there replaced paid placeholder pages,
+    // and without this dep they would have been served by the signed-in-only
+    // gate -- turning a plan-gated workspace into a free one as a side effect
+    // of building the real page.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4026,
+      lines <= 4027,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
