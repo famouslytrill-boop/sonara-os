@@ -27,13 +27,16 @@ const request = require("supertest");
 const app = require("../server");
 const {
   SUBSYSTEMS,
+  RECORDS_A_FACT,
   WITHHELD_COLUMN,
   allSubsystemTables,
   cellText,
   displayColumns,
+  formFields,
+  isWritable,
   selectFor
 } = require("../lib/sonara-subsystem-registry.cjs");
-const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
+const { describedColumns, tableColumns } = require("../lib/sonara-migration-columns.cjs");
 
 describe("the subsystems that exist as schema only", () => {
   it("covers enough tables to be describing the problem", () => {
@@ -106,19 +109,85 @@ describe("the subsystems that exist as schema only", () => {
     assert.deepEqual(open, [], open.join("\n  "));
   });
 
-  it("offers no way to write anything", () => {
-    // The load-bearing check. Reading these tables is a description of what was
-    // designed; writing to them would be inventing the behaviour, and for the
-    // agent tables it would contradict a release gate.
-    const fs = require("node:fs");
-    const path = require("node:path");
-    const source = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-subsystem-routes.cjs"), "utf8")
-      .replace(/\/\*[\s\S]*?\*\//g, " ")
-      .replace(/(^|[^:])\/\/.*$/gm, "$1");
-    for (const forbidden of ["app.post", "app.patch", "app.put", "app.delete", "<form"]) {
-      assert.equal(source.includes(forbidden), false, `routes/sonara-subsystem-routes.cjs contains ${forbidden}; these pages are read-only by design`);
+  it("refuses a form for anything that records a fact rather than an intention", () => {
+    // This replaced a blanket "no writes anywhere" check when the forms were
+    // built, and the replacement has to keep teeth rather than becoming a
+    // formality. Runs, events, logs, jobs, deployments, memory and approvals
+    // stay read-only: typing one in does not make it have happened, and it puts
+    // a fabricated row beside real ones with nothing to tell them apart. Same
+    // call as growth_touchpoints.
+    const readOnly = allSubsystemTables().filter((table) => !isWritable(table));
+    assert.ok(readOnly.length >= 10, `only ${readOnly.length} tables are read-only; the rule has gone slack`);
+    for (const table of readOnly) {
+      assert.deepEqual(formFields(table), [], `${table} records a fact and has been given a form`);
     }
-    assert.equal(/method\s*:\s*["'](POST|PATCH|PUT|DELETE)["']/i.test(source), false, "a write request is built in this module");
+    // And the rule is a rule, not a list somebody has to remember to extend.
+    for (const suffix of ["_runs", "_events", "_logs", "_jobs", "_deployments", "_memory", "_approvals"]) {
+      assert.match(`anything${suffix}`, RECORDS_A_FACT, `${suffix} is no longer recognised as recording a fact`);
+    }
+  });
+
+  it("never offers a field for a column the server owns or the database fills in", () => {
+    // An id or created_at field would let somebody overwrite what the database
+    // generates; an organization_id field on an admin surface would let one row
+    // be written into somebody else's tenant.
+    const leaked = [];
+    for (const table of allSubsystemTables()) {
+      for (const field of formFields(table)) {
+        if (["id", "organization_id", "user_id", "created_at", "updated_at"].includes(field.name)) leaked.push(`${table}.${field.name}`);
+        if (WITHHELD_COLUMN.test(field.name)) leaked.push(`${table}.${field.name} looks like a secret`);
+      }
+    }
+    assert.deepEqual(leaked, [], leaked.join("\n  "));
+  });
+
+  it("only offers fields the table actually has", () => {
+    // The failure the record forms shipped with: a payload naming a column that
+    // is not there is rejected and nothing saves.
+    const wrong = [];
+    for (const table of allSubsystemTables()) {
+      const columns = tableColumns(table);
+      for (const field of formFields(table)) {
+        if (!columns.has(field.name)) wrong.push(`${table}.${field.name}`);
+      }
+    }
+    assert.deepEqual(wrong, [], wrong.join("\n  "));
+  });
+
+  it("offers a choice wherever the database constrains one", () => {
+    // A free-text box on a checked column produces a constraint violation the
+    // customer cannot act on. Every field with allowed values must be a choice,
+    // and every choice must offer only values the constraint permits.
+    const wrong = [];
+    for (const table of allSubsystemTables()) {
+      const described = new Map(describedColumns(table).map((column) => [column.name, column]));
+      for (const field of formFields(table)) {
+        const column = described.get(field.name);
+        if (!column) continue;
+        if (column.allowed.length && field.type !== "choice") wrong.push(`${table}.${field.name} is constrained but rendered free-text`);
+        if (field.type === "choice" && field.values.some((value) => !column.allowed.includes(value))) wrong.push(`${table}.${field.name} offers a value the constraint forbids`);
+      }
+    }
+    assert.deepEqual(wrong, [], wrong.join("\n  "));
+  });
+
+  it("writes nothing without an admin session", async () => {
+    // The forms are behind the same gate as the pages. Without it, a single
+    // POST would write to any of thirty-eight tables across every organization.
+    const res = await request(app)
+      .post("/api/research-lab/subsystems/sonara_engine_registry")
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ engine_key: "x", name: "x", public_label: "x", description: "x", engine_type: "billing" })
+      .redirects(0);
+    // requireAdmin redirects to the login page, which is also a 303 -- so the
+    // status alone cannot tell a refusal from an acceptance. Where it sends you
+    // is what distinguishes them: the handler redirects back to the subsystem
+    // page on success, and the gate redirects to /admin/login.
+    const target = res.headers.location || "";
+    assert.notEqual(res.status, 200, "the write endpoint answered without an admin session");
+    assert.doesNotMatch(target, /\/research-lab\/subsystems/, `the write endpoint accepted a submission without an admin session and returned to ${target}`);
+    assert.ok(/\/admin\/login/.test(target) || res.status === 503, `expected the admin gate to refuse, got ${res.status} to ${target || "(no redirect)"}`);
   });
 
   it("says on the page that the agent foundation does not run", () => {

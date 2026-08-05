@@ -7,15 +7,23 @@
 // it is five designed subsystems with nothing behind them, and until now the
 // only way to know they existed was to read the migrations.
 //
-// These pages read. There is no create, edit or delete anywhere in this file,
-// and that is the point rather than a first increment. The data model for these
-// subsystems was decided; the behaviour was not. A page offering to create a
-// repository review would be inventing the review process, and a page offering
-// to start an agent run would break the guarantee that
-// scripts/verify-supabase-contract.mjs asserts on every release -- that the
-// agent foundation stays schema-only with autonomous execution disabled. That
-// gate covers seven of the eleven agent tables; the page names the other four
-// rather than implying the promise stretches to them.
+// Thirty-eight of the fifty-one can now be written to. Thirteen cannot, and the
+// split is not about safety -- everything here is admin-only -- but about
+// whether a hand-entered row would be a decision or a fabrication.
+//
+// A registry, a catalog, a watchlist, a blocklist, a review, a note, a setting:
+// somebody deciding something, where typing it in is how the decision gets
+// recorded. A run, an event, a log, a job, a deployment, a memory, an approval:
+// a record that something happened, where typing it in does not make it have
+// happened. lib/sonara-subsystem-registry.cjs holds the rule; it is the same
+// call made for growth_touchpoints, for the same reason.
+//
+// Nothing here executes anything. Adding a row to entity_agent_tool_registry
+// registers a tool; it does not run one, and no code in this product runs
+// agents. scripts/verify-supabase-contract.mjs still reports the agent
+// foundation as approval-gated with autonomous execution disabled, and that
+// wording was corrected in the same change -- it used to say "schema-only",
+// which stopped being true the moment these forms existed.
 //
 // Operator surface, so it sits under /research-lab, which
 // lib/sonara-plain-language.cjs exempts from the customer-vocabulary rules.
@@ -27,8 +35,11 @@ const {
   cellText,
   columnLabel,
   displayColumns,
+  formFields,
+  isWritable,
   selectFor
 } = require("../lib/sonara-subsystem-registry.cjs");
+const { describedColumns } = require("../lib/sonara-migration-columns.cjs");
 
 module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   const layout = deps.layout || basicLayout;
@@ -38,6 +49,81 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
   const requireAdmin = deps.requireAdmin || ((req, res, next) => next());
   const getConfig = deps.getSupabaseServerConfig || (() => ({ ok: false }));
   const headers = deps.supabaseHeaders || (() => ({}));
+  const primaryOrganization = deps.getCustomerPrimaryOrganization || (async () => ({ ok: false }));
+
+  // One endpoint, and the table has to be one of the 38 the registry says may
+  // be written. A path parameter reaching PostgREST unchecked would be a way to
+  // write to any table in the database.
+  app.post("/api/research-lab/subsystems/:table", requireAdmin, async (req, res) => {
+    const table = String(req.params.table || "").toLowerCase();
+    const subsystem = SUBSYSTEMS.find((entry) => entry.tables.includes(table));
+    const back = subsystem ? `/research-lab/subsystems/${subsystem.slug}` : "/research-lab/subsystems";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, `${back}#${encodeURIComponent(table)}`);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}&table=${encodeURIComponent(table)}`);
+    };
+
+    if (!subsystem) return respond(404, { ok: false, code: "unknown_table" });
+    // The read-only thirteen. These record that something happened, and a
+    // hand-written row would be a fabricated fact sitting beside real ones.
+    if (!isWritable(table)) return respond(403, { ok: false, code: "records_a_fact_not_an_intention" });
+
+    const fields = formFields(table);
+    const missing = fields.filter((field) => field.required && !String(req.body[field.name] || "").trim()).map((field) => field.name);
+    if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
+
+    const config = getConfig();
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+
+    const payload = {};
+    for (const field of fields) {
+      const raw = String(req.body[field.name] ?? "").trim();
+      if (!raw) continue;
+      // A choice outside the check constraint would be rejected by the
+      // database; saying so here names the field instead of returning a
+      // constraint violation.
+      if (field.type === "choice" && !field.values.includes(raw)) return respond(400, { ok: false, code: `invalid_${field.name}` });
+      if (field.type === "uuid" && !isUuid(raw)) return respond(400, { ok: false, code: `invalid_${field.name}` });
+      if (field.type === "number") {
+        const parsed = Number(raw);
+        if (!Number.isFinite(parsed)) return respond(400, { ok: false, code: `invalid_${field.name}` });
+        payload[field.name] = parsed;
+        continue;
+      }
+      if (field.type === "boolean") {
+        payload[field.name] = ["1", "true", "yes", "on"].includes(raw.toLowerCase());
+        continue;
+      }
+      payload[field.name] = raw;
+    }
+
+    // Columns the form does not offer and the server owns. Eight of these
+    // tables declare organization_id or user_id NOT NULL, so an insert without
+    // them is rejected -- and taking either from the body would let one be set
+    // to anything.
+    const columns = describedColumns(table);
+    const needsUser = columns.some((column) => column.name === "user_id");
+    const needsOrganization = columns.some((column) => column.name === "organization_id");
+    const adminUserId = req.sonaraAdmin?.user?.id || null;
+    if (needsUser && adminUserId) payload.user_id = adminUserId;
+    if (needsOrganization) {
+      const organization = adminUserId ? await primaryOrganization({ id: adminUserId }) : { ok: false };
+      if (organization.ok) payload.organization_id = organization.organizationId;
+      else if (columns.some((column) => column.name === "organization_id" && column.required)) {
+        return respond(409, { ok: false, code: "no_organization_for_this_account" });
+      }
+    }
+
+    const response = await fetch(`${config.url}/rest/v1/${encodeURIComponent(table)}`, {
+      method: "POST",
+      headers: { ...headers(config), Prefer: "return=representation" },
+      body: JSON.stringify(payload)
+    }).catch(() => undefined);
+    if (!response?.ok) return respond(502, { ok: false, code: `insert_failed_${response?.status || "unreachable"}` });
+    const rows = await response.json().catch(() => []);
+    return respond(200, { ok: true, row: Array.isArray(rows) ? rows[0] : rows });
+  });
 
   app.get("/research-lab/subsystems", requireAdmin, (req, res) => {
     const sections = [
@@ -88,6 +174,7 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
       } else {
         for (const table of subsystem.tables) {
           sections.push(await tableCard(table, config, headers, escape));
+          if (isWritable(table)) sections.push(createCard(table, escape));
         }
       }
 
@@ -124,6 +211,28 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
     return `<article class="card"><h2>${escapeHtml(table)}</h2><p>${rows.length} row${rows.length === 1 ? "" : "s"}${rows.length === 25 ? " (first 25)" : ""}.</p>${rowsTable(table, rows, escapeHtml)}</article>`;
   }
 
+  // The form, built from the schema rather than listed beside it.
+  function createCard(table, escapeHtml) {
+    const fields = formFields(table);
+    if (!fields.length) return "";
+    const inputs = fields.map((field) => {
+      const required = field.required ? " required" : "";
+      const label = escapeHtml(field.label);
+      const name = escapeHtml(field.name);
+      if (field.type === "choice") {
+        const options = field.values
+          .map((value) => `<option value="${escapeHtml(value)}"${value === field.fallback ? " selected" : ""}>${escapeHtml(String(value).replaceAll("_", " "))}</option>`)
+          .join("");
+        return `<label>${label}<select name="${name}"${required}>${field.required ? "" : "<option value=\"\">Not set</option>"}${options}</select></label>`;
+      }
+      if (field.type === "boolean") return `<label class="choice"><input name="${name}" type="checkbox" value="on"${required}> ${label}</label>`;
+      const inputType = field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "timestamp" ? "datetime-local" : "text";
+      const hint = field.type === "uuid" ? ` <span class="fine">${escapeHtml("Identifier of an existing record.")}</span>` : "";
+      return `<label>${label}<input name="${name}" type="${escapeHtml(inputType)}"${required}></label>${hint}`;
+    }).join("");
+    return `<article class="card" id="${escapeHtml(table)}"><h2>Add to ${escapeHtml(table)}</h2><form method="post" action="/api/research-lab/subsystems/${escapeHtml(table)}">${inputs}<button type="submit">Save</button></form></article>`;
+  }
+
   function structureCard(table, escapeHtml) {
     return `<article class="card"><h2>${escapeHtml(table)}</h2>${structureList(table, escapeHtml)}</article>`;
   }
@@ -141,6 +250,15 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
     return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
   }
 };
+
+function acceptsHtml(req) {
+  const accept = String(req.get("accept") || "");
+  return accept.includes("text/html") && !accept.includes("application/json");
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+}
 
 function esc(value) {
   return String(value == null ? "" : value)

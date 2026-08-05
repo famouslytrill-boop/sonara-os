@@ -911,6 +911,27 @@ paths:
       summary: Return the governed non-secret catalog of Hugging Face models, datasets, and specifications.
       responses:
         "200": { $ref: "#/components/responses/Success" }
+  /api/research-lab/subsystems/{table}:
+    post:
+      operationId: createSubsystemRecord
+      tags: [Operations]
+      summary: Add a record to a subsystem table.
+      description: >-
+        Admin only. The table must be one of the thirty-eight the subsystem
+        registry marks writable; the thirteen that record runs, events, logs,
+        jobs, deployments, memory or approvals are refused, because a
+        hand-entered row there would be a fabricated fact rather than a
+        decision. Fields are derived from the migrations, and organization_id
+        and user_id are set from the session rather than the body.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: table
+          in: path
+          required: true
+          schema: { type: string }
+          description: The subsystem table to write to.
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/ecosystem/open-source:
     get:
       operationId: getOpenSourceRegister

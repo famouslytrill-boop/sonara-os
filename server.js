@@ -494,7 +494,8 @@ registerSonaraSubsystemRoutes(app, {
   escapeHtml,
   requireAdmin,
   getSupabaseServerConfig,
-  supabaseHeaders
+  supabaseHeaders,
+  getCustomerPrimaryOrganization
 });
 
 registerSonaraBusinessControlPlaneRoutes(app, {
