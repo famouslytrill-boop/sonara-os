@@ -4,19 +4,16 @@
 //
 // supabase/config.toml declared `[db.seed] enabled = false` and, two lines
 // below it, `sql_paths = ["./seed.sql"]` -- naming a file this repository has
-// never contained. The Supabase branching integration failed the Seeding task
-// on every pull request that touched supabase/migrations/, with
-// "Error status 400: 413 EntityTooLarge", while Migrations passed in the same
-// run.
+// never contained. This file keeps those two settings honest.
 //
-// The cost was not a red tick. That preview branch is the only thing that
-// applies a migration to a real Postgres before it reaches production, and a
-// check that is always red is a check nobody reads -- so the next migration
-// with a genuine fault would have failed the same way and looked identical.
-//
-// This asserts the two settings agree with each other and with the filesystem,
-// in both directions: a path must name a file that exists, and seeding must not
-// be switched on with nothing to seed from.
+// What it is not: a fix for the Supabase branching integration. That was the
+// reason the inconsistency got noticed -- the integration fails its Seeding
+// task with "413 EntityTooLarge" on every pull request touching supabase/ --
+// and the theory was that it was being asked to seed from a path with no file
+// behind it. The theory was wrong. With sql_paths empty and seeding disabled it
+// fails identically, so the cause lies somewhere this file cannot reach. The
+// checks below are worth keeping on their own terms; they are not evidence
+// about that failure.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
