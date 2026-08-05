@@ -68,7 +68,18 @@ schema_paths = []
 enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
-sql_paths = ["./seed.sql"]
+#
+# Empty because seeding is disabled above and this repository has no seed file.
+# It used to name ./seed.sql, which does not exist, and the Supabase branching
+# integration failed the Seeding task on every pull request that touched
+# supabase/migrations/ -- "Error status 400: 413 EntityTooLarge". Migrations
+# passed in the same run, so nothing about the schema was wrong; the preview
+# branch was being asked to seed from a path with no file behind it.
+#
+# That check is the only thing that tells us a migration applies to a real
+# Postgres before it reaches production, so leaving it permanently red would
+# mean losing the signal entirely.
+sql_paths = []
 
 [db.network_restrictions]
 # Enable management of network restrictions.

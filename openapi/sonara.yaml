@@ -1084,6 +1084,42 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/purchase-order-lines:
+    post:
+      operationId: createBusinessPurchaseOrderLine
+      tags: [Operations]
+      summary: Add a line to a purchase order.
+      description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/stock-count-lines:
+    post:
+      operationId: createBusinessStockCountLine
+      tags: [Operations]
+      summary: Add a counted item to a stock count.
+      description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/transfer-lines:
+    post:
+      operationId: createBusinessTransferLine
+      tags: [Operations]
+      summary: Add an item to a stock transfer.
+      description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/invoice-lines:
+    post:
+      operationId: createBusinessInvoiceLine
+      tags: [Operations]
+      summary: Add a line to a vendor invoice.
+      description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/invoices:
     get:
       operationId: listBusinessInvoices

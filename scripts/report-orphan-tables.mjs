@@ -11,8 +11,9 @@
 //   lib/sonara-tenant-scoped-tables.cjs makes it 0 too -- those are generated
 //   inventories that name every table by construction.
 //   Excluding the generated inventories, and not counting a name that only
-//   appears in a comment, gives 90 -- and 36 once three became Business Builder
-//   workspaces and 51 became readable at /research-lab/subsystems.
+//   appears in a comment, gives 90 -- and 32 once seven became Business Builder
+//   workspaces and line items, and 51 became readable at
+//   /research-lab/subsystems.
 //
 // So this script fixes the definition rather than the count. A table is orphaned
 // when no file that actually queries something names it. The generated
@@ -22,7 +23,8 @@
 // --check fails when an orphan appears that lib/sonara-orphan-tables.cjs does
 // not account for -- and when a listed table starts being queried, so the list
 // cannot outlive the problem it describes. That second half is what caught 51
-// stale entries the moment /research-lab/subsystems began reading them.
+// stale entries the moment /research-lab/subsystems began reading them, and four
+// more when the line-item pages were built.
 
 import fs from "node:fs";
 import path from "node:path";

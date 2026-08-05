@@ -4,6 +4,7 @@ const {
   ALL_OWNER_PAGES,
   CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
+  money,
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 
@@ -143,6 +144,93 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         sections,
         actions: ownerActions(ui, page.path)
       }));
+    });
+  });
+
+  // The four pages whose records have line items: purchase orders, stock
+  // counts, transfers and vendor invoices. A purchase order with no lines is a
+  // number with nothing behind it, so the parent page alone was not the
+  // feature.
+  //
+  // Lines are reachable only through their parent. lib/sonara-orphan-tables.cjs
+  // classified all four line tables "build-with-parent" for that reason: a
+  // standalone "add a line" form would be a way to create rows belonging to
+  // nothing.
+  ALL_OWNER_PAGES.filter((page) => page.lines).forEach((page) => {
+    app.get(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
+      const config = getConfig(deps);
+      const org = await resolveOrganization(req, deps);
+      const recordId = String(req.params.recordId || "");
+      if (!isUuid(recordId)) return res.status(404).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: "Not found",
+        body: "That record reference is not one of ours.",
+        sections: [ui.card("Nothing to show", "Go back to the list and open a record from there.")],
+        actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
+      }));
+
+      let parent = null;
+      let lines = [];
+      let unavailable = null;
+      if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
+      else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
+      else {
+        // Scoped by organization as well as by id. The service key bypasses row
+        // level security, so without the organization filter a guessed id from
+        // another business would open.
+        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+        parent = found.ok ? found.rows[0] : null;
+        if (!parent) unavailable = "That record is not in your business, or it has been removed.";
+        else {
+          const listed = await supabaseList(config, page.lines.table, `?select=*&${page.lines.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
+          lines = listed.ok ? listed.rows : [];
+        }
+      }
+
+      const sections = unavailable
+        ? [ui.card("Not available right now", unavailable)]
+        : [summaryCard(page, parent, ui), linesCard(page, lines, ui), lineFormCard(page, recordId, ui)];
+
+      return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
+        title: page.title,
+        eyebrow: "Business Builder operations",
+        heading: page.title,
+        body: page.lines.title,
+        sections,
+        actions: [ui.link(page.path, `All ${page.title.toLowerCase()}`), ui.link("/business-builder/owner", "Owner Dashboard"), ui.link("/business-builder/dashboard", "Dashboard")]
+      }));
+    });
+
+    // Saving a line returns to the record it belongs to, not to a JSON body.
+    app.post(page.lines.api, requireBusinessManager, async (req, res) => {
+      const parentId = String(req.body[page.lines.parentColumn] || "");
+      const back = isUuid(parentId) ? `${page.path}/${parentId}` : page.path;
+      const respond = (status, payload) => {
+        if (!acceptsHtml(req)) return res.status(status).json(payload);
+        if (payload.ok) return res.redirect(303, back);
+        return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+      };
+      if (!isUuid(parentId)) return respond(400, { ok: false, code: "parent_required" });
+      if (!String(req.body.item_name || "").trim()) return respond(400, { ok: false, code: "missing_required", missing: ["item_name"] });
+      const config = getConfig(deps);
+      if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+      const org = await resolveOrganization(req, deps);
+      if (!org.ok) return respond(403, org);
+
+      // The parent has to belong to this business before anything is attached
+      // to it. Without this check a line could be written into another
+      // organization's order by posting its id.
+      const owned = await supabaseList(config, page.table, `?select=id&id=eq.${encodeURIComponent(parentId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+      if (!owned.ok || !owned.rows.length) return respond(403, { ok: false, code: "parent_not_yours" });
+
+      const submitted = dropBlanks(req.body);
+      delete submitted.organization_id;
+      delete submitted.user_id;
+      delete submitted.id;
+      const payload = sanitizeObject({ ...submitted, [page.lines.parentColumn]: parentId, organization_id: org.organizationId });
+      const saved = await supabaseInsert(config, page.lines.table, payload);
+      return respond(saved?.ok === false ? 502 : 200, saved);
     });
   });
 
@@ -486,10 +574,19 @@ async function loadReferences(config, organizationId, page) {
 }
 
 function recordsCard(page, rows, ui) {
-  const head = page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
+  // A record with line items gets an extra column linking to them. Without it
+  // the detail page exists and nothing points at it, which is the shape of
+  // dead-end this codebase has shipped before.
+  const opens = Boolean(page.lines);
+  const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...(opens ? ["<th>Details</th>"] : [])].join("");
+  const width = page.columns.length + (opens ? 1 : 0);
   const body = rows.length
-    ? rows.map((row) => `<tr>${page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${page.columns.length}">${ui.escape(page.empty)}</td></tr>`;
+    ? rows.map((row) => {
+      const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
+      if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      return `<tr>${cells.join("")}</tr>`;
+    }).join("")
+    : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
   const count = rows.length === 1 ? "1 record" : `${rows.length} records`;
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
 }
@@ -501,6 +598,47 @@ function safeCell(column, row) {
   } catch {
     return "Not set";
   }
+}
+
+// The parent record, said back to the person who opened it. Uses the same
+// column definitions as the list, so the detail page cannot describe a record
+// differently from the row that led to it.
+function summaryCard(page, row, ui) {
+  const cells = page.columns
+    .map((column) => `<tr><th>${ui.escape(column.label)}</th><td>${ui.escape(safeCell(column, row))}</td></tr>`)
+    .join("");
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
+}
+
+function linesCard(page, rows, ui) {
+  const spec = page.lines;
+  const head = spec.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
+  const body = rows.length
+    ? rows.map((row) => `<tr>${spec.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
+    : `<tr><td colspan="${spec.columns.length}">${ui.escape(spec.empty)}</td></tr>`;
+  // Totalled from the lines that are actually here, and only when every one of
+  // them carries a number. A total computed over rows with missing values would
+  // read as the real figure while being short by however many were blank.
+  const amounts = rows.map((row) => Number(row[spec.totalFrom]));
+  const complete = amounts.length && amounts.every((amount) => Number.isFinite(amount));
+  const total = complete
+    ? `<p>Total of these lines: ${ui.escape(money(amounts.reduce((sum, amount) => sum + amount, 0)))}</p>`
+    : rows.length ? "<p>Not totalled: some lines have no amount recorded.</p>" : "";
+  return `<article class="card"><h2>${ui.escape(spec.title)}</h2>${total}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+// The parent id travels as a hidden field. The handler still checks the parent
+// belongs to this business before writing, because a hidden field is a value
+// the person submitting chooses.
+function lineFormCard(page, recordId, ui) {
+  const spec = page.lines;
+  const fields = spec.form.fields.map((field) => formField(field, {}, ui)).join("");
+  const parent = `<input type="hidden" name="${ui.escape(spec.parentColumn)}" value="${ui.escape(recordId)}">`;
+  return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
 function formCard(page, references, ui) {
