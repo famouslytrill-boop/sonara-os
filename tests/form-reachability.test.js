@@ -49,13 +49,18 @@ const NO_FORM_NEEDED = {
   // Written by the system or an integration, not by hand. Same reasoning as the
   // growth records left out of lib/sonara-growth-create-specs.cjs.
   "/api/growth/provider-jobs": "Queued by the provider integration; a hand-entered job would describe work nobody sent.",
-  "/api/growth/touchpoints": "Records that something happened. A hand-entry form is a form for fabricating the evidence the totals rest on.",
-  "/api/growth/conversions": "Same as touchpoints. Recording an offline sale is a real feature and needs its own design, not a field on a generic form.",
+  // Still refused, and the reason has been sharpened rather than dropped.
+  // /growth-studio/touchpoints now exists and lists contact history, so "no
+  // page to put a form on" is no longer why. growth_touchpoints has no column
+  // recording that a person typed a row in, so a hand-entered touchpoint is
+  // indistinguishable from a tracked one in the trail every attribution figure
+  // is matched against. Conversions got a form because attribution_confidence
+  // lets a hand-entered sale say it is not established; this table has no
+  // equivalent. An offline-touchpoint feature starts with that column.
+  "/api/growth/touchpoints": "Records that something happened, with no field marking a row as hand-entered. A form would put fabricated evidence beside tracked evidence with nothing to tell them apart.",
   "/api/formulas/results": "Written when a formula is evaluated, not composed by hand.",
 
   // Endpoints with no page to put a form on. These are the actual work queue.
-  "/api/growth/content": "NOT YET BUILT: has an endpoint, no record page. Needs a page before it can have a form.",
-  "/api/growth/automations": "NOT YET BUILT: has an endpoint, no record page. Would be created inactive.",
   "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
   "/api/creator/generation/voice-consents": "NOT YET EXAMINED: consent record for voice work, no form found.",
   "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",

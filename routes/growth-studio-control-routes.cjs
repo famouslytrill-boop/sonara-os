@@ -34,7 +34,9 @@ const APPROVAL_OPERATIONS = new Set(["direct_post", "draft_upload", "content_pub
 
 module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => pass;
+  const requirePaidOrOwnerAccess = typeof deps.requirePaidOrOwnerAccess === "function" ? deps.requirePaidOrOwnerAccess : requireWorkspaceAccess;
   const access = requireWorkspaceAccess("growth_studio");
+  const paidAccess = requirePaidOrOwnerAccess("growth_studio");
   const ui = buildUi(deps);
 
   app.get("/api/growth/providers", access, (req, res) => {
@@ -503,7 +505,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   // These six were 302s to /api/ URLs. See lib/sonara-growth-record-pages.cjs
   // for why that survived so long without a test objecting.
   for (const page of GROWTH_RECORD_PAGES) {
-    app.get(page.path, access, async (req, res) => {
+    // Four of these replaced paid placeholder pages. Handing them the
+    // signed-in-only gate would have turned "this unlocks with a plan" into a
+    // free workspace as a side effect of building the real page.
+    const pageAccess = page.paid ? paidAccess : access;
+    app.get(page.path, pageAccess, async (req, res) => {
       const context = await resolveContext(req, deps);
       const config = getConfig(deps);
       let rows = [];
@@ -845,6 +851,11 @@ function createFormCard(spec, escape) {
         .join("");
       return `<label>${label}<select name="${escape(column)}"${required}>${opts}</select></label>`;
     }
+    // An unticked box submits nothing at all, and truthy(undefined) is false --
+    // so the handler refuses exactly when the customer did not tick it, which
+    // is the behaviour an attestation needs. "on" is what a ticked box sends
+    // and is already in truthy()'s list.
+    if (kind === "checkbox") return `<label class="choice"><input name="${escape(column)}" type="checkbox" value="on"${required}> ${label}</label>`;
     if (kind === "longText") return `<label>${label}<textarea name="${escape(column)}" rows="4" maxlength="${options.max || 4000}"${required}></textarea></label>`;
     if (kind === "date") return `<label>${label}<input name="${escape(column)}" type="date"${required}></label>`;
     if (kind === "number") return `<label>${label}<input name="${escape(column)}" type="number" step="0.01"${required}></label>`;

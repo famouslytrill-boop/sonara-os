@@ -586,6 +586,7 @@ registerGrowthStudioControlRoutes(app, {
   linkAction,
   escapeHtml,
   requireWorkspaceAccess,
+  requirePaidOrOwnerAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders

@@ -34,15 +34,24 @@
 const assert = require("node:assert/strict");
 const request = require("supertest");
 
-const SUPABASE_KEYS = ["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"];
-const original = Object.fromEntries(SUPABASE_KEYS.map((key) => [key, process.env[key]]));
+// Set in before() and restored in after(), which is the convention
+// tests/setup-env.cjs states: it strips every SUPABASE_ variable for isolation,
+// and a file that wants configured providers sets them for its own run.
+//
+// An earlier version set them at module scope instead. That looks equivalent
+// and is not: mocha loads every file before running any test, so module-scope
+// assignments from several files pile up and the first after() to fire deletes
+// them for everyone downstream. This file passed alone and failed in the suite
+// the moment another file adopted the same shortcut. Nothing here needs the
+// variables at require time -- getReadiness() and getSupabaseServerConfig()
+// both read process.env when called.
+const SUPABASE_ENV = Object.freeze({
+  NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-anon-key-for-crawl",
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-role-for-crawl"
+});
+const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key, process.env[key]]));
 
-process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
-process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-anon-key-for-crawl";
-process.env.SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-role-for-crawl";
-
-// server.js reads configuration at require time, so the environment has to be
-// in place before this line.
 const app = require("../server");
 const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
 
@@ -130,6 +139,7 @@ describe("a signed-in customer opening every workspace", () => {
   let realFetch;
 
   before(() => {
+    Object.assign(process.env, SUPABASE_ENV);
     realFetch = global.fetch;
     global.fetch = stubFetch();
   });
@@ -137,9 +147,9 @@ describe("a signed-in customer opening every workspace", () => {
   after(() => {
     global.fetch = realFetch;
     entitled = false;
-    for (const key of SUPABASE_KEYS) {
-      if (original[key] === undefined) delete process.env[key];
-      else process.env[key] = original[key];
+    for (const [key, value] of Object.entries(original)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
     }
   });
 

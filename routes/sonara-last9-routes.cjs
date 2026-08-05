@@ -1,32 +1,54 @@
 "use strict";
 
 const {
-  OWNER_RECORD_PAGES,
+  ALL_OWNER_PAGES,
   CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 
+// `person` names the column that records who created the row, and it is here
+// because leaving it implicit broke every form on these pages.
+//
+// The insert used to end with `user_id: org.userId || null` for all of them.
+// Seventeen of these nineteen tables have no user_id column, and PostgREST
+// rejects an insert naming a column that is not there -- so a customer filling
+// in a location, a service, a booking, an inventory item or a vendor was
+// redirected back to the page with ?problem= and nothing saved. Every stub in
+// the suite accepted the payload, so nothing objected.
+//
+// Where a table does record a person it is under its own name: created_by on
+// vendor invoices, logged_by on waste. Those are filled in now rather than
+// left null. Where a table records nobody, `person` is omitted and the insert
+// names no such column. tests/owner-record-inserts.test.js checks every entry
+// below against lib/sonara-migration-columns.cjs, so a wrong name here fails
+// rather than shipping as a form that silently will not save.
 const RESOURCE_MAP = {
   "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" } },
   "/api/business/services": { table: "business_service_catalog", required: ["name"], defaults: { status: "active" } },
   "/api/business/bookings": { table: "business_bookings", required: ["customer_name"], defaults: { status: "requested" } },
-  "/api/business/staff": { table: "business_employee_profiles", required: ["display_name"], defaults: { status: "active", employment_type: "employee" } },
+  "/api/business/staff": { table: "business_employee_profiles", required: ["display_name"], person: "user_id", defaults: { status: "active", employment_type: "employee" } },
   "/api/business/schedules": { table: "employee_schedules", required: ["employee_id", "starts_at", "ends_at"], defaults: { status: "scheduled" } },
   "/api/business/vendors": { table: "vendor_accounts", required: ["name"], defaults: { status: "active" } },
-  "/api/business/invoices": { table: "vendor_invoices", required: ["vendor_id"], defaults: { processing_status: "draft", payment_status: "unpaid" } },
+  "/api/business/invoices": { table: "vendor_invoices", required: ["vendor_id"], person: "created_by", defaults: { processing_status: "draft", payment_status: "unpaid" } },
   "/api/business/inventory": { table: "inventory_items", required: ["name"], defaults: { status: "active", unit: "each" } },
   "/api/business/recipes": { table: "recipe_cards", required: ["name"], defaults: { status: "active" } },
   "/api/business/menu-items": { table: "menu_items", required: ["name"], defaults: { status: "active", currency: "usd" } },
   "/api/business/vehicles": { table: "vehicle_records", required: ["vehicle_type"], defaults: { status: "active" } },
   "/api/business/maintenance": { table: "maintenance_logs", required: ["description"], defaults: { status: "completed", currency: "usd" } },
-  "/api/business/waste": { table: "waste_logs", required: ["item_name"], defaults: {} },
-  "/api/creator/music-projects": { table: "music_projects", required: ["title"], defaults: { status: "draft", project_type: "song" } },
-  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], defaults: { status: "queued" } },
+  "/api/business/waste": { table: "waste_logs", required: ["item_name"], person: "logged_by", defaults: {} },
+  "/api/creator/music-projects": { table: "music_projects", required: ["title"], person: "user_id", defaults: { status: "draft", project_type: "song" } },
+  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "queued" } },
   "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
   "/api/sensory/haptic-patterns": { table: "haptic_patterns", required: ["pattern_key", "name", "event_name"], defaults: { status: "active" } },
-  "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } }
+  "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } },
+  // The three operations workspaces. Each parent table records who raised the
+  // row; the lines tables under them are not resources here, because a line
+  // detached from its order or count is an orphaned row.
+  "/api/business/purchase-orders": { table: "purchase_orders", required: [], person: "created_by", defaults: { status: "draft", currency: "usd" } },
+  "/api/business/stock-counts": { table: "inventory_count_sessions", required: [], person: "counted_by", defaults: { status: "draft" } },
+  "/api/business/transfers": { table: "location_transfers", required: [], person: "created_by", defaults: { status: "draft" } }
 };
 
 const PUBLIC_GETS = new Map([
@@ -95,7 +117,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // The fourteen owner record pages: the customer's own records, and a form to
   // add one. Before this they rendered a description of themselves and nothing
   // else, while the API behind them already worked.
-  OWNER_RECORD_PAGES.forEach((page) => {
+  ALL_OWNER_PAGES.forEach((page) => {
     app.get(page.path, requireBusinessManager, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
@@ -319,7 +341,15 @@ function registerRestResource(app, path, resource, deps, middleware) {
     if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
-    const payload = sanitizeObject({ ...resource.defaults, ...dropBlanks(req.body), organization_id: org.organizationId, user_id: org.userId || req.body.user_id || null });
+    // Only name a person column the table actually has. See RESOURCE_MAP.
+    const person = resource.person ? { [resource.person]: org.userId || req.body[resource.person] || null } : {};
+    // A form posts strings, so a blank optional field arrives as "" rather than
+    // absent. dropBlanks already removes those; this also stops a body key
+    // called user_id from reintroducing the column that caused the problem.
+    const submitted = dropBlanks(req.body);
+    delete submitted.user_id;
+    delete submitted.organization_id;
+    const payload = sanitizeObject({ ...resource.defaults, ...submitted, ...person, organization_id: org.organizationId });
     const saved = await supabaseInsert(config, resource.table, payload);
     return respond(saved?.ok === false ? 502 : 200, saved);
   });
@@ -504,7 +534,7 @@ function formField(field, references, ui) {
 function ownerActions(ui, currentPath) {
   return [
     ui.link("/business-builder/owner", "Owner Dashboard"),
-    ...OWNER_RECORD_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
+    ...ALL_OWNER_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
     ui.link("/business-builder/dashboard", "Dashboard")
   ];
 }
@@ -621,3 +651,9 @@ function toNumberOrNull(value) {
 function passthrough(req, res, next) {
   return next();
 }
+
+// Exported so tests/owner-record-inserts.test.js can check every entry's table
+// and person column against lib/sonara-migration-columns.cjs. A payload naming
+// a column the table does not have is rejected by PostgREST, which is how every
+// form on these pages came to silently not save.
+module.exports.RESOURCE_MAP = RESOURCE_MAP;
