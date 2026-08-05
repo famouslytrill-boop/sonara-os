@@ -23,8 +23,17 @@ const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
 const DECISIONS = new Set(["retire", "keep", "build", "build-with-parent", "defer", "await direction"]);
 
 describe("the tables nothing queries", () => {
-  it("lists enough to be describing the problem", () => {
-    assert.ok(ORPHAN_TABLES.length >= 50, `only ${ORPHAN_TABLES.length} classified; this check has gone blind`);
+  it("still holds the entries that matter, so it has not gone blind", () => {
+    // Not a count. The list legitimately shrinks as tables get built -- it went
+    // from 87 to 36 when /research-lab/subsystems began reading 51 of them --
+    // so a floor would have to be lowered every time and would stop meaning
+    // anything. What must not vanish silently is the retirement list: those are
+    // the thirteen a migration acts on.
+    const retiring = tablesWithDecision("retire");
+    assert.ok(retiring.length >= 10, `only ${retiring.length} tables marked for retirement; this check has gone blind`);
+    for (const expected of ["billing_customers", "contact_records", "audit_events"]) {
+      assert.ok(ORPHAN_TABLES.includes(expected), `${expected} is no longer classified, and nothing queries it`);
+    }
   });
 
   it("names only tables the migrations actually create", () => {
