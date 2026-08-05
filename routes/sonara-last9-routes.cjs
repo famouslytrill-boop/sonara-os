@@ -1,7 +1,7 @@
 "use strict";
 
 const {
-  OWNER_RECORD_PAGES,
+  ALL_OWNER_PAGES,
   CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
   pageForApi
@@ -42,7 +42,13 @@ const RESOURCE_MAP = {
   "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
   "/api/sensory/haptic-patterns": { table: "haptic_patterns", required: ["pattern_key", "name", "event_name"], defaults: { status: "active" } },
-  "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } }
+  "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } },
+  // The three operations workspaces. Each parent table records who raised the
+  // row; the lines tables under them are not resources here, because a line
+  // detached from its order or count is an orphaned row.
+  "/api/business/purchase-orders": { table: "purchase_orders", required: [], person: "created_by", defaults: { status: "draft", currency: "usd" } },
+  "/api/business/stock-counts": { table: "inventory_count_sessions", required: [], person: "counted_by", defaults: { status: "draft" } },
+  "/api/business/transfers": { table: "location_transfers", required: [], person: "created_by", defaults: { status: "draft" } }
 };
 
 const PUBLIC_GETS = new Map([
@@ -111,7 +117,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // The fourteen owner record pages: the customer's own records, and a form to
   // add one. Before this they rendered a description of themselves and nothing
   // else, while the API behind them already worked.
-  OWNER_RECORD_PAGES.forEach((page) => {
+  ALL_OWNER_PAGES.forEach((page) => {
     app.get(page.path, requireBusinessManager, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
@@ -528,7 +534,7 @@ function formField(field, references, ui) {
 function ownerActions(ui, currentPath) {
   return [
     ui.link("/business-builder/owner", "Owner Dashboard"),
-    ...OWNER_RECORD_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
+    ...ALL_OWNER_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
     ui.link("/business-builder/dashboard", "Dashboard")
   ];
 }

@@ -51,7 +51,13 @@ const SUBMISSIONS = Object.freeze({
   "/api/business/maintenance": { description: "Brake service" },
   "/api/business/waste": { item_name: "Milk" },
   "/api/creator/music-projects": { title: "First demo" },
-  "/api/location/zones": { name: "Delivery area" }
+  "/api/location/zones": { name: "Delivery area" },
+  // The three operations workspaces, which were built against tables the
+  // application had never queried. Getting a column name wrong there is the
+  // same failure as the original bug, on a page with no history of working.
+  "/api/business/purchase-orders": { po_number: "PO-1001", notes: "Weekly order" },
+  "/api/business/stock-counts": { count_date: "2026-08-05", notes: "Monthly count" },
+  "/api/business/transfers": { notes: "Move stock to the second shop" }
 });
 
 let captured = new Map();

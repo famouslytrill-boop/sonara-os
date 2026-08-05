@@ -123,13 +123,35 @@ audit needs the workspace path of every row checked by hand against what that
 page can do; my attempt to compute it conflated dashboards with record
 workspaces and is not included.
 
-## Finding 3 — the database carries 206 tables the application never names
+## Finding 3 — tables the application never queries
 
-300 tables are created across `supabase/migrations/`. 94 are named anywhere in
-the application source. 206 are not named anywhere.
+**This finding's headline number was wrong, and the way it was wrong is the
+useful part.** It said 300 tables are created, 94 are named anywhere in the
+application source, and 206 are not. That count cannot be reproduced, because
+"named anywhere in the application source" is not a well-defined measure:
 
-The orphans are not random. Many are earlier-generation versions of tables that
-are live under a different name:
+- Count `docs/` as source and the answer is **0** — this document lists every
+  orphan by name, so the audit made its own finding disappear.
+- Count `lib/sonara-database-contract.cjs` and
+  `lib/sonara-tenant-scoped-tables.cjs` and the answer is **0** again. Those are
+  generated inventories that name every table by construction, so a table
+  appearing in them is not evidence anything uses it.
+- Count a name that appears only in a code comment and three more tables look
+  used that are not.
+
+Measured as *no file that queries anything names it*, with generated
+inventories and comments excluded, it was **90**. It is **87** now, because
+three of them became workspaces in the same change that corrected this section.
+
+`scripts/report-orphan-tables.mjs` is that measurement. It recomputes on every
+run, so no number stored in a document can drift from the schema again, and
+`pnpm run verify:orphan-tables` fails when a table is created that nothing
+queries and nothing has classified.
+
+### The observation underneath it still holds
+
+Many orphans are earlier-generation versions of tables that are live under a
+different name:
 
 | Orphaned table | The one the app actually uses |
 | --- | --- |
@@ -138,9 +160,9 @@ are live under a different name:
 | `bookings` | `business_bookings` |
 | `leads` | `growth_leads` |
 | `employee_profiles` | `business_employee_profiles` |
-| `creator_profiles`, `creator_releases` | `creator_assets` |
-| `billing_customers` | `stripe_customers` |
-| `audit_log`, `audit_logs`, `audit_events` | `admin_audit_logs` |
+| `billing_customers`, `sonara_billing_customers` | `stripe_customers` |
+| `audit_events`, `permission_audit_logs` | `admin_audit_logs` |
+| `contact_records` | `customer_records` |
 
 This is worth stating plainly because of how it looks from the owner's seat.
 Open the database, look for the workspace you expect, and the table with the
@@ -148,19 +170,36 @@ obvious name is there and empty — and always will be, because the application
 writes somewhere else. "The workspace is missing" is a reasonable conclusion to
 draw from that, and it is what the schema is telling you.
 
-Three or four generations of schema are layered here. Nothing is broken by
-their presence, but they cost real things: every `select *` planner decision,
-every migration replay, every backup, and every attempt to understand the
-system by reading the schema.
+### "Drop them" was also the wrong action for most of the list
 
-**Removing them is a destructive change and needs owner approval before
-anything is written.** They are listed, not touched.
+`lib/sonara-orphan-tables.cjs` records a decision per table. They are not one
+problem:
+
+| Kind | Count | What it is | Action |
+| --- | --- | --- | --- |
+| superseded | 13 | An earlier generation of a live table | Retire, successor named per table |
+| unbuilt subsystem | 51 | A subsystem designed in SQL and never written — 18 `github_repository_*`, 11 `entity_*`, 9 platform registries, 8 open-source review, 5 sub-app builder | Await direction |
+| buildable | 19 | An ordinary feature with a real schema and no code | Build, or deferred with a stated reason |
+| system | 4 | Written by infrastructure, not the application | Keep |
+
+Only the 13 superseded tables are deletion candidates, and each names what
+replaced it so the decision can be made one at a time rather than as a bulk
+operation. **Whether any of them hold rows cannot be answered from this
+repository.** That check belongs against the live project, before any drop.
+
+Three tables moved off this list by being built rather than dropped:
+`purchase_orders`, `inventory_count_sessions` and `location_transfers` are now
+`/business-builder/owner/purchase-orders`, `/stock-counts` and `/transfers`.
+Their `_lines` children deliberately have no pages of their own — a line
+detached from its order or count is an orphaned row.
 
 ## What is not in this document
 
-- Whether each of the 149 product pages renders something useful to a
-  signed-in customer. Checking that properly needs an authenticated session
-  against the live Supabase project, which this environment cannot open.
+- Whether each of the 149 product pages renders something *useful* to a
+  signed-in customer. tests/signed-in-workspace-crawl.test.js now checks that
+  207 of 232 pages render rather than erroring for a signed-in account with no
+  records, which is the floor. Whether what they render is worth reading is
+  still not measured here.
 - A complete catalog-row-to-workflow map, for the reason given in Finding 2.
 - Any judgement about which of the twelve missing Growth Studio flows matter
   most commercially. That is an owner's decision, not an engineering one.
