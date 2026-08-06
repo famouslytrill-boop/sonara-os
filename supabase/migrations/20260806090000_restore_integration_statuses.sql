@@ -25,16 +25,25 @@
 -- In production the table is in `retired` holding 23 rows, because the drop
 -- refused it. Moving it back is enough.
 --
--- On a fresh database it is gone entirely. The replay runs create, then retire
--- (moving an empty table), then drop -- which sees zero rows and removes it.
--- Moving nothing back would leave a rebuilt database without a table production
--- has, and that divergence is worse than the original mistake: every later
--- migration and every gate would be reasoning about a schema that only exists in
--- one place. So when there is nothing to move, this recreates it.
+-- On a database built by replaying every migration from nothing -- a local
+-- `supabase db reset`, or a rebuild from scratch -- it is gone entirely. The
+-- replay runs create, then retire (moving an empty table), then drop, which
+-- sees zero rows and removes it. Moving nothing back would leave that database
+-- without a table production has, so when there is nothing to move this
+-- recreates it, matching 20260714150000 exactly.
 --
--- The create matches 20260714150000 exactly. Rewriting that migration to skip
--- the drop would have been tidier and is not allowed -- it has already been
--- applied.
+-- Rewriting 20260714150000 to skip the drop would have been tidier and is not
+-- allowed: it has already been applied.
+--
+-- One correction worth leaving here, because the first version of this comment
+-- got it wrong and the wrong version reads perfectly plausibly. It claimed the
+-- Supabase preview branch would apply a different schema from production
+-- without this. It would not: preview branches are cloned from production, not
+-- replayed from zero. Checked rather than reasoned about -- the preview branch
+-- for this pull request came up with all 23 rows present, which only happens if
+-- the data came across with the schema. The recreate below is still needed, for
+-- the local-reset case above, and the justification originally given for it was
+-- false.
 
 do $$
 begin
