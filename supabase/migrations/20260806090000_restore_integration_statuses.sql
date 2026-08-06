@@ -19,30 +19,54 @@
 -- lost the reasons, and the next person asking "can we use this?" would have
 -- had to decide again from nothing.
 --
--- Safe to replay: it moves the table only if it is in `retired` and nothing of
--- that name is already back in public.
+-- Two paths, because production and a fresh rebuild are in different states and
+-- both have to end up the same.
+--
+-- In production the table is in `retired` holding 23 rows, because the drop
+-- refused it. Moving it back is enough.
+--
+-- On a fresh database it is gone entirely. The replay runs create, then retire
+-- (moving an empty table), then drop -- which sees zero rows and removes it.
+-- Moving nothing back would leave a rebuilt database without a table production
+-- has, and that divergence is worse than the original mistake: every later
+-- migration and every gate would be reasoning about a schema that only exists in
+-- one place. So when there is nothing to move, this recreates it.
+--
+-- The create matches 20260714150000 exactly. Rewriting that migration to skip
+-- the drop would have been tidier and is not allowed -- it has already been
+-- applied.
 
 do $$
 begin
-  if not exists (
+  if exists (
     select 1 from information_schema.tables
-    where table_schema = 'retired' and table_name = 'integration_statuses'
+    where table_schema = 'public' and table_name = 'integration_statuses'
   ) then
-    raise notice 'restore: retired.integration_statuses is not present, nothing to move';
+    raise notice 'restore: public.integration_statuses is already present, nothing to do';
     return;
   end if;
 
   if exists (
     select 1 from information_schema.tables
-    where table_schema = 'public' and table_name = 'integration_statuses'
+    where table_schema = 'retired' and table_name = 'integration_statuses'
   ) then
-    raise warning 'restore: public.integration_statuses already exists; leaving retired.integration_statuses alone rather than colliding';
-    return;
+    alter table retired.integration_statuses set schema public;
+    raise notice 'restore: integration_statuses moved back from retired, with its rows';
+  else
+    -- Dropped, which is what happens on a fresh replay where it was empty.
+    -- Recreated so a rebuilt database matches production.
+    create table public.integration_statuses (
+      id uuid primary key default gen_random_uuid(),
+      integration_key text not null unique,
+      status text not null default 'setup_required',
+      detail text,
+      metadata jsonb not null default '{}'::jsonb,
+      updated_at timestamptz not null default now()
+    );
+    alter table public.integration_statuses enable row level security;
+    raise notice 'restore: integration_statuses recreated empty (it had been dropped)';
   end if;
-
-  alter table retired.integration_statuses set schema public;
   comment on table public.integration_statuses is
     'Which external integrations are blocked, quarantined, developer-only or awaiting setup, and why. Read at /research-lab/subsystems. Retired in error on 2026-08-05 as "superseded by integration_jobs"; it is a policy register, not a work queue.';
-  raise notice 'restore: integration_statuses moved back to public';
 end
 $$;
