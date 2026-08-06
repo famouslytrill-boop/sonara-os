@@ -29,6 +29,38 @@ export type OpenSourceToolRecord = {
 
 export const openSourceTools: OpenSourceToolRecord[] = [
   {
+    name: "Awesome LLM Apps",
+    slug: "awesome-llm-apps-agent-collection",
+    category: ["AI agent examples", "RAG application examples", "agent framework tutorials", "reference collection"],
+    useCase: ["read how others structure agent and retrieval applications", "compare framework approaches", "nothing runnable in this product"],
+    productFit: [],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "read only",
+      "do not copy application code into SONARA",
+      "revisit only if the owner decides SONARA should run AI features, which it currently does not",
+    ],
+    officialUrl: "https://github.com/Shubhamsaboo/awesome-llm-apps",
+    repoUrl: "https://github.com/Shubhamsaboo/awesome-llm-apps",
+    notes: "About 100 tutorial applications built on LLM agents -- LangGraph, CrewAI, AG2, Pydantic AI, Google ADK, OpenAI SDK -- covering agent teams, voice agents, autonomous game players, MCP agents and RAG. The licence is permissive and is not the constraint. The constraint is the product: SONARA does not run AI features and does not describe itself as AI, and scripts/verify-supabase-contract.mjs asserts on every release that the agent foundation has no runtime. Every application here presumes exactly the thing this product does not do, so productFit is deliberately empty rather than padded with the three product names.",
+    safetyBoundaries: [
+      "no application code copied or adapted into SONARA",
+      "no agent runtime introduced",
+      "no model provider called from product code outside the Provider Gateway",
+      "no customer data sent to any example application",
+      "no public claim that SONARA uses AI",
+    ],
+    blockedUses: [
+      "cloning or reverse-engineering any application in this collection into SONARA",
+      "using it as the basis for an agent runtime while the release gate asserts there is none",
+      "shipping any feature that would require describing SONARA as AI",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "prompts.chat",
     slug: "prompts-chat-library",
     category: ["prompt library", "prompt engineering", "self-hosted knowledge library", "MCP research"],
