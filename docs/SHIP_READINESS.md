@@ -54,21 +54,54 @@ After enabling it, set `SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true`. Until
 that variable is set, the deploy prints a warning and passes either way — so a
 green deploy currently tells you nothing about whether the toggle is on.
 
-### 3. Qualified legal review
+### 3. Twelve authorization functions are callable by any signed-in user
 
-`docs/legal/COUNSEL_REVIEW_BRIEF.md` states what the system actually does —
-every cookie, every third party that receives data, what is refused outright —
-derived from the code, with the commands to re-check it. Take it into the
-engagement so the time is spent on judgement rather than discovery.
+Replaces the legal review that sat here. That was not a shipping step — it is a
+decision about engaging counsel, and parking it on this list meant the list had
+a permanent item nobody could close. The legal position is unchanged and stated
+where it belongs: every legal page says the terms are not legal advice,
+`tests/server.test.js` asserts that and asserts no page ever claims attorney
+review, and `/readiness` still carries both the "Legal pages" and "Legal review
+boundary" cards.
 
-F-1 (undisclosed Google Fonts recipient) and F-4 (inconsistent password floor)
-are resolved. F-3 — policy text that says "should" where a commitment belongs —
-and the substantive terms are the judgement being bought.
+What replaces it is real, current, and came from the live project rather than
+from this repository. Supabase's security advisor reports:
 
-The pages no longer describe their own review status to customers, at the
-owner's direction. They also make no claim that counsel has reviewed them,
-because none has, and a test asserts they never say *attorney-reviewed*,
-*legally approved*, or *reviewed by counsel*.
+**Twelve `SECURITY DEFINER` functions are executable by the `authenticated`
+role over `/rest/v1/rpc/`.** These are the authorization primitives themselves:
+
+    is_admin()                     is_current_user_admin()
+    has_org_role(...)  (x2)        is_org_member(...)
+    has_scope(...)                 is_org_owner_or_admin(...)
+    has_company_access(...)        is_entity_member(...)
+    has_entity_role(...)           can_manage_entity(...)
+    sonara_has_org_role(...)       sonara_is_org_member(...)
+
+A `SECURITY DEFINER` function runs with its owner's privileges, so it is not
+subject to the row level security that would otherwise apply. Each of these
+appears to answer a question about the caller and return a boolean, which is why
+this is a warning rather than an open door — but they are the functions every
+RLS policy in the schema depends on, and they are reachable directly.
+
+**This has not been changed, deliberately.** Revoking `EXECUTE` from
+`authenticated` is the advisor's suggested remediation, and it is exactly the
+change that could silently break every RLS policy that calls them: a policy
+evaluates as the calling role, so removing the grant can turn a working policy
+into a denial. Verifying that needs a database somebody can break — a preview
+branch — not a guess. It is written down here rather than acted on because
+acting on it wrongly locks customers out of their own records.
+
+**Leaked password protection is still disabled**, confirmed against the live
+project rather than assumed. Item 2 above covers it.
+
+**Fifteen tables have RLS enabled with no policy**, reported as INFO. That is
+the safe state, not a gap: RLS with no policy denies everything except the
+service role, which is what a service-role-only table should do. Recorded so
+nobody "fixes" it by adding a permissive policy.
+
+The Supabase MCP connection is read-only by contract
+(`scripts/verify-supabase-contract.mjs` asserts `read_only=true` in the config),
+so all three were read and none could be changed from here.
 
 ---
 
