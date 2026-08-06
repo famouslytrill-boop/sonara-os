@@ -2,6 +2,35 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-06 — The assistant, extended to all three products
+
+Twenty checks now: nine Business Builder, five Creator Studio, six Growth
+Studio, one page each at `/business-builder/owner/assistant`,
+`/creator-studio/assistant`, `/growth-studio/assistant`. Same engine, gated by
+the same workspace-access rule as the rest of each workspace.
+
+The Creator and Growth checks are the interesting half, because several enforce
+rules this product already holds itself to and had never looked at. Voice
+consent that has expired or been withdrawn while the record still reads as
+attested — an expired consent is indistinguishable from a live one until
+somebody checks, and nothing was checking. Consent marked attested with no
+evidence reference behind it. Lyrics originality left unresolved on a track
+heading for release. Content queued to go to customers without approval, which
+is the case AGENTS.md's owner-approval rule exists for and the case where it
+gets forgotten. Contact consent withdrawn while the record sits in the same list
+as the live ones.
+
+Those were all sentences in AGENTS.md with tables underneath and nothing
+comparing the two.
+
+Renamed on the way: `sonara-business-checks.cjs` became
+`sonara-record-checks.cjs` and the route module dropped `business-` from its
+name, because both had stopped being about one product.
+
+The "has a test case for every check" assertion earned itself immediately —
+eleven new checks landed with no cases and it failed rather than letting them
+through untested.
+
 ### 2026-08-06 — The business assistant, and the first thing that does work
 
 `/business-builder/owner/assistant` runs nine checks over an owner's own

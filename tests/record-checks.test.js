@@ -18,15 +18,19 @@
 const assert = require("node:assert/strict");
 const {
   CHECKS,
+  PRODUCTS,
+  checksFor,
   validate,
   selectFor,
   runCheck,
   summarise
-} = require("../lib/sonara-business-checks.cjs");
+} = require("../lib/sonara-record-checks.cjs");
 
 const DAY = 24 * 60 * 60 * 1000;
 const past = new Date(Date.now() - 40 * DAY).toISOString().slice(0, 10);
 const future = new Date(Date.now() + 400 * DAY).toISOString().slice(0, 10);
+const pastStamp = new Date(Date.now() - 40 * DAY).toISOString();
+const futureStamp = new Date(Date.now() + 400 * DAY).toISOString();
 
 // One row that must be caught and one that must not, per check. Written from
 // what the check claims to be about rather than from its implementation.
@@ -66,13 +70,69 @@ const CASES = {
   locations_without_address: {
     catches: { id: "1", name: "Main St", address_line1: "", city: "Leeds", status: "open" },
     ignores: { id: "2", name: "Second St", address_line1: "12 Second St", city: "Leeds", status: "open" }
+  },
+
+  // Creator Studio.
+  voice_consent_expired_or_revoked: {
+    catches: { id: "1", subject_name: "Ari", consent_scope: "album", consent_attested: true, expires_at: pastStamp, revoked_at: null },
+    ignores: { id: "2", subject_name: "Ari", consent_scope: "album", consent_attested: true, expires_at: futureStamp, revoked_at: null }
+  },
+  voice_consent_without_evidence: {
+    catches: { id: "1", subject_name: "Ari", consent_attested: true, evidence_type: "signed_form", evidence_reference: "" },
+    ignores: { id: "2", subject_name: "Ari", consent_attested: true, evidence_type: "signed_form", evidence_reference: "form-2026-01" }
+  },
+  tracks_with_unresolved_lyrics_originality: {
+    catches: { id: "1", title: "Track One", song_status: "in_progress", lyrics_originality_status: "pending" },
+    ignores: { id: "2", title: "Track Two", song_status: "in_progress", lyrics_originality_status: "cleared" }
+  },
+  releases_past_date_not_released: {
+    catches: { id: "1", title: "EP", release_date: past, status: "scheduled" },
+    ignores: { id: "2", title: "Single", release_date: past, status: "released" }
+  },
+  release_tasks_overdue: {
+    catches: { id: "1", title: "Master the single", task_type: "mastering", due_at: pastStamp, status: "in_progress" },
+    ignores: { id: "2", title: "Master the single", task_type: "mastering", due_at: pastStamp, status: "done" }
+  },
+
+  // Growth Studio.
+  content_scheduled_without_approval: {
+    catches: { id: "1", title: "Launch post", channel: "email", scheduled_for: futureStamp, approval_status: "pending", publish_status: "queued" },
+    ignores: { id: "2", title: "Launch post", channel: "email", scheduled_for: futureStamp, approval_status: "approved", publish_status: "queued" }
+  },
+  contact_consent_withdrawn_or_expired: {
+    catches: { id: "1", channel: "email", purpose: "offers", consent_status: "withdrawn", expires_at: futureStamp, withdrawn_at: pastStamp },
+    ignores: { id: "2", channel: "email", purpose: "offers", consent_status: "granted", expires_at: futureStamp, withdrawn_at: null }
+  },
+  content_failed_to_publish: {
+    catches: { id: "1", title: "Weekly note", channel: "email", publish_status: "failed", failure_code: "provider_rejected" },
+    ignores: { id: "2", title: "Weekly note", channel: "email", publish_status: "published", failure_code: null }
+  },
+  leads_without_contact: {
+    catches: { id: "1", name: "Pat", email: "", phone: null, source: "web form", status: "new" },
+    ignores: { id: "2", name: "Pat", email: "pat@example.com", phone: null, source: "web form", status: "new" }
+  },
+  campaigns_running_without_goal: {
+    catches: { id: "1", name: "Spring", goal: "", channel: "email", status: "active" },
+    ignores: { id: "2", name: "Spring", goal: "20 bookings", channel: "email", status: "active" }
+  },
+  experiments_ended_without_result: {
+    catches: { id: "1", name: "Subject line A/B", hypothesis: "shorter wins", result: null, status: "completed" },
+    ignores: { id: "2", name: "Subject line A/B", hypothesis: "shorter wins", result: "shorter won by 8%", status: "completed" }
   }
 };
 
-describe("the business assistant's checks", () => {
+describe("the record checks behind the assistant pages", () => {
   it("names only columns the schema actually has", () => {
     // The whole point: no column here is typed from memory.
     assert.deepEqual(validate(), [], "these checks reference columns or tables that supabase/migrations does not define");
+  });
+
+  it("gives every check a product that has a page", () => {
+    const stranded = CHECKS.filter((check) => !PRODUCTS.includes(check.product));
+    assert.deepEqual(stranded.map((check) => `${check.id} (${check.product})`), [], "a check with an unknown product appears on no page at all");
+    for (const product of PRODUCTS) {
+      assert.ok(checksFor(product).length > 0, `${product} has an assistant page and no checks to put on it`);
+    }
   });
 
   it("has a test case for every check", () => {
