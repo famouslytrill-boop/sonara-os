@@ -2,6 +2,37 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-06 — The business assistant, and the first thing that does work
+
+`/business-builder/owner/assistant` runs nine checks over an owner's own
+records: dishes selling for less than they cost, dishes with a price and no
+recorded cost, supplier invoices past due, services with no price, bookings with
+no way to reach the customer, stock at its reorder level, vehicle registrations
+expiring within thirty days, staff with no contact details, locations with no
+address.
+
+All of it is arithmetic over rows the business already has. No model call, no
+provider, nothing metered — which is the reason it can run on every page load
+without costing anyone anything, not a limitation worked around.
+
+It consults `lib/sonara-agent-authority.cjs` rather than assuming. Reading
+records and reporting is self-serve today; if `check_data_quality` ever moves
+onto the sensitive list, the page stops instead of continuing under an
+assumption written down once.
+
+Two things it deliberately does not do, both of them the same mistake in
+different clothes. It does not hide checks that found nothing — "we looked and
+it is fine" and "we did not look" must not render identically. And it does not
+count an unreachable table as zero findings; the headline says how many checks
+could not run rather than rounding them down into a clean bill of health.
+
+No column is typed from memory. `validate()` checks all forty-odd against
+`supabase/migrations/`, because seventeen owner forms once shipped sending
+`user_id` to tables that do not have it and every save failed in production
+while the tests passed against a stub. Each check also has one row it must catch
+and one it must leave alone, since a predicate that quietly stops matching
+reports "nothing to fix", which is the answer an owner most wants to believe.
+
 ### 2026-08-06 — The security-definer blast radius, measured
 
 Twelve SECURITY DEFINER functions are callable by any signed-in user over

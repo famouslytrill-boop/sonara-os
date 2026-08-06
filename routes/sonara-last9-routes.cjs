@@ -109,6 +109,9 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           ...summary.map((item) => ui.card(item.label, item.value))
         ],
         actions: [
+          // First, because it is the only one that tells the owner something
+          // they did not already know they were looking for.
+          ui.link("/business-builder/owner/assistant", "What needs attention"),
           ui.link("/business-builder/owner/locations", "Locations"),
           ui.link("/business-builder/owner/staff", "Staff"),
           ui.link("/business-builder/owner/time", "Time"),

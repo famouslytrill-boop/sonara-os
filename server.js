@@ -23,6 +23,7 @@ const registerGrowthStudioControlRoutes = require("./routes/growth-studio-contro
 const registerProductLifecycleRoutes = require("./routes/product-lifecycle-routes.cjs");
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
+const registerBusinessAssistantRoutes = require("./routes/sonara-business-assistant-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
@@ -642,6 +643,17 @@ registerLastNineHoursRoutes(app, {
   requireWorkspaceAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig
+});
+
+registerBusinessAssistantRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireWorkspaceAccess,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders
 });
 
 registerServiceLifecycleRoutes(app, {
