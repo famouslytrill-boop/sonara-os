@@ -34,6 +34,10 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     const productArea = normalizeProductArea(req.query.product);
     const templates = listPromptTemplates({ productArea, category: req.query.category, query: req.query.q });
     return res.status(200).type("html").send(layout({
+      // Public and browsable without an account -- it is one of the things a
+      // prospective customer looks at before signing up. The per-product
+      // prompt pages behind sign-in stay work surfaces.
+      surface: "marketing",
       title: "Prompt Library",
       eyebrow: "SONARA Prompt Library",
       heading: "Reusable instructions for real work",
