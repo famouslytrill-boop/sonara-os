@@ -80,6 +80,30 @@ describe("open-source register licence terms", () => {
     );
   });
 
+  it("names a settled licence on everything in the adoption path", () => {
+    // The three checks above catch licences that say, in words, that nothing
+    // was granted. They do not catch a licence field that says "review this
+    // before adapter work" while the record is already marked as an adaptation
+    // source -- which is what Crawl4AI said. Its licence turned out to be
+    // Apache-2.0 and always had been, so nothing had gone wrong; the field just
+    // held a to-do that outlived itself, and a to-do reads exactly like a
+    // finding to whoever checks next.
+    //
+    // A record that may have code taken from it has to open with a licence
+    // somebody can look up. Qualifications after it are fine -- "MIT; model
+    // licences are reviewed separately" is a settled licence with a true note
+    // attached -- but the first thing said has to be the licence.
+    const IDENTIFIER = /^(MIT|MIT-0|Apache-2\.0|BSD-[23]-Clause|ISC|CC0-1\.0|CC-BY-4\.0|Unlicense|MPL-2\.0|Zlib)\b/;
+    const vague = records
+      .filter((record) => ADOPTION_STATUSES.has(record.integrationStatus))
+      .filter((record) => !IDENTIFIER.test(record.license));
+    assert.deepEqual(
+      vague.map((record) => `${record.name}: "${record.license.slice(0, 60)}"`),
+      [],
+      "a record code may be adapted from must state its licence first; a sentence about reviewing it later is not a licence"
+    );
+  });
+
   it("finds the reciprocal and undeclared records it is meant to be watching", () => {
     // The three checks above are satisfied by an empty register. This one
     // fails if the licence sentences stop being written in a form the patterns

@@ -128,9 +128,9 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "documentation summarization",
     ],
     productFit: ["Research Lab", "Growth Studio", "Smart Search", "Files & Records", "Business Memory Graph"],
-    license: "Review repository license and provider terms before adapter work.",
-    licenseRisk: "medium",
-    commercialUseStatus: "needs_review",
+    license: "Apache-2.0. The README asks for badge attribution, which is a request rather than a licence term; the Apache NOTICE obligation is the binding one. Any model or provider called through it carries its own separate terms.",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
       "optional adapter after review",
