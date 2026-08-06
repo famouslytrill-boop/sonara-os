@@ -2,6 +2,35 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-06 — The security-definer blast radius, measured
+
+Twelve SECURITY DEFINER functions are callable by any signed-in user over
+`/rest/v1/rpc/`. SHIP_READINESS said this was unchanged deliberately, because
+revoking EXECUTE can turn a working RLS policy into a denial and verifying that
+needs a database somebody can break. Right about the last mile, wrong that
+nothing could be learned first — the migrations say which policies call which
+functions.
+
+`scripts/report-security-definer-exposure.mjs` computes it. `is_org_member` is
+called by 197 policies across 59 tables; that is the number that makes a preview
+branch the only responsible way to try the change. One function,
+`sonara_has_org_role`, is called by nothing and is the only safe part.
+
+The finding nobody was looking for: four of the twelve — `is_admin`,
+`is_current_user_admin`, `has_scope`, `has_company_access` — are defined by no
+migration. They exist in production and not in version control, so nobody can
+review them by reading this repository. That is worse than the grant.
+
+**The first version of this report was confidently wrong.** Its policy pattern
+could not read a quoted multi-word policy name, which is most of them, so it saw
+191 policies instead of 497 and said six of these functions were safe to lock
+down — including ones with dozens of dependents. Acting on it would have locked
+customers out of their own records. It now runs two independent checks and a
+disagreement between them fails the release.
+
+If you take one thing from this entry: the report looked finished and read
+plausibly at 191 policies. Nothing about its output suggested it was blind.
+
 ### 2026-08-06 — Cinematic public surfaces
 
 Every public route is now on one of two lists with a recorded reason: twenty are

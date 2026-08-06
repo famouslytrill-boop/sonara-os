@@ -91,6 +91,49 @@ into a denial. Verifying that needs a database somebody can break — a preview
 branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
+**The blast radius is now measured rather than feared.**
+`scripts/report-security-definer-exposure.mjs` reads the 77 migrations, finds
+every `SECURITY DEFINER` function, and maps each one to the RLS policies that
+call it — 497 policies across the schema. Run it with `--check`; the release
+does. The answer is not one answer:
+
+- **Seven of the eight in-repository functions are load-bearing.**
+  `is_org_member` is called by **197 policies across 59 tables**.
+  `is_entity_member` by 25, `can_manage_entity` by 15, `is_org_owner_or_admin`
+  and `sonara_is_org_member` by 9 each, `has_org_role` by 7, `has_entity_role`
+  by 4. Revoking `EXECUTE` on any of these is the dangerous case the paragraph
+  above describes, and 197 is the number that makes a preview branch the only
+  responsible way to try it.
+
+- **One is called by no policy**: `sonara_has_org_role`. It appears to be a
+  superseded twin of `has_org_role`, and it is the only part of the advisor's
+  remediation this repository can say is safe on its own evidence.
+
+- **Four of the twelve are defined by no migration**: `is_admin`,
+  `is_current_user_admin`, `has_scope`, `has_company_access`. They exist in the
+  live database and not in version control. This is a different finding from
+  the one the advisor reported and a worse one: an authorization primitive
+  nobody can read is one nobody can review, and no amount of care about the
+  `EXECUTE` grant compensates for not knowing what the function does. It is
+  also proof that policies and functions get created outside migrations, which
+  is the limit on everything above.
+
+Two limits, stated because the report is only as good as what it can see. It
+reads migrations, so anything created outside version control is invisible to
+it — and those four undefined functions are the evidence that path is in use.
+Separately, the five functions this application calls over `/rest/v1/rpc/` all
+call with the service-role key rather than as `authenticated`, so the server
+itself is unaffected either way. That was checked in the code, not assumed.
+
+The first version of this report was wrong in the direction that costs the most.
+Its policy pattern could not read a quoted multi-word policy name — which is
+most of them — so it saw 191 policies instead of 497 and reported that six of
+these functions, including ones with dozens of dependents, were safe to lock
+down. It now runs two independent checks: the policy parse above, and a
+paren-balancing scan of every `using` and `with check` expression that does not
+know what a policy is and so cannot fail the same way. A disagreement between
+them fails the release rather than being resolved quietly.
+
 **Leaked password protection is still disabled**, confirmed against the live
 project rather than assumed. Item 2 above covers it.
 
