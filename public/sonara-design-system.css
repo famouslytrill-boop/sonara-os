@@ -335,6 +335,105 @@
 
 .sonara-stage .sonara-hero-stage > * { transform: translateZ(40px); }
 
+/* Cinematic backdrop --------------------------------------------------
+ * The depth vocabulary above moves things. This is the thing they move in
+ * front of: three soft colour fields in the product hues over a fine ruled
+ * grid, drifting slowly behind the whole marketing surface.
+ *
+ * Attached to .sonara-stage::before rather than to any page's markup, which
+ * is the only reason this is one change instead of eighteen. Every marketing
+ * page already renders <main class="sonara-ds sonara-stage">; work screens
+ * never carry the class, so the rule that keeps operational screens calm is
+ * the same rule that decides where this appears. Nothing to remember and
+ * nothing to opt out of.
+ *
+ * Three constraints it is built around:
+ *
+ *   z-index: -1 with isolation: isolate on the stage. The stage becomes a
+ *   stacking context, so the negative index paints above the stage's own
+ *   background and below every in-flow child. Without the isolation it would
+ *   fall behind the body background and vanish; with z-index: 0 it would
+ *   paint over the page text, because in-flow non-positioned content paints
+ *   below positioned siblings.
+ *
+ *   pointer-events: none, because a full-bleed overlay that eats clicks is
+ *   the classic way decorative layers break a page.
+ *
+ *   Colour only, no image files. The three hues are the product tokens, so
+ *   this stays correct if the palette moves, and there is nothing to
+ *   download, nothing to lazy-load, and nothing for the CSP to refuse. */
+.sonara-stage {
+  position: relative;
+  isolation: isolate;
+}
+
+.sonara-stage::before {
+  content: "";
+  position: absolute;
+  inset: -8rem -12% auto;
+  height: min(88vh, 780px);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    /* The ruled grid, faint enough to read as texture rather than as lines. */
+    repeating-linear-gradient(90deg, rgba(255 255 255 / 0.028) 0 1px, transparent 1px 88px),
+    repeating-linear-gradient(0deg, rgba(255 255 255 / 0.028) 0 1px, transparent 1px 88px),
+    /* Three fields, one per product, placed so they overlap without muddying. */
+    radial-gradient(58% 44% at 18% 8%, color-mix(in oklab, var(--sonara-build) 34%, transparent) 0%, transparent 70%),
+    radial-gradient(52% 40% at 82% 2%, color-mix(in oklab, var(--sonara-create) 32%, transparent) 0%, transparent 72%),
+    radial-gradient(64% 46% at 50% 38%, color-mix(in oklab, var(--sonara-grow) 22%, transparent) 0%, transparent 76%);
+  /* Fades out rather than ending on a line. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 100%);
+  transform: translate3d(0, calc(var(--sonara-hero-depth, 0) * 0.35px), 0);
+  transition: transform var(--sonara-dur-1) linear;
+}
+
+/* The drift. Small on purpose -- the effect should be noticed on the second
+ * look, not the first. Separate from the parallax transform above so the two
+ * do not fight over the same property. */
+@keyframes sonara-backdrop-drift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to   { background-position: 88px 0, 0 88px, 3% -2%, -3% 2%, 2% -1%; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :root:not([data-sonara-motion="off"]) .sonara-stage::before {
+    animation: sonara-backdrop-drift 64s linear infinite alternate;
+  }
+}
+
+/* A browser without color-mix would render the three fields as nothing,
+ * leaving only the grid. Supported everywhere this ships, and the fallback is
+ * a plain surface rather than a broken one either way. */
+@supports not (background: color-mix(in oklab, red 50%, transparent)) {
+  .sonara-stage::before {
+    background:
+      repeating-linear-gradient(90deg, rgba(255 255 255 / 0.028) 0 1px, transparent 1px 88px),
+      repeating-linear-gradient(0deg, rgba(255 255 255 / 0.028) 0 1px, transparent 1px 88px),
+      radial-gradient(58% 44% at 18% 8%, rgba(94 200 168 / 0.3) 0%, transparent 70%),
+      radial-gradient(52% 40% at 82% 2%, rgba(197 140 245 / 0.28) 0%, transparent 72%),
+      radial-gradient(64% 46% at 50% 38%, rgba(240 163 94 / 0.2) 0%, transparent 76%);
+  }
+}
+
+/* Small screens drop the perspective already (it reads as jitter), and a
+ * full-bleed gradient there costs paint for an effect nobody sees behind a
+ * single column of cards. */
+@media (max-width: 720px) {
+  .sonara-stage::before {
+    height: 44vh;
+    opacity: 0.4;
+    animation: none;
+  }
+}
+
+/* Paper has no backdrop. */
+@media print {
+  .sonara-stage::before { display: none !important; }
+}
+
 /* Entrance ------------------------------------------------------------- */
 @keyframes sonara-rise {
   from { opacity: 0; transform: translate3d(0, 14px, 0); }

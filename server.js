@@ -23,6 +23,7 @@ const registerGrowthStudioControlRoutes = require("./routes/growth-studio-contro
 const registerProductLifecycleRoutes = require("./routes/product-lifecycle-routes.cjs");
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
+const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
@@ -295,7 +296,7 @@ const {
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20260804-v9-print-contrast`, and the token changes when
+// `/sonara-one.js?v=sonara-ui-20260806-v10-cinematic`, and the token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //
@@ -644,6 +645,17 @@ registerLastNineHoursRoutes(app, {
   getSupabaseServerConfig
 });
 
+registerBusinessAssistantRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireWorkspaceAccess,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders
+});
+
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that
   // shows a signed-in customer their own requests and a visitor nothing.
@@ -907,6 +919,7 @@ app.get("/security", (req, res) => {
 app.get("/help", (req, res) => {
   return res.status(200).type("html").send(
     layout({
+      surface: "marketing", // public front door; see tests/marketing-surface-rule.test.js
       title: "Help",
       eyebrow: "Help center",
       heading: "How can we help?",

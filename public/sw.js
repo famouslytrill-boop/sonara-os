@@ -2,7 +2,7 @@
 // The cache version stays aligned with the rendered asset token. Only
 // public navigation and non-sensitive same-origin assets are handled here.
 // Static assets use stale-while-revalidate; public navigations use network-first.
-const VERSION = "sonara-ui-20260804-v9-print-contrast";
+const VERSION = "sonara-ui-20260806-v10-cinematic";
 const CACHE_PREFIX = "sonara-public-";
 const CACHE_NAME = CACHE_PREFIX + VERSION;
 const OFFLINE_URL = "/offline";
@@ -37,15 +37,15 @@ const PUBLIC_STAGE = [
   "/brand/business-builder-mark-v3.svg",
   "/brand/creator-studio-mark-v3.svg",
   "/brand/growth-studio-mark-v3.svg",
-  "/sonara-application-ui.css?v=sonara-ui-20260804-v9-print-contrast",
-  "/sonara-one.js?v=sonara-ui-20260804-v9-print-contrast",
-  "/sonara-design-system.css?v=sonara-ui-20260804-v9-print-contrast",
-  "/sonara-depth.js?v=sonara-ui-20260804-v9-print-contrast",
+  "/sonara-application-ui.css?v=sonara-ui-20260806-v10-cinematic",
+  "/sonara-one.js?v=sonara-ui-20260806-v10-cinematic",
+  "/sonara-design-system.css?v=sonara-ui-20260806-v10-cinematic",
+  "/sonara-depth.js?v=sonara-ui-20260806-v10-cinematic",
   // Fonts are first-party now, so they are cacheable here. While they came from
   // fonts.gstatic.com they were cross-origin and this worker never saw them.
-  "/sonara-fonts.css?v=sonara-ui-20260804-v9-print-contrast",
-  "/fonts/geist-latin.woff2?v=sonara-ui-20260804-v9-print-contrast",
-  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20260804-v9-print-contrast"
+  "/sonara-fonts.css?v=sonara-ui-20260806-v10-cinematic",
+  "/fonts/geist-latin.woff2?v=sonara-ui-20260806-v10-cinematic",
+  "/fonts/geist-mono-latin.woff2?v=sonara-ui-20260806-v10-cinematic"
 ];
 const STATIC_PATTERN = /\.(css|js|svg|png|ico|webmanifest|woff2)$/;
 

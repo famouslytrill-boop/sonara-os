@@ -381,15 +381,51 @@ if (!mcpUrl.includes("project_ref=yqncsonkxgwhcxedgevk")) fail("Supabase MCP mus
 if (!mcpUrl.includes("read_only=true")) fail("Supabase MCP must remain read-only for production inspection");
 if (/authorization|bearer|service[_-]?role|access[_-]?token/i.test(mcpText)) fail("Supabase MCP config must not contain credentials");
 
+// The approval rule, checked here rather than only in its own tests.
+//
+// The nineteen agent tables have never had a runtime, and until now that alone
+// was the guarantee. It is a guarantee that expires the moment anyone builds
+// one, and it says nothing about what would be allowed then. So the release now
+// also checks the rule that decides it: every category AGENTS.md names must be
+// gated, and an action nobody has classified must go to the owner rather than
+// through. Those two properties are what make a runtime safe to add, and this
+// fails the release if either stops holding.
+const agentAuthority = require(path.join(root, "lib", "sonara-agent-authority.cjs"));
+const AGENTS_MD_CATEGORIES = [
+  ["refunds", "issue_refund"],
+  ["payout_changes", "update_payout_account"],
+  ["legal_or_policy_publishing", "publish_privacy_policy"],
+  ["customer_campaigns", "send_campaign"],
+  ["proof_or_review_publishing", "publish_review"],
+  ["security_settings", "rotate_api_key"],
+  ["destructive_data_changes", "delete_customer_records"]
+];
+for (const [category, actionType] of AGENTS_MD_CATEGORIES) {
+  const classification = agentAuthority.classifyAction(actionType);
+  if (!classification.requiresOwnerApproval) fail(`agent action ${actionType} is not gated on owner approval`);
+  if (classification.category !== category) fail(`agent action ${actionType} is classified ${classification.category}, expected ${category}`);
+}
+if (!agentAuthority.classifyAction("an_action_nobody_has_classified").requiresOwnerApproval) {
+  fail("an unrecognised agent action must default to owner review, not run");
+}
+if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refund", requires_approval: false }, approval: null }).allowed) {
+  fail("a sensitive agent action executed without an approval record");
+}
+
 if (!process.exitCode) {
   console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
-  // setting. What has not changed, and is the part worth asserting, is that
-  // nothing executes -- there is no agent runtime in this product, and the
-  // tables that record runs, approvals and memory are refused a form precisely
-  // so nothing can fabricate evidence of a run that never happened.
+  // setting. Still true is that nothing executes -- there is no agent runtime
+  // here yet, and the tables recording runs, approvals and memory are refused a
+  // form precisely so nothing can fabricate evidence of a run that never
+  // happened.
+  //
+  // The second line is the one that will still mean something after a runtime
+  // exists. "No runtime" is a fact about today; "these seven categories need a
+  // person" is the rule that has to survive the day it changes.
   console.log(`Agent foundation verified as approval-gated with no runtime: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; records of runs, approvals and memory are read-only and autonomous execution remains disabled.`);
+  console.log(`Agent approval rule verified: ${agentAuthority.SENSITIVE_CATEGORY_NAMES.length} categories require owner approval, ${agentAuthority.SELF_SERVE_ACTIONS.length} actions may run unattended, and anything unrecognised goes to the owner.`);
 }
 
 function verifyExtension(tables, sql, label) {

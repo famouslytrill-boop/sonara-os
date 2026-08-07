@@ -285,9 +285,19 @@ describe("the server.js split stays safe", () => {
     // routes. Eight of the writable subsystem tables declare organization_id
     // NOT NULL, and taking it from the submitted body would let a row be
     // written into another tenant.
+    // Then 1 more marking /help a marketing surface. It is a public front door
+    // -- people reach it before they have an account as often as after -- and
+    // it was rendering the plain operational frame. Which public pages are
+    // cinematic and which stay calm is now recorded route by route in
+    // tests/marketing-surface-rule.test.js rather than in a comment here.
+    // Then 12 to register routes/sonara-business-assistant-routes.cjs -- the
+    // require and the wiring. The page and the nine checks behind it live in
+    // the route module and lib/sonara-business-checks.cjs; what is here is the
+    // dependency list, which has to be here because these helpers are defined
+    // in this file.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4042,
+      lines <= 4055,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

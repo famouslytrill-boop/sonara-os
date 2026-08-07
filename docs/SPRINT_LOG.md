@@ -1,0 +1,160 @@
+Newest first. Each entry says what changed, what was verified, and what the next
+person should not have to rediscover. This is the hand-written half of
+`docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-06 — The assistant, extended to all three products
+
+Twenty checks now: nine Business Builder, five Creator Studio, six Growth
+Studio, one page each at `/business-builder/owner/assistant`,
+`/creator-studio/assistant`, `/growth-studio/assistant`. Same engine, gated by
+the same workspace-access rule as the rest of each workspace.
+
+The Creator and Growth checks are the interesting half, because several enforce
+rules this product already holds itself to and had never looked at. Voice
+consent that has expired or been withdrawn while the record still reads as
+attested — an expired consent is indistinguishable from a live one until
+somebody checks, and nothing was checking. Consent marked attested with no
+evidence reference behind it. Lyrics originality left unresolved on a track
+heading for release. Content queued to go to customers without approval, which
+is the case AGENTS.md's owner-approval rule exists for and the case where it
+gets forgotten. Contact consent withdrawn while the record sits in the same list
+as the live ones.
+
+Those were all sentences in AGENTS.md with tables underneath and nothing
+comparing the two.
+
+Renamed on the way: `sonara-business-checks.cjs` became
+`sonara-record-checks.cjs` and the route module dropped `business-` from its
+name, because both had stopped being about one product.
+
+The "has a test case for every check" assertion earned itself immediately —
+eleven new checks landed with no cases and it failed rather than letting them
+through untested.
+
+### 2026-08-06 — The business assistant, and the first thing that does work
+
+`/business-builder/owner/assistant` runs nine checks over an owner's own
+records: dishes selling for less than they cost, dishes with a price and no
+recorded cost, supplier invoices past due, services with no price, bookings with
+no way to reach the customer, stock at its reorder level, vehicle registrations
+expiring within thirty days, staff with no contact details, locations with no
+address.
+
+All of it is arithmetic over rows the business already has. No model call, no
+provider, nothing metered — which is the reason it can run on every page load
+without costing anyone anything, not a limitation worked around.
+
+It consults `lib/sonara-agent-authority.cjs` rather than assuming. Reading
+records and reporting is self-serve today; if `check_data_quality` ever moves
+onto the sensitive list, the page stops instead of continuing under an
+assumption written down once.
+
+Two things it deliberately does not do, both of them the same mistake in
+different clothes. It does not hide checks that found nothing — "we looked and
+it is fine" and "we did not look" must not render identically. And it does not
+count an unreachable table as zero findings; the headline says how many checks
+could not run rather than rounding them down into a clean bill of health.
+
+No column is typed from memory. `validate()` checks all forty-odd against
+`supabase/migrations/`, because seventeen owner forms once shipped sending
+`user_id` to tables that do not have it and every save failed in production
+while the tests passed against a stub. Each check also has one row it must catch
+and one it must leave alone, since a predicate that quietly stops matching
+reports "nothing to fix", which is the answer an owner most wants to believe.
+
+### 2026-08-06 — The security-definer blast radius, measured
+
+Twelve SECURITY DEFINER functions are callable by any signed-in user over
+`/rest/v1/rpc/`. SHIP_READINESS said this was unchanged deliberately, because
+revoking EXECUTE can turn a working RLS policy into a denial and verifying that
+needs a database somebody can break. Right about the last mile, wrong that
+nothing could be learned first — the migrations say which policies call which
+functions.
+
+`scripts/report-security-definer-exposure.mjs` computes it. `is_org_member` is
+called by 197 policies across 59 tables; that is the number that makes a preview
+branch the only responsible way to try the change. One function,
+`sonara_has_org_role`, is called by nothing and is the only safe part.
+
+The finding nobody was looking for: four of the twelve — `is_admin`,
+`is_current_user_admin`, `has_scope`, `has_company_access` — are defined by no
+migration. They exist in production and not in version control, so nobody can
+review them by reading this repository. That is worse than the grant.
+
+**The first version of this report was confidently wrong.** Its policy pattern
+could not read a quoted multi-word policy name, which is most of them, so it saw
+191 policies instead of 497 and said six of these functions were safe to lock
+down — including ones with dozens of dependents. Acting on it would have locked
+customers out of their own records. It now runs two independent checks and a
+disagreement between them fails the release.
+
+If you take one thing from this entry: the report looked finished and read
+plausibly at 191 policies. Nothing about its output suggested it was blind.
+
+### 2026-08-06 — Cinematic public surfaces
+
+Every public route is now on one of two lists with a recorded reason: twenty are
+cinematic front doors, eleven stay calm. The eleven are the seven legal
+documents, the accessibility page, and the three launch-readiness checklists —
+somebody opens a refund policy to check a term, and parallax does not help them
+find it.
+
+`/help` and `/prompt-library` moved to the marketing surface. Both are reached
+before signing up as often as after and were rendering the plain operational
+frame.
+
+The backdrop is one rule on `.sonara-stage::before` rather than markup on
+eighteen pages — three colour fields in the product hues over a ruled grid,
+parallaxed by the scroll variable the depth script already writes. No image
+files, no library, nothing for the CSP to refuse.
+
+Not obvious and worth keeping: `z-index: -1` with `isolation: isolate` on the
+stage is the only combination that works. At `z-index: 0` an absolutely
+positioned pseudo-element paints over in-flow text; without the isolation, `-1`
+falls behind the body background and disappears.
+
+The asset version token lives in four files and the service worker caches by it.
+Three were updated and one was not; an existing test caught it.
+
+### 2026-08-06 — The agent approval rule as code
+
+`lib/sonara-agent-authority.cjs` implements the seven categories from AGENTS.md
+plus the default. The nineteen agent tables have existed since migration 008
+with nothing running against them, so the release gate's "no runtime" line was
+the whole guarantee — a guarantee that expires the moment somebody builds one.
+
+Four decisions that look backwards until you see why. The default is deny.
+Sensitive patterns are checked before the allowlist, because `delete_draft_content`
+matches both. The row's own `requires_approval` column is ignored, because it is
+writable and a safety property the agent can edit is not one. And an approval
+must name a person, be for that action, and not come from the requester.
+
+The release checks all of it. Verified by flipping the unrecognised-action
+default to allow — the release fails.
+
+There is still no runtime. That is the next thing, and it should be built to
+call `decideExecution` rather than around it.
+
+### 2026-08-06 — Twenty-five repositories, licences verified
+
+Read off each repository rather than recalled, which mattered: five turned out
+reciprocal (AGPL, GPL, OSL), two declared no licence at all, two could not be
+confirmed. Recalling them would have put four in the adoption path wrongly.
+
+Two blocks that cannot be lifted from inside this project: a repository with no
+licence is all rights reserved, so there is nothing to authorise.
+
+Two corrections to earlier reasoning, both mine. The AGENTS.md anti-clone rule
+sits beside provenance and consent and is implemented by `song_fingerprints` and
+`creator_voice_consents` — it protects creators from being cloned, not this
+project from reading open-source code. And Apache-2.0 permits derivative works
+commercially; attribution is the obligation, not prohibition.
+
+`tests/open-source-licence-terms.test.js` reads the licence sentence rather than
+the risk tier, because `check-license-risk.mjs` greps for "gpl" and otherwise
+trusts two hand-typed fields — and neither `OSL-3.0` nor "None declared"
+contains it.
+
+`docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` is now generated per
+repository from the register instead of being four sentences that named none of
+them.

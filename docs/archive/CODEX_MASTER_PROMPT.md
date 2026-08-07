@@ -1,3 +1,19 @@
+> **Archived 2026-08-06. Do not use this.**
+>
+> This was the handoff prompt. It opens by describing SONARA as "an AI-powered
+> creator business operating system" and lists Prompt Vault, Artist OS, Content
+> Studio, Visual Builder and Local Business Kits as the active tools. None of
+> those are the product, and several are retired public names that AGENTS.md
+> forbids in active docs.
+>
+> It rotted for the ordinary reason: it was written once, the product moved, and
+> nothing ever compared the two. The replacement is `docs/HANDOFF_PROMPT.md`,
+> which is generated from the repository and checked on every release, so it
+> cannot drift the same way.
+>
+> Kept because it is the clearest surviving record of what the product was
+> called before the current naming, which is the one thing it is still good for.
+
 # CODEX MASTER PROMPT
 
 You are working inside the SONARA One codebase.
