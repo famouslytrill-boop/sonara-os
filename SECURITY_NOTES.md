@@ -11,6 +11,15 @@ Additional moderate findings were resolved by:
 - Updating `stripe` to `22.1.1`, removing the vulnerable `qs` path from the Stripe dependency tree.
 - Updating the pnpm override for `brace-expansion` to `5.0.6`.
 - Keeping a single `postcss@8.5.15` version in the dependency graph.
+- Raising the `js-yaml` override from `4.3.0` to `4.3.1` for GHSA-5p4m-2wfm-xmqj
+  (CVE-2026-59870, quadratic CPU consumption resolving `!!omap`). The previous
+  override pinned `>=4.0.0 <4.1.2` to `4.3.0` for an earlier advisory; `4.3.0`
+  is itself inside the new vulnerable range, so the range moved with it. Both
+  paths are development-only -- `mocha` and `@vercel/node` -- and no runtime
+  code in this repository parses YAML, so nothing served to a customer was
+  exposed. It was still a real patch rather than an exemption: the version in
+  the tree changed, no threshold moved, and the audit is clean at moderate
+  again.
 
 ## Package Manager Boundary
 
