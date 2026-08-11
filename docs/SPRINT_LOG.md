@@ -2,6 +2,39 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-11 — The runner, and the gate that could be walked past
+
+`lib/sonara-agent-runner.cjs` joins the two halves that existed separately: the
+authority module that says what an agent may do, and the checks that are work an
+agent can do. Classify, decide, run, record — one path.
+
+It closes a real hole. Each assistant page called `classifyAction` itself and
+then did the work regardless of the answer. That is a gate you get past by not
+reading the return value, and nothing in a diff shows it. Now skipping the gate
+means not calling the runner, which is visible. There is a test that fails if
+`classifyAction` reappears in those routes.
+
+Registering a handler is not permission either — a handler registered under
+`delete_customer_records` still gets refused, because the name is classified
+before the handler is reached.
+
+Three distinctions the runner keeps that a simpler version would collapse.
+"Allowed and unimplemented" is not "refused" — they send somebody to different
+files. A handler that throws is a failed run, not a crashed page, and its
+message goes through the redaction boundary because a handler talks to Supabase.
+And a recorder that throws does not undo a run that succeeded: the work
+happened, and losing the note about it is worse than nothing but far better than
+losing the work.
+
+**Runs are not persisted, and the reason is architectural.** `entity_action_runs`
+is scoped by `entity_id`; `entities` has no `organization_id`. The nineteen
+agent tables scope by entity membership while every other table in this product
+scopes by organization, and there is no join between them. Writing an
+organization's run there would mean inventing an entity per organization or
+leaving a NOT NULL foreign key null — both invisible afterwards, because the
+rows would exist and look right. The recorder is injectable and ships empty, and
+`docs/SHIP_READINESS.md` records the choice that needs making.
+
 ### 2026-08-11 — Where people fall out, and the rate it refuses to invent
 
 `/growth-studio/journey` counts how many people are at each stage of the

@@ -33,8 +33,8 @@ const {
   runCheck,
   summarise
 } = require("../lib/sonara-record-checks.cjs");
-const { classifyAction } = require("../lib/sonara-agent-authority.cjs");
 const journey = require("../lib/sonara-customer-journey.cjs");
+const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -78,6 +78,23 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
 
   if (typeof layout !== "function" || typeof requireWorkspaceAccess !== "function") return;
 
+  // One runner for every assistant page. check_data_quality is on the
+  // self-serve list because it reads records and changes nothing; the runner
+  // still classifies it on every call rather than trusting that.
+  const runner = createRunner();
+  runner.register("check_data_quality", async ({ config, organizationId, checks }) => {
+    const results = [];
+    for (const check of checks) {
+      const read = await readRows(config, check, organizationId);
+      if (!read.ok) {
+        results.push({ id: check.id, label: check.label, severity: check.severity, count: 0, findings: [], unavailable: true, why: check.why });
+        continue;
+      }
+      results.push(runCheck(check, read.rows));
+    }
+    return results;
+  });
+
   async function readRows(config, check, organizationId) {
     const query = `?select=${selectFor(check)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=${ROW_LIMIT}`;
     const response = await fetch(`${config.url}/rest/v1/${check.table}${query}`, {
@@ -116,21 +133,6 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
     if (checks.length === 0) continue;
 
     app.get(page.path, requireWorkspaceAccess(page.product), async (req, res) => {
-      // The authority module decides, rather than this page assuming. Reading
-      // records and reporting is self-serve today; if that ever changes, this
-      // stops instead of carrying on under an assumption written down once.
-      const permission = classifyAction("check_data_quality");
-      if (permission.requiresOwnerApproval) {
-        return res.status(200).type("html").send(layout({
-          title: "Assistant",
-          eyebrow: page.eyebrow,
-          heading: "This needs your approval before it can run",
-          body: permission.reason,
-          sections: [brandCard("Why you are seeing this", "Checking your records has been reclassified as something that needs your say-so. Nothing has run.")],
-          actions: [linkAction(page.backPath, page.backLabel)]
-        }));
-      }
-
       const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
       const org = typeof getCustomerPrimaryOrganization === "function"
         ? await getCustomerPrimaryOrganization(req.sonaraAccess?.user || req.user, { autoBootstrap: false }).catch(() => null)
@@ -147,17 +149,37 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
         }));
       }
 
-      const results = [];
-      for (const check of checks) {
-        const read = await readRows(config, check, org.organizationId);
-        if (!read.ok) {
-          results.push({ id: check.id, label: check.label, severity: check.severity, count: 0, findings: [], unavailable: true, why: check.why });
-          continue;
-        }
-        results.push(runCheck(check, read.rows));
+      // Through the runner rather than around it. Before this, the page asked
+      // the authority module and then did the work regardless of the answer,
+      // which is a gate a caller walks past by not reading the return value.
+      const run = await runner.run({
+        action: { id: `assistant-${page.product}`, action_type: "check_data_quality" },
+        context: { config, organizationId: org.organizationId, checks }
+      });
+
+      if (run.status === "refused") {
+        return res.status(200).type("html").send(layout({
+          title: "Assistant",
+          eyebrow: page.eyebrow,
+          heading: "This needs your approval before it can run",
+          body: run.reason,
+          sections: [brandCard("Why you are seeing this", "Checking your records has been reclassified as something that needs your say-so. Nothing has run.")],
+          actions: [linkAction(page.backPath, page.backLabel)]
+        }));
       }
 
-      const summary = summarise(results);
+      if (run.status !== "completed") {
+        return res.status(200).type("html").send(layout({
+          title: "Assistant",
+          eyebrow: page.eyebrow,
+          heading: "The check could not finish",
+          body: "Nothing was changed. This is not a clean result -- it is a check that did not run.",
+          sections: [brandCard("What happened", run.reason || "The check stopped before it finished.")],
+          actions: [linkAction(page.backPath, page.backLabel)]
+        }));
+      }
+
+      const summary = summarise(run.result);
       const unavailable = summary.results.filter((result) => result.unavailable).length;
       const ran = summary.results.length - unavailable;
 

@@ -137,6 +137,30 @@ them fails the release rather than being resolved quietly.
 **Leaked password protection is still disabled**, confirmed against the live
 project rather than assumed. Item 2 above covers it.
 
+### The agent tables use a different tenancy model from everything else
+
+Found while building `lib/sonara-agent-runner.cjs`, and recorded rather than
+worked around.
+
+`entity_action_runs` is scoped by `entity_id`. `entities` has **no
+`organization_id`** — the nineteen agent tables scope by entity membership,
+while every other table in this product scopes by organization. There is no
+join between the two.
+
+So a run belonging to an organization has nowhere correct to go. Writing one
+would mean either inventing an entity per organization, or leaving a NOT NULL
+foreign key null. Both are worse than not writing yet, and both would be
+invisible afterwards — the rows would exist and look right.
+
+The runner therefore takes an injectable recorder and ships with none. Runs are
+classified, decided, executed and returned; they are not persisted. That is a
+real gap and it is stated here rather than closed badly, because the decision —
+give organizations entities, or re-scope the agent tables — is an architectural
+one somebody should make on purpose.
+
+Nothing is lost in the meantime that was not already lost: nothing has ever
+written to those tables.
+
 **Fifteen tables have RLS enabled with no policy**, reported as INFO. That is
 the safe state, not a gap: RLS with no policy denies everything except the
 service role, which is what a service-role-only table should do. Recorded so
