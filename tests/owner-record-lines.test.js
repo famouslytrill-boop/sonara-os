@@ -34,7 +34,7 @@ const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key,
 
 const app = require("../server");
 const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
-const { ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+const { ALL_OWNER_PAGES, childrenOf } = require("../lib/sonara-owner-record-pages.cjs");
 const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
 
 const USER = { id: "77777777-7777-4777-8777-777777777777", email: "owner@example.com" };
@@ -42,7 +42,15 @@ const ORGANIZATION_ID = "88888888-8888-4888-8888-888888888888";
 const OURS = "12345678-1234-4234-8234-123456789012";
 const THEIRS = "99999999-9999-4999-8999-999999999999";
 
-const WITH_LINES = ALL_OWNER_PAGES.filter((page) => page.lines);
+// One entry per (page, child table) pair rather than per page.
+//
+// A record can now declare more than one child -- an invoice has line items and
+// payments received. Iterating pages and reading page.lines would have tested
+// the first child of each and silently skipped the rest, which is the same
+// blindness as assuming one shape for all of them.
+const WITH_LINES = ALL_OWNER_PAGES.flatMap((page) =>
+  childrenOf(page).map((spec) => ({ ...page, lines: spec }))
+);
 
 let inserts = [];
 
@@ -90,8 +98,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1" },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2" }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500 },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000 }
       ]);
     }
     return json([]);
@@ -137,6 +145,7 @@ const LINE_EVIDENCE = Object.freeze({
   inventory_count_lines: "Flour",
   location_transfer_lines: "Flour",
   vendor_invoice_lines: "Flour",
+  customer_invoice_lines: "Call-out fee",
   customer_invoice_payments: "Bank transfer"
 });
 
@@ -162,9 +171,26 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 5, `${WITH_LINES.length} pages declare lines; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 6, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
+  });
+
+  it("gives every child its own endpoint", () => {
+    // Two children sharing an api path is not a duplicate route error -- Express
+    // registers both and the first one wins. customer_invoice_lines was
+    // declared with /api/business/invoice-lines, which vendor_invoice_lines
+    // already owned, so every invoice line posted was validated against a
+    // vendor invoice and written to the vendor lines table. Nothing errored.
+    const byApi = new Map();
+    const collisions = [];
+    for (const page of WITH_LINES) {
+      const existing = byApi.get(page.lines.api);
+      if (existing) collisions.push(`${page.lines.api} is claimed by both ${existing} and ${page.lines.table}`);
+      byApi.set(page.lines.api, page.lines.table);
+    }
+    assert.deepEqual(collisions, [], collisions.join("\n  "));
+    assert.equal(byApi.size, WITH_LINES.length, "a child table lost its endpoint to another");
   });
 
   it("writes lines to a real table with real columns", () => {

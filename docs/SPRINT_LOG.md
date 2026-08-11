@@ -682,3 +682,37 @@ assert it does not.
 Third time in this area that one shape was assumed for all children — after the
 "Flour" evidence marker. The pattern is worth naming: a helper written when a
 set had one member encodes that member's shape as the rule.
+
+### 2026-08-11 — Invoice line items, and a record that can hold two kinds of child
+
+`page.lines` was a single object, which was right while every record with
+children had exactly one kind. An invoice has two: what is on it, and what has
+been paid against it. `childrenOf(page)` normalises either shape, so the four
+existing declarations are untouched.
+
+`customer_invoice_lines` was deliberately left out of the receivables migration
+because the framework rendered one child and payments had the slot. There is
+somewhere to put it now.
+
+Line totals are stored rather than derived, which is the opposite of the choice
+made for payments, and the two are different kinds of number. What has been paid
+is a fact about other rows, so deriving it keeps it true. A line total is what
+the business decided to charge — a quantity times a price it may have discounted
+and rounded its own way. Recomputing it on read would overwrite that decision.
+
+Three failures on the way through, all real:
+
+The new child was declared at `/api/business/invoice-lines`, which
+`vendor_invoice_lines` already owned. Two POST handlers on one path is not a
+duplicate-route error — Express registers both and the first wins, so every
+invoice line would have been validated against a vendor invoice and written to
+the vendor table. Nothing would have errored. There is now a test that no two
+children share an endpoint.
+
+`lib/sonara-form-reachability.cjs` read `page.lines.api`, which becomes
+`undefined` against an array. Every child endpoint left the reachable set at
+once and was reported as having no form while its form was on screen.
+
+The lines test iterated pages and read `page.lines`, so it would have tested the
+first child of each record and skipped the rest. It iterates (record, child)
+pairs now.

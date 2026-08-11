@@ -40,7 +40,8 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // clears.
   "customers",
   "customer_invoices",
-  "customer_invoice_payments"
+  "customer_invoice_payments",
+  "customer_invoice_lines"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",

@@ -2,6 +2,7 @@
 
 const {
   ALL_OWNER_PAGES,
+  childrenOf,
   CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
   money,
@@ -168,7 +169,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // classified all four line tables "build-with-parent" for that reason: a
   // standalone "add a line" form would be a way to create rows belonging to
   // nothing.
-  ALL_OWNER_PAGES.filter((page) => page.lines).forEach((page) => {
+  ALL_OWNER_PAGES.filter((page) => childrenOf(page).length > 0).forEach((page) => {
+    const children = childrenOf(page);
     app.get(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
@@ -183,7 +185,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       }));
 
       let parent = null;
-      let lines = [];
+      // One entry per child table, in declaration order.
+      let childRows = children.map(() => []);
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -195,28 +198,31 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         parent = found.ok ? found.rows[0] : null;
         if (!parent) unavailable = "That record is not in your business, or it has been removed.";
         else {
-          const listed = await supabaseList(config, page.lines.table, `?select=*&${page.lines.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
-          lines = listed.ok ? listed.rows : [];
+          childRows = await Promise.all(children.map(async (spec) => {
+            const listed = await supabaseList(config, spec.table, `?select=*&${spec.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
+            return listed.ok ? listed.rows : [];
+          }));
         }
       }
 
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [summaryCard(page, parent, ui), linesCard(page, lines, ui), lineFormCard(page, recordId, ui)];
+        : [summaryCard(page, parent, ui), ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui)])];
 
       return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
         heading: page.title,
-        body: page.lines.title,
+        body: children.map((spec) => spec.title).join(" "),
         sections,
         actions: [ui.link(page.path, `All ${page.title.toLowerCase()}`), ui.link("/business-builder/owner", "Owner Dashboard"), ui.link("/business-builder/dashboard", "Dashboard")]
       }));
     });
 
     // Saving a line returns to the record it belongs to, not to a JSON body.
-    app.post(page.lines.api, requireBusinessManager, async (req, res) => {
-      const parentId = String(req.body[page.lines.parentColumn] || "");
+    children.forEach((spec) => {
+    app.post(spec.api, requireBusinessManager, async (req, res) => {
+      const parentId = String(req.body[spec.parentColumn] || "");
       const back = isUuid(parentId) ? `${page.path}/${parentId}` : page.path;
       const respond = (status, payload) => {
         if (!acceptsHtml(req)) return res.status(status).json(payload);
@@ -233,7 +239,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // no item name, so every payment submitted was rejected as
       // missing_required for a field its form never asks for. The form rendered,
       // the button worked, and nothing could ever save.
-      const requiredFields = page.lines.form.fields.filter((field) => field.required).map((field) => field.name);
+      const requiredFields = spec.form.fields.filter((field) => field.required).map((field) => field.name);
       const missing = requiredFields.filter((name) => !String(req.body[name] ?? "").trim());
       if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
       const config = getConfig(deps);
@@ -251,9 +257,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       delete submitted.organization_id;
       delete submitted.user_id;
       delete submitted.id;
-      const payload = sanitizeObject({ ...submitted, [page.lines.parentColumn]: parentId, organization_id: org.organizationId });
-      const saved = await supabaseInsert(config, page.lines.table, payload);
+      const payload = sanitizeObject({ ...submitted, [spec.parentColumn]: parentId, organization_id: org.organizationId });
+      const saved = await supabaseInsert(config, spec.table, payload);
       return respond(saved?.ok === false ? 502 : 200, saved);
+    });
     });
   });
 
@@ -600,7 +607,7 @@ function recordsCard(page, rows, ui) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
-  const opens = Boolean(page.lines);
+  const opens = childrenOf(page).length > 0;
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...(opens ? ["<th>Details</th>"] : [])].join("");
   const width = page.columns.length + (opens ? 1 : 0);
   const body = rows.length
@@ -633,8 +640,7 @@ function summaryCard(page, row, ui) {
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
 }
 
-function linesCard(page, rows, ui) {
-  const spec = page.lines;
+function linesCard(spec, rows, ui) {
   const head = spec.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
   const body = rows.length
     ? rows.map((row) => `<tr>${spec.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
@@ -653,8 +659,7 @@ function linesCard(page, rows, ui) {
 // The parent id travels as a hidden field. The handler still checks the parent
 // belongs to this business before writing, because a hidden field is a value
 // the person submitting chooses.
-function lineFormCard(page, recordId, ui) {
-  const spec = page.lines;
+function lineFormCard(spec, recordId, ui) {
   const fields = spec.form.fields.map((field) => formField(field, {}, ui)).join("");
   const parent = `<input type="hidden" name="${ui.escape(spec.parentColumn)}" value="${ui.escape(recordId)}">`;
   return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;

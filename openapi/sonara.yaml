@@ -1132,9 +1132,9 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
-  /api/business/invoice-lines:
+  /api/business/receivable-lines:
     post:
-      operationId: createBusinessInvoiceLine
+      operationId: createBusinessReceivableLine
       tags: [Operations]
       summary: Add a line to a vendor invoice.
       description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
@@ -1180,6 +1180,14 @@ paths:
       operationId: createBusinessReceivable
       tags: [Operations]
       summary: Raise an invoice against a customer.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/invoice-lines:
+    post:
+      operationId: createBusinessInvoiceLine
+      tags: [Operations]
+      summary: Add a line to a customer invoice.
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
