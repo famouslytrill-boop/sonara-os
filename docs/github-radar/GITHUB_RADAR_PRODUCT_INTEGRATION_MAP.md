@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-64 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 64.
+66 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 66.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-40 repositories.
+39 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -49,7 +49,6 @@ Create, launch, run and manage a business.
 | [RestaurantProject (BryanTheLai)](https://github.com/BryanTheLai/RestaurantProject) | Apache-2.0 | Read only | hospitality reference |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
-| [Superpowers-style Claude Code tooling](https://github.com/) | License must be verified before use. | Licence unresolved | developer workflow |
 | [TastyIgniter](https://github.com/tastyigniter/TastyIgniter) | MIT | Adapt after review | online ordering |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
@@ -141,6 +140,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [G0DM0D3 / Godmode-style multi-model interface](https://github.com) | License must be reviewed before any implementation or adaptation | Security review first | multi-model evaluation |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Apache-2.0 | Read only | developer CLI |
 | [Generative media automation references](https://github.com/) | Model, asset, and provider terms require review. | Research only | generative media |
+| [kimi-k3-in-c](https://github.com/FareedKhan-dev/kimi-k3-in-c) | Apache-2.0 | Read only | CPU-only model inference |
 | [LangChain](https://github.com/langchain-ai/langchain) | MIT; integration packages and providers require separate review. | Read only | agent framework |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | Adapt after review | visual agent builder |
 | [LightRAG-style reference](https://github.com/) | License must be verified before use. | Licence unresolved | retrieval augmented generation |
@@ -160,7 +160,6 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
-| [Superpowers-style Claude Code tooling](https://github.com/) | License must be verified before use. | Licence unresolved | developer workflow |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [Voicebox / open-source voice synthesis style references](https://github.com/) | Model/code terms require review before any commercial use. | Research only | voice AI |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
@@ -173,7 +172,9 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | --- | --- | --- | --- |
 | [Claude Skills Collection (alirezarezvani)](https://github.com/alirezarezvani/claude-skills) | MIT | Adapt after review | developer tooling |
 | [Foodya Restaurant](https://github.com/Shahzaib-Awann/Foodya-Restaurant) | Not verified. The README describes free personal and educational | Licence unresolved | see the register |
+| [Harness (RevFactory)](https://github.com/revfactory/harness) | Apache-2.0, verified from the repository's own licence badge. Th | Adapt after review | agent team architecture |
 | [MERN Social Media (ed-roh)](https://github.com/ed-roh/mern-social-media) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Social Media App (adrianhajdin)](https://github.com/adrianhajdin/social_media_app) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Streambert / movie streaming piracy-style references](https://example.invalid/blocked) | Piracy/copyright infringement risk. | Blocked | see the register |
 | [Suno API (unofficial)](https://github.com/SunoAI-API/Suno-API) | MIT for the wrapper code; the upstream service it calls is gover | Blocked | see the register |
+| [Superpowers](https://github.com/obra/superpowers) | MIT | Adapt after review | developer workflow |

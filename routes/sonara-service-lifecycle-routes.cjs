@@ -4,6 +4,8 @@
 // Injected helpers come from server.js so auth, layout, and Supabase access
 // stay consistent with the rest of the app. No secrets are ever rendered.
 
+const { redactError } = require("../lib/sonara-redaction.cjs");
+
 const { randomUUID } = require("node:crypto");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
@@ -163,7 +165,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     app.get(route, (req, res, next) => {
       Promise.resolve(handler(req, res, next)).catch((error) => {
         if (process.env.NODE_ENV === "test") {
-          console.error("SONARA catalog route failure", route, error?.stack || error?.message || error);
+          // Through the boundary rather than raw. A Supabase failure carries the
+          // URL it tried, and that URL carries an apikey query parameter.
+          console.error("SONARA catalog route failure", route, redactError(error));
         }
         if (res.headersSent) return next(error);
         return res.status(503).type("html").send(

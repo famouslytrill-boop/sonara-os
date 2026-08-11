@@ -2,6 +2,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-10 — One redaction boundary, and the sink that proved it was needed
+
+`redactSensitiveText` lived in server.js, was applied at four call sites — all
+around support requests and email failures — and was named like a boundary while
+being used like a helper. Its patterns covered Stripe-shaped keys, long digit
+runs and `password: value`. That covers a customer pasting a card number into a
+support message, which is what it was written for.
+
+It did not cover the thing most likely to leak from this deployment. A Supabase
+service-role key is a JWT: not `sk_`-shaped, no long digit run, and it bypasses
+row level security. The patterns now lead with JWTs, then Authorization headers,
+URL query credentials, Stripe, Resend, Postgres connection strings, assigned
+secrets, and card-like numbers last because it is the loosest.
+
+`lib/sonara-redaction.cjs` is now the only definition, and
+`tests/redaction-boundary.test.js` scans every runtime file for console calls
+that print error-shaped text without going through it.
+
+A second thing was caught, this time by the release rather than by me. The
+kimi-k3-in-c record went in with `repoUrl: https://github.com/kimi-k3-in-c` — an
+owner path with no owner behind it. The screenshot it came from showed the
+repository name and not its owner, and I completed the URL instead of looking it
+up. `verify-external-repositories` resolves every registered repository against
+the GitHub API and failed the PR. It is `FareedKhan-dev/kimi-k3-in-c`.
+
+Worth knowing for next time: that check runs with `--network` in CI and without
+it in `verify:launch`, so a wrong URL passes every local gate. The register's
+whole point is that its facts are checked rather than recalled, and this one was
+recalled.
+
+**It found one on its first run.** `reportDegradedRateLimit` interpolated the
+caught error straight into `console.error`. The rate limiter calls
+`sonara_consume_rate_limit` over PostgREST with the service-role key, so the
+error it degrades on is a Supabase error carrying the URL it failed to reach —
+and that URL carries an `apikey` parameter. It printed the credential into the
+log on exactly the path taken when the database is already struggling.
+
+Two things about how this went, both worth not repeating. Every pattern has a
+benign string it must leave intact, because a redactor that eats everything
+passes the redaction tests and destroys every error message in the product.
+
+And while wiring the catalog route's `console.error` through the boundary, the
+`require` did not land — the file does not start with `"use strict";`, which is
+what the edit anchored on. The module still loaded, because the reference sits
+inside a catch that only runs in test mode. Caught by grepping for the import
+rather than by anything failing.
+
 ### 2026-08-06 — The assistant, extended to all three products
 
 Twenty checks now: nine Business Builder, five Creator Studio, six Growth
