@@ -303,9 +303,13 @@ describe("the server.js split stays safe", () => {
     // Then 1 for passing requireCustomer into the assistant routes, which /search
     // needs: it searches a customer's own records across every workspace, so the
     // per-workspace gate is the wrong one.
+    // Then 13 for /owner/agent-activity: the require, the registration block,
+    // and the dashboard card that links to it. The page itself is 190 lines in
+    // routes/sonara-agent-activity-routes.cjs -- this is the wiring cost of
+    // moving work out, which is the direction this ceiling exists to push.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4059,
+      lines <= 4072,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

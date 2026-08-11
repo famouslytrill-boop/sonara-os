@@ -24,6 +24,7 @@ const registerProductLifecycleRoutes = require("./routes/product-lifecycle-route
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
+const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
@@ -665,6 +666,17 @@ registerBusinessAssistantRoutes(app, {
   supabaseHeaders
 });
 
+registerAgentActivityRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireCustomer,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders
+});
+
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that
   // shows a signed-in customer their own requests and a visitor nothing.
@@ -1142,6 +1154,7 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         actionCard("Deliverables", summary.deliverablesSummary, [linkAction("/deliverables", "Deliverables")]),
         actionCard("Billing status", summary.billingSummary, [linkAction("/billing", "Billing"), linkAction("/pricing", "Pricing")]),
         actionCard("Support", summary.supportSummary, [linkAction("/support", "Support center"), linkAction("/contact", "Contact")]),
+        actionCard("Agent activity", "What the agents did for your organisation, and anything that stopped because your rules say you decide it.", [linkAction("/owner/agent-activity", "Agent activity")]),
         summary.blockersCard,
         actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
         ...(summary.adminCard ? [summary.adminCard] : []),
