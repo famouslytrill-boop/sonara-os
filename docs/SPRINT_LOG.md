@@ -2,6 +2,41 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-11 — Nine warnings nobody could act on, now zero
+
+`verify-external-repositories` printed nine warnings on every release for
+months: register records whose `repoUrl` was `https://github.com/`. Nobody
+acted on them, and the reason turned out to be that nobody *could*.
+
+They were not repository records. "LightRAG-style reference",
+"Voicebox-style voice synthesis", "OpenFang / autonomous agent OS-style
+references", "Godmode-style multi-model interface" — each named a *genre*
+rather than an artifact, with a licence field reading "must be verified before
+use". There was nothing to verify. A register of repositories cannot hold a
+record that names no repository.
+
+Eight are removed. One turned out to be real: **LightRAG is `HKUDS/LightRAG`**,
+MIT, from the EMNLP 2025 paper — now recorded properly with a verified licence.
+
+Reading it produced a finding worth more than the record. It is reference rather
+than adaptation for a *product* reason, not a licence one: **nothing in this
+product can search a customer's own records at all.** No `/search` route, no
+`tsvector`, no full-text index anywhere in the tree. So the first useful step is
+Postgres full-text over records the business already owns — not a second index
+this product would have to keep in step with them.
+
+The placeholder check is now a **failure rather than a warning**. Nine warnings
+that print every release and change nothing are worse than none: they train
+whoever reads the log to skim past the section where a real problem would
+appear. Verified by pointing the LightRAG record back at `https://github.com/` —
+the release fails.
+
+One process slip worth recording. After proving the new failure fires, I ran
+`git checkout -- data/open-source-tools.ts` to undo the test mutation, which
+also undid the seven deletions and the LightRAG rewrite in the same file. The
+work had to be redone. Copy the file next time; `git checkout` does not know
+which of your changes was the experiment.
+
 ### 2026-08-11 — The OSINT directory, blocked category by category
 
 An open-source-intelligence bookmark directory came in for assessment. Recorded

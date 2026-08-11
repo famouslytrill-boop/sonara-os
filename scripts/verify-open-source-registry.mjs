@@ -30,7 +30,14 @@ function addRepositoryTarget(rawUrl, source, metadata = {}) {
   if (url.hostname !== "github.com" && url.hostname !== "www.github.com") return;
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments.length === 0) {
-    warnings.push(`Unresolved generic GitHub placeholder in ${source}: ${rawUrl}`);
+    // Was a warning, and warnings are what nobody acts on. Nine of these
+    // printed on every release for months: records naming a genre rather than
+    // an artifact -- "LightRAG-style reference", "Voicebox-style voice
+    // synthesis" -- so there was nothing to review and no way to review it.
+    // Eight were removed and one turned out to be HKUDS/LightRAG. A register
+    // of repositories cannot hold a record that names no repository, so this
+    // fails now rather than reminding.
+    errors.push(`${source} has no repository behind it: ${rawUrl}. A record that names no artifact cannot be reviewed -- name the repository, or remove the record.`);
     return;
   }
 
