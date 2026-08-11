@@ -53,6 +53,10 @@ const RESOURCE_MAP = {
   // Supplier payments and accounting exports. bill_payment_records records no
   // person; accounting_exports has created_by.
   "/api/business/bill-payments": { table: "bill_payment_records", required: [], defaults: { status: "scheduled", currency: "usd" } },
+  // Accounts receivable. customer_invoices records who raised it; the payments
+  // under it are reached through the invoice, the same way invoice lines are.
+  "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
+  "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
 };
 

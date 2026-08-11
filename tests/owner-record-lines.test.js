@@ -90,8 +90,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500 },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000 }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1" },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2" }
       ]);
     }
     return json([]);
@@ -111,6 +111,22 @@ function postLine(page, body) {
     .send(body)
     .redirects(0);
 }
+
+// What proves a page rendered its own lines rather than an empty table.
+//
+// This was the string "Flour" for every page, which worked while all four line
+// tables were stock lines with an item_name. customer_invoice_payments has no
+// item name -- it has a date, an amount, a method and a reference -- so a
+// single shared marker would have reported it broken while it rendered
+// correctly. The stub row carries every column the five tables use; this says
+// which one is the evidence for each.
+const LINE_EVIDENCE = Object.freeze({
+  purchase_order_lines: "Flour",
+  inventory_count_lines: "Flour",
+  location_transfer_lines: "Flour",
+  vendor_invoice_lines: "Flour",
+  customer_invoice_payments: "Bank transfer"
+});
 
 describe("line items on the records that have them", () => {
   let realFetch;
@@ -134,7 +150,9 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 4, `${WITH_LINES.length} pages declare lines; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 5, `${WITH_LINES.length} pages declare lines; this check has gone blind`);
+    const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
+    assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
   });
 
   it("writes lines to a real table with real columns", () => {
@@ -180,7 +198,7 @@ describe("line items on the records that have them", () => {
         problems.push(`${page.path}/:id returned ${res.status}`);
         continue;
       }
-      if (!/Flour/.test(res.text)) problems.push(`${page.path}/:id does not render its lines`);
+      if (!res.text.includes(LINE_EVIDENCE[page.lines.table])) problems.push(`${page.path}/:id does not render its lines`);
       if (!res.text.includes(`action="${page.lines.api}"`)) problems.push(`${page.path}/:id has no form to add a line`);
       if (!res.text.includes(`name="${page.lines.parentColumn}"`)) problems.push(`${page.path}/:id does not carry the parent id`);
     }

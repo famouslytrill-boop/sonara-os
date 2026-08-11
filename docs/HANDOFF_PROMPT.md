@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4072 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 77 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 78 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
 - 120 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
@@ -702,3 +702,42 @@ its twelve tools are downstream of that one missing table.
 Also corrected CLAUDE.md, which still said there is no agent runtime. There is
 one; what there is not is anything that re-runs an action after approval, and
 that is now what it says.
+
+### 2026-08-11 — Accounts receivable, the side of the money that was missing
+
+Every money table in this product pointed outward. `vendor_invoices`,
+`purchase_orders` and `bill_payment_records` are what the business owes;
+`payments` and `purchases` are SONARA's own Stripe billing. A business could
+record a bill it had to pay and had nowhere to record a bill it had sent.
+
+`customer_invoices` and `customer_invoice_payments`, with
+`/business-builder/owner/receivables` over them. `customers` gets a page too --
+it had a table, row level security and no way in, and bookings store a
+customer's name as free text rather than pointing at it, so an invoice had
+nobody to be addressed to.
+
+Payments received are rows, not an `amount_paid_cents` column. A denormalised
+total stops being true the first time somebody records a payment without
+updating it.
+
+No line-items table, deliberately. The owner-page framework renders one child
+per page, and between line items and payments received it is payments that
+answer "who owes me what". A line table with no page is schema nothing can
+reach, and there is enough of that already.
+
+Two checks: `customer_invoices_overdue` fires only on `sent`, because a draft
+nobody has seen is not late and counting it would put invented pressure on a
+number read as real money. `customer_invoices_sent_without_due_date` catches the
+row the first check structurally cannot see -- an invoice with no due date never
+goes overdue, so it leaves every chase list in silence.
+
+Four gates caught things on the way through, all correctly: the lines test
+counted 4 pages and found 5, the record-checks test refused a check with no
+fixture proving it catches and ignores, the Supabase contract refused tables the
+runtime referenced, and the OpenAPI contract refused unregistered routes.
+
+The lines test asserted the string "Flour" for every page, which held while all
+four line tables were stock lines with an `item_name`. Payments have a date, an
+amount, a method and a reference, so one shared marker would have reported a
+working page broken. Evidence is now declared per table, and a page whose table
+has none fails rather than passing quietly.

@@ -33,7 +33,14 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "inventory_count_sessions",
   "location_transfers",
   "bill_payment_records",
-  "accounting_exports"
+  "accounting_exports",
+  // Accounts receivable. Every other money table in this product records what
+  // the business owes; these three record who it bills and what it is owed,
+  // which for a trades business is the side that decides whether payroll
+  // clears.
+  "customers",
+  "customer_invoices",
+  "customer_invoice_payments"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
