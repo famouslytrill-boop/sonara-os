@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-65 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 65.
+66 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 66.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -55,7 +55,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-21 repositories.
+22 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -66,6 +66,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | Licence unresolved | AI application platform |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
@@ -115,7 +116,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-35 repositories.
+36 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -131,6 +132,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [DeepSeek V3](https://github.com/deepseek-ai/DeepSeek-V3) | Repository code is MIT; model weights use the upstream DeepSeek  | Licence unresolved | open-weight model |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | Licence unresolved | AI application platform |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
 | [free-for.dev](https://github.com/ripienaar/free-for-dev) | Not verified. The repository page did not surface a licence and  | Licence unresolved | free-tier service index |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Apache-2.0 | Read only | developer CLI |

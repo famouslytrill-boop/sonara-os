@@ -1145,6 +1145,37 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Fenix AI Studio",
+    slug: "fenix-ai-studio-local-creative-workstation",
+    category: ["local model workstation", "music and video creation", "coding workspace", "Ollama front end"],
+    useCase: [
+      "what a local-first creative workstation puts on one screen",
+      "chat, coder workspace and model management as one product rather than three",
+      "running models on the owner's own hardware instead of a metered provider",
+    ],
+    productFit: ["Creator Studio", "Research Lab"],
+    license: "AGPL-3.0, read from the repository sidebar and restated in its README.",
+    licenseRisk: "high",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read how it groups chat, coding and model management into one workspace",
+      "do not incorporate code; AGPL-3.0 section 13 reaches users served over a network, and SONARA is served over a network",
+      "if the owner wants it, run it as a separate tool on their own machine, which AGPL permits without touching this product's licensing",
+    ],
+    officialUrl: "https://github.com/FenixStudioAU/FenixAIStudio",
+    repoUrl: "https://github.com/FenixStudioAU/FenixAIStudio",
+    notes:
+      "Describes itself as an AI system for music, music videos and coding that connects to Ollama and runs models locally on the owner's own hardware. Two things make it worth recording. The local-model posture is the same one this product needs for the no-cost requirement -- a model running on hardware someone already owns is not metered -- and its scope overlaps Creator Studio directly. The licence is the constraint and it is the strict kind: AGPL-3.0 obliges anyone who offers modified covered software to users over a network to offer those users its complete corresponding source. SONARA is offered over a network, so copying code from here would extend that obligation to SONARA. Running it as a separate local tool does not, which is the route that stays open without an owner decision. Verified from the repository rather than recalled; the sidebar and the README agree.",
+    safetyBoundaries: [
+      "no AGPL code incorporated into the hosted product",
+      "no model call routed outside the Provider Gateway",
+      "any local deployment stays on owner hardware and is not offered to customers as a service",
+    ],
+    blockedUses: ["vendoring into the hosted application", "shipping as a customer-facing SONARA feature"],
+    humanReviewRequired: true,
+  },
+  {
     name: "erxes",
     slug: "erxes-experience-operating-system",
     category: ["CRM and support suite", "plugin architecture", "operations reference"],
