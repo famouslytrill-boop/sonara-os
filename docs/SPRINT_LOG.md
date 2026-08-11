@@ -2,6 +2,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-11 — 3D interaction, and pointing Claude at what this repository knows
+
+The depth layer moved cards; now it lights them. A soft highlight tracks the
+pointer across each card, and each workspace catches its own colour — Business
+Builder green, Creator Studio violet, Growth Studio amber — so the mark, the
+backdrop and the light on the card finally agree. The per-product backdrops lean
+the same way. Actions gained a press that moves toward the page, inside the
+perspective the cards already sit in.
+
+It costs nothing extra per frame. `sonara-depth.js` already computed the pointer
+position for the tilt, so the spotlight writes two more custom properties from
+numbers it had. `tests/depth-interaction.test.js` fails if a second
+`pointermove` listener appears.
+
+What that test really protects is the exits. Every effect has to disappear under
+reduced motion, under the user's own motion switch, on small screens, and in
+print — and stay off work screens entirely. Each new effect is one more thing
+that can forget one of those, and a forgotten exit is invisible to whoever added
+it, because they are not the person with vestibular disorder or the phone.
+
+One correction: the print check read only the first `@media print` block and
+reported the spotlight as printing when it does not. The check was wrong, not
+the CSS.
+
+**`CLAUDE.md` was one line: `@AGENTS.md`.** Every session inherited the rules and
+none of the accumulated facts — the agent approval rule, the register, the
+recurring-defect pattern, the handoff prompt that is regenerated on every
+release. It now points at all of them, so a new session starts with what this
+repository has learned instead of rediscovering it.
+
+**The register page now says where each repository lands.** It listed licence,
+risk and refusals and never named the product, so it answered "may we use this?"
+and not "what is it for?" — and the second is the question somebody opening that
+page is usually asking. All 71 records are placed: 61 against a product, and 10
+with a stated reason they are not (five blocked, one licence unresolved, three
+build-time tooling, one that cannot run on this stack).
+
 ### 2026-08-11 — Rebrand: a new palette, and the marks that never matched it
 
 New colours across the design system, and one finding that came out of doing it.

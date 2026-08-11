@@ -1,5 +1,5 @@
 /*
- * SONARA depth — pointer tilt, scroll entrance, and hero parallax.
+ * SONARA depth — pointer tilt, pointer spotlight, scroll entrance, and hero parallax.
  *
  * The design system has carried a full 3D vocabulary for a while:
  * .sonara-stage, .sonara-depth, .sonara-depth__layer, .sonara-reveal, a motion
@@ -175,6 +175,14 @@
     // top of the card away, which is the direction that reads as physical.
     target.style.setProperty("--sonara-tilt-x", (-offsetY * MAX_TILT).toFixed(2) + "deg");
     target.style.setProperty("--sonara-tilt-y", (offsetX * MAX_TILT).toFixed(2) + "deg");
+
+    // The same two numbers as a percentage across the card, for the spotlight.
+    // Written here rather than in a second handler because the position is
+    // already computed and a second listener on pointermove would double the
+    // per-frame work for one gradient.
+    target.style.setProperty("--sonara-pointer-x", ((offsetX + 0.5) * 100).toFixed(1) + "%");
+    target.style.setProperty("--sonara-pointer-y", ((offsetY + 0.5) * 100).toFixed(1) + "%");
+
     target.setAttribute("data-sonara-tilt", "on");
 
     if (tiltCards.indexOf(target) === -1) tiltCards.push(target);
@@ -184,6 +192,8 @@
     card.removeAttribute("data-sonara-tilt");
     card.style.removeProperty("--sonara-tilt-x");
     card.style.removeProperty("--sonara-tilt-y");
+    card.style.removeProperty("--sonara-pointer-x");
+    card.style.removeProperty("--sonara-pointer-y");
   }
 
   function onPointerMove(event) {
