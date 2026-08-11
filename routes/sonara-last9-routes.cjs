@@ -111,6 +111,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         actions: [
           // First, because it is the only one that tells the owner something
           // they did not already know they were looking for.
+          ui.link("/search", "Search your records"),
           ui.link("/business-builder/owner/assistant", "What needs attention"),
           ui.link("/business-builder/owner/locations", "Locations"),
           ui.link("/business-builder/owner/staff", "Staff"),
@@ -678,6 +679,9 @@ function formField(field, references, ui) {
 
 function ownerActions(ui, currentPath) {
   return [
+    // On every owner record page, because the page a customer is on is the one
+    // where they realise they cannot find the record they came for.
+    ui.link("/search", "Search"),
     ui.link("/business-builder/owner", "Owner Dashboard"),
     ...ALL_OWNER_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
     ui.link("/business-builder/dashboard", "Dashboard")

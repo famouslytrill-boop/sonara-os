@@ -2,6 +2,31 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-11 — The search page nothing linked to
+
+`/search` shipped in the previous sprint reachable only by typing the URL.
+Nothing offered the way in — no dashboard action, no navigation, nothing.
+
+This is the same defect as `/research-lab/open-source` from the other side. That
+one was two links pointing at a route that did not exist, and the link checker
+caught it. This is a route that exists with nothing pointing at it, and **no
+check caught it**: every existing test passed, because a route that resolves is
+not the same as a route somebody can get to.
+
+Linked now from all three product dashboards and from every owner record page —
+the page a customer is on is the one where they realise they cannot find the
+record they came for.
+
+`tests/page-reachability.test.js` is deliberately narrow. Not every route needs a
+link: a detail page is reached from its list, an API endpoint from a form, a
+legal alias exists to be linked *from* elsewhere. What it checks is the small set
+of pages that are a destination in their own right, where something has to offer
+the way in.
+
+What counts as "resolves" matches `no-dead-links.test.js` rather than being
+decided again — 503 is correct for a page that needs Supabase in an environment
+with none, and only 404 or 500 means the link is dead.
+
 ### 2026-08-11 — Search, which this product did not have at all
 
 `/search` finds one record among thousands, across twelve record types —
