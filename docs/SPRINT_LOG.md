@@ -510,3 +510,24 @@ contains it.
 `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` is now generated per
 repository from the register instead of being four sentences that named none of
 them.
+
+### 2026-08-11 — Pricing structure, analysed not applied
+
+The current list — Free / Starter $7 / Core $19 / Pro $39 — prices depth. The
+product's shape is breadth: three workspaces, each replacing a different tool.
+The July survey puts the stack being replaced at $77 (Jobber $29 + Podia $39 +
+Brevo $9), and the current price list never says so.
+
+`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` recommends Free $0 / One
+workspace $19 / All three $39 / Team $79, with $19 chosen specifically so no
+existing Core customer pays more.
+
+Nothing is applied. `STRIPE_PLANS` is unchanged. Billing is owner-approved
+under AGENTS.md, and three things have to be true first: the positive
+subscribed-user test has never been run in production, the new Stripe price
+objects do not exist, and "All three" and "Team" need entitlement keys that
+the catalog resolves against — so this is a code change, not only a Stripe one.
+
+The document does not claim these prices convert better. No paid signup has
+completed, so there is no conversion data, and inventing one would be the
+failure this repository keeps catching.
