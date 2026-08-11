@@ -531,3 +531,31 @@ the catalog resolves against — so this is a code change, not only a Stripe one
 The document does not claim these prices convert better. No paid signup has
 completed, so there is no conversion data, and inventing one would be the
 failure this repository keeps catching.
+
+### 2026-08-11 — Three loopholes in the tenant guard, none of them live
+
+Hunted rather than tripped over. All three were the same shape: a check that
+reports coverage it does not have.
+
+The known-tables test scanned `server.js` and `routes/` and not `lib/`, which
+also issues PostgREST requests. A table queried from `lib/` and created by no
+migration would have been invisible to the test and waved through by the guard.
+Nothing was actually wrong — six literal table names in `lib/`, all recognised —
+but the scan could not have said so. Widened, then confirmed by planting a
+`lib/` file querying a table no migration creates and watching it fail.
+
+`inspect()` returned `{ allowed: true, unrecognised: table }` and `install()`
+read only `.allowed`. The comment said "allow it and say so"; it allowed and did
+not say. Now reported once per table name, not once per request, because a
+warning that prints on every page load is one nobody reads.
+
+`install()` was guarded by a module-level `installed` boolean that ignored the
+target, so the first install anywhere made every later one a silent no-op. The
+new test installed onto its own scope object, got `false`, exercised an
+unwrapped `fetch` and passed — in isolation. It failed in the full suite only
+because the test asserts the return value. Tracking targets in a `WeakSet` is
+both more correct and what keeps that test honest.
+
+The guard still allows an unrecognised table. Failing closed there trades a
+quiet hole for an outage, and a stale generated list is a likelier event than a
+malicious one.
