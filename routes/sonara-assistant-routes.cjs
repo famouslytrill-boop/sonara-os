@@ -36,6 +36,7 @@ const {
 const journey = require("../lib/sonara-customer-journey.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 const search = require("../lib/sonara-search.cjs");
+const cash = require("../lib/sonara-cash-position.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -98,6 +99,13 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
     }
     return results;
   });
+
+  function asMoney(cents) {
+    const amount = Number(cents);
+    if (!Number.isFinite(amount)) return "an unknown amount";
+    const sign = amount < 0 ? "-" : "";
+    return `${sign}$${(Math.abs(amount) / 100).toFixed(2)}`;
+  }
 
   async function readRows(config, check, organizationId) {
     const query = `?select=${selectFor(check)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=${ROW_LIMIT}`;
@@ -231,6 +239,98 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   // Growth Studio because the traceable half of the journey -- touchpoints,
   // leads, conversions -- is Growth Studio's schema. Bookings and reviews sit
   // beside those as counts, labelled as counts.
+  // /business-builder/owner/money-due -- what is promised in both directions.
+  //
+  // Tool six of the twelve in docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md is
+  // a cash forecast at $49 a month. This is not that, and the difference is the
+  // point: a forecast predicts revenue nobody has promised yet, and this adds
+  // up what has been. An owner deciding whether payroll clears cannot afford to
+  // be unable to tell the predicted part from the counted part, so there is no
+  // predicted part.
+  //
+  // It reports movement, not a balance. No table in this product holds the
+  // bank balance, and a position computed from an opening balance of zero would
+  // read as the money the business has.
+  app.get("/business-builder/owner/money-due", requireWorkspaceAccess("business_builder"), async (req, res) => {
+    const back = linkAction("/business-builder/owner", "Back to your business");
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraAccess?.user || req.user, { autoBootstrap: false }).catch(() => null)
+      : null;
+
+    const page = (heading, body, sections) => res.status(200).type("html").send(layout({
+      title: "Money due in and out",
+      eyebrow: "Business Builder",
+      heading,
+      body,
+      sections,
+      actions: [
+        back,
+        linkAction("/business-builder/owner/receivables", "Money owed to you"),
+        linkAction("/business-builder/owner/invoices", "Bills you owe")
+      ]
+    }));
+
+    if (!config?.ok || !org?.ok || !org.organizationId) {
+      return page(
+        "Setup required",
+        "Your workspace is not connected yet, so there is nothing to add up.",
+        [brandCard("What to do", "Finish setting up your workspace and this page will start reading your own invoices.")]
+      );
+    }
+
+    const [incoming, outgoing, received] = await Promise.all([
+      readRows(config, { table: cash.SOURCES.incoming.table, columns: cash.SOURCES.incoming.columns }, org.organizationId),
+      readRows(config, { table: cash.SOURCES.outgoing.table, columns: cash.SOURCES.outgoing.columns }, org.organizationId),
+      readRows(config, { table: cash.SOURCES.received.table, columns: cash.SOURCES.received.columns }, org.organizationId)
+    ]);
+
+    const view = cash.build({ incoming, outgoing, received });
+
+    const sections = view.rows.map((row) => {
+      const detail = row.incomingCount === 0 && row.outgoingCount === 0
+        ? "Nothing due in this period."
+        : `${asMoney(row.incomingCents)} coming in from ${row.incomingCount} ${row.incomingCount === 1 ? "invoice" : "invoices"}, ` +
+          `${asMoney(row.outgoingCents)} going out across ${row.outgoingCount} ${row.outgoingCount === 1 ? "bill" : "bills"}. ` +
+          `Net ${asMoney(row.netCents)}.`;
+      return brandCard(row.label, detail);
+    });
+
+    // Everything that makes the totals less than the whole picture is said
+    // before the totals, not in a footnote under them.
+    if (view.unavailable.length > 0) {
+      sections.unshift(brandCard(
+        "Some of this could not be read",
+        `${view.unavailable.join(" and ")} could not be loaded just now, so the figures below are missing part of the picture. They are not a smaller total; they are an incomplete one.`
+      ));
+    }
+
+    if (view.undated.incomingCount > 0 || view.undated.outgoingCount > 0) {
+      const parts = [];
+      if (view.undated.incomingCount > 0) {
+        parts.push(`${asMoney(view.undated.incomingCents)} owed to you across ${view.undated.incomingCount} ${view.undated.incomingCount === 1 ? "invoice" : "invoices"} with no due date`);
+      }
+      if (view.undated.outgoingCount > 0) {
+        parts.push(`${asMoney(view.undated.outgoingCents)} you owe across ${view.undated.outgoingCount} ${view.undated.outgoingCount === 1 ? "bill" : "bills"} with no due date`);
+      }
+      sections.unshift(brandCard(
+        "Money with no date on it",
+        `${parts.join(", and ")}. None of it appears in the periods below, because there is no way to say when it lands. Give each one a due date and it will.`
+      ));
+    }
+
+    sections.push(brandCard(
+      "This is not a forecast",
+      "Every figure here is money somebody has already been invoiced for, or a bill that has already arrived. Nothing is predicted or averaged from past months. It is also movement rather than a balance — this does not know what is in your bank account, so it cannot tell you what you will have, only what is due to move."
+    ));
+
+    const headline = view.complete
+      ? `${asMoney(view.totalIncoming)} due in, ${asMoney(view.totalOutgoing)} due out. Net ${asMoney(view.netCents)}.`
+      : `${asMoney(view.totalIncoming)} due in and ${asMoney(view.totalOutgoing)} due out of what could be dated and read — see above for what is missing.`;
+
+    return page("Money due in and out", headline, sections);
+  });
+
   app.get("/growth-studio/journey", requireWorkspaceAccess("growth_studio"), async (req, res) => {
     const back = linkAction("/growth-studio/dashboard", "Back to Growth Studio");
     const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;

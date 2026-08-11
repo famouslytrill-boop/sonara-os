@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 78 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 120 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 121 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -741,3 +741,36 @@ four line tables were stock lines with an `item_name`. Payments have a date, an
 amount, a method and a reference, so one shared marker would have reported a
 working page broken. Evidence is now declared per table, and a page whose table
 has none fails rather than passing quietly.
+
+### 2026-08-11 — Money due in and out, which is not a forecast
+
+`/business-builder/owner/money-due`, over `lib/sonara-cash-position.cjs`.
+Unblocked by accounts receivable: with invoices owed to the business and bills
+owed out, both carrying due dates, money in and out by period is arithmetic
+over the owner's own rows. No model, no provider, nothing metered. Tool six of
+the twelve in the trades guide is Float or Bauwise at $49 a month.
+
+**It is not a forecast, and the naming is the substance rather than a caveat.**
+A forecast predicts revenue nobody has promised. This adds up what has been
+promised in both directions. An owner deciding whether payroll clears cannot
+tell an extrapolated number from a counted one once they are in the same
+column, so there is no extrapolated number.
+
+Three things it refuses to do:
+
+A row with no due date is excluded **and reported**, above the totals rather
+than in a footnote. Dropping it silently would make every figure look complete
+while being short by an unknown amount, which is the shape of most of the
+defects found in this repository.
+
+There is no closing balance. No table holds the bank balance, so this reports
+movement. A position computed from an opening balance of zero would read as the
+money the business has.
+
+An unreadable payments table counts as unavailable rather than reporting gross
+as net. Overstating money coming in is the wrong direction to be wrong in.
+
+Two arithmetic traps have tests because both would have been silent: an
+invoice paid in full whose status was never changed off "sent" drops out
+instead of counting at full value, and an overpayment clamps at zero instead of
+going negative and quietly reducing another invoice's total.
