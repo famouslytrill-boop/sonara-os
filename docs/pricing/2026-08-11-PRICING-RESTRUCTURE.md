@@ -39,6 +39,17 @@ not make it.
 | Growth — lists, campaigns, follow-up | Brevo Starter $9 | $9–$20 |
 | **The stack** | **$77** | $77–$258 |
 
+A second stack, priced 11 August against the trades-owner market specifically,
+is in `docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`: eleven products, **$297
+a month** at entry paid tiers and **$206** at the floor once free tiers are
+used where they exist. That is the number a plumbing or electrical owner is
+actually quoted.
+
+The $77 figure stays the headline. It is the cheapest credible stack, which
+makes it the hardest to argue with, and a claim nobody can dispute is worth
+more than a bigger one somebody can. The $206 belongs in trades-specific copy,
+where it is accurate.
+
 Two things follow.
 
 **$7 is not a bargain, it is a signal.** Brevo's entry plan is $9 and does one

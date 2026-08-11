@@ -17,6 +17,10 @@ away from what the code actually does.
   Add an entry when you finish a piece of work.
 - **`docs/SHIP_READINESS.md`** — what is deliberately still open, and the three
   things only the owner can close.
+- **`docs/market/`** and **`docs/pricing/`** — what competing stacks cost and
+  what we actually replace, each figure dated and sourced. Read these before
+  writing a comparison into marketing copy; the numbers in them are checkable
+  and the ones in your memory are not.
 
 # Agents
 
@@ -31,9 +35,20 @@ exactly when somebody adds a capability, which is the moment nobody is reading
 that file. `scripts/verify-supabase-contract.mjs` checks all of it on every
 release, so weakening the rule fails the build rather than shipping quietly.
 
-There is still **no agent runtime**. Nineteen tables record agents, runs,
-approvals and memory, and nothing executes against them. When one is built it
-should call `decideExecution` rather than reimplement the decision around it.
+`lib/sonara-agent-runner.cjs` is the one path that executes: classify, decide,
+run, record. Call it rather than calling `classifyAction` yourself — a page that
+asks the gate and then does the work regardless of the answer is a gate that was
+never there, and that is what this replaced.
+
+`lib/sonara-agent-action-log.cjs` writes each run to `agent_action_logs`, which
+is organization-scoped. The nineteen `entity_*` tables from migration 008 key on
+`entity_id` and `entities` has no `organization_id`, so they are the wrong home
+for an organization's run. `/owner/agent-activity` is the read side.
+
+**Nothing re-runs an action after approval.** The runner is called per request
+by the page wanting work done; there is no queue consuming approvals. Until that
+exists, a gated action stops and is recorded as pending, and no button anywhere
+should suggest otherwise.
 
 # Using other people's code
 

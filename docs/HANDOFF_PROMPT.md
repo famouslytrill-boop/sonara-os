@@ -674,3 +674,31 @@ both more correct and what keeps that test honest.
 The guard still allows an unrecognised table. Failing closed there trades a
 quiet hole for an outage, and a stale generated list is a likelier event than a
 malicious one.
+
+### 2026-08-11 — A trades AI-tool guide, and the money table that points the wrong way
+
+Analysed *"The Top 12 AI Tools for Trades Business Owners"* (Profitable Tradie,
+2026) — a lead magnet aimed at exactly the Business Builder customer. Recorded
+in `docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`. Its wording stays out of
+our copy; it is someone else's brand. The market facts transfer.
+
+Eleven distinct products, **$297/month** at entry paid tiers and **$206** at the
+floor once free tiers are used. That is a second competitor stack, specific to
+trades, beside the generalist $77 already recorded. The $77 stays the headline
+because it is the cheapest credible one and therefore the hardest to dispute.
+
+The finding worth acting on came from checking the schema rather than the guide.
+**Every money table in this product points outward.** `vendor_invoices`,
+`purchase_orders` and `bill_payment_records` are money the business owes;
+`payments` and `purchases` are SONARA's own Stripe billing. There is no
+accounts-receivable table, so a business can record what it owes its suppliers
+and cannot record what its customers owe it.
+
+Nothing on screen lies about this — the existing check is labelled "Supplier
+invoices past due". But the guide's entire cash-flow section is about the
+receivable side, and for a trades business that side is the business. Three of
+its twelve tools are downstream of that one missing table.
+
+Also corrected CLAUDE.md, which still said there is no agent runtime. There is
+one; what there is not is anything that re-runs an action after approval, and
+that is now what it says.
