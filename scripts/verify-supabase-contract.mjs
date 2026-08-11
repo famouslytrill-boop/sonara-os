@@ -41,7 +41,10 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "customers",
   "customer_invoices",
   "customer_invoice_payments",
-  "customer_invoice_lines"
+  "customer_invoice_lines",
+  // quotes had a table, row level security and no page. It is the record the
+  // receivable starts from, and customer_invoices.quote_id points back at it.
+  "quotes"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",

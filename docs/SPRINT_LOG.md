@@ -716,3 +716,42 @@ once and was reported as having no form while its form was on screen.
 The lines test iterated pages and read `page.lines`, so it would have tested the
 first child of each record and skipped the rest. It iterates (record, child)
 pairs now.
+
+### 2026-08-11 — Quote to invoice, and the button that must not fire twice
+
+`quotes` had a table, row level security and no page.
+`customer_invoices.quote_id` was a column nothing ever wrote. The step between
+"they said yes" and "they have been billed" was the one an owner does at 10pm,
+retyping figures they already agreed.
+
+`/business-builder/owner/quotes`, and a convert action that produces a draft
+invoice with an opening line.
+
+**This is the owner acting, not an agent.** `lib/sonara-agent-authority.cjs`
+governs what runs without a person; a person pressing a button they can see is
+the person. Routing this through the runner would classify the owner's own
+click as an unrecognised agent action and refuse it — the gate misfiring rather
+than working. Worth writing down, because the opposite mistake is the one that
+matters and the distinction is easy to blur.
+
+Four refusals, each of which bills somebody wrongly if missed:
+
+Only an accepted quote converts. "Sent" is the state where the answer is still
+outstanding, and billing for work nobody agreed to is worse than not billing.
+
+A quote with no customer or no amount refuses rather than producing an invoice
+addressed to nobody, or for nothing.
+
+The same quote cannot be invoiced twice. A double submit or a refresh bills one
+job twice, and the second invoice looks exactly as legitimate as the first. The
+check that backs it reads existing invoices first — and **an unreadable list is
+not an empty one**, so a failed read refuses rather than converting.
+
+No due date is set. Payment terms are recorded nowhere in this product, so any
+date would be invented, and `customer_invoices_overdue` would then chase a
+deadline nobody agreed to. The sent-without-due-date check catches the gap
+instead, which is what it is for.
+
+The opening line is written best-effort after the invoice. Failing the whole
+conversion once the invoice exists would leave the owner unable to retry,
+because the duplicate check would then refuse.

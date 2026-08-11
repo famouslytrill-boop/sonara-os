@@ -76,6 +76,15 @@ const ORGANIZATION_READ_TABLES = [
   "business_memberships",
   "business_service_catalog",
   "customer_records",
+  // Accounts receivable and the quotes that feed it. Read by
+  // /business-builder/owner/receivables, /quotes, /money-due and two record
+  // checks, so a member-scoped read policy is the same requirement as for
+  // every other workspace table.
+  "customers",
+  "customer_invoices",
+  "customer_invoice_lines",
+  "customer_invoice_payments",
+  "quotes",
   "module_outputs",
   "service_deliverables",
   "service_request_events",

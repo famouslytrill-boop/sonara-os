@@ -1,5 +1,6 @@
 "use strict";
 
+const quoteConversion = require("../lib/sonara-quote-conversion.cjs");
 const {
   ALL_OWNER_PAGES,
   childrenOf,
@@ -57,6 +58,7 @@ const RESOURCE_MAP = {
   // Accounts receivable. customer_invoices records who raised it; the payments
   // under it are reached through the invoice, the same way invoice lines are.
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
+  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
 };
@@ -262,6 +264,67 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       return respond(saved?.ok === false ? 502 : 200, saved);
     });
     });
+  });
+
+  // Turning a won quote into an invoice.
+  //
+  // The owner acting, not an agent: lib/sonara-agent-authority.cjs governs what
+  // runs without a person, and a person pressing a button they can see is the
+  // person. Routing this through the runner would classify the owner's own
+  // click as an unrecognised agent action and refuse it.
+  app.post("/api/business/quotes/:quoteId/invoice", requireBusinessManager, async (req, res) => {
+    const quoteId = String(req.params.quoteId || "");
+    const back = "/business-builder/owner/quotes";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, `/business-builder/owner/receivables/${payload.invoiceId}`);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_converted")}`);
+    };
+
+    if (!isUuid(quoteId)) return respond(400, { ok: false, code: "quote_required" });
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    // Scoped by organization as well as by id, because the service key bypasses
+    // row level security and a guessed id from another business would otherwise
+    // convert.
+    const found = await supabaseList(config, "quotes", `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    const quote = found.ok ? found.rows[0] : null;
+    if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
+
+    // Read what this quote has already produced before deciding. An unreadable
+    // list is not an empty one -- treating a failed read as "nothing yet" is
+    // how the same job gets billed twice.
+    const invoiced = await supabaseList(config, "customer_invoices", `?select=id,quote_id,invoice_number&quote_id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=5`);
+    if (!invoiced.ok) return respond(503, { ok: false, code: "cannot_check_existing" });
+
+    const refusal = quoteConversion.reasonNotConvertible(quote, invoiced.rows);
+    if (refusal) return respond(409, { ok: false, code: "not_convertible", reason: refusal });
+
+    const invoice = quoteConversion.invoiceFromQuote(quote, {
+      organizationId: org.organizationId,
+      userId: req.sonaraAccess?.user?.id || null
+    });
+    const saved = await supabaseInsert(config, "customer_invoices", invoice);
+    if (saved?.ok === false) return respond(502, saved);
+
+    // supabaseInsert asks for return=representation, so the created row comes
+    // back in `rows`. Read from that rather than assuming a shape.
+    const invoiceId = Array.isArray(saved?.rows) ? saved.rows[0]?.id || null : null;
+    if (!invoiceId) return respond(502, { ok: false, code: "invoice_id_missing" });
+
+    // The line is best-effort. An invoice that exists without its opening line
+    // is recoverable by adding one; failing the whole conversion after the
+    // invoice is already written would leave the owner unable to retry, because
+    // the duplicate check would then refuse.
+    await supabaseInsert(config, "customer_invoice_lines", {
+      ...quoteConversion.lineFromQuote(quote, { organizationId: org.organizationId }),
+      invoice_id: invoiceId
+    });
+
+    return respond(200, { ok: true, invoiceId });
   });
 
   STAFF_PAGES.forEach(([path, title, body]) => {
