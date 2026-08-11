@@ -35,6 +35,7 @@ const {
 } = require("../lib/sonara-record-checks.cjs");
 const journey = require("../lib/sonara-customer-journey.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
+const search = require("../lib/sonara-search.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -71,6 +72,9 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   const brandCard = deps.brandCard;
   const linkAction = deps.linkAction;
   const escapeHtml = deps.escapeHtml;
+  // /search is any signed-in customer's own records, so it needs the customer
+  // gate rather than a per-workspace one.
+  const requireCustomer = deps.requireCustomer;
   const requireWorkspaceAccess = deps.requireWorkspaceAccess;
   const getCustomerPrimaryOrganization = deps.getCustomerPrimaryOrganization;
   const getSupabaseServerConfig = deps.getSupabaseServerConfig;
@@ -289,4 +293,91 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       actions: [back, linkAction("/growth-studio/leads", "Open leads"), linkAction("/growth-studio/assistant", "What needs attention")]
     }));
   });
+
+  // /search -- find one record among thousands.
+  //
+  // This product had none. An owner with two years of bookings could open the
+  // bookings page, see the most recent hundred, and have no way to find the one
+  // from March. Every record page had the same hole, and none of them looked
+  // broken, which is why it went unnoticed.
+  // Without the customer gate this route would be registered with `undefined`
+  // as its middleware, which Express accepts and then fails on at request time
+  // -- so the page would 500 rather than never existing. Skipping registration
+  // is the honest failure: the route 404s, which is visible immediately.
+  if (typeof requireCustomer === "function") {
+  app.get("/search", requireCustomer, async (req, res) => {
+    const raw = typeof req.query.q === "string" ? req.query.q : "";
+    const term = search.escapeTerm(raw);
+    const back = linkAction("/dashboard", "Back to your dashboard");
+
+    const form = `<form method="get" action="/search" class="sonara-form" role="search">
+      <label for="sonara-search-q">Search your records</label>
+      <input id="sonara-search-q" name="q" type="search" value="${escapeHtml(term)}" placeholder="A name, a phone number, an invoice number" minlength="${search.MINIMUM_TERM}" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>`;
+
+    const page = (heading, body, sections) => res.status(200).type("html").send(layout({
+      title: "Search",
+      eyebrow: "SONARA One",
+      heading,
+      body,
+      sections: [form, ...sections],
+      actions: [back]
+    }));
+
+    if (!search.isUsableTerm(raw)) {
+      return page(
+        "Search your records",
+        raw ? `Type at least ${search.MINIMUM_TERM} characters. One letter matches almost everything, which is a list nobody can use.` : "Find a booking, a customer, an invoice, a lead — anything you have saved.",
+        []
+      );
+    }
+
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraAccess?.user || req.user, { autoBootstrap: false }).catch(() => null)
+      : null;
+
+    if (!config?.ok || !org?.ok || !org.organizationId) {
+      return page("Setup required", "Your workspace is not connected yet, so there are no records to search.", []);
+    }
+
+    const groups = [];
+    for (const entry of search.SEARCHABLE) {
+      const response = await fetch(`${config.url}/rest/v1/${entry.table}${search.queryFor(entry, term, org.organizationId)}`, {
+        headers: supabaseHeaders(config)
+      }).catch(() => undefined);
+      if (!response?.ok) {
+        groups.push({ label: entry.label, rows: [], unavailable: true });
+        continue;
+      }
+      const rows = await response.json().catch(() => []);
+      groups.push({ label: entry.label, path: entry.path, entry, rows: Array.isArray(rows) ? rows : [] });
+    }
+
+    const summary = search.summarise(groups, term);
+
+    const sections = summary.groups.map((group) => {
+      const items = group.rows.map((row) => {
+        const hit = search.matchedField(group.entry, row, term);
+        const where = hit ? ` — matched ${hit.column.replace(/_/g, " ")}: ${hit.value}` : "";
+        return `<li>${escapeHtml(group.entry.display(row))}${escapeHtml(where)}</li>`;
+      }).join("");
+      const more = group.rows.length >= search.PER_TABLE_LIMIT
+        ? `<p>Showing the first ${search.PER_TABLE_LIMIT}. Narrow the search or open the page to see the rest.</p>`
+        : "";
+      return brandCard(`${group.label} — ${group.rows.length}`, `<ul>${items}</ul>${more}${linkAction(group.path, `Open ${group.label.toLowerCase()}`)}`);
+    });
+
+    // A table that could not be read is not a table with no matches. Merging
+    // the two would tell an owner their record is gone when it is not.
+    const headline = summary.unavailable > 0
+      ? `${summary.total} ${summary.total === 1 ? "match" : "matches"} across ${summary.searched} record types. ${summary.unavailable} could not be searched, so this is not a complete answer.`
+      : summary.total === 0
+        ? `Nothing matched "${term}" in any of your ${summary.searched} record types.`
+        : `${summary.total} ${summary.total === 1 ? "match" : "matches"} for "${term}".`;
+
+    return page("Search your records", headline, sections);
+  });
+  }
 };

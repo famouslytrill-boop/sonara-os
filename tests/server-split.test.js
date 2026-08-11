@@ -300,9 +300,12 @@ describe("the server.js split stays safe", () => {
     // shrank), and reportDegradedRateLimit gained the note explaining why its
     // console.error now goes through redactError -- it was interpolating a
     // Supabase error containing the apikey query parameter into the log.
+    // Then 1 for passing requireCustomer into the assistant routes, which /search
+    // needs: it searches a customer's own records across every workspace, so the
+    // per-workspace gate is the wrong one.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4058,
+      lines <= 4059,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

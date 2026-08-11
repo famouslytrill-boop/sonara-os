@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4058 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4059 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 77 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 33 public routes, 15 customer routes, 29 admin routes.
-- 117 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 33 public routes, 16 customer routes, 29 admin routes.
+- 118 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -116,6 +116,49 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-11 — Search, which this product did not have at all
+
+`/search` finds one record among thousands, across twelve record types —
+bookings, services, locations, staff, inventory, vendors, invoices, menu,
+recipes, vehicles, leads, campaigns.
+
+Until now there was nothing. No `/search` route, no `tsvector`, no index. An
+owner with two years of bookings could open the bookings page, see the most
+recent hundred, and have no way to find the one from March. Every record page
+had the same hole, and **none of them looked broken**, which is why it went
+unnoticed until reading LightRAG's record made the absence obvious.
+
+What it is, precisely: case-insensitive substring matching across a named set of
+columns per table, scoped to one organization, through PostgREST's `or` filter.
+Not ranked full-text, and it does not pretend to be. Postgres full-text is free
+and built in, and a `tsvector` column plus a GIN index across nineteen tables is
+a schema change whose value arrives at a scale one business does not reach. A
+restaurant has hundreds of menu items, not millions. The reason is written down
+because "we used ilike" reads as laziness without it.
+
+The part that mattered most to get right is the tenant filter. `organization_id`
+is its own term, never inside the `or()` group — inside the group it becomes one
+alternative among many, and a row matching on name would come back regardless of
+which business owns it. There is a test asserting that for all twelve tables.
+
+Three other distinctions kept: a table that could not be read is not a table
+with no matches; a term under two characters is refused rather than returning
+everything; and no secret-shaped column is searchable, checked independently of
+the function that is supposed to check it.
+
+Two of my own mistakes, both the same shape as before. `requireCustomer` was
+never passed to the route module, so the route would have registered with
+`undefined` middleware — Express accepts that and fails at request time, so the
+page would have 500'd rather than never existing. Registration is now skipped
+when the gate is missing, which 404s visibly instead.
+
+And the injection test asserted the substring "neq" was absent from the built
+query, which failed against working code: escaping turns the whole hostile term
+into one literal search string, so "organization_id neq x" surviving as *text*
+is correct. The danger is the dot-delimited operator form, which is what the
+check tests now. Third time this session the check was wrong rather than the
+code.
 
 ### 2026-08-11 — Nine warnings nobody could act on, now zero
 

@@ -658,6 +658,7 @@ registerBusinessAssistantRoutes(app, {
   brandCard,
   linkAction,
   escapeHtml,
+  requireCustomer,
   requireWorkspaceAccess,
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
