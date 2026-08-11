@@ -1692,6 +1692,37 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "OSINT4ALL investigation directory",
+    slug: "osint4all-investigation-directory",
+    category: ["OSINT link directory", "people search", "breach corpora", "identity generators"],
+    useCase: ["none approved for this product"],
+    productFit: [],
+    license: "A curated bookmark page, not software. The hundreds of services it links to each carry their own terms, and several of them are not licences at all.",
+    licenseRisk: "critical",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not integrate any category of it",
+      "the one thing in it this product needs is already built, and built better -- see the note",
+    ],
+    officialUrl: "https://start.me/p/L1rEYQ/osint4all",
+    repoUrl: "https://example.invalid/blocked",
+    notes:
+      "A large open-source-intelligence bookmark directory: unified search, people search, phone and email lookup, maps, cryptocurrency tracing, darknet market indexes, breach dumps and identity generators. Recorded because it was supplied, and blocked for reasons worth naming individually rather than as a general objection. Three of its categories are actively incompatible with what this product is. The generators produce synthetic identity documents -- credit card numbers, social security numbers, driver licences, VINs; a business platform that holds real customer records has no honest use for a tool that manufactures fake ones. The data-dump category serves breached personal data, and building on stolen records would contradict the consent and provenance rules this product enforces on its own creators. The people-search category exists to assemble a profile of a named individual from scattered sources, which is the opposite of a product where every table is scoped to one organization and one owner. The remaining categories -- maps, search engines, translation -- are ordinary public services that need no register entry to use. There is exactly one item in the directory that belongs in this product, and it is already here: Have I Been Pwned, which lib/sonara-leaked-password.cjs already calls through the k-anonymity range API, sending five hex characters of a SHA-1 digest and never the password or its full hash. That is the right shape for this category, and it is the reason the rest of the category is not needed.",
+    safetyBoundaries: [
+      "no identity or document generator in the product or its tooling",
+      "no breach corpus queried with customer data",
+      "no service that assembles a profile of a named individual",
+      "breach checking stays on the k-anonymity range API, which never receives a password or a full hash",
+    ],
+    blockedUses: [
+      "generating synthetic identity documents, card numbers or government identifiers",
+      "looking up a customer, a lead or any named person in a breach corpus or people-search service",
+      "shipping any feature that depends on a darknet index or a leaked-data source",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

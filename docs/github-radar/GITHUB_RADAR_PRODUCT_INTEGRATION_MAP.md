@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-71 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 71.
+72 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 72.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -181,6 +181,7 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | [Foodya Restaurant](https://github.com/Shahzaib-Awann/Foodya-Restaurant) | Not verified. The README describes free personal and educational | Licence unresolved | see the register |
 | [Harness (RevFactory)](https://github.com/revfactory/harness) | Apache-2.0, verified from the repository's own licence badge. Th | Adapt after review | agent team architecture |
 | [MERN Social Media (ed-roh)](https://github.com/ed-roh/mern-social-media) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
+| [OSINT4ALL investigation directory](https://example.invalid/blocked) | A curated bookmark page, not software. The hundreds of services  | Blocked | see the register |
 | [Skylos](https://github.com/duriantaco/skylos) | Apache-2.0 | Read only | dead code detection |
 | [Social Media App (adrianhajdin)](https://github.com/adrianhajdin/social_media_app) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Streambert / movie streaming piracy-style references](https://example.invalid/blocked) | Piracy/copyright infringement risk. | Blocked | see the register |

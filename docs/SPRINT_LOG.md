@@ -2,6 +2,34 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-11 — The OSINT directory, blocked category by category
+
+An open-source-intelligence bookmark directory came in for assessment. Recorded
+as blocked, with the reasons named individually rather than as a general
+objection, because three of its categories are incompatible with what this
+product is in specific ways:
+
+The **generators** produce synthetic identity documents — credit card numbers,
+social security numbers, driver licences, VINs. A platform holding real customer
+records has no honest use for a tool that manufactures fake ones.
+
+The **data dumps** serve breached personal data. Building on stolen records would
+contradict the consent and provenance rules this product enforces on its own
+creators — the same rules `creator_voice_consents` exists to implement.
+
+The **people-search** category assembles a profile of a named individual from
+scattered sources, which is the opposite of a product where every table is
+scoped to one organization and one owner.
+
+The rest — maps, search engines, translation — are ordinary public services that
+need no register entry to use.
+
+There is exactly one item in that directory this product needs, and it is
+already here and built better. `lib/sonara-leaked-password.cjs` calls Have I
+Been Pwned through the k-anonymity range API: five hex characters of a SHA-1
+digest, never the password and never its full hash. That is the right shape for
+the whole category, and it is why the rest of the category is not needed.
+
 ### 2026-08-11 — Five dead modules, and the schema they were holding up
 
 `scripts/report-unreferenced-modules.mjs` asks which modules under `lib/` and
