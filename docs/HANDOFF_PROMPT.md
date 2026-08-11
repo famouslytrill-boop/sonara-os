@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 77 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 15 customer routes, 29 admin routes.
-- 115 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 116 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -115,6 +115,38 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-11 — Where people fall out, and the rate it refuses to invent
+
+`/growth-studio/journey` counts how many people are at each stage of the
+customer journey and where the number drops. The assistant pages say what is
+broken; a business can have nothing broken and still be losing everybody between
+enquiry and booking, and no check in this product would have mentioned it.
+
+The interesting part is which drops are real.
+
+`growth_touchpoints`, `growth_leads` and `growth_conversions` each carry
+`lead_id`, so a conversion traces back to the lead it came from. That is a
+funnel: one person moving through stages, and the drop between them is a
+measurement.
+
+`business_bookings` and `reviews` carry no `lead_id`. A booking is not linked to
+the lead that produced it, and a review is linked to a customer. Putting them in
+the same column and calling the difference a conversion rate would invent a
+relationship the schema does not have — and it would look exactly like a real
+number, which is the failure this codebase keeps producing. So stages carry a
+`linked` flag, checked against the schema rather than trusted, and an unlinked
+stage reports a count and says on screen that it is one.
+
+`dropRate` is `null` rather than `0` where there is no relationship. Those two
+render differently and mean opposite things: `0` would print "0% lost" for a
+comparison that was never a funnel.
+
+One process note, because it cost time. The container reset to a checkout from
+several commits back mid-sprint, and I wrote a page against files that were not
+there. `git status` showing only two untracked files against an old HEAD was the
+tell. This has now happened twice in this session — worth checking `git log -1`
+before editing after any gap.
 
 ### 2026-08-11 — 3D interaction, and pointing Claude at what this repository knows
 

@@ -34,6 +34,7 @@ const {
   summarise
 } = require("../lib/sonara-record-checks.cjs");
 const { classifyAction } = require("../lib/sonara-agent-authority.cjs");
+const journey = require("../lib/sonara-customer-journey.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -193,4 +194,77 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       }));
     });
   }
+
+  // /growth-studio/journey -- how many people are at each stage, and where the
+  // number drops.
+  //
+  // The assistant pages say what is broken. A business can have nothing broken
+  // and still be losing everybody between enquiry and booking, and no check in
+  // this product would mention it.
+  //
+  // Growth Studio because the traceable half of the journey -- touchpoints,
+  // leads, conversions -- is Growth Studio's schema. Bookings and reviews sit
+  // beside those as counts, labelled as counts.
+  app.get("/growth-studio/journey", requireWorkspaceAccess("growth_studio"), async (req, res) => {
+    const back = linkAction("/growth-studio/dashboard", "Back to Growth Studio");
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraAccess?.user || req.user, { autoBootstrap: false }).catch(() => null)
+      : null;
+
+    if (!config?.ok || !org?.ok || !org.organizationId) {
+      return res.status(200).type("html").send(layout({
+        title: "Customer journey",
+        eyebrow: "Growth Studio",
+        heading: "Setup required",
+        body: "Your workspace is not connected yet, so there is nothing to count.",
+        sections: [brandCard("What to do", "Finish setting up your workspace and this page will start counting your own records.")],
+        actions: [back]
+      }));
+    }
+
+    const results = [];
+    let unreachable = 0;
+    for (const stage of journey.STAGES) {
+      const read = await readRows(config, stage, org.organizationId);
+      if (!read.ok) {
+        unreachable += 1;
+        results.push(journey.countStage(stage, []));
+        continue;
+      }
+      results.push(journey.countStage(stage, read.rows));
+    }
+
+    const view = journey.build(results);
+
+    // An unreadable table is never rounded into a zero.
+    const headline = unreachable > 0
+      ? `${unreachable} of ${journey.STAGES.length} stages could not be read, so these numbers are incomplete.`
+      : view.worst
+        ? `Your biggest measurable drop is into "${view.worst.label}" -- ${view.worst.dropRate}% of the stage before it does not arrive.`
+        : view.total === 0
+          ? "Nothing recorded at any stage yet."
+          : "No measurable drop between the stages that can be traced.";
+
+    const sections = view.stages.map((stage) => {
+      const rate = stage.dropRate === null
+        ? "Counted, not compared."
+        : `${stage.dropRate}% fewer than ${stage.comparedWith}.`;
+      return brandCard(`${stage.label} — ${stage.count}`, `${rate} ${stage.plain}`);
+    });
+
+    sections.push(brandCard(
+      "Why some of these are counts and not rates",
+      "Touchpoints, leads and conversions each record which lead they belong to, so a drop between them is one person not arriving. Bookings and reviews do not record a lead, so comparing them with the stages above would be a ratio between two unrelated numbers. It would look exactly like a measurement, so this page counts them instead."
+    ));
+
+    return res.status(200).type("html").send(layout({
+      title: "Customer journey",
+      eyebrow: "Growth Studio",
+      heading: "Where people fall out",
+      body: `${headline} Every number here is counted from your own records.`,
+      sections,
+      actions: [back, linkAction("/growth-studio/leads", "Open leads"), linkAction("/growth-studio/assistant", "What needs attention")]
+    }));
+  });
 };
