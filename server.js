@@ -24,6 +24,7 @@ const registerProductLifecycleRoutes = require("./routes/product-lifecycle-route
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
+const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
@@ -383,7 +384,14 @@ function renderRateLimitPage({ req, res, retryAfterSeconds }) {
 
 function reportDegradedRateLimit({ name, error }) {
   // Fail-open is deliberate (see lib/sonara-rate-limit.cjs); make it loud.
-  console.error(`[rate-limit] ${name} degraded to fail-open: ${error}`);
+  //
+  // Through the boundary, and this is the sink that made the point. The rate
+  // limiter calls sonara_consume_rate_limit over PostgREST with the
+  // service-role key, so the error it degrades on is a Supabase error carrying
+  // the URL it failed to reach -- and that URL carries an apikey parameter.
+  // Interpolating it printed the credential into the log on exactly the path
+  // taken when the database is already struggling.
+  console.error(`[rate-limit] ${name} degraded to fail-open: ${redactError(error)}`);
 }
 
 
@@ -4046,9 +4054,4 @@ function supabaseHeaders(config, options = {}) {
 }
 
 
-function redactSensitiveText(value) {
-  return String(value)
-    .replace(/\b(?:sk|pk|rk|whsec)_[A-Za-z0-9_]+/g, "[redacted-token]")
-    .replace(/\b\d{13,19}\b/g, "[redacted-card-like-number]")
-    .replace(/\b(?:password|passcode|private key|secret key)\s*[:=]\s*\S+/gi, "[redacted-secret]");
-}
+

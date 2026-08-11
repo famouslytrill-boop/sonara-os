@@ -295,9 +295,14 @@ describe("the server.js split stays safe", () => {
     // the route module and lib/sonara-business-checks.cjs; what is here is the
     // dependency list, which has to be here because these helpers are defined
     // in this file.
+    // Then 3 net for the redaction boundary: redactSensitiveText moved out to
+    // lib/sonara-redaction.cjs (a require replaced the definition, so that part
+    // shrank), and reportDegradedRateLimit gained the note explaining why its
+    // console.error now goes through redactError -- it was interpolating a
+    // Supabase error containing the apikey query parameter into the log.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4055,
+      lines <= 4058,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
