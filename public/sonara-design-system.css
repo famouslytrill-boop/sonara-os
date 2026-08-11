@@ -24,36 +24,43 @@
    * consolidation changes where a token is declared, not what it looks like,
    * so this step is verifiable without a visual diff. Re-colouring is a
    * separate, deliberate change that should be reviewed on screen. */
-  --sonara-accent: #7357ff;
-  --sonara-accent-2: #1db8d8;
-  --sonara-warm: #ffb454;
-  --sonara-accent-strong: #5a3fe0;
-  --sonara-accent-soft: rgba(115 87 255 / 0.14);
+  --sonara-accent: #6E4BFF;
+  --sonara-accent-2: #12E1C4;
+  --sonara-warm: #FF9E5E;
+  --sonara-accent-strong: #5533E6;
+  --sonara-accent-soft: rgba(110 75 255 / 0.16);
   --sonara-accent-contrast: #ffffff;
 
-  --sonara-build: #5ec8a8;   /* Business Builder */
-  --sonara-create: #c58cf5;  /* Creator Studio   */
-  --sonara-grow: #f0a35e;    /* Growth Studio    */
+  --sonara-build: #3DDC97;   /* Business Builder */
+  --sonara-create: #B57BFF;  /* Creator Studio   */
+  --sonara-grow: #FFB25C;    /* Growth Studio    */
 
-  /* Surfaces (dark-first) --------------------------------------------- */
-  --sonara-bg: #06070d;
-  --sonara-surface: #0d1019;
-  --sonara-surface-2: #141826;
-  --sonara-surface-3: #1c2133;
-  --sonara-border: rgba(255 255 255 / 0.09);
-  --sonara-border-strong: rgba(255 255 255 / 0.16);
+  /* Surfaces (dark-first) ---------------------------------------------
+   * Deeper and cooler than the previous set. The step between surface and
+   * surface-2 is what separates a card from the page behind it, and at the
+   * old values that step was 7 points of luminance -- visible on a good
+   * monitor, invisible on a phone in daylight. */
+  --sonara-bg: #04050B;
+  --sonara-surface: #0A0D16;
+  --sonara-surface-2: #111624;
+  --sonara-surface-3: #192031;
+  --sonara-border: rgba(255 255 255 / 0.10);
+  --sonara-border-strong: rgba(255 255 255 / 0.18);
 
-  /* Text — contrast verified against --sonara-bg -----------------------
-   * text        21:1   text-2  9.7:1   text-3  5.1:1
-   * All clear WCAG AA; text and text-2 clear AAA for body copy. */
-  --sonara-text: #f5f7ff;
-  --sonara-text-2: #b7c0da;
-  --sonara-text-3: #828da8;
+  /* Text — contrast measured against --sonara-bg, not estimated ---------
+   * text 19.3:1   text-2 12.0:1   text-3 7.2:1
+   * All three clear WCAG AAA for body copy. text-3 was 5.1:1 before, which
+   * cleared AA and not AAA, and it is the token used for the quiet
+   * supporting line under a heading -- the text most often read on a phone
+   * outdoors. It is the one that moved most. */
+  --sonara-text: #F7F9FF;
+  --sonara-text-2: #BCC6E4;
+  --sonara-text-3: #8E99B8;
 
   /* Status ------------------------------------------------------------- */
-  --sonara-ok: #55c98a;
-  --sonara-warn: #e8b355;
-  --sonara-danger: #f2726b;
+  --sonara-ok: #3FD68A;
+  --sonara-warn: #F2C15C;
+  --sonara-danger: #FF6F6A;
 
   /* Type — fluid, clamped so nothing overflows a 320px viewport --------- */
   --sonara-font: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -106,15 +113,16 @@
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
-    --sonara-bg: #f7f8fc;
+    --sonara-bg: #F6F7FC;
     --sonara-surface: #ffffff;
-    --sonara-surface-2: #f0f2f8;
-    --sonara-surface-3: #e6e9f2;
-    --sonara-border: rgba(6 7 13 / 0.1);
-    --sonara-border-strong: rgba(6 7 13 / 0.18);
-    --sonara-text: #0a0d16;
-    --sonara-text-2: #414a63;
-    --sonara-text-3: #656e88;
+    --sonara-surface-2: #EFF1F8;
+    --sonara-surface-3: #E4E8F2;
+    --sonara-border: rgba(4 5 11 / 0.11);
+    --sonara-border-strong: rgba(4 5 11 / 0.2);
+    /* Measured on #F6F7FC: 18.4:1, 8.9:1, 5.2:1. */
+    --sonara-text: #080B14;
+    --sonara-text-2: #3C4560;
+    --sonara-text-3: #5D6785;
     --sonara-accent-contrast: #ffffff;
     --sonara-shadow-2: 0 6px 20px -8px rgb(10 13 22 / 0.18);
     --sonara-shadow-3: 0 24px 60px -20px rgb(10 13 22 / 0.22);
@@ -122,15 +130,15 @@
 }
 
 :root[data-theme="light"] {
-  --sonara-bg: #f7f8fc;
+  --sonara-bg: #F6F7FC;
   --sonara-surface: #ffffff;
-  --sonara-surface-2: #f0f2f8;
-  --sonara-surface-3: #e6e9f2;
-  --sonara-border: rgba(6 7 13 / 0.1);
-  --sonara-border-strong: rgba(6 7 13 / 0.18);
-  --sonara-text: #0a0d16;
-  --sonara-text-2: #414a63;
-  --sonara-text-3: #656e88;
+  --sonara-surface-2: #EFF1F8;
+  --sonara-surface-3: #E4E8F2;
+  --sonara-border: rgba(4 5 11 / 0.11);
+  --sonara-border-strong: rgba(4 5 11 / 0.2);
+  --sonara-text: #080B14;
+  --sonara-text-2: #3C4560;
+  --sonara-text-3: #5D6785;
   --sonara-accent-contrast: #ffffff;
 }
 
@@ -201,7 +209,7 @@
  * Transforms go too: a translate3d on paper only shifts content off its own
  * layout position, and perspective means nothing in a static medium. */
 @media print {
-  /* This file's own tokens default to dark (--sonara-bg: #06070d,
+  /* This file's own tokens default to dark (--sonara-bg: #04050B,
    * --sonara-text: #f5f7ff) and are lightened only under
    * prefers-color-scheme: light or an explicit data-theme="light". Neither
    * applies when a dark-mode visitor prints, so anything styled with these

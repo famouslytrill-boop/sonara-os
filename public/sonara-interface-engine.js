@@ -69,7 +69,11 @@
     document.documentElement.setAttribute("data-sonara-appearance", choice);
     document.documentElement.setAttribute("data-theme", resolved);
     var themeColor = document.querySelector('meta[name="theme-color"]');
-    if (themeColor) themeColor.setAttribute("content", resolved === "light" ? "#FAF8F4" : "#0C1122");
+    // These two must stay equal to --sonara-bg in each theme, or the browser
+    // chrome and the page it frames are different colours. They were #FAF8F4
+    // (warm off-white) and #0C1122 while the surfaces were #F6F7FC and
+    // #04050B. tests/brand-palette.test.js checks the pair.
+    if (themeColor) themeColor.setAttribute("content", resolved === "light" ? "#F6F7FC" : "#04050B");
   }
 
   function bindAppearance() {

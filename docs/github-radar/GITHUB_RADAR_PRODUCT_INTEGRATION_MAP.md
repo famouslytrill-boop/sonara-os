@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-66 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 66.
+71 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 71.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -58,7 +58,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-23 repositories.
+25 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -68,6 +68,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | Licence unresolved | AI application platform |
+| [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Generative media automation references](https://github.com/) | Model, asset, and provider terms require review. | Research only | generative media |
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
@@ -78,6 +79,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
 | [Obsidian Skills-style reference](https://github.com/) | License and plugin terms must be verified before use. | Licence unresolved | knowledge management |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | Adapt after review | local model runtime |
+| [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
@@ -90,7 +92,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-20 repositories.
+22 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -102,6 +104,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | Adapt after review | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | Licence unresolved | AI application platform |
+| [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [erxes](https://github.com/erxes/erxes) | AGPL-3.0 | Read only | CRM and support suite |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [LocateAnything / NVIDIA-style visual localization reference](https://github.com/) | Exact repository and license require verification before use. | Research only | multimodal research |
@@ -109,6 +112,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
+| [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
@@ -119,7 +123,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-40 repositories.
+42 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -135,6 +139,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [DeepSeek V3](https://github.com/deepseek-ai/DeepSeek-V3) | Repository code is MIT; model weights use the upstream DeepSeek  | Licence unresolved | open-weight model |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | Licence unresolved | AI application platform |
+| [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [free-for.dev](https://github.com/ripienaar/free-for-dev) | Not verified. The repository page did not surface a licence and  | Licence unresolved | free-tier service index |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [G0DM0D3 / Godmode-style multi-model interface](https://github.com) | License must be reviewed before any implementation or adaptation | Security review first | multi-model evaluation |
@@ -155,6 +160,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | Licence unresolved | model interface |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
 | [OpenFang / autonomous agent OS-style references](https://github.com/) | Unknown until reviewed. | Research only | agent OS |
+| [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | Security review first | retrieval augmented generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
@@ -171,9 +177,11 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | Repository | Licence | How far it may go | Why it fits no product |
 | --- | --- | --- | --- |
 | [Claude Skills Collection (alirezarezvani)](https://github.com/alirezarezvani/claude-skills) | MIT | Adapt after review | developer tooling |
+| [Commercial AI tool shortlist (Ideogram, Midjourney, Runway, and 30 others)](https://example.invalid/blocked) | Proprietary per-seat subscriptions. These are hosted services, n | Blocked | see the register |
 | [Foodya Restaurant](https://github.com/Shahzaib-Awann/Foodya-Restaurant) | Not verified. The README describes free personal and educational | Licence unresolved | see the register |
 | [Harness (RevFactory)](https://github.com/revfactory/harness) | Apache-2.0, verified from the repository's own licence badge. Th | Adapt after review | agent team architecture |
 | [MERN Social Media (ed-roh)](https://github.com/ed-roh/mern-social-media) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
+| [Skylos](https://github.com/duriantaco/skylos) | Apache-2.0 | Read only | dead code detection |
 | [Social Media App (adrianhajdin)](https://github.com/adrianhajdin/social_media_app) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Streambert / movie streaming piracy-style references](https://example.invalid/blocked) | Piracy/copyright infringement risk. | Blocked | see the register |
 | [Suno API (unofficial)](https://github.com/SunoAI-API/Suno-API) | MIT for the wrapper code; the upstream service it calls is gover | Blocked | see the register |

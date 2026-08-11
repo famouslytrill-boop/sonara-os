@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA One platform mark">
   <title>SONARA One platform mark</title>
   <desc>An original open prism aperture representing one connected operating layer.</desc>
-  <defs><linearGradient id="n" x1="18" y1="20" x2="109" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".34" stop-color="#8B5CF6"/><stop offset=".68" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient></defs>
+  <defs><linearGradient id="n" x1="18" y1="20" x2="109" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".34" stop-color="#5533E6"/><stop offset=".68" stop-color="#12E1C4"/><stop offset="1" stop-color="#6E4BFF"/></linearGradient></defs>
   <path d="M94 27c-20-17-52-15-69 6-16 20-8 50 16 60 23 10 50-3 54-27 4-23-18-42-40-34-21 8-25 35-7 47" fill="none" stroke="url(#n)" stroke-width="12" stroke-linecap="round"/>
   <circle cx="64" cy="64" r="10" fill="#fff" stroke="#11162A" stroke-width="4"/>
 </svg>

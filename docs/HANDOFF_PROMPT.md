@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 77 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 15 customer routes, 29 admin routes.
-- 113 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 114 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-66 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+71 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -115,6 +115,39 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-11 — Rebrand: a new palette, and the marks that never matched it
+
+New colours across the design system, and one finding that came out of doing it.
+
+**The logos and the palette had never been the same colours.**
+`--sonara-build` was `#5ec8a8`, a mint green; `business-builder-mark-v3.svg` was
+a blue-to-cyan gradient of `#2563EB` and `#06B6D4`. Creator Studio's token was a
+lilac and its mark ran blue through violet to pink. Growth Studio's token was
+amber and its mark was teal through green to lime. Every product mark disagreed
+with the colour the product is named by everywhere else in the interface.
+
+Nothing caught it because the two live in different formats. The stylesheet's
+rule that a token is declared in exactly one place is true — for CSS. An SVG
+served as `<img src>` inherits no custom properties from the page embedding it,
+so the hex is written into the file, and a hex written into a file is a copy.
+Eighteen marks were recoloured and `tests/brand-palette.test.js` now checks the
+copies.
+
+The same disagreement was in `theme-color`, which paints the mobile address bar:
+`#FAF8F4` (warm off-white) against a `#F6F7FC` (cool) light surface, and
+`#0C1122` against a `#04050B` dark page. Neither was wrong enough to look
+broken; both showed as a seam above the page on a phone.
+
+**Contrast was measured, not estimated.** `text-3` — the quiet supporting line
+under a heading, the text most often read on a phone outdoors — was 5.1:1, which
+clears AA and not AAA. It is now 7.2:1. All three text tokens clear AAA against
+the new background, and white on the new accent is 5.1:1.
+
+The one cross-family gradient is on the parent and platform marks only. A
+signature that appears on every product is not a signature, and three products
+painted the same violet would be tidier while telling a customer nothing about
+which workspace they are in.
 
 ### 2026-08-10 — One redaction boundary, and the sink that proved it was needed
 

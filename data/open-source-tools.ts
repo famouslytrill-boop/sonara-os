@@ -1562,6 +1562,136 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "DSPy",
+    slug: "stanfordnlp-dspy",
+    category: ["structured model programming", "prompt compilation", "evaluation harness"],
+    useCase: ["declaring what a model task should produce instead of hand-writing a prompt", "measuring a prompt change against a metric rather than by eye"],
+    productFit: ["Creator Studio", "Growth Studio", "Admin Command Center"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "adopt the idea of a signature plus a metric, not the Python package",
+      "apply it to the existing prompt library so a template change can be measured",
+    ],
+    officialUrl: "https://dspy.ai",
+    repoUrl: "https://github.com/stanfordnlp/dspy",
+    notes:
+      "A framework for programming language models rather than prompting them: you declare the shape of a task and a metric, and the prompt is compiled and optimised against that metric. Licence verified as MIT. Reference rather than adaptation because it is Python and this runtime is one Express server with no Python in the deployment. What transfers is the discipline, and it lands somewhere specific: the prompt library here stores templates and versions with no way to say whether a new version is better than the old one. A signature and a metric is the missing half of that, and it can be written in this stack.",
+    safetyBoundaries: [
+      "no Python service added to the deployment",
+      "model calls route through the Provider Gateway",
+      "no customer data used as evaluation input without recorded consent",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Skylos",
+    slug: "duriantaco-skylos",
+    category: ["dead code detection", "static analysis", "build-time tooling"],
+    useCase: ["finding code nothing reaches"],
+    productFit: [],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the reachability approach",
+      "the equivalent check for this repository is already written and is JavaScript",
+    ],
+    officialUrl: "https://github.com/duriantaco/skylos",
+    repoUrl: "https://github.com/duriantaco/skylos",
+    notes:
+      "A static analyser that finds unreachable Python code. Licence verified as Apache-2.0. It cannot run on this codebase, which is JavaScript, and that is worth recording rather than filing it as a maybe. The problem it solves is real here -- two homepage modules in lib/ are required by nothing, and fifty-one tables sat behind no code until somebody read the migrations -- and the checks that found those were written in this repository against this tree. This is confirmation that the problem is worth a tool, not a tool this project can run.",
+    safetyBoundaries: ["no Python tooling added to the deployment or CI"],
+    humanReviewRequired: false,
+  },
+  {
+    name: "OpenNews MCP",
+    slug: "opennews-mcp-server",
+    category: ["MCP server", "news retrieval", "external data"],
+    useCase: ["how an MCP server exposes a read-only external feed"],
+    productFit: ["Growth Studio", "Research Lab"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the tool surface it exposes",
+      "do not add a news feed to the product without deciding what it is for",
+    ],
+    officialUrl: "https://github.com/6551Team/opennews-mcp",
+    repoUrl: "https://github.com/6551Team/opennews-mcp",
+    notes:
+      "An MCP server exposing news retrieval as agent tools. Licence verified as MIT. Reference for now on product grounds rather than licence ones: a news feed inside Growth Studio would be a feature nobody asked for unless it answers a question a business owner actually has, and none of the checks in lib/sonara-record-checks.cjs needs one. Worth reading for the shape -- a narrow read-only tool surface over an external source is the safest kind of integration this product could add.",
+    safetyBoundaries: [
+      "no external feed rendered to customers without a stated purpose",
+      "no customer data sent to an external news source",
+      "any MCP server used stays read-only",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "OpenMontage",
+    slug: "calesthio-openmontage",
+    category: ["video assembly", "montage automation", "creator tooling"],
+    useCase: ["how a montage is assembled from clips and timing"],
+    productFit: ["Creator Studio"],
+    license: "AGPL-3.0",
+    licenseRisk: "high",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the assembly and timing approach",
+      "do not incorporate code; AGPL-3.0 reciprocity reaches network-served applications",
+    ],
+    officialUrl: "https://github.com/calesthio/OpenMontage",
+    repoUrl: "https://github.com/calesthio/OpenMontage",
+    notes:
+      "Automated video montage assembly. Licence verified as AGPL-3.0, which is the constraint: reciprocity triggers on network use, so incorporating any of it into this hosted product obliges releasing this product's source under the same terms. That is the owner's decision to make explicitly rather than one that arrives through a status field. Creator Studio already renders generation jobs as pages and makes outputs collectable; the transferable part is how clips are ordered and timed, which is knowledge rather than code.",
+    safetyBoundaries: [
+      "no AGPL code incorporated into the hosted product",
+      "provenance and consent enforced on any generated media",
+      "no paid model API introduced as a dependency of a shipped feature",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Commercial AI tool shortlist (Ideogram, Midjourney, Runway, and 30 others)",
+    slug: "commercial-ai-tool-shortlist",
+    category: ["commercial SaaS", "cost assessment", "not open source"],
+    useCase: ["knowing which recommended tools are paid, so the free requirement is checked rather than assumed"],
+    productFit: [],
+    license: "Proprietary per-seat subscriptions. These are hosted services, not source anybody can read, adopt or self-host. No open-source licence applies to any of them.",
+    licenseRisk: "high",
+    commercialUseStatus: "needs_review",
+    // Blocked, and the word is exact: blocked as a product dependency. Nobody
+    // is stopping the owner from buying a subscription and using one to do
+    // their own work. What is refused is a shipped feature that stops working
+    // when the subscription does.
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not make any of these a dependency of a shipped feature",
+      "where a capability is genuinely wanted, find the open-weight equivalent and run it through the Provider Gateway",
+      "if the owner chooses to buy one, record it as an operating cost rather than as a product capability",
+    ],
+    officialUrl: "https://sonaraindustries.com",
+    repoUrl: "https://example.invalid/blocked",
+    notes:
+      "Recorded because the list was supplied and the honest answer is not the one the list implies. Ideogram, Midjourney, Runway, OpusClip, Recraft, Tome, Durable, DoNotPay, Krisp, SlidesAI, Mistral, Pi, HeyGen, Luma, Fireflies, Gamma, Vidyo, Magnific, Grok, Leonardo, Synthesia, Taskade, AdCreative, InVideo, Copy.ai, Rephrase, Suno, Uizard, Jasper, Looka, Imgs.ai, MarketMuse, QuillBot and Speechify are commercial services on per-seat subscriptions. Several have usable free tiers; none is open source, and a free tier is a price, not a licence. The standing requirement is that everything cost nothing to the developer or the customer, and a shipped feature resting on any of these fails it the day the tier changes -- which is the vendor's decision, not this project's. This record exists so that constraint is written down rather than rediscovered at renewal. It is repoUrl-blocked because there is no repository: the whole point is that there is nothing to read.",
+    safetyBoundaries: [
+      "no metered or subscription service introduced as a dependency of a shipped feature",
+      "no customer data sent to any of these",
+      "no product copy implying a capability the product does not own",
+    ],
+    blockedUses: [
+      "shipping a customer-facing feature that stops working if a subscription lapses",
+      "treating a free tier as equivalent to an open-source licence",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

@@ -2,9 +2,9 @@
   <title>SONARA Industries</title>
   <defs>
     <linearGradient id="sl-wave" x1="20" y1="88" x2="108" y2="40">
-      <stop offset="0%" stop-color="#b8860b"/>
-      <stop offset="50%" stop-color="#d94f3d"/>
-      <stop offset="100%" stop-color="#6f42c1"/>
+      <stop offset="0%" stop-color="#6E4BFF"/>
+      <stop offset="50%" stop-color="#5533E6"/>
+      <stop offset="100%" stop-color="#12E1C4"/>
     </linearGradient>
   </defs>
   <rect x="4" y="4" width="120" height="120" rx="30" fill="#fdf8ef" stroke="#e4d9c2" stroke-width="2"/>

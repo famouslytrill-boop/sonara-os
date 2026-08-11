@@ -589,11 +589,11 @@ html[data-theme="dark"] .card {
   gap: clamp(20px, 4vw, 52px);
   align-items: center;
   padding: clamp(24px, 4vw, 48px);
-  border: 1px solid color-mix(in srgb, var(--sonara-accent, #7357ff) 22%, var(--nx-border, #cbd1df));
+  border: 1px solid color-mix(in srgb, var(--sonara-accent, #6E4BFF) 22%, var(--nx-border, #cbd1df));
   border-radius: 28px;
   background:
-    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sonara-accent-2, #1db8d8) 16%, transparent), transparent 45%),
-    linear-gradient(145deg, color-mix(in srgb, var(--nx-surface, #fff) 97%, transparent), color-mix(in srgb, var(--sonara-accent, #7357ff) 5%, var(--nx-surface, #fff)));
+    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sonara-accent-2, #12E1C4) 16%, transparent), transparent 45%),
+    linear-gradient(145deg, color-mix(in srgb, var(--nx-surface, #fff) 97%, transparent), color-mix(in srgb, var(--sonara-accent, #6E4BFF) 5%, var(--nx-surface, #fff)));
   box-shadow: 0 18px 55px rgba(29, 37, 74, .08);
 }
 .bb-today h2 {
@@ -640,10 +640,10 @@ html[data-theme="dark"] .card {
   overflow: hidden;
 }
 .bb-module-card[data-group="launch"] {
-  border-top: 3px solid var(--sonara-accent-2, #1db8d8);
+  border-top: 3px solid var(--sonara-accent-2, #12E1C4);
 }
 .bb-module-card[data-group="sales"] {
-  border-top: 3px solid var(--sonara-accent, #7357ff);
+  border-top: 3px solid var(--sonara-accent, #6E4BFF);
 }
 .bb-module-card[data-group="operations"] {
   border-top: 3px solid var(--sonara-warm, #ffb454);

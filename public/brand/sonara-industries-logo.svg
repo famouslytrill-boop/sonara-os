@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 150" role="img" aria-label="SONARA Industries">
   <title>SONARA Industries</title>
   <defs>
-    <linearGradient id="w1" x1="16" y1="20" x2="134" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".55" stop-color="#FF8A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient>
-    <linearGradient id="w2" x1="14" y1="50" x2="140" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
-    <linearGradient id="w3" x1="24" y1="84" x2="132" y2="132" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".52" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
+    <linearGradient id="w1" x1="16" y1="20" x2="134" y2="64" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".55" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
+    <linearGradient id="w2" x1="14" y1="50" x2="140" y2="104" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".5" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
+    <linearGradient id="w3" x1="24" y1="84" x2="132" y2="132" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".52" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
   </defs>
   <g transform="translate(8 5)" fill="none" stroke-linecap="round">
     <path d="M118 30C94 12 56 14 32 29C10 43 9 65 25 74C39 82 61 80 77 80" stroke="url(#w1)" stroke-width="15"/>

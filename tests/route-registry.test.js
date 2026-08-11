@@ -247,7 +247,7 @@ describe("SONARA route registry and account completion", () => {
     assert.equal(harness.attributes["data-theme"], "light");
     assert.equal(harness.attributes["data-sonara-appearance"], "light");
     assert.equal(harness.stored.get("sonara-appearance"), "light");
-    assert.equal(harness.attributes["meta-content"], "#FAF8F4");
+    assert.equal(harness.attributes["meta-content"], "#F6F7FC");
   });
 
   it("keeps every haptic path silent before opt-in and under reduced motion", () => {
