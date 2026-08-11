@@ -100,6 +100,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:product-map`
 - `pnpm run verify:handoff`
 - `pnpm run verify:definer-exposure`
+- `pnpm run verify:unreferenced-modules`
 - `pnpm run verify:orphan-tables`
 
 `pnpm` only. Never `npm`, never `npm audit fix`, never a `package-lock.json`.
@@ -115,6 +116,45 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-11 — Five dead modules, and the schema they were holding up
+
+`scripts/report-unreferenced-modules.mjs` asks which modules under `lib/` and
+`routes/` are named by nothing. This runtime has no bundler, no dynamic import
+and no code generation left, so the only way into a module is a literal require
+— which makes unreferenced mean *unreachable*, not merely unused.
+
+I had flagged two dead homepage modules three times across this project and left
+them each time, because noticing is free and deleting needs somebody to be sure.
+The check found **five**, 758 lines:
+
+- `lib/sonara-cohesive-homepage.cjs`, `lib/sonara-advanced-builder-homepage.cjs`
+- `lib/open-source-software-catalog.cjs`
+- `lib/sonara-ecosystem-registry.cjs` — note the near-twin
+  `sonara-ecosystem-manifest.cjs` *is* used, which is how a dead file hides
+- `routes/creator-artist-system-routes.cjs`
+
+That last one is worse than dead. It registers `/creator-studio/artists` and
+five API endpoints, and `server.js` never required it — so those routes 404ed.
+Its payload is `TASHA_KEYS_TEMPLATE`: a hardcoded invented artist with a
+backstory, themes and a sobriety arc. Wiring it up would have shipped fabricated
+content into a product whose own About page says it does not invent activity.
+
+**Deleting it re-orphaned five tables** — `creator_artist_profiles`,
+`creator_album_cycles`, `creator_prompt_blueprints`, `creator_sonic_profiles`,
+`creator_video_treatments`. That module was their only reader, and since nothing
+loaded it, they were never actually written in production either. They read as
+used only because a file existed that *would* have used them, had anything
+loaded it. All five recorded as `keep` with the reason, so the real choice —
+build the artist workspace properly, or drop the tables — is made on purpose.
+
+Two checks composing is the point: deleting dead code surfaced dead schema, and
+neither report could have found this alone.
+
+One bug caught in the new script before it shipped: this file's own header names
+two of the modules it reports on, so a comment would have counted as a
+reference. `scripts/report-orphan-tables.mjs` shipped with exactly that bug
+once. Comments are stripped before matching now.
 
 ### 2026-08-11 — The runner, and the gate that could be walked past
 
