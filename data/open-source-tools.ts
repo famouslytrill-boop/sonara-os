@@ -1551,10 +1551,10 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "do not put it on any request path at its current speed",
       "revisit if a smaller open-weight model reaches usable latency on the same approach",
     ],
-    officialUrl: "https://github.com/kimi-k3-in-c",
-    repoUrl: "https://github.com/kimi-k3-in-c",
+    officialUrl: "https://github.com/FareedKhan-dev/kimi-k3-in-c",
+    repoUrl: "https://github.com/FareedKhan-dev/kimi-k3-in-c",
     notes:
-      "A 2.78-trillion-parameter model run in portable C99 on one CPU with no BLAS, no framework and no GPU, in a measured 8.24 GB of peak memory against a 1.56 TB checkpoint. Apache-2.0. It is the strongest evidence so far that the no-cost requirement is not a fantasy -- the barrier to open-weight inference is not licensing or hardware access, it is time. And time is exactly what rules it out here: the README's own measurement is 32.69 seconds per token, so an eight-token answer takes over four minutes. This product serves HTTP requests on Vercel with a function timeout measured in seconds. So it is reference, honestly labelled: the technique is the finding, the model is not the one to run, and the record says which is which rather than filing it under \"free AI\" and leaving somebody to discover the latency later.",
+      "A 2.78-trillion-parameter model run in portable C99 on one CPU with no BLAS, no framework and no GPU, in a measured 8.24 GB of peak memory against a 1.56 TB checkpoint. Apache-2.0. It is the strongest evidence so far that the no-cost requirement is not a fantasy -- the barrier to open-weight inference is not licensing or hardware access, it is time. And time is exactly what rules it out here: the README's own measurement is 32.69 seconds per token, so an eight-token answer takes over four minutes. This product serves HTTP requests on Vercel with a function timeout measured in seconds. So it is reference, honestly labelled: the technique is the finding, the model is not the one to run, and the record says which is which rather than filing it under \"free AI\" and leaving somebody to discover the latency later. One correction kept here on purpose: the first version of this record gave repoUrl as https://github.com/kimi-k3-in-c, which is an owner path with no owner behind it. The source it came from showed the repository name and not its owner, and the URL was completed rather than looked up. The release check that resolves every registered repository against the GitHub API caught it -- that check runs with --network in CI and without it locally, which is why nothing objected before the push.",
     safetyBoundaries: [
       "not placed on any request path",
       "no model weights committed to this repository",

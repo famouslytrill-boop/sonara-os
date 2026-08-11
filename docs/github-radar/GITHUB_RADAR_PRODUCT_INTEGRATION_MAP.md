@@ -140,7 +140,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [G0DM0D3 / Godmode-style multi-model interface](https://github.com) | License must be reviewed before any implementation or adaptation | Security review first | multi-model evaluation |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Apache-2.0 | Read only | developer CLI |
 | [Generative media automation references](https://github.com/) | Model, asset, and provider terms require review. | Research only | generative media |
-| [kimi-k3-in-c](https://github.com/kimi-k3-in-c) | Apache-2.0 | Read only | CPU-only model inference |
+| [kimi-k3-in-c](https://github.com/FareedKhan-dev/kimi-k3-in-c) | Apache-2.0 | Read only | CPU-only model inference |
 | [LangChain](https://github.com/langchain-ai/langchain) | MIT; integration packages and providers require separate review. | Read only | agent framework |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | Adapt after review | visual agent builder |
 | [LightRAG-style reference](https://github.com/) | License must be verified before use. | Licence unresolved | retrieval augmented generation |

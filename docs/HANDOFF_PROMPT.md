@@ -134,6 +134,18 @@ secrets, and card-like numbers last because it is the loosest.
 `tests/redaction-boundary.test.js` scans every runtime file for console calls
 that print error-shaped text without going through it.
 
+A second thing was caught, this time by the release rather than by me. The
+kimi-k3-in-c record went in with `repoUrl: https://github.com/kimi-k3-in-c` — an
+owner path with no owner behind it. The screenshot it came from showed the
+repository name and not its owner, and I completed the URL instead of looking it
+up. `verify-external-repositories` resolves every registered repository against
+the GitHub API and failed the PR. It is `FareedKhan-dev/kimi-k3-in-c`.
+
+Worth knowing for next time: that check runs with `--network` in CI and without
+it in `verify:launch`, so a wrong URL passes every local gate. The register's
+whole point is that its facts are checked rather than recalled, and this one was
+recalled.
+
 **It found one on its first run.** `reportDegradedRateLimit` interpolated the
 caught error straight into `console.error`. The rate limiter calls
 `sonara_consume_rate_limit` over PostgREST with the service-role key, so the
