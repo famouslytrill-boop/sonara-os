@@ -102,6 +102,18 @@ function asManager(path) {
   return request(app).get(path).set("Accept", "text/html").set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub`).redirects(0);
 }
 
+function requiredBody(page, parentId, extra = {}) {
+  // A submission shaped like the page's own form. Hardcoding item_name here
+  // worked while every line table was stock lines; customer_invoice_payments
+  // asks for an amount and never for an item name, so a shared body tested the
+  // reject path on that page and nothing else.
+  const body = { [page.lines.parentColumn]: parentId };
+  for (const field of page.lines.form.fields.filter((entry) => entry.required)) {
+    body[field.name] = field.type === "number" ? "1250" : "Something";
+  }
+  return { ...body, ...extra };
+}
+
 function postLine(page, body) {
   return request(app)
     .post(page.lines.api)
@@ -205,6 +217,42 @@ describe("line items on the records that have them", () => {
     assert.deepEqual(problems, [], problems.join("\n  "));
   });
 
+  it("saves a line submitted with that page's own required fields", async () => {
+    // This is the test that was missing. Every case here posted item_name,
+    // because all four line tables had one -- so the handler reading
+    // req.body.item_name directly passed, and customer_invoice_payments, whose
+    // form asks for an amount and never for an item name, was rejected on every
+    // submission as missing a field it does not have.
+    const rejected = [];
+    for (const page of WITH_LINES) {
+      inserts = [];
+      await postLine(page, requiredBody(page, OURS));
+      if (!inserts.some((entry) => entry.table === page.lines.table)) {
+        rejected.push(`${page.lines.api} saved nothing when sent exactly the fields its own form marks required`);
+      }
+    }
+    assert.deepEqual(rejected, [], rejected.join("\n  "));
+  });
+
+  it("refuses a line missing a field its own form marks required", async () => {
+    const accepted = [];
+    for (const page of WITH_LINES) {
+      const required = page.lines.form.fields.filter((entry) => entry.required);
+      if (required.length === 0) continue;
+      inserts = [];
+      // Everything required except the first one.
+      const body = { [page.lines.parentColumn]: OURS };
+      for (const field of required.slice(1)) {
+        body[field.name] = field.type === "number" ? "1250" : "Something";
+      }
+      await postLine(page, body);
+      if (inserts.some((entry) => entry.table === page.lines.table)) {
+        accepted.push(`${page.lines.api} saved a row with no ${required[0].name}`);
+      }
+    }
+    assert.deepEqual(accepted, [], accepted.join("\n  "));
+  });
+
   it("totals only when every line has an amount", async () => {
     // A total computed over rows with missing values reads as the real figure
     // while being short by however many were blank. Both stub lines carry an
@@ -230,7 +278,7 @@ describe("line items on the records that have them", () => {
     // writing. Without it, posting a guessed id writes into another business.
     const written = [];
     for (const page of WITH_LINES) {
-      const res = await postLine(page, { [page.lines.parentColumn]: THEIRS, item_name: "Sneaky" });
+      const res = await postLine(page, requiredBody(page, THEIRS));
       assert.equal(res.status, 303, `${page.lines.api} did not redirect`);
       assert.match(res.headers.location || "", /problem=parent_not_yours/, `${page.lines.api} accepted a foreign parent`);
       if (inserts.some((insert) => insert.table === page.lines.table)) written.push(`${page.lines.api} inserted a row anyway`);
@@ -241,7 +289,7 @@ describe("line items on the records that have them", () => {
   it("saves a line against our own record and returns to it", async () => {
     for (const page of WITH_LINES) {
       inserts = [];
-      const res = await postLine(page, { [page.lines.parentColumn]: OURS, item_name: "Salt" });
+      const res = await postLine(page, requiredBody(page, OURS));
       assert.equal(res.status, 303, `${page.lines.api} did not redirect`);
       assert.equal(res.headers.location, `${page.path}/${OURS}`, `${page.lines.api} did not return to the record`);
       const insert = inserts.find((entry) => entry.table === page.lines.table);

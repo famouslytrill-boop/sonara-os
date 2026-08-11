@@ -659,3 +659,26 @@ Two arithmetic traps have tests because both would have been silent: an
 invoice paid in full whose status was never changed off "sent" drops out
 instead of counting at full value, and an overpayment clamps at zero instead of
 going negative and quietly reducing another invoice's total.
+
+### 2026-08-11 — The payment form that could never save
+
+`customer_invoice_payments` shipped with a working form, a working button and
+no way to save a row. The child POST handler read `req.body.item_name`
+directly, which was true of the four line tables that existed when it was
+written — all stock lines with an item name. A payment has a date, an amount, a
+method and a reference. Every submission came back `missing_required` naming a
+field its form never asks for.
+
+The test suite passed because every case posted `item_name` regardless of which
+page it was testing. That one shared body meant the two ownership tests were
+also passing vacuously on this page: both were being rejected at the required
+check long before reaching the parent-ownership check they exist to prove.
+
+Required fields now come from the child's own form declaration, and the tests
+build each submission from the same declaration. Two new cases: post exactly
+what a page marks required and assert it saves, and drop one required field and
+assert it does not.
+
+Third time in this area that one shape was assumed for all children — after the
+"Flour" evidence marker. The pattern is worth naming: a helper written when a
+set had one member encodes that member's shape as the rule.

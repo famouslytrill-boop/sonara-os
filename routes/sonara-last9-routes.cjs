@@ -224,7 +224,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
       };
       if (!isUuid(parentId)) return respond(400, { ok: false, code: "parent_required" });
-      if (!String(req.body.item_name || "").trim()) return respond(400, { ok: false, code: "missing_required", missing: ["item_name"] });
+
+      // Required fields come from the child's own form declaration.
+      //
+      // This read `req.body.item_name` directly, which was true of the four
+      // line tables that existed when it was written -- all of them stock lines
+      // with an item name. customer_invoice_payments requires an amount and has
+      // no item name, so every payment submitted was rejected as
+      // missing_required for a field its form never asks for. The form rendered,
+      // the button worked, and nothing could ever save.
+      const requiredFields = page.lines.form.fields.filter((field) => field.required).map((field) => field.name);
+      const missing = requiredFields.filter((name) => !String(req.body[name] ?? "").trim());
+      if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
       const config = getConfig(deps);
       if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
       const org = await resolveOrganization(req, deps);
