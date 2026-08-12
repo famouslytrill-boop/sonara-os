@@ -210,3 +210,88 @@ describe("the legal pages describe what the product actually does", () => {
     }
   });
 });
+
+// Every legal page, not just the three that took money.
+//
+// Eleven of the fourteen were three sentences under headings literally named
+// "Section 1", "Section 2", "Section 3" -- the tell that a page was shipped as
+// far as the footer and no further. This holds the whole surface rather than the
+// pages somebody happened to rewrite.
+describe("no legal page is a placeholder", () => {
+  const request = require("supertest");
+  const app = require("../server");
+
+  let pages = [];
+
+  before(async function loadPages() {
+    this.timeout(30000);
+    const hrefs = app.legalAliasHrefs ? null : null;
+    const legal = [
+      "/legal/terms", "/legal/privacy", "/legal/refund-policy", "/legal/cookie-policy",
+      "/legal/acceptable-use", "/legal/accessibility", "/legal/earnings-disclaimer",
+      "/legal/ai-disclaimer", "/legal/payment-terms", "/legal/data-processing",
+      "/legal/security-policy", "/legal/disclaimer", "/legal/can-spam", "/legal/subprocessor-notice"
+    ];
+    void hrefs;
+    pages = await Promise.all(legal.map(async (href) => {
+      const response = await request(app).get(href);
+      const html = String(response.text || "");
+      const main = (html.match(/<main[\s\S]*?<\/main>/) || [""])[0].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      return { href, status: response.status, html, words: main ? main.split(" ").length : 0 };
+    }));
+  });
+
+  it("renders every legal page", () => {
+    const missing = pages.filter((page) => page.status !== 200).map((page) => `${page.href} (${page.status})`);
+    assert.deepEqual(missing, [], `these legal pages do not render: ${missing.join(", ")}`);
+    assert.ok(pages.length >= 14, `only ${pages.length} legal pages checked; this check has gone blind`);
+  });
+
+  it("uses real headings rather than Section 1, Section 2, Section 3", () => {
+    const placeholders = pages.filter((page) => /<h[23][^>]*>\s*Section \d/.test(page.html)).map((page) => page.href);
+    assert.deepEqual(placeholders, [], `these legal pages still use placeholder headings: ${placeholders.join(", ")}`);
+  });
+
+  it("says enough to be a policy", () => {
+    // Not a quality measure -- a floor. Three sentences is not a refund policy
+    // for a product taking card payments, whatever those three sentences say.
+    const thin = pages.filter((page) => page.words < 110).map((page) => `${page.href} (${page.words} words)`);
+    assert.deepEqual(thin, [], `these legal pages are too short to be policies: ${thin.join(", ")}`);
+  });
+});
+
+// Claims on the new pages that describe how the software behaves.
+describe("the other legal pages describe real behaviour too", () => {
+  const request = require("supertest");
+  const app = require("../server");
+  const root = path.join(__dirname, "..");
+
+  it("only says a model is never called by default because adapters are off by default", async () => {
+    const page = String((await request(app).get("/legal/ai-disclaimer")).text || "");
+    assert.match(page, /off until it is configured/i);
+    const adapter = fs.readFileSync(path.join(root, "lib", "sonara-service-adapter.cjs"), "utf8");
+    assert.match(adapter, /none of these\s+\*?\s*\n?.*are enabled by default|are enabled by default/, "the adapter contract no longer says adapters are off by default");
+  });
+
+  it("only says the charged amount is checked because the checkout checks it", async () => {
+    const page = String((await request(app).get("/legal/payment-terms")).text || "");
+    assert.match(page, /checked against the amount Stripe holds/i);
+    const billing = fs.readFileSync(path.join(root, "lib", "sonara-billing.cjs"), "utf8");
+    assert.match(billing, /price_mismatch/, "nothing compares the advertised amount to the Stripe price any more");
+  });
+
+  it("only says a build fails on a leaked credential because one does", async () => {
+    const page = String((await request(app).get("/legal/security-policy")).text || "");
+    assert.match(page, /fails the build/i);
+    const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    assert.ok(packageJson.scripts["scan:client-secrets"], "the client-secret scan the policy describes does not exist");
+    assert.match(String(packageJson.scripts["verify:launch"] || ""), /scan:client-secrets/, "the scan is not in the release chain, so it does not fail a build");
+  });
+
+  it("only promises reduced motion because the stylesheet honours it", async () => {
+    const page = String((await request(app).get("/legal/accessibility")).text || "");
+    assert.match(page, /reduced motion/i);
+    const css = fs.readFileSync(path.join(root, "public", "sonara-design-system.css"), "utf8");
+    assert.match(css, /@media \(prefers-reduced-motion: reduce\)/, "the design system no longer honours reduced motion");
+  });
+});

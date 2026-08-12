@@ -177,6 +177,24 @@ it silently.
 promise fails if the route goes, the erasure wording fails if the handler starts
 deleting, and the refund page fails if it ever promises an automatic refund.
 
-**Still thin:** acceptable-use, earnings-disclaimer, accessibility,
-ai-disclaimer, payment-terms, security-policy, disclaimer, can-spam. None of
-them takes money or describes data handling, which is why they were not first.
+**Item 1, finished.** All fourteen legal pages are written: 2,942 words across
+the surface, no placeholder headings anywhere.
+
+Writing the remaining eight surfaced two pages my earlier assessment had called
+"already substantive" — the cookie policy and the data-processing page. Their
+*content* was substantive and their *headings* were still `Section 1`,
+`Section 2`, `Section 3`, because they passed plain strings rather than
+title-and-body pairs. I had read the source and not the rendered page. The
+sub-processor notice was also genuinely thin at 95 words, and now names the four
+processors, says what each receives, and says where they are.
+
+`tests/data-rights.test.js` holds the whole surface rather than the pages
+somebody happened to rewrite: every legal page must render, must not use
+placeholder headings, and must clear a word floor — three sentences is not a
+refund policy for a product taking card payments, whatever those sentences say.
+Four more claims are bound to behaviour: the AI page's "off until configured"
+fails if adapters stop defaulting off, the payment page's "checked against the
+amount Stripe holds" fails if the mismatch guard goes, the security page's
+"fails the build" fails if the client-secret scan leaves the release chain, and
+the accessibility page's reduced-motion promise fails if the stylesheet stops
+honouring it.
