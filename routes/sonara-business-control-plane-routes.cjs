@@ -1,5 +1,7 @@
 "use strict";
 
+const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
+
 const { randomUUID } = require("node:crypto");
 
 const BUSINESS_SELECT = "id,organization_id,created_by,owner_user_id,name,business_type,acquisition_mode,legal_name,public_name,industry,description,website_url,timezone,currency_code,status,metadata,created_at,updated_at,archived_at,deleted_at,version";
@@ -563,7 +565,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       eyebrow: "Business Builder",
       heading: "What business are you building?",
       body: "Start with the basics. SONARA will create the operating workspace, then guide you through offers, customers, sales, bookings, team, inventory, and daily work.",
-      sections: [createBusinessForm(), launchPath(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
+      // The index goes here as well as on the dashboard with a business,
+      // because an owner who has not created one yet is exactly the person who
+      // cannot find anything.
+      sections: [createBusinessForm(), launchPath(), workspaceIndexSection(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
       actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")]
     });
   }
@@ -580,6 +585,33 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     });
   }
 
+  // Every Business Builder page, generated from the route registry.
+  //
+  // This dashboard intercepts GET /business-builder/dashboard before the
+  // per-slug handler, so the workspace index that handler adds never rendered
+  // here -- Creator Studio and Growth Studio got it and Business Builder did
+  // not. Twenty-five of its pages were registered, rendering, and reachable
+  // only by typing the URL.
+  //
+  // Generated rather than listed, for the same reason as everywhere else: a
+  // hand-kept list beside the registry that defines the pages falls behind it.
+  function workspaceIndexSection() {
+    const pages = ROUTE_REGISTRY.filter(
+      (entry) =>
+        entry.method === "GET" &&
+        entry.productOwner === "business_builder" &&
+        !entry.route.includes(":") &&
+        !entry.route.startsWith("/api/")
+    );
+    if (pages.length === 0) return "";
+    const items = pages
+      .map((entry) => `<li><a href="${escapeHtml(entry.route)}">${escapeHtml(plainRouteTitle(entry))}</a></li>`)
+      .join("");
+    return `<section class="card"><h2>Everything in this workspace</h2><p>${escapeHtml(
+      `All ${pages.length} pages, including the ones no other screen links to.`
+    )}</p><ul>${items}</ul></section>`;
+  }
+
   function businessDashboardPage(business, snapshot) {
     const next = nextBusinessAction(business, snapshot);
     const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key] || 0)).join("");
@@ -592,7 +624,8 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
         `<section class="bb-today"><div><span class="sonara-kicker">Next best action</span><h2>${escapeHtml(next.title)}</h2><p>${escapeHtml(next.body)}</p><a class="action" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></div>${businessSnapshot(snapshot)}</section>`,
         `<section class="bb-module-grid">${moduleCards}</section>`,
         businessProfileEditor(business),
-        ownershipSection(business.id, escapeHtml)
+        ownershipSection(business.id, escapeHtml),
+        workspaceIndexSection()
       ],
       actions: [linkAction("/business-builder/control-center", "All businesses"), linkAction("/business-builder/billing", "Plan & billing"), linkAction("/support", "Support")]
     });

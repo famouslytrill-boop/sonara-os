@@ -115,23 +115,25 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           ui.card("You decide who sees what", "Owners and managers control staff access, locations, services, invoices, inventory, vehicles, and day-to-day operations."),
           ...summary.map((item) => ui.card(item.label, item.value))
         ],
+        // Every owner record page, generated from the same list that defines
+        // them.
+        //
+        // This was eleven hand-written links, and it had fallen eleven pages
+        // behind: purchase orders, stock counts, transfers, supplier payments,
+        // accounting exports, costs, maintenance, menu, recipes, vehicles and
+        // vendors were all registered, rendering, and reachable only by typing
+        // the URL. Adding the money pages by hand fixed five and left those.
+        //
+        // A hand-kept list of pages next to the list that defines the pages is
+        // a list that falls behind. This one cannot.
         actions: [
           // First, because it is the only one that tells the owner something
           // they did not already know they were looking for.
           ui.link("/search", "Search your records"),
           ui.link("/business-builder/owner/assistant", "What needs attention"),
-          // The money loop, in the order it happens. None of these was
-          // reachable from here, so an owner landing on their own dashboard
-          // could not get to what they are owed without knowing the URL.
-          ui.link("/business-builder/owner/customers", "Customers"),
-          ui.link("/business-builder/owner/quotes", "Quotes"),
-          ui.link("/business-builder/owner/receivables", "Money owed to you"),
           ui.link("/business-builder/owner/money-due", "Money due in and out"),
           ui.link("/business-builder/owner/chase-drafts", "Chase drafts"),
-          ui.link("/business-builder/owner/locations", "Locations"),
-          ui.link("/business-builder/owner/staff", "Staff"),
-          ui.link("/business-builder/owner/time", "Time"),
-          ui.link("/business-builder/owner/inventory", "Inventory"),
+          ...ALL_OWNER_PAGES.map((ownerPage) => ui.link(ownerPage.path, ownerPage.title)),
           ui.link("/business-builder/dashboard", "Dashboard")
         ]
       }));

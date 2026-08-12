@@ -27,6 +27,7 @@ const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-route
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
+const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
 // DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
@@ -1907,7 +1908,8 @@ function registerProduct(slug, config) {
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
           workspaceRecordsCard(dashboard),
           workspaceActivityCard(dashboard),
-          brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations.")
+          brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations."),
+          workspaceIndexCard(productKey)
         ],
         actions: productDashboardActions(slug)
       })
@@ -1968,6 +1970,33 @@ function workspaceToolPage({ slug, config, page, access, paid, records = "" }) {
       logoutAction()
     ]
   });
+}
+
+// Every page in a workspace, generated from the route registry.
+//
+// Seventy-three product pages were registered, rendering, and reachable only by
+// typing the URL -- across all three workspaces. The dashboards and landing
+// pages carried hand-written link lists, and a hand-kept list of pages beside
+// the registry that defines the pages is a list that falls behind. It had.
+//
+// Generated, so it cannot. Routes with a path parameter are skipped: they are
+// reached from the record they belong to, and a link containing ":businessId"
+// goes nowhere.
+function workspaceIndexCard(productKey) {
+  const pages = ROUTE_REGISTRY.filter(
+    (entry) =>
+      entry.method === "GET" &&
+      entry.productOwner === productKey &&
+      !entry.route.includes(":") &&
+      !entry.route.startsWith("/api/")
+  );
+  if (pages.length === 0) return brandCard("Everything in this workspace", "No pages are registered for this workspace yet.");
+  const items = pages
+    .map((entry) => `<li>${linkAction(entry.route, plainRouteTitle(entry))}</li>`)
+    .join("");
+  return `<article class="card sonara-depth" data-sonara-enter><h2>Everything in this workspace</h2><p>${escapeHtml(
+    `All ${pages.length} pages, including the ones no other screen links to.`
+  )}</p><ul>${items}</ul></article>`;
 }
 
 function workspaceServiceCard(page, paid) {

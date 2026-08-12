@@ -23,7 +23,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4075 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4104 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
@@ -1334,3 +1334,43 @@ by no migration.** Same class as the four authorization functions — schema in
 the live database and not in version control. Recorded in `SHIP_READINESS.md`
 rather than guessed at, because inventing a definition that may not match
 production is worse than the gap.
+
+### 2026-08-12 — Reaching the pages nobody could reach: 110 down to 26
+
+Worked the unreachable list rather than adding a check that would have reported
+it forever. Authenticated crawl, three structural fixes, and the number went
+110 → 26.
+
+**Eleven owner record pages.** The owner dashboard carried eleven hand-written
+links and had fallen eleven pages behind: purchase orders, stock counts,
+transfers, supplier payments, accounting exports, costs, maintenance, menu,
+recipes, vehicles and vendors. Generated from `ALL_OWNER_PAGES` now — the same
+list that defines the pages, so it cannot fall behind again.
+
+**Seventy-three product pages**, across all three workspaces, registered and
+rendering and reachable only by typing the URL. Same cause: hand-written link
+lists beside the registry that defines the routes. The product dashboards now
+carry a workspace index generated from `ROUTE_REGISTRY` by `productOwner`.
+
+Business Builder needed it twice: `sonara-business-control-plane-routes.cjs`
+intercepts `GET /business-builder/dashboard` before the per-slug handler, so
+Creator Studio and Growth Studio got the index and Business Builder did not.
+It is on both branches there — including the onboarding one, since an owner who
+has not created a business yet is exactly the person who cannot find anything.
+
+**The plain-language gate caught the index immediately**, which is the system
+working: it renders registry titles, and three of those carry "lifecycle" and
+"readiness". The rest of the application already calls those pages Roadmap and
+Setup checklist in its own links — the plain name existed and the index was
+reading the wrong field. `plainRouteTitle` now supplies it.
+
+Two false alarms are worth recording. A source scan of link constructs reported
+57 unreachable; `/tutorials` builds its links from a list, so the literals never
+appear. And the first crawl reported 162, because a stubbed session does not
+render signed-in pages. Neither was shipped as a check.
+
+The 26 that remain are mostly legitimate: `/sitemap.xml` and `/robots.txt` are
+machine endpoints, `/logout` and `/auth/callback` are redirect targets,
+`/reset-password` arrives by email, and the `/terms` and `/cookies` family are
+aliases of the canonical `/legal/*` pages the footer already links. They should
+be declared rather than linked, which is the check still worth building.

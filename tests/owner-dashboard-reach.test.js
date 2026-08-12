@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const SOURCE = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-last9-routes.cjs"), "utf8");
 const { findRoute } = require("../lib/sonara-route-registry.cjs");
+const { ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
 
 function ownerDashboardBlock() {
   const start = SOURCE.indexOf("OWNER_PAGES.forEach");
@@ -19,15 +20,28 @@ function ownerDashboardBlock() {
 // failure the search list had: a hand-kept list falling behind the pages that
 // exist, invisibly, because nothing compared them.
 describe("the owner dashboard reaches the money", () => {
-  it("links to every step of the money loop", () => {
+  it("links every owner record page, from the list that defines them", () => {
+    // This checked five hand-written links. They are generated from
+    // ALL_OWNER_PAGES now, because the hand-written list had fallen eleven
+    // pages behind -- purchase orders, stock counts, transfers, supplier
+    // payments, accounting exports, costs, maintenance, menu, recipes,
+    // vehicles and vendors were all reachable only by typing the URL.
     const block = ownerDashboardBlock();
-    for (const route of [
-      "/business-builder/owner/customers",
-      "/business-builder/owner/quotes",
-      "/business-builder/owner/receivables",
-      "/business-builder/owner/money-due",
-      "/business-builder/owner/chase-drafts"
-    ]) {
+    assert.match(
+      block,
+      /ALL_OWNER_PAGES\.map\(/,
+      "the owner dashboard must generate its links from ALL_OWNER_PAGES, not restate them"
+    );
+    for (const page of ALL_OWNER_PAGES) {
+      assert.ok(findRoute(page.path), `${page.path} has an owner page and is not a registered route`);
+    }
+  });
+
+  it("links the money pages that are not owner record pages", () => {
+    // money-due and chase-drafts are surfaces over those records rather than
+    // record pages, so the generated list does not include them.
+    const block = ownerDashboardBlock();
+    for (const route of ["/business-builder/owner/money-due", "/business-builder/owner/chase-drafts"]) {
       assert.ok(block.includes(`"${route}"`), `the owner dashboard does not link to ${route}`);
       assert.ok(findRoute(route), `${route} is linked but is not a registered route`);
     }

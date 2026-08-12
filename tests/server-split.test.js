@@ -313,9 +313,14 @@ describe("the server.js split stays safe", () => {
     // URL -- the same defect /search had, five times over. The links are built
     // from ACCOUNT_SECTIONS rather than written out, which is why fixing five
     // unreachable pages cost three lines instead of thirteen.
+    // Then 29 for the workspace index: every page in a product workspace,
+    // generated from the route registry. Seventy-three product pages across
+    // the three workspaces were registered, rendering, and reachable only by
+    // typing the URL, because the dashboards carried hand-written link lists
+    // that had fallen behind the registry. Generated, so they cannot again.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4075,
+      lines <= 4104,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
