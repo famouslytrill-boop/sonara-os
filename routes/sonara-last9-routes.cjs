@@ -681,12 +681,38 @@ function recordsCard(page, rows, ui) {
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
   const opens = childrenOf(page).length > 0;
-  const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...(opens ? ["<th>Details</th>"] : [])].join("");
-  const width = page.columns.length + (opens ? 1 : 0);
+
+  // And an action a row can take on itself.
+  //
+  // Turning an accepted quote into an invoice was built, tested and shipped
+  // with no way to press it -- the endpoint takes a path parameter, and the
+  // form-reachability scan skips those, so nothing reported that the button did
+  // not exist. Declaring the action beside the page means the row that can take
+  // it renders it, and the row that cannot says why in the same column rather
+  // than showing a button that will refuse.
+  const action = page.rowAction || null;
+  const extraHeads = [...(opens ? ["<th>Details</th>"] : []), ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])];
+  const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
+  const width = page.columns.length + extraHeads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      if (action) {
+        const id = encodeURIComponent(String(row.id || ""));
+        let reason = null;
+        try {
+          reason = action.reasonUnavailable ? action.reasonUnavailable(row) : null;
+        } catch {
+          // A spec that throws on an odd row must not take the page down.
+          reason = "This cannot be checked right now.";
+        }
+        cells.push(
+          reason
+            ? `<td>${ui.escape(reason)}</td>`
+            : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
+        );
+      }
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
     : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;

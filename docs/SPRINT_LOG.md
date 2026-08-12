@@ -1332,3 +1332,35 @@ cannot read their type; `hasColumn` knows them. And the policy scan caught a
 literal table name passed through a read helper, which hides the table from the
 member-policy check — every other call in that file goes through `TABLES`, and
 now so does this one.
+
+### 2026-08-12 — Two conversions with no button, one of them mine from two sprints ago
+
+Went to check the lead conversion was pressable and found it was not — and
+neither was turning an accepted quote into an invoice, built two sprints
+earlier, tested, documented, and shipped with **no way for an owner to press
+it**.
+
+The reason nothing reported it: `createShapedRoutes` skips routes with a path
+parameter, and both conversions are `/…/:id/…`. The one check that asks "does
+this endpoint have a form" never saw either of them. So the endpoints worked,
+the tests passed, the docs described them, and the feature did not exist for
+anybody without an API client.
+
+`rowAction` on an owner page declaration fixes it generally rather than adding
+two buttons. A row that can take the action renders a form; a row that cannot
+**says why in the same column** — "Waiting on their answer" for a sent quote,
+"No customer on this quote" — rather than showing a button that would refuse
+when pressed. A button that refuses teaches people the product is broken.
+
+`tests/row-actions-are-pressable.test.js` asks the question the scan cannot: it
+checks every declared action posts to a route the server registers, that each
+declares a reason function and a label, that the quotes action offers itself on
+an accepted quote with a customer and an amount and refuses the four ways it can
+be wrong, and that a malformed row cannot take the page down.
+
+It also asserts, as a test rather than as folklore, that `createShapedRoutes`
+still excludes parameterised routes — so if that ever changes, the exemption
+this test exists to cover can go with it.
+
+The leads page uses a different renderer and still has no button. Recorded here
+rather than half-built.
