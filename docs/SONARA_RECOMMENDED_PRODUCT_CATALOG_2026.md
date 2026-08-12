@@ -6,8 +6,8 @@ by hand puts it back to disagreeing with the product it describes.
 
 **Version:** 2026-07-25  
 **Products:** 23  
-**Open to customers:** 23  
-**Restricted:** 0
+**Open to customers:** 16  
+**Restricted:** 7
 
 Each entry declares its plan floor, delivery state, route, and whether the
 server will actually let a customer run it. A published entry is not
@@ -51,28 +51,28 @@ automatically an executable one.
 |---|---|---|---|---|
 | Business Plan & Setup Check | Free | `beta` | `/business-builder/tools/readiness` | Yes |
 | Offer & Pricing Builder | Free | `active` | `/business-builder/tools/offer` | Yes |
-| Customer & Enquiry Tracker | Starter | `active` | `/business-builder/dashboard` | Yes |
+| Customer & Enquiry Tracker | Starter | `active` | `/business-builder/owner/customers` | Yes |
 | Quotes, Invoices & Getting Paid | Core | `beta` | `/business-builder/billing` | Yes |
-| Bookings, Staff & Day-to-Day | Core | `beta` | `/business-builder/dashboard` | Yes |
+| Bookings, Staff & Day-to-Day | Core | `beta` | `/business-builder/owner` | Yes |
 | Records & Exports | Core | `beta` | `/business-builder/owner/accounting-exports` | Yes |
 
 ## Creator Studio products
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Brand & Asset Library | Starter | `beta` | `/creator-studio/dashboard` | Yes |
-| Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | Yes |
+| Brand & Asset Library | Starter | `beta` | `/creator-studio/dashboard` | No |
+| Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | No |
 | Release Packager | Core | `beta` | `/creator-studio/music-system` | Yes |
-| Selling Your Work | Starter | `beta` | `/creator-studio/launch-readiness` | Yes |
+| Selling Your Work | Starter | `beta` | `/creator-studio/offers` | No |
 
 ## Growth Studio products
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Customer History & Permissions | Core | `beta` | `/growth-studio/consent` | Yes |
-| Lead Capture & Lists | Starter | `beta` | `/growth-studio/segments` | Yes |
-| Campaign Builder | Core | `beta` | `/growth-studio/your-campaigns` | Yes |
-| Landing Pages & Results | Starter | `beta` | `/growth-studio/attribution` | Yes |
+| Customer History & Permissions | Core | `beta` | `/growth-studio/consent` | No |
+| Lead Capture & Lists | Starter | `beta` | `/growth-studio/segments` | No |
+| Campaign Builder | Core | `beta` | `/growth-studio/your-campaigns` | No |
+| Landing Pages & Results | Starter | `beta` | `/growth-studio/attribution` | No |
 | Did It Actually Work? | Pro | `beta` | `/growth-studio/experiments` | Yes |
 | Connection Health | Pro | `beta` | `/growth-studio/providers` | Yes |
 

@@ -9,7 +9,7 @@ const {
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
-const { hasEnforcedPaidAccess } = require("../lib/sonara-paid-access.cjs");
+const { hasEnforcedPaidAccess, planFloorOpensProduct } = require("../lib/sonara-paid-access.cjs");
 const { catalogItemToRow, catalogRowBoundaryViolations } = require("../lib/sonara-catalog-boundary.cjs");
 
 const root = path.join(__dirname, "..");
@@ -30,13 +30,19 @@ describe("Recommended product catalog production boundary", () => {
     const paid = RECOMMENDED_PRODUCT_CATALOG.filter((item) => item.planFloor !== "free");
     assert.ok(paid.length > 0);
     for (const item of paid) {
+      // Was compared against hasEnforcedPaidAccess(productKey) -- whether the
+      // family enforces anything. That is the question the catalog itself was
+      // getting wrong: Creator Studio enforces Core and Pro while three of its
+      // products advertised Starter, and the family-level answer said yes to
+      // all three. The comparison is now against the plan the product is sold
+      // on, which is what getCustomerPaidEntitlement checks per request.
       assert.equal(
         item.entitlementIntegrationVerified,
-        hasEnforcedPaidAccess(item.productKey),
-        `${item.serviceKey} claims a different paid-access state than ${item.productKey} actually enforces`
+        planFloorOpensProduct(item.productKey, item.planFloor),
+        `${item.serviceKey} claims a different paid-access state than ${item.productKey} accepts for a ${item.planFloor} plan`
       );
-      if (!hasEnforcedPaidAccess(item.productKey)) {
-        assert.equal(item.executionEnabled, false, `${item.serviceKey} has no enforced entitlement and must stay shut`);
+      if (!planFloorOpensProduct(item.productKey, item.planFloor)) {
+        assert.equal(item.executionEnabled, false, `${item.serviceKey} advertises a plan that will not open it and must stay shut`);
       }
       assert.match(item.priceNote, /^Included in (Starter and above|Core and above|Pro)\.$/);
     }
@@ -54,13 +60,14 @@ describe("Recommended product catalog production boundary", () => {
     // nothing -- so this now asserts that state rather than a positive count.
     // It was `> 0`, which is the right guard while such products exist and the
     // wrong one once the answer is deliberately zero.
-    const unmapped = paid.filter((item) => !hasEnforcedPaidAccess(item.productKey));
+    const unmapped = paid.filter((item) => !planFloorOpensProduct(item.productKey, item.planFloor));
     assert.equal(summary.entitlementVerificationRequired, unmapped.length);
-    assert.deepEqual(
-      [...new Set(unmapped.map((item) => item.productKey))],
-      [],
-      "a paid product belongs to a family the server enforces no entitlement for; either map it in lib/sonara-paid-access.cjs or price it free"
-    );
+    // Which products these are, and what to do about each, is the work queue in
+    // tests/catalog-routes-go-somewhere-real.test.js. What this asserts is the
+    // consequence: none of them is offered as open.
+    for (const item of unmapped) {
+      assert.equal(item.executionEnabled, false, `${item.serviceKey} is mispriced and still advertised as open`);
+    }
   });
 
   // The production gate asserts a boundary against the live database. Nothing
@@ -330,7 +337,18 @@ describe("Recommended product catalog production boundary", () => {
       return;
     }
 
-    const missing = CATALOG_BOUNDARY_TEXT.filter((text) => !visible.includes(text.toLowerCase().replace(/\s+/g, " ")));
+    // Only the wording for reasons a shipped product is actually in. This
+    // required all five strings, which meant it demanded the awaiting_review
+    // copy while every closed product was closed on price -- failing on a page
+    // that said exactly the right thing. The full list still has to be
+    // producible by the code, and the check above is where that is asserted.
+    const plainLanguage = require("../lib/sonara-plain-language.cjs");
+    const { catalogAccessReason } = require("../routes/sonara-service-lifecycle-routes.cjs");
+    const reasons = new Set(closed.map((item) => catalogAccessReason(item)));
+    assert.ok(reasons.size > 0 && !reasons.has("open"), `closed products classified as ${[...reasons].join(", ")}`);
+
+    const expected = [...reasons].map((reason) => plainLanguage.accessNote(reason)).concat("See what is ready now");
+    const missing = expected.filter((text) => !visible.includes(String(text).toLowerCase().replace(/\s+/g, " ")));
     assert.deepEqual(
       missing,
       [],
