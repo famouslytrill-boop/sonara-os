@@ -1159,6 +1159,8 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         actionCard("Billing status", summary.billingSummary, [linkAction("/billing", "Billing"), linkAction("/pricing", "Pricing")]),
         actionCard("Support", summary.supportSummary, [linkAction("/support", "Support center"), linkAction("/contact", "Contact")]),
         actionCard("Agent activity", "What the agents did for your organisation, and anything that stopped because your rules say you decide it.", [linkAction("/owner/agent-activity", "Agent activity")]),
+        // Registered, rendering, and linked from nowhere until this.
+        actionCard("Notifications and research", "Messages waiting for you, and what has been recorded about your market.", [linkAction("/notifications", "Notifications"), linkAction("/market-intelligence", "Market research")]),
         summary.blockersCard,
         actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
         ...(summary.adminCard ? [summary.adminCard] : []),
@@ -1999,6 +2001,17 @@ function workspaceIndexCard(productKey) {
   )}</p><ul>${items}</ul></article>`;
 }
 
+function adminPageIndex() {
+  const pages = ROUTE_REGISTRY.filter(
+    (entry) => entry.method === "GET" && entry.visibility === "admin" && !entry.route.includes(":") && entry.route !== "/admin"
+  );
+  if (pages.length === 0) return brandCard("Every admin page", "No admin pages are registered.");
+  const items = pages.map((entry) => `<li>${linkAction(entry.route, plainRouteTitle(entry))}</li>`).join("");
+  return `<article class="card"><h2>Every admin page</h2><p>${escapeHtml(
+    `All ${pages.length}, including the ones no card above mentions.`
+  )}</p><ul>${items}</ul></article>`;
+}
+
 function workspaceServiceCard(page, paid) {
   if (paid) return brandCard("Access", "This feature opens when your plan includes it. Your saved work remains available if you change plans.");
   if (page.form) return brandCard("Next step", "Complete the form to create your result. SONARA saves it to your workspace when you are signed in.");
@@ -2085,7 +2098,14 @@ function adminPage(title, body, readiness, metrics = {}) {
     actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
     actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/integrations", "Integrations"), linkAction("/admin/ai-gateway", "AI gateway")])
   ];
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: adminActions() });
+  // Every admin page, generated. Ten of them -- database management,
+  // migrations, organizations, email, pipelines, deployments, audit, system
+  // design intelligence, model safety and the prompt library -- were
+  // registered, rendering, and linked from nowhere. The cards above list the
+  // ones somebody thought of, which is the same hand-kept list that had fallen
+  // behind on every other dashboard.
+  const adminIndex = adminPageIndex();
+  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness), adminIndex], actions: adminActions() });
 }
 
 function deploymentCard() {

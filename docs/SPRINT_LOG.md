@@ -1258,3 +1258,39 @@ machine endpoints, `/logout` and `/auth/callback` are redirect targets,
 `/reset-password` arrives by email, and the `/terms` and `/cookies` family are
 aliases of the canonical `/legal/*` pages the footer already links. They should
 be declared rather than linked, which is the check still worth building.
+
+### 2026-08-12 — The declaration check, and twelve more pages nobody could reach
+
+`tests/every-page-is-reachable.test.js`. An authenticated crawl from ten roots,
+following rendered links, comparing what it reaches against every registered
+page route. Anything unreached must be declared with a reason, and **a
+declaration for a page that turns out to be reachable fails too** — a stale
+reason is how this list would rot the same way the hand-written link lists it
+replaced did.
+
+It found twelve on its first run, and the right answer for all twelve was to
+link them rather than declare them. **Ten admin pages** — database management,
+migrations, organizations, email, pipelines, deployments, audit, system design
+intelligence, model safety and the prompt library. The admin index carried cards
+for the pages somebody thought of, which is the same hand-kept list that had
+fallen behind everywhere else; it is generated from the registry now.
+`/notifications` and `/market-intelligence` are on the customer dashboard.
+
+It also caught its own stale declaration immediately: `/business-builder/login`
+was listed as unlinked and is reachable. Removed.
+
+Three guards on the check itself, because a crawl that silently stops crawling
+reports a clean bill of health. It asserts it fetched more than 100 pages and
+reached more than 150 paths, so a broken session fails loudly rather than
+reporting nothing unreachable.
+
+**One bug of mine, worth recording.** The test replaced `global.fetch` with a
+Supabase stub and restored only the environment. The stub leaked into every file
+that ran after it, and ten sign-in tests failed — they got a Supabase that
+answered every auth call successfully, so a refusal test saw a redirect.
+`tests/setup-env.cjs` installs an offline firewall on that handle; putting it
+back restores it. Fixed, and the reason is in the `after` hook.
+
+Thirteen declarations remain, all genuine: two machine endpoints, five
+redirect-or-email targets, and six aliases of the canonical `/legal/*` pages the
+footer already links on every page.

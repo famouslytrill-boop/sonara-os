@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4104 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4124 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 129 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 130 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1374,3 +1374,39 @@ machine endpoints, `/logout` and `/auth/callback` are redirect targets,
 `/reset-password` arrives by email, and the `/terms` and `/cookies` family are
 aliases of the canonical `/legal/*` pages the footer already links. They should
 be declared rather than linked, which is the check still worth building.
+
+### 2026-08-12 — The declaration check, and twelve more pages nobody could reach
+
+`tests/every-page-is-reachable.test.js`. An authenticated crawl from ten roots,
+following rendered links, comparing what it reaches against every registered
+page route. Anything unreached must be declared with a reason, and **a
+declaration for a page that turns out to be reachable fails too** — a stale
+reason is how this list would rot the same way the hand-written link lists it
+replaced did.
+
+It found twelve on its first run, and the right answer for all twelve was to
+link them rather than declare them. **Ten admin pages** — database management,
+migrations, organizations, email, pipelines, deployments, audit, system design
+intelligence, model safety and the prompt library. The admin index carried cards
+for the pages somebody thought of, which is the same hand-kept list that had
+fallen behind everywhere else; it is generated from the registry now.
+`/notifications` and `/market-intelligence` are on the customer dashboard.
+
+It also caught its own stale declaration immediately: `/business-builder/login`
+was listed as unlinked and is reachable. Removed.
+
+Three guards on the check itself, because a crawl that silently stops crawling
+reports a clean bill of health. It asserts it fetched more than 100 pages and
+reached more than 150 paths, so a broken session fails loudly rather than
+reporting nothing unreachable.
+
+**One bug of mine, worth recording.** The test replaced `global.fetch` with a
+Supabase stub and restored only the environment. The stub leaked into every file
+that ran after it, and ten sign-in tests failed — they got a Supabase that
+answered every auth call successfully, so a refusal test saw a redirect.
+`tests/setup-env.cjs` installs an offline firewall on that handle; putting it
+back restores it. Fixed, and the reason is in the `after` hook.
+
+Thirteen declarations remain, all genuine: two machine endpoints, five
+redirect-or-email targets, and six aliases of the canonical `/legal/*` pages the
+footer already links on every page.
