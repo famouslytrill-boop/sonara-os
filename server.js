@@ -874,7 +874,7 @@ app.get("/pricing", (req, res) => {
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
-      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in August 2026 what the usual tools charge for these three jobs on monthly billing. Their entry plans came to about $87 a month for the set, and nearer $105 once you remove another company\u2019s logo from your emails and turn automation on. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
@@ -892,7 +892,7 @@ app.get("/pricing", (req, res) => {
         : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
         ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $39."),
+        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $39 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $87 a month on monthly billing, from published prices in August 2026. The creator tool at that price also takes 5% of what you sell. Pro covers all three for $39 and takes nothing from your sales."),
         brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],

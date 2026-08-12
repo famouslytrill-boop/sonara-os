@@ -24,8 +24,13 @@ A customer who needs one of the three is being sold a tier. A customer who needs
 all three is being sold the same tier at a higher number. Neither is being told
 the thing that is actually true about this product, which is:
 
-> The stack you are replacing costs $77 a month at the cheapest credible option
-> in each column. Jobber $29 + Podia $39 + Brevo $9.
+> The stack you are replacing costs $87 a month on monthly billing at the
+> cheapest credible option in each column. Jobber $39 + Podia $39 + Brevo $9.
+
+**Corrected 12 August 2026.** This said $77, which was Jobber's *annual* price
+against Podia's *monthly* price — not a stack anybody is quoted. See
+`docs/market/2026-08-12-MARKET-AUDIT.md`. The recommendation below does not
+change; the comparison it rests on is stronger than it was.
 
 That sentence is the entire commercial argument, and the current price list does
 not make it.
@@ -37,7 +42,7 @@ not make it.
 | Business — bookings, quotes, invoices | Jobber Core $29 | $29–$59 |
 | Creator — products, courses, digital sales | Podia Mover $39 | $39–$179 |
 | Growth — lists, campaigns, follow-up | Brevo Starter $9 | $9–$20 |
-| **The stack** | **$77** | $77–$258 |
+| **The stack** | **$87** monthly, $71 annual | $87–$258 |
 
 A second stack, priced 11 August against the trades-owner market specifically,
 is in `docs/market/2026-08-11-TRADES-AI-TOOL-STACK.md`: eleven products, **$297
@@ -45,10 +50,12 @@ a month** at entry paid tiers and **$206** at the floor once free tiers are
 used where they exist. That is the number a plumbing or electrical owner is
 actually quoted.
 
-The $77 figure stays the headline. It is the cheapest credible stack, which
-makes it the hardest to argue with, and a claim nobody can dispute is worth
-more than a bigger one somebody can. The $206 belongs in trades-specific copy,
-where it is accurate.
+The $87 figure stays the headline. It is the cheapest credible stack on the
+billing period a new customer actually takes, which makes it the hardest to
+argue with, and a claim nobody can dispute is worth more than a bigger one
+somebody can. $105 is the working figure once another company's logo is removed
+and automation is on; $206 belongs in trades-specific copy. All three are
+accurate and they answer different questions.
 
 Two things follow.
 
@@ -69,7 +76,7 @@ other.
 | --- | --- | --- | --- |
 | **Free** | $0 | One workspace, real records, no invented data, capped volume | a spreadsheet |
 | **One workspace** | **$19** | Any one of Business Builder, Creator Studio, Growth Studio, in full | one tool at $9–$39 |
-| **All three** | **$39** | All three workspaces, one login, one bill | the $77 stack |
+| **All three** | **$39** | All three workspaces, one login, one bill | the $87 stack |
 | **Team** | **$79** | All three, plus the staff portal, per-person schedules, time entries and assigned tasks | the stack plus a scheduling tool |
 
 Four changes from today, and the reason for each.
@@ -94,8 +101,8 @@ plus Podia plus Brevo by a wide margin.
 
 The pricing page can say one thing and have it be true:
 
-> Jobber, Podia and Brevo cost $77 a month between them, at their cheapest
-> plans. All three SONARA workspaces cost $39.
+> Jobber, Podia and Brevo cost $87 a month between them on monthly billing, at
+> their cheapest plans. All three SONARA workspaces cost $39.
 
 ## What has to be true before any of this is applied
 

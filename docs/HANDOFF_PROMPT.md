@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 80 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 132 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 133 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1480,3 +1480,43 @@ this test exists to cover can go with it.
 
 The leads page uses a different renderer and still has no button. Recorded here
 rather than half-built.
+
+### 2026-08-12 — The competitor figure on the pricing page was wrong
+
+Researched the comparison set against live 2026 pricing rather than the July
+snapshot, and the headline finding is a correction that goes against us.
+
+**$77 was Jobber's annual price added to Podia's monthly one.** Not a stack
+anybody is quoted. On monthly billing — which is what a new customer takes —
+Jobber Core is $39, Podia Mover $39, Brevo Starter $9: **$87**. The pricing page
+had been telling customers $77 for two weeks.
+
+The fees the July table never recorded matter more than the sticker prices.
+**Podia Mover takes 5% of every digital sale**, so it costs more than Shaker at
+about $1,000 of monthly sales. **Brevo Starter puts Brevo's logo on your emails**
+unless you pay $9 to remove it, and has no automation until Standard at $18. A
+working stack — unbranded, with automation, monthly — is **$105**.
+
+Against $87 our All-three at $39 is 45% of the stack; against $105 it is 37%.
+The recommendation does not change, because $19/$39/$79 was chosen so no
+existing customer pays more. The comparison it rests on is simply stronger than
+it was, and now says "monthly billing" out loud.
+
+`docs/market/2026-08-12-MARKET-AUDIT.md` also separates what we can claim from
+what we cannot. We take no percentage of a customer's sales, which against
+Podia's 5% is the largest real cost difference — **and we cannot say it in
+marketing until a paid signup has completed in production**, because until then
+there is no evidence our own payment path works. And Jobber Connect at $119 buys
+routing and a field app this product does not have; pricing against that would
+be selling something we cannot deliver.
+
+Two guards came out of it. `tests/pricing-claim-matches-research.test.js` ties
+the figure on screen to the audit that establishes it, requires the billing
+period to be named — that being the exact error — and requires the audit to
+cite sources. And an existing test pinned the literal string "July 2026", so
+**re-surveying the market broke the test that exists to keep the claim honest**.
+It reads the date from the audit now.
+
+The first version of my own check matched any "$N a month" and caught "$39 a
+month for the business side" — a per-product figure in the same sentence.
+Tightened to the sentence that totals the stack.
