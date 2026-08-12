@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-66 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 66.
+81 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 81.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -163,14 +163,29 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 
 | Repository | Licence | How far it may go | Why it fits no product |
 | --- | --- | --- | --- |
+| [AAABench long-horizon agent harness](https://github.com/ukanwat/aaabench) | MIT | Research only | agent benchmark harness |
+| [AutoHedge automated trading agents](https://github.com/The-Swarm-Corporation/AutoHedge) | MIT | Research only | automated trading |
+| [Camoufox stealth browser](https://github.com/jo-inc/camofox-browser) | MIT | Blocked | see the register |
+| [Claude ads toolkit](https://github.com/AgriciDaniel/claude-ads) | MIT | Research only | advertising tooling |
+| [Claude Code Apple platform skills](https://github.com/rshankras/claude-code-apple-skills) | MIT | Research only | Claude Code skills |
 | [Claude Skills Collection (alirezarezvani)](https://github.com/alirezarezvani/claude-skills) | MIT | Adapt after review | developer tooling |
+| [Cloudflare agentic inbox](https://github.com/cloudflare/agentic-inbox) | Apache-2.0 | Research only | email triage agent |
 | [Commercial AI tool shortlist (Ideogram, Midjourney, Runway, and 30 others)](https://example.invalid/blocked) | Proprietary per-seat subscriptions. These are hosted services, n | Blocked | see the register |
+| [Fincept Terminal](https://github.com/Fincept-Corporation/FinceptTerminal) | AGPL-3.0 | Blocked | see the register |
 | [Foodya Restaurant](https://github.com/Shahzaib-Awann/Foodya-Restaurant) | Not verified. The README describes free personal and educational | Licence unresolved | see the register |
 | [Harness (RevFactory)](https://github.com/revfactory/harness) | Apache-2.0, verified from the repository's own licence badge. Th | Adapt after review | agent team architecture |
+| [HeyGen HyperFrames](https://github.com/heygen-com/hyperframes) | Apache-2.0 | Research only | video generation |
+| [LibreChat self-hosted chat interface](https://github.com/danny-avila/LibreChat) | MIT | Research only | chat interface |
+| [MateClaw multi-agent orchestrator](https://github.com/mateaix/mateclaw) | Apache-2.0 | Research only | multi-agent orchestration |
 | [MERN Social Media (ed-roh)](https://github.com/ed-roh/mern-social-media) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
+| [Open Generative AI directory](https://github.com/Anil-matcha/Open-Generative-AI) | MIT | Research only | directory |
+| [Open-LLM-VTuber avatar companion](https://github.com/Open-LLM-VTuber/Open-LLM-VTuber) | MIT | Research only | animated avatar |
 | [OSINT4ALL investigation directory](https://example.invalid/blocked) | A curated bookmark page, not software. The hundreds of services  | Blocked | see the register |
+| [PraisonAI multi-agent framework](https://github.com/MervinPraison/PraisonAI) | MIT | Research only | multi-agent framework |
 | [Skylos](https://github.com/duriantaco/skylos) | Apache-2.0 | Read only | dead code detection |
 | [Social Media App (adrianhajdin)](https://github.com/adrianhajdin/social_media_app) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Streambert / movie streaming piracy-style references](https://example.invalid/blocked) | Piracy/copyright infringement risk. | Blocked | see the register |
 | [Suno API (unofficial)](https://github.com/SunoAI-API/Suno-API) | MIT for the wrapper code; the upstream service it calls is gover | Blocked | see the register |
 | [Superpowers](https://github.com/obra/superpowers) | MIT | Adapt after review | developer workflow |
+| [Vibe-Trading agent](https://github.com/HKUDS/Vibe-Trading) | MIT | Research only | automated trading |
+| [XenDroid Xbox 360 emulator](https://github.com/deivid22srk/XenDroid) | No licence declared | Blocked | see the register |
