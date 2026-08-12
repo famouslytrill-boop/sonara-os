@@ -1054,3 +1054,49 @@ everybody, and Ollama and Crawl4AI have no authentication of their own.
 asserts the list length, so adding one without adding it there fails. The
 plain-language gate caught "endpoint" in the new page copy; rewritten rather
 than exempted.
+
+### 2026-08-12 — Two more adapters, one review that ended in a no
+
+Secrets moved into `lib/sonara-service-adapter.cjs`. Open WebUI satisfied the
+required check, deleted the property and redefined it non-enumerably by hand —
+which worked, and was one forgotten line away from a key on a page the moment a
+second adapter needed one. Three did. It is a declaration now, and forgetting it
+means the key is not read at all rather than read and rendered.
+
+**Dify** — licence read from the repository. Modified Apache 2.0 with two added
+conditions: no operating a multi-tenant environment from the source without a
+commercial licence, and no removing the LOGO or copyright from the Dify console.
+Calling a self-hosted Dify's API is permitted and that is all the adapter does.
+
+The boundary is not obvious and is recorded as a blocked use: **SONARA is itself
+multi-tenant.** That is fine while each owner points the adapter at their own
+Dify — SONARA is the multi-tenant thing, Dify is not. It stops being fine the
+moment SONARA runs one shared Dify and serves customers from it, which is
+exactly the condition. Somebody adding that as a convenience later would not
+find it out from the code.
+
+**RAGFlow** — plain Apache-2.0, and the review it was actually waiting on was
+security, which was the right question: unlike a model or a crawler this one is
+about the business's own documents. Same answer as Ollama — the owner's own
+instance, the owner's own files, nothing sent to a third party. What remains is
+a boundary the adapter enforces by omission: **it retrieves and it does not
+upload.** A page pushing customer records into a search index would be a second
+copy of customer data with different retention under different access rules.
+
+It also separates "searched and found nothing" from "the search failed", and
+keeps matched passages separate from the joined text so a caller showing an
+answer can show where it came from. A source it does not know is `null`, never
+invented.
+
+**n8n — reviewed, and the answer is not yet.** The Sustainable Use License
+permits internal business use and restricts free-of-charge non-commercial
+distribution. On the three questions that decide our case it is silent: hosting
+arrangements, self-hosting for internal automations called from separate
+software, and whether that changes when the calling product is commercial SaaS
+whose customers never touch n8n. A reading that this is plainly internal use is
+available and may well be right — but it is a reading, and this register does
+not record readings as findings. It stays out of the adapter set. That makes it
+the second item, after the four owner steps, that needs someone with authority
+to answer rather than more work here.
+
+Six adapters now, all on one contract, all off by default, none depended on.

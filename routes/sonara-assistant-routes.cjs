@@ -42,6 +42,8 @@ const ollama = require("../lib/sonara-ollama-adapter.cjs");
 const langflow = require("../lib/sonara-langflow-adapter.cjs");
 const openWebUi = require("../lib/sonara-open-webui-adapter.cjs");
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
+const dify = require("../lib/sonara-dify-adapter.cjs");
+const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
 
 // Every adapter on one page, because "which of these is on" is one question.
 // Each reports a host and never a URL -- readiness objects carry the configured
@@ -50,7 +52,9 @@ const SERVICES = Object.freeze([
   Object.freeze({ label: "Ollama", what: "Runs models on hardware you own. MIT. No key, nothing metered.", readiness: (o) => ollama.getOllamaReadiness(o) }),
   Object.freeze({ label: "Langflow", what: "Runs flows you build in Langflow's own interface, so a flow changes without a deploy here. MIT.", readiness: (o) => langflow.getLangflowReadiness(o) }),
   Object.freeze({ label: "Open WebUI", what: "Puts a chat interface and an OpenAI-compatible interface in front of models you already run. Its licence restricts altering its branding in a deployment you publish; calling it from here is not restricted, and none of it ships inside this product.", readiness: (o) => openWebUi.getOpenWebUiReadiness(o) }),
-  Object.freeze({ label: "Crawl4AI", what: "Fetches a page and returns readable text. Apache-2.0. Refuses private, loopback and cloud-metadata addresses.", readiness: (o) => crawl4ai.getCrawl4aiReadiness(o) })
+  Object.freeze({ label: "Crawl4AI", what: "Fetches a page and returns readable text. Apache-2.0. Refuses private, loopback and cloud-metadata addresses.", readiness: (o) => crawl4ai.getCrawl4aiReadiness(o) }),
+  Object.freeze({ label: "Dify", what: "Runs a workflow you built in Dify. Its licence allows this for a Dify you run yourself; it does not allow one shared Dify serving many businesses.", readiness: (o) => dify.getDifyReadiness(o) }),
+  Object.freeze({ label: "RAGFlow", what: "Answers a question from documents you have loaded into it, and shows which document each passage came from. Apache-2.0. It reads; it never loads your records into it.", readiness: (o) => ragflow.getRagflowReadiness(o) })
 ]);
 
 const ROW_LIMIT = 500;

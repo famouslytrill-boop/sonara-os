@@ -6,6 +6,8 @@ const langflow = require("../lib/sonara-langflow-adapter.cjs");
 const openWebUi = require("../lib/sonara-open-webui-adapter.cjs");
 const crawl = require("../lib/sonara-crawl4ai-adapter.cjs");
 const ollama = require("../lib/sonara-ollama-adapter.cjs");
+const dify = require("../lib/sonara-dify-adapter.cjs");
+const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
 
 const saved = {};
 function setEnv(values) {
@@ -20,7 +22,9 @@ const ADAPTERS = [
   { name: "Ollama", keys: ollama.ENV_KEYS, readiness: (o) => ollama.getOllamaReadiness(o), extras: { model: "llama3" } },
   { name: "Langflow", keys: langflow.ENV_KEYS, readiness: (o) => langflow.getLangflowReadiness(o), extras: { flow: "flow-1" } },
   { name: "Open WebUI", keys: openWebUi.ENV_KEYS, readiness: (o) => openWebUi.getOpenWebUiReadiness(o), extras: { model: "llama3", key: "secret-key-value" } },
-  { name: "Crawl4AI", keys: crawl.ENV_KEYS, readiness: (o) => crawl.getCrawl4aiReadiness(o), extras: {} }
+  { name: "Crawl4AI", keys: crawl.ENV_KEYS, readiness: (o) => crawl.getCrawl4aiReadiness(o), extras: {} },
+  { name: "Dify", keys: dify.ENV_KEYS, readiness: (o) => dify.getDifyReadiness(o), extras: { key: "secret-key-value" }, secrets: ["key"] },
+  { name: "RAGFlow", keys: ragflow.ENV_KEYS, readiness: (o) => ragflow.getRagflowReadiness(o), extras: { dataset: "ds-1", key: "secret-key-value" }, secrets: ["key"] }
 ];
 
 describe("every external service adapter", () => {
@@ -33,7 +37,7 @@ describe("every external service adapter", () => {
   });
 
   it("covers all four, so a new one cannot skip these rules", () => {
-    assert.equal(ADAPTERS.length, 4, "an adapter was added without being added here");
+    assert.equal(ADAPTERS.length, 6, "an adapter was added without being added here");
   });
 
   for (const adapter of ADAPTERS) {
@@ -72,6 +76,14 @@ describe("every external service adapter", () => {
       it("bounds the timeout rather than trusting the environment", () => {
         assert.equal(configure({ [adapter.keys.timeout]: "999999" }).timeoutMs, base.MAX_TIMEOUT_MS);
         assert.equal(configure({ [adapter.keys.timeout]: "abc" }).timeoutMs, base.DEFAULT_TIMEOUT_MS);
+      });
+
+      it("never renders a declared secret", () => {
+        const readiness = configure();
+        for (const name of adapter.secrets || []) {
+          assert.equal(JSON.stringify(readiness).includes("secret-key-value"), false, `${name} must not be renderable`);
+          assert.equal(readiness[name], "secret-key-value", `${name} must still be usable as a header`);
+        }
       });
 
       it("reports every missing required setting rather than only the URL", () => {
@@ -184,11 +196,79 @@ describe("Open WebUI credentials", () => {
     const readiness = openWebUi.getOpenWebUiReadiness({ isServerless: false });
     assert.equal(readiness.status, "configured");
     assert.equal(JSON.stringify(readiness).includes("secret-key-value"), false, "the key must never be renderable");
-    assert.equal(readiness.apiKey, "secret-key-value", "and it must still be usable as a header");
+    assert.equal(readiness.key, "secret-key-value", "and it must still be usable as a header");
     for (const [key, value] of Object.entries(saved)) {
       if (value === undefined) delete process.env[key];
       else process.env[key] = value;
     }
     for (const key of Object.keys(saved)) delete saved[key];
+  });
+});
+
+describe("RAGFlow retrieval", () => {
+  function readinessFor(dataset) {
+    const readiness = { enabled: true, status: "configured", dataset, timeoutMs: 100 };
+    Object.defineProperty(readiness, "baseUrl", { value: "http://service.internal", enumerable: false });
+    Object.defineProperty(readiness, "key", { value: "k", enumerable: false });
+    return readiness;
+  }
+
+  it("refuses a dataset id that would widen the search beyond what was configured", async () => {
+    for (const dataset of ["a,b", "a b", "../x", "a/b"]) {
+      let called = false;
+      const result = await ragflow.ask("q", { readiness: readinessFor(dataset), fetchImpl: async () => { called = true; } });
+      assert.equal(result.code, "invalid_dataset", `${dataset} must be refused`);
+      assert.equal(called, false);
+    }
+  });
+
+  it("separates 'searched and found nothing' from 'the search failed'", async () => {
+    const result = await ragflow.ask("q", {
+      readiness: readinessFor("ds-1"),
+      fetchImpl: async () => ({ ok: true, json: async () => ({ data: { chunks: [] } }) })
+    });
+    assert.equal(result.ok, true, "an empty result is not a failure");
+    assert.equal(result.found, false);
+  });
+
+  it("keeps the passages separate so an answer can show where it came from", async () => {
+    const result = await ragflow.ask("q", {
+      readiness: readinessFor("ds-1"),
+      fetchImpl: async () => ({ ok: true, json: async () => ({ data: { chunks: [{ content: "one", docnm_kwd: "a.pdf" }, { content: "two" }] } }) })
+    });
+    assert.equal(result.chunks.length, 2);
+    assert.equal(result.chunks[0].document, "a.pdf");
+    assert.equal(result.chunks[1].document, null, "an unnamed source is null, never invented");
+  });
+});
+
+describe("Dify workflows", () => {
+  const readiness = { enabled: true, status: "configured", timeoutMs: 100 };
+  Object.defineProperty(readiness, "baseUrl", { value: "http://service.internal", enumerable: false });
+  Object.defineProperty(readiness, "key", { value: "k", enumerable: false });
+
+  it("refuses anything that is not an object of named inputs", async () => {
+    for (const inputs of [null, "text", ["a"], 5]) {
+      const result = await dify.runWorkflow(inputs, { readiness, fetchImpl: async () => ({ ok: true, json: async () => ({}) }) });
+      assert.equal(result.code, "invalid_inputs");
+    }
+  });
+
+  it("reads the run status rather than trusting the 200", async () => {
+    // Dify reports a failed run inside a successful HTTP response.
+    const result = await dify.runWorkflow({ q: "x" }, {
+      readiness,
+      fetchImpl: async () => ({ ok: true, json: async () => ({ data: { status: "failed", outputs: { text: "partial" } } }) })
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, "workflow_failed");
+  });
+
+  it("returns the outputs of a run that succeeded", async () => {
+    const result = await dify.runWorkflow({ q: "x" }, {
+      readiness,
+      fetchImpl: async () => ({ ok: true, json: async () => ({ data: { status: "succeeded", outputs: { text: "done" } } }) })
+    });
+    assert.deepEqual(result.outputs, { text: "done" });
   });
 });

@@ -482,10 +482,11 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     licenseRisk: "high",
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
-    recommendedAction: ["complete license review", "self-host privately", "require approval for consequential workflows"],
+    recommendedAction: [
+      "no adapter until the licence question is answered by someone with authority to answer it","complete license review", "self-host privately", "require approval for consequential workflows"],
     officialUrl: "https://docs.n8n.io/",
     repoUrl: "https://github.com/n8n-io/n8n",
-    notes: "SONARA includes a disabled-by-default workflow-inventory readiness adapter, not embedded workflow execution.",
+    notes: "Licence reviewed 12 August 2026 and deliberately left unresolved. The Sustainable Use License permits use, copying, distribution and derivative works for the licensee's own internal business purposes, and permits distribution to others only free of charge for non-commercial purposes. What it does not say is the part that matters here: it does not address hosting arrangements, it does not address a company self-hosting n8n for internal automations and calling it from separate software, and it does not address whether that changes when the calling product is commercial SaaS whose customers never touch n8n. Three questions, three silences. A reading that says this is plainly internal business use is available and may well be right, but it is a reading rather than something the text states, and this register does not record readings as findings. It stays out of the adapter set until somebody with authority to answer it does. That is a question for counsel, which is an owner decision and not a shipping step.",
     safetyBoundaries: ["scoped credentials", "human approval", "isolated encryption key", "audited jobs"],
     blockedUses: ["unsupervised outbound messages", "unapproved billing", "destructive workflows"],
     humanReviewRequired: true,
@@ -541,13 +542,15 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "Dify Open Source License, Apache-2.0 based with additional conditions.",
     licenseRisk: "high",
     commercialUseStatus: "needs_review",
-    integrationStatus: "needs_license_review",
-    recommendedAction: ["review additional conditions", "scope keys per application", "keep credentials server-side"],
+    integrationStatus: "adapter_built",
+    recommendedAction: [
+      "each owner points the adapter at their own Dify","review additional conditions", "scope keys per application", "keep credentials server-side"],
     officialUrl: "https://docs.dify.ai/",
     repoUrl: "https://github.com/langgenius/dify",
-    notes: "SONARA includes a disabled-by-default application-info readiness adapter; no Dify stack is bundled.",
+    notes: "Licence reviewed 12 August 2026, read from the repository LICENSE. A modified Apache 2.0 adding two conditions: the source may not be used to operate a multi-tenant environment without a commercial licence, and the LOGO and copyright information in the Dify console may not be removed or modified, which does not apply to non-frontend uses. Calling the HTTP API of a self-hosted Dify is permitted, and lib/sonara-dify-adapter.cjs does only that -- no Dify code ships here and no Dify interface is displayed. The boundary that is not obvious: SONARA is itself multi-tenant, which is fine while each owner points the adapter at their own Dify, and stops being fine the moment SONARA runs one shared Dify and serves its customers from it. That is operating a multi-tenant Dify environment, which is the condition.",
     safetyBoundaries: ["license review", "tenant-scoped knowledge", "private credentials", "human review"],
-    blockedUses: ["shared cross-tenant knowledge key", "unreviewed commercial embedding"],
+    blockedUses: [
+      "running one shared Dify and serving SONARA customers from it","shared cross-tenant knowledge key", "unreviewed commercial embedding"],
     humanReviewRequired: true,
   },
   {
@@ -632,13 +635,15 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "Apache-2.0 noted upstream; bundled service and dependency licenses require review.",
     licenseRisk: "high",
     commercialUseStatus: "needs_review",
-    integrationStatus: "needs_security_review",
-    recommendedAction: ["isolated stack", "tenant-scoped datasets", "document rights and deletion review"],
+    integrationStatus: "adapter_built",
+    recommendedAction: [
+      "retrieval only; loading documents stays something the owner does in RAGFlow","isolated stack", "tenant-scoped datasets", "document rights and deletion review"],
     officialUrl: "https://ragflow.io/docs/",
     repoUrl: "https://github.com/infiniflow/ragflow",
-    notes: "SONARA includes a disabled-by-default dataset-inventory readiness adapter; the heavy RAGFlow stack is not bundled.",
+    notes: "Security review completed 12 August 2026; the licence question was already settled and was re-read from the repository LICENSE, which is plain Apache-2.0 with no added conditions and nothing redistributed here. The security question was the right one to have held it: unlike a model or a crawler this one is about the business's own documents. The answer is the same as for Ollama -- the owner's own self-hosted RAGFlow, holding the owner's own files, on infrastructure they control, with nothing sent to a third party. What that leaves is a boundary rather than a risk, and lib/sonara-ragflow-adapter.cjs enforces it by omission: it retrieves and it does not upload. A page that pushed customer records into a search index would be making a second copy of customer data with different retention under different access rules, which is a decision rather than a convenience.",
     safetyBoundaries: ["authorized documents only", "tenant isolation", "deletion approval", "sandbox review"],
-    blockedUses: ["cross-tenant retrieval", "unauthorized document ingestion"],
+    blockedUses: [
+      "pushing customer records into a search index from this application","cross-tenant retrieval", "unauthorized document ingestion"],
     humanReviewRequired: true,
   },
   {
