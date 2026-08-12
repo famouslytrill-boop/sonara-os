@@ -622,29 +622,71 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   }
 };
 
-// The totals that /api/growth/metrics computes, on a page. Counted from the
-// records as they stand -- nothing here is estimated, projected or filled in.
+// The totals, counted by the database rather than by whatever fitted on a page.
+//
+// This card used to read up to 500 or 1000 rows and report `rows.length` as the
+// total, under a heading saying "counted from your own records". A business with
+// 1,200 enquiries was told it had 1,000. **The worst of them was money**: the
+// value of sales summed the capped read, so a real revenue figure was quietly
+// short by however many conversions did not fit -- and the home page now claims
+// every figure comes from the owner's own records and that the product says when
+// it does not know.
+//
+// Counts come from `count=exact` now, which is one row of transfer whatever the
+// size. The value is the one thing PostgREST cannot total without an RPC, so it
+// is labelled for exactly the rows it covers rather than presented as a total it
+// is not.
+const VALUE_SAMPLE = 1000;
+
 async function growthTotalsCard(config, context, ui) {
-  const [campaigns, leads, conversions, content] = await Promise.all([
-    list(config, TABLES.campaigns, context, 500),
-    list(config, TABLES.leads, context, 1000),
-    list(config, TABLES.conversions, context, 1000),
-    list(config, TABLES.content, context, 500)
+  const [
+    campaigns, campaignsActive, leads, leadsWorthFollowing,
+    conversionCount, content, contentPublished, recentConversions
+  ] = await Promise.all([
+    countRows(config, TABLES.campaigns, context),
+    countRows(config, TABLES.campaigns, context, "&status=eq.active"),
+    countRows(config, TABLES.leads, context),
+    countRows(config, TABLES.leads, context, "&status=in.(qualified,won)"),
+    countRows(config, TABLES.conversions, context),
+    countRows(config, TABLES.content, context),
+    countRows(config, TABLES.content, context, "&publish_status=eq.published"),
+    list(config, TABLES.conversions, context, VALUE_SAMPLE)
   ]);
-  if (!campaigns.ok && !leads.ok && !conversions.ok && !content.ok) {
+
+  const counts = [campaigns, campaignsActive, leads, leadsWorthFollowing, conversionCount, content, contentPublished];
+  if (counts.every((result) => !result.ok)) {
     return ui.card("Your totals", "We could not count these just now. Try again shortly.");
   }
-  const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+
+  // A count that failed says so in its own row. The previous version only
+  // reported a problem when *every* read failed, so one unreadable table left a
+  // real 0 sitting beside six real numbers, indistinguishable from a business
+  // that had none of that thing.
+  const shown = (result) => (result.ok && typeof result.count === "number" ? String(result.count) : "Not available just now");
+
   const totals = [
-    ["Campaigns", campaigns.rows.length],
-    ["Campaigns running", campaigns.rows.filter((row) => row.status === "active").length],
-    ["People who got in touch", leads.rows.length],
-    ["Worth following up", leads.rows.filter((row) => ["qualified", "won"].includes(row.status)).length],
-    ["Sales recorded", conversions.rows.length],
-    ["Value of those sales", conversionValue],
-    ["Pieces of content", content.rows.length],
-    ["Published", content.rows.filter((row) => row.publish_status === "published").length]
+    ["Campaigns", shown(campaigns)],
+    ["Campaigns running", shown(campaignsActive)],
+    ["People who got in touch", shown(leads)],
+    ["Worth following up", shown(leadsWorthFollowing)],
+    ["Sales recorded", shown(conversionCount)],
+    ["Pieces of content", shown(content)],
+    ["Published", shown(contentPublished)]
   ];
+
+  // The money row, labelled for what it actually covers.
+  if (!recentConversions.ok) {
+    totals.push(["Value of those sales", "Not available just now"]);
+  } else {
+    const value = recentConversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+    const covered = recentConversions.rows.length;
+    const partial = conversionCount.ok && typeof conversionCount.count === "number" && conversionCount.count > covered;
+    totals.push([
+      partial ? `Value of the ${covered} most recent sales` : "Value of those sales",
+      String(value)
+    ]);
+  }
+
   const rows = totals.map(([label, value]) => `<tr><th scope="row">${ui.escape(label)}</th><td>${ui.escape(String(value))}</td></tr>`).join("");
   // Kept from the API response, because it is the honest part: attribution is
   // what a source reported, not proof that it caused the sale.
@@ -919,6 +961,33 @@ function getConfig(deps) {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   return url && serviceRoleKey ? { ok: true, url: String(url).replace(/\/$/, ""), serviceRoleKey } : { ok: false };
+}
+
+// How many rows there are, asked of the database.
+//
+// PostgREST returns the total in Content-Range when Prefer: count=exact is set,
+// so this costs one row of transfer regardless of how many exist. rest() throws
+// the headers away, which is why this does its own fetch rather than passing a
+// prefer through.
+//
+// A failed count returns null rather than 0. Nothing here may turn "we could not
+// ask" into "there are none" -- that is the substitution the totals card was
+// making four times over.
+async function countRows(config, table, context, filter = "") {
+  if (!config?.ok && (!config?.url || !config?.serviceRoleKey)) return { ok: false, count: null };
+  const query = `select=id&organization_id=eq.${encodeURIComponent(context.organizationId)}${filter}&limit=1`;
+  const response = await fetch(`${config.url}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: config.serviceRoleKey,
+      Authorization: `Bearer ${config.serviceRoleKey}`,
+      Prefer: "count=exact"
+    }
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, count: null };
+  const range = response.headers?.get?.("content-range") || "";
+  const match = range.match(/\/(\d+)$/);
+  if (!match) return { ok: false, count: null };
+  return { ok: true, count: Number(match[1]) };
 }
 
 async function rest(config, table, query = "", options = {}) {

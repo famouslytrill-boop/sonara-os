@@ -1733,3 +1733,43 @@ The copy went into the existing home page string rather than a new module,
 because `server.js` sits exactly on its 4124-line ratchet and a `require` would
 have cost the only line available. The section reuses `sonara-outcome-grid`, so
 it inherits the mobile rules rather than needing new ones.
+
+### 2026-08-12 — The totals card counted the page, including a money figure
+
+The same defect as the record lists, in a different renderer, and one row of it
+was money.
+
+`growthTotalsCard` read up to 500 or 1000 rows and reported `rows.length` as the
+total, under a heading reading "counted from your own records". A business with
+1,200 enquiries was told it had 1,000. **Value of those sales summed the capped
+read**, so a real revenue figure was short by however many conversions did not
+fit — and the home page now claims every figure comes from the owner's own
+records and that the product says when it does not know. The card contradicted
+the claim shipped hours earlier.
+
+A third defect sat in the same function: the failure guard was
+`if (!campaigns.ok && !leads.ok && !conversions.ok && !content.ok)`, so a problem
+was reported only when *every* read failed. One unreadable table left a real `0`
+beside six real numbers, indistinguishable from a business that had none of that
+thing.
+
+Counts now come from `count=exact`, which costs one row of transfer whatever the
+size, and each failed count says so in its own row. The value is the one figure
+PostgREST cannot total without an RPC, so it is labelled for exactly the rows it
+covers — "Value of the 1000 most recent sales" — rather than presented as a total
+it is not.
+
+**Two of my own assertions were wrong before they were right, and that is the
+part worth recording.**
+
+The first version stubbed every count as failing and asserted no `<td>0</td>`
+appeared. It passed — and kept passing when I broke the code — because with all
+counts failing the card short-circuits to "we could not count these" and renders
+no rows at all. A vacuous assertion, of exactly the kind this repository keeps
+finding. Caught only by breaking the code and noticing the test did not.
+
+The second version failed only the leads count, which was right, but kept the
+blanket "no zero anywhere" check — and that fails on the money row, which
+honestly reads 0 when there are no sales. A check that cannot tell an honest zero
+from a substituted one is not checking the thing it claims to. The third version
+reads the specific row and asserts what that cell says.
