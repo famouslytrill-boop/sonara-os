@@ -294,21 +294,42 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return result.ok && result.rows[0] ? { ok: true, business: result.rows[0] } : { ok: false, status: result.ok ? 404 : 502, code: result.ok ? "business_required" : result.code };
   }
 
+  // How many rows the dashboard reads before it starts saying "or more".
+  const DASHBOARD_PAGE = 200;
+
   async function dashboardSnapshot(ctx, businessId) {
     const entries = await Promise.all(CORE_DASHBOARD_RESOURCES.map(async (key) => {
-      const result = await listResource(ctx, businessId, RESOURCES[key], 200);
-      return [key, result.ok ? result.rows : []];
+      // One row past the page, so a list that fills it can say so rather than
+      // reporting the cap as the total.
+      const result = await listResource(ctx, businessId, RESOURCES[key], DASHBOARD_PAGE + 1);
+      // **A read that failed is not an empty table.** This used to be
+      // `result.ok ? result.rows : []`, which turned every failure into "you
+      // have none of these" -- and the next-step advice below is driven by these
+      // counts, so an unreadable services table told a business that already
+      // sells things to "Create the first offer". Wrong numbers are bad; wrong
+      // instructions are worse.
+      return [key, result.ok ? result.rows : null];
     }));
-    const records = Object.fromEntries(entries);
-    const pendingOrders = records.orders.filter((row) => ["draft", "pending"].includes(row.status)).length;
-    const upcomingBookings = records.bookings.filter((row) => ["requested", "confirmed"].includes(row.status)).length;
-    const lowStock = records.inventory.filter((row) => Number.isFinite(Number(row.reorder_level)) && Number(row.quantity || 0) <= Number(row.reorder_level)).length;
+
+    const records = Object.fromEntries(entries.map(([key, rows]) => [key, rows || []]));
+    const readable = Object.fromEntries(entries.map(([key, rows]) => [key, Array.isArray(rows)]));
+
+    // null means "not known", never 0. Everything downstream has to handle it,
+    // which is the point: a figure nobody could read should be visibly absent
+    // rather than quietly plausible.
+    const counts = Object.fromEntries(entries.map(([key, rows]) => [key, rows ? Math.min(rows.length, DASHBOARD_PAGE) : null]));
+    const truncated = Object.fromEntries(entries.map(([key, rows]) => [key, Boolean(rows && rows.length > DASHBOARD_PAGE)]));
+
+    const derived = (key, predicate) => (readable[key] ? records[key].filter(predicate).length : null);
+
     return {
       records,
-      counts: Object.fromEntries(entries.map(([key, rows]) => [key, rows.length])),
-      pendingOrders,
-      upcomingBookings,
-      lowStock
+      counts,
+      truncated,
+      readable,
+      pendingOrders: derived("orders", (row) => ["draft", "pending"].includes(row.status)),
+      upcomingBookings: derived("bookings", (row) => ["requested", "confirmed"].includes(row.status)),
+      lowStock: derived("inventory", (row) => Number.isFinite(Number(row.reorder_level)) && Number(row.quantity || 0) <= Number(row.reorder_level))
     };
   }
 
@@ -614,7 +635,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
 
   function businessDashboardPage(business, snapshot) {
     const next = nextBusinessAction(business, snapshot);
-    const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key] || 0)).join("");
+    const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key], (snapshot.truncated || {})[key])).join("");
     return layout({
       title: `${business.public_name || business.name} · Business Builder`,
       eyebrow: "Business Builder",
@@ -702,23 +723,52 @@ function businessCard(business) {
   return `<article class="card bb-business-card"><span class="sonara-kicker">${escapeBasic(business.business_type || "business")}</span><h2>${escapeBasic(business.public_name || business.name)}</h2><p>${escapeBasic(business.description || "Open the workspace and complete the first operating step.")}</p><div class="card-actions"><a class="action" href="/business-builder/businesses/${encodeURIComponent(business.id)}">Open business</a></div></article>`;
 }
 
-function businessSnapshot(snapshot) {
-  return `<div class="bb-snapshot" aria-label="Business snapshot"><div><strong>${snapshot.counts.customers || 0}</strong><span>Customers</span></div><div><strong>${snapshot.pendingOrders}</strong><span>Open orders</span></div><div><strong>${snapshot.upcomingBookings}</strong><span>Upcoming bookings</span></div><div><strong>${snapshot.lowStock}</strong><span>Low-stock items</span></div></div>`;
+// A figure nobody could read shows as a dash, not as zero.
+//
+// `snapshot.counts.customers || 0` printed 0 for an unreadable table, which on a
+// dashboard is indistinguishable from a business with no customers -- the most
+// alarming possible reading of a temporary database problem. A count that hit
+// the page limit says so too, rather than presenting the cap as the total.
+function snapshotFigure(value, truncated = false) {
+  if (value === null || value === undefined) return "—";
+  return truncated ? `${value}+` : String(value);
 }
 
+function businessSnapshot(snapshot) {
+  const truncated = snapshot.truncated || {};
+  return `<div class="bb-snapshot" aria-label="Business snapshot"><div><strong>${snapshotFigure(snapshot.counts.customers, truncated.customers)}</strong><span>Customers</span></div><div><strong>${snapshotFigure(snapshot.pendingOrders, truncated.orders)}</strong><span>Open orders</span></div><div><strong>${snapshotFigure(snapshot.upcomingBookings, truncated.bookings)}</strong><span>Upcoming bookings</span></div><div><strong>${snapshotFigure(snapshot.lowStock, truncated.inventory)}</strong><span>Low-stock items</span></div></div>`;
+}
+
+// What to do next, and what not to say when we do not know.
+//
+// Every branch below used to read a count that was 0 for both "none" and "we
+// could not read the table". So an unreadable services table told a business
+// that already sells things to **create its first offer**, and an unreadable
+// customers table told one with a full customer list to add its first customer.
+// A wrong number is a bad dashboard; a wrong instruction is a product telling
+// somebody their work has vanished.
+//
+// "Not readable" therefore never satisfies a "you have none of these" branch.
+// It falls through to the closing advice, which is true regardless.
 function nextBusinessAction(business, snapshot) {
   const id = encodeURIComponent(business.id);
-  if (!snapshot.counts.services) return { title: "Create the first offer", body: "Define what the business sells, what the customer receives, and the price.", href: `/business-builder/businesses/${id}/manage/services`, label: "Create offer" };
-  if (!snapshot.counts.customers) return { title: "Add the first customer", body: "Create a customer or lead record so sales and follow-up have a real starting point.", href: `/business-builder/businesses/${id}/manage/customers`, label: "Add customer" };
+  const none = (key) => snapshot.counts[key] === 0;
+  if (none("services")) return { title: "Create the first offer", body: "Define what the business sells, what the customer receives, and the price.", href: `/business-builder/businesses/${id}/manage/services`, label: "Create offer" };
+  if (none("customers")) return { title: "Add the first customer", body: "Create a customer or lead record so sales and follow-up have a real starting point.", href: `/business-builder/businesses/${id}/manage/customers`, label: "Add customer" };
   if (snapshot.upcomingBookings) return { title: "Review upcoming work", body: `${snapshot.upcomingBookings} booking${snapshot.upcomingBookings === 1 ? " needs" : "s need"} attention.`, href: `/business-builder/businesses/${id}/manage/bookings`, label: "Review bookings" };
   if (snapshot.pendingOrders) return { title: "Move open orders forward", body: `${snapshot.pendingOrders} order${snapshot.pendingOrders === 1 ? " is" : "s are"} still draft or pending.`, href: `/business-builder/businesses/${id}/manage/orders`, label: "Review orders" };
   if (snapshot.lowStock) return { title: "Restock inventory", body: `${snapshot.lowStock} item${snapshot.lowStock === 1 ? " is" : "s are"} at or below the reorder point.`, href: `/business-builder/businesses/${id}/manage/inventory`, label: "Review inventory" };
-  if (!snapshot.counts.locations) return { title: "Add where the business operates", body: "Create a storefront, mobile route, service area, event, or online location.", href: `/business-builder/businesses/${id}/manage/locations`, label: "Add location" };
+  if (none("locations")) return { title: "Add where the business operates", body: "Create a storefront, mobile route, service area, event, or online location.", href: `/business-builder/businesses/${id}/manage/locations`, label: "Add location" };
   return { title: "Keep the operation moving", body: "Review sales, bookings, customers, and inventory, then complete the most valuable open item.", href: `/business-builder/businesses/${id}/manage/orders`, label: "Open operations" };
 }
 
-function moduleCard(businessId, key, definition, count) {
-  return `<article class="card bb-module-card" data-group="${escapeBasic(definition.group)}"><span class="sonara-kicker">${escapeBasic(definition.group)}</span><h2>${escapeBasic(definition.label)}</h2><p>${escapeBasic(definition.description)}</p><div class="bb-module-footer"><strong>${count}</strong><span>saved record${count === 1 ? "" : "s"}</span><a href="/business-builder/businesses/${encodeURIComponent(businessId)}/manage/${encodeURIComponent(key)}">Open</a></div></article>`;
+function moduleCard(businessId, key, definition, count, truncated = false) {
+  // A count of null reaches here when the table could not be read. Interpolated
+  // straight in, that renders the word "null" beside "saved records", which is
+  // the one thing worse than a wrong number.
+  const figure = snapshotFigure(count, truncated);
+  const unit = count === 1 && !truncated ? "saved record" : "saved records";
+  return `<article class="card bb-module-card" data-group="${escapeBasic(definition.group)}"><span class="sonara-kicker">${escapeBasic(definition.group)}</span><h2>${escapeBasic(definition.label)}</h2><p>${escapeBasic(definition.description)}</p><div class="bb-module-footer"><strong>${figure}</strong><span>${unit}</span><a href="/business-builder/businesses/${encodeURIComponent(businessId)}/manage/${encodeURIComponent(key)}">Open</a></div></article>`;
 }
 
 function businessProfileEditor(business) {

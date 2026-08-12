@@ -1913,3 +1913,44 @@ each purely to call `.length` on them. Lint caught it as five unused variables,
 which is a more useful signal than it sounds: an unused variable here was a
 thousand-row query nobody needed. The endpoint went from seven large reads to
 two, plus nine counts that cost one row apiece.
+
+### 2026-08-12 — A correction, and the worst instance of the same defect
+
+**I got this wrong in the previous summary.** I said the remaining `rows.length`
+uses found in the sweep were honest, and named two that were. I had not checked
+`routes/sonara-business-control-plane-routes.cjs`, and it was not honest — it
+carried the same defect twice, in the place it does the most damage.
+
+`dashboardSnapshot` read each resource capped at 200 and did
+`result.ok ? result.rows : []`. **Every failed read became a count of zero**, and
+`nextBusinessAction` is driven entirely by those counts:
+
+```js
+if (!snapshot.counts.services) return { title: "Create the first offer", … };
+if (!snapshot.counts.customers) return { title: "Add the first customer", … };
+```
+
+So an unreadable services table told a business that already sells things to
+create its first offer, and an unreadable customers table told one with a full
+list to add its first customer. A wrong number is a bad dashboard. **A wrong
+instruction tells somebody their work has vanished** — and it is the same
+sentence a genuinely new business sees, so nothing distinguishes a database
+problem from an empty account.
+
+Three fixes. A failed read is now `null` rather than `[]`, and "not readable"
+never satisfies a "you have none of these" branch — it falls through to the
+closing advice, which is true either way. Figures render as `—` rather than `0`,
+because a confident zero on a dashboard reads as "your records are gone". And
+the read asks for 201 rows so a full page reports `200+` rather than presenting
+the cap as the total.
+
+`moduleCard` needed catching on the way through: it interpolated the count
+directly, so a null would have rendered the word "null" beside "saved records",
+which is worse than either a wrong number or a dash.
+
+The counts here are still page-based rather than `count=exact`, unlike the growth
+surfaces. `rest()` discards the response headers and the tests bind their own
+stub to `globalThis.__sonaraBusinessControlRest`, so exact counts would change a
+contract several tests depend on. Recorded as a known limit rather than done
+badly: the figures are now honest about being capped, which is the part that was
+lying.
