@@ -1629,3 +1629,36 @@ three retired plans were active prices on archived products; **that is no longer
 true** — all three read inactive on both. The guard stays, because Stripe really
 does not clear a price's active flag when its product is archived, but the
 comment now describes a shape that could occur rather than one that does.
+
+### 2026-08-12 — Two checks of the same rule, and the optimistic one was on display
+
+Whether a plan can actually be sold is asked in two places: `lib/sonara-billing.cjs`
+at checkout, where the key is always present, and `scripts/verify-stripe-env.mjs`
+in the release chain, where it usually is not.
+
+**They disagreed.** The runtime guard expands the Stripe product and refuses
+`price_product_archived`, because archiving a product does not clear its prices'
+active flag — `price.active` alone reads true and only the product says
+otherwise. The release check read `price.active` and stopped, so it would pass a
+configuration the running server rejects. The release output is what people
+read, which put the more optimistic of the two on display.
+
+The second defect was in the summary. The last line read *"Stripe configuration
+verified against the deployed server"* whether or not the live comparison ran —
+and it never runs in CI, because `STRIPE_SECRET_KEY` is not there. So every
+release ended with a sentence saying the amounts had been checked against Stripe
+while the `[SKIP]` two lines above said they had not. **The skip was honest and
+the summary overwrote it.**
+
+Both fixed: the release check expands the product and refuses an archived one,
+and the summary now names which half ran. Offline runs say plainly that live
+prices were not compared and point at the guard that does compare them.
+
+`tests/stripe-checks-agree-with-each-other.test.js` holds the pair together. It
+requires both files to expand the product and both to refuse an archived one, so
+neither can quietly become the lenient one again. It also requires the summary
+to be conditional, and requires the flag to be set on the success path rather
+than when the key is found — setting it early would restore the original claim
+in a new place. These are source assertions because the online half needs a live
+secret, and a test that supplied one would mean either a secret in the
+repository or a network call in the suite.
