@@ -97,11 +97,38 @@ two failure modes are different and only one of them is visible:
 Verified by dropping `customer_id` from the quotes select and by adding a
 misspelled column, both caught by name.
 
+## The load zone moves
+
+The caption was shipped before the pager, which meant a business told it had 250
+customers and shown 100 had a number it could not act on. `?page=N` now moves
+the window, with plain `Previous 100` / `Next 100` links — plain, because the
+rest of these pages are plain forms and a customer with JavaScript disabled
+still has a business to run.
+
+Three things the caption had to learn along with it:
+
+- **"the 100 most recent" is true only on page 1.** On page 2 they are not the
+  most recent, they are the next hundred, and a customer who cannot tell which
+  window they are looking at cannot tell whether the record they came for is
+  missing or merely further along. It says `Showing 101 to 200` now.
+- **Reaching the end of page 3 does not mean the rows in hand are the total.**
+  Everything before the offset is still a record. Reporting `12 records` there
+  would have been the original defect relocated, so a later page always counts
+  the table rather than the window.
+- **`?page=99` on a small account must not render as an empty table**, which is
+  indistinguishable from a business that has lost its data. It says the page is
+  past the end, and gives the real total.
+
+An unparseable `?page=` is page 1 — an unreadable page number should show the
+first page, not an error and not an empty table.
+
 ## Still open
 
-**Paging past the first 100.** The list now says a total exists beyond the cap;
-it still offers no way to reach it. Saying so is strictly better than the
-previous silence, and it is not the same as being finished.
+**The `also` side tables** on the creator pages — a second list drawn on the
+same page — read the first 100 and have no pager, because a second window on
+one page needs a second parameter and there are two such lists in the product.
+Their caption still states the true total and the window it is showing, so the
+limit is visible rather than hidden.
 
 Nothing else. The creator record pages share this renderer and are covered too,
 including the `also` side tables — each of those is a second list drawn on the

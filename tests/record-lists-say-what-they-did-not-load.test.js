@@ -19,7 +19,7 @@
 // checked here is the sentence, because the sentence is what lied.
 
 const assert = require("node:assert/strict");
-const { recordCountCaption, PAGE_SIZE } = require("../routes/sonara-last9-routes.cjs");
+const { recordCountCaption, PAGE_SIZE, pageNumber } = require("../routes/sonara-last9-routes.cjs");
 
 const rows = (count) => Array.from({ length: count }, (_, index) => ({ id: String(index) }));
 
@@ -65,5 +65,45 @@ describe("a record list says what it did not load", () => {
     // measured; they should agree, and if they ever do not, the measured one is
     // the answer -- the rows in hand are what this defect was about trusting.
     assert.equal(recordCountCaption(rows(3), { loadedAll: true, total: 3 }), "3 records");
+  });
+});
+
+describe("a record list says which records these are", () => {
+  it("does not call the second page the most recent", () => {
+    // The first caption said "Showing the 100 most recent", which is true on
+    // page 1 and false everywhere after it. A customer who cannot tell which
+    // window they are looking at cannot tell whether the record they came for
+    // is missing or simply further along.
+    const caption = recordCountCaption(rows(PAGE_SIZE), { loadedAll: false, total: 250, offset: PAGE_SIZE, page: 2 });
+    assert.doesNotMatch(caption, /most recent/, "a later page is still described as the most recent records");
+    assert.match(caption, /Showing 101 to 200/);
+    assert.match(caption, /250 records/);
+  });
+
+  it("counts the whole table on a later page, not the rows in hand", () => {
+    // Reaching the end on page 3 does not mean the rows in hand are the total:
+    // everything before the offset is still a record. Reporting 12 here would
+    // be the original defect, relocated.
+    const caption = recordCountCaption(rows(12), { loadedAll: false, total: 212, offset: 200, page: 3 });
+    assert.match(caption, /212 records/);
+    assert.match(caption, /Showing 201 to 212/);
+    assert.doesNotMatch(caption, /^12 records/);
+  });
+
+  it("says so rather than looking empty when the page is past the end", () => {
+    // ?page=99 on a small account must not render as an account with no
+    // records -- that is indistinguishable from a business that has lost its
+    // data.
+    const caption = recordCountCaption(rows(0), { loadedAll: false, total: 40, offset: 9800, page: 99 });
+    assert.match(caption, /past the end/);
+    assert.match(caption, /40 records/);
+  });
+
+  it("treats an unusable page number as the first page", () => {
+    for (const value of ["0", "-3", "abc", "", null, undefined, "1.9e400", {}]) {
+      assert.equal(pageNumber(value), 1, `${JSON.stringify(value)} should fall back to page 1`);
+    }
+    assert.equal(pageNumber("2"), 2);
+    assert.equal(pageNumber(7), 7);
   });
 });

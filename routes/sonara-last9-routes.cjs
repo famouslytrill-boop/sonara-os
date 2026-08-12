@@ -154,7 +154,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*");
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
@@ -366,7 +366,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which workspace you are in. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*");
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         extra = await Promise.all((page.also || []).map(async (side) => {
@@ -699,10 +699,35 @@ function recordCountCaption(rows, loaded) {
   // Describing what is on screen is the only claim available.
   if (!loaded) return plural(shown);
   if (loaded.loadedAll) return plural(loaded.total ?? shown);
-  if (typeof loaded.total === "number") {
-    return `${plural(loaded.total)}. Showing the ${shown} most recent.`;
-  }
-  return `More than ${shown} records. Showing the ${shown} most recent.`;
+
+  // Which rows these are, not just how many. "Showing the 100 most recent" is
+  // wrong on page 2 -- they are not the most recent, they are the next 100 --
+  // and a customer who cannot tell which window they are looking at cannot tell
+  // whether the record they came for is missing or merely further along.
+  const first = (loaded.offset || 0) + 1;
+  const last = (loaded.offset || 0) + shown;
+  if (shown === 0) return typeof loaded.total === "number" ? `${plural(loaded.total)}. This page is past the end.` : "No records on this page.";
+  const window = `Showing ${first} to ${last}`;
+  if (typeof loaded.total === "number") return `${plural(loaded.total)}. ${window}.`;
+  return `More than ${last} records. ${window}.`;
+}
+
+// The way to the rest of them.
+//
+// The caption above was shipped first, saying a total existed beyond the cap
+// while the page offered no way to reach it. That is better than the silence it
+// replaced and it is not the same as being finished: a business told it has 250
+// customers and shown 100 now has a number it cannot act on.
+//
+// Plain links, because the rest of these pages are plain forms and a customer
+// who has disabled JavaScript still has a business to run.
+function pagerLinks(page, loaded, ui) {
+  if (!loaded || (!loaded.hasNext && !loaded.hasPrevious)) return "";
+  const at = (number) => `${page.path}?page=${number}`;
+  const links = [];
+  if (loaded.hasPrevious) links.push(ui.link(at(loaded.page - 1), "Previous 100"));
+  if (loaded.hasNext) links.push(ui.link(at(loaded.page + 1), "Next 100"));
+  return `<nav class="card-actions" aria-label="More records">${links.join("")}</nav>`;
 }
 
 function recordsCard(page, rows, ui, loaded = null) {
@@ -746,7 +771,8 @@ function recordsCard(page, rows, ui, loaded = null) {
     }).join("")
     : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
   const count = recordCountCaption(rows, loaded);
-  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+  const pager = page.path ? pagerLinks(page, loaded, ui) : "";
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
 }
 
 // One awkward value should cost its own cell, not the whole page.
@@ -939,19 +965,36 @@ const PAGE_SIZE = 100;
 // `*`, because a missing declaration must cost bandwidth rather than blank a
 // cell. tests/record-selects-cover-every-column.test.js is what keeps a
 // declaration honest as columns change.
-async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*") {
-  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}`;
+// A page number the customer typed, made safe.
+//
+// Anything that is not a whole number at or above 1 is page 1 -- an unreadable
+// ?page= should show the first page, not an error and not an empty table that
+// looks like an account with no records in it.
+function pageNumber(value) {
+  const parsed = Number.parseInt(String(value ?? "1"), 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1) {
+  const offset = (page - 1) * PAGE_SIZE;
+  const window = offset > 0 ? `&offset=${offset}` : "";
+  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
   const listed = await supabaseList(config, table, query);
   if (!listed.ok) return listed;
 
   const more = listed.rows.length > PAGE_SIZE;
   const rows = more ? listed.rows.slice(0, PAGE_SIZE) : listed.rows;
-  if (!more) return { ok: true, table, rows, total: rows.length, loadedAll: true };
+  const base = { ok: true, table, rows, page, offset, hasNext: more, hasPrevious: page > 1 };
 
-  // A failed count is left null rather than guessed at. The caption falls back
-  // to "more than 100", which is the most that is actually known at that point.
+  // On the first page, reaching the end means the rows in hand are the total.
+  // On any later page it does not -- the rows before the offset are still
+  // records, and forgetting that would report page 3 of 250 as "12 records".
+  if (!more && page === 1) return { ...base, total: rows.length, loadedAll: true };
+
   const counted = await supabaseCount(config, table, organizationId);
-  return { ok: true, table, rows, total: counted.ok ? counted.count : null, loadedAll: false };
+  // A failed count is left null rather than guessed at, and the caption says
+  // only what the read itself established.
+  return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
 }
 
 async function supabaseList(config, table, query) {
@@ -1021,3 +1064,4 @@ module.exports.RESOURCE_MAP = RESOURCE_MAP;
 // exists for is a sentence, and a sentence is testable.
 module.exports.recordCountCaption = recordCountCaption;
 module.exports.PAGE_SIZE = PAGE_SIZE;
+module.exports.pageNumber = pageNumber;
