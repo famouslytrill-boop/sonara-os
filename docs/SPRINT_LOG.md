@@ -1838,3 +1838,44 @@ stub to `globalThis.__sonaraBusinessControlRest`, so exact counts would change a
 contract several tests depend on. Recorded as a known limit rather than done
 badly: the figures are now honest about being capped, which is the part that was
 lying.
+
+### 2026-08-12 — Sweeping "a failed read is an empty table"
+
+Having found it twice by accident, I swept for the pattern rather than waiting to
+trip over it again: `result.ok ? result.rows : []`, everywhere.
+
+Fifteen sites. **Collapsing to `[]` is not automatically a defect** — it is fine
+when nothing derives a claim from the empty set, and the sweep confirmed several
+that were already right. `lib/sonara-cash-position.cjs` tracks what it could not
+read and reports it. `routes/sonara-assistant-routes.cjs` goes further: without
+the payments table a chase draft would state a full total on an invoice that may
+be half settled, so it writes no draft at all. `/creator-studio/generation/jobs`
+sets an unavailable message and never reaches its empty state.
+
+Three sites were making a claim, and two of them were about the customer's own
+history:
+
+**The creator generation landing page** did `jobs = listed.ok ? listed.rows : []`
+under an empty state reading *"Nothing yet. Use the form above to make your first
+one."* A failed read told a creator their generated work had never existed and
+invited them to start over — about outputs they may have paid for and waited on.
+
+**A job's outputs card** did the same, and its sentence is worse: *"Nothing was
+produced for this one"* on a completed job. The creator concludes the generation
+they waited for failed, when the files are sitting in a table nobody could read.
+The history card too.
+
+**`GET /api/business-builder/businesses/:id`** returned `[]` per resource on
+failure, over JSON, where a consumer has no heading to question and no way to
+tell an empty table from an unreadable one. It now returns `null` for those and
+lists them under `unavailable`.
+
+That endpoint also read its eleven resources in a `for` loop with `await` inside
+— eleven round trips in series for a response that needs none of them ordered.
+Now one `Promise.all`.
+
+The rule that came out of the sweep, and the reason it is not simply "never
+return an empty array": **an empty list is only a lie when something reads it as
+a fact about the customer.** A table that renders no rows is fine. A sentence
+saying "you have never made anything", a count, an instruction, or a money total
+is not.

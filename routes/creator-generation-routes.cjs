@@ -238,7 +238,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     let jobs = [];
     if (context.ok && config.ok) {
       const listed = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=20`);
-      jobs = listed.ok ? listed.rows : [];
+      // null, not []. The empty state below reads "Nothing yet. Use the form
+      // above to make your first one" -- so a read that failed told a creator
+      // their generated work had never existed, and invited them to start over.
+      jobs = listed.ok ? listed.rows : null;
     }
     const providers = getCreatorGenerationCatalog();
     const sections = [
@@ -320,10 +323,10 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       body: generationStatus(job.status).detail,
       sections: [
         jobSummaryCard(job, ui.escape),
-        jobOutputsCard(job, assets.ok ? assets.rows : [], ui.escape),
+        jobOutputsCard(job, assets.ok ? assets.rows : null, ui.escape),
         jobControlsCard(job, ui.escape),
         jobRequestCard(job, ui.escape),
-        jobHistoryCard(events.ok ? events.rows : [], ui.escape)
+        jobHistoryCard(events.ok ? events.rows : null, ui.escape)
       ],
       actions: [ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/generation", "Make something new")]
     }));
@@ -693,6 +696,12 @@ function jobRows(jobs, escape) {
 }
 
 function jobsTable(jobs, escape, emptyText) {
+  // A list nobody could read is not a list with nothing in it, and the two must
+  // not share a sentence -- one is a fact about the creator's account and the
+  // other is a fact about ours.
+  if (jobs === null || jobs === undefined) {
+    return `<table><tbody><tr><td>We could not load your work just now. It is still there; try again shortly.</td></tr></tbody></table>`;
+  }
   const rows = jobRows(jobs, escape) || `<tr><td colspan="5">${escape(emptyText)}</td></tr>`;
   return `<table><thead><tr><th>What</th><th>Kind</th><th>Where it is</th><th>Progress</th><th>Started</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -728,6 +737,13 @@ function jobSummaryCard(job, escape) {
 }
 
 function jobOutputsCard(job, assets, escape) {
+  // "Nothing was produced for this one" on a completed job is the worst
+  // sentence in this file to get wrong: the creator concludes the generation
+  // they waited for failed, when the outputs are sitting in a table we could
+  // not read.
+  if (assets === null || assets === undefined) {
+    return `<article class="card"><h2>Outputs</h2><p>We could not load the outputs for this one just now. Try again shortly.</p></article>`;
+  }
   const outputs = assets.filter((asset) => asset.asset_role === "output" || asset.asset_role === "preview" || asset.asset_role === "stem");
   if (!outputs.length) {
     const waiting = ["completed", "failed", "cancelled"].includes(String(job.status))
@@ -759,6 +775,9 @@ function jobRequestCard(job, escape) {
 }
 
 function jobHistoryCard(events, escape) {
+  if (events === null || events === undefined) {
+    return `<article class="card"><h2>History</h2><p>We could not load the history just now.</p></article>`;
+  }
   if (!events.length) return `<article class="card"><h2>History</h2><p>Nothing has happened yet.</p></article>`;
   const rows = events.map((entry) => `<tr><td>${escape(whenText(entry.created_at))}</td><td>${escape(eventText(entry))}</td></tr>`).join("");
   return `<article class="card"><h2>History</h2><table><tbody>${rows}</tbody></table></article>`;

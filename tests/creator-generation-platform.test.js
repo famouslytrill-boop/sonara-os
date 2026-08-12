@@ -262,6 +262,39 @@ describe("Creator Studio generation platform", () => {
   // the job's API record, and submitting the create form landed the customer on
   // the same. These cover the pages that replaced that.
 
+  it("does not tell a creator their work never existed when it cannot be read", async () => {
+    // The generation landing page did `jobs = listed.ok ? listed.rows : []`, and
+    // its empty state reads "Nothing yet. Use the form above to make your first
+    // one." So a failed read told a creator their generated work had never
+    // existed and invited them to start over -- about outputs they may have
+    // paid for and waited on.
+    global.fetch = async () => jsonResponse(500, []);
+    const result = await request(buildApp()).get("/creator-studio/generation").set("accept", "text/html");
+    assert.equal(result.status, 200, "the page should still render");
+    assert.doesNotMatch(result.text, /Nothing yet/, "an unreadable job list is being reported as having never made anything");
+    assert.match(result.text, /could not load your work just now/i, "nothing says the list could not be read");
+    assert.doesNotMatch(result.text, /make your first one/i);
+  });
+
+  it("does not report a completed job as having produced nothing", async () => {
+    // "Nothing was produced for this one" is the worst sentence in that file to
+    // get wrong: the creator concludes the generation they waited for failed,
+    // when the outputs are in a table that could not be read.
+    global.fetch = async (url) => {
+      const value = String(url);
+      if (value.includes("creator_generation_jobs")) {
+        return jsonResponse(200, [{ id: JOB_ID, title: "A song", capability: "music", provider_key: "suno", status: "completed", progress_percent: 100, created_at: "2026-01-01T00:00:00Z" }]);
+      }
+      // Assets and events are unreadable.
+      return jsonResponse(500, []);
+    };
+    const result = await request(buildApp()).get(`/creator-studio/generation/jobs/${JOB_ID}`).set("accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.doesNotMatch(result.text, /Nothing was produced for this one/, "an unreadable asset table is being reported as a job that produced nothing");
+    assert.match(result.text, /could not load the outputs/i, "nothing says the outputs could not be read");
+    assert.doesNotMatch(result.text, /Nothing has happened yet/, "an unreadable history is being reported as no history");
+  });
+
   it("lists your generation work as a page, linking each piece at a page", async () => {
     global.fetch = async () => jsonResponse(200, [jobRecord({ title: "Warehouse door", status: "running", progress_percent: 40 })]);
     const result = await request(buildApp()).get("/creator-studio/generation/jobs").set("accept", "text/html");

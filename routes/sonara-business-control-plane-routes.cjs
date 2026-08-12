@@ -434,12 +434,22 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!business.ok) return res.status(business.status).json(business);
     const allowed = await permission(req, ctx, business.business.id, "business.read");
     if (!allowed.ok) return res.status(allowed.status).json(allowed);
-    const resources = {};
-    for (const [key, definition] of Object.entries(RESOURCES)) {
+    // Eleven reads, in parallel, and an unreadable one is not an empty one.
+    //
+    // This looped with `await` inside, so eleven round trips happened in series
+    // for a response that needs none of them ordered. And every failure became
+    // `[]`, which over JSON is indistinguishable from a table with nothing in
+    // it -- the same substitution the dashboard was making, on the surface where
+    // a consumer has the least chance of noticing.
+    const entries = await Promise.all(Object.entries(RESOURCES).map(async ([key, definition]) => {
       const result = await listResource(ctx, business.business.id, definition, 25);
-      resources[key] = result.ok ? result.rows : [];
-    }
-    return res.status(200).json({ ok: true, business: business.business, resources });
+      return [key, result.ok ? result.rows : null];
+    }));
+    const resources = Object.fromEntries(entries);
+    const unavailable = entries.filter(([, rows]) => rows === null).map(([key]) => key);
+    // Listed as well as nulled, so a caller can act on it without inspecting
+    // every key to find out which ones came back unknown.
+    return res.status(200).json({ ok: true, business: business.business, resources, unavailable });
   });
 
   app.patch("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => updateBusiness(req, res));
