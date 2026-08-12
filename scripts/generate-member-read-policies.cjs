@@ -61,7 +61,6 @@ const root = process.cwd();
 //   user_roles                        keyed by user_id, not organization_id.
 //                                     Who may read the privilege table is a
 //                                     decision, not a gap. Owner review.
-//   product_modules                   reference data, not tenant data.
 //   service_catalog_items             the published catalog; already public.
 //
 // Ten more already had an `authenticated` SELECT policy from earlier

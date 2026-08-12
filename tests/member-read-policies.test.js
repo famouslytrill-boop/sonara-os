@@ -88,7 +88,7 @@ const SERVICE_ROLE_ONLY = new Map([
 ]);
 
 // Not tenant data at all, so member scoping does not apply.
-const NOT_TENANT_DATA = new Set(["product_modules", "service_catalog_items"]);
+const NOT_TENANT_DATA = new Set(["service_catalog_items"]);
 
 describe("member read policies cover what the application actually reads", () => {
   let sql;

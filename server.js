@@ -2148,7 +2148,7 @@ function getProductConfigBySlug(slug) {
 async function getProductModuleCatalogCards() {
   const config = getSupabaseServerConfig();
   if (!config.ok) return [brandCard("Product modules", "Setup required: account database is not configured.")];
-  const count = await safeCountTable(config, "product_modules");
+  const count = await safeCountTable(config, "sonara_module_registry");
   return [brandCard("Product modules", formatMetric("Product modules", count))];
 }
 
@@ -3823,7 +3823,7 @@ async function getAdminMetrics() {
     safeCountTable(config, "billing_subscriptions"),
     safeCountTable(config, "billing_webhook_events"),
     safeCountTable(config, "support_requests"),
-    safeCountTable(config, "product_modules"),
+    safeCountTable(config, "sonara_module_registry"),
     safeCountTable(config, "service_requests")
   ]);
   return {
