@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 122 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 123 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -870,3 +870,49 @@ instead, which is what it is for.
 The opening line is written best-effort after the invoice. Failing the whole
 conversion once the invoice exists would leave the owner unable to retry,
 because the duplicate check would then refuse.
+
+### 2026-08-12 — Chase drafts, and the sentences a draft may not contain
+
+`/business-builder/owner/chase-drafts`. Tool five of the twelve is "Claude for
+overdue invoices" — the message an owner puts off, because writing it while
+annoyed is how a customer relationship ends.
+
+The split it rests on was checked against `lib/sonara-agent-authority.cjs`
+rather than assumed, and asserted in the test: `draft_reply` is self-serve —
+"It writes a reply a person still has to send" — while `send_invoice_reminder`,
+`email_customer` and `chase_overdue_invoice` all fall through to `unrecognised`
+and stop at the owner. So this drafts and stops. The page says so in its own
+words, not only in a comment.
+
+**No model call.** Assembled from the owner's own rows, which keeps it free —
+but that is not the main reason. A template cannot hallucinate a payment that
+was never made. What it costs is range: these read like forms, because they
+are, and the page says that too.
+
+The interesting part was deciding what a draft may not say. Three things the
+obvious version would have invented, each with a test that greps every stage
+for it:
+
+**How many reminders have already been sent.** Nothing records that. "As we
+have already reminded you twice" is a claim that can be false to the customer's
+face.
+
+**Payment terms, interest, or a late fee.** No table holds them. A draft naming
+a fee the business never agreed is a term it cannot enforce.
+
+**Any threat of legal action, collection or credit reporting.** That is a
+statement the business is held to. An owner can write it themselves; a draft
+that arrives pre-written invites sending it unread.
+
+Two other refusals. The amount is what is outstanding after payments, never the
+invoice total — chasing the full amount after a part payment is the fastest way
+to lose a customer, and there is a test that the total does not appear. And if
+the payments table cannot be read, **no draft is written at all**, because
+every figure would be one that might already have been paid.
+
+An invoice that cannot be drafted is listed with the reason rather than
+omitted. A shorter list with no explanation reads as less debt.
+
+The message is a readonly textarea rather than a copy button: the CSP is
+`script-src 'self'` with no bundler, so a button would need inline script, and
+selecting text cannot fail silently the way a clipboard call can.

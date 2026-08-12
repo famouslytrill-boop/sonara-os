@@ -37,6 +37,7 @@ const journey = require("../lib/sonara-customer-journey.cjs");
 const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 const search = require("../lib/sonara-search.cjs");
 const cash = require("../lib/sonara-cash-position.cjs");
+const chase = require("../lib/sonara-chase-drafts.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -98,6 +99,42 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       results.push(runCheck(check, read.rows));
     }
     return results;
+  });
+
+  // Drafting only. `draft_reply` is on the self-serve list -- "It writes a reply
+  // a person still has to send" -- and every action that would actually send
+  // classifies as unrecognised and stops at the owner. The runner is asked on
+  // every request rather than trusted once, so if draft_reply ever moves onto
+  // the sensitive list this page refuses instead of quietly continuing.
+  runner.register("draft_reply", async ({ config, organizationId, businessName }) => {
+    const [invoices, payments, customers] = await Promise.all([
+      readRows(config, { table: "customer_invoices", columns: ["id", "invoice_number", "due_on", "total_cents", "status", "customer_id"] }, organizationId),
+      readRows(config, { table: "customer_invoice_payments", columns: ["id", "invoice_id", "amount_cents"] }, organizationId),
+      readRows(config, { table: "customers", columns: ["id", "name", "email"] }, organizationId)
+    ]);
+
+    // An unreadable table is reported, never counted as "nothing owed". A chase
+    // list that is short because a read failed is the most reassuring possible
+    // way to be wrong.
+    const unavailable = [];
+    if (!invoices.ok) unavailable.push("your invoices");
+    if (!payments.ok) unavailable.push("payments received");
+    if (!customers.ok) unavailable.push("your customers");
+
+    const paidByInvoice = new Map();
+    for (const row of payments.ok ? payments.rows : []) {
+      const amount = Number(row?.amount_cents);
+      if (!row?.invoice_id || !Number.isFinite(amount)) continue;
+      paidByInvoice.set(row.invoice_id, (paidByInvoice.get(row.invoice_id) || 0) + amount);
+    }
+
+    const customersById = new Map((customers.ok ? customers.rows : []).map((row) => [row?.id, row]));
+
+    // Without the payments table a draft would state the full total on an
+    // invoice that may be half settled, so no draft is written at all.
+    if (!payments.ok || !invoices.ok) return { unavailable, drafts: [], skipped: [] };
+
+    return { unavailable, ...chase.build({ invoices: invoices.rows, customersById, paidByInvoice, businessName }) };
   });
 
   function asMoney(cents) {
@@ -251,6 +288,88 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   // It reports movement, not a balance. No table in this product holds the
   // bank balance, and a position computed from an opening balance of zero would
   // read as the money the business has.
+  app.get("/business-builder/owner/chase-drafts", requireWorkspaceAccess("business_builder"), async (req, res) => {
+    const back = linkAction("/business-builder/owner/receivables", "Money owed to you");
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraAccess?.user || req.user, { autoBootstrap: false }).catch(() => null)
+      : null;
+
+    const page = (heading, body, sections) => res.status(200).type("html").send(layout({
+      title: "Chase drafts",
+      eyebrow: "Business Builder",
+      heading,
+      body,
+      sections,
+      actions: [back, linkAction("/business-builder/owner/money-due", "Money due in and out")]
+    }));
+
+    if (!config?.ok || !org?.ok || !org.organizationId) {
+      return page("Setup required", "Your workspace is not connected yet, so there are no invoices to write about.", []);
+    }
+
+    const run = await runner.run({
+      action: { id: "chase-drafts", action_type: "draft_reply" },
+      context: { config, organizationId: org.organizationId, businessName: org.organizationName || org.name || "" }
+    });
+
+    if (run.status !== "completed") {
+      return page(
+        "Not available right now",
+        run.status === "refused"
+          ? "Writing these drafts is not currently allowed under your rules, so nothing has been written."
+          : "The drafts could not be prepared just now. Nothing has been sent, and nothing has changed.",
+        [brandCard("What this means", escapeHtml(String(run.reason || "No reason recorded.")))]
+      );
+    }
+
+    const { drafts = [], skipped = [], unavailable = [] } = run.result || {};
+    const sections = [];
+
+    if (unavailable.length > 0) {
+      sections.push(brandCard(
+        "Some records could not be read",
+        `${unavailable.join(", ")} could not be loaded, so this list is incomplete. It is not a shorter list of debts; it is an unfinished one. No draft has been written against a figure that might be wrong.`
+      ));
+    }
+
+    for (const draft of drafts) {
+      // A readonly textarea rather than a copy button: the CSP is
+      // script-src 'self' and there is no bundler, so a button would need
+      // inline script. Selecting the text works everywhere and cannot fail
+      // silently the way a clipboard call can.
+      sections.push(`<article class="card sonara-depth" data-sonara-enter>
+        <h2>${escapeHtml(draft.customerName)} — ${escapeHtml(draft.reference)}</h2>
+        <p>${escapeHtml(`${draft.stageLabel}. ${asMoney(draft.outstandingCents)} outstanding, ${draft.daysOverdue} days past due.${draft.customerEmail ? ` Send to ${draft.customerEmail}.` : " No email address on this customer."}`)}</p>
+        <p><strong>Subject:</strong> ${escapeHtml(draft.subject)}</p>
+        <label for="draft-${escapeHtml(draft.invoiceId)}">Message</label>
+        <textarea id="draft-${escapeHtml(draft.invoiceId)}" rows="12" readonly>${escapeHtml(draft.body)}</textarea>
+      </article>`);
+    }
+
+    for (const entry of skipped) {
+      sections.push(brandCard(`No draft for ${entry.reference}`, entry.reason));
+    }
+
+    sections.push(brandCard(
+      "Nothing here has been sent",
+      "These are drafts. This product does not send them, and it will not: sending something to a customer is one of the things your own rules keep behind your approval. Read each one, change what you want, and send it yourself from your own email."
+    ));
+
+    sections.push(brandCard(
+      "Written from your records, not by a model",
+      "Every figure above comes from your own invoices and the payments recorded against them. Nothing is generated, which is why these read like forms — and also why none of them can claim a reminder you never sent, a payment term you never agreed, or a late fee you cannot charge."
+    ));
+
+    const headline = drafts.length === 0
+      ? (skipped.length > 0
+        ? "Nothing here can be drafted yet — see below for what each invoice needs first."
+        : "Nothing is overdue. There is nothing to chase.")
+      : `${drafts.length} ${drafts.length === 1 ? "invoice needs" : "invoices need"} chasing, most overdue first.`;
+
+    return page("Chase drafts", headline, sections);
+  });
+
   app.get("/business-builder/owner/money-due", requireWorkspaceAccess("business_builder"), async (req, res) => {
     const back = linkAction("/business-builder/owner", "Back to your business");
     const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
