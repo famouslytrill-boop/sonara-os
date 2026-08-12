@@ -836,3 +836,56 @@ no contents, and the approval screen would gain a button whose only effect was
 to change a word in a log. The runner already reports `unimplemented`, which is
 the honest answer until a handler exists. Build a gated capability first, then
 the approval path it needs.
+
+### 2026-08-12 — The first repository that is actually installed
+
+The register had 66 reviewed repositories and no way to say any of them was in
+use. Its most advanced status was `optional_adapter_after_review` — "you may
+build one" — so 66 reviewed with nothing built and 66 reviewed with every
+adapter built were indistinguishable. A vocabulary that cannot express the
+finished state makes the work look permanently undone.
+
+`adapter_built` added, and Ollama moved to it, because there is now an adapter.
+
+**Nothing in this product called a model.** `lib/optional-ai-gateway.cjs` says
+so in its own first line: "This is a readiness DETECTOR only. It never makes
+network calls." Every "AI" surface here was arithmetic over the owner's rows —
+which is why the record checks and the chase drafts can be trusted, and why
+they cost nothing. `lib/sonara-ollama-adapter.cjs` is the first thing that
+calls one.
+
+Ollama first for three reasons that are facts rather than preferences: MIT owes
+nothing but attribution, a local runtime costs nothing per call, and it needs no
+key, so there is no secret to leak.
+
+**The constraint stated before anything else:** this application deploys as
+serverless functions, so a model on the owner's own machine is not reachable
+from it, and `localhost` in production means the function's own container. The
+readiness check names that case by host rather than letting it arrive as a
+timeout. It is genuinely useful for a self-hosted deployment or a reachable
+host, and misleading for a laptop — so it says which.
+
+Off by default, and no page may depend on it. A model being unavailable must
+never be the difference between a page working and a page failing.
+
+Three defects found in the writing, all mine:
+
+The adapter had `.catch(() => undefined)` on the fetch, which swallowed the
+abort before the handler could classify it — a timeout reported as
+"unreachable", sending somebody to check a network for a model that was merely
+slow.
+
+`integrationStatus` was checked for presence and never for value, so a typo
+would have become a record nobody could filter on. It is now read from the type
+union in the same file.
+
+That union parse then reported every status but the first two as invalid,
+because **a semicolon inside the comment explaining the new status ended the
+non-greedy match.** Same class as the policy parser that once read 191 policies
+where there were 497: a regex over source that prose can terminate early.
+Comments are stripped first now.
+
+`adapter_built` also has to name a module that exists, checked on disk. It is
+the one status that claims something about this repository rather than about
+the upstream project, so it is the one that can be false without anybody
+noticing. Both new checks were verified by breaking them.

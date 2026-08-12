@@ -99,6 +99,27 @@ const toolsSource = read("data/open-source-tools.ts");
 const toolBlocks = [...toolsSource.matchAll(/\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g)].map((match) => match[0]);
 if (toolBlocks.length === 0) errors.push("No open-source tool records were parsed from data/open-source-tools.ts.");
 
+// The allowed statuses, read out of the type union in the same file the records
+// live in rather than retyped here.
+//
+// integrationStatus was checked for presence and never for value, so a typo --
+// "adaptor_built", "reference-only" -- passed every gate and became a record
+// nobody could filter on. TypeScript would object, but a value this file never
+// compares against is one that only fails where somebody happens to look.
+// Comments are stripped before the union is read. They were not, and the first
+// version of this check reported every status but the first two as invalid --
+// a semicolon inside the comment explaining the new status terminated the
+// non-greedy match. Same class as the policy parser that once read 191 policies
+// where there were 497: a regex over source that prose can end early.
+const withoutComments = toolsSource.replace(/^\s*\/\/.*$/gm, "");
+const statusUnion = withoutComments.match(/export type OpenSourceIntegrationStatus =([\s\S]*?);/);
+const ALLOWED_STATUSES = new Set(
+  statusUnion ? [...statusUnion[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((match) => match[1]) : []
+);
+if (ALLOWED_STATUSES.size === 0) {
+  errors.push("Could not read OpenSourceIntegrationStatus from data/open-source-tools.ts, so no status could be checked.");
+}
+
 const seenSlugs = new Set();
 for (const block of toolBlocks) {
   const record = {
@@ -124,6 +145,25 @@ for (const block of toolBlocks) {
   if (unresolvedLicense && record.commercialUseStatus === "allowed_after_review" && record.integrationStatus !== "reference_only") {
     errors.push(`${record.name} cannot be marked allowed_after_review while its license remains unresolved.`);
   }
+  if (record.integrationStatus && ALLOWED_STATUSES.size > 0 && !ALLOWED_STATUSES.has(record.integrationStatus)) {
+    errors.push(`${record.name} has integrationStatus "${record.integrationStatus}", which is not one of: ${[...ALLOWED_STATUSES].join(", ")}.`);
+  }
+
+  // adapter_built is the one status that claims something about this repository
+  // rather than about the upstream project, so it is the one that can be false
+  // without anybody noticing. It has to name a module that exists.
+  if (record.integrationStatus === "adapter_built") {
+    const named = [...block.matchAll(/(lib\/[a-z0-9-]+\.cjs)/g)].map((match) => match[1]);
+    if (named.length === 0) {
+      errors.push(`${record.name} claims adapter_built without naming the adapter module in its notes.`);
+    }
+    for (const modulePath of named) {
+      if (!fs.existsSync(path.join(root, modulePath))) {
+        errors.push(`${record.name} claims adapter_built and names ${modulePath}, which does not exist.`);
+      }
+    }
+  }
+
   if (record.integrationStatus === "blocked" && !block.includes("blockedUses:")) {
     errors.push(`Blocked record ${record.name} must declare blockedUses.`);
   }

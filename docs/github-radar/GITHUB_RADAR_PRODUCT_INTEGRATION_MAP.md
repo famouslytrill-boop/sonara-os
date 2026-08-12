@@ -35,7 +35,7 @@ Create, launch, run and manage a business.
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
-| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | Adapt after review | local model runtime |
+| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
 | [Open SaaS](https://github.com/wasp-lang/open-saas) | MIT | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | Licence unresolved | model interface |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
@@ -73,7 +73,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
-| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | Adapt after review | local model runtime |
+| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
@@ -144,7 +144,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
 | [OBLITERATUS](https://github.com/elder-plinius/OBLITERATUS) | AGPL-3.0 upstream with a stated commercial-license option; legal | Blocked | model safety research |
-| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | Adapt after review | local model runtime |
+| [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
 | [Open SaaS](https://github.com/wasp-lang/open-saas) | MIT | Read only | SaaS boilerplate |
 | [Open WebUI](https://github.com/open-webui/open-webui) | Open WebUI License, BSD-3-Clause based with branding conditions. | Licence unresolved | model interface |
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |

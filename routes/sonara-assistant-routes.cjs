@@ -38,6 +38,7 @@ const { createRunner } = require("../lib/sonara-agent-runner.cjs");
 const search = require("../lib/sonara-search.cjs");
 const cash = require("../lib/sonara-cash-position.cjs");
 const chase = require("../lib/sonara-chase-drafts.cjs");
+const ollama = require("../lib/sonara-ollama-adapter.cjs");
 
 const ROW_LIMIT = 500;
 
@@ -288,6 +289,51 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   // It reports movement, not a balance. No table in this product holds the
   // bank balance, and a position computed from an opening balance of zero would
   // read as the money the business has.
+  // /business-builder/owner/local-model -- whether this deployment can call a
+  // model at all, and what happens when it cannot.
+  //
+  // Every other surface in this product is arithmetic over the owner's own
+  // rows, which is why they can be trusted and why they cost nothing. This is
+  // the one place that says what would change if a model were reachable, and
+  // it is deliberately owner-only: nothing a customer sees depends on it.
+  app.get("/business-builder/owner/local-model", requireWorkspaceAccess("business_builder"), async (req, res) => {
+    const readiness = ollama.getOllamaReadiness();
+
+    const sections = [
+      brandCard(
+        readiness.status === "configured" ? "Ready" : readiness.enabled ? "Not usable yet" : "Turned off",
+        readiness.detail
+      ),
+      brandCard(
+        "Why this is off by default",
+        "Nothing in this product needs a model to work. The checks, the money figures and the chase drafts are all arithmetic over your own records, which is why none of them can invent a number and why none of them cost anything to run. A model adds range, never a dependency — if it is unreachable, every page falls back to what it already did."
+      ),
+      brandCard(
+        "What it costs",
+        "Nothing per use. Ollama runs models on hardware you already own, under an MIT licence, and needs no account and no key. That is the whole reason it is the first one wired in rather than a hosted provider that bills per token."
+      ),
+      brandCard(
+        "The part that catches people out",
+        "This application runs as serverless functions. A model on your own laptop is not reachable from there — a localhost address in production means the server's own container, where nothing is listening. It has to be a host this server can reach, or the application has to run somewhere that shares a network with it. This page names that case rather than letting you find it as a timeout."
+      ),
+      brandCard(
+        "How to turn it on",
+        `Set ${ollama.ENV_KEYS.enabled}=true, ${ollama.ENV_KEYS.baseUrl} to an address this server can reach, and ${ollama.ENV_KEYS.model} to a model you have pulled. ${ollama.ENV_KEYS.timeout} is optional and is capped at ${ollama.MAX_TIMEOUT_MS}ms, because a model that hangs would otherwise hold a request open until the platform kills it.`
+      )
+    ];
+
+    return res.status(200).type("html").send(layout({
+      title: "Local model",
+      eyebrow: "Business Builder",
+      heading: "Running a model on your own hardware",
+      body: readiness.status === "configured"
+        ? `This deployment can reach ${escapeHtml(String(readiness.model))} at ${escapeHtml(String(readiness.host))}.`
+        : "This deployment does not call a model. Everything here works without one.",
+      sections,
+      actions: [linkAction("/business-builder/owner", "Back to your business"), linkAction("/business-builder/owner/assistant", "What needs attention")]
+    }));
+  });
+
   app.get("/business-builder/owner/chase-drafts", requireWorkspaceAccess("business_builder"), async (req, res) => {
     const back = linkAction("/business-builder/owner/receivables", "Money owed to you");
     const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;

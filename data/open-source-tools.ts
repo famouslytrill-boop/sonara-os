@@ -3,6 +3,15 @@ export type OpenSourceCommercialUseStatus = "allowed_after_review" | "needs_revi
 export type OpenSourceIntegrationStatus =
   | "reference_only"
   | "optional_adapter_after_review"
+  // Reviewed, and an adapter now exists in this repository. The register had no
+  // way to say this: its most advanced state was "you may build an adapter
+  // after a review", so 66 reviewed repositories and 0 in use were
+  // indistinguishable from 66 reviewed and every adapter built. A status that
+  // cannot express the finished state makes the work look undone forever.
+  //
+  // Only claim it when the adapter is in this repository and something calls
+  // it. "We could" is optional_adapter_after_review; this is "we did".
+  | "adapter_built"
   | "research_only"
   | "blocked"
   | "needs_license_review"
@@ -489,11 +498,16 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license: "MIT; model licenses are reviewed separately.",
     licenseRisk: "medium",
     commercialUseStatus: "allowed_after_review",
-    integrationStatus: "optional_adapter_after_review",
-    recommendedAction: ["keep private", "review each model license", "use deterministic fallback rules"],
+    integrationStatus: "adapter_built",
+    recommendedAction: [
+      "keep private",
+      "review each model license",
+      "use deterministic fallback rules",
+      "keep it optional -- no page may depend on a model being reachable",
+    ],
     officialUrl: "https://docs.ollama.com/",
     repoUrl: "https://github.com/ollama/ollama",
-    notes: "SONARA includes a disabled-by-default local model-inventory readiness adapter and optional pinned development profile.",
+    notes: "The first repository in this register with an adapter that actually calls something. lib/sonara-ollama-adapter.cjs is server-side, disabled by default, and surfaced at /business-builder/owner/local-model. Chosen first because MIT owes nothing but attribution, a local runtime costs nothing per call -- which is the requirement rather than a preference -- and it needs no key, so there is no secret to leak. The constraint worth knowing: this application deploys as serverless functions, so a model on the owner\u0027s own machine is not reachable from it, and a loopback address in production means the function\u0027s own container. The readiness check names that case rather than letting it surface as a timeout.",
     safetyBoundaries: ["no public unauthenticated port", "no unreviewed model weights", "no launch dependency"],
     blockedUses: ["public unauthenticated inference", "unlicensed model deployment"],
     humanReviewRequired: true,
