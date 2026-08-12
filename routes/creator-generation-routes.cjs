@@ -209,6 +209,40 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, consent: created.rows[0], code: created.code });
   });
 
+  // Withdrawing a permission.
+  //
+  // evaluatePolicy reads revoked_at on every voice job and nothing ever wrote
+  // it, so a permission could be given and never taken back. For a consent
+  // record that is the wrong way round: the person whose voice it is has the
+  // strongest claim on being able to change their mind, and until now the only
+  // way out was waiting for an expiry date that is optional.
+  app.post("/api/creator/generation/voice-consents/:consentId/revoke", access, async (req, res) => {
+    const back = "/creator-studio/voice-permissions";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?revoked=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_revoked")}`);
+    };
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return respond(context.status, context);
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
+    if (!validUuid(req.params.consentId)) return respond(400, { ok: false, code: "invalid_consent_id" });
+
+    // Scoped to the organization and the user, like every other read here, so
+    // an id from another workspace matches nothing rather than matching a row.
+    const updated = await rest(
+      config,
+      CONSENT_TABLE,
+      `id=eq.${encodeURIComponent(req.params.consentId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&revoked_at=is.null`,
+      { method: "PATCH", prefer: "return=representation", body: { revoked_at: new Date().toISOString() } }
+    );
+    if (!updated.ok) return respond(502, { ok: false, code: "not_revoked" });
+    // Nothing matched: already revoked, or not theirs. Both are "there is
+    // nothing here to revoke" and neither should read as success.
+    if (!updated.rows.length) return respond(404, { ok: false, code: "consent_not_found" });
+    return respond(200, { ok: true, revoked: true });
+  });
+
   app.post("/api/creator/reference-analyses", access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
@@ -232,12 +266,62 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, analysis: created.rows[0], code: created.code });
   });
 
+  // Voice permissions, which five capabilities could not run without.
+  //
+  // evaluatePolicy refuses speech_to_speech, voice_clone, singing_voice,
+  // music_voice_profile and talking_avatar unless an active consent row exists
+  // -- and the only endpoint that creates one had no form anywhere in the
+  // product, while the generation form did not offer those capabilities at all.
+  // **So the gate was built, advertised on the page, and had no key.** Five of
+  // Creator Studio's capabilities were unreachable rather than unfinished.
+  //
+  // This is the key, not a way around the gate: the attestation is still
+  // required, the scope is still recorded, and a job still fails without a live
+  // consent id.
+  app.get("/creator-studio/voice-permissions", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    const config = getConfig(deps);
+    let consents = null;
+    let unavailable = null;
+    if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
+    else if (!config.ok) unavailable = "Your account database is not connected yet, so permissions cannot be listed.";
+    else {
+      const listed = await rest(config, CONSENT_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
+      if (!listed.ok) unavailable = "We could not load your permissions just now. They are still there; try again shortly.";
+      else consents = listed.rows;
+    }
+
+    const sections = unavailable
+      ? [ui.card("Not available right now", unavailable)]
+      : [voicePermissionsCard(consents, ui.escape), voicePermissionForm(ui.escape)];
+
+    return res.status(200).type("html").send(ui.layout({
+      title: "Voice permissions",
+      eyebrow: "Creator Studio",
+      heading: "Voice permissions",
+      body: "Voice work needs a permission on file before it runs. Record one here, and withdraw it whenever you want.",
+      sections,
+      actions: [ui.link("/creator-studio/generation", "Make something"), ui.link("/creator-studio/dashboard", "Dashboard")]
+    }));
+  });
+
   app.get("/creator-studio/generation", access, async (req, res) => {
     const context = await resolveContext(req, deps);
     const config = getConfig(deps);
     let jobs = [];
+    let consents = [];
     if (context.ok && config.ok) {
-      const listed = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=20`);
+      // Both reads at once. Written sequentially first, under a comment
+      // claiming they were not -- which is the defect this branch keeps
+      // finding, committed by me, in a comment about avoiding it.
+      const [listed, permissions] = await Promise.all([
+        rest(config, JOB_TABLE, `select=id,title,capability,provider_key,status,progress_percent,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=20`),
+        rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`)
+      ]);
+      // An unreadable permission list becomes an empty picker, which the form
+      // renders as "record one first" -- wrong, but it fails towards asking
+      // rather than towards running voice work without a live permission.
+      consents = permissions.ok ? permissions.rows : [];
       // null, not []. The empty state below reads "Nothing yet. Use the form
       // above to make your first one" -- so a read that failed told a creator
       // their generated work had never existed, and invited them to start over.
@@ -245,7 +329,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     }
     const providers = getCreatorGenerationCatalog();
     const sections = [
-      generationForm(providers, ui.escape),
+      generationForm(providers, ui.escape, consents),
       ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
       ui.card("Provider execution", "ElevenLabs and Google Veo use server-side adapters when configured. Suno requires the exact account API contract. Higgsfield uses its official external MCP connector. Open-source models run only on an isolated GPU worker."),
       jobTable(jobs, ui.escape),
@@ -683,9 +767,24 @@ function findOutputUrl(payload) {
   return candidates.find((value) => /^https:\/\//i.test(String(value || ""))) || null;
 }
 
-function generationForm(providers, escape) {
+function generationForm(providers, escape, consents = []) {
   const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(display(item.readiness.status))}</option>`).join("");
-  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability"><option value="text_to_speech">Text to speech</option><option value="sound_effects">Sound effects</option><option value="text_to_music">Music</option><option value="music_plan">Music plan</option><option value="text_to_video">Text to video</option><option value="image_to_video">Image to video</option><option value="video_extend">Extend video</option></select></label><label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
+
+  // The five voice capabilities were missing from this list entirely, so the
+  // only way to ask for voice work was to post to the API by hand. They are
+  // offered now, and the permission picker below is what makes them runnable --
+  // evaluatePolicy still refuses any of them without a live consent id, which
+  // is the point rather than an obstacle.
+  const active = consents.filter((row) => row && !row.revoked_at && (!row.expires_at || Date.parse(row.expires_at) > Date.now()));
+  const voiceOptions = active.map((row) => `<option value="${escape(String(row.id))}">${escape(clean(row.subject_name, 200) || voiceSubjectLabel(row.subject_type))} — ${escape(voiceScopeLabel(row.consent_scope))}</option>`).join("");
+  // With nothing on file the picker would be an empty dropdown next to a
+  // required checkbox, which reads as broken. Say what to do instead.
+  const voiceBlock = active.length
+    ? `<label>Whose permission covers this<select name="voice_consent_id"><option value="">Not voice work</option>${voiceOptions}</select></label>` +
+      `<label><input type="checkbox" name="consent_attested" value="true"> The permission above covers this request.</label>`
+    : `<p>Voice work needs a permission on file first. <a href="/creator-studio/voice-permissions">Record one</a> and it will appear here.</p>`;
+
+  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability"><option value="text_to_speech">Text to speech</option><option value="sound_effects">Sound effects</option><option value="text_to_music">Music</option><option value="music_plan">Music plan</option><option value="text_to_video">Text to video</option><option value="image_to_video">Image to video</option><option value="video_extend">Extend video</option><option value="speech_to_speech">Voice conversion (needs permission)</option><option value="voice_clone">Voice copy (needs permission)</option><option value="singing_voice">Singing voice (needs permission)</option><option value="music_voice_profile">Voice profile (needs permission)</option><option value="talking_avatar">Talking presenter (needs permission)</option></select></label>${voiceBlock}<label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
 }
 
 function jobPath(jobId) { return `/creator-studio/generation/jobs/${encodeURIComponent(jobId)}`; }
@@ -876,3 +975,52 @@ function mediaTypeFor(capability, mime) { if (mime.startsWith("video/")) return 
 function sanitizeProviderPayload(value) { if (!value || typeof value !== "object") return {}; const copy = JSON.parse(JSON.stringify(value)); for (const key of ["api_key","token","authorization","credential","secret"]) removeSensitive(copy, key); return copy; }
 function removeSensitive(value, target) { if (!value || typeof value !== "object") return; for (const key of Object.keys(value)) { if (key.toLowerCase().includes(target)) value[key] = "[redacted]"; else removeSensitive(value[key], target); } }
 function safeError(error) { return clean(error?.message || error || "Unknown provider error", 1000); }
+
+// The permissions on file, and what each one still allows.
+function voicePermissionsCard(consents, escape) {
+  if (consents === null || consents === undefined) {
+    return `<article class="card"><h2>Permissions on file</h2><p>We could not load these just now.</p></article>`;
+  }
+  if (!consents.length) {
+    return `<article class="card"><h2>Permissions on file</h2><p>None yet. Record one below and voice work can run.</p></article>`;
+  }
+  const rows = consents.map((row) => {
+    const expired = row.expires_at && Date.parse(row.expires_at) <= Date.now();
+    // Three ways a permission stops counting, and they are not the same event:
+    // withdrawn is a decision, expired is a date passing, and active is
+    // neither. Collapsing them would hide which one a customer needs to fix.
+    const state = row.revoked_at ? "Withdrawn" : expired ? "Expired" : "Active";
+    const action = state === "Active"
+      ? `<form method="post" action="/api/creator/generation/voice-consents/${escape(String(row.id))}/revoke"><button type="submit">Withdraw</button></form>`
+      : escape(state === "Withdrawn" ? whenText(row.revoked_at) : whenText(row.expires_at));
+    return `<tr><td>${escape(clean(row.subject_name, 200) || voiceSubjectLabel(row.subject_type))}</td><td>${escape(voiceScopeLabel(row.consent_scope))}</td><td>${escape(voiceEvidenceLabel(row.evidence_type))}</td><td>${escape(state)}</td><td>${action}</td></tr>`;
+  }).join("");
+  return `<article class="card"><h2>Permissions on file</h2><table><thead><tr><th>Whose voice</th><th>What it covers</th><th>Evidence</th><th>State</th><th>Withdraw</th></tr></thead><tbody>${rows}</tbody></table></article>`;
+}
+
+function voicePermissionForm(escape) {
+  const options = (list) => list.map(([value, label]) => `<option value="${escape(value)}">${escape(label)}</option>`).join("");
+  return `<article class="card"><h2>Record a permission</h2>` +
+    `<p>This is a record that you have permission, not a substitute for having it. Recording one does not make a voice yours to use.</p>` +
+    `<form method="post" action="/api/creator/generation/voice-consents">` +
+    `<label>Whose voice is it<select name="subject_type">${options([["self", "Mine"], ["authorized_person", "Someone who gave me permission"], ["licensed_voice", "A licensed voice"], ["synthetic_voice", "A synthetic voice"]])}</select></label>` +
+    `<label>Their name<input name="subject_name" maxlength="200" placeholder="Optional, and useful later"></label>` +
+    `<label>What it covers<select name="consent_scope">${options([["all_voice_generation", "All voice work"], ["text_to_speech", "Spoken audio only"], ["speech_to_speech", "Voice conversion only"], ["voice_clone", "Voice copying only"], ["singing_voice", "Singing only"]])}</select></label>` +
+    `<label>What proof you hold<select name="evidence_type">${options([["signed_release", "A signed release"], ["license_record", "A licence record"], ["provider_voice_id", "A provider voice id"], ["self_attestation", "My own word (it is my voice)"], ["other", "Something else"]])}</select></label>` +
+    `<label>Where that proof is<input name="evidence_reference" maxlength="1000" placeholder="A file name, contract reference, or link"></label>` +
+    `<label>Expires<input name="expires_at" type="date"></label>` +
+    `<label><input type="checkbox" name="consent_attested" value="true" required> I have permission for this voice to be used this way, and I can produce the evidence above if asked.</label>` +
+    `<button type="submit">Record permission</button></form></article>`;
+}
+
+function voiceSubjectLabel(value) {
+  return { self: "My own voice", authorized_person: "A person who gave permission", licensed_voice: "A licensed voice", synthetic_voice: "A synthetic voice" }[String(value || "")] || "Not recorded";
+}
+
+function voiceScopeLabel(value) {
+  return { all_voice_generation: "All voice work", text_to_speech: "Spoken audio", speech_to_speech: "Voice conversion", voice_clone: "Voice copying", singing_voice: "Singing" }[String(value || "")] || "Not recorded";
+}
+
+function voiceEvidenceLabel(value) {
+  return { signed_release: "Signed release", license_record: "Licence record", provider_voice_id: "Provider voice id", self_attestation: "Own attestation", other: "Other" }[String(value || "")] || "Not recorded";
+}

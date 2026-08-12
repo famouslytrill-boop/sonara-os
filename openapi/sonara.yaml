@@ -1563,6 +1563,21 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator/generation/voice-consents/{consentId}/revoke:
+    post:
+      operationId: revokeCreatorVoiceConsent
+      tags: [Creator Studio]
+      summary: Withdraw a recorded voice permission so no further voice job can rely on it.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: consentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/creator/reference-analyses:
     post:
       operationId: createCreatorReferenceAnalysis

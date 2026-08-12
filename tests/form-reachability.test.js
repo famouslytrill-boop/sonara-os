@@ -62,7 +62,6 @@ const NO_FORM_NEEDED = {
 
   // Endpoints with no page to put a form on. These are the actual work queue.
   "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
-  "/api/creator/generation/voice-consents": "NOT YET EXAMINED: consent record for voice work, no form found.",
   "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",
   "/api/business/time-entries/start": "NOT YET EXAMINED: clock-in, likely wants a button rather than a form.",
   "/api/business/time-entries/stop": "NOT YET EXAMINED: clock-out, likely wants a button rather than a form.",

@@ -262,6 +262,64 @@ describe("Creator Studio generation platform", () => {
   // the job's API record, and submitting the create form landed the customer on
   // the same. These cover the pages that replaced that.
 
+  it("gives the voice capabilities a way to be used at all", async () => {
+    // Five capabilities -- speech_to_speech, voice_clone, singing_voice,
+    // music_voice_profile, talking_avatar -- are refused by evaluatePolicy
+    // without an active consent row. The only endpoint that creates one had no
+    // form anywhere in the product, the generation form did not offer those
+    // capabilities, and nothing wrote revoked_at. The gate was built,
+    // advertised on the page, and had no key.
+    global.fetch = async () => jsonResponse(200, []);
+    const page = await request(buildApp()).get("/creator-studio/voice-permissions").set("accept", "text/html");
+    assert.equal(page.status, 200);
+    assert.match(page.text, /action="\/api\/creator\/generation\/voice-consents"/, "there is still no form that records a permission");
+    assert.match(page.text, /consent_attested/, "the attestation the endpoint requires is not on the form");
+
+    // Recording one is not a way around the gate: the wording has to keep
+    // saying that having a record is not the same as having permission.
+    assert.match(page.text, /not a substitute for having it/i);
+  });
+
+  it("offers the voice capabilities on the form once a permission exists", async () => {
+    const CONSENT = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", subject_name: "Alex", subject_type: "authorized_person", consent_scope: "all_voice_generation", expires_at: null, revoked_at: null };
+    global.fetch = async (url) => jsonResponse(200, String(url).includes("voice_consents") ? [CONSENT] : []);
+    const withConsent = await request(buildApp()).get("/creator-studio/generation").set("accept", "text/html");
+    assert.match(withConsent.text, /value="speech_to_speech"/, "voice conversion is still not offered");
+    assert.match(withConsent.text, /value="voice_clone"/);
+    assert.match(withConsent.text, new RegExp(`value="${CONSENT.id}"`), "the permission is not selectable on the form");
+
+    // With nothing on file the picker would be an empty dropdown beside a
+    // checkbox, which reads as broken rather than as a step not yet taken.
+    global.fetch = async () => jsonResponse(200, []);
+    const without = await request(buildApp()).get("/creator-studio/generation").set("accept", "text/html");
+    assert.match(without.text, /needs a permission on file first/i);
+    assert.match(without.text, /\/creator-studio\/voice-permissions/, "the form does not say where to record one");
+  });
+
+  it("lets a permission be withdrawn, and only an active one", async () => {
+    // evaluatePolicy reads revoked_at on every voice job and nothing wrote it,
+    // so a permission could be given and never taken back.
+    const patched = [];
+    global.fetch = async (url, options = {}) => {
+      if ((options.method || "GET") === "PATCH") {
+        patched.push({ url: String(url), body: JSON.parse(options.body || "{}") });
+        return jsonResponse(200, [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }]);
+      }
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp())
+      .post("/api/creator/generation/voice-consents/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/revoke")
+      .type("form")
+      .send({});
+    assert.equal(result.status, 303);
+    assert.equal(patched.length, 1, "nothing was withdrawn");
+    assert.ok(patched[0].body.revoked_at, "revoked_at was not set");
+    // Scoped, and only where it is not already withdrawn -- otherwise a second
+    // press would silently rewrite the date somebody withdrew on.
+    assert.match(patched[0].url, /organization_id=eq\./);
+    assert.match(patched[0].url, /revoked_at=is\.null/);
+  });
+
   it("does not tell a creator their work never existed when it cannot be read", async () => {
     // The generation landing page did `jobs = listed.ok ? listed.rows : []`, and
     // its empty state reads "Nothing yet. Use the form above to make your first
