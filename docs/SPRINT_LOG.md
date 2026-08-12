@@ -1565,3 +1565,67 @@ whole query — one typo turns into a page reporting itself as unconfigured.
 Paging past the first 100 is still not built. The list now says a total exists
 beyond the cap and still offers no way to reach it. Saying so is better than the
 previous silence and is not the same as being finished.
+
+### 2026-08-12 — The environment check could not report a name it had never heard of
+
+`scripts/verify-env.mjs` exists to hold one line: every variable the code reads
+is classified, and every classified name is read. It found names two ways —
+`process.env.X`, and bare string literals, because this codebase declares some
+variables by name rather than reaching for them. The literal pass read:
+
+```js
+if (candidateNames.has(match[1])) used.add(match[1]);
+```
+
+**A literal was recorded only if it was already classified.** A name the file
+had never heard of was skipped rather than flagged, so "all classified" was true
+by construction — it could not have come out any other way.
+
+Thirteen names sat in that gap, and they were not incidental. The plan table in
+`server.js` declares its price variables as `env:` and `envAliases:` values, and
+`lib/sonara-readiness.cjs` resolves each primary name and then its aliases at
+line 301. **The three variables that gate every paid plan were invisible to the
+environment check while it reported success on every deploy.**
+
+The filter had a real purpose — any shouty string literal would otherwise look
+like a variable — so the fix is not removing it but adding a pass that needs no
+allow-list: a key literally named `env` is not ambiguous. The count went 58 → 71.
+
+Turning it on surfaced eight more names from `scripts/seed-stripe-products.mjs`,
+which is **deleted rather than classified**. It was referenced only from
+`archive/`, printed the retired public names, and quoted $9–15 / $29 / $49–59 /
+$79–99 against live plans of $7 / $19 / $39. Classifying its variables would
+have recorded a fiction; the honest read is that anyone who ran it would have
+been told to build the wrong catalogue under names we do not use.
+
+`tests/env-check-can-report-a-name-it-does-not-know.test.js` guards the property
+rather than the line: it writes a module declaring an unclassified `env:` name,
+runs the script, and requires it to fail *and to name the variable*. If that ever
+comes back clean, the literal pass has been re-gated and the blind spot is open.
+
+Worth stating plainly, since the classification is honest but easy to
+misread: each price variable is genuinely optional — a missing one makes that
+plan report setup_required, a stated fallback — which means **it is possible to
+set all ten "required for paid usage" variables and still sell nothing.** The
+ten cover the machinery of charging, not the existence of anything to charge for.
+
+### 2026-08-12 — What the live Stripe account actually contains
+
+Checked read-only against `acct_1TRSqj0dKtlEU3lA`. All three advertised plans
+have an active price on an active product charging exactly the advertised
+amount: Starter 700, Core 1900, Pro 3900. The price ids are now written into
+`docs/owner/OWNER-STEPS.md` beside the variable each belongs in — they are not
+secrets, they travel to the browser at checkout.
+
+So step 1 is not blocked on Stripe configuration. What it proves is whether
+*our* checkout, webhook and entitlement path works end to end, which no amount
+of reading establishes.
+
+Two findings from the same look. A one-time **$197 `Business Builder setup`
+price is live and sellable** on an active product, while the application
+deliberately does not offer that plan — nothing is broken, but the price exists
+if a variable is ever pointed at it. And `lib/sonara-billing.cjs` claimed the
+three retired plans were active prices on archived products; **that is no longer
+true** — all three read inactive on both. The guard stays, because Stripe really
+does not clear a price's active flag when its product is archived, but the
+comment now describes a shape that could occur rather than one that does.

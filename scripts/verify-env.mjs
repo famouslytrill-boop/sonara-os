@@ -55,7 +55,26 @@ const OPTIONAL_CAPABILITY = new Set([
   "HUBSPOT_ACCESS_TOKEN", "KLAVIYO_PRIVATE_API_KEY",
   "GITHUB_TOKEN", "SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_ID",
   "REQUEST_TIMEOUT_MS", "WAIT_FOR_DEPLOYMENT_SECONDS", "EXPECTED_COMMIT_SHA",
-  "SONARA_EXPECTED_SUPABASE_PROJECT_NAME", "SONARA_STRICT_EMAIL_ENV", "SONARA_VERIFY_USER_JWT"
+  "SONARA_EXPECTED_SUPABASE_PROJECT_NAME", "SONARA_STRICT_EMAIL_ENV", "SONARA_VERIFY_USER_JWT",
+
+  // The plan price ids, and the older names each still falls back to.
+  //
+  // Optional individually and by the letter of this set's rule: a missing price
+  // makes that one plan report setup_required, which is a stated fallback and
+  // not a crash. lib/sonara-readiness.cjs:301 resolves each primary name and
+  // then its aliases, so every name below is genuinely read.
+  //
+  // Worth being plain about what that means together, though: it is possible to
+  // set all ten required variables and still sell nothing, because "required
+  // for paid usage" covers the machinery of charging and not the existence of
+  // anything to charge for. Which price ids belong here is recorded in
+  // docs/owner/OWNER-STEPS.md, verified against the live account.
+  "STRIPE_PRICE_STARTER_MONTHLY", "STRIPE_PRICE_CORE_MONTHLY", "STRIPE_PRICE_PRO_MONTHLY",
+  "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
+  "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
+  "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",
+  "STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY",
+  "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"
 ]);
 
 // Turns a warning into a gate. Not required to run; required to know the deploy
@@ -105,6 +124,28 @@ for (const file of files) {
   for (const match of source.matchAll(/["'`]([A-Z][A-Z0-9_]{4,})["'`]/g)) {
     if (/^(GET|POST|PATCH|PUT|DELETE|HEAD|OPTIONS|TRUE|FALSE|NULL|HTML|JSON|UTF|SHA|HMAC|AES)/.test(match[1])) continue;
     if (candidateNames.has(match[1])) used.add(match[1]);
+  }
+
+  // The pass above cannot report anything.
+  //
+  // It only records a literal that is *already classified*, so a name this file
+  // has never heard of is skipped rather than flagged -- which makes "every
+  // variable the code reads is classified" true by construction. The filter is
+  // there for a real reason (any shouty string literal would otherwise look
+  // like a variable), but it turned the check into one that could only ever
+  // confirm what it already believed.
+  //
+  // Thirteen names sat in that gap, and they were not incidental: the plan
+  // table in server.js declares its price variables as `env:` and
+  // `envAliases:` values, lib/sonara-readiness.cjs reads them at line 301, and
+  // not one was classified. **The three that gate every paid plan were invisible
+  // to the environment check while it reported success.**
+  //
+  // A key literally named `env` is not ambiguous, so this pass needs no
+  // allow-list and is free to report a name nobody has classified yet.
+  for (const match of source.matchAll(/\benv:\s*["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(match[1]);
+  for (const match of source.matchAll(/\benvAliases:\s*\[([^\]]*)\]/g)) {
+    for (const alias of match[1].matchAll(/["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(alias[1]);
   }
 }
 

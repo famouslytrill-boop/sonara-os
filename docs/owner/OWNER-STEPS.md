@@ -33,6 +33,38 @@ make before it is true.
 **If it fails**, send me the checkout URL and what you saw. A failure here is a
 real finding, not a mistake on your part.
 
+**The Stripe side is ready.** Checked read-only against the live account
+(`acct_1TRSqj0dKtlEU3lA`) on 2026-08-12. All three advertised plans have an
+active price on an active product, charging exactly what the page says:
+
+| Plan | Page says | Stripe price | Charges | Variable |
+|---|---|---|---|---|
+| Starter | $7/mo | `price_1TjCkh0dKtlEU3lAsSDgFblT` | 700 | `STRIPE_PRICE_STARTER_MONTHLY` |
+| Core | $19/mo | `price_1TjClL0dKtlEU3lAXi7RHc5j` | 1900 | `STRIPE_PRICE_CORE_MONTHLY` |
+| Pro | $39/mo | `price_1TjClr0dKtlEU3lA0EWKaSBS` | 3900 | `STRIPE_PRICE_PRO_MONTHLY` |
+
+Price ids are not secrets — they travel to the browser during checkout — so
+they are written down here rather than described.
+
+Two things worth knowing before you start:
+
+- **A one-time $197 price is live and sellable** — `Business Builder setup`,
+  `price_1TjCnv0dKtlEU3lAzjxJnhLK`, on an active product. The application does
+  not offer it: that plan is quoted, not sold through checkout. Nothing is
+  wrong, but it means the price exists if anyone ever points a variable at it,
+  and nobody should.
+- **The three retired plans are fully archived** — SONARA OS Creator, Pro and
+  Label, at $9.99, $19.99 and $49.99. Both their prices and their products read
+  inactive, so they cannot be bought by accident. `lib/sonara-billing.cjs` used
+  to say these were active prices on archived products; that was true when it
+  was written and is not true now, and the comment has been corrected. The
+  guard against that shape stays, because Stripe genuinely does not clear a
+  price's active flag when its product is archived.
+
+So what step 1 proves is not whether Stripe is configured — it is whether *our*
+checkout, webhook and entitlement path works end to end. That is the part no
+amount of reading can establish.
+
 ---
 
 ## 2 — Turn on Supabase leaked-password protection
