@@ -172,10 +172,15 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
         sections.push(brandCard("Not connected", "The account database is not configured in this environment, so these tables cannot be read. The structure below is still accurate -- it comes from the migrations."));
         sections.push(...subsystem.tables.map((table) => structureCard(table, escape)));
       } else {
-        for (const table of subsystem.tables) {
-          sections.push(await tableCard(table, config, headers, escape));
-          if (isWritable(table)) sections.push(createCard(table, escape));
-        }
+        // Up to eighteen tables on one subsystem, each read independently and
+        // previously awaited one at a time. Built in parallel and flattened, so
+        // each table still renders its table card followed by its create card
+        // -- the interleaving is what made the serial version look necessary.
+        const cards = await Promise.all(subsystem.tables.map(async (table) => {
+          const card = await tableCard(table, config, headers, escape);
+          return isWritable(table) ? [card, createCard(table, escape)] : [card];
+        }));
+        sections.push(...cards.flat());
       }
 
       return res.status(200).type("html").send(layout({

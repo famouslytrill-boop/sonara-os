@@ -107,16 +107,17 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   // still classifies it on every call rather than trusting that.
   const runner = createRunner();
   runner.register("check_data_quality", async ({ config, organizationId, checks }) => {
-    const results = [];
-    for (const check of checks) {
+    // Up to eleven checks on one page, each reading a different table, none
+    // depending on another -- so they were eleven waits in a row for no reason.
+    // Promise.all keeps the order, which the severity sort downstream relies on
+    // being stable for checks of equal severity.
+    return Promise.all(checks.map(async (check) => {
       const read = await readRows(config, check, organizationId);
-      if (!read.ok) {
-        results.push({ id: check.id, label: check.label, severity: check.severity, count: 0, findings: [], unavailable: true, why: check.why });
-        continue;
-      }
-      results.push(runCheck(check, read.rows));
-    }
-    return results;
+      // An unreadable table is reported as unavailable rather than as a check
+      // that found nothing wrong -- those are opposite conclusions.
+      if (!read.ok) return { id: check.id, label: check.label, severity: check.severity, count: 0, findings: [], unavailable: true, why: check.why };
+      return runCheck(check, read.rows);
+    }));
   });
 
   // Drafting only. `draft_reply` is on the self-serve list -- "It writes a reply
@@ -629,18 +630,27 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       return page("Setup required", "Your workspace is not connected yet, so there are no records to search.", []);
     }
 
-    const groups = [];
-    for (const entry of search.SEARCHABLE) {
+    // Eighteen tables, asked at the same time rather than one after another.
+    //
+    // This awaited inside the loop, so a search made eighteen round trips in
+    // series -- roughly a second of latency before anything rendered, on the
+    // most latency-sensitive screen in the product, and every one of those
+    // waits was for a query that depended on none of the others.
+    //
+    // Promise.all keeps the order, which matters: the groups render in
+    // SEARCHABLE order and a customer who searched twice should see the same
+    // arrangement both times.
+    const groups = await Promise.all(search.SEARCHABLE.map(async (entry) => {
       const response = await fetch(`${config.url}/rest/v1/${entry.table}${search.queryFor(entry, term, org.organizationId)}`, {
         headers: supabaseHeaders(config)
       }).catch(() => undefined);
-      if (!response?.ok) {
-        groups.push({ label: entry.label, rows: [], unavailable: true });
-        continue;
-      }
+      // A table that could not be read stays marked unavailable rather than
+      // becoming an empty result -- "we could not look there" is not "nothing
+      // was found there", and on a search those are opposite answers.
+      if (!response?.ok) return { label: entry.label, rows: [], unavailable: true };
       const rows = await response.json().catch(() => []);
-      groups.push({ label: entry.label, path: entry.path, entry, rows: Array.isArray(rows) ? rows : [] });
-    }
+      return { label: entry.label, path: entry.path, entry, rows: Array.isArray(rows) ? rows : [] };
+    }));
 
     const summary = search.summarise(groups, term);
 

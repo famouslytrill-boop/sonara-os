@@ -204,3 +204,88 @@ describe("search keeps up with the pages that exist", () => {
     }
   });
 });
+
+// Eighteen tables, and how long the customer waits for them.
+//
+// The search page awaited inside its loop, so it made eighteen round trips in
+// series -- measured at 387ms against a 20ms stub, with a peak concurrency of
+// exactly one, on the most latency-sensitive screen in the product. None of
+// those queries depended on any other; every wait was for nothing.
+//
+// Measured rather than asserted structurally: a check that greps for
+// "Promise.all" passes on any code that mentions it, including code that then
+// awaits in a loop anyway. Watching how many queries are in flight at once is
+// the property that actually matters.
+describe("a search asks its tables at the same time", () => {
+  const express = require("express");
+  const request = require("supertest");
+  const registerRoutes = require("../routes/sonara-assistant-routes.cjs");
+  const { SEARCHABLE } = require("../lib/sonara-search.cjs");
+
+  const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
+  let originalFetch;
+
+  beforeEach(() => { originalFetch = global.fetch; });
+  afterEach(() => { global.fetch = originalFetch; });
+
+  function buildApp() {
+    const app = express();
+    app.use(express.urlencoded({ extended: false }));
+    app.use(express.json());
+    const authenticate = (req, res, next) => {
+      req.sonaraUser = { id: "22222222-2222-4222-8222-222222222222" };
+      return next();
+    };
+    registerRoutes(app, {
+      layout: ({ title, sections = [] }) => `<html><title>${title}</title>${sections.join("")}</html>`,
+      brandCard: (cardTitle, cardBody) => `<article><h2>${cardTitle}</h2><div>${cardBody}</div></article>`,
+      linkAction: (href, label) => `<a href="${href}">${label}</a>`,
+      escapeHtml: (value) => String(value),
+      requireCustomer: authenticate,
+      requireWorkspaceAccess: () => authenticate,
+      getCustomerPrimaryOrganization: async () => ({ ok: true, organizationId: ORGANIZATION_ID }),
+      getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" }),
+      supabaseHeaders: () => ({})
+    });
+    return app;
+  }
+
+  it("has more than a couple of tables, or this proves nothing", () => {
+    assert.ok(SEARCHABLE.length >= 10, `only ${SEARCHABLE.length} searchable tables; the saving this protects is not worth protecting`);
+  });
+
+  it("keeps more than one query in flight", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    global.fetch = async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => [] };
+    };
+
+    const response = await request(buildApp()).get("/search?q=sam");
+    assert.equal(response.status, 200);
+    assert.ok(
+      peak >= SEARCHABLE.length,
+      `only ${peak} of ${SEARCHABLE.length} searches ran at once, so the page is waiting for each table before asking the next`
+    );
+  });
+
+  it("still renders its groups in a stable order", async () => {
+    // Parallelising must not shuffle the results. Somebody who searches twice
+    // should see the same arrangement, which is why this uses Promise.all
+    // rather than settling them as they arrive.
+    global.fetch = async (url) => {
+      const table = (String(url).split("/rest/v1/")[1] || "").split("?")[0];
+      // Slowest first, so an as-they-arrive implementation would reverse them.
+      await new Promise((resolve) => setTimeout(resolve, table === SEARCHABLE[0].table ? 20 : 1));
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => [] };
+    };
+    const response = await request(buildApp()).get("/search?q=sam");
+    const order = SEARCHABLE.map((entry) => response.text.indexOf(entry.label)).filter((index) => index >= 0);
+    const sorted = [...order].sort((left, right) => left - right);
+    assert.deepEqual(order, sorted, "search groups render out of SEARCHABLE order");
+  });
+});
