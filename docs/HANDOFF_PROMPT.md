@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4124 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 80 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
 - 143 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-81 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+82 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -97,6 +97,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:tenant-tables`
 - `pnpm run verify:member-policies`
 - `pnpm run verify:catalog-sync`
+- `pnpm run verify:catalog-doc`
 - `pnpm run verify:open-source`
 - `pnpm run verify:product-map`
 - `pnpm run verify:handoff`
@@ -118,6 +119,74 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-12 — Eleven products removed, and the row that would have kept publishing them
+
+The catalog had 34 products and 21 that could not be run. Eight of those were
+only mislabelled and were opened in the previous change. The remaining thirteen
+were looked at one at a time. Eleven described work that does not exist: a
+"Records, Renewals & Exports" product pointing at the service setup checklist,
+several named for tables nothing writes to, one whose lifecycle field said
+`validation_required` with no criteria that could ever be met. Those eleven are
+gone. Two were fixed instead — "Research & Roadmap" was priced `pro` under
+`sonara_industries`, which enforces no entitlement, so the plan bought nothing
+and the product could never open; it is free now. "Records & Exports" kept the
+part that exists and dropped the promises: it points at
+`/business-builder/owner/accounting-exports` and no longer claims renewal
+reminders or CSV import mapping, neither of which is built.
+
+**Removing a product from the code did not remove it from the site.**
+`/service-catalog` reads `service_catalog_items` where `status = 'active'` and
+merges those rows over the code defaults, so the database wins. All eleven would
+have gone on being published under their old names, with routes a customer could
+still click. `scripts/generate-catalog-sync-migration.cjs` said "Updates only.
+No row is inserted or deleted here", which was true and was the problem. It now
+also retires rows the catalog no longer lists, and
+`20260803180000_sync_catalog_paid_access.sql` was moved into `APPLIED_MIGRATIONS`
+per that script's own rule.
+
+The number 34 was written down in five places — the deploy gate twice, two test
+files, and a hand-written document — and removing eleven products failed all
+five. None of them knew the number independently; each was repeating the
+catalog. The gate derives its counts now, and
+`tests/published-catalog-sync.test.js` fails if a literal comes back.
+
+**Two checks went vacuous on their own success**, which is worth recording
+because both were correctly written and both still had to change. One required
+the production catalog to always contain a restricted product; that reads as a
+boundary check and is really a requirement that something stay unfinished. The
+other asserted the "why is this closed, how do I ask" copy appears on the
+rendered catalog page — true while anything was closed, and it failed on a page
+that was correct once nothing was. The wording is what the production gate
+reads, so relaxing it would have left it unguarded; `catalogAccessReason` and
+`catalogRequestLabel` are exported and asked directly instead, against products
+built to be closed.
+
+`docs/SONARA_RECOMMENDED_PRODUCT_CATALOG_2026.md` is generated now
+(`pnpm run gen:catalog-doc`, checked by `verify:launch`). The hand-written
+version listed 34 products under names the code had stopped using and opened
+with "SONARA Nexus Shared Operating Spine" — a retired public name AGENTS.md
+forbids in launch docs. Nothing referenced the file, which is why nothing
+failed.
+
+`openSourceToolStatuses` in `data/open-source-tools.ts` ends in
+`satisfies Record<OpenSourceIntegrationStatus, string>`, which reads as the
+compiler guaranteeing every status has a label. It is not: `pnpm run typecheck`
+is a parse check over the runtime `.js` and `.cjs` files and never compiles that
+file, so the clause was decoration. `adapter_built` had been in the union and
+taken by six records with no label. `verify:open-source` compares the two now,
+and was checked against both a missing label and a spurious one before being
+trusted.
+
+`veedstudio/open-edit` registered, Apache-2.0 read from the LICENSE file at
+`main`. `research_only`, and the reason is not the repository's licence: the
+renderer it ships is VEED's own closed-source binary, "free to use" — a
+permission the vendor grants and can withdraw — and it runs on Apple Silicon
+macOS only, so nothing in a Linux serverless function could call it. A tool for
+the owner's laptop, which is the boundary
+`docs/architecture/EXTERNAL-SERVICES.md` already draws.
+
+Verified: `pnpm run verify:launch` green end to end, 1,645 tests passing.
 
 ### 2026-08-11 — The search page nothing linked to
 

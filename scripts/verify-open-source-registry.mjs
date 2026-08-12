@@ -120,6 +120,28 @@ if (ALLOWED_STATUSES.size === 0) {
   errors.push("Could not read OpenSourceIntegrationStatus from data/open-source-tools.ts, so no status could be checked.");
 }
 
+// Every status must have a label a reader can be shown.
+//
+// openSourceToolStatuses ends in `satisfies Record<OpenSourceIntegrationStatus,
+// string>`, which looks like the compiler enforcing exactly that. It is not:
+// nothing in this repository compiles data/open-source-tools.ts, so the clause
+// is decoration. adapter_built was added to the union and taken by six records
+// while the map had no row for it, and the only symptom would have been a
+// status rendering as undefined wherever the map is read.
+const labelBlock = withoutComments.match(/export const openSourceToolStatuses = \{([\s\S]*?)\}\s*satisfies/);
+if (!labelBlock) {
+  errors.push("Could not read openSourceToolStatuses from data/open-source-tools.ts, so no label could be checked.");
+} else {
+  const labelled = new Set([...labelBlock[1].matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]));
+  if (labelled.size === 0) errors.push("openSourceToolStatuses parsed as empty, so this check would pass on anything.");
+  for (const status of ALLOWED_STATUSES) {
+    if (!labelled.has(status)) errors.push(`Integration status "${status}" has no label in openSourceToolStatuses.`);
+  }
+  for (const status of labelled) {
+    if (!ALLOWED_STATUSES.has(status)) errors.push(`openSourceToolStatuses labels "${status}", which is not an integration status.`);
+  }
+}
+
 const seenSlugs = new Set();
 for (const block of toolBlocks) {
   const record = {

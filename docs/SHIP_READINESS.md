@@ -10,25 +10,34 @@ something was left open has been forgotten.
 
 ## The state of the paid path
 
-Thirteen of thirty-four catalog products execute. Twenty-one do not.
+All twenty-three catalog products execute. None is restricted.
 
-That split is real rather than provisional. A paid product executes only where
-the server enforces an entitlement for its product family — `business_builder`,
-`creator_studio` and `growth_studio` have one; `sonara_industries` does not, so
-its nine paid entries stay shut. The remaining twelve are shut on lifecycle:
-planned, validation-required or setup-required.
+That took three passes and only one of them was a fix to the boundary itself.
 
-Until recently that number was three. The catalog defined "paid access is
-verified" as `planFloor === "free"`, which made every paid product permanently
-unreachable — not pending a check somebody could run, but false by construction
-— while the deploy printed "paid execution remains restricted until positive
-production entitlement verification" on every release, which reads like pending
-work rather than a definition that could never come true.
+First, the catalog defined "paid access is verified" as `planFloor === "free"`,
+which made every paid product permanently unreachable — not pending a check
+somebody could run, but false by construction — while the deploy printed "paid
+execution remains restricted until positive production entitlement
+verification" on every release, which reads like pending work rather than a
+definition that could never come true. Fixing that opened thirteen of
+thirty-four.
+
+Second, eight of the remaining twenty-one were only mislabelled: platform
+products priced on a plan `sonara_industries` enforces nothing for, and Growth
+Studio products whose pages were built and whose lifecycle field still said
+otherwise. Repricing and relabelling them opened those.
+
+Third, the last eleven described work that does not exist — pages that deliver
+a setup checklist under a name promising exports, features named for tables
+nothing writes to. They were removed from the catalog rather than relabelled,
+and `supabase/migrations/20260812120000_retire_removed_catalog_products.sql`
+retires their published rows, because `/service-catalog` merges the database
+over the code and would otherwise have gone on serving all eleven.
 
 **The one thing still unproven:** nobody has completed a paid signup in
 production end to end. `positiveSubscribedUserTest` reports `"pending"` on every
-deploy and should keep reporting it until somebody runs one. Thirteen products
-now depend on that path, and it is the last genuine unknown in it.
+deploy and should keep reporting it until somebody runs one. Every paid product
+depends on that path, and it is the last genuine unknown in it.
 
 ---
 

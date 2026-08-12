@@ -1979,15 +1979,55 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     blockedUses: ["shipping a customer-facing feature whose cost is a third-party subscription"],
     humanReviewRequired: true,
   },
+  {
+    name: "OpenEdit",
+    slug: "veed-open-edit",
+    category: ["video editing", "agent skill", "local tooling"],
+    useCase: [
+      "producing marketing and launch video on the owner's own machine",
+      "a worked example of an agent-driven pipeline with no GUI",
+    ],
+    productFit: [],
+    license: "Apache-2.0",
+    licenseRisk: "medium",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "use on the owner's Mac for marketing footage, never from a request path",
+      "get VEED's terms for the renderer binary in writing before anything commercial depends on it",
+      "treat transcription as a vendor cost, since the free option is an account with VEED",
+    ],
+    officialUrl: "https://www.veed.io",
+    repoUrl: "https://github.com/veedstudio/open-edit",
+    notes:
+      "VEED's agent-driven video pipeline: no timeline and no GUI, driven entirely by a coding agent, installed as a skill with `npx skills add veedstudio/open-edit`. The repository is Apache-2.0, verified from the LICENSE file at main rather than from the badge in the README. Two things stop it being an application dependency, and neither is the repository's licence. The renderer it ships is VEED's own HTML renderer, which the README states plainly is closed source and free to use -- free to use is a permission the vendor grants and can withdraw, the same reasoning this register already applies to a hosted free tier, and the Apache-2.0 grant on the repository says nothing about that binary. And the renderer is macOS on Apple Silicon only, with Intel explicitly unsupported: this application is an Express app on Linux serverless functions, so there is no runtime here it could execute in even if the terms allowed it. That makes it a tool for the owner's laptop, which is exactly the boundary docs/architecture/EXTERNAL-SERVICES.md draws -- a serverless function cannot reach a machine under somebody's desk. Genuinely useful there: the launch and product video this project needs is work nobody has started, and this does it from a brief.",
+    safetyBoundaries: [
+      "no product path invokes it, because no product path could",
+      "no customer footage leaves the owner's machine for transcription without the owner choosing that",
+    ],
+    blockedUses: [
+      "any shipped feature depending on a closed-source binary licensed only by the phrase free to use",
+      "any runtime dependency on a macOS-only tool from a Linux serverless function",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
   return openSourceTools.find((tool) => tool.slug === slug);
 }
 
+// The `satisfies` below reads as a guarantee that every status has a label,
+// and it was not one: adapter_built was added to the union, six records took
+// it, and this map never gained a row. Nothing objected, because no build step
+// in this repository ever compiles this file -- `pnpm run typecheck` is a parse
+// check over the runtime .js and .cjs files, so the clause was never evaluated.
+// scripts/verify-open-source-registry.mjs now compares the union to these keys,
+// which is a check that actually runs.
 export const openSourceToolStatuses = {
   reference_only: "Reference only",
   optional_adapter_after_review: "Optional adapter after review",
+  adapter_built: "Adapter built",
   research_only: "Research only",
   blocked: "Blocked",
   needs_license_review: "Needs license review",

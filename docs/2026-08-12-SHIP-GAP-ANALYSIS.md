@@ -8,16 +8,22 @@ the things below are not in them.
 
 ## The engineering gate is green
 
-`pnpm run verify:launch` passes all nineteen commands. 1,610 tests pass. The
-catalog reports 34 products, 13 execution-enabled, and **entitlement integration
-is verified for all 13** — there is no product that can run without the server
-checking whether the customer paid for it.
+`pnpm run verify:launch` passes every command in the chain. The catalog reports
+23 products, all 23 execution-enabled, and **entitlement integration is verified
+for all of them** — there is no product that can run without the server checking
+whether the customer paid for it.
 
-The 21 restricted products are restricted for stated reasons (13
-validation-required, 1 planned, and 7 `sonara_industries` entries that are pages
-rather than executable products). That split is disclosed on the site. It is a
-smaller launch than the catalog implies, and it is honestly labelled, so it is
-not a blocker.
+This paragraph originally read "34 products, 13 execution-enabled" and called
+the 21 restricted ones "a smaller launch than the catalog implies, honestly
+labelled, so not a blocker". Two rounds of work since have closed that gap from
+both ends. Eight of the 21 were only mislabelled and were opened. The other
+eleven described work that does not exist and were removed from the catalog,
+with `supabase/migrations/20260812120000_retire_removed_catalog_products.sql`
+retiring their published rows — without it `/service-catalog` would have gone on
+serving all eleven from the database, which merges over the code.
+
+An honest label on a product that does nothing is still a product that does
+nothing. The catalog is now shorter and every entry in it opens.
 
 **So the remaining work is not code quality.** It is four things, and two of them
 are not written down anywhere else.

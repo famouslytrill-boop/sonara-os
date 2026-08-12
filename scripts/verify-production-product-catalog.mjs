@@ -44,6 +44,11 @@ async function verifyProductionDatabase() {
   url.searchParams.set("select", "service_key,product_key,name,product_type,plan_floor,lifecycle_status,route_path,entitlement_integration_verified,execution_enabled,metadata,status,sort_order");
   url.searchParams.set("service_key", "not.is.null");
   url.searchParams.set("product_type", "eq.software_product");
+  // Published rows only. Retiring a product sets status to 'retired' rather
+  // than deleting the row, because /service-catalog filters on active and the
+  // history is worth keeping -- so without this filter the gate reads rows the
+  // catalog deliberately stopped listing and fails on every one of them.
+  url.searchParams.set("status", "eq.active");
   url.searchParams.set("order", "sort_order.asc");
   url.searchParams.set("limit", "100");
 
@@ -58,7 +63,15 @@ async function verifyProductionDatabase() {
   assert.equal(response.ok, true, `Production catalog query failed with HTTP ${response.status}: ${safeDiagnostic(responseText)}`);
   const rows = JSON.parse(responseText);
   assert.ok(Array.isArray(rows), "Production catalog response must be an array");
-  assert.equal(rows.length, 34, `Production service_catalog_items must contain exactly 34 software product records; found ${rows.length}`);
+  // Was the literal 34, in four places across this file, the boundary
+  // migration and two test files. The number is not something this gate knows
+  // independently -- it is however many products the shipped catalog lists --
+  // so removing eleven products failed five checks that were only ever
+  // repeating each other. The count comes from the catalog now, and the
+  // guard below is the part that has to be a number.
+  const expectedTotal = RECOMMENDED_PRODUCT_CATALOG.length;
+  assert.ok(expectedTotal >= 20, `The shipped catalog is down to ${expectedTotal} products; this gate will not vouch for that without a look`);
+  assert.equal(rows.length, expectedTotal, `Production service_catalog_items must contain exactly ${expectedTotal} published software product records; found ${rows.length}`);
 
   const expectedByKey = new Map(RECOMMENDED_PRODUCT_CATALOG.map((item) => [item.serviceKey, item]));
   const actualByKey = new Map();
@@ -84,15 +97,21 @@ async function verifyProductionDatabase() {
   }
 
   const companyCounts = countBy(rows, "product_key");
-  assert.deepEqual(companyCounts, {
-    business_builder: 8,
-    creator_studio: 8,
-    growth_studio: 8,
-    sonara_industries: 10
-  });
+  assert.deepEqual(companyCounts, countBy(RECOMMENDED_PRODUCT_CATALOG.map((item) => ({ product_key: item.productKey })), "product_key"));
+  assert.ok(Object.keys(companyCounts).length === 4, `Production catalog covers ${Object.keys(companyCounts).length} product families, not four`);
 
-  const restrictedLifecycleRows = rows.filter((row) => RESTRICTED_LIFECYCLE_STATUSES.includes(row.lifecycle_status));
-  assert.ok(restrictedLifecycleRows.length > 0, "The production catalog must retain explicitly restricted lifecycle records");
+  // This required the production catalog to always hold a restricted product,
+  // which reads as a boundary check and is really a requirement that some
+  // product stay unfinished. Every remaining product is now either active or
+  // beta, and that is the outcome the restriction was tracking towards. What
+  // still has to hold is that a restricted row, if one exists, cannot execute
+  // -- checked against every row below rather than against a filtered list
+  // that may be empty.
+  for (const row of rows) {
+    if (RESTRICTED_LIFECYCLE_STATUSES.includes(row.lifecycle_status)) {
+      assert.equal(row.execution_enabled, false, `${row.service_key} is ${row.lifecycle_status} in production and has execution enabled`);
+    }
+  }
 
   const paidRows = rows.filter((row) => row.plan_floor !== "free");
   assert.ok(paidRows.length > 0, "The production catalog must contain paid-plan products");
@@ -165,8 +184,22 @@ function verifyEntitlementSourceContract() {
   ]) assert.ok(server.includes(marker), `Paid entitlement fail-closed contract is missing from the deployed runtime: ${marker}`);
 
   const summary = getRecommendedProductCatalogSummary();
-  assert.equal(summary.total, 34);
-  assert.ok(summary.entitlementVerificationRequired > 0, "Paid catalog products must stay marked for entitlement verification");
+  assert.equal(summary.total, RECOMMENDED_PRODUCT_CATALOG.length);
+  // Was `> 0`: at least one paid product must still be waiting on entitlement
+  // work. That is true while a paid product belongs to a family the server
+  // enforces nothing for, and it is now zero on purpose -- the platform
+  // products that were priced without an entitlement behind them were repriced
+  // to free. The rule underneath it is what this checks: a product waiting on
+  // entitlement work must not be running.
+  assert.equal(
+    summary.entitlementVerificationRequired,
+    RECOMMENDED_PRODUCT_CATALOG.filter((item) => item.planFloor !== "free" && !item.entitlementIntegrationVerified).length
+  );
+  for (const item of RECOMMENDED_PRODUCT_CATALOG) {
+    if (item.planFloor !== "free" && !item.entitlementIntegrationVerified) {
+      assert.equal(item.executionEnabled, false, `${item.serviceKey} is paid, unverified, and executing`);
+    }
+  }
 
   return {
     serverEnforcement: "verified",
