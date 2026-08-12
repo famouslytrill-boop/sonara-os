@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 126 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 127 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1139,3 +1139,39 @@ and watching both errors appear.
 
 Fifty-eight variables read, ten required. `docs/owner/WHAT-MUST-BE-ON.md` says
 which, and what breaks without each.
+
+### 2026-08-12 — All ten required variables were already set, and an adapter did its first work
+
+Asked to set the ten required variables, and could not: they are secrets held in
+Vercel, not in the repository, and AGENTS.md forbids committing them. Asking
+production turned out to be better than setting anything — `/api/readiness`
+reports configuration status without leaking values, and it says every one is
+already configured. Supabase, Stripe, the Stripe webhook, Resend and admin
+protection all `configured`, `missing` empty for every service, all three paid
+plans at `checkout: enabled`. Google sign-in is `deferred`, deliberately.
+
+So there was nothing to set. What is left is the leaked-password ratchet and the
+paid signup nobody has run.
+
+**Six adapters existed and nothing called them** — one step from a module
+nothing references. The readiness page reported whether they were configured and
+no feature ever asked them for anything.
+
+`POST /api/market-intelligence/fetch-source` is the first that does work. Every
+market intelligence surface depended on somebody having the page open in another
+tab; this is the difference between recording what you found and going to look.
+
+**It fetches and it stops.** Nothing is written — no summary, no signal type, no
+confidence. A signal is evidence somebody judged, and a summary this server
+invented would enter the record indistinguishable from one an owner wrote. The
+test asserts the handler contains no insert, no `recordEvent`, no table name,
+and none of the five fields the signal form requires.
+
+An unconfigured Crawl4AI answers 200 with `fetched: false` and says to paste the
+text instead. A 503 would make an optional capability look like a broken one,
+and this page worked before the adapter existed.
+
+The form-reachability check flagged it — correctly by its own rule and wrongly
+for this case, since it matches create-shaped POSTs and this one creates
+nothing. Recorded with that reason rather than joining the four "NOT YET
+EXAMINED" entries beside it, because this one has been examined.

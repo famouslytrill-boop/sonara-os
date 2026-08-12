@@ -70,6 +70,11 @@ const NO_FORM_NEEDED = {
   "/api/integrations/jobs": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/haptic-patterns": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
+  // Examined, unlike the four below it. This one creates nothing at all -- it
+  // fetches the text of a page so it does not have to be pasted, and returns
+  // it. The create-shaped scan matches it on the POST, which is the right
+  // default and the wrong answer here.
+  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read, and the signal form is still the only way anything is written.",
   "/api/market-intelligence/competitors": "NOT YET EXAMINED: research record, no form found.",
   "/api/market-intelligence/opportunities": "NOT YET EXAMINED: research record, no form found.",
   "/api/market-intelligence/segments": "NOT YET EXAMINED: research record, no form found.",

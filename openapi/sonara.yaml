@@ -1132,6 +1132,14 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/market-intelligence/fetch-source:
+    post:
+      operationId: fetchMarketIntelligenceSource
+      tags: [Operations]
+      summary: Fetch the text of a source page so it does not have to be pasted. Writes nothing.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/quotes:
     get:
       operationId: listBusinessQuotes
