@@ -1119,3 +1119,31 @@ explicitly — a count-based check would pass again the next time something is
 added and forgotten, which is exactly how this happened.
 
 Verified by removing an exclusion and watching it fail.
+
+### 2026-08-12 — The owner dashboard showed one side of the money
+
+Two gaps, both the same shape as the search one, found by checking rather than
+assuming.
+
+`operationsSummary` counted `vendor_invoices` under the label **"Invoices"** and
+did not count `customer_invoices` at all. An owner opening their own dashboard
+saw what they owed suppliers and nothing about what customers owed them — the
+outward-only bias the schema had before accounts receivable existed, still
+sitting in the summary. Both sides are counted now, and both are labelled by
+direction: "Bills you owe" and "Invoices you have sent". The bare word
+"Invoices" is no longer used for either, because with two sides on screen it
+reads as whichever one you were looking for.
+
+None of the money pages were linked from it. Customers, quotes, receivables,
+money due and chase drafts were all reachable only by knowing the URL.
+
+One thing worth recording about how this was found: the first harness read
+`ROUTE_REGISTRY` entries as `.path` when the field is `.route`, and reported all
+sixteen record-check fix links as broken. They were all fine. Three times now a
+check has been wrong rather than the code, so the reflex of confirming the
+harness before believing an alarming result keeps earning its keep.
+
+`tests/owner-dashboard-reach.test.js` fails if a money page stops being linked,
+if either invoice table stops being counted, if they share a label, or if a
+label stops saying which direction the money goes. Verified by removing a link
+and flattening a label, and watching both fail.

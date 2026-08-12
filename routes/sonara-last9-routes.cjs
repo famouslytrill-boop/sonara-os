@@ -71,7 +71,7 @@ const PUBLIC_GETS = new Map([
 // lib/sonara-owner-record-pages.cjs, which is also where the reason they
 // needed rewriting is recorded.
 const OWNER_PAGES = [
-  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: locations, staff, services, bookings, inventory, vendors, invoices, food costs, vehicles, and maintenance."]
+  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
 ];
 
 // The staff portal.
@@ -120,6 +120,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // they did not already know they were looking for.
           ui.link("/search", "Search your records"),
           ui.link("/business-builder/owner/assistant", "What needs attention"),
+          // The money loop, in the order it happens. None of these was
+          // reachable from here, so an owner landing on their own dashboard
+          // could not get to what they are owed without knowing the URL.
+          ui.link("/business-builder/owner/customers", "Customers"),
+          ui.link("/business-builder/owner/quotes", "Quotes"),
+          ui.link("/business-builder/owner/receivables", "Money owed to you"),
+          ui.link("/business-builder/owner/money-due", "Money due in and out"),
+          ui.link("/business-builder/owner/chase-drafts", "Chase drafts"),
           ui.link("/business-builder/owner/locations", "Locations"),
           ui.link("/business-builder/owner/staff", "Staff"),
           ui.link("/business-builder/owner/time", "Time"),
@@ -792,7 +800,15 @@ async function operationsSummary(config, organizationId) {
     ["Time entries", "employee_time_entries"],
     ["Inventory", "inventory_items"],
     ["Vendors", "vendor_accounts"],
-    ["Invoices", "vendor_invoices"],
+    // "Invoices" meant vendor invoices, which is money going out. The label
+    // was ambiguous and the counterpart was missing entirely, so an owner
+    // looking at this dashboard saw what they owed and nothing about what they
+    // were owed -- the same outward-only bias the schema had before
+    // customer_invoices existed. Both sides now, both labelled.
+    ["Bills you owe", "vendor_invoices"],
+    ["Customers", "customers"],
+    ["Quotes", "quotes"],
+    ["Invoices you have sent", "customer_invoices"],
     ["Recipes", "recipe_cards"],
     ["Menu", "menu_items"],
     ["Daily profit", "daily_profit_snapshots"],
