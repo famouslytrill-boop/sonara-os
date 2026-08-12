@@ -17,6 +17,9 @@ away from what the code actually does.
   Add an entry when you finish a piece of work.
 - **`docs/SHIP_READINESS.md`** — what is deliberately still open, and the three
   things only the owner can close.
+- **`docs/owner/`** — `WHAT-IS-LEFT.md` is the derived count of remaining work,
+  and `OWNER-STEPS.md` is the four things only the owner can do, each written to
+  be run rather than interpreted. Update both when one is closed.
 - **`docs/market/`** and **`docs/pricing/`** — what competing stacks cost and
   what we actually replace, each figure dated and sourced. Read these before
   writing a comparison into marketing copy; the numbers in them are checkable

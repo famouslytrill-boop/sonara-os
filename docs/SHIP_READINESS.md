@@ -143,23 +143,36 @@ Found while building `lib/sonara-agent-runner.cjs`, and recorded rather than
 worked around.
 
 `entity_action_runs` is scoped by `entity_id`. `entities` has **no
-`organization_id`** — the nineteen agent tables scope by entity membership,
-while every other table in this product scopes by organization. There is no
-join between the two.
+`organization_id`** — the nineteen `entity_*` agent tables scope by entity
+membership, while every other table in this product scopes by organization.
+There is no join between the two. Those nineteen tables are still unwritten,
+and the architectural decision — give organizations entities, or re-scope the
+agent tables — is still one somebody should make on purpose.
 
-So a run belonging to an organization has nowhere correct to go. Writing one
-would mean either inventing an entity per organization, or leaving a NOT NULL
-foreign key null. Both are worse than not writing yet, and both would be
-invisible afterwards — the rows would exist and look right.
+**What this section used to say, and why it was too broad.** It said a run had
+nowhere correct to go and the runner therefore persisted nothing. That was true
+of the `entity_*` tables and not true of the schema: `agent_action_logs` carries
+`organization_id`, has an `(organization_id, created_at desc)` index, and was
+read and written by nothing. The check had stopped at the tables whose names
+began with `entity_`. `lib/sonara-agent-action-log.cjs` now writes every run
+there and `/owner/agent-activity` reads them back.
 
-The runner therefore takes an injectable recorder and ships with none. Runs are
-classified, decided, executed and returned; they are not persisted. That is a
-real gap and it is stated here rather than closed badly, because the decision —
-give organizations entities, or re-scope the agent tables — is an architectural
-one somebody should make on purpose.
+**The gap that is actually still open is a different one: nothing re-runs an
+action after approval.** The runner is called per request by the page that wants
+work done; there is no queue consuming approvals. A gated action is classified,
+refused, and recorded as pending, and that is where it stops.
 
-Nothing is lost in the meantime that was not already lost: nothing has ever
-written to those tables.
+This is deliberately not being closed by building a queue, because there is
+nothing for a queue to execute. No handler in this repository performs a refund,
+a payout change, a policy publication or a customer send — the seven categories
+that need approval are categories no code implements. A queue over them would be
+the frame of a mechanism with no contents, and `/owner/agent-activity` would
+gain an approve button whose only effect was to change a word in a log. The
+runner already reports `unimplemented` for exactly this case, which is the
+honest answer until a handler exists.
+
+The order is therefore: build a gated capability first, then the approval path
+it needs. Not the reverse.
 
 **Fifteen tables have RLS enabled with no policy**, reported as INFO. That is
 the safe state, not a gap: RLS with no policy denies everything except the

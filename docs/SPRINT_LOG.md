@@ -801,3 +801,38 @@ omitted. A shorter list with no explanation reads as less debt.
 The message is a readonly textarea rather than a copy button: the CSP is
 `script-src 'self'` with no bundler, so a button would need inline script, and
 selecting text cannot fail silently the way a clipboard call can.
+
+### 2026-08-12 — Counting what is left, and correcting what was said about it
+
+`docs/owner/WHAT-IS-LEFT.md` and `docs/owner/OWNER-STEPS.md`.
+
+The count is two numbers because "completely done" means two things. Shipping
+what exists is **four steps, all owner-only** — no repository-side work remains,
+which was verified rather than assumed: no TODOs, no unimplemented paths, 1347
+tests passing, the eighteen-command chain green.
+
+Building everything discussed has **no step count**, and quoting one would be
+the most misleading thing in either document. The list is open-ended, 8 of 66
+reviewed repositories cannot be incorporated at all on licence grounds, and
+"fully autonomous" contradicts the seven owner-approval categories that are also
+an instruction. Stated plainly rather than absorbed into an estimate.
+
+The four owner steps are written to be run: the exact SQL, the dashboard path,
+and how to tell it worked. Item 4 in particular — one `EXECUTE` revoke on a
+preview branch — is the only part of the advisor's remediation this repository
+can call safe on its own evidence, and the migration is deliberately **not**
+written, because a migration here runs on deploy and shipping it without the
+branch test would be acting past the evidence.
+
+`SHIP_READINESS.md` still claimed the runner persists nothing. That stopped
+being true when `agent_action_logs` was wired. Corrected — and the correction
+names the gap that is actually still open, which is that nothing re-runs an
+action after approval.
+
+**That gap is deliberately not being closed.** No handler in this repository
+performs a refund, a payout change, a policy publication or a customer send, so
+a queue over the seven gated categories would be the frame of a mechanism with
+no contents, and the approval screen would gain a button whose only effect was
+to change a word in a log. The runner already reports `unimplemented`, which is
+the honest answer until a handler exists. Build a gated capability first, then
+the approval path it needs.

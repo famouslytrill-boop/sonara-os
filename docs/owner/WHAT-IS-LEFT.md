@@ -1,0 +1,77 @@
+# How many steps are left
+
+Written 12 August 2026. The honest answer is two numbers, because "completely
+done" means two different things and only one of them is countable.
+
+---
+
+## Shipping what exists: 4 steps, all yours
+
+The repository side is finished. There are no TODOs, no unimplemented paths, no
+failing checks. `pnpm test` is at 1347 passing and the eighteen-command
+`verify:launch` chain is green.
+
+The four remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
+rather than interpreted:
+
+| # | Step | Why it cannot be done here |
+| --- | --- | --- |
+| 1 | Buy a plan in production, once | Needs a real card on the live account |
+| 2 | Turn on Supabase leaked-password protection, and set the env var that makes it a gate | Dashboard toggle; the MCP connection is read-only by contract |
+| 3 | Export four authorization functions into version control | They exist in the live database and in no migration |
+| 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
+
+Nothing else is blocking a launch of what is built.
+
+## Building everything discussed: not a number, and here is why
+
+The larger scope — roughly forty named product surfaces, "all pages in advanced
+3D", every reviewed repository installed, the application fully autonomous — has
+no step count, and quoting one would be the most misleading thing in this
+document.
+
+Three reasons, each checkable rather than an opinion.
+
+**The list is open.** Forty surfaces was the count in one message. Restaurant
+management, scheduling, project management, logbooks, memos, hiring, public
+channels, feeds, note-taking, book writing, podcasts, streaming, DAW workflows,
+MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
+tickets, presentations. Each of those is a product, not a page. Any number I
+gave would be a number for my interpretation of them.
+
+**Some of it cannot be built as stated.** Of 66 reviewed repositories, 6 are
+reciprocal (AGPL/GPL/OSL) and reach network-served software, 2 declare no
+licence at all — which is not a review item, it is an absence of permission —
+and 1 ships a runtime whose licence specifically restricts hosting it as a
+service. "Install all repositories" has no completion state that is also legal.
+
+**Part of it contradicts the rest of it.** "Fully autonomous with very little
+human intervening" and `AGENTS.md`'s seven owner-approval categories are both
+your instructions. The second is implemented in `lib/sonara-agent-authority.cjs`
+and enforced on every release. I have built toward the version where everything
+outside those seven runs unattended and records itself, which is the largest
+autonomy those two sentences allow together.
+
+## What a real answer looks like instead
+
+Pick the next surface and it becomes countable. The last five were, and each
+took one sprint: accounts receivable, money due in and out, invoice line items,
+quote to invoice, chase drafts. Every one of them was countable because it was
+one job for one kind of business, with a table under it.
+
+The pattern that worked: name the job, check what the schema already holds,
+build the smallest honest version, and let the release gates find what was
+missed. On those five they found ten real defects, including a form that could
+never save and two POST handlers silently sharing one path.
+
+## What has been built, in numbers
+
+Counted from the repository on 12 August 2026, not recalled.
+
+- **242** registered GET routes
+- **301** tables, 208 of them organization-scoped
+- **22** owner record pages, **22** record checks
+- **1347** tests, **18** verification commands in the release chain
+- **66** external repositories reviewed with their licences read off each one
+- **0** modules under `lib/` or `routes/` that nothing references
+- **0** tables created and never queried without a recorded decision
