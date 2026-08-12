@@ -86,33 +86,45 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   // The owner acting, not an agent, for the same reason as the quote step: a
   // person pressing a button they can see is the person.
   app.post("/api/growth-studio/leads/:leadId/customer", access, async (req, res) => {
+    // The button on /growth-studio/enquiries posts here from a plain form, so
+    // the reply has to be a page. Handing a browser the JSON body shows the
+    // owner a wall of punctuation and loses the customer they just created --
+    // a working endpoint that reads as a crash.
+    const back = "/growth-studio/enquiries";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      // Somewhere useful on success: the customer now exists, so show it.
+      if (payload.ok) return res.redirect(303, "/business-builder/owner/customers");
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_converted")}`);
+    };
+
     const context = await resolveContext(req, deps);
-    if (!context.ok) return res.status(context.status).json(context);
-    if (!validUuid(req.params.leadId)) return res.status(400).json({ ok: false, code: "invalid_lead_id" });
+    if (!context.ok) return respond(context.status, context);
+    if (!validUuid(req.params.leadId)) return respond(400, { ok: false, code: "invalid_lead_id" });
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
 
     const found = await loadOne(config, TABLES.leads, context, req.params.leadId);
-    if (!found.ok) return res.status(found.status).json({ ok: false, code: found.code });
+    if (!found.ok) return respond(found.status, { ok: false, code: found.code });
     const lead = found.row;
 
     // Existing customers are read before deciding. An unreadable list is not an
     // empty one -- treating a failed read as "no duplicates" is how the same
     // person ends up in the customer list twice with half the invoices on each.
     const customers = await list(config, TABLES.customers, context, 1000);
-    if (!customers.ok) return res.status(503).json({ ok: false, code: "cannot_check_existing_customers" });
+    if (!customers.ok) return respond(503, { ok: false, code: "cannot_check_existing_customers" });
 
     const refusal = leadConversion.reasonNotConvertible(lead, customers.rows);
-    if (refusal) return res.status(409).json({ ok: false, code: "not_convertible", reason: refusal });
+    if (refusal) return respond(409, { ok: false, code: "not_convertible", reason: refusal });
 
     const created = await insert(config, TABLES.customers, leadConversion.customerFromLead(lead, {
       organizationId: context.organizationId,
       userId: context.userId
     }));
-    if (!created.ok) return res.status(502).json({ ok: false, code: created.code });
+    if (!created.ok) return respond(502, { ok: false, code: created.code });
 
     const customerId = created.rows[0]?.id || null;
-    if (!customerId) return res.status(502).json({ ok: false, code: "customer_id_missing" });
+    if (!customerId) return respond(502, { ok: false, code: "customer_id_missing" });
 
     // Best-effort, and deliberately after the customer exists. If this fails
     // the customer is real and the lead simply does not know about it yet,
@@ -121,7 +133,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const linked = await patchRows(config, TABLES.leads, context, lead.id, { customer_id: customerId });
     if (created.ok) await controlEvent(config, context, "lead.converted", "success", { lead_id: lead.id, customer_id: customerId, linked: linked.ok });
 
-    return res.status(201).json({ ok: true, customerId, leadLinked: linked.ok });
+    return respond(201, { ok: true, customerId, leadLinked: linked.ok });
   });
 
   app.get("/api/growth/campaigns", access, listHandler(TABLES.campaigns, deps, "campaigns"));
@@ -555,6 +567,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         ui.link("/growth-studio/attribution", "Where results came from"),
         ui.link("/growth-studio/campaigns", "Campaigns"),
         ui.link("/growth-studio/leads", "Leads"),
+        ui.link("/growth-studio/enquiries", "People who got in touch"),
         ui.link("/growth-studio/provider-jobs", "Work sent to services")
       ]
     }));
@@ -581,7 +594,16 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       }
       const sections = unavailable ? [ui.card("Not available right now", unavailable)] : [];
       if (!unavailable && page.includesTotals) sections.push(await growthTotalsCard(config, context, ui));
-      if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape));
+      // The refusal rules for a row action can need records this page does not
+      // list. A failed read is left as null rather than an empty array so the
+      // action reports "could not check" instead of quietly deciding there are
+      // no duplicates.
+      let actionContext = null;
+      if (!unavailable && page.needsCustomers) {
+        const existing = await list(config, TABLES.customers, context, 1000);
+        actionContext = { customers: existing.ok ? existing.rows : null };
+      }
+      if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape, actionContext));
       // The form goes on the page that lists the records, so the way to add one
       // is where somebody looking at an empty list already is. A create route
       // reachable only by knowing its URL is the same as not having one.
@@ -629,12 +651,41 @@ async function growthTotalsCard(config, context, ui) {
   return `<article class="card"><h2>Your totals</h2><table><tbody>${rows}</tbody></table><p>These are counted from your own records. Where a figure says a campaign brought in a sale, that is what the source reported, not proof it caused it.</p></article>`;
 }
 
-function recordTableCard(page, rows, escape) {
-  const head = page.columns.map((column) => `<th>${escape(column.label)}</th>`).join("");
+function recordTableCard(page, rows, escape, context = null) {
+  // A row can act on itself. The same shape as the owner record pages in
+  // routes/sonara-last9-routes.cjs, and here for the same reason: an endpoint
+  // that takes a path parameter is skipped by the form-reachability scan, so
+  // "the button does not exist" is a defect no check reports. Declaring the
+  // action beside the page means the row that can take it renders it, and the
+  // row that cannot says why in the same column instead of showing a button
+  // that will refuse.
+  const action = page.rowAction || null;
+  const heads = [...page.columns.map((column) => `<th>${escape(column.label)}</th>`)];
+  if (action) heads.push(`<th>${escape(action.columnLabel || "Action")}</th>`);
+  const width = heads.length;
   const body = rows.length
-    ? rows.map((row) => `<tr>${page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${page.columns.length}">${escape(page.empty)}</td></tr>`;
-  return `<article class="card"><h2>${escape(page.heading)}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+    ? rows.map((row) => {
+      const cells = page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`);
+      if (action) cells.push(`<td>${actionCell(action, row, escape, context)}</td>`);
+      return `<tr>${cells.join("")}</tr>`;
+    }).join("")
+    : `<tr><td colspan="${width}">${escape(page.empty)}</td></tr>`;
+  return `<article class="card"><h2>${escape(page.heading)}</h2><table><thead><tr>${heads.join("")}</tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+// Either a button or the reason there is not one. A spec that throws on an odd
+// row must not take the page down, and it must not fall through to a button
+// either -- an unanswerable question is not a yes.
+function actionCell(action, row, escape, context) {
+  let reason;
+  try {
+    reason = action.reasonUnavailable ? action.reasonUnavailable(row, context) : null;
+  } catch {
+    reason = "This cannot be checked right now.";
+  }
+  if (reason) return escape(reason);
+  const id = encodeURIComponent(String(row.id || ""));
+  return `<form method="post" action="${escape(action.api.replace(":id", id))}"><button type="submit">${escape(action.label)}</button></form>`;
 }
 
 // A column reads fields off a record that a provider may have left in an
@@ -961,3 +1012,11 @@ function safeError(error) { return clean(error?.message || error || "Unknown pro
 function containsUnsafeExpression(value) { const text = JSON.stringify(value || {}).toLowerCase(); return /(?:javascript:|<script|child_process|exec\s*\(|spawn\s*\(|eval\s*\(|require\s*\(|__proto__|constructor\.prototype|file:\/\/|ssh:\/\/)/.test(text); }
 function sanitizeProviderPayload(value) { if (!value || typeof value !== "object") return {}; const copy = JSON.parse(JSON.stringify(value)); scrub(copy); return copy; }
 function scrub(value) { if (!value || typeof value !== "object") return; for (const key of Object.keys(value)) { if (/api.?key|token|authorization|credential|secret|password/i.test(key)) value[key] = "[redacted]"; else scrub(value[key]); } }
+
+// A browser form post announces itself either by Accept or by content type.
+// Same shape as routes/sonara-last9-routes.cjs, which is where the owner record
+// pages answer their own row actions.
+function acceptsHtml(req) {
+  return String(req.get?.("accept") || "").includes("text/html")
+    || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
+}
