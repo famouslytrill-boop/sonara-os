@@ -21,6 +21,8 @@
 //           organization is that decision at the largest possible scale.
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-last9-routes.cjs");
@@ -130,5 +132,81 @@ describe("a customer can take their records with them", () => {
     await request(app).post("/account/data/erasure-request").type("form").send({});
     assert.ok(!methods.includes("DELETE"), "the erasure request issued a DELETE");
     assert.ok(!methods.includes("PATCH"), "the erasure request modified existing records");
+  });
+});
+
+// The privacy policy describes behaviour. Behaviour changes.
+//
+// These pages were three sentences under headings named "Section 1", "Section
+// 2", "Section 3" -- and the words retention, deletion, export, erasure and
+// portability appeared nowhere across any of the fourteen legal pages. Rewriting
+// them is the easy half. The half that matters is that a policy is a promise
+// about what the software does, and this repository's whole history is
+// statements that were true when written and quietly stopped being.
+describe("the legal pages describe what the product actually does", () => {
+  const request = require("supertest");
+  const app = require("../server");
+
+  let privacy = "";
+  let refunds = "";
+
+  before(async () => {
+    privacy = String((await request(app).get("/legal/privacy")).text || "");
+    refunds = String((await request(app).get("/legal/refund-policy")).text || "");
+  });
+
+  it("names the companies that actually process customer data", () => {
+    // The one thing a privacy policy exists to do. Each of these is a real
+    // dependency: Supabase stores the records, Vercel runs the server, Stripe
+    // takes the payments, Resend delivers the mail.
+    for (const processor of ["Supabase", "Vercel", "Stripe", "Resend"]) {
+      assert.match(privacy, new RegExp(processor), `the privacy policy does not disclose ${processor} as a processor`);
+    }
+  });
+
+  it("only promises an export because one exists", () => {
+    assert.match(privacy, /export/i, "the privacy policy no longer mentions the export");
+    const routes = new Set();
+    const walk = (stack) => {
+      for (const layer of stack || []) {
+        if (layer.route) routes.add(layer.route.path);
+        else if (layer.handle && layer.handle.stack) walk(layer.handle.stack);
+      }
+    };
+    walk(app._router ? app._router.stack : app.router?.stack);
+    assert.ok(routes.has("/account/data/export"), "the policy promises an export and no route serves one");
+  });
+
+  it("only says erasure is a request because it is one", () => {
+    assert.match(privacy, /request/i);
+    const source = fs.readFileSync(path.join(__dirname, "..", "routes", "sonara-last9-routes.cjs"), "utf8");
+    const handler = source.slice(source.indexOf('app.post("/account/data/erasure-request"'));
+    const body = handler.slice(0, handler.indexOf("\n  app."));
+    assert.ok(body.includes("support_requests"), "the erasure path no longer records a request");
+    assert.ok(!/method: "DELETE"/.test(body), "the erasure path deletes, so calling it a request is now false");
+  });
+
+  it("does not claim an automatic refund", () => {
+    // AGENTS.md forbids automating refunds without owner approval, so a policy
+    // promising an instant one would be describing a product we must not build.
+    assert.match(refunds, /reviewed by a person/i);
+
+    // Matching the bare word fails on the sentence that makes the claim true --
+    // the page says "There is no automatic refund", and a naive check flags its
+    // own negation. So every mention of an automatic refund has to be a denial
+    // of one, which is the property actually wanted.
+    const text = refunds.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
+    for (const match of text.matchAll(/.{0,24}automatic[a-z]*\s+refund/gi)) {
+      assert.match(match[0], /\b(no|not|never|without)\b/i, `the refund page promises an automatic refund: "${match[0].trim()}"`);
+    }
+    assert.doesNotMatch(text, /refunds? (are|is) (issued )?automatic|we will automatically refund|refunded immediately/i);
+  });
+
+  it("keeps the placeholder headings gone", () => {
+    // What the rewrite was for. A heading literally named "Section 1" is the
+    // tell that a page was shipped as far as the footer and no further.
+    for (const page of [privacy, refunds]) {
+      assert.doesNotMatch(page, /<h[23][^>]*>\s*Section \d/, "a legal page is back to placeholder headings");
+    }
   });
 });

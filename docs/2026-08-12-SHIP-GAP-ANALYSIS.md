@@ -148,3 +148,35 @@ Pricing, market position, the 3D and depth work, and the differentiator copy are
 researched, applied, and bound to tests that fail if the claims stop being true.
 The remaining 21 catalog products are disclosed as unavailable. None of that is
 what is standing between this and a first paying customer.
+
+---
+
+## Update, same day: items 1 and 2 are done, and two corrections
+
+**Correction to this document.** It said the legal surface was six pages and that
+sub-processors were named nowhere. Both were wrong. There are **fourteen** legal
+pages, and `/legal/data-processing` already named Supabase, Vercel, Stripe and
+Resend — I had checked only `/legal/privacy`. Several pages were already
+substantive: the cookie policy is specific and accurate, and the sub-processor
+notice exists.
+
+What survived checking: the *thin* pages were thin, the placeholder `Section N`
+headings were real, and **retention, deletion, export, erasure and portability
+appeared nowhere across any of the fourteen** — that part held.
+
+**Item 2, done.** `/account/data` says what is kept, for how long, how to take a
+copy, and how to ask for erasure. Export is immediate. Erasure is a request,
+because AGENTS.md forbids automating destructive changes without owner approval
+and `sonara-module-crud.cjs` had already settled the same question for a single
+record. The export names any record type it could not read rather than omitting
+it silently.
+
+**Item 1, three pages done.** Privacy 76 → 396 words, refunds 73 → 241, terms
+78 → 278, all with real headings. They describe only what the product does, and
+`tests/data-rights.test.js` binds each claim to the behaviour: the export
+promise fails if the route goes, the erasure wording fails if the handler starts
+deleting, and the refund page fails if it ever promises an automatic refund.
+
+**Still thin:** acceptable-use, earnings-disclaimer, accessibility,
+ai-disclaimer, payment-terms, security-policy, disclaimer, can-spam. None of
+them takes money or describes data handling, which is why they were not first.
