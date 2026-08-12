@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 127 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 128 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1175,3 +1175,37 @@ The form-reachability check flagged it — correctly by its own rule and wrongly
 for this case, since it matches create-shaped POSTs and this one creates
 nothing. Recorded with that reason rather than joining the four "NOT YET
 EXAMINED" entries beside it, because this one has been examined.
+
+### 2026-08-12 — CI was running a different set of tests, and nobody could see it
+
+A CI failure on `04dafda` that would not reproduce locally, under CI's exact
+mocha command, with the proxy and Vercel variables stripped, and against the
+merge commit. Re-running the same job on the same SHA with no change passed.
+So it was flaky, not a real failure — and chasing it found two things worth
+more than the flake.
+
+**Four test files never ran in CI.** Its invocation passed `"tests/**/*.js"` on
+the command line, and a glob there overrides the spec list. `pnpm test` also
+passed `"tests/**/*.mjs"`. So `brand-assets`, `brand-registry`, `brand-routes`
+and `platform-prep` ran locally and were invisible to the gate everyone trusts.
+They were green either way, which is exactly why it went unnoticed: **a check
+that does not run and a check that passes look identical from outside.**
+
+**The suite relied on mocha's 2000ms default.** The slowest test locally is
+744ms, and several iterate all 242 registered routes, so they scale with the
+product. A slower runner turned that into a failed release on a commit that was
+fine.
+
+`.mocharc.json` now owns the spec list, the setup file, the timeout and
+`--exit`, and both `pnpm test` and the workflow inherit it rather than restating
+it. 15000ms is generous enough to absorb runner variance and bounded enough to
+still catch a hang; several tests already set their own explicit timeouts.
+
+`tests/ci-runs-the-same-tests.test.js` fails if the workflow passes a spec glob
+or `--file` again, if the config stops matching either extension, or if the
+timeout drifts outside the range. Verified by restoring the old glob and
+watching it go red.
+
+The flake itself is now much less likely, but the reason to fix this was not the
+flake. It was that the release gate was quietly narrower than the one people
+were running.

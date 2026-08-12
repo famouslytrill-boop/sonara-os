@@ -16,7 +16,7 @@
     "db:patch-triggers": "node scripts/patch-idempotent-migration-triggers.cjs",
     "db:push": "pnpm run db:patch-triggers && pnpm exec supabase db push",
     "db:push:all": "pnpm run db:patch-triggers && pnpm exec supabase db push --include-all",
-    "test": "mocha --file tests/setup-env.cjs \"tests/**/*.js\" \"tests/**/*.mjs\" --pass-with-no-tests --exit",
+    "test": "mocha --pass-with-no-tests",
     "start": "node server.js",
     "build": "node --check server.js && node -e \"require('./server')\"",
     "lint": "eslint server.js api routes lib scripts tests public --ignore-pattern \"archive/**\" --ignore-pattern \"**/node_modules/**\" --ignore-pattern \"**/.next/**\"",

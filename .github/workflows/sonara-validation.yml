@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm exec mocha --file tests/setup-env.cjs "tests/**/*.js" --pass-with-no-tests --reporter dot > /tmp/sonara-tests.log 2>&1
+          pnpm exec mocha --pass-with-no-tests --reporter dot > /tmp/sonara-tests.log 2>&1
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit $status
