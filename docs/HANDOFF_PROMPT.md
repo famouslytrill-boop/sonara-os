@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 80 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 140 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 141 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1806,3 +1806,46 @@ The sweep also found the honest cases, which is worth recording: `verify:db`,
 `verify:api`, `verify:member-policies`, `verify:definer-exposure` and the rest
 either need no credentials or fail rather than degrade. Two scripts had the
 defect and the other eleven did not.
+
+### 2026-08-12 — The differentiators reach the customer, bound to the code
+
+The market audit worked out what is genuinely different about this product and
+then none of it was on the site. Three findings sat in
+`docs/market/2026-08-12-MARKET-AUDIT.md` and the home page said nothing about
+any of them.
+
+Each was verified against the code before it was written as copy, not after:
+
+- **One record, not three.** The chain is pressable end to end — a lead becomes
+  a customer, a quote becomes an invoice, an invoice becomes a reminder draft.
+  It only became true this week; both conversions had shipped with no button.
+- **Nothing is invented.** `lib/sonara-chase-drafts.cjs` makes no network call
+  and loads no provider.
+- **It says when it does not know.** The cash position excludes undated rows
+  *and reports them*; an unreadable table renders unavailable rather than zero;
+  and a capped list now names its total rather than its page.
+
+`tests/the-claims-on-the-home-page-are-true.test.js` binds each sentence to the
+behaviour underneath it. A claim on a marketing page is a promise, and this
+repository's whole history is statements that were true when written and quietly
+stopped being. If somebody wires a model into the chase drafts or makes the cash
+position count an undated invoice as due today, the claim fails before a
+customer finds out — verified by adding a `fetch` to the drafts and watching the
+claim go red.
+
+**It deliberately does not grep for comments.** `lib/sonara-chase-drafts.cjs`
+contains the line "**No model call.**", and a check matching that would pass on
+the comment while the file did whatever it liked underneath. It asserts the
+absence of `fetch(`, of any gateway or adapter require, and of provider names.
+
+One claim is checked more strictly than it reads. "Type it once" would be
+satisfied, by every structural test, by a conversion that created a blank
+customer and made the owner fill it in — so the test converts a real lead and
+asserts name, email, phone and source all arrive. The source in particular:
+losing it means the owner cannot remember where the customer came from, which is
+the whole reason Growth Studio recorded it.
+
+The copy went into the existing home page string rather than a new module,
+because `server.js` sits exactly on its 4124-line ratchet and a `require` would
+have cost the only line available. The section reuses `sonara-outcome-grid`, so
+it inherits the mobile rules rather than needing new ones.
