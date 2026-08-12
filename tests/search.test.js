@@ -155,3 +155,52 @@ describe("search", () => {
     }
   });
 });
+
+// Search covered twelve tables and none of the money records added after it was
+// written. customers, quotes and invoices were all invisible, and an empty
+// result reads exactly like "you have no invoices" -- the failure this codebase
+// keeps finding, pointed at the one page whose whole job is finding things.
+//
+// The list rotted quietly because nothing compared it against the pages that
+// exist. This is that comparison.
+describe("search keeps up with the pages that exist", () => {
+  const { ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+  const { SEARCHABLE, NOT_SEARCHABLE } = require("../lib/sonara-search.cjs");
+
+  it("accounts for every owner record page, as searchable or with a reason", () => {
+    const searchable = new Set(SEARCHABLE.map((entry) => entry.table));
+    const unaccounted = ALL_OWNER_PAGES
+      .map((page) => page.table)
+      .filter((table) => !searchable.has(table) && !NOT_SEARCHABLE[table]);
+
+    assert.ok(ALL_OWNER_PAGES.length > 15, `only ${ALL_OWNER_PAGES.length} owner pages found; this check has gone blind`);
+    assert.deepEqual(
+      unaccounted,
+      [],
+      "These tables have an owner page and cannot be searched:\n  " +
+        `${unaccounted.join("\n  ")}\n` +
+        "Add them to SEARCHABLE, or to NOT_SEARCHABLE with the reason a search term would never find one."
+    );
+  });
+
+  it("gives every exclusion a reason somebody can disagree with", () => {
+    for (const [table, reason] of Object.entries(NOT_SEARCHABLE)) {
+      assert.ok(String(reason).length > 30, `${table} is excluded without a real reason`);
+    }
+  });
+
+  it("does not exclude a table it also searches", () => {
+    const searchable = new Set(SEARCHABLE.map((entry) => entry.table));
+    const both = Object.keys(NOT_SEARCHABLE).filter((table) => searchable.has(table));
+    assert.deepEqual(both, [], `listed as both searchable and excluded: ${both.join(", ")}`);
+  });
+
+  it("can find an invoice, a quote and a customer", () => {
+    // Named explicitly because these three were the gap, and a count-based
+    // check would pass again the next time something is added and forgotten.
+    const searchable = new Set(SEARCHABLE.map((entry) => entry.table));
+    for (const table of ["customers", "quotes", "customer_invoices"]) {
+      assert.ok(searchable.has(table), `${table} must be searchable; an owner who raised one has to be able to find it`);
+    }
+  });
+});

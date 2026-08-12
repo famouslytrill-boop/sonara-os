@@ -1093,3 +1093,29 @@ watching it go red.
 The flake itself is now much less likely, but the reason to fix this was not the
 flake. It was that the release gate was quietly narrower than the one people
 were running.
+
+### 2026-08-12 — Search could not find the money
+
+Search covered twelve tables and none of the records added since it was written.
+`customers`, `quotes` and `customer_invoices` were all invisible: an owner who
+raised an invoice could not find it, and **an empty result reads exactly like
+"you have no invoices"** — this codebase's recurring failure, pointed at the one
+page whose entire job is finding things.
+
+Six tables added. The three money records, plus `purchase_orders`,
+`maintenance_logs` and `bill_payment_records`, which hold a PO number, a
+description and a payment reference — things an owner actually types.
+
+Six deliberately left out, each with a reason rather than a silence: schedules
+and time entries are found by person and date, a profit snapshot is a date and
+numbers, an accounting export is a period and a file, and counts and transfers
+are found by location and date. None has text a search term would match.
+
+The list rotted because nothing compared it against the pages that exist.
+`tests/search.test.js` now requires every owner record page's table to be either
+searchable or named in `NOT_SEARCHABLE` with a reason, so adding a page forces
+the decision. It also names `customers`, `quotes` and `customer_invoices`
+explicitly — a count-based check would pass again the next time something is
+added and forgotten, which is exactly how this happened.
+
+Verified by removing an exclusion and watching it fail.
