@@ -277,6 +277,118 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
   });
 
+  // Getting your records out, and asking for them to be gone.
+  //
+  // The product's whole pitch is that a business's records live in one place.
+  // "How do I get them out" and "how do I close this and have it gone" are the
+  // questions that follow, and neither had an answer: /account offered profile,
+  // security, preferences, workspaces, integrations and setup, and nothing else.
+  //
+  // Cancelling was already possible -- the Stripe billing portal handles it --
+  // so a customer could stop paying and still not leave.
+  //
+  // The two halves are deliberately not symmetrical. Export is immediate,
+  // because handing somebody a copy of their own rows is not a decision anybody
+  // needs to review. **Erasure is a request, not a button.** AGENTS.md forbids
+  // automating destructive data changes without owner approval, and
+  // lib/sonara-module-crud.cjs already settled the same question for single
+  // records: archive rather than hard-delete, and route genuine erasure through
+  // support. An automated wipe of an entire organization is that decision at the
+  // largest possible scale, which is the least defensible place to skip review.
+  const EXPORTABLE = [
+    ...ALL_OWNER_PAGES.map((page) => ({ table: page.table, label: page.title })),
+    ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title }))
+  ].filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);
+
+  app.get("/account/data", requireCustomer, async (req, res) => {
+    const org = await resolveOrganization(req, deps);
+    const tables = EXPORTABLE.map((entry) => entry.label).sort();
+    return res.status(200).type("html").send(ui.layout({
+      title: "Your data",
+      eyebrow: "Your account",
+      heading: "Your data",
+      body: "What is stored, how to take a copy with you, and how to ask for it to be erased.",
+      sections: [
+        ui.card(
+          "What is kept",
+          `Your account details, the records you create in each workspace, your support requests, and your billing history. ` +
+          `The export below covers ${tables.length} kinds of record: ${tables.join(", ")}.`
+        ),
+        ui.card(
+          "How long it is kept",
+          "For as long as the account is open. Deleting a record inside the product archives it rather than removing it, so it can be brought back if it was a mistake -- which means an archived record is still stored. Erasure is the request below."
+        ),
+        ui.card(
+          "Take a copy",
+          `A file containing your records as they stand, in JSON. Nothing is left out of the kinds listed above, and nothing is transformed.` +
+          `<div class="card-actions"><a class="action" href="/account/data/export">Download a copy of your records</a></div>`
+        ),
+        ui.card(
+          "Ask for erasure",
+          `<p>This sends a request. It does not erase anything by itself, and we would rather say that plainly than have a button that quietly does something irreversible on one click.</p>` +
+          `<p>A person reviews it, confirms it is really you asking, and tells you what was removed and what has to be kept -- billing records generally have to be retained for tax purposes even after an account closes.</p>` +
+          `<form method="post" action="/account/data/erasure-request"><label>Anything we should know<textarea name="note" rows="3" maxlength="1000" placeholder="Optional"></textarea></label><button type="submit">Request erasure of my records</button></form>`
+        ),
+        ...(org.ok ? [] : [ui.card("Not signed in to a workspace", "Sign in and this page will show the records tied to your business.")])
+      ],
+      actions: [ui.link("/account", "Account"), ui.link("/support", "Contact support")]
+    }));
+  });
+
+  app.get("/account/data/export", requireCustomer, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok || !org.ok) {
+      return res.status(503).json({ ok: false, code: "export_unavailable", reason: "Your workspace could not be read just now. Nothing was exported." });
+    }
+
+    // A table that could not be read is named as unreadable rather than left
+    // out. An export silently missing a table is the worst version of this:
+    // the customer keeps the file believing it is complete.
+    const parts = await Promise.all(EXPORTABLE.map(async (entry) => {
+      const listed = await supabaseList(config, entry.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=10000`);
+      return [entry.table, listed.ok ? listed.rows : null];
+    }));
+
+    const unreadable = parts.filter(([, rows]) => rows === null).map(([table]) => table);
+    res.setHeader("Content-Disposition", `attachment; filename="sonara-records-${new Date().toISOString().slice(0, 10)}.json"`);
+    return res.status(200).json({
+      exportedAt: new Date().toISOString(),
+      organizationId: org.organizationId,
+      complete: unreadable.length === 0,
+      unreadable,
+      note: unreadable.length
+        ? "Some record types could not be read when this file was made. They are listed under `unreadable` and are not missing from your account -- ask support for another copy."
+        : "Every record type this export covers was readable.",
+      records: Object.fromEntries(parts.map(([table, rows]) => [table, rows || []]))
+    });
+  });
+
+  app.post("/account/data/erasure-request", requireCustomer, async (req, res) => {
+    const back = "/account/data";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?requested=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_recorded")}`);
+    };
+
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok || !org.ok) return respond(503, { ok: false, code: "workspace_unavailable" });
+
+    const note = String(req.body?.note || "").trim().slice(0, 1000);
+    const saved = await supabaseInsert(config, "support_requests", {
+      organization_id: org.organizationId,
+      user_id: org.userId || null,
+      subject: "Erasure request",
+      // Marked so it cannot be mistaken for an ordinary support ticket in a
+      // queue: this one has a clock on it in most jurisdictions.
+      message: `The account holder has asked for their records to be erased.${note ? `\n\nThey added: ${note}` : ""}`,
+      status: "open"
+    });
+    if (!saved.ok) return respond(502, { ok: false, code: "not_recorded" });
+    return respond(201, { ok: true, recorded: true });
+  });
+
   // Turning a won quote into an invoice.
   //
   // The owner acting, not an agent: lib/sonara-agent-authority.cjs governs what
