@@ -1491,3 +1491,77 @@ pressed; that is now asserted. And route shapes are compared with parameter
 names normalised rather than by string, which is what let the check cover two
 routes whose parameters are named differently. Verified by mis-declaring the id
 and by removing the action, and both were caught by name.
+
+### 2026-08-12 — A table queried by the code and created by no migration
+
+`verify:orphan-tables` asks which tables the migrations create that nothing
+queries. That is the harmless direction — unused schema costs confusion. The
+dangerous one went unasked: a table the application queries that no migration
+creates is a feature that cannot work, in production, forever.
+
+`server.js` counted `product_modules` on two admin surfaces. **No migration has
+ever created it.** The name was written in a bulk commit in July 2026 and never
+backed, so both cards have always rendered "unavailable until Supabase tables
+are migrated" — a message promising a migration that was never coming. The
+catalog it wanted is `sonara_module_registry`, which migration 018 creates and
+seeds, and which is already classified global.
+
+`tests/tenant-isolation.test.js` comes close and states its own limit honestly:
+a `/rest/v1/${table}` is resolved at runtime and cannot be checked from there.
+True — but the blind spot is wider than the sentence.
+`safeCountTable(config, "product_modules")` passes a string literal, knowable at
+rest, invisible only because a helper builds the URL.
+
+`tests/every-declared-table-exists.test.js` asks the question of declarations
+rather than of request URLs: rest paths, `table:` properties, assignments,
+helper calls, and the `TABLES` maps route files use to keep literal names out of
+call sites — the same indirection that hid this one. Across the whole runtime it
+found exactly one problem. It separately asserts it still finds declarations
+*through indirection*, without which it silently degrades into a duplicate of
+the check that already passes.
+
+### 2026-08-12 — What a streaming engine does and does not say about a record list
+
+Prompted by a streaming-engine explainer. Two of its six concepts describe
+something true here; the other four are a rendering architecture for a
+continuous 3D world, and borrowing their vocabulary for a list of invoices would
+be taking the appearance of rigour without the substance. Written up that way in
+`docs/design/STREAMING-AND-RECORD-LOADING.md` rather than as six mapped
+principles.
+
+**The load zone did not know the size of the map.** Every owner and creator
+record page read `limit=100` and captioned the table `${rows.length} records`.
+Under the cap that is right. Over it, the page states a total it never measured
+— a business with 250 customers is told it has 100, with nothing on screen
+suggesting otherwise. Not a truncated list: a wrong number, presented as
+confidently as a right one. The row count was never the record count.
+
+Reading one row past the page settles "is there more" for free, and an exact
+count is paid for only once the first read shows it will say something new — so
+an account under the cap still costs one query. A failed count stays null and
+the caption says "more than 100", the floor the first read established rather
+than a number invented to fill the gap. The caption is its own exported
+function, because the defect is a sentence and a sentence can be checked without
+a database.
+
+**Level of detail, applied.** The owner pages selected `*`: 307 columns fetched
+to render 112. Now 153. The field list cannot be read off the declaration —
+columns are `value: (row) => …`, the renderer reaches for `row.id`, and refusal
+rules read fields no column shows — so it was derived two ways and unioned:
+running each function against a recording proxy, and reading the properties
+taken off the parameter in the function source. **Both were needed.** The
+runtime probe alone missed `customer_id` on quotes, because the refusal rule
+returns early on any status that is not `accepted` and never reaches the line
+that reads it.
+
+The check deliberately does not repeat that derivation — a check that rebuilds
+the list the way the list was built agrees with itself by construction, which is
+the tenant-tables defect exactly. It tests the property instead: give a column
+function a row containing only what the select asked for, and see what it
+reaches for. And separately, that every selected field is a column the
+migrations create, because PostgREST rejects an unknown column by rejecting the
+whole query — one typo turns into a page reporting itself as unconfigured.
+
+Paging past the first 100 is still not built. The list now says a total exists
+beyond the cap and still offers no way to reach it. Saying so is better than the
+previous silence and is not the same as being finished.
