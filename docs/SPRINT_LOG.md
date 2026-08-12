@@ -1662,3 +1662,31 @@ than when the key is found — setting it early would restore the original claim
 in a new place. These are source assertions because the online half needs a live
 secret, and a test that supplied one would mean either a secret in the
 repository or a network call in the suite.
+
+### 2026-08-12 — The same overclaim, one script over, and a check for the class
+
+Having found it in `verify-stripe-env.mjs`, I swept the release chain for the
+shape rather than assuming it was a one-off. It was not.
+
+`verify-open-source-registry.mjs` printed `Network verification: disabled` and
+then, on its last line, *"Open-source and external repository controls
+verified."* The release chain does not pass `--network`, so **the release log
+ended with the word "verified" while nothing had confirmed that any of the 72
+registered GitHub targets still exists.**
+
+Milder than the Stripe case in one respect: the network half is not unrun, it
+has its own workflow (`external-repository-health.yml`). So the summary now
+names it, which is more useful than a bare qualification — the question a reader
+has at that point is "then who does check".
+
+`tests/no-check-claims-more-than-it-ran.test.js` covers the class instead of the
+two instances. It reads the script list out of `verify:launch` rather than
+restating it, so a script added to the chain is covered without anybody
+remembering; it selects the ones that can decline part of their work, by their
+own output; and it requires their verification summary to name the reduced scope.
+A third script cannot arrive with the same shape.
+
+The sweep also found the honest cases, which is worth recording: `verify:db`,
+`verify:api`, `verify:member-policies`, `verify:definer-exposure` and the rest
+either need no credentials or fail rather than degrade. Two scripts had the
+defect and the other eleven did not.

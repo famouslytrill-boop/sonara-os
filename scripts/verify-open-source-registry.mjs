@@ -235,4 +235,24 @@ if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
-console.log("Open-source and external repository controls verified.");
+// What this run established, rather than what the script is capable of.
+//
+// This line used to read "Open-source and external repository controls
+// verified" whether or not --network was passed, and the release chain does not
+// pass it -- so the release log ended with the word "verified" while nothing had
+// confirmed that any of the registered repositories still exists. The line above
+// says "Network verification: disabled"; this one overwrote it, and the summary
+// is the line people read.
+//
+// Unlike the Stripe case, the network half is not unrun: it has its own
+// workflow. Naming it is more useful than a bare qualification, because the
+// question a reader has at this point is "then who does check".
+if (networkMode) {
+  console.log("Open-source and external repository controls verified, including that every registered repository still exists.");
+} else {
+  console.log(
+    "Open-source and external repository controls verified offline: the registry's records, licences and " +
+    "declared uses are consistent.\nWhether each registered repository still exists was NOT checked in this " +
+    "run -- that is `pnpm run verify:open-source:network`, which .github/workflows/external-repository-health.yml runs."
+  );
+}
