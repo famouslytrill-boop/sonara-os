@@ -138,6 +138,13 @@ number to gamble with, and four because they are the ones nobody can read yet.
 
 ---
 
+## Before any of the above: what has to be switched on
+
+`docs/owner/WHAT-MUST-BE-ON.md` lists the ten environment variables a paying
+customer cannot be served without, the one that must never be on in production,
+and the one that turns the leaked-password warning into a gate. `pnpm run
+verify:env` checks that classification on every release.
+
 ## What is not on this list, and why
 
 **Pricing.** `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` recommends Free $0

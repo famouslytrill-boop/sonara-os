@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 125 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 126 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -90,6 +90,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run lint`
 - `pnpm run smoke:routes`
 - `pnpm run verify:db`
+- `pnpm run verify:env`
 - `pnpm run verify:config`
 - `pnpm run verify:api`
 - `pnpm run verify:stripe`
@@ -1100,3 +1101,41 @@ the second item, after the four owner steps, that needs someone with authority
 to answer rather than more work here.
 
 Six adapters now, all on one contract, all off by default, none depended on.
+
+### 2026-08-12 — A cross-tenant write behind one environment variable
+
+Asked what else needs to be on before paid usage, and went to look rather than
+recall. The answer had a hole in it.
+
+`SONARA_ALLOW_MANUAL_ORG_ID=true` accepts an `organization_id` straight from the
+request body with **no membership check** — and there cannot be one, because the
+branch exists to work without a resolved session. While it is on, any request
+names any organization and every owner-record write that resolves through it
+writes into whichever tenant the body asked for.
+
+It was gated on the variable alone. One wrong value in a production dashboard
+was a cross-tenant write hole, it appeared in no documentation, and nothing in
+the release chain looked at it. The code now checks `NODE_ENV` and `VERCEL_ENV`
+as well, so the flag is inert in production regardless of its value — a
+convenience somebody can switch on in production is not a convenience. Verified
+by removing the guard and watching the test fail.
+
+**`pnpm run verify:env` was stale and not in the release chain.** Seven of its
+twelve "required" names were read by nothing: `STRIPE_PRICE_STARTER` and
+friends, whose real names all end `_MONTHLY`. It failed on every run, so anybody
+who ran it would have chased eight variables that do not exist. A stale check is
+worse than none — it teaches people the output is noise.
+
+Rewritten to derive from source. Every name the code reads must be classified as
+required, ratchet, development-only, optional capability or platform-provided,
+and it fails in both directions: an unclassified variable, and a classification
+for a variable nothing reads. Now in the chain.
+
+It also caught itself. The script lives under `scripts/`, which it scans, so
+every name in its own lists counted as "used" by being listed — the stale-name
+check could never fire, which is the exact check that would have caught
+`STRIPE_PRICE_STARTER`. It excludes itself now, verified by renaming an entry
+and watching both errors appear.
+
+Fifty-eight variables read, ten required. `docs/owner/WHAT-MUST-BE-ON.md` says
+which, and what breaks without each.

@@ -809,8 +809,26 @@ async function resolveOrganization(req, deps) {
     const org = await deps.getCustomerPrimaryOrganization(user);
     if (org?.ok) return { ok: true, organizationId: org.organizationId, userId: user.id };
   }
+  // A development escape hatch, and it must stay one.
+  //
+  // This accepts an organization_id straight from the request body. There is no
+  // membership check on that value and there cannot be a useful one -- the
+  // whole point of the branch is to work without a resolved session. So while
+  // it is on, any request can name any organization and this returns ok, and
+  // every owner-record write that calls resolveOrganization would write into
+  // whichever tenant the body asked for.
+  //
+  // It was gated on the environment variable alone, which meant one wrong value
+  // in a production dashboard was a cross-tenant write hole with nothing in the
+  // release chain looking at it. It is now inert in production regardless of
+  // the variable: a convenience that can be switched on in production is not a
+  // convenience, it is a control somebody else can reach.
   const orgFromBody = sanitizeText(req.body.organization_id);
-  if (orgFromBody && process.env.SONARA_ALLOW_MANUAL_ORG_ID === "true") return { ok: true, organizationId: orgFromBody, userId: user?.id || null };
+  const manualOrgAllowed =
+    process.env.SONARA_ALLOW_MANUAL_ORG_ID === "true" &&
+    process.env.NODE_ENV !== "production" &&
+    String(process.env.VERCEL_ENV || "").toLowerCase() !== "production";
+  if (orgFromBody && manualOrgAllowed) return { ok: true, organizationId: orgFromBody, userId: user?.id || null };
   return { ok: false, code: "owner_access_required", message: "Business owner or staff session is required." };
 }
 
