@@ -1,5 +1,7 @@
 # What is actually left before this can ship
 
+Review by: 2026-09-12
+
 Analysis date: 2026-08-12, at `be0e28a`. Measured against the running
 application rather than against the earlier planning documents, because two of
 the things below are not in them.

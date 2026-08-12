@@ -1,5 +1,7 @@
 # Market audit, and a correction to our own comparison
 
+Review by: 2026-11-12
+
 Researched 12 August 2026 against live pricing pages and current reviews, not
 recalled. Sources at the end.
 

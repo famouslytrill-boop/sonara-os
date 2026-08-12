@@ -1,5 +1,7 @@
 # Streaming and record loading
 
+Review by: 2027-02-12
+
 Audit date: 2026-08-12. Prompted by a streaming-engine explainer (chunked map,
 radial load zone, level of detail, asynchronous streaming, seamless swap) and
 the question of what it means for this application.

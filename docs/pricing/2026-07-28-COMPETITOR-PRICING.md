@@ -6,6 +6,8 @@
 
 # Competitor pricing survey
 
+Review by: 2026-10-28
+
 Surveyed 28 July 2026. Every figure below is a published entry-level plan
 billed monthly, taken from the vendor or from a pricing review dated 2026.
 Annual billing is usually cheaper; we compare monthly-to-monthly because that

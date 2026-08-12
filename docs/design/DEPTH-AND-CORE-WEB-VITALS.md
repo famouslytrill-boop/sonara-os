@@ -1,5 +1,7 @@
 # Depth and Core Web Vitals
 
+Review by: 2027-02-12
+
 Audit date: 2026-08-12. Audited: `public/sonara-design-system.css`,
 `public/sonara-application-ui.css`, `public/sonara-depth.js` — the two
 stylesheets `lib/sonara-page-frame.cjs` links on every page, plus the script

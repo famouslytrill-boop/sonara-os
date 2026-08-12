@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 80 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 142 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 143 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -103,6 +103,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:definer-exposure`
 - `pnpm run verify:unreferenced-modules`
 - `pnpm run verify:orphan-tables`
+- `pnpm run verify:stale-claims`
 
 `pnpm` only. Never `npm`, never `npm audit fix`, never a `package-lock.json`.
 

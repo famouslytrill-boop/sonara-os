@@ -1,5 +1,7 @@
 # Pricing and packaging — analysis and recommendation
 
+Review by: 2026-11-11
+
 Written 11 August 2026, against the competitor survey of 28 July 2026 in this
 directory and against what the product can actually do today.
 

@@ -1,5 +1,7 @@
 # Rancher Desktop Health Check
 
+Review by: 2027-02-12
+
 Checked with local Rancher Desktop and Kubernetes CLIs.
 
 ## Status
