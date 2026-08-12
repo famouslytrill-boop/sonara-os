@@ -342,6 +342,41 @@ describe("Growth Studio operating system", () => {
     );
   });
 
+  it("reports metric totals from the database, and says what the value covers", async () => {
+    // `totals` is the worst surface for a page length dressed as a total: an
+    // API consumer has no heading to question, just a key called totals. Every
+    // field there used to be rows.length from a read capped at 500 or 1000.
+    global.fetch = async (url, options = {}) => {
+      const counting = String(options.headers?.Prefer || "").includes("count=exact");
+      if (counting) return jsonResponse(200, [{ id: CAMPAIGN_ID }], { "content-range": "0-0/3120" });
+      if (String(url).includes("growth_conversions")) return jsonResponse(200, [{ id: CONTENT_ID, value: 250 }, { id: SNAPSHOT_ID, value: 50 }]);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp()).get("/api/growth/metrics");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.totals.leads, 3120, "leads came from the page rather than from the database");
+    assert.equal(result.body.totals.conversions, 3120);
+
+    // The value cannot be summed by PostgREST, so it is a sample -- and the
+    // response has to say so rather than let a caller assume it is the total.
+    assert.equal(result.body.totals.conversionValue, 300);
+    assert.equal(result.body.computedOver.conversions, 2);
+    assert.equal(result.body.computedOver.complete, false, "the response does not admit the value covers a sample");
+  });
+
+  it("returns null rather than zero for a count it could not read", async () => {
+    // Zero is an answer. "We could not ask" is not the same answer, and an API
+    // that returns 0 for both leaves the caller unable to tell them apart.
+    global.fetch = async (url, options = {}) => {
+      if (String(options.headers?.Prefer || "").includes("count=exact")) return jsonResponse(500, []);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp()).get("/api/growth/metrics");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.totals.leads, null, "an unreadable count is being reported as a number");
+    assert.equal(result.body.computedOver.complete, null);
+  });
+
   it("never puts a credential or a stored blob on a connected-services page", async () => {
     global.fetch = async () => jsonResponse(200, [{
       id: JOB_ID,

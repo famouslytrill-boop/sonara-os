@@ -1889,3 +1889,27 @@ blanket "no zero anywhere" check — and that fails on the money row, which
 honestly reads 0 when there are no sales. A check that cannot tell an honest zero
 from a substituted one is not checking the thing it claims to. The third version
 reads the specific row and asserts what that cell says.
+
+### 2026-08-12 — The same substitution in the API, where nobody can question it
+
+Swept for the shape rather than stopping at the card, and `/api/growth/metrics`
+had it worse. Every field under a key literally called `totals` was `rows.length`
+from a read capped at 500 or 1000. **A page has a heading somebody might
+question; a JSON key called `totals` does not.**
+
+Counts come from `count=exact` now, same field names, correct values. A count
+that could not be read returns `null` rather than `0` — zero is an answer, "we
+could not ask" is a different one, and an API returning `0` for both leaves the
+caller unable to tell them apart.
+
+`conversionValue` and the attribution breakdown are the two figures PostgREST
+cannot compute without an RPC, so both are still a sample of the most recent
+conversions. The response now carries `computedOver: { conversions, complete }`
+saying so, instead of letting a caller assume it covers everything.
+
+**The fix paid for itself in reads.** Once the counts came from the database,
+five of the seven list reads were dead — still fetching up to a thousand rows
+each purely to call `.length` on them. Lint caught it as five unused variables,
+which is a more useful signal than it sounds: an unused variable here was a
+thousand-row query nobody needed. The endpoint went from seven large reads to
+two, plus nine counts that cost one row apiece.

@@ -496,31 +496,70 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const campaignId = validUuid(req.query.campaign_id || req.query.campaignId) ? String(req.query.campaign_id || req.query.campaignId) : null;
-    const [campaigns, leads, touchpoints, conversions, content, experiments, snapshots] = await Promise.all([
-      list(config, TABLES.campaigns, context, 500, campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.leads, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.touchpoints, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
+    // Only two reads pull rows now. Five more used to fetch up to a thousand
+    // records each purely to call .length on them, and counting from the
+    // database made every one of those dead weight -- a count=exact costs a
+    // single row whatever the table holds. Conversions are still read because
+    // the value and the attribution breakdown are computed across them, and the
+    // snapshots are rendered.
+    const [conversions, snapshots] = await Promise.all([
       list(config, TABLES.conversions, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.content, context, 500, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.experiments, context, 500, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
       list(config, TABLES.metrics, context, 100, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "")
     ]);
+    // Totals asked of the database, not measured off the page.
+    //
+    // Every field below used to be `rows.length` from a read capped at 500 or
+    // 1000, under a key literally called `totals`. An API consumer has no way to
+    // tell a total from a page length, which makes this the worst surface for
+    // the substitution -- the totals card at least had a heading somebody might
+    // question. A count that cannot be read comes back null rather than 0.
+    const scoped = campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "";
+    const scopedById = campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : "";
+    const [
+      campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount,
+      touchpointCount, conversionCount, contentCount, publishedCount, experimentCount
+    ] = await Promise.all([
+      countRows(config, TABLES.campaigns, context, scopedById),
+      countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
+      countRows(config, TABLES.leads, context, scoped),
+      countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
+      countRows(config, TABLES.touchpoints, context, scoped),
+      countRows(config, TABLES.conversions, context, scoped),
+      countRows(config, TABLES.content, context, scoped),
+      countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
+      countRows(config, TABLES.experiments, context, scoped)
+    ]);
+
     const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+    // What the value and the attribution breakdown were actually computed over.
+    // Neither can be done in PostgREST without an RPC, so both are a sample of
+    // the most recent conversions -- and a caller has to be told that rather
+    // than left to assume it covers everything.
+    const conversionsRead = conversions.rows.length;
+    const conversionsComplete = conversionCount.ok && typeof conversionCount.count === "number"
+      ? conversionCount.count <= conversionsRead
+      : null;
+
     return res.status(200).json({
       ok: true,
       scope: { organizationId: context.organizationId, campaignId },
       totals: {
-        campaigns: campaigns.rows.length,
-        activeCampaigns: campaigns.rows.filter((row) => row.status === "active").length,
-        leads: leads.rows.length,
-        qualifiedLeads: leads.rows.filter((row) => ["qualified", "won"].includes(row.status)).length,
-        touchpoints: touchpoints.rows.length,
-        conversions: conversions.rows.length,
+        campaigns: campaignCount.count,
+        activeCampaigns: activeCampaignCount.count,
+        leads: leadCount.count,
+        qualifiedLeads: qualifiedLeadCount.count,
+        touchpoints: touchpointCount.count,
+        conversions: conversionCount.count,
         conversionValue,
-        contentItems: content.rows.length,
-        publishedItems: content.rows.filter((row) => row.publish_status === "published").length,
-        experiments: experiments.rows.length
+        contentItems: contentCount.count,
+        publishedItems: publishedCount.count,
+        experiments: experimentCount.count
       },
+      // conversionValue and the attribution breakdown below are computed from
+      // this many conversion rows. complete: false means there are more, and the
+      // figures cover the most recent ones only; null means the count could not
+      // be read, so neither answer is available.
+      computedOver: { conversions: conversionsRead, complete: conversionsComplete },
       attribution: {
         reportedModels: countBy(conversions.rows, "attribution_model"),
         confidence: countBy(conversions.rows, "attribution_confidence"),
