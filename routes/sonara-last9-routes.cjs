@@ -149,18 +149,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       let rows = [];
       let references = {};
+      let loaded = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        const listed = await listRecordPage(config, page.table, org.organizationId);
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
-        else rows = listed.rows;
+        else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
       }
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [recordsCard(page, rows, ui), ...(page.form ? [formCard(page, references, ui)] : [])];
+        : [recordsCard(page, rows, ui, loaded), ...(page.form ? [formCard(page, references, ui)] : [])];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
@@ -360,23 +361,24 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       let rows = [];
       let extra = [];
+      let loaded = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which workspace you are in. Sign in again and this will fill up.";
       else {
-        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        const listed = await listRecordPage(config, page.table, org.organizationId);
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
-        else rows = listed.rows;
+        else { rows = listed.rows; loaded = listed; }
         extra = await Promise.all((page.also || []).map(async (side) => {
-          const sideRows = await supabaseList(config, side.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
-          return { side, rows: sideRows.ok ? sideRows.rows : [] };
+          const sideRows = await listRecordPage(config, side.table, org.organizationId);
+          return { side, rows: sideRows.ok ? sideRows.rows : [], loaded: sideRows.ok ? sideRows : null };
         }));
       }
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
-          recordsCard(page, rows, ui),
-          ...extra.map(({ side, rows: sideRows }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui)),
+          recordsCard(page, rows, ui, loaded),
+          ...extra.map(({ side, rows: sideRows, loaded: sideLoaded }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded)),
           ...(page.form ? [formCard(page, {}, ui)] : [])
         ];
       return res.status(200).type("html").send(ui.layout({
@@ -676,7 +678,34 @@ async function loadReferences(config, organizationId, page) {
   return loaded;
 }
 
-function recordsCard(page, rows, ui) {
+// What the list is allowed to claim.
+//
+// This used to be `${rows.length} records`, which is true only when the read
+// happened to return everything. A business with 250 customers saw "100
+// records" -- not a truncated list, a wrong total, and nothing on the page
+// said otherwise. The number of rows that came back is not the number of
+// records that exist, and the difference is exactly what a page must not
+// quietly collapse.
+//
+// Three cases, and each says only what is known:
+//   the read reached the end          -- the count is the count
+//   it did not, and the total is known -- say both, so the cap is visible
+//   it did not, and the count failed   -- "more than N", the honest floor
+function recordCountCaption(rows, loaded) {
+  const shown = rows.length;
+  const plural = (value) => (value === 1 ? "1 record" : `${value} records`);
+
+  // No paging information at all: an older caller, or a page that never asked.
+  // Describing what is on screen is the only claim available.
+  if (!loaded) return plural(shown);
+  if (loaded.loadedAll) return plural(loaded.total ?? shown);
+  if (typeof loaded.total === "number") {
+    return `${plural(loaded.total)}. Showing the ${shown} most recent.`;
+  }
+  return `More than ${shown} records. Showing the ${shown} most recent.`;
+}
+
+function recordsCard(page, rows, ui, loaded = null) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
@@ -716,7 +745,7 @@ function recordsCard(page, rows, ui) {
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
     : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
-  const count = rows.length === 1 ? "1 record" : `${rows.length} records`;
+  const count = recordCountCaption(rows, loaded);
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
 }
 
@@ -888,6 +917,36 @@ function headers(config, extra = {}) {
   return { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json", ...extra };
 }
 
+// How many rows a record list loads at once.
+//
+// The number was already 100; what was missing was any acknowledgement of it.
+// A list capped at 100 and captioned "100 records" tells a business with 250
+// customers that it has 100 -- the page states a total it never measured.
+const PAGE_SIZE = 100;
+
+// Loads a page of records and knows whether it reached the end.
+//
+// Asking for one row more than we display is what makes the answer honest for
+// free: getting PAGE_SIZE + 1 back proves there are more without a second
+// query, and getting fewer proves there are not. The exact total is worth a
+// second request, but only when we already know it is going to say something
+// the first one could not -- so an account under the cap, which is nearly all
+// of them, still costs exactly one query.
+async function listRecordPage(config, table, organizationId, order = "created_at.desc") {
+  const query = `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}`;
+  const listed = await supabaseList(config, table, query);
+  if (!listed.ok) return listed;
+
+  const more = listed.rows.length > PAGE_SIZE;
+  const rows = more ? listed.rows.slice(0, PAGE_SIZE) : listed.rows;
+  if (!more) return { ok: true, table, rows, total: rows.length, loadedAll: true };
+
+  // A failed count is left null rather than guessed at. The caption falls back
+  // to "more than 100", which is the most that is actually known at that point.
+  const counted = await supabaseCount(config, table, organizationId);
+  return { ok: true, table, rows, total: counted.ok ? counted.count : null, loadedAll: false };
+}
+
 async function supabaseList(config, table, query) {
   const response = await fetch(`${config.url}/rest/v1/${table}${query}`, { headers: headers(config) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, code: "table_unavailable", table };
@@ -951,3 +1010,7 @@ function passthrough(req, res, next) {
 // a column the table does not have is rejected by PostgREST, which is how every
 // form on these pages came to silently not save.
 module.exports.RESOURCE_MAP = RESOURCE_MAP;
+// Exported so the caption can be checked without a database. The defect it
+// exists for is a sentence, and a sentence is testable.
+module.exports.recordCountCaption = recordCountCaption;
+module.exports.PAGE_SIZE = PAGE_SIZE;
