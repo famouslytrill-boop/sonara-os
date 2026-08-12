@@ -17,6 +17,9 @@ away from what the code actually does.
   Add an entry when you finish a piece of work.
 - **`docs/SHIP_READINESS.md`** — what is deliberately still open, and the three
   things only the owner can close.
+- **`docs/architecture/EXTERNAL-SERVICES.md`** — how this application reaches
+  services the owner runs, why a serverless function cannot see their laptop,
+  and the four rules an adapter must follow. Read it before adding one.
 - **`docs/owner/`** — `WHAT-IS-LEFT.md` is the derived count of remaining work,
   and `OWNER-STEPS.md` is the four things only the owner can do, each written to
   be run rather than interpreted. Update both when one is closed.

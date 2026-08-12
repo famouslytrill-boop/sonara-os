@@ -39,6 +39,19 @@ const search = require("../lib/sonara-search.cjs");
 const cash = require("../lib/sonara-cash-position.cjs");
 const chase = require("../lib/sonara-chase-drafts.cjs");
 const ollama = require("../lib/sonara-ollama-adapter.cjs");
+const langflow = require("../lib/sonara-langflow-adapter.cjs");
+const openWebUi = require("../lib/sonara-open-webui-adapter.cjs");
+const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
+
+// Every adapter on one page, because "which of these is on" is one question.
+// Each reports a host and never a URL -- readiness objects carry the configured
+// URL non-enumerably for exactly this reason.
+const SERVICES = Object.freeze([
+  Object.freeze({ label: "Ollama", what: "Runs models on hardware you own. MIT. No key, nothing metered.", readiness: (o) => ollama.getOllamaReadiness(o) }),
+  Object.freeze({ label: "Langflow", what: "Runs flows you build in Langflow's own interface, so a flow changes without a deploy here. MIT.", readiness: (o) => langflow.getLangflowReadiness(o) }),
+  Object.freeze({ label: "Open WebUI", what: "Puts a chat interface and an OpenAI-compatible interface in front of models you already run. Its licence restricts altering its branding in a deployment you publish; calling it from here is not restricted, and none of it ships inside this product.", readiness: (o) => openWebUi.getOpenWebUiReadiness(o) }),
+  Object.freeze({ label: "Crawl4AI", what: "Fetches a page and returns readable text. Apache-2.0. Refuses private, loopback and cloud-metadata addresses.", readiness: (o) => crawl4ai.getCrawl4aiReadiness(o) })
+]);
 
 const ROW_LIMIT = 500;
 
@@ -297,13 +310,14 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
   // the one place that says what would change if a model were reachable, and
   // it is deliberately owner-only: nothing a customer sees depends on it.
   app.get("/business-builder/owner/local-model", requireWorkspaceAccess("business_builder"), async (req, res) => {
-    const readiness = ollama.getOllamaReadiness();
+    const states = SERVICES.map((service) => ({ ...service, state: service.readiness() }));
+    const ready = states.filter((entry) => entry.state.status === "configured");
 
     const sections = [
-      brandCard(
-        readiness.status === "configured" ? "Ready" : readiness.enabled ? "Not usable yet" : "Turned off",
-        readiness.detail
-      ),
+      ...states.map((entry) => brandCard(
+        `${entry.label} — ${entry.state.status === "configured" ? "ready" : entry.state.enabled ? "not usable yet" : "off"}`,
+        `${entry.what} ${entry.state.detail}`
+      )),
       brandCard(
         "Why this is off by default",
         "Nothing in this product needs a model to work. The checks, the money figures and the chase drafts are all arithmetic over your own records, which is why none of them can invent a number and why none of them cost anything to run. A model adds range, never a dependency — if it is unreachable, every page falls back to what it already did."
@@ -317,18 +331,22 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
         "This application runs as serverless functions. A model on your own laptop is not reachable from there — a localhost address in production means the server's own container, where nothing is listening. It has to be a host this server can reach, or the application has to run somewhere that shares a network with it. This page names that case rather than letting you find it as a timeout."
       ),
       brandCard(
-        "How to turn it on",
-        `Set ${ollama.ENV_KEYS.enabled}=true, ${ollama.ENV_KEYS.baseUrl} to an address this server can reach, and ${ollama.ENV_KEYS.model} to a model you have pulled. ${ollama.ENV_KEYS.timeout} is optional and is capped at ${ollama.MAX_TIMEOUT_MS}ms, because a model that hangs would otherwise hold a request open until the platform kills it.`
+        "How to turn one on",
+        `Each takes the same three settings: <PREFIX>_ENABLED=true, <PREFIX>_URL pointing at an address this server can reach, and <PREFIX>_TIMEOUT_MS optionally, capped at ${ollama.MAX_TIMEOUT_MS}ms so a service that hangs cannot hold a request open until the platform kills it. Ollama and Open WebUI also need a model; Langflow needs a flow id.`
+      ),
+      brandCard(
+        "Making a service on your own machine reachable",
+        "There are three ways, in the order worth trying them: a tunnel such as Cloudflare Tunnel or Tailscale Funnel, which needs no architecture change and is free at this scale; running the service on a host this server can already reach; or running this application beside the services on one network, which removes the constraint rather than working around it. docs/architecture/EXTERNAL-SERVICES.md has the detail — including the part people skip, which is that a tunnel makes your service reachable by everybody, and Ollama and Crawl4AI have no authentication of their own."
       )
     ];
 
     return res.status(200).type("html").send(layout({
-      title: "Local model",
+      title: "Connected services",
       eyebrow: "Business Builder",
-      heading: "Running a model on your own hardware",
-      body: readiness.status === "configured"
-        ? `This deployment can reach ${escapeHtml(String(readiness.model))} at ${escapeHtml(String(readiness.host))}.`
-        : "This deployment does not call a model. Everything here works without one.",
+      heading: "Services you run yourself",
+      body: ready.length > 0
+        ? `${ready.length} of ${states.length} configured: ${escapeHtml(ready.map((entry) => `${entry.label} at ${entry.state.host}`).join(", "))}.`
+        : "None of these are configured. Everything in this product works without them.",
       sections,
       actions: [linkAction("/business-builder/owner", "Back to your business"), linkAction("/business-builder/owner/assistant", "What needs attention")]
     }));

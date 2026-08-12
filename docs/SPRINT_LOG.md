@@ -889,3 +889,53 @@ Comments are stripped first now.
 the one status that claims something about this repository rather than about
 the upstream project, so it is the one that can be false without anybody
 noticing. Both new checks were verified by breaking them.
+
+### 2026-08-12 — One adapter contract, three more adapters, and how to reach them
+
+`lib/sonara-service-adapter.cjs` holds what all four have in common. The Ollama
+adapter carried it inline; four copies would be four chances for one to be
+quietly less careful, and the careless one would be the one nobody re-read.
+Each adapter now owns only its call shape.
+
+The refactor immediately proved the point. Moving the base URL onto the shared
+readiness object leaked it — a base URL can carry a token in its query string
+and readiness is rendered onto a page. The existing Ollama test failed within
+seconds. It is carried non-enumerably now, so `postJson` can read it and
+`JSON.stringify` cannot. Open WebUI's API key gets the same treatment.
+
+**Langflow** (MIT): calls a flow by id, so the flow stays the owner's to change
+without a deploy here. The id is validated as a plain identifier before it
+enters the request path — a value containing a slash addresses a different
+endpoint on the same host, with this server making the request.
+
+**Open WebUI**: the licence review it was waiting on is done, read from the
+repository rather than recalled. BSD-3-Clause in structure with one added
+condition — branding may not be altered except under fifty end users, with
+written permission, or under an enterprise licence. **That binds redistribution
+and deployment with branding altered. It does not restrict calling the HTTP API
+from separate software**, which is all the adapter does. It does bind the owner
+if they deploy and rebrand it themselves, and that is recorded.
+
+**Crawl4AI** (Apache-2.0): the one adapter that makes this server fetch a URL
+somebody supplied, which is a request forwarder if the target is unchecked. It
+refuses loopback, link-local, cloud-metadata and the private IPv4 ranges, and
+refuses a URL carrying credentials. Stated limit: those checks read the URL as
+written, and a public hostname that resolves to a private address is the case
+they cannot see from here.
+
+`docs/architecture/EXTERNAL-SERVICES.md` answers the connectivity question that
+governs all of them. Three routes, in order: a tunnel (Cloudflare Tunnel or
+Tailscale Funnel, free at this scale, no architecture change), a host the
+server can already reach, or running this application beside the services on
+one network. The third is the only one that also unblocks the wider question —
+Dify is Python, Chatwoot is Rails, TastyIgniter is PHP, and none of them can
+ever be required into a CommonJS Express app regardless of licence. As
+neighbouring services called through adapters, all of them become reachable.
+
+The document says the part people skip: a tunnel makes a service reachable by
+everybody, and Ollama and Crawl4AI have no authentication of their own.
+
+`tests/service-adapters.test.js` runs the same rules against every adapter and
+asserts the list length, so adding one without adding it there fails. The
+plain-language gate caught "endpoint" in the new page copy; rewritten rather
+than exempted.
