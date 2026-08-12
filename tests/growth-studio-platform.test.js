@@ -296,6 +296,29 @@ describe("Growth Studio operating system", () => {
     assert.match(result.text, /not proof it caused it/);
   });
 
+  it("lets a customer create the records the rest of Growth Studio depends on", async () => {
+    // growth_leads and growth_campaigns had no create form. Both endpoints were
+    // exempted as "JSON twins" of /api/growth-studio/<type> -- but those call
+    // saveModuleOutput and write guidance text into module_outputs, not a lead
+    // or campaign row. So the reason said "covered elsewhere" about two tables
+    // nothing could write to, and the lead-to-customer-to-quote-to-invoice
+    // chain started with a record no customer could create.
+    global.fetch = async () => jsonResponse(200, []);
+
+    const enquiries = await request(buildApp()).get("/growth-studio/enquiries").set("accept", "text/html");
+    assert.equal(enquiries.status, 200);
+    assert.match(enquiries.text, /action="\/api\/growth\/leads"/, "there is still no way to record an enquiry");
+
+    const campaigns = await request(buildApp()).get("/growth-studio/your-campaigns").set("accept", "text/html");
+    assert.equal(campaigns.status, 200);
+    assert.match(campaigns.text, /action="\/api\/growth\/campaigns"/, "there is still no way to create a campaign");
+
+    // And the planner is a different thing from the campaigns themselves. If
+    // this page ever posts to the module-output endpoint, the two have been
+    // conflated again -- which is the mistake that hid this for so long.
+    assert.doesNotMatch(campaigns.text, /action="\/api\/growth-studio\/campaigns"/, "the campaigns page is posting to the planner, which writes a module output rather than a campaign");
+  });
+
   it("counts the table rather than the page, and says so when it cannot", async () => {
     // The defect this replaced: up to 500 or 1000 rows were read and
     // rows.length was reported as the total, under a heading saying "counted

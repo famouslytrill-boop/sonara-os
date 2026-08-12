@@ -37,11 +37,17 @@ const NO_FORM_NEEDED = {
   "/api/location/events": "Location telemetry, posted by client script.",
   "/api/business-builder/checklist": "Driven by the checklist page's own controls rather than a form submit.",
 
-  // A JSON twin of an endpoint that does have a form. The customer-facing
-  // create path for both is /api/growth-studio/<type>, rendered on the
-  // campaigns and leads pages; these are the API surface for the same records.
-  "/api/growth/campaigns": "JSON twin of /api/growth-studio/campaigns, which has a form.",
-  "/api/growth/leads": "JSON twin of /api/growth-studio/leads, which has a form.",
+  // There used to be two entries here calling /api/growth/campaigns and
+  // /api/growth/leads "JSON twins" of /api/growth-studio/<type>. Neither was a
+  // twin: those endpoints call saveModuleOutput and write guidance text into
+  // module_outputs, not a growth_campaigns or growth_leads row. So the reason
+  // said "covered elsewhere" about two tables nothing could write to, and the
+  // lead-to-customer-to-quote-to-invoice chain began with a record no customer
+  // could create. Both have create specs now.
+  //
+  // Worth keeping the scar: the reason was what hid the gap. It was plausible,
+  // it was specific, it named a real endpoint, and it was wrong -- which is
+  // exactly what a reason somebody reasoned their way to looks like.
 
   // Reachable from a page route rather than the /api path.
   "/api/product-lifecycle/initiatives": "The page posts to /product-lifecycle/initiatives, which has a form.",

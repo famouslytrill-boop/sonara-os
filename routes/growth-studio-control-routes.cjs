@@ -607,6 +607,7 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         ui.link("/growth-studio/campaigns", "Campaigns"),
         ui.link("/growth-studio/leads", "Leads"),
         ui.link("/growth-studio/enquiries", "People who got in touch"),
+        ui.link("/growth-studio/your-campaigns", "Your campaigns"),
         ui.link("/growth-studio/provider-jobs", "Work sent to services")
       ]
     }));
