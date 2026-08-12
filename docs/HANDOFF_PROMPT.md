@@ -1520,3 +1520,90 @@ It reads the date from the audit now.
 The first version of my own check matched any "$N a month" and caught "$39 a
 month for the business side" — a per-product figure in the same sentence.
 Tightened to the sentence that totals the stack.
+
+### 2026-08-12 — A tap was leaving cards rotated, and the check looked at the wrong file
+
+Audited the depth against 2026 practice before changing anything, the same way
+the pricing claim was audited. Findings and sources in
+`docs/design/DEPTH-AND-CORE-WEB-VITALS.md`.
+
+Most of it held up. Depth is CSS 3D rather than WebGL, `will-change` is scoped
+to `.sonara-stage` so work screens rendering hundreds of cards pay nothing,
+pointer work is one delegated passive `pointermove` coalesced into a single
+`requestAnimationFrame`, entrance uses `IntersectionObserver` rather than a
+scroll handler, and reduced motion and print are both handled. The 2026 shift
+the research describes — depth that answers the cursor and the scroll position
+instead of a hero object performing — is already what `sonara-depth.js` does.
+Nothing needed adding.
+
+**One rule did not hold.** `public/sonara-application-ui.css` tilted
+`.sonara-product` on `:hover` with no pointer gate. A tap on a touch screen
+latches `:hover` onto the tapped element until the next tap lands somewhere
+else, so that is not a hover effect — the card rotates and stays rotated.
+
+Nothing was visibly broken, which is the part worth keeping. A correct, gated
+`body.sonara-home-v3 .sonara-product:hover` sat on top of it and won on
+specificity. But that rule is scoped to a body class, and `.sonara-product`
+renders on exactly one page: **the guarantee held because of where the card
+rendered, not because of what the card was.** The first such card on any other
+page brings the stuck tilt back with every check still green. The small-screen
+fallback had the same shape — it reduced the tilt but was still `:hover`-bound,
+and width is not pointer.
+
+`tests/marketing-depth-surface.test.js` asserts this gate exists, by reading
+`sonara-design-system.css` and only that file. It was true, and true about the
+wrong file — the other stylesheet is linked by the same frame and loaded after
+it, so at equal specificity the ungated rule wins.
+
+`tests/pointer-gated-depth.test.js` names no file. It reads the stylesheet list
+out of `lib/sonara-page-frame.cjs` and holds every served sheet to the same
+rule, so a third stylesheet is covered without anyone remembering. It walks
+`@media` nesting rather than matching text, because whether a selector is safe
+depends entirely on what it is nested inside. It fails when it finds zero 3D
+hover rules or fewer than two stylesheets, since a check guarding nothing reads
+exactly like a check finding nothing wrong. Verified by putting the original
+rule back and confirming it fails by name.
+
+The last assertion is the one that generalises: a 3D hover rule scoped to a body
+class must still carry its own pointer gate. Specificity is a fine way to win a
+cascade and a poor way to hold a safety guarantee.
+
+### 2026-08-12 — The lead conversion finally has a button
+
+Recorded two entries above as half-built, and it is built now.
+
+`/growth-studio/leads` is a capture form — somewhere to write a lead down, with
+no list of the ones already written — so the conversion's rules, endpoint,
+duplicate guards and migration were reachable only by an API client. That is
+not what a small business owner has.
+
+`/growth-studio/enquiries` lists the people who have come to you and carries the
+button that makes one a customer. Named for what it holds rather than for the
+table, in the words the totals card on this product already uses.
+
+The row that cannot convert says why rather than showing a button that refuses.
+**The reason is `reasonNotConvertible` itself — the endpoint's own function, not
+a second copy of the rules.** Two implementations of "can this convert" drift,
+and the one on the page drifts silently: it only ever shows or hides a button,
+so nobody finds out until an owner presses one that fails. That rule needs the
+customer list, so the page loads it, and a failed read stays `null` instead of
+becoming an empty array — an unreadable customer list is not "no duplicates".
+
+The endpoint answered every path with JSON. A form post would have shown the
+owner a wall of punctuation and lost the customer they had just created: a
+working endpoint that reads as a crash. It redirects a browser to the customer
+it made, or back with `?problem=` when it refused.
+
+`tests/row-actions-are-pressable.test.js` **names this exact defect in its own
+header comment** and then iterated `ALL_OWNER_PAGES` and nothing else, so the
+lead action could be absent or mis-wired with every assertion passing. It reads
+both renderers now and asserts both declare an action, so a third collection
+cannot quietly narrow what the file means.
+
+Two checks came out of building it. Both renderers substitute on the literal
+`:id`, so an action declared with the route's own parameter name — `:leadId` —
+passes every other check here and posts to a literal `":leadId"` path when
+pressed; that is now asserted. And route shapes are compared with parameter
+names normalised rather than by string, which is what let the check cover two
+routes whose parameters are named differently. Verified by mis-declaring the id
+and by removing the action, and both were caught by name.
