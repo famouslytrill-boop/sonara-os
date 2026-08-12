@@ -9,10 +9,16 @@ const {
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_CREATE_SPECS, getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
+const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
 const TABLES = Object.freeze({
   campaigns: "growth_campaigns",
   leads: "growth_leads",
+  // Business Builder's table, named here because a won lead becomes one. Every
+  // other call in this file goes through TABLES, and passing a literal name
+  // instead hides the table from the member-policy scan -- which is what the
+  // "no read helper hides from the policy check" test caught.
+  customers: "customers",
   experiments: "growth_experiments",
   automations: "automation_rules",
   connections: "growth_provider_connections",
@@ -64,6 +70,58 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         arbitraryAutomationCode: false
       }
     });
+  });
+
+  // Turning a won lead into a customer.
+  //
+  // growth_leads and customers hold the same four fields and nothing joined
+  // them, so a lead that closed had to be retyped before it could be quoted or
+  // invoiced. That seam is what the "one system" claim is about: Growth Studio
+  // finds the work, Business Builder bills it.
+  //
+  // Both tables belong to the same organization, so this crosses a product
+  // boundary and not a tenancy one -- and every read and write below still
+  // carries the organization rather than trusting that.
+  //
+  // The owner acting, not an agent, for the same reason as the quote step: a
+  // person pressing a button they can see is the person.
+  app.post("/api/growth-studio/leads/:leadId/customer", access, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+    if (!validUuid(req.params.leadId)) return res.status(400).json({ ok: false, code: "invalid_lead_id" });
+    const config = getConfig(deps);
+    if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
+
+    const found = await loadOne(config, TABLES.leads, context, req.params.leadId);
+    if (!found.ok) return res.status(found.status).json({ ok: false, code: found.code });
+    const lead = found.row;
+
+    // Existing customers are read before deciding. An unreadable list is not an
+    // empty one -- treating a failed read as "no duplicates" is how the same
+    // person ends up in the customer list twice with half the invoices on each.
+    const customers = await list(config, TABLES.customers, context, 1000);
+    if (!customers.ok) return res.status(503).json({ ok: false, code: "cannot_check_existing_customers" });
+
+    const refusal = leadConversion.reasonNotConvertible(lead, customers.rows);
+    if (refusal) return res.status(409).json({ ok: false, code: "not_convertible", reason: refusal });
+
+    const created = await insert(config, TABLES.customers, leadConversion.customerFromLead(lead, {
+      organizationId: context.organizationId,
+      userId: context.userId
+    }));
+    if (!created.ok) return res.status(502).json({ ok: false, code: created.code });
+
+    const customerId = created.rows[0]?.id || null;
+    if (!customerId) return res.status(502).json({ ok: false, code: "customer_id_missing" });
+
+    // Best-effort, and deliberately after the customer exists. If this fails
+    // the customer is real and the lead simply does not know about it yet,
+    // which an owner can see and fix. Failing the whole thing here would leave
+    // the customer created and the caller told it was not.
+    const linked = await patchRows(config, TABLES.leads, context, lead.id, { customer_id: customerId });
+    if (created.ok) await controlEvent(config, context, "lead.converted", "success", { lead_id: lead.id, customer_id: customerId, linked: linked.ok });
+
+    return res.status(201).json({ ok: true, customerId, leadLinked: linked.ok });
   });
 
   app.get("/api/growth/campaigns", access, listHandler(TABLES.campaigns, deps, "campaigns"));

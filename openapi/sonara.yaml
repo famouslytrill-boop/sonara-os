@@ -1132,6 +1132,18 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/growth-studio/leads/{leadId}/customer:
+    post:
+      operationId: convertGrowthLeadToCustomer
+      tags: [Operations]
+      summary: Turn a won lead into a customer so it can be quoted and invoiced.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/market-intelligence/fetch-source:
     post:
       operationId: fetchMarketIntelligenceSource

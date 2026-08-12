@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4124 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 80 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 17 customer routes, 29 admin routes.
-- 130 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 131 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -1410,3 +1410,41 @@ back restores it. Fixed, and the reason is in the `after` hook.
 Thirteen declarations remain, all genuine: two machine endpoints, five
 redirect-or-email targets, and six aliases of the canonical `/legal/*` pages the
 footer already links on every page.
+
+### 2026-08-12 — A won lead becomes a customer
+
+`growth_leads` and `customers` hold the same four fields — name, email, phone,
+source — and nothing joined them. A lead that closed had to be retyped before it
+could be quoted or invoiced. That seam is what the "one system" claim is
+actually about: Growth Studio finds the work, Business Builder bills it.
+
+`growth_leads.customer_id` added, and `POST
+/api/growth-studio/leads/:leadId/customer` over it. Both tables belong to the
+same organization, so this crosses a product boundary and not a tenancy one —
+and every read and write still carries the organization rather than trusting
+that.
+
+The column is not only a join. **Without it there is no way to tell a lead has
+already been converted**, and a second press creates two customers with the same
+name and no way to know which is real. `customer_invoices.quote_id` does the
+same job one step later.
+
+Five refusals, each of which leaves a record somebody has to untangle if missed.
+Only a **won** lead converts — "qualified" is somebody looking promising, which
+is not agreement, and it is the same distinction as "sent" against "accepted" on
+a quote. A lead with no name has nothing to address. A lead with no email *and*
+no phone has nowhere to send an invoice, which is the only reason to create a
+customer at all. An already-linked lead refuses. And a customer with the same
+email refuses, matched on email rather than name because two people share a name
+and a duplicate row is what somebody finds months later with half the invoices
+against each.
+
+The duplicate check reads existing customers first, so **a failed read refuses
+rather than converting** — an unreadable list is not an empty one.
+
+Two checks caught things, both correctly. The migration-column test used
+`describedColumns`, which deliberately omits ALTER-added columns because it
+cannot read their type; `hasColumn` knows them. And the policy scan caught a
+literal table name passed through a read helper, which hides the table from the
+member-policy check — every other call in that file goes through `TABLES`, and
+now so does this one.
