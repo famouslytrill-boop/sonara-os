@@ -307,9 +307,15 @@ describe("the server.js split stays safe", () => {
     // and the dashboard card that links to it. The page itself is 190 lines in
     // routes/sonara-agent-activity-routes.cjs -- this is the wiring cost of
     // moving work out, which is the direction this ceiling exists to push.
+    // Then 3 for the account subpage links. /account offered only
+    // /account/setup, so profile, security, preferences, workspaces and
+    // integrations were registered, rendered, and reachable only by typing the
+    // URL -- the same defect /search had, five times over. The links are built
+    // from ACCOUNT_SECTIONS rather than written out, which is why fixing five
+    // unreachable pages cost three lines instead of thirteen.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4072,
+      lines <= 4075,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

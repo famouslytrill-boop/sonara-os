@@ -23,7 +23,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4072 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4075 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 79 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
@@ -1263,3 +1263,35 @@ harness before believing an alarming result keeps earning its keep.
 if either invoice table stops being counted, if they share a label, or if a
 label stops saying which direction the money goes. Verified by removing a link
 and flattening a label, and watching both fail.
+
+### 2026-08-12 — Five account pages nobody could reach, and a crawl that lied
+
+After two hand-kept lists turned out stale, went looking for the general version
+rather than a third instance.
+
+A source scan of every registered page route against every link construct
+reported 57 unlinked. **It was wrong.** `/tutorials` builds its four subpage
+links from a list, so the literal path never appears in source — the scan
+called them unreachable while `/tutorials` renders all four. Rendered HTML is
+the only honest answer to "can somebody get here".
+
+A rendered crawl was better and still not trustworthy: it reported
+`/owner/agent-activity` unreached, which is linked from `/dashboard` — the
+stubbed session does not render the signed-in pages, so the crawl under-reaches
+and would have produced 162 claims, most of them false. **Not shipped.** A check
+that cries wolf is the thing that teaches people to ignore checks, which is the
+same disease as a check that never fires.
+
+What survived verification was real. `/account` linked `/account/setup` and
+nothing else, so **profile, security, preferences, workspaces and integrations
+were registered, rendered, and reachable only by typing the URL** — the `/search`
+defect, five times over, including the page somebody goes looking for after a
+security scare.
+
+Fixed, and added to `tests/page-reachability.test.js`, which fetches the page
+and reads its rendered links. The links are built from `ACCOUNT_SECTIONS`, so
+fixing five unreachable pages cost three lines of `server.js` rather than
+thirteen; the ceiling moved 4072 → 4075 with that reason.
+
+The general check is still worth building. It needs a session that renders the
+signed-in pages, and until it has one it would report more noise than findings.

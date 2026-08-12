@@ -1074,6 +1074,7 @@ app.post("/auth/logout", (req, res) => {
   return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
+const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/setup", "Account setup"]];
 app.get("/account", (req, res) => {
   return res.status(200).type("html").send(
     layout({
@@ -1084,7 +1085,9 @@ app.get("/account", (req, res) => {
         ? "Email sign-in is set up and your session stays signed in safely. Real sign-ups still need one live test before we open this to customers."
         : "Setup needed: sign-in has to be connected before anyone can log in.",
       sections: accountSetupCards(),
-      actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
+      // This offered /account/setup and nothing else, so profile, security,
+      // preferences, workspaces and integrations were reachable only by URL.
+      actions: [...ACCOUNT_SECTIONS.map(([path, label]) => linkAction(path, label)), linkAction("/login", "Login"), linkAction("/", "Home")]
     })
   );
 });

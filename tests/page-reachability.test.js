@@ -30,7 +30,22 @@ const DESTINATIONS = [
     path: "/search",
     from: "/business-builder",
     why: "search is useless if the only way to reach it is typing the URL"
-  }
+  },
+  // Five account subpages were registered, rendered, and linked from nowhere.
+  // /account offered only /account/setup, so the pages a customer goes to
+  // change their own password or disconnect an integration could be reached
+  // only by typing the URL -- the /search defect, five times over.
+  //
+  // Found by fetching /account and reading the rendered links rather than
+  // grepping the source. A source scan reported the four /tutorials pages as
+  // unlinked too, and they were not: /tutorials builds those links from a
+  // list, so the literal path never appears. Rendered HTML is the only honest
+  // answer to "can somebody get here".
+  { path: "/account/profile", from: "/account", why: "a customer changing their own details has to be able to find the page" },
+  { path: "/account/security", from: "/account", why: "the password and session page is the one people go looking for after a scare" },
+  { path: "/account/preferences", from: "/account", why: "notification and contact settings are meaningless if unreachable" },
+  { path: "/account/workspaces", from: "/account", why: "which workspaces you belong to is answerable only here" },
+  { path: "/account/integrations", from: "/account", why: "disconnecting something has to be as reachable as connecting it" }
 ];
 
 async function linksOn(path) {
