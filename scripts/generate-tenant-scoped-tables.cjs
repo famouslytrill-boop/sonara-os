@@ -32,11 +32,57 @@ function classify(sql) {
 
   // A table is tenant-scoped if organization_id appears in its CREATE TABLE
   // body, or is added later by ALTER TABLE. Both spellings occur in this repo.
-  const createPattern = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s*\(([\s\S]*?)\n\)\s*;/gi;
+  // The terminator allows indentation, and the over-run check below exists
+  // because it did not.
+  //
+  // It required a line-initial `)`, and a CREATE TABLE inside a `do $$ ... $$`
+  // block is indented -- so integration_statuses, which ends `    );`, never
+  // terminated. The non-greedy match ran on to the next line-initial `);`,
+  // 3,432 characters later, in a different migration file, swallowing
+  // customer_invoices whole. The parent table of accounts receivable was
+  // therefore in neither list, and lib/sonara-tenant-guard.cjs could not check
+  // a single query against it.
+  //
+  // This was invisible because verify:tenant-tables regenerates and compares.
+  // A generator verified by re-running the same generator agrees with itself
+  // whatever its parser does.
+  const createPattern = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s*\(([\s\S]*?)\n\s*\)\s*;/gi;
+  const overrun = [];
   for (const match of sql.matchAll(createPattern)) {
     const [, name, body] = match;
+    // A table body containing another CREATE TABLE means this match consumed
+    // past its own end. Loud, because the quiet version of this cost the
+    // receivables table its tenant guarantee.
+    if (/create\s+table/i.test(body)) overrun.push(name);
     if (!tables.has(name)) tables.set(name, false);
     if (/\borganization_id\b/i.test(body)) tables.set(name, true);
+  }
+  if (overrun.length) {
+    throw new Error(
+      `CREATE TABLE parsing over-ran on: ${overrun.join(", ")}. ` +
+        "Each of those matches swallowed at least one following table, so the classification below it is wrong. " +
+        "Fix the terminator rather than the migration."
+    );
+  }
+
+  // An independent count, deliberately not sharing the pattern above. If the
+  // two disagree, a table exists that the classification never saw, and every
+  // check downstream would be reasoning about a shorter list than the schema.
+  // Comments are stripped first, and the name must be followed by an opening
+  // paren. Without either, this matched the words "create table to" in a
+  // migration comment and reported a table called "to" -- the same way a
+  // semicolon inside a comment once broke the licence-union parser. A
+  // cross-check that reports phantoms is one people switch off.
+  const withoutComments = sql.replace(/^\s*--.*$/gm, "");
+  const declared = new Set(
+    [...withoutComments.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s*\(/gi)].map((match) => match[1].toLowerCase())
+  );
+  const missed = [...declared].filter((name) => !tables.has(name)).sort();
+  if (missed.length) {
+    throw new Error(
+      `these tables are created by a migration and were not classified: ${missed.join(", ")}. ` +
+        "The CREATE TABLE body parser did not reach them."
+    );
   }
 
   const alterPattern = /alter\s+table\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s+add\s+column\s+(?:if\s+not\s+exists\s+)?organization_id/gi;

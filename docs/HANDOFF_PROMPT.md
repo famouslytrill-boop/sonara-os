@@ -1295,3 +1295,42 @@ thirteen; the ceiling moved 4072 → 4075 with that reason.
 
 The general check is still worth building. It needs a session that renders the
 signed-in pages, and until it has one it would report more noise than findings.
+
+### 2026-08-12 — The tenant guard could not see the receivables table
+
+Building the authenticated crawl surfaced this, which is worth more than the
+crawl was: the tenant guard's own warning fired, for real, on
+**`customer_invoices`** — the parent table of the entire accounts-receivable
+feature. It was in neither `TENANT_SCOPED_TABLES` nor `GLOBAL_TABLES`, so
+`lib/sonara-tenant-guard.cjs` could not check a single query against it. It had
+been that way since the table was created.
+
+The cause is a regex terminator. `generate-tenant-scoped-tables.cjs` required a
+CREATE TABLE body to end with a **line-initial** `)`, and a CREATE TABLE inside
+a `do $$ ... $$` block is indented. `integration_statuses` ends `    );`, never
+terminated, and the non-greedy match ran on to the next line-initial `);` —
+3,432 characters later, **in a different migration file**, swallowing
+`customer_invoices` whole. The generator joins every migration into one string,
+so nothing stopped it crossing the boundary.
+
+**It was invisible because `verify:tenant-tables` regenerates and compares.** A
+generator verified by re-running the same generator agrees with itself whatever
+its parser does. Every release passed while the guard was blind to a money
+table.
+
+Three changes. The terminator tolerates indentation. A body containing another
+`create table` now throws, because that match consumed past its own end — and
+that fires on exactly the case that caused this, verified by restoring the old
+terminator. And an independent scan, deliberately not sharing the pattern,
+asserts every table a migration declares was classified.
+
+The independent scan reported a table called **`to`** on its first run, from the
+words "create table to" in a comment. Comments are stripped now — the same
+lesson as the semicolon that once broke the licence-union parser. A cross-check
+that reports phantoms is one people switch off.
+
+Also surfaced: **`product_modules` is queried twice from `server.js` and created
+by no migration.** Same class as the four authorization functions — schema in
+the live database and not in version control. Recorded in `SHIP_READINESS.md`
+rather than guessed at, because inventing a definition that may not match
+production is worse than the gap.

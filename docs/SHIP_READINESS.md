@@ -174,6 +174,21 @@ honest answer until a handler exists.
 The order is therefore: build a gated capability first, then the approval path
 it needs. Not the reverse.
 
+### A table the application queries that no migration creates
+
+`product_modules` is counted twice in `server.js` and is created by no
+migration. It is the same class of finding as the four authorization functions
+above, and it was found the same way — by something noticing it could not
+classify a name, rather than by anybody reading.
+
+Nothing here invents a migration for it. Its real shape is in the live database
+and guessing it would put a definition into version control that may not match
+what production has, which is worse than the gap. Export it the same way as the
+four functions and it can be brought in.
+
+The queries degrade honestly in the meantime: `safeCountTable` reports a missing
+table as not set up rather than failing the page.
+
 **Fifteen tables have RLS enabled with no policy**, reported as INFO. That is
 the safe state, not a gap: RLS with no policy denies everything except the
 service role, which is what a service-role-only table should do. Recorded so
