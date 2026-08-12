@@ -139,7 +139,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       let product = null;
       try {
         product = resolveProduct(item) || null;
-      } catch (_) {
+      } catch {
         product = null;
       }
       const groupName = product?.name || (item?.productKey === "sonara_industries" ? "SONARA Industries" : displayStatus(item?.productKey || "Services"));
@@ -151,7 +151,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         try {
           const actions = catalogActions(item, product).join("");
           return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${escapeHtml(item.name || "Catalog item")}</h3><p>${escapeHtml(catalogCardBody(item))}</p></div><div class="actions">${actions}</div></article>`;
-        } catch (_) {
+        } catch {
           const fallbackName = escapeHtml(item?.name || "Catalog item");
           const fallbackSummary = escapeHtml(item?.summary || "This catalog entry needs review before it can be opened.");
           return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${fallbackName}</h3><p>${fallbackSummary}</p></div><div class="actions">${linkAction("/requests", "Request catalog review")}</div></article>`;

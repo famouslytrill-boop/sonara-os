@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 function read(relativePath) { return fs.readFileSync(path.join(root, relativePath), "utf8"); }
@@ -25,7 +25,6 @@ function occurrenceCount(source, value) {
 
 describe("Market intelligence integration contract", () => {
   it("prepares route anchors and runs market intelligence before final R&D decisions", function() {
-    const pkg = JSON.parse(read("package.json"));
   });
 
   it("keeps market manifest routes and modules idempotent across repeated runtime passes", function() {

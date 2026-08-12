@@ -45,7 +45,6 @@ describe("SONARA recommended product catalog", () => {
   });
 
   it("runs the product catalog after product lifecycle and before final market decisions", () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
   });
 
   it("seeds every product through an idempotent service catalog migration", () => {

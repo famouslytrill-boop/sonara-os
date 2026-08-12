@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 const serverPath = path.join(root, "server.js");

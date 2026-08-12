@@ -214,7 +214,6 @@ const CORE_DASHBOARD_RESOURCES = Object.freeze(["services", "customers", "orders
 
 module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {}) {
   const layout = deps.layout;
-  const brandCard = deps.brandCard;
   const linkAction = deps.linkAction;
   const escapeHtml = deps.escapeHtml;
   const requirePaidOrOwnerAccess = deps.requirePaidOrOwnerAccess;
@@ -289,7 +288,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return rest("business_workspaces", `select=${encodeURIComponent(BUSINESS_SELECT)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&deleted_at=is.null&order=created_at.desc&limit=100`);
   }
 
-  async function primaryBusiness(ctx) {
+  async function _primaryBusiness(ctx) {
     const result = await listBusinesses(ctx);
     return result.ok && result.rows[0] ? { ok: true, business: result.rows[0] } : { ok: false, status: result.ok ? 404 : 502, code: result.ok ? "business_required" : result.code };
   }

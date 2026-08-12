@@ -18,7 +18,7 @@ const request = require("supertest");
 
 const app = require("../server");
 const { STRIPE_PLANS } = app;
-const { createModuleCrud } = require("../lib/sonara-module-crud.cjs");
+const { _createModuleCrud } = require("../lib/sonara-module-crud.cjs");
 const { createBilling } = require("../lib/sonara-billing.cjs");
 
 const QUOTED = "business_builder_one_time";

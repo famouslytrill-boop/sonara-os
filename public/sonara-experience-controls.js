@@ -54,7 +54,7 @@
       if (!raw) return null;
       var parsed = JSON.parse(raw);
       return parsed && typeof parsed === "object" ? parsed : null;
-    } catch (error) {
+    } catch {
       // Private browsing, disabled storage, corrupt value -- fall back to the
       // safe defaults rather than letting a preference read break the page.
       return null;
@@ -87,7 +87,7 @@
       existing.sound = state.sound;
       existing.haptics = state.haptics;
       window.localStorage.setItem(SHARED_STORAGE_KEY, JSON.stringify(existing));
-    } catch (error) {
+    } catch {
       /* Not being able to persist a preference is not worth an error. */
     }
   }
@@ -129,7 +129,7 @@
     if (!Ctor) return null;
     try {
       audio = new Ctor();
-    } catch (error) {
+    } catch {
       audio = null;
     }
     return audio;
@@ -178,7 +178,7 @@
     if (!pattern) return;
     try {
       navigator.vibrate(pattern);
-    } catch (error) {
+    } catch {
       /* Vendor quirk; a failed buzz is not worth surfacing. */
     }
   }

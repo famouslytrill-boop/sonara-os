@@ -1948,7 +1948,7 @@ function registerProduct(slug, config) {
 }
 
 
-function workspaceToolPage({ slug, config, page, access, paid, records = "" }) {
+function workspaceToolPage({ slug, config, page, paid, records = "" }) {
   const sections = [
     ...workspaceFormSections(page),
     brandCard("What this tool does", page.body),

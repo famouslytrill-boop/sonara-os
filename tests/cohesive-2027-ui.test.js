@@ -1,9 +1,8 @@
 const request = require("supertest");
 const assert = require("assert");
 const fs = require("node:fs");
-const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 const app = require("../server");
 const { SONARA_BRAND_REGISTRY } = require("../lib/sonara-brand-registry.cjs");
 const { assetUrlPattern } = require("./helpers/asset-version.cjs");

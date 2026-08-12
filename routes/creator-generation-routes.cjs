@@ -459,7 +459,7 @@ async function dispatchGoogleVeo(config, context, job, provider) {
   return { ok: true, job: updated.rows[0] };
 }
 
-async function dispatchSuno(config, context, job, provider) {
+async function dispatchSuno(config, context, job, _provider) {
   const base = String(process.env.SUNO_API_BASE_URL || "").replace(/\/$/, "");
   const path = normalizePath(process.env.SUNO_GENERATE_PATH);
   const response = await fetch(`${base}${path}`, {
@@ -475,7 +475,7 @@ async function dispatchSuno(config, context, job, provider) {
   return { ok: status !== "failed", job: updated.rows[0] };
 }
 
-async function dispatchWorker(config, context, job, provider) {
+async function dispatchWorker(config, context, job, _provider) {
   const base = String(process.env.CREATOR_MEDIA_WORKER_URL || "").replace(/\/$/, "");
   const response = await fetch(`${base}/v1/jobs`, {
     method: "POST",

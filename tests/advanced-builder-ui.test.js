@@ -4,7 +4,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const app = require("../server");
 const builderManifest = require("../config/sonara-builder-system.json");
-const packageJson = require("../package.json");
 const { assetUrlPattern } = require("./helpers/asset-version.cjs");
 
 const LEGACY_ASSET_PATTERN = /sonara-(?:cohesive-2027|builder-2027|premium-mobile-fix|interface-engine|launch-ui|premium-access-2027|premium-ux)/i;

@@ -3,12 +3,12 @@
 const { randomUUID } = require("node:crypto");
 const {
   getGrowthProvider,
-  getGrowthProviderReadiness,
+  _getGrowthProviderReadiness,
   getGrowthProviderCatalog,
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
-const { GROWTH_CREATE_SPECS, getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
+const { getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
 const TABLES = Object.freeze({

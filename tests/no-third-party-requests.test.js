@@ -57,7 +57,7 @@ function externalHosts(html) {
     let host;
     try {
       host = new URL(value).host;
-    } catch (error) {
+    } catch {
       continue;
     }
     if (!OWN_HOSTS.test(host)) found.add(host);

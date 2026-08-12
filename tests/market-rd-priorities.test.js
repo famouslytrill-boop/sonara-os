@@ -28,7 +28,6 @@ describe("SONARA market research and development priorities", () => {
   });
 
   it("runs the R&D patch after market intelligence", () => {
-    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
   });
 
   it("shares the strategy with agents and documents evidence limits", () => {
