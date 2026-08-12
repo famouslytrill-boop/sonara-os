@@ -51,14 +51,35 @@ describe("every declared row action can actually be pressed", () => {
     assert.ok(covered.length >= 2, `only ${covered.length} collection declares a row action; both renderers should`);
   });
 
-  it("substitutes the id the renderer actually replaces", () => {
-    // Both renderers do api.replace(":id", id). An action declared with the
+  it("says where the record id goes, one way or the other", () => {
+    // The renderers pass the record two ways, because the endpoints take it two
+    // ways: substituted into the path at :id, or posted as a hidden field named
+    // by idField. Clocking out takes it in the body, and forcing that through a
+    // path parameter would mean changing a published API to suit the renderer.
+    //
+    // The original defect this guards is unchanged: an action declared with the
     // route's own parameter name -- :leadId, :quoteId -- passes every other
-    // check here and posts to a literal ":leadId" path when pressed.
+    // check here and posts to a literal ":leadId" path when pressed. So the
+    // rule is that it must do exactly one of the two, and declaring neither is
+    // the case that silently posts to a path with a colon in it.
     for (const page of withActions) {
+      const inPath = page.rowAction.api.includes(":id");
+      const inBody = Boolean(page.rowAction.idField);
       assert.ok(
-        page.rowAction.api.includes(":id"),
-        `${page.path} declares ${page.rowAction.api}, which has no :id for the renderer to replace`
+        inPath || inBody,
+        `${page.path} declares ${page.rowAction.api} with no :id and no idField, so the record id reaches the endpoint by neither route`
+      );
+      assert.ok(
+        !(inPath && inBody),
+        `${page.path} declares both :id and idField, so the id would be sent twice and the two could disagree`
+      );
+      // A leftover parameter of any other name is the original bug wearing a
+      // different label, and idField does not excuse it.
+      const strayParameter = page.rowAction.api.replace(":id", "").match(/:[A-Za-z0-9_]+/);
+      assert.equal(
+        strayParameter,
+        null,
+        `${page.path} declares ${page.rowAction.api}, which carries ${strayParameter && strayParameter[0]} that nothing substitutes`
       );
     }
   });

@@ -876,7 +876,13 @@ function recordsCard(page, rows, ui, loaded = null) {
         cells.push(
           reason
             ? `<td>${ui.escape(reason)}</td>`
-            : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
+            // Two shapes, because the endpoints are two shapes. Most take the
+            // record in the path; some take it in the body, and forcing those
+            // through a path parameter would mean changing a published API to
+            // suit the renderer.
+            : action.idField
+              ? `<td><form method="post" action="${ui.escape(action.api)}"><input type="hidden" name="${ui.escape(action.idField)}" value="${ui.escape(String(row.id || ""))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
+              : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
         );
       }
       return `<tr>${cells.join("")}</tr>`;
@@ -937,7 +943,13 @@ function isUuid(value) {
 
 function formCard(page, references, ui) {
   const fields = page.form.fields.map((field) => formField(field, references, ui)).join("");
-  return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(page.api)}">${fields}<button type="submit">Save</button></form></article>`;
+  // Most forms create a record at the page's own endpoint. A few do something
+  // to the page's records instead -- clocking in is not "create a time entry",
+  // it is "start one now" -- so the form may name its own action and its own
+  // button rather than being forced through the list endpoint.
+  const action = page.form.action || page.api;
+  const submit = page.form.submitLabel || "Save";
+  return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(action)}">${fields}<button type="submit">${ui.escape(submit)}</button></form></article>`;
 }
 
 function formField(field, references, ui) {

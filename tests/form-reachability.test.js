@@ -63,8 +63,6 @@ const NO_FORM_NEEDED = {
   // Endpoints with no page to put a form on. These are the actual work queue.
   "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
   "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",
-  "/api/business/time-entries/start": "NOT YET EXAMINED: clock-in, likely wants a button rather than a form.",
-  "/api/business/time-entries/stop": "NOT YET EXAMINED: clock-out, likely wants a button rather than a form.",
   "/api/location/zones": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/integrations/jobs": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",

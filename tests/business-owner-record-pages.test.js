@@ -60,8 +60,45 @@ describe("Business Builder owner pages show real records", () => {
       const result = await request(app).get(page.path).set("accept", "text/html");
       assert.equal(result.status, 200, `${page.path} did not render`);
       assert.match(result.text, /<table/, `${page.path} shows no records table`);
-      if (page.form) assert.match(result.text, new RegExp(`<form[^>]+action="${page.api}"`), `${page.path} offers no way to add one`);
+      // A form usually posts to the page's own endpoint. Clocking in posts to
+      // /api/business/time-entries/start instead, because the server stamps the
+      // time -- a form that let somebody type their own clock-in time would be
+      // a different feature. So the assertion is that the form posts where the
+      // page says it does, which is the property that matters either way.
+      if (page.form) {
+        const action = page.form.action || page.api;
+        assert.match(result.text, new RegExp(`<form[^>]+action="${action}"`), `${page.path} offers no way to add one`);
+      }
     }
+  });
+
+  it("lets somebody clock in and clock out", async () => {
+    // Both endpoints have worked the whole time. This page listed the entries
+    // and offered no form at all, so a business could read its timesheets and
+    // never record one -- the feature was reachable only by an API client. The
+    // exemption list carried both as "NOT YET EXAMINED".
+    const app = buildApp({
+      employee_time_entries: [
+        { id: "t-open", status: "open", clock_in_at: "2026-08-12T09:00:00Z", clock_out_at: null, break_minutes: 0 },
+        { id: "t-done", status: "submitted", clock_in_at: "2026-08-11T09:00:00Z", clock_out_at: "2026-08-11T17:00:00Z", break_minutes: 30 }
+      ],
+      business_employee_profiles: [{ id: "e-1", display_name: "Sam" }]
+    });
+    const result = await request(app).get("/business-builder/owner/time").set("accept", "text/html");
+    assert.equal(result.status, 200);
+
+    // Clock in posts to /start, not to the list endpoint: the server stamps the
+    // time, and a form accepting a typed clock-in time is a different feature.
+    assert.match(result.text, /<form[^>]+action="\/api\/business\/time-entries\/start"/, "there is no way to clock in");
+    assert.doesNotMatch(result.text, /<form[^>]+action="\/api\/business\/time-entries"/, "clocking in is posting to the list endpoint, which does not stamp the time");
+
+    // Clock out takes the entry in the body, so the row carries a hidden id
+    // rather than a path parameter.
+    assert.match(result.text, /<form[^>]+action="\/api\/business\/time-entries\/stop"/, "there is no way to clock out");
+    assert.match(result.text, /name="id" value="t-open"/, "the open entry does not offer a clock-out");
+
+    // And a finished shift says so instead of offering a button that would fail.
+    assert.match(result.text, /Already clocked out/);
   });
 
   it("says there is nothing rather than showing an empty table with no explanation", async () => {
