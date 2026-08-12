@@ -154,7 +154,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId);
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*");
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
@@ -366,11 +366,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which workspace you are in. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId);
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*");
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         extra = await Promise.all((page.also || []).map(async (side) => {
-          const sideRows = await listRecordPage(config, side.table, org.organizationId);
+          const sideRows = await listRecordPage(config, side.table, org.organizationId, "created_at.desc", side.select || "*");
           return { side, rows: sideRows.ok ? sideRows.rows : [], loaded: sideRows.ok ? sideRows : null };
         }));
       }
@@ -932,8 +932,15 @@ const PAGE_SIZE = 100;
 // second request, but only when we already know it is going to say something
 // the first one could not -- so an account under the cap, which is nearly all
 // of them, still costs exactly one query.
-async function listRecordPage(config, table, organizationId, order = "created_at.desc") {
-  const query = `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}`;
+// `select` is the list view's level of detail: the fields its columns actually
+// read, rather than every column the table has. Measured across the 22 owner
+// record pages, `select=*` fetched 307 columns to render 112 -- 2.7x -- on
+// every page load, for every row. A page that has not declared one still gets
+// `*`, because a missing declaration must cost bandwidth rather than blank a
+// cell. tests/record-selects-cover-every-column.test.js is what keeps a
+// declaration honest as columns change.
+async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*") {
+  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}`;
   const listed = await supabaseList(config, table, query);
   if (!listed.ok) return listed;
 

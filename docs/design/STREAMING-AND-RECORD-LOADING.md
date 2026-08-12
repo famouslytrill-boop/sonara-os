@@ -43,38 +43,68 @@ stays `null` and the caption says "more than 100" — the floor the first read
 established, rather than a number invented to fill the gap. See
 `tests/record-lists-say-what-they-did-not-load.test.js`.
 
-## What is real, measured, and not yet applied
+## Level of detail, applied
 
-**Level of detail.** The owner record pages select `*` and render a handful of
-columns:
+The owner record pages selected `*` and rendered a handful of columns:
 
 | | Columns |
 |---|---|
 | Displayed across 22 owner record pages | 112 |
 | Fetched by `select=*` | 307 |
-| Ratio | **2.7×** |
+| Fetched now | **153** |
 
-Every list view pulls roughly two and a half times the data it shows, on every
-page load, for every row. The Growth Studio record pages already do this
-correctly — each declares an explicit `select` naming exactly the fields its
-columns read, which is LOD_2 for the list and LOD_0 on the detail page.
+Every list view was pulling roughly two and a half times the data it showed, on
+every page load, for every row. The Growth Studio record pages already did this
+correctly — each declares an explicit `select` naming the fields its columns
+read, which is the list's LOD_2 against the detail page's LOD_0. The owner pages
+now declare one too.
 
-**It is deliberately not fixed here, and the reason matters.** The columns a
-page displays are declared as `value: (row) => …` functions, so the fields a
-row actually needs cannot be recovered by reading the declaration — a renderer
-also reaches for `row.id` to build the detail link, and `rowAction` refusal
-rules read fields no column displays (`status`, `customer_id`, `amount_cents`).
-Inferring the select list from those arrow functions would work on most pages
-and silently blank cells on the rest, and a blank cell in a business record is
-worse than an oversized query.
+### Deriving the field list
 
-The safe version is the one Growth Studio already uses: each page declares its
-own `select`, explicitly, and a check asserts every field a column reads is in
-it. That is real work across 22 pages plus the check, and it is worth doing —
-recorded here with the measurement so it is picked up as a task rather than
-rediscovered as an idea.
+The fields a page needs cannot be read off its declaration: columns are
+`value: (row) => …` functions, the renderer reaches for `row.id` to build the
+detail link, and `rowAction` refusal rules read fields no column displays. Two
+methods, unioned:
 
-**Paging past the first 100** is the other half. The list now says a total
-exists beyond the cap; it still offers no way to reach it. Saying so is
-strictly better than the previous silence, and it is not the same as being
-finished.
+1. **Run it.** Each column function is called against a `Proxy` that records
+   every property read.
+2. **Read it.** Every property taken off the first parameter in the function
+   source.
+
+Both were necessary. The runtime probe alone missed `customer_id` on quotes,
+because the refusal rule returns early on any status that is not `accepted` and
+never reaches the line that reads it. Across all 22 pages the two methods then
+agreed exactly, at 153 fields.
+
+### Why the check does not repeat that derivation
+
+A check that rebuilds the list the same way the list was built agrees with
+itself by construction — which is precisely the defect found earlier in the
+tenant-tables generator, verified by re-running itself.
+
+`tests/record-selects-cover-every-column.test.js` checks the property instead.
+It hands each column function a row containing **only** what the select asked
+for and reports anything it reaches for beyond that. It separately checks every
+selected field against the columns the migrations actually create, because the
+two failure modes are different and only one of them is visible:
+
+| Mistake | What the customer sees |
+|---|---|
+| Select omits a field a column reads | A blank cell — reads as "this customer has no phone number", not as a bug |
+| Select omits a field a *refusal rule* reads | The wrong answer about whether a row can act — no blank cell at all |
+| Select names a column the table lacks | PostgREST rejects the whole query; the page reports "not set up yet" |
+
+Verified by dropping `customer_id` from the quotes select and by adding a
+misspelled column, both caught by name.
+
+## Still open
+
+**Paging past the first 100.** The list now says a total exists beyond the cap;
+it still offers no way to reach it. Saying so is strictly better than the
+previous silence, and it is not the same as being finished.
+
+Nothing else. The creator record pages share this renderer and are covered too,
+including the `also` side tables — each of those is a second list drawn on the
+same page by the same code, and leaving them out would have let a select go
+unchecked while the file read as though it covered the renderer. 25 lists in
+all.
