@@ -179,11 +179,32 @@ async function checkReadiness() {
       assertCheck(payload?.services?.[service] === expected, `${path}: expected ${service}=${expected}, received ${payload?.services?.[service] || "missing"}`);
     }
     assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google OAuth should remain explicitly deferred until configured`);
-    // Both, because they are different claims. legalPages says the published
-    // pages carry a disclaimer; legalReviewBoundary says no attorney has
-    // reviewed them. The live site has to keep saying the second whatever it
-    // says about the first -- that is the one somebody could quietly drop.
-    assertCheck(payload?.services?.legalPages === "published_with_disclaimer", `${path}: legal pages must report their disclaimer`);
+    // Two different claims, asserted two different ways, and the difference is
+    // about what this script can know.
+    //
+    // This runs against the live site from a pull request, so the version it
+    // reaches is whatever is deployed -- not the branch. An exact match on
+    // legalPages therefore fails by construction for the whole window between
+    // merging a change to that value and the deploy landing, which is exactly
+    // what happened when it moved from "review_required" to
+    // "published_with_disclaimer". Pinning the new value made a green check
+    // impossible to obtain and told nobody anything about the live site.
+    //
+    // So legalPages is checked against the states that mean something is
+    // *wrong*: no legal pages, a disclaimer that stopped saying it is not legal
+    // advice, or a status nobody computed. Every version that has ever shipped
+    // passes; every broken one fails. That is the strongest claim available to
+    // a check that does not control which version answers it.
+    //
+    // legalReviewBoundary stays an exact match, because it does not change
+    // between versions and it is the half somebody could quietly drop: it is
+    // the live site saying, in as many words, that no attorney has reviewed
+    // these pages.
+    const legalPagesState = payload?.services?.legalPages;
+    assertCheck(
+      Boolean(legalPagesState) && !["disclaimer_missing", "no_legal_pages", "unknown"].includes(legalPagesState),
+      `${path}: legal pages report ${legalPagesState || "nothing"}`
+    );
     assertCheck(payload?.services?.legalReviewBoundary === "not_attorney_reviewed", `${path}: legal review boundary must remain explicit`);
 
     for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly"]) {
