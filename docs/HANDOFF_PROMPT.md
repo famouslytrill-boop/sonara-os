@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 148 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 149 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,43 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The half of the audit that nobody would have read
+
+*Selling Your Work* is free, on the owner's instruction. The only page that does
+it is a free one, so a Starter floor charged for something a signed-in customer
+already had. Ten of twenty-three products are free now, three Starter, eight
+Core, two Pro.
+
+**And the audit before this one fixed the wrong half.** It trimmed nine
+`capabilities` lists to what their page renders and left every `summary` alone.
+`capabilities` is internal and nobody outside this repository sees it; `summary`
+and `customerOutcome` are printed on the catalog card a customer reads before
+paying. So "Products, services, licences, bundles, prices, delivery files,
+payment links, and your refund position" stayed on a product whose page drafts
+one offer and saves it, next to a capability list that had been cut to three
+honest items.
+
+Seven summaries rewritten. Research & Roadmap no longer claims scored
+opportunities or live experiments; One Connected Account no longer says files
+stay in one place, because `/dashboard` holds none; Landing Pages & Results no
+longer describes a path through a form, a booking and a payment; Connection
+Health no longer offers limits, retries, costs and where you are being
+mentioned.
+
+`tests/the-catalog-copy-claims-nothing-unbuilt.test.js` is the list of phrases
+no product may use and the reason each one is not there to promise -- bundles,
+delivery files, payment links, UTM, refund position, scored opportunities,
+validation portfolio, referral tracking, answer-engine, renewal reminders, CSV
+mapping, file storage. It reads the customer-facing fields, not the internal
+one, which is the mistake it exists to catch.
+
+It found one I had missed by hand: *Connected Accounts* still offered "safe
+connections to payments, email, publishing, **file storage**, and analytics",
+after the storage product itself had been rewritten. A phrase outliving the
+thing it described is exactly what a hand pass misses and a list catches.
+
+Verified: `pnpm run verify:launch` green end to end, 1,690 tests passing.
 
 ### 2026-08-13 — Opening all twenty-three products and reading what they render
 

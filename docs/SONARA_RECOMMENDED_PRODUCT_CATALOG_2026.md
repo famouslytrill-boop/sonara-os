@@ -63,7 +63,7 @@ automatically an executable one.
 | Brand & Asset Library | Starter | `beta` | `/creator-studio/assets` | Yes |
 | Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | Yes |
 | Release Packager | Core | `beta` | `/creator-studio/music-system` | Yes |
-| Selling Your Work | Starter | `beta` | `/creator-studio/offers/free` | Yes |
+| Selling Your Work | Free | `beta` | `/creator-studio/offers/free` | Yes |
 
 ## Growth Studio products
 
