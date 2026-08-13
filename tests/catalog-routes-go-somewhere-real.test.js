@@ -24,24 +24,16 @@ const { PLAN_FLOOR_ENTITLEMENT_KEY, getPaidEntitlementKeys, honestPlanFloors } =
 
 // Products advertising a plan the server will not accept for them.
 //
-// This is a work queue, not an exemption. Each one is currently reported as
-// closed on /service-catalog, which is honest -- a customer is not invited to
-// buy a plan that would bounce -- but closed is not where any of them should
-// stay. Two ways out, and which one is right is a pricing decision rather than
-// an engineering one: raise the plan floor to what the family already accepts,
-// or add the cheaper plan to PAID_ENTITLEMENT_KEYS and sell the product at it.
+// This held seven, with a note on each saying what the choice was. All seven
+// are gone: on 13 August 2026 the owner chose to widen what a plan buys rather
+// than raise the prices, so creator_studio moved down to Starter and
+// growth_studio down to Core, and the two Growth products that had been marked
+// Starter moved to Core because growth_studio does not open below it.
 //
-// Emptying this list is the goal. Adding to it needs a reason as specific as
-// these.
-const PLAN_FLOOR_AWAITING_A_DECISION = {
-  "brand-asset-system": "Starter; creator_studio accepts Core and Pro. Basic enough to be a Starter entry, so this is probably an entitlement change rather than a price rise.",
-  "content-project-repurposing": "Starter; creator_studio accepts Core and Pro. Same call as brand-asset-system -- these two are the cheap way into Creator Studio or there is no cheap way in.",
-  "creator-commerce-digital-products": "Starter; creator_studio accepts Core and Pro. Selling is where the money is, so Core is defensible here even if the other two open at Starter.",
-  "customer-timeline-consent-center": "Core; growth_studio accepts Pro only. Consent and suppression are a safety feature, and pricing one at $39 is the version of this decision with a customer-harm side.",
-  "lead-capture-segments-crm": "Starter; growth_studio accepts Pro only.",
-  "campaign-journey-builder": "Core; growth_studio accepts Pro only.",
-  "landing-conversion-tracking": "Starter; growth_studio accepts Pro only. Growth Studio has no entry below $39 today, which is the whole of this row and the three above it."
-};
+// The list stays because emptying it was the point and refilling it is one
+// careless row away. Adding an entry needs a reason as specific as the ones
+// that were here.
+const PLAN_FLOOR_AWAITING_A_DECISION = {};
 
 // The generic per-product pages. Each is registered once for every product and
 // renders the same thing regardless of which one you came from, so none of
@@ -147,14 +139,36 @@ describe("every catalog route goes somewhere that is that product", () => {
   });
 
   // And the rule refuses one, so the list above being empty means something.
-  it("would refuse a product priced below what its family enforces", () => {
-    const { planFloorOpensProduct } = require("../lib/sonara-paid-access.cjs");
-    assert.equal(planFloorOpensProduct("growth_studio", "starter"), false, "growth_studio enforces pro_monthly alone");
-    assert.equal(planFloorOpensProduct("growth_studio", "pro"), true);
-    assert.equal(planFloorOpensProduct("creator_studio", "starter"), false, "creator_studio enforces core_monthly and above");
-    assert.equal(planFloorOpensProduct("creator_studio", "core"), true);
-    assert.equal(planFloorOpensProduct("business_builder", "starter"), true);
+  // The rule has to refuse something, or the empty list above means nothing.
+  //
+  // The cases were written against the mapping as it stood, which made them
+  // stale the moment it was widened -- "creator_studio refuses Starter" was a
+  // true statement about a decision, not about the rule. They are derived now:
+  // for each family, every floor it does not accept must be refused and every
+  // floor it does accept must be allowed, whatever the mapping happens to say.
+  it("refuses exactly the floors a family does not accept", () => {
+    const { planFloorOpensProduct, PLAN_FLOOR_ENTITLEMENT_KEY, PLAN_FLOOR_ORDER } = require("../lib/sonara-paid-access.cjs");
+    const { PAID_ENTITLEMENT_KEYS } = require("../lib/sonara-paid-access.cjs");
+
+    let refusals = 0;
+    for (const productKey of [...Object.keys(PAID_ENTITLEMENT_KEYS), "sonara_industries"]) {
+      const accepted = PAID_ENTITLEMENT_KEYS[productKey] || [];
+      for (const floor of PLAN_FLOOR_ORDER) {
+        const expected = accepted.includes(PLAN_FLOOR_ENTITLEMENT_KEY[floor]);
+        assert.equal(
+          planFloorOpensProduct(productKey, floor),
+          expected,
+          `${productKey} on ${floor}: the rule and the entitlement map disagree`
+        );
+        if (!expected) refusals += 1;
+      }
+      // Free is not an entitlement and always opens.
+      assert.equal(planFloorOpensProduct(productKey, "free"), true);
+    }
+
+    // sonara_industries alone contributes three refusals, so this cannot reach
+    // zero while that family is unmapped -- but assert it rather than assume it.
+    assert.ok(refusals >= 3, `the rule refused nothing in ${refusals} cases; it would pass on any mapping`);
     assert.equal(planFloorOpensProduct("sonara_industries", "core"), false, "sonara_industries enforces nothing");
-    assert.equal(planFloorOpensProduct("sonara_industries", "free"), true);
   });
 });

@@ -9,6 +9,7 @@ const {
   money,
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
+const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 
 // `person` names the column that records who created the row, and it is here
 // because leaving it implicit broke every form on these pages.
@@ -27,7 +28,7 @@ const {
 // below against lib/sonara-migration-columns.cjs, so a wrong name here fails
 // rather than shipping as a form that silently will not save.
 const RESOURCE_MAP = {
-  "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" } },
+  "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" }, planLimit: "locations" },
   "/api/business/services": { table: "business_service_catalog", required: ["name"], defaults: { status: "active" } },
   "/api/business/bookings": { table: "business_bookings", required: ["customer_name"], defaults: { status: "requested" } },
   "/api/business/staff": { table: "business_employee_profiles", required: ["display_name"], person: "user_id", defaults: { status: "active", employment_type: "employee" } },
@@ -646,6 +647,31 @@ function registerRestResource(app, path, resource, deps, middleware) {
     if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
+
+    // Plan limits, for the resources that have one.
+    //
+    // The count is read before the insert rather than after, and a count that
+    // could not be read refuses with "we could not check" rather than with "you
+    // have hit your limit". Those are different sentences and only one of them
+    // is true when the read failed.
+    if (resource.planLimit === "locations") {
+      const entitlement = typeof deps.getCustomerPaidEntitlement === "function"
+        ? await deps.getCustomerPaidEntitlement(req.sonaraUser || req.sonaraAccess?.user || null, "business_builder")
+        : null;
+      const counted = await supabaseCount(config, resource.table, org.organizationId);
+      const allowance = locationAllowance(entitlement?.ok ? entitlement.entitlementKey : "free", counted);
+      if (!allowance.allowed) {
+        return respond(allowance.unknown ? 503 : 402, {
+          ok: false,
+          code: allowance.unknown ? "limit_not_checked" : "plan_limit_reached",
+          message: locationLimitMessage(allowance),
+          included: allowance.included,
+          used: allowance.used,
+          upgrade_url: "/pricing"
+        });
+      }
+    }
+
     // Only name a person column the table actually has. See RESOURCE_MAP.
     const person = resource.person ? { [resource.person]: org.userId || req.body[resource.person] || null } : {};
     // A form posts strings, so a blank optional field arrives as "" rather than

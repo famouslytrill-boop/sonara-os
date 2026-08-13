@@ -6,8 +6,8 @@ by hand puts it back to disagreeing with the product it describes.
 
 **Version:** 2026-07-25  
 **Products:** 23  
-**Open to customers:** 16  
-**Restricted:** 7
+**Open to customers:** 23  
+**Restricted:** 0
 
 Each entry declares its plan floor, delivery state, route, and whether the
 server will actually let a customer run it. A published entry is not
@@ -60,19 +60,19 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Brand & Asset Library | Starter | `beta` | `/creator-studio/dashboard` | No |
-| Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | No |
+| Brand & Asset Library | Starter | `beta` | `/creator-studio/dashboard` | Yes |
+| Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | Yes |
 | Release Packager | Core | `beta` | `/creator-studio/music-system` | Yes |
-| Selling Your Work | Starter | `beta` | `/creator-studio/offers` | No |
+| Selling Your Work | Starter | `beta` | `/creator-studio/offers` | Yes |
 
 ## Growth Studio products
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Customer History & Permissions | Core | `beta` | `/growth-studio/consent` | No |
-| Lead Capture & Lists | Starter | `beta` | `/growth-studio/segments` | No |
-| Campaign Builder | Core | `beta` | `/growth-studio/your-campaigns` | No |
-| Landing Pages & Results | Starter | `beta` | `/growth-studio/attribution` | No |
+| Customer History & Permissions | Core | `beta` | `/growth-studio/consent` | Yes |
+| Lead Capture & Lists | Core | `beta` | `/growth-studio/segments` | Yes |
+| Campaign Builder | Core | `beta` | `/growth-studio/your-campaigns` | Yes |
+| Landing Pages & Results | Core | `beta` | `/growth-studio/attribution` | Yes |
 | Did It Actually Work? | Pro | `beta` | `/growth-studio/experiments` | Yes |
 | Connection Health | Pro | `beta` | `/growth-studio/providers` | Yes |
 

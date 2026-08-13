@@ -26,6 +26,7 @@ const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
+const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
 const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
@@ -642,6 +643,22 @@ registerMarketIntelligenceRoutes(app, {
   supabaseHeaders
 });
 
+// getCustomerPaidEntitlement lives in lib/sonara-paid-entitlement.cjs now. It is
+// built here rather than lower down because it used to be a hoisted `async
+// function` and is now a const: the deps object below reads it at module load,
+// and a const declared after this point is in the temporal dead zone there.
+// The four strings the production deploy gate greps for moved with the function;
+// the gate reads server.js plus lib/ and routes/, and
+// tests/product-catalog-production-boundary.test.js resolves every marker
+// against all three -- written after an earlier move of this same code broke a
+// deploy while the whole suite stayed green.
+const getCustomerPaidEntitlement = createPaidEntitlementReader({
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  getPaidEntitlementKeys
+});
+
 registerLastNineHoursRoutes(app, {
   layout,
   brandCard,
@@ -652,6 +669,7 @@ registerLastNineHoursRoutes(app, {
   requireBusinessManager,
   requireWorkspaceAccess,
   getCustomerPrimaryOrganization,
+  getCustomerPaidEntitlement, // location limits need the plan; see lib/sonara-plan-limits.cjs
   getSupabaseServerConfig
 });
 
@@ -3543,48 +3561,6 @@ async function getCustomerPrimaryOrganization(user, options = {}) {
   return { ok: false, code: "workspace_not_ready" };
 }
 
-async function getCustomerPaidEntitlement(user, productKey) {
-  const organization = await getCustomerPrimaryOrganization(user);
-  if (!organization.ok) return { ok: false, status: 402, code: "upgrade_required", reason: organization.code };
-
-  const config = getSupabaseServerConfig();
-  const allowedKeys = getPaidEntitlementKeys(productKey);
-  if (!allowedKeys.length) {
-    return {
-      ok: false,
-      status: 402,
-      code: "upgrade_required",
-      reason: "product_entitlement_unmapped",
-      message: "Paid access is not configured for this product."
-    };
-  }
-  const entitlementFilter = allowedKeys.map((key) => encodeURIComponent(key)).join(",");
-  const entitlementResponse = await fetch(`${config.url}/rest/v1/billing_entitlements?select=entitlement_key,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=eq.active&entitlement_key=in.(${entitlementFilter})&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (entitlementResponse?.ok) {
-    const rows = await entitlementResponse.json().catch(() => []);
-    const match = rows[0];
-    if (match?.entitlement_key && match.status === "active") return { ok: true, organizationId: organization.organizationId, source: "billing_entitlements", entitlementKey: match.entitlement_key };
-  }
-
-  const subscriptionResponse = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=in.(active,trialing)&plan_slug=in.(${entitlementFilter})&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (subscriptionResponse?.ok) {
-    const rows = await subscriptionResponse.json().catch(() => []);
-    const match = rows[0];
-    if (match?.plan_slug && ["active", "trialing"].includes(match.status)) return { ok: true, organizationId: organization.organizationId, source: "billing_subscriptions", entitlementKey: match.plan_slug };
-  }
-
-  return {
-    ok: false,
-    status: 402,
-    code: "upgrade_required",
-    reason: "billing_state_missing",
-    message: "Paid access is locked until payment updates show an active or trialing plan, or an active one-time purchase."
-  };
-}
 
 
 async function verifyAdminRequest(req) {

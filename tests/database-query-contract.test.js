@@ -16,6 +16,30 @@ function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
 }
 
+// The whole shipped runtime, not just server.js.
+//
+// The paid-access assertions below read server.js alone, and broke when
+// getCustomerPaidEntitlement moved into lib/sonara-paid-entitlement.cjs -- the
+// code was present, correct and shipped, and the test failed on where it lived.
+// That is the same fault the marker check in
+// tests/product-catalog-production-boundary.test.js was written for, one
+// directory over. These queries are a contract about what reaches PostgREST,
+// and which file holds them is not part of it.
+function readRuntime() {
+  const files = [serverPath];
+  for (const directory of ["lib", "routes"]) {
+    const walk = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(cjs|js|mjs)$/.test(entry.name)) files.push(full);
+      }
+    };
+    walk(path.join(root, directory));
+  }
+  return files.map((file) => fs.readFileSync(file, "utf8")).join("\n");
+}
+
 describe("database query contract", () => {
   it("applies idempotently", function() {
   });
@@ -34,7 +58,8 @@ describe("database query contract", () => {
   });
 
   it("pushes paid-access filtering into PostgREST", function() {
-    const source = read(serverPath);
+    const source = readRuntime();
+    assert.ok(source.length > 200000, "the runtime scan collected almost nothing; these assertions would be measuring an empty string");
     assert.match(source, /if \(!allowedKeys\.length\)/);
     assert.match(source, /reason: "product_entitlement_unmapped"/);
     assert.match(

@@ -18,6 +18,20 @@ before any of it reaches marketing copy.
 
 ## Part 1 — What is costing money today
 
+> **Decided 13 August 2026.** The owner chose to widen what a plan buys rather
+> than raise the seven prices, and chose a location limit per plan rather than a
+> per-location add-on. Both are applied. Creator Studio moved down to Starter
+> and Growth Studio down to Core; the two Growth products marked Starter moved
+> to Core, because growth_studio does not open below it. All 23 catalog products
+> now open on the plan they advertise. Locations: Starter 1, Core 3, Pro
+> unlimited, enforced in `lib/sonara-plan-limits.cjs`.
+>
+> One consequence to hold onto: **Pro $39 no longer opens a workspace that Core
+> does not.** With three workspaces and three paid tiers, a cumulative ladder
+> has three rungs, and moving two workspaces down spends two of them. Pro is the
+> tier the staff and scheduling features belong in — section 2 below — and until
+> they move there it is priced above what it uniquely opens.
+
 ### The seven mispriced products are one mistake, not seven
 
 `getCustomerPaidEntitlement` matches a subscriber's plan against
@@ -144,15 +158,24 @@ none, and a trades business with six vans is a different customer from a sole
 operator. `lib/sonara-record-checks.cjs` already carries the domain logic —
 "an unregistered vehicle on the road is a bigger problem than a renewal fee".
 
-### 4. Multi-location
+### 4. Multi-location — done
 
 `business_locations`, `location_transfers` and `location_transfer_lines` exist
 with pages. Multi-location is the standard upsell axis in every product in the
 comparison set — MarginEdge and Homebase both price *per location* — and this
-product charges per account regardless of how many a customer runs.
+product charged per account regardless of how many a customer ran.
 
-This is the cheapest revenue change in the document: it needs no new feature, only
-a decision about what a second location costs.
+Applied 13 August 2026 as an allowance rather than an add-on: **Starter 1, Core
+3, Pro unlimited**, in `lib/sonara-plan-limits.cjs` and enforced when a location
+is created. An add-on would have needed a Stripe price object that does not
+exist and that only the owner can create; an allowance needs the count and the
+plan, both of which are already on the request.
+
+The one thing worth knowing about the implementation: a count that could not be
+read refuses with *"we could not check"* and HTTP 503, not with *"you have hit
+your limit"* and 402. Those are different sentences and only one of them is true
+when the read failed — which is the failure this codebase keeps finding, and the
+reason `locationAllowance` returns three answers rather than two.
 
 ### 5. Data portability and erasure
 
@@ -184,13 +207,17 @@ exists.
 In order of money per unit of work:
 
 1. **The paid signup test.** Owner-only, blocks everything, no code.
-2. **Pick a resolution for the seven mispriced products.** Either raise their
-   floors or widen `PAID_ENTITLEMENT_KEYS`. Both are one-line changes; the
-   decision is what a plan buys. Each day they stay closed is a product not sold.
-3. **Price per location.** No new feature required.
-4. **Team $79.** Already argued in the restructure doc, and the evidence above
-   raises the confidence rather than changing the number.
-5. **Finish the restaurant product.** `recipe_ingredients` first, then POS
+2. ~~Resolve the seven mispriced products.~~ Done 13 August: widened.
+3. ~~Price per location.~~ Done 13 August: an allowance per plan.
+4. **Give Pro something of its own.** The most urgent of the rest, and it was
+   created by item 2 rather than found: Pro $39 opens no workspace Core $19 does
+   not. The staff and scheduling features in section 2 are the intended answer
+   and they already exist.
+5. **Team $79, or fold it into Pro.** Already argued in the restructure doc. If
+   Pro absorbs the staff features instead, the ladder works again without a
+   fourth plan -- that is the cheaper version of item 4 and worth pricing before
+   building anything.
+6. **Finish the restaurant product.** `recipe_ingredients` first, then POS
    summaries and menu mix, then waste logs. This is the one with a competitor at
    $350 a location.
 

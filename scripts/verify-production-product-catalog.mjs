@@ -12,6 +12,7 @@ const {
 } = require("../lib/sonara-recommended-product-catalog.cjs");
 const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
 const { RESTRICTED_LIFECYCLE_STATUSES, catalogRowBoundaryViolations } = require("../lib/sonara-catalog-boundary.cjs");
+const { PAID_ACCESS_RUNTIME_MARKERS } = require("../lib/sonara-paid-access.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
@@ -171,16 +172,15 @@ function runtimeSource() {
 
 function verifyEntitlementSourceContract() {
   const server = runtimeSource();
+  // The two entry points, plus the query and mapping markers shared with
+  // lib/sonara-paid-access.cjs. They were all literals here, which meant this
+  // file held a second copy of PAID_ENTITLEMENT_KEYS and had to be edited by
+  // hand whenever the owner changed what a plan buys.
+  assert.ok(PAID_ACCESS_RUNTIME_MARKERS.length >= 6, `only ${PAID_ACCESS_RUNTIME_MARKERS.length} paid-access markers; the shared list has gone empty`);
   for (const marker of [
     "function requirePaidOrOwnerAccess(productKey)",
     "async function getCustomerPaidEntitlement(user, productKey)",
-    "/rest/v1/billing_entitlements?select=entitlement_key,status",
-    "/rest/v1/billing_subscriptions?select=plan_slug,status",
-    "status=in.(active,trialing)",
-    'business_builder: ["starter_monthly", "core_monthly", "pro_monthly", "business_builder_one_time"]',
-    'creator_studio: ["core_monthly", "pro_monthly"]',
-    'growth_studio: ["pro_monthly"]',
-    "Paid access is locked until payment updates show an active or trialing plan"
+    ...PAID_ACCESS_RUNTIME_MARKERS
   ]) assert.ok(server.includes(marker), `Paid entitlement fail-closed contract is missing from the deployed runtime: ${marker}`);
 
   const summary = getRecommendedProductCatalogSummary();

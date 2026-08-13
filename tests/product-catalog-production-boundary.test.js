@@ -179,8 +179,11 @@ describe("Recommended product catalog production boundary", () => {
     // literals, which meant this test held a third copy of a number already
     // written in the gate and the catalog. tests/published-catalog-sync.test.js
     // now checks the gate derives them instead.
-    assert.match(verifier, /billing_entitlements/);
-    assert.match(verifier, /billing_subscriptions/);
+    // billing_entitlements and billing_subscriptions were asserted here as text
+    // in the gate. They are in PAID_ACCESS_RUNTIME_MARKERS now, and the test
+    // above resolves every one of those against the shipped runtime -- which is
+    // the stronger check, because it asks whether the code is deployed rather
+    // than whether this file mentions it.
     assert.match(verifier, /positiveSubscribedUserTest: "pending"/);
     // The old wording said paid execution "remains restricted until positive
     // production entitlement verification", which the deploy printed on every
@@ -204,14 +207,24 @@ describe("Recommended product catalog production boundary", () => {
   // list is parsed out of the verifier rather than copied, because a copy would
   // drift and then agree with itself.
   it("resolves every entitlement marker the production gate requires", () => {
+    // This parsed the marker strings out of the gate's source with a regex over
+    // quoted literals, because the gate held its own copy of them. Deriving the
+    // three entitlement lines from PAID_ENTITLEMENT_KEYS broke the parser --
+    // which reported that the check had gone blind, correctly, for a reason
+    // that was not a defect. The list is shared now, so there is nothing to
+    // parse and nothing to drift.
+    const { PAID_ACCESS_RUNTIME_MARKERS } = require("../lib/sonara-paid-access.cjs");
+    const markers = [
+      "function requirePaidOrOwnerAccess(productKey)",
+      "async function getCustomerPaidEntitlement(user, productKey)",
+      ...PAID_ACCESS_RUNTIME_MARKERS
+    ];
+    assert.ok(markers.length >= 8, `only ${markers.length} markers; the shared list has shrunk and this check has gone blind`);
+
+    // And the gate has to be reading the shared list rather than keeping its
+    // own copy back, which is the whole point.
     const verifier = read("scripts/verify-production-product-catalog.mjs");
-    const block = verifier.slice(
-      verifier.indexOf("function verifyEntitlementSourceContract()"),
-      verifier.indexOf("Paid entitlement fail-closed contract is missing")
-    );
-    const markers = [...block.matchAll(/^\s*(["'])((?:(?!\1)[^\\]|\\.)+)\1,\s*$/gm)]
-      .map((match) => match[2].replace(/\\(["'\\])/g, "$1"));
-    assert.ok(markers.length >= 8, `only ${markers.length} markers parsed; the verifier's shape changed and this check has gone blind`);
+    assert.match(verifier, /\.\.\.PAID_ACCESS_RUNTIME_MARKERS/, "the production gate no longer shares the marker list");
 
     const runtimeFiles = [path.join(root, "server.js")];
     for (const dir of ["lib", "routes"]) {

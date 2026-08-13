@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4124 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4100 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 144 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 145 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — Widened what a plan buys, and gave locations a limit
+
+Two owner decisions applied.
+
+**Widened rather than repriced.** Creator Studio moves down to Starter and
+Growth Studio down to Core, so all seven products that advertised a plan the
+server refuses now open on the plan they name. The two Growth products marked
+Starter moved to Core, because `growth_studio` does not open below it. All 23
+catalog products execute.
+
+The consequence is written into `lib/sonara-paid-access.cjs` rather than left to
+be discovered: **Pro $39 no longer opens a workspace Core $19 does not.** Three
+workspaces and three paid tiers make a three-rung cumulative ladder, and moving
+two workspaces down spends two rungs. The staff and scheduling features are the
+intended answer and they already exist, given away free, against Deputy at $5 a
+user. Until they move to Pro, Pro is priced above what it uniquely opens.
+
+**Locations are limited by plan, not billed per location.** Starter 1, Core 3,
+Pro unlimited, in `lib/sonara-plan-limits.cjs`, enforced when a location is
+created. An add-on would have needed a Stripe price object nothing here can
+create; an allowance needs the count and the plan, both already on the request.
+
+`locationAllowance` returns three answers rather than two, and that is the part
+worth keeping. A count that could not be read refuses with "we could not check"
+and 503, not "you have hit your limit" and 402 -- a reachable state where the
+obvious two-valued version tells a customer a definite thing nobody measured.
+`null` means unlimited and is kept distinct from `0`, with a test for it,
+because `included || Infinity` would turn a deliberate zero into no limit at
+all.
+
+**Three copies of the same list collapsed into one.** The deploy gate held its
+own transcription of `PAID_ENTITLEMENT_KEYS`, and a test resolved it by parsing
+quoted strings out of the gate's source. Widening the map meant editing the
+gate by hand; deriving it instead broke the parser, which reported that the
+check had gone blind -- correctly, for a reason that was not a defect. The list
+is `PAID_ACCESS_RUNTIME_MARKERS` now, imported by both, and it was checked
+against a deliberately reformatted mapping before being trusted.
+
+`getCustomerPaidEntitlement` moved to `lib/sonara-paid-entitlement.cjs`, which
+took server.js from 4124 lines to 4100 and absorbed the one line the plan-limit
+dependency added rather than raising the split ratchet for it. Two things broke
+on the move and both are the same shape: `tests/database-query-contract.test.js`
+read server.js alone and failed on code that was present, correct and shipped
+one directory over -- which is exactly the fault the marker check was written
+for after an earlier move of this same function broke a production deploy while
+the suite stayed green. It reads the whole runtime now. The const also had to be
+built above its first use, because it used to be a hoisted `async function` and
+the deps object reads it at module load.
+
+Verified: `pnpm run verify:launch` green end to end, 1,660 tests passing.
 
 ### 2026-08-12 — Seven products sold on plans the server refuses
 
