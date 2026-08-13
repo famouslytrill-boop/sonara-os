@@ -28,6 +28,12 @@ const creatorArtistSystemMigrationNames = [
 // migration at once: "some file somewhere creates this" is a weaker statement
 // than "these files do", and the weaker one passes even when a table has
 // quietly moved out of the subsystem it is listed under.
+// The approval queue, added 13 August 2026. Reviewed rather than canonical for
+// the same reason as the rest of these: the canonical 145 are pinned by the
+// runtime contract migration, and this table postdates it.
+const agentQueueMigrationNames = [
+  "20260813120000_agent_pending_actions.sql"
+];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
   "013_sonara_business_employee_music_ops_schema.sql",
@@ -111,6 +117,11 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
   "creator_video_treatments",
   "creator_release_tasks"
 ]);
+// One table, and it is here rather than in agentsAndAutomation because that
+// group is canonical and canonical membership is pinned by a migration this
+// postdates. What it holds is the thing that was missing: a gated action's own
+// inputs, so an approval has something to re-run.
+const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -202,6 +213,7 @@ const businessControlSql = readExtension(businessControlMigrationNames, "Busines
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
 const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, "Creator Studio artist system");
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
+const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
@@ -246,6 +258,13 @@ verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator S
 // failing -- it was in the reviewed set and passed through no create-or-RLS
 // check at all, so a table could be listed here and exist nowhere.
 verifyExtension(BUSINESS_OPERATIONS_TABLES, businessOperationsSql, "Business Builder operations");
+verifyExtension(AGENT_QUEUE_TABLES, agentQueueSql, "agent approval queue");
+// The queue exists so an approval has something to re-run. A migration that
+// created the table without the column carrying the action's inputs would pass
+// every check above and leave the queue unable to do the one thing it is for.
+for (const required of ["payload jsonb", "state text not null default 'waiting'", "auth.role() = 'service_role'"]) {
+  if (!agentQueueSql.includes(required.toLowerCase())) fail(`the agent approval queue migration is missing: ${required}`);
+}
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -368,7 +387,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -492,7 +511,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime
