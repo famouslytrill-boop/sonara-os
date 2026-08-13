@@ -142,22 +142,37 @@ holds the hashes. Editing one fails the build and names the only correct fix:
 put the change in a new migration. Deleting one fails too — a migration that has
 run cannot be un-run by removing the file.
 
-**What it does not cover, stated rather than implied.** `APPLIED_MIGRATIONS` is
-a hand-kept list and currently names the member-policy migrations only. A
-migration that has run and is not on that list is not protected. Being on `main`
-is deliberately *not* used as the test: the application deploys on merge and
-`supabase db push` is a separate step, so inferring "applied" from git history
-would be confidently wrong in both directions. The repository's own declaration
-is the weaker input and the honest one.
+**The first version left the same hole one file over, and was widened before it
+shipped.** It pinned only the three names in `APPLIED_MIGRATIONS`, a hand-kept
+list naming the member-policy migrations. But
+`20260728130000_sync_published_catalog_names.sql` is a generated migration its
+generator has *moved past* — it will never be rewritten, so it can only change
+by hand, and a hand edit cannot reach production. It was not on the list.
+
+So the rule is inverted. A migration is **writable** only while a generator
+still owns it, and every generator names its current output — so the set is
+derived rather than remembered. Everything else is frozen the moment it is
+pinned: **80 migrations, not three.** Being on `main` is deliberately not used
+as the test; the application deploys on merge and `supabase db push` is a
+separate step, so inferring it from git history would be wrong in both
+directions.
+
+**Re-pinning by habit is refused.** `--write` adds a hash for a file that has
+none and will not change one for a frozen migration. Without that this would be
+a checksum anybody could rewrite, which is a check that reports success for
+whatever it was last shown — and naming that risk in a comment while leaving it
+open is the shape of the defect, not a guard against it.
 
 **The empty-list case is a failure, not a pass.** An empty `APPLIED_MIGRATIONS`
 would make every assertion vacuously true and report success having pinned
 nothing, so it exits non-zero instead.
 
-**Verified.** 1800 tests passing, chain now twenty-three commands. The test
-removes every policy from an applied migration and requires the checker to fail,
-then deletes the file and requires it to fail again — a checksum file that is
-never compared looks exactly like one that is.
+**Verified.** 1802 tests passing, chain now twenty-three commands. The test
+removes every policy from a frozen migration and requires the checker to fail;
+hand-edits the superseded generated one the narrow version missed and requires
+both the check *and* the regenerate to fail; and deletes a file and requires a
+failure again. A checksum file nothing compares looks exactly like one that is
+compared.
 
 ### 2026-08-13 — Three Growth Studio forms that could never save
 
