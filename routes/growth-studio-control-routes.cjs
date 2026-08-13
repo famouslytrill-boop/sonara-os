@@ -547,8 +547,19 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       ? conversionCount.count <= conversionsRead
       : null;
 
+    // Every figure below is null when its count could not be read, which is
+    // honest per field -- and the envelope still said ok: true, so a consumer
+    // checking the one field that means success saw success over a response in
+    // which nothing had been counted. Same envelope-versus-field split that
+    // /api/business-builder/records had.
+    const counts = [campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount, touchpointCount, conversionCount, contentCount, publishedCount, experimentCount];
+    const readable = counts.filter((entry) => entry.ok).length;
     return res.status(200).json({
-      ok: true,
+      // False only when nothing at all could be counted. A partial read is
+      // reported through the nulls, which say precisely which figures are
+      // missing rather than discarding the ones that arrived.
+      ok: readable > 0,
+      countsRead: { readable, of: counts.length },
       scope: { organizationId: context.organizationId, campaignId },
       totals: {
         campaigns: campaignCount.count,

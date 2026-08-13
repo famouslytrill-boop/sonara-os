@@ -3089,13 +3089,15 @@ function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   return res.status(result.saved ? 200 : 503).type("html").send(compatiblePage);
 }
 
+// Same fault as listChecklistItems: `ok: true` whatever happened, with the real
+// outcome in `saved`. A consumer reads `ok`.
 async function readModuleRecords(req, productKey) {
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
   const result = await safeReadOrganizationScopedRecords(organization.organizationId, productKey);
   return {
-    ok: true,
+    ok: result.ok === true,
     saved: result.ok,
-    code: result.ok ? "records_available" : "setup_required",
+    code: result.ok ? "records_available" : organization.ok ? "records_unavailable" : "setup_required",
     productKey,
     records: result.records
   };
@@ -3201,15 +3203,25 @@ async function saveBusinessBuilderIntake(req, output) {
   };
 }
 
+// `ok: true` with an empty `items` was returned for all three failures here,
+// so a consumer checking the field that means success saw success and no
+// records -- indistinguishable from a customer who has none. createChecklistItem
+// directly below returns `ok: false` for the same two setup conditions, so one
+// file answered the same question two ways depending on whether you were
+// reading or writing.
+//
+// The read failing is also separated from setup being absent. "Your database is
+// not configured" and "the request to it did not come back" are different
+// things, and a consumer would retry one and not the other.
 async function listChecklistItems(req) {
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-  if (!organization.ok) return { ok: true, saved: false, code: "setup_required", service: "customer_organization", items: [] };
+  if (!organization.ok) return { ok: false, saved: false, code: "setup_required", service: "customer_organization", items: [] };
   const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: true, saved: false, code: "setup_required", service: "supabase", items: [] };
+  if (!config.ok) return { ok: false, saved: false, code: "setup_required", service: "supabase", items: [] };
   const response = await fetch(`${config.url}/rest/v1/launch_checklist_items?select=id,category,title,description,status,due_date,created_at,updated_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
-  if (!response?.ok) return { ok: true, saved: false, code: "setup_required", service: "launch_checklist_items", items: [] };
+  if (!response?.ok) return { ok: false, saved: false, code: "records_unavailable", service: "launch_checklist_items", items: [] };
   return { ok: true, saved: true, code: "records_available", items: await response.json().catch(() => []) };
 }
 

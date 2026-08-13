@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4111 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4123 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 153 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 154 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,38 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The same crawl against the API, and a field called ok
+
+The companion to the page crawl: every JSON GET, with the database answering
+nothing, reading what a consumer of the API is told rather than what a page
+renders.
+
+**Four endpoints answered `ok: true` with an empty list.** They were not
+careless -- they put the real outcome in a second field, `saved`, leaving `ok`
+to mean "the request was handled". That is a defensible convention and it is not
+the one the rest of this API uses: 68 other JSON GETs answer a failed read with
+`ok: false` or a 4xx. Worse, `createChecklistItem` returns `ok: false` for the
+same two setup conditions `listChecklistItems` directly above it reported as
+`ok: true`, so one file answered one question two ways depending on whether you
+were reading or writing. A field called ok is read as ok.
+
+"The read failed" is now also distinguishable from "setup was never done".
+`code: "setup_required"` was returned for both, and a consumer would retry one
+and not the other.
+
+**And the first version of the check was measuring four endpoints while reading
+as though it covered the API.** It skipped anything without a
+rows/records/items field, which was 63 of 67. Counting all of them found
+`/api/growth/metrics` answering `ok: true` over a response in which every figure
+was null -- honest per field, and the envelope said success. It reports
+`countsRead` now and is false only when nothing at all could be counted, because
+a partial read is already described precisely by the nulls.
+
+Reintroducing both regressions fails the crawl in twelve places; that was tried
+rather than assumed.
+
+Verified: `pnpm run verify:launch` green end to end, 1,731 tests passing.
 
 ### 2026-08-13 — Rendering every page with the database down
 
