@@ -1,0 +1,5 @@
+{
+  "20260728120000_member_read_policies.sql": "c2157d7b95157d498c67c039555775e349c32759f2ca834ae3aa98d65a0d4579",
+  "20260729040000_member_read_policies_core_tables.sql": "b6a6c7506a8fc3a4ed131e4b9f8156d6f1fd600a6bd64d94d41c47f822ea2482",
+  "20260729220000_member_read_policies_consent_and_zones.sql": "4ca3d8a22c64679425e432d66d0eed2d5f0a31d262db51efcb22d74d64a7a9af"
+}

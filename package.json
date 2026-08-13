@@ -41,7 +41,7 @@
     "report:orphan-tables": "node scripts/report-orphan-tables.mjs",
     "verify:orphan-tables": "node scripts/report-orphan-tables.mjs --check",
     "verify:open-source:network": "node scripts/verify-open-source-registry.mjs --network",
-    "verify:launch": "pnpm run build && pnpm run test && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:env && pnpm run verify:config && pnpm run verify:api && pnpm run verify:stripe && pnpm run verify:tenant-tables && pnpm run verify:member-policies && pnpm run verify:catalog-sync && pnpm run verify:catalog-doc && pnpm run verify:open-source && pnpm run verify:product-map && pnpm run verify:handoff && pnpm run verify:definer-exposure && pnpm run verify:unreferenced-modules && pnpm run verify:orphan-tables && pnpm run verify:stale-claims && pnpm run verify:doc-counts",
+    "verify:launch": "pnpm run build && pnpm run test && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:env && pnpm run verify:config && pnpm run verify:api && pnpm run verify:stripe && pnpm run verify:tenant-tables && pnpm run verify:member-policies && pnpm run verify:applied-migrations && pnpm run verify:catalog-sync && pnpm run verify:catalog-doc && pnpm run verify:open-source && pnpm run verify:product-map && pnpm run verify:handoff && pnpm run verify:definer-exposure && pnpm run verify:unreferenced-modules && pnpm run verify:orphan-tables && pnpm run verify:stale-claims && pnpm run verify:doc-counts",
     "verify:all": "pnpm run verify:launch",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",
     "report:stale-claims": "node scripts/report-stale-claims.mjs",
@@ -52,7 +52,9 @@
     "workers:smoke": "echo Optional Creator Studio GPU workers and Growth Studio automation workers are disabled by default and use reviewed contracts when configured",
     "test:security": "pnpm run scan:client-secrets",
     "test:docs": "node scripts/check-doc-links.mjs",
-    "verify:member-read-access": "node scripts/verify-member-read-access.mjs"
+    "verify:member-read-access": "node scripts/verify-member-read-access.mjs",
+    "verify:applied-migrations": "node scripts/verify-applied-migrations.mjs",
+    "gen:applied-migrations": "node scripts/verify-applied-migrations.mjs --write"
   },
   "license": "MIT",
   "devDependencies": {

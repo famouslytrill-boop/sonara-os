@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 82 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 161 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 162 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -96,6 +96,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:stripe`
 - `pnpm run verify:tenant-tables`
 - `pnpm run verify:member-policies`
+- `pnpm run verify:applied-migrations`
 - `pnpm run verify:catalog-sync`
 - `pnpm run verify:catalog-doc`
 - `pnpm run verify:open-source`
@@ -120,6 +121,43 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — An applied migration could be edited and nothing would notice
+
+`scripts/generate-member-read-policies.cjs` carries this warning, in its own
+words: *"Once a migration has been applied in production it is recorded as done
+and never read again, so editing it changes the repo and nothing else —
+silently. Every check in this repository reads the file, so they would all pass
+while production sat without the policies."* It refuses to **write** an applied
+migration, because the comment alone had not stopped the mistake happening once.
+
+Nothing stopped a hand edit. Deleting all **33** `create policy` statements from
+`20260728120000_member_read_policies.sql` — an applied migration — left
+`pnpm run verify:launch` **completely green**, all twenty-two commands. The repo
+and production would have diverged with no signal anywhere.
+
+`scripts/verify-applied-migrations.mjs` pins the content of every migration the
+repository declares applied, and `supabase/applied-migration-checksums.json`
+holds the hashes. Editing one fails the build and names the only correct fix:
+put the change in a new migration. Deleting one fails too — a migration that has
+run cannot be un-run by removing the file.
+
+**What it does not cover, stated rather than implied.** `APPLIED_MIGRATIONS` is
+a hand-kept list and currently names the member-policy migrations only. A
+migration that has run and is not on that list is not protected. Being on `main`
+is deliberately *not* used as the test: the application deploys on merge and
+`supabase db push` is a separate step, so inferring "applied" from git history
+would be confidently wrong in both directions. The repository's own declaration
+is the weaker input and the honest one.
+
+**The empty-list case is a failure, not a pass.** An empty `APPLIED_MIGRATIONS`
+would make every assertion vacuously true and report success having pinned
+nothing, so it exits non-zero instead.
+
+**Verified.** 1800 tests passing, chain now twenty-three commands. The test
+removes every policy from an applied migration and requires the checker to fail,
+then deletes the file and requires it to fail again — a checksum file that is
+never compared looks exactly like one that is.
 
 ### 2026-08-13 — Three Growth Studio forms that could never save
 
