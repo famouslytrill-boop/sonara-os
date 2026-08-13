@@ -632,6 +632,7 @@ registerAgentActivityRoutes(app, {
   linkAction,
   escapeHtml,
   requireCustomer,
+  requireBusinessManager, // approving is the owner's decision; the page only reads
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders

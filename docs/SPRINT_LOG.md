@@ -2,6 +2,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — An approved agent action actually runs
+
+`/owner/agent-activity` carried a card saying approving was not wired up, and it
+was right: approving has to do two things, record the decision and re-run the
+action, and nothing re-ran anything. The runner is called per request by the
+page wanting work done, so an approval had nowhere to live and nothing to
+consume it. A button that wrote `approved` and changed nothing else would have
+told an owner their refund was authorised while no refund existed.
+
+**The queue is its own table, and the reason is one column.**
+`agent_action_logs` deliberately stores no payload — an audit trail must not
+become a second copy of the data with different retention — so a refused refund
+in it records that a refund was proposed and not which one, for how much.
+Re-running needs the action's inputs. The nineteen `entity_*` tables from
+migration 008 have the right shape and key on `entity_id`, which has no
+organisation. So `agent_pending_actions`: organisation-scoped, holding the
+action, its inputs, and the owner's decision.
+
+**Approving asks the gate again.** `lib/sonara-agent-queue.cjs` builds the
+approval and calls the same runner that refused it, with the classification
+re-derived from the action type rather than read off the row — a stored
+classification is a column the subject can write, which is why
+`decideExecution` already refuses to trust `requires_approval`.
+
+**Approving is not running, and the page says which happened.** Approving an
+action nothing implements writes `unimplemented` and the row reads "You approved
+this. Nothing in the product performs it yet, so nothing has happened and
+nothing was changed." That is the whole point: the failure being avoided is a
+screen reporting a job as done when it was not.
+
+**One handler, deliberately.** `approve_scheduled_content` sets one
+`growth_content_queue` row to approved, scoped by `organization_id` in the
+filter and not only by id — the service key bypasses row level security, so that
+filter is the tenant boundary. PostgREST answers 200 with an empty array when a
+filter matches nothing, which is what another organisation's id looks like, so
+an empty result is a failure here rather than a success. Registering a handler
+is how a capability becomes real, so the list grows one reviewed line at a time
+rather than through a generic executor that runs whatever it is handed.
+
+**Two clicks run the action once.** `running` is a claim: approving moves the
+row out of `waiting` with a conditional update before the action runs, so the
+second click finds nothing to take. It is a state rather than a lock because a
+run that dies part way has to be visible as "started and did not finish".
+
+**Two things found while wiring it.** `requireCustomer` and
+`requireBusinessManager` hang the signed-in user off different properties, so
+reading only the page's one made every queue endpoint answer `setup_required` —
+a 503 that looks like an unconfigured database and is a missing property name.
+And the page returned early on an empty log, which was right while it only read
+a log and wrong once it was also where an owner decides and hands an agent a
+job: the one screen with something to press had nothing on it at exactly the
+moment an owner had never used an agent. The empty log is a card now.
+
+**Verified.** `pnpm run verify:launch` green, 1789 tests passing. The loop was
+driven through Express: propose, queue, approve, and the `growth_content_queue`
+row actually changing to approved. Both key assertions were confirmed to bite —
+replacing the re-run with a bare state write fails with "the owner approved and
+the record did not change", and removing the `state=eq.waiting` claim fails the
+run-once check.
+
+**Still true, and worth keeping true:** nothing proposes actions on a schedule.
+An action reaches the queue because somebody asked for it. There is no
+background agent, and this change does not add one.
+
 ### 2026-08-13 — The legal position stated as a disclaimer rather than a pending review
 
 `/readiness` reported `legalPages: review_required`. It rendered as "Legal

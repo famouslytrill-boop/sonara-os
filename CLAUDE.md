@@ -51,10 +51,17 @@ is organization-scoped. The nineteen `entity_*` tables from migration 008 key on
 `entity_id` and `entities` has no `organization_id`, so they are the wrong home
 for an organization's run. `/owner/agent-activity` is the read side.
 
-**Nothing re-runs an action after approval.** The runner is called per request
-by the page wanting work done; there is no queue consuming approvals. Until that
-exists, a gated action stops and is recorded as pending, and no button anywhere
-should suggest otherwise.
+`lib/sonara-agent-queue.cjs` is what happens between "an agent proposed this"
+and "it ran". A refused run becomes a row in `agent_pending_actions` carrying
+the action's own inputs; approving it on `/owner/agent-activity` calls the same
+runner again with an approval attached. The gate is asked again rather than
+bypassed, and the classification is re-derived from the action type rather than
+read off the row.
+
+Approving and running are still two different things, and the page says which
+happened. Approving an action nothing implements writes `unimplemented` and
+tells the owner nothing was changed — the one thing a button here must never do
+is report a job as done when it was not.
 
 # Using other people's code
 
