@@ -2,6 +2,34 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — The write half of the outage crawl, which found nothing
+
+The third of the outage crawls, and the one with the worst consequence if it
+had found something: what a customer is told when their record could not be
+**written**. They close the tab believing it saved.
+
+**Nothing needed fixing.** Every endpoint that reaches a write reports the
+failure, by redirecting back with `?problem=` or answering `ok: false`. That is
+worth recording as a result rather than a non-event -- it is the half of the
+application this sprint has not had to correct.
+
+The check stays, because the shape it looks for is one line away at any time.
+Making a failed insert redirect as though it saved fails it in sixty-six places.
+
+**What it does not cover is stated rather than implied.** 74 endpoints are
+create-shaped; a generic body plus every declared form field gets 40 of them as
+far as a write. The other 34 reject earlier on validation of their own --
+consent requirements, provider contracts, market-intelligence scoring -- and
+modelling each one's valid input is a different piece of work.
+
+That distinction is the whole reason the file exists in this shape. The first
+version of the probe reported **"74 of 74 report failure honestly"**, which was
+true and meaningless: 42 were being rejected before the write, so it was
+measuring the validation path and calling it the write path. A hundred percent
+on a check is a reason to ask what it reached, not a reason to move on.
+
+Verified: `pnpm run verify:launch` green end to end, 1,733 tests passing.
+
 ### 2026-08-13 — The same crawl against the API, and a field called ok
 
 The companion to the page crawl: every JSON GET, with the database answering

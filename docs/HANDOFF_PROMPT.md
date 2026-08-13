@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 154 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 155 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,34 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The write half of the outage crawl, which found nothing
+
+The third of the outage crawls, and the one with the worst consequence if it
+had found something: what a customer is told when their record could not be
+**written**. They close the tab believing it saved.
+
+**Nothing needed fixing.** Every endpoint that reaches a write reports the
+failure, by redirecting back with `?problem=` or answering `ok: false`. That is
+worth recording as a result rather than a non-event -- it is the half of the
+application this sprint has not had to correct.
+
+The check stays, because the shape it looks for is one line away at any time.
+Making a failed insert redirect as though it saved fails it in sixty-six places.
+
+**What it does not cover is stated rather than implied.** 74 endpoints are
+create-shaped; a generic body plus every declared form field gets 40 of them as
+far as a write. The other 34 reject earlier on validation of their own --
+consent requirements, provider contracts, market-intelligence scoring -- and
+modelling each one's valid input is a different piece of work.
+
+That distinction is the whole reason the file exists in this shape. The first
+version of the probe reported **"74 of 74 report failure honestly"**, which was
+true and meaningless: 42 were being rejected before the write, so it was
+measuring the validation path and calling it the write path. A hundred percent
+on a check is a reason to ask what it reached, not a reason to move on.
+
+Verified: `pnpm run verify:launch` green end to end, 1,733 tests passing.
 
 ### 2026-08-13 — The same crawl against the API, and a field called ok
 
