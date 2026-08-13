@@ -2011,6 +2011,70 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "Awesome Free LLM APIs (mnfst)",
+    slug: "awesome-free-llm-apis-mnfst",
+    category: ["provider directory", "free-tier inference catalogue", "reference data"],
+    useCase: ["knowing which model providers exist and what their free tiers actually allow", "comparing rate limits and context windows before an owner chooses a provider to configure"],
+    productFit: ["Research Lab", "AI Governance"],
+    license: "CC0-1.0",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read it to decide which providers are worth an adapter; do not vendor the list into the product",
+      "keep every provider call behind the Provider Gateway, as an optional adapter that is off by default",
+      "treat each listed free tier as a price the vendor sets, not a capability this product owns",
+    ],
+    officialUrl: "https://github.com/mnfst/awesome-free-llm-apis",
+    repoUrl: "https://github.com/mnfst/awesome-free-llm-apis",
+    notes:
+      "A curated directory of LLM APIs with permanent free tiers for text inference, 164 provider entries, with a machine-readable data.json carrying base URLs, rate limits, context windows and model ids. Licence read from the repository's own license file: CC0-1.0, a public domain dedication, so the list itself carries no restriction at all. That is the easy half. The hard half is the one AGENTS.md and CLAUDE.md already answer: cost is a constraint of the same weight as licence, a hosted service with a free tier is a price rather than a licence, and a shipped feature resting on one stops working when the tier changes -- which is the vendor's decision and not this project's. Every entry in this repository is exactly that. So the register status is reference_only: it is good research for choosing what an owner might configure, and no entry in it may become something a customer-facing feature depends on. The repository is also published by manifest.build and links to it throughout, which is a commercial interest in the list rather than a defect, and is recorded here so a reader weighs the recommendations knowing it.",
+    safetyBoundaries: [
+      "no provider from this list called from product code outside the Provider Gateway",
+      "no shipped feature made to depend on a third party's free tier",
+      "no customer data sent to a listed provider without recorded consent",
+      "provider adapters stay off by default and depended on by nothing",
+    ],
+    blockedUses: [
+      "wiring a listed endpoint straight into a customer-facing feature",
+      "presenting a provider's free tier to customers as a SONARA capability",
+      "copying api keys or credentials from any linked provider page into this repository",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "awesome-freellm-apis (open-free-llm-api)",
+    slug: "awesome-freellm-apis-open-free-llm-api",
+    category: ["provider directory", "free-tier inference catalogue", "reference data"],
+    useCase: ["a second, independently maintained reading of which free tiers exist and what they allow"],
+    productFit: ["Research Lab", "AI Governance"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read it alongside the mnfst directory, and trust neither on rate limits without checking the provider's own page",
+      "keep every provider call behind the Provider Gateway, as an optional adapter that is off by default",
+      "ignore its Claude Code configuration examples for anything this repository ships",
+    ],
+    officialUrl: "https://github.com/open-free-llm-api/awesome-freellm-apis",
+    repoUrl: "https://github.com/open-free-llm-api/awesome-freellm-apis",
+    notes:
+      "Claims 431+ free LLM APIs across 30 providers, as README tables rather than a data file. Licence read from the repository's own LICENSE: MIT. Two things separate it from the mnfst directory and both are worth stating. It is the content surface of a hosted service -- freellm.net is referenced 115 times in the README, and the data is described as refreshed daily from that site, so the repository is a snapshot of somebody else's service rather than the source of its own facts. And it ships code-examples/claude-code.md, which tells a reader to point Claude Code at a free provider by setting ANTHROPIC_BASE_URL and ANTHROPIC_AUTH_TOKEN to a third party's endpoint. That is a developer's own choice on their own machine and it is not a pattern for this repository: routing an assistant's traffic through an unrelated provider sends whatever is in the prompt to that provider, and nothing here should learn that habit from a catalogue entry. Same conclusion as its counterpart on the substance -- these are other people's free tiers, and a free tier is a price.",
+    safetyBoundaries: [
+      "no provider from this list called from product code outside the Provider Gateway",
+      "no shipped feature made to depend on a third party's free tier",
+      "rate limits and model availability verified against the provider before being repeated to anyone",
+      "no assistant or developer tooling in this repository redirected to a third-party inference endpoint",
+    ],
+    blockedUses: [
+      "wiring a listed endpoint straight into a customer-facing feature",
+      "adopting its ANTHROPIC_BASE_URL redirection pattern for any tooling used on this codebase",
+      "repeating its rate-limit figures in customer-facing copy without checking the provider",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

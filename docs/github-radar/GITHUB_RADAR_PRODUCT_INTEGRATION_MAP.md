@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-82 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 82.
+84 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 84.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -116,12 +116,14 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-36 repositories.
+38 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [Awesome (sindresorhus)](https://github.com/sindresorhus/awesome) | CC0-1.0 | Read only | index of curated lists |
+| [Awesome Free LLM APIs (mnfst)](https://github.com/mnfst/awesome-free-llm-apis) | CC0-1.0 | Read only | provider directory |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
+| [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
 | [Claude Code](https://github.com/anthropics/claude-code) | Anthropic product terms; not treated as a redistributable open-s | Read only | developer CLI |

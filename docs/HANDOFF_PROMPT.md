@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-82 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+84 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — Two free-LLM-API directories reviewed and registered
+
+Added on request: `mnfst/awesome-free-llm-apis` and
+`open-free-llm-api/awesome-freellm-apis`. Both went through the register rather
+than into the product, which is what `CLAUDE.md` requires of any external
+repository, and both licences were **read from the repository's own licence
+file** rather than assumed:
+
+| Repository | Licence | Status |
+| --- | --- | --- |
+| `mnfst/awesome-free-llm-apis` | CC0-1.0 | `reference_only` |
+| `open-free-llm-api/awesome-freellm-apis` | MIT | `reference_only` |
+
+Neither licence restricts anything. **That is the easy half, and it is not the
+half that decides this.** `CLAUDE.md`: *"Cost is a constraint of the same weight
+as licence. A hosted service with a free tier is a price, not a licence, and a
+shipped feature resting on one stops working when the tier changes — which is
+the vendor's decision, not this project's."* Every entry in both directories is
+exactly that. So they are good research for deciding what an owner might
+configure, and nothing in them may become something a customer-facing feature
+depends on.
+
+**Two things recorded that a reader should weigh.** The mnfst list is published
+by manifest.build and links to it throughout — a commercial interest in the
+list rather than a defect, but worth knowing. And the second repository is the
+content surface of a hosted service: `freellm.net` appears 115 times in its
+README and the data is refreshed from that site, so it is a snapshot of
+somebody else's service rather than the source of its own facts.
+
+**One pattern in it is explicitly blocked.** It ships
+`code-examples/claude-code.md`, which tells a reader to point Claude Code at a
+third-party endpoint by setting `ANTHROPIC_BASE_URL` and `ANTHROPIC_AUTH_TOKEN`.
+That is a developer's own choice on their own machine; it is not a pattern for
+this repository, because redirecting an assistant sends whatever is in the
+prompt to that provider. It is in `blockedUses` so the reason survives the
+person who found it.
+
+Both are placed under Research Lab and AI Governance — reading them is research,
+and the conclusion recorded against them is governance. The register is at 84
+records, and the integration map regenerated to match.
 
 ### 2026-08-13 — The data export left out 21 of the 51 record types
 
