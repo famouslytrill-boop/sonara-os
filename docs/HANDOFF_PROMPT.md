@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 150 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 151 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,51 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The labour half, and four ways it is not knowable
+
+Each day under Daily sales now costs its own labour: hours from
+`employee_time_entries`, rates from `employee_wage_rates`, joined on the date
+the rate was in force. That completes the food-and-labour figure the restaurant
+schema has held since migration 014 and nothing has ever produced.
+
+`lib/sonara-labour-cost.cjs` is mostly refusals, and that is the point. A labour
+figure is a number a business prices against, and the obvious version of this
+join is confidently short in four ways:
+
+  * a shift still clocked in has no end, so its hours are unknown, not zero
+  * a salaried person cannot be divided into a day by multiplying hours -- eight
+    hours times a £4,000 monthly rate is a labour cost of thirty-two thousand
+  * somebody with no rate on that date costs an unknown amount, not nothing
+  * a break longer than the shift is bad data, not negative work
+
+Each is counted and named to the customer, because a figure missing three people
+reads exactly like a complete one. When anything is missing the wording changes
+to "labour at least X, leaving at most Y", and says which people it left out.
+
+The card still never says profit. It says food and labour only, and that rent
+and energy are not in it.
+
+Two mechanical notes. The detail handler grew a `derivedReads` hook, because
+hours and rates are not children of a sales summary; it hands the page a
+**scoped** list function rather than the Supabase config, so a page cannot write
+a query that forgets the organization filter -- the one mistake that would let
+one business read another's payroll. And `finiteNumber` moved to
+`lib/sonara-numbers.cjs`: the labour module needs it and the record pages now
+need the labour module, which is a require cycle. It is re-exported from its old
+home because enough modules import it from there that moving them would be
+churn.
+
+Two mistakes worth recording. The guard that was supposed to add the new require
+read `if ("sonara-labour-cost" not in source)` -- and the source already
+contained that string, in the comment pointing at the file, so the require was
+never inserted. Second time in two changes that a check has been satisfied by
+prose about itself. And a test fixture gave one employee both no rate and
+impossible hours, expecting both to be reported; the hours check runs first, so
+the no-rate case was never reached and the assertion for it failed. The fixture
+was wrong, not the code.
+
+Verified: `pnpm run verify:launch` green end to end, 1,715 tests passing.
 
 ### 2026-08-13 — Three more copies of the confident zero, outside the record pages
 

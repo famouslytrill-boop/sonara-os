@@ -44,16 +44,34 @@ describe("what a day made", () => {
     assert.match(body, /leaving \$840\.00 before labour/);
   });
 
-  // The whole point of the card's wording.
-  it("never calls the figure profit, and says labour is missing from it", () => {
-    const body = card({ net_sales_cents: 50000 }, loaded([{ theoretical_cost_cents: 10000 }]));
-    assert.match(body, /before labour/);
-    assert.match(body, /Labour is not in this figure/);
-    assert.doesNotMatch(
-      body,
-      /\b(gross profit|profit|you (made|kept)|net profit)\b/i,
-      "a figure that omits wages must not be called profit in a business where labour is the second-largest cost"
-    );
+  // The whole point of the card's wording. Labour is now read and included
+  // when the hours and rates are available; this is the branch where they are
+  // not, and it must say so rather than implying wages were nil.
+  it("never calls the figure profit, whether or not labour is in it", () => {
+    const withoutLabour = card({ net_sales_cents: 50000 }, loaded([{ theoretical_cost_cents: 10000 }]));
+    assert.match(withoutLabour, /before labour/);
+    assert.match(withoutLabour, /could not read the hours or the pay rates/);
+
+    const withLabour = sales.derivedCard(
+      { net_sales_cents: 50000, business_date: "2026-08-01" },
+      loaded([{ theoretical_cost_cents: 10000 }]),
+      ui,
+      {
+        businessDate: "2026-08-01",
+        entries: { ok: true, rows: [{ employee_id: "e1", clock_in_at: "2026-08-01T09:00:00Z", clock_out_at: "2026-08-01T17:00:00Z" }] },
+        rates: { ok: true, rows: [{ employee_id: "e1", amount_cents: 1500, rate_type: "hourly", effective_from: "2026-01-01", status: "active" }] }
+      }
+    ).body;
+    assert.match(withLabour, /labour \$120\.00 over 8\.0 hours/);
+    assert.match(withLabour, /rent, energy and everything else are not in it/);
+
+    for (const body of [withoutLabour, withLabour]) {
+      assert.doesNotMatch(
+        body,
+        /\b(gross profit|profit|you (made|kept)|net profit)\b/i,
+        "a figure that omits rent and overheads must not be called profit"
+      );
+    }
   });
 
   it("refuses the food cost when an item that sold has none", () => {

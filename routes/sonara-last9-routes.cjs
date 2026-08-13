@@ -203,6 +203,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let parent = null;
       // One entry per child table, in declaration order.
       let childRows = children.map(() => ({ ok: false, rows: [] }));
+      let extra = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -224,6 +225,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             const listed = await supabaseList(config, spec.table, `?select=*&${spec.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
             return listed.ok ? { ok: true, rows: listed.rows } : { ok: false, rows: [] };
           }));
+
+          // Some derived figures need rows this record does not own. The
+          // labour cost of a day's trading is the case that forced it: hours
+          // are on employee_time_entries and rates on employee_wage_rates, and
+          // neither is a child of a sales summary.
+          //
+          // The reader is handed a scoped list function rather than the
+          // Supabase config, so a page cannot write a query that forgets the
+          // organization filter -- which is the one mistake that would let one
+          // business read another's payroll.
+          if (typeof page.derivedReads === "function") {
+            const scopedList = (table, query = "") =>
+              supabaseList(config, table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}${query}&limit=500`);
+            extra = await page.derivedReads(parent, scopedList);
+          }
         }
       }
 
@@ -231,7 +247,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
             summaryCard(page, parent, ui),
-            ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui)].filter(Boolean) : []),
+            ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui)])
           ];
 
