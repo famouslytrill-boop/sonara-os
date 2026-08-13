@@ -44,6 +44,37 @@ const {
   approveAndRun
 } = require("../lib/sonara-agent-queue.cjs");
 const { buildTenantQuery } = require("../lib/sonara-tenant-data.cjs");
+const { isDue, describe: describeSchedule, CADENCES } = require("../lib/sonara-agent-schedule.cjs");
+
+const SCHEDULE_TABLE = "agent_schedules";
+
+// What a customer may put on a schedule.
+//
+// The self-serve list from lib/sonara-agent-authority.cjs, and nothing else --
+// deliberately narrower than "anything the runner accepts". A schedule naming a
+// gated action would queue an approval on the owner every single period, which
+// turns a safety gate into a nuisance until somebody switches it off. The
+// runner still classifies on every run, so this list cannot widen what actually
+// executes; it only keeps the owner's queue from being filled on a timer.
+const SCHEDULABLE = Object.freeze([
+  { action: "check_data_quality", label: "Check my records for problems" },
+  { action: "prepare_report", label: "Prepare a report from my figures" },
+  { action: "summarise_records", label: "Summarise what changed" },
+  { action: "draft_reply", label: "Draft chasers for overdue invoices" },
+  { action: "suggest_next_step", label: "Suggest what to do next" }
+]);
+
+function clampInt(value, low, high, fallback) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isInteger(parsed) || parsed < low || parsed > high) return fallback;
+  return parsed;
+}
+
+function when0(value) {
+  const parsed = value ? new Date(value) : null;
+  if (!parsed || Number.isNaN(parsed.getTime())) return "at an unrecorded time";
+  return parsed.toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
 
 const ROW_LIMIT = 200;
 const QUEUE_LIMIT = 50;
@@ -60,6 +91,36 @@ const QUEUE_LIMIT = 50;
 // so it goes to the owner. That is the right answer. Publishing what it
 // approves is a separate act, still gated, and nothing here does it.
 function registerApprovedHandlers(runner, { supabaseHeaders }) {
+  // The one job a schedule can actually do today.
+  //
+  // Without this every scheduled run answered `unimplemented` -- honest, and
+  // useless: a schedule that reports "nothing performs this" every week is the
+  // button-that-does-nothing problem on a timer. This runs the same record
+  // checks the assistant page runs, against the organisation on the schedule.
+  //
+  // It returns counts and writes no findings of its own. The run is recorded in
+  // agent_action_logs and shows on /owner/agent-activity; the findings
+  // themselves stay on the page that renders them, because an audit trail that
+  // accumulated copies of a customer's records would be a second store with
+  // different retention. That limit is real and is stated rather than papered
+  // over -- a scheduled check tells an owner *that* something needs attention,
+  // and the page tells them what.
+  runner.register("check_data_quality", async ({ config, organizationId }) => {
+    const { CHECKS, selectFor, runCheck } = require("../lib/sonara-record-checks.cjs");
+    let problems = 0;
+    let unreadable = 0;
+    for (const check of CHECKS) {
+      const query = `?select=${selectFor(check)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=200`;
+      const response = await fetch(`${config.url}/rest/v1/${check.table}${query}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+      if (!response?.ok) { unreadable += 1; continue; }
+      const rows = await response.json().catch(() => []);
+      const result = runCheck(check, Array.isArray(rows) ? rows : []);
+      problems += Number(result?.count || 0);
+    }
+    // An unreadable table is counted separately and never as "nothing wrong".
+    return { checks: CHECKS.length, problems, unreadable };
+  });
+
   runner.register("approve_scheduled_content", async ({ config, organizationId, payload }) => {
     const contentId = String(payload?.content_id || "");
     if (!/^[0-9a-f-]{36}$/i.test(contentId)) {
@@ -510,6 +571,225 @@ module.exports = function registerSonaraAgentActivityRoutes(app, deps = {}) {
 
     if (wantsHtml(req)) return backToActivity(res, run.status === "completed" ? "" : run.status);
     return res.status(200).json({ ok: run.status === "completed", status: run.status, state: update.state, reason: update.run_reason });
+  });
+
+  // ---- Schedules -------------------------------------------------------
+  //
+  // A customer's own schedule, not the platform's. Two businesses want their
+  // week reviewed on different days, and one global cron running everybody's
+  // work at 03:00 UTC would be the platform's schedule wearing the customer's
+  // name.
+  //
+  // The safety property that survives this: a scheduled run goes through the
+  // same runner as every other, so a gated action started by a schedule still
+  // stops at the owner and lands in the queue. A schedule can begin work. It
+  // cannot approve it.
+
+  app.get("/owner/agent-schedule", requireCustomer, async (req, res) => {
+    const scope = await resolveScope(req);
+    const back = [linkAction("/owner/agent-activity", "What your agents did"), linkAction("/dashboard", "Back to your dashboard")];
+    if (!scope) {
+      return res.status(200).type("html").send(layout({
+        title: "Agent schedule", eyebrow: "SONARA One", heading: "Setup required",
+        body: "Your workspace is not connected yet, so there is nothing to schedule.", sections: [], actions: back
+      }));
+    }
+
+    const path = buildTenantQuery(SCHEDULE_TABLE, {
+      organizationId: scope.organizationId,
+      select: "id,action_type,label,cadence,hour_of_day,day_of_week,day_of_month,time_zone,enabled,last_run_at,last_run_result",
+      order: "created_at.desc",
+      limit: 50
+    });
+    const response = await fetch(`${scope.config.url}${path}`, { headers: supabaseHeaders(scope.config) }).catch(() => undefined);
+    const sections = [];
+
+    if (!response?.ok) {
+      // An unreadable list is never an empty one.
+      sections.push(brandCard("Your schedules could not be read", "This page cannot tell you what is scheduled. It is not saying nothing is."));
+    } else {
+      const rows = await response.json().catch(() => []);
+      const list = Array.isArray(rows) ? rows : [];
+      if (list.length) {
+        const items = list.map((row) => {
+          const when = describeSchedule(row);
+          const last = row.last_run_at ? `Last run ${when0(row.last_run_at)}${row.last_run_result ? ` — ${escapeHtml(String(row.last_run_result))}` : ""}` : "Has not run yet";
+          const off = row.enabled === false ? " (switched off)" : "";
+          return `<li><strong>${escapeHtml(humanise(row.action_type))}</strong>${escapeHtml(off)}<br>${escapeHtml(when)}<br>${last}
+            ${row.enabled === false ? "" : `<form method="post" action="/api/agents/schedule/disable" class="sonara-inline-form"><input type="hidden" name="id" value="${escapeHtml(row.id)}"><button type="submit">Switch this off</button></form>`}</li>`;
+        }).join("");
+        sections.push(`<article class="card sonara-depth" data-sonara-enter><h2>Your schedules (${list.length})</h2>
+          <p>What runs on its own, and when. Anything your rules say you decide still stops and waits for you — a schedule starts work, it does not approve it.</p>
+          <ul>${items}</ul></article>`);
+      } else {
+        sections.push(brandCard("Nothing is scheduled yet", "Nothing runs on its own for you at the moment. Add a schedule below and it will."));
+      }
+    }
+
+    if (canRunQueue) {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      sections.push(`<article class="card"><h2>Add a schedule</h2>
+        <p>Pick the job, the rhythm and the time where you are. Only jobs that read and report can run on their own; anything else will be put in front of you to approve.</p>
+        <form method="post" action="/api/agents/schedule">
+          <label>What to run<select name="action_type" required>${SCHEDULABLE.map((entry) => `<option value="${escapeHtml(entry.action)}">${escapeHtml(entry.label)}</option>`).join("")}</select></label>
+          <label>How often<select name="cadence">${CADENCES.map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`).join("")}</select></label>
+          <label>Hour where you are<input type="number" name="hour_of_day" min="0" max="23" value="9"></label>
+          <label>Day of the week, for a weekly one<select name="day_of_week">${days.map((label, index) => `<option value="${index}">${escapeHtml(label)}</option>`).join("")}</select></label>
+          <label>Day of the month, for a monthly one<input type="number" name="day_of_month" min="1" max="28" value="1"></label>
+          <label>Your time zone<input type="text" name="time_zone" maxlength="64" value="UTC"></label>
+          <button type="submit">Add this schedule</button>
+        </form></article>`);
+    }
+
+    return res.status(200).type("html").send(layout({
+      title: "Agent schedule", eyebrow: "SONARA One", heading: "When your agents run",
+      body: "Work that happens on its own, on your clock rather than ours.",
+      sections, actions: back
+    }));
+  });
+
+  app.post("/api/agents/schedule", requireBusinessManager, async (req, res) => {
+    const scope = await resolveScope(req);
+    if (!scope) return res.status(503).json({ ok: false, code: "setup_required" });
+    const actionType = String(req.body?.action_type || "").trim();
+    // An allowlist, not free text. A schedule naming a gated action would queue
+    // an approval on the owner every single period, which is a way of turning a
+    // safety gate into a nuisance until somebody switches it off.
+    if (!SCHEDULABLE.some((entry) => entry.action === actionType)) {
+      return wantsHtml(req)
+        ? res.redirect(303, "/owner/agent-schedule?problem=not_schedulable")
+        : res.status(400).json({ ok: false, code: "not_schedulable", message: "Only jobs that read and report can run on their own." });
+    }
+    const cadence = CADENCES.includes(String(req.body?.cadence)) ? String(req.body.cadence) : "weekly";
+    const row = {
+      organization_id: scope.organizationId,
+      action_type: actionType,
+      label: String(req.body?.label || "").slice(0, 200) || null,
+      cadence,
+      hour_of_day: clampInt(req.body?.hour_of_day, 0, 23, 9),
+      day_of_week: cadence === "weekly" ? clampInt(req.body?.day_of_week, 0, 6, 1) : null,
+      day_of_month: cadence === "monthly" ? clampInt(req.body?.day_of_month, 1, 28, 1) : null,
+      time_zone: String(req.body?.time_zone || "UTC").slice(0, 64),
+      created_by: userIdFrom(req)
+    };
+    const saved = await fetch(`${scope.config.url}/rest/v1/${SCHEDULE_TABLE}`, {
+      method: "POST",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify(row)
+    }).catch(() => undefined);
+    if (!saved?.ok) {
+      return wantsHtml(req) ? res.redirect(303, "/owner/agent-schedule?problem=not_saved") : res.status(502).json({ ok: false, code: "not_saved" });
+    }
+    return wantsHtml(req) ? res.redirect(303, "/owner/agent-schedule") : res.status(200).json({ ok: true });
+  });
+
+  app.post("/api/agents/schedule/disable", requireBusinessManager, async (req, res) => {
+    const scope = await resolveScope(req);
+    if (!scope) return res.status(503).json({ ok: false, code: "setup_required" });
+    const id = String(req.body?.id || "");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return wantsHtml(req) ? res.redirect(303, "/owner/agent-schedule?problem=unknown") : res.status(400).json({ ok: false, code: "unknown_schedule" });
+    }
+    const path = `/rest/v1/${SCHEDULE_TABLE}?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(scope.organizationId)}`;
+    const done = await fetch(`${scope.config.url}${path}`, {
+      method: "PATCH",
+      headers: { ...supabaseHeaders(scope.config), "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({ enabled: false, updated_at: new Date().toISOString() })
+    }).catch(() => undefined);
+    if (!done?.ok) {
+      return wantsHtml(req) ? res.redirect(303, "/owner/agent-schedule?problem=not_saved") : res.status(502).json({ ok: false, code: "not_saved" });
+    }
+    return wantsHtml(req) ? res.redirect(303, "/owner/agent-schedule") : res.status(200).json({ ok: true, enabled: false });
+  });
+
+  // The tick. Called by a scheduler, not a person.
+  //
+  // Vercel runs no process between requests, so a schedule needs something to
+  // knock on the door; vercel.json names this path. It is guarded by a shared
+  // secret rather than a session, because there is no signed-in customer behind
+  // a cron -- and it is registered whether or not the secret is set, answering
+  // 503 when it is not, so a missing secret reads as "not configured" instead
+  // of a 404 that looks like the wrong URL.
+  //
+  // What it will not do: approve anything. Each due schedule goes through the
+  // same runner as a request-driven action, so a gated action is refused and
+  // queued for the owner exactly as it would be otherwise. The allowlist above
+  // means that should not arise, and the runner is still asked, because a list
+  // that is the only thing standing between a timer and a refund is a list
+  // somebody will edit.
+  app.post("/api/agents/schedule/tick", async (req, res) => {
+    const expected = String(process.env.SONARA_SCHEDULE_TICK_SECRET || "");
+    if (!expected) return res.status(503).json({ ok: false, code: "setup_required", message: "Scheduled runs are not configured." });
+    const offered = String(req.get("x-sonara-schedule-secret") || req.body?.secret || "");
+    // Length-independent comparison is not the point here; a mismatch is a
+    // mismatch. What matters is that an absent header never matches.
+    if (!offered || offered !== expected) return res.status(401).json({ ok: false, code: "unauthorized" });
+
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : null;
+    if (!config?.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
+
+    // Crossing tenants on purpose, and saying so. A scheduler runs every
+    // organisation's due work, so this one read is deliberately unscoped -- and
+    // buildTenantQuery refuses an unscoped query unless the reason is stated,
+    // which is why it is stated rather than hand-built to slip past the guard.
+    // Every run below is scoped to the organisation on its own row.
+    const listPath = buildTenantQuery(SCHEDULE_TABLE, {
+      scope: "global",
+      globalReason: "the scheduler runs every organisation's due work; each run is then scoped to the organization_id on its own schedule row",
+      select: "*",
+      eq: { enabled: true },
+      order: "last_run_at.asc.nullsfirst",
+      limit: 200
+    });
+    const listed = await fetch(`${config.url}${listPath}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!listed?.ok) return res.status(502).json({ ok: false, code: "schedules_unreadable" });
+    const schedules = await listed.json().catch(() => []);
+    if (!Array.isArray(schedules)) return res.status(502).json({ ok: false, code: "schedules_unreadable" });
+
+    const now = new Date();
+    const ran = [];
+    const skipped = [];
+
+    for (const schedule of schedules) {
+      const verdict = isDue(schedule, now);
+      if (!verdict.due) { skipped.push({ id: schedule.id, reason: verdict.reason }); continue; }
+
+      const runner = queueRunner({ organizationId: schedule.organization_id, actorUserId: null });
+      const run = await runner.run({
+        // proposed_by is null: a schedule is not a person, and decideExecution
+        // reads that to tell an agent's proposal from somebody's own.
+        action: { action_type: schedule.action_type, proposed_by: null },
+        approval: null,
+        context: { config, organizationId: schedule.organization_id, payload: schedule.payload || {} }
+      });
+
+      // A gated action should not reach here, and if one does it is queued for
+      // the owner rather than dropped.
+      if (shouldQueue(run)) {
+        await fetch(`${config.url}/rest/v1/${QUEUE_TABLE}`, {
+          method: "POST",
+          headers: { ...supabaseHeaders(config), "Content-Type": "application/json", Prefer: "return=minimal" },
+          body: JSON.stringify(pendingRowFor({
+            run,
+            organizationId: schedule.organization_id,
+            payload: schedule.payload || {},
+            subject: `Started by your schedule: ${schedule.label || schedule.action_type}`,
+            agentKey: "schedule",
+            proposedBy: null
+          }))
+        }).catch(() => undefined);
+      }
+
+      await fetch(`${config.url}/rest/v1/${SCHEDULE_TABLE}?id=eq.${encodeURIComponent(schedule.id)}`, {
+        method: "PATCH",
+        headers: { ...supabaseHeaders(config), "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ last_run_at: now.toISOString(), last_run_result: run.status, updated_at: now.toISOString() })
+      }).catch(() => undefined);
+
+      ran.push({ id: schedule.id, action: schedule.action_type, status: run.status });
+    }
+
+    return res.status(200).json({ ok: true, checked: schedules.length, ran, skipped: skipped.length });
   });
 
   app.post("/api/agents/queue/decline", requireBusinessManager, async (req, res) => {

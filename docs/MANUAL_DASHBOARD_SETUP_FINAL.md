@@ -26,12 +26,18 @@ are not set up with no indication of why.
 | Starter | `STRIPE_PRICE_STARTER_MONTHLY` | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo   |
 | Core    | `STRIPE_PRICE_CORE_MONTHLY`    | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo  |
 | Pro     | `STRIPE_PRICE_PRO_MONTHLY`     | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo  |
-| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | **not created yet** | $19/mo |
-| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | **not created yet** | $39/mo |
-| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | **not created yet** | $79/mo |
+| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | `price_1U47yP0dKtlEU3lAvkakKNgm` | $19/mo |
+| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | `price_1U47yd0dKtlEU3lAeTBQ8o3D` | $39/mo |
+| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | `price_1U47yp0dKtlEU3lAhPqsCS7r` | $79/mo |
 
-The bottom three are the breadth ladder. The code half is done; the Stripe
-prices are yours to create, and until they exist those plans show as not open
+The bottom three are the breadth ladder, and their prices now exist in the live
+account — created 13 August 2026, with lookup keys `sonara_workspace_monthly`,
+`sonara_all_three_monthly` and `sonara_team_monthly` so they can be found again
+without this table. Creating them charges nobody; a Stripe price is inert until
+a checkout session names it.
+
+**The one step left is yours:** set those three variables in the Vercel project
+and redeploy. Until they are set, those plans show as not open
 for checkout. The three above them keep working exactly as they are -- Stripe
 prices are immutable, so an existing subscriber goes on paying what they agreed
 to and nobody is migrated by a deploy.

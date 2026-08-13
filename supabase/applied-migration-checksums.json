@@ -78,5 +78,6 @@
   "20260811220000_customer_invoices_accounts_receivable.sql": "aaf89baddc3be5cccfdbfa881374e4d2921dbcf7a05347d7dc6276c40b034ebc",
   "20260811234500_customer_invoice_lines.sql": "0fa559cd3438cc6d8f322b9de4c92696cd8aa1be8c9c9472ae607bcd6c6561e4",
   "20260812041500_growth_lead_to_customer.sql": "7ef390af747f69f6ab45375b7d7f1e12cff5bc482370a9b9814b47db5a780f1b",
-  "20260813120000_agent_pending_actions.sql": "c27e9899177bf6d993cc6ed0da6fb87e2a030060807452c78afc7848da4d8ece"
+  "20260813120000_agent_pending_actions.sql": "c27e9899177bf6d993cc6ed0da6fb87e2a030060807452c78afc7848da4d8ece",
+  "20260813180000_agent_schedules.sql": "e156b5497c2555ec2bdad12b57cedda7e4a6329d7444de06bb8c8ffe624b1deb"
 }

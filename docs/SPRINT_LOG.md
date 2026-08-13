@@ -2,6 +2,59 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Agents run on the customer's schedule, and still cannot approve themselves
+
+Until now nothing proposed work on a schedule. Agents run on one now, and the
+schedule belongs to the **customer**: a single platform cron at 03:00 UTC would
+have been our schedule wearing their name, and two businesses want their week
+reviewed on different days.
+
+`agent_schedules` holds cadence, local hour, weekday or day-of-month, and the
+customer's time zone. `/owner/agent-schedule` is where they set it.
+`vercel.json` carries an hourly cron onto `/api/agents/schedule/tick`, because
+Vercel runs no process between requests and a schedule needs something to knock.
+
+**The safety property survives, and was tested against a deliberate attack on
+it.** A scheduled run goes through the same runner as any other, so
+`decideExecution` still refuses the seven gated categories without an approval.
+Writing `issue_refund` straight into the schedules table — bypassing the
+allowlist the form enforces — produced `refused`, and the action was queued for
+the owner with category `refunds` rather than executed. **A schedule can start
+work. It cannot approve it.**
+
+**Three things the arithmetic gets right, and they are the easy ones to get
+wrong invisibly.** The customer's local hour, not the server's — "Monday at 9"
+is a different instant in Auckland and Lisbon. Never twice in one period, so an
+hourly tick still produces one daily run. And a missed period is not made up:
+three quiet days produce one run, not three, because catching up turns an outage
+into a burst of work at the moment service returns.
+
+**Scheduled runs do real work rather than reporting `unimplemented`.**
+`check_data_quality` was registered against the queue runner, running the same
+22 record checks the assistant page runs. Its limit is stated rather than
+papered over: it returns counts and writes no findings, because an audit trail
+accumulating copies of a customer's records would be a second store with
+different retention. A scheduled check tells an owner *that* something needs
+attention; the page tells them what.
+
+**Three gates caught this change, which is the system working on its author.**
+The tenant guard blocked the tick's cross-tenant read until it was declared in
+`EXEMPT_PATTERNS` with its reason — narrowed to the exact shape the tick issues.
+`verify:env` refused the new secret until it was classified. And `verify:doc-counts`
+caught the migration count moving 82 → 83 in two owner documents.
+
+**One claim corrected because it stopped being true.** The contract gate printed
+"autonomous execution remains disabled" on every release. Agents now run on a
+schedule, so it says what is true instead: schedules can start work but cannot
+approve it, and no gated action executes without an approval record.
+
+**The three Stripe prices exist.** Created in the live account on the owner's
+instruction — `sonara_workspace_monthly` $19, `sonara_all_three_monthly` $39,
+`sonara_team_monthly` $79, with lookup keys so they can be found without the
+setup table. Creating a price charges nobody; it is inert until a checkout
+session names it. The remaining step is the owner's: set the three variables in
+Vercel and redeploy, and the pricing page switches ladders on its own.
+
 ### 2026-08-13 — The database console could report a database with nothing in it
 
 Swept the 38 admin pages with the database down. Thirty-seven report the failed

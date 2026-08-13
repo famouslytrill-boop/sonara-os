@@ -32,7 +32,8 @@ const creatorArtistSystemMigrationNames = [
 // the same reason as the rest of these: the canonical 145 are pinned by the
 // runtime contract migration, and this table postdates it.
 const agentQueueMigrationNames = [
-  "20260813120000_agent_pending_actions.sql"
+  "20260813120000_agent_pending_actions.sql",
+  "20260813180000_agent_schedules.sql"
 ];
 const businessOperationsMigrationNames = [
   "010_sonara_platform_current_schema.sql",
@@ -121,7 +122,7 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
 // group is canonical and canonical membership is pinned by a migration this
 // postdates. What it holds is the thing that was missing: a gated action's own
 // inputs, so an approval has something to re-run.
-const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions"]);
+const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedules"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -262,7 +263,7 @@ verifyExtension(AGENT_QUEUE_TABLES, agentQueueSql, "agent approval queue");
 // The queue exists so an approval has something to re-run. A migration that
 // created the table without the column carrying the action's inputs would pass
 // every check above and leave the queue unable to do the one thing it is for.
-for (const required of ["payload jsonb", "state text not null default 'waiting'", "auth.role() = 'service_role'"]) {
+for (const required of ["payload jsonb", "state text not null default 'waiting'", "auth.role() = 'service_role'", "time_zone text not null"]) {
   if (!agentQueueSql.includes(required.toLowerCase())) fail(`the agent approval queue migration is missing: ${required}`);
 }
 for (const required of [
@@ -522,7 +523,7 @@ if (!process.exitCode) {
   // The second line is the one that will still mean something after a runtime
   // exists. "No runtime" is a fact about today; "these seven categories need a
   // person" is the rule that has to survive the day it changes.
-  console.log(`Agent foundation verified as approval-gated with no runtime: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; records of runs, approvals and memory are read-only and autonomous execution remains disabled.`);
+  console.log(`Agent foundation verified as approval-gated with no runtime: ${DATABASE_TABLE_GROUPS.agentsAndAutomation.length} tables; records of runs, approvals and memory are read-only, schedules can start work but cannot approve it, and no gated action executes without an approval record.`);
   console.log(`Agent approval rule verified: ${agentAuthority.SENSITIVE_CATEGORY_NAMES.length} categories require owner approval, ${agentAuthority.SELF_SERVE_ACTIONS.length} actions may run unattended, and anything unrecognised goes to the owner.`);
 }
 

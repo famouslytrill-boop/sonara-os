@@ -75,6 +75,11 @@ const OPTIONAL_CAPABILITY = new Set([
   // not configured for this plan yet" until the owner creates one, and that is
   // the correct state rather than a fault.
   "STRIPE_PRICE_WORKSPACE_MONTHLY", "STRIPE_PRICE_ALL_THREE_MONTHLY", "STRIPE_PRICE_TEAM_MONTHLY",
+  // The shared secret a scheduler presents to /api/agents/schedule/tick.
+  // Optional: without it the endpoint answers 503 and no schedule runs, which
+  // is a product with no scheduled work rather than a broken one. A customer
+  // can be served without it.
+  "SONARA_SCHEDULE_TICK_SECRET",
   "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
   "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
   "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",

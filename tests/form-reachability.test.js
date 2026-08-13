@@ -32,6 +32,12 @@ const {
 
 // Reasons an endpoint has no form. Each key is an endpoint; each value says why.
 const NO_FORM_NEEDED = {
+  // Called by a scheduler, not a person. There is nobody signed in behind a
+  // cron, so it takes a shared secret rather than a session and has no page to
+  // render a form on. The customer-facing surface is /owner/agent-schedule,
+  // where they set when it runs for them.
+  "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
+
   // Posted by client scripts, not by a person filling anything in.
   "/api/motion/events": "Interface telemetry, posted by public/sonara-one.js.",
   "/api/location/events": "Location telemetry, posted by client script.",
