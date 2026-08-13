@@ -1279,7 +1279,7 @@ app.get("/billing", requireCustomer, (req, res) => res.redirect(303, "/business-
 app.get("/business-builder/billing", requireWorkspaceAccess("business_builder"), async (req, res) => {
   const readiness = getReadiness();
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-  const billing = organization.ok ? await getBillingPanelSummary(organization.organizationId) : { status: organization.code, rows: [] };
+  const billing = organization.ok ? await getBillingPanelSummary(organization.organizationId) : { ok: false, status: organization.code, rows: [] };
   return res.status(200).type("html").send(
     layout({
       title: "Business Builder Billing",
@@ -2232,7 +2232,12 @@ async function getWorkspaceDashboardSummary(access, productKey) {
     productKey,
     organizationId: organization.organizationId,
     counts: { intake, checklist, support },
-    activity: activity.ok ? activity.rows : []
+    // `activity.ok ? activity.rows : []` was here, and the card below reads
+    // "No activity yet." off an empty array -- so a read that failed told a
+    // customer nothing had ever happened in their workspace. countLabel beside
+    // it already answers "unavailable" for a failed count, so the two halves of
+    // the same card disagreed about what a failure looks like.
+    activity: { ok: activity.ok === true, rows: activity.ok ? activity.rows : [] }
   };
 }
 
@@ -2248,8 +2253,9 @@ function workspaceRecordsCard(summary) {
 
 function workspaceActivityCard(summary) {
   if (!summary.ok) return brandCard("Recent activity", "No activity is shown until the account database and organization membership are ready.");
-  if (!summary.activity?.length) return brandCard("Recent activity", "No activity yet.");
-  return brandCard("Recent activity", summary.activity.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
+  if (summary.activity?.ok !== true) return brandCard("Recent activity", "We could not load your recent activity just now. Try again shortly.");
+  if (!summary.activity.rows.length) return brandCard("Recent activity", "No activity yet.");
+  return brandCard("Recent activity", summary.activity.rows.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
 }
 
 function countLabel(result) {
@@ -2298,7 +2304,12 @@ async function getCommandCenterSummary(req) {
       deliverablesSummary = "Setup required: the service_deliverables table is not available yet.";
     }
     const billing = await getBillingPanelSummary(organization.organizationId);
-    billingSummary = `${billing.status} Paid access unlocks only after payment updates record an active or trialing plan.`;
+    // The trailing sentence explains how access is granted, which is only worth
+    // saying when the plan could actually be read. Appended to "we could not
+    // check your plan" it reads as an explanation of why the customer has none.
+    billingSummary = billing.ok === false
+      ? billing.status
+      : `${billing.status} Paid access unlocks only after payment updates record an active or trialing plan.`;
   }
 
   const blockers = Object.entries(readiness.services)

@@ -2,6 +2,49 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Rendering every page with the database down
+
+`tests/signed-in-workspace-crawl.test.js` crawls with the database answering and
+empty, which is the state a new customer is in. Nothing crawled with it
+answering nothing at all, which is the state everybody is in for the few minutes
+a year it happens -- and the state where a page is most likely to tell somebody
+something false about their own records. 197 pages render in it. Four were
+lying.
+
+**The billing panel told a paying customer they had no plan.**
+`getBillingPanelSummary` returned `{ status: "No subscription records
+returned.", rows: [] }` when the read failed, and that string renders on the
+billing page as a statement about the customer's subscription. Somebody paying
+$39 a month, on a bad day for the database, was told no active paid plan was
+found. That is the one place in the product where being wrong in that direction
+costs a cancellation rather than a support ticket.
+
+**All three workspace dashboards said "No activity yet."** The read outcome was
+dropped before the card saw it -- while `countLabel` on the same card already
+answered "unavailable" for a failed count, so the two halves of one card
+disagreed about what a failure looks like.
+
+**Two card headings contradicted their own bodies.** "No areas yet" and "No
+consent records yet" printed above text explaining the read had failed. A
+customer skims headings, and a creator reading the second could reasonably
+conclude a permission they had recorded was gone.
+
+The crawl is `tests/no-page-lies-when-the-database-is-down.test.js`, with an
+excuse list for prose that matches the pattern and is not a claim about records
+-- the earnings disclaimer, "nothing is sent from here", "nothing here has been
+sent". Each entry says why.
+
+Two weaknesses in the check itself, both found before trusting it. It excused
+against the matched fragment rather than the surrounding sentence, so the
+billing panel's own new failure wording arrived as "nothing here" and no excuse
+for the full phrase could ever fire. And it examined only the **first** match on
+each page, so a page whose opening safety statement is excused could carry a
+real claim further down and never be looked at -- a check going blind exactly
+where a page has the most to say. Reintroducing the dashboard regression now
+fails it in six places; that was tried rather than assumed.
+
+Verified: `pnpm run verify:launch` green end to end, 1,728 tests passing.
+
 ### 2026-08-13 — A scan of the whole tree, and three pickers that never worked
 
 Swept 30,491 lines of runtime across 97 files for the failure shapes this
