@@ -37,10 +37,10 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| One Connected Account | Free | `beta` | `/products` | Yes |
-| Logins, Team & Permissions | Free | `active` | `/account/setup` | Yes |
+| One Connected Account | Free | `beta` | `/dashboard` | Yes |
+| Logins, Team & Permissions | Free | `active` | `/account` | Yes |
 | Plans & Billing | Free | `beta` | `/pricing` | Yes |
-| File Storage | Free | `beta` | `/dashboard` | Yes |
+| Your Records, And Taking Them With You | Free | `beta` | `/account/data` | Yes |
 | Connected Accounts | Free | `beta` | `/account/integrations` | Yes |
 | Security & Status Center | Free | `beta` | `/readiness` | Yes |
 | Research & Roadmap | Free | `active` | `/market-intelligence` | Yes |
@@ -52,7 +52,7 @@ automatically an executable one.
 | Business Plan & Setup Check | Free | `beta` | `/business-builder/tools/readiness` | Yes |
 | Offer & Pricing Builder | Free | `active` | `/business-builder/tools/offer` | Yes |
 | Customer & Enquiry Tracker | Starter | `active` | `/business-builder/owner/customers` | Yes |
-| Quotes, Invoices & Getting Paid | Core | `beta` | `/business-builder/billing` | Yes |
+| Quotes, Invoices & Getting Paid | Core | `beta` | `/business-builder/owner/invoices` | Yes |
 | Bookings, Staff & Day-to-Day | Core | `beta` | `/business-builder/owner` | Yes |
 | Records & Exports | Core | `beta` | `/business-builder/owner/accounting-exports` | Yes |
 
@@ -60,10 +60,10 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Brand & Asset Library | Starter | `beta` | `/creator-studio/dashboard` | Yes |
+| Brand & Asset Library | Starter | `beta` | `/creator-studio/assets` | Yes |
 | Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | Yes |
 | Release Packager | Core | `beta` | `/creator-studio/music-system` | Yes |
-| Selling Your Work | Starter | `beta` | `/creator-studio/offers` | Yes |
+| Selling Your Work | Starter | `beta` | `/creator-studio/offers/free` | Yes |
 
 ## Growth Studio products
 

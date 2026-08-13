@@ -2,6 +2,57 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Opening all twenty-three products and reading what they render
+
+Every catalog product opened as a paying customer, with its page compared to
+what its row claims. **Six were pointing at the wrong page and three more were
+claiming work that is not built anywhere.**
+
+The worst was *Quotes, Invoices & Getting Paid*, at `/business-builder/billing`
+-- the customer's own SONARA subscription, with "Upgrade: Starter" and "Manage
+billing portal" on it. A product about invoicing their customers sent them to a
+page about paying us. It goes to `/business-builder/owner/invoices` now.
+
+*File Storage* claimed file storage, versions, approvals and provenance, at
+`/dashboard`. There is no file store a customer can upload to anywhere in this
+product -- the only storage path is the signed download of a Creator Studio
+generation result -- and the dashboard holds no files at all. It is now what
+does exist: `/account/data`, every kind of record the account holds, a download
+of all of it, and an erasure request.
+
+*Brand & Asset Library* pointed at the generic Creator Studio workspace index
+rather than `/creator-studio/assets`, which is the asset catalogue.
+*Logins, Team & Permissions* pointed at `/account/setup`, which renders no cards
+at all -- `/account` is where an organization is created or joined. *One
+Connected Account* pointed at `/products`, the public marketing index.
+
+**And *Selling Your Work* was wrong for the second time.** The previous change
+moved it off the generic setup checklist and onto `/creator-studio/offers`,
+chosen because the page *definition* is titled "Offer Records". Rendering it
+shows two cards -- "What this tool does" and "Access" -- with no records and no
+form. Reading a definition is not reading a page, and the check that existed
+asked whether the route resolved and whether the plan opened it. Both were true.
+It points at `/creator-studio/offers/free` now, which drafts and saves an offer,
+and the claims are cut to that: bundles, payment links and delivery files are
+not built anywhere in Creator Studio and the row said all three.
+
+Three capability lists trimmed to what their page shows. *Research & Roadmap*
+claimed opportunity scoring and a validation portfolio; the page states a
+thesis, a pricing position and a rule about not inventing data. *Landing Pages &
+Results* claimed a UTM builder and landing-page forms; neither exists. *Connection
+Health* claimed answer-engine evidence and referral tracking; it lists connected
+services.
+
+`tests/each-product-does-what-it-says.test.js` renders all twenty-three as an
+entitled customer and requires each to show a card of its own -- not the
+application frame, and not a placeholder describing what it would do. A page
+need not have a form: several products are reports, and demanding a button of
+them would be demanding the wrong thing. The card scrape has its own guard,
+because a scrape that silently stops matching reports every page as healthy,
+which is how the first pass through this looked fine.
+
+Verified: `pnpm run verify:launch` green end to end, 1,686 tests passing.
+
 ### 2026-08-13 — Twenty-three columns reporting a number nobody recorded
 
 Started as a sweep of every record column and turned into one fix in three
