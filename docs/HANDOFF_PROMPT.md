@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 82 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 163 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 164 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,43 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The database console could report a database with nothing in it
+
+Swept the 38 admin pages with the database down. Thirty-seven report the failed
+read; the outage path was already sound everywhere. What the sweep found instead
+was one page that can report an **impossible** figure.
+
+`/admin/database` summarises the catalog through `lengthOf`, which returned `0`
+for a missing key and `0` for an empty list. So a catalog response the page did
+not expect — a renamed key, a partial read, an RPC answering 200 on its own
+internal failure — rendered as **0 schemas, 0 tables, 0 functions, 0 policies,
+0 applied migrations**. A connected Postgres has never had no schemas and no
+tables. That pair is not a low count, it is an impossible one, and it appears on
+the page an owner opens when they already suspect something is wrong.
+
+`reconcileMigrations` did the same thing one layer up, coercing an absent
+`applied` list to `[]` before the summary could see it, so "the catalog said
+nothing about migrations" and "no migration has ever been applied" arrived as
+the same value.
+
+Both distinguish absent from empty now: a missing figure reads `unavailable`, a
+genuinely empty list still reads `0`, and no-schemas-and-no-tables carries a card
+saying the figures describe the response rather than the database.
+
+**A correction to make plainly.** The first version of this note said the page
+showed zeros during an outage. It does not — an outage fails the RPC and the
+page correctly says "Database Management needs setup". What was actually
+reproduced is the narrower case where the catalog answers and the answer is not
+what the page assumed. The fix is the same; the description was wrong.
+
+**And an open finding that came out of it.** The healthy-catalog render stalls
+under the test harness — not slowly, at all, twice through eight-second
+deadlines — while the failing-catalog renders in the same process answer in
+milliseconds. Ordering, the admin gate, the section default and the environment
+are all ruled out. It is not explained, so it is written up in
+`docs/SHIP_READINESS.md` as an open finding, and the test file carries no
+healthy-page assertion rather than a green one that cannot run.
 
 ### 2026-08-13 — Two free-LLM-API directories reviewed and registered
 

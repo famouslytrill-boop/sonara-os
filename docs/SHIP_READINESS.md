@@ -41,6 +41,40 @@ depends on that path, and it is the last genuine unknown in it.
 
 ---
 
+## Open finding: /admin/database can stall on a healthy catalog
+
+Found 13 August 2026 while fixing the summary counts on that page, and **not
+diagnosed**. It is recorded here rather than in a test comment because a console
+that can hang is a worse problem than the one that was being fixed.
+
+**What happens.** In a Node process where other suites have already loaded the
+application, a request to `/admin/database` whose metadata catalog returns a
+*usable* snapshot does not complete — twice in a row, through eight-second
+deadlines. Requests whose catalog fails, and which therefore take the early
+"Database Management needs setup" return, answer in milliseconds in the same
+process. The full page renders normally when that file is the only one running.
+
+**Ruled out.** Request ordering — it is the healthy catalog that stalls, not
+whichever request happens to be first. The admin gate — the stalled request
+reaches the handler. The section default — it resolves to `schema-visualizer`,
+so nothing throws on an undefined definition. The environment — Supabase config
+and the admin allowlist are both set at render time. That leaves something in
+the full-page render path.
+
+**Why it might not be a production problem, and why that is not good enough.**
+It has only been observed under the test harness, with a stubbed `fetch` and
+several suites sharing one process, which production does not resemble. But the
+difference between a stalled request and a slow one is invisible from outside,
+Express answers neither, and the page it affects is the one an owner opens when
+they already think something is wrong. It needs a reproduction outside mocha
+before anyone concludes it is only a harness artefact.
+
+**Not covered by a test.** `tests/the-database-console-never-reports-an-empty-database.test.js`
+covers the summary-count fix and deliberately carries no healthy-page assertion,
+because a test that cannot run reads as coverage. The guard against those
+assertions passing over an empty page is that each reads a value out of a named
+summary card.
+
 ## Three things only the owner can close
 
 ### 1. A positive subscribed-user test in production

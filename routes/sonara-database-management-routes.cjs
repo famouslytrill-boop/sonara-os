@@ -206,10 +206,23 @@ function normalizeSection(value) {
 
 function reconcileMigrations(snapshot) {
   const local = listLocalMigrationFiles();
-  const applied = Array.isArray(snapshot?.migrations?.applied) ? snapshot.migrations.applied : [];
-  const appliedVersions = new Set(applied.map((row) => String(row.version || "")));
+  // Absent stays absent. This coerced a missing `applied` to [] before the
+  // summary could see it, so "the catalog told us nothing about migrations"
+  // and "no migration has ever been applied" arrived here as the same value --
+  // and the second is a far more alarming thing to tell an owner.
+  const reported = snapshot?.migrations?.applied;
+  const applied = Array.isArray(reported) ? reported : null;
   const localVersions = new Set(local.map((row) => row.version));
 
+  if (applied === null) {
+    // `local` is read from disk and is knowable either way. Everything that
+    // compares the two sides is not, so it is left unset rather than computed
+    // against an empty list and reported as a definite answer.
+    snapshot.migrations = { ...(snapshot.migrations || {}), applied: null, local, pending: null, remoteOnly: null, synchronized: null };
+    return snapshot;
+  }
+
+  const appliedVersions = new Set(applied.map((row) => String(row.version || "")));
   snapshot.migrations = {
     ...(snapshot.migrations || {}),
     applied,
@@ -259,16 +272,33 @@ function renderSummary(snapshot, brandCard) {
     pendingMigrations: lengthOf(snapshot?.migrations?.pending)
   };
 
-  const state = snapshot?.migrations?.synchronized ? "synchronized" : "review required";
+  // Three answers. `synchronized` is null when the catalog said nothing about
+  // applied migrations, and "review required" would read as a finding about the
+  // database rather than about the read.
+  const synchronized = snapshot?.migrations?.synchronized;
+  const state = synchronized === null || synchronized === undefined ? "unknown" : synchronized ? "synchronized" : "review required";
+  // A connected Postgres has never had no schemas and no tables. That pair is
+  // not a low count, it is an impossible one -- so it describes the catalog
+  // read rather than the database, and saying "0" would be this console's most
+  // alarming possible way to be wrong, on the page an owner opens when they
+  // already suspect something is broken.
+  const unreadable = !counts.schemas && !counts.tables;
+  const caveat = unreadable
+    ? brandCard(
+      "This summary could not be built",
+      "The catalog answered, and carried no schemas and no tables. A connected database has both, so these figures describe the response rather than your database. Nothing here says your database is empty."
+    )
+    : "";
   return `<section class="sonara-product-grid" aria-label="Database summary">
-    ${brandCard("Schemas", String(counts.schemas))}
-    ${brandCard("Tables and views", String(counts.tables))}
-    ${brandCard("Functions", String(counts.functions))}
-    ${brandCard("Triggers", String(counts.triggers))}
-    ${brandCard("Indexes", String(counts.indexes))}
-    ${brandCard("RLS policies", String(counts.policies))}
-    ${brandCard("Applied migrations", String(counts.migrations))}
-    ${brandCard("Migration state", `${state}; pending local migrations: ${counts.pendingMigrations}`)}
+    ${caveat}
+    ${brandCard("Schemas", countText(counts.schemas))}
+    ${brandCard("Tables and views", countText(counts.tables))}
+    ${brandCard("Functions", countText(counts.functions))}
+    ${brandCard("Triggers", countText(counts.triggers))}
+    ${brandCard("Indexes", countText(counts.indexes))}
+    ${brandCard("RLS policies", countText(counts.policies))}
+    ${brandCard("Applied migrations", countText(counts.migrations))}
+    ${brandCard("Migration state", `${state}; pending local migrations: ${countText(counts.pendingMigrations)}`)}
   </section>`;
 }
 
@@ -361,8 +391,17 @@ function formatValue(value) {
   return String(value);
 }
 
+// null when the catalog did not carry this at all, a number when it did.
+//
+// This returned 0 for both, so a snapshot missing a key rendered as a database
+// with none of that thing. The two are opposite findings: an empty list is a
+// fact about the database, and an absent key is a fact about the read.
 function lengthOf(value) {
-  return Array.isArray(value) ? value.length : 0;
+  return Array.isArray(value) ? value.length : null;
+}
+
+function countText(value) {
+  return value === null ? "unavailable" : String(value);
 }
 
 function emptyFor(type) {
