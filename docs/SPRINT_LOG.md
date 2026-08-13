@@ -2,6 +2,44 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Every connector reconciled against what the application actually uses
+
+A connector being available as a tool is not the same as the product depending
+on it, and the two were never written down together. Reconciled:
+
+| Connector | State | What the application does with it |
+| --- | --- | --- |
+| Stripe | live, account `sos` | Checkout and billing. Three new prices created today. |
+| Resend | `sonaraindustries.com` verified, sending enabled | Email delivery. |
+| Vercel | team and project `sonara-os` reachable | Hosting. **No env-var tool exists**, so setting the three price variables is the owner's step and cannot be done from here. |
+| GitHub | working | Branch, PR and CI for this repository. |
+| ElevenLabs | authenticated, **zero agents** | Named in the voice provider registry. |
+| Cloudinary | authenticated, **Free plan**, 64 objects, 0.68% of credits | **Nothing.** No source file references it. |
+| Cloudflare | authenticated | Two mentions, both register entries rather than calls. |
+| Base44, Canva, HeyGen, Supabase | **need authorisation** | Not usable from this session. |
+
+**Two findings worth keeping.**
+
+`descript` appeared to be referenced in 43 source files. It was matching the
+word "description". Recorded because a grep that answers a question you did not
+ask is how a survey ends up confidently wrong.
+
+Cloudinary is on a **Free plan** and the application does not use it. That is
+the good version of the free-tier hazard in CLAUDE.md — a free tier that
+nothing ships on can change without breaking anything. It would stop being the
+good version the moment a feature rested on it.
+
+**The voice gate was checked rather than assumed.** ElevenLabs is a voice
+cloning service and AGENTS.md requires provenance, consent and anti-clone
+safety, so the path that could reach it was read end to end. `evaluatePolicy`
+refuses any voice capability without a rights attestation, a consent
+attestation, and a consent row that exists, is attested, is not revoked and has
+not expired — scoped to the organisation and the user. Imitation language in a
+prompt routes to human review before any of that. And a consent row that could
+not be *read* refuses too, rather than being treated as permission, which is the
+same rule this codebase applies everywhere else and the one that is easiest to
+get backwards.
+
 ### 2026-08-13 — Agents run on the customer's schedule, and still cannot approve themselves
 
 Until now nothing proposed work on a schedule. Agents run on one now, and the
