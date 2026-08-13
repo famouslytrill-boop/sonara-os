@@ -9,7 +9,7 @@ const {
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
-const { getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
+const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
 const TABLES = Object.freeze({
@@ -231,14 +231,27 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     const name = clean(req.body.name, 240);
-    const definition = parseObject(req.body.segment_definition || req.body.segmentDefinition, null);
+    const description = nullable(req.body.description, 1000);
+    // The form collects "Who belongs in it" in plain words and this handler
+    // demanded a segment_definition object no form had a field for, so every
+    // submission from /growth-studio/segments failed and the only way to create
+    // a segment was to hand-craft an HTTP request.
+    //
+    // Written words rather than a rule builder, because nothing in this product
+    // evaluates segment_definition -- no code reads the column back to work out
+    // who is in the segment. A JSON rule box would look like a filter the
+    // product applies, and it would not be one. What is stored is what the
+    // customer said, marked as a description so a future evaluator can tell it
+    // apart from a rule it could execute.
+    const definition = parseObject(req.body.segment_definition || req.body.segmentDefinition, null)
+      || (description ? { described_as: description } : null);
     if (!name || !definition) return res.status(400).json({ ok: false, code: "segment_name_and_definition_required" });
     if (containsUnsafeExpression(definition)) return res.status(400).json({ ok: false, code: "segment_definition_not_allowed" });
     const created = await insert(config, TABLES.segments, {
       organization_id: context.organizationId,
       user_id: context.userId,
       name,
-      description: nullable(req.body.description, 1000),
+      description,
       segment_definition: definition,
       status: oneOf(req.body.status, ["draft", "active", "paused", "archived"], "draft")
     });
@@ -250,7 +263,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
-    const channel = oneOf(req.body.channel, ["email", "sms", "push", "whatsapp", "phone", "personalization", "analytics"], null);
+    // The list is imported rather than written here. The form rendered channel
+    // as free text labelled "email, sms, post, phone" -- and "post" is not on
+    // this list, so a customer who took the label at its word got
+    // consent_fields_required with no indication which field was wrong.
+    const channel = oneOf(req.body.channel, CONSENT_CHANNELS, null);
     const status = oneOf(req.body.consent_status || req.body.consentStatus, ["granted", "denied", "withdrawn", "expired", "unknown"], null);
     const purpose = clean(req.body.purpose, 300);
     const source = clean(req.body.source, 300);
@@ -403,7 +420,24 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const config = getConfig(deps);
     const name = clean(req.body.name, 240);
     const hypothesis = clean(req.body.hypothesis, 2000);
+    // A JSON caller posts `variants`; a form cannot post an array of objects, so
+    // the two named fields the page renders are turned into the same thing here.
+    //
+    // Without this the experiments form could never save: the handler has always
+    // required two variants whose weights sum to one, and no page offered a way
+    // to give it any. Every submission came back
+    // experiment_name_hypothesis_and_two_variants_required, naming a field the
+    // form does not have -- the same shape as the item_name defect.
+    //
+    // Split evenly rather than asking for weights. An even split is what an A/B
+    // test means unless somebody says otherwise, and a weight box on the form
+    // would be a number a customer has to get right for the save to work at all.
     const variants = parseArray(req.body.variants, []);
+    if (!variants.length) {
+      const a = clean(req.body.variant_a || req.body.variantA, 240);
+      const b = clean(req.body.variant_b || req.body.variantB, 240);
+      if (a && b) variants.push({ variant_key: "a", name: a, allocation_weight: 0.5 }, { variant_key: "b", name: b, allocation_weight: 0.5 });
+    }
     if (!name || !hypothesis || variants.length < 2) return res.status(400).json({ ok: false, code: "experiment_name_hypothesis_and_two_variants_required" });
     const totalWeight = variants.reduce((sum, variant) => sum + Number(variant.allocation_weight ?? variant.allocationWeight ?? 0), 0);
     if (Math.abs(totalWeight - 1) > 0.0001) return res.status(400).json({ ok: false, code: "variant_weights_must_equal_one" });

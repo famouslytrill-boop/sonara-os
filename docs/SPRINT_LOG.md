@@ -2,6 +2,60 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Three Growth Studio forms that could never save
+
+Fill in each Growth Studio create form and press the button. **Three of eight
+came back 400**, and all three failed the same way: the handler required
+something no form had a field for, so the refusal named a field the customer
+could not see.
+
+- **Segments** wanted `segment_definition`, an object. The form collects a name,
+  a description and a status. Every submission failed, so the only way to create
+  a segment was to hand-craft an HTTP request — which is exactly what
+  `lib/sonara-growth-create-specs.cjs` was written to stop.
+- **Experiments** wanted two variants whose weights sum to one. The form offered
+  no variants at all.
+- **Consents** validated `channel` against a closed list. The form rendered it as
+  free text labelled "email, sms, post, phone", and **"post" has never been on
+  that list** — a customer who took the label at its word got
+  `consent_fields_required` naming no field.
+
+This is the `item_name` defect again, and the reason it survived is the same:
+the existing tests post a body assembled by hand, and a body you assemble
+yourself cannot be missing a field.
+
+**The fixes are not symmetrical, because the three causes are not.**
+
+Segments: the handler now builds the definition from the words the form already
+collects, stored as `{ described_as: … }`. **Not** a JSON rule box — nothing in
+this product reads `segment_definition` back to work out who is in a segment, so
+a rule builder would look like a filter the product applies and would not be
+one. The separate key keeps that honest for whoever writes the evaluator.
+
+Experiments: two named sides, split evenly. The split is not a field, because a
+weight a customer has to get right is a weight that stops the save.
+
+Consents: one list, exported from the specs module and imported by the handler.
+Two copies of a rule is the shape every drift in this codebase has taken.
+
+**The check that was missing.**
+`tests/every-growth-form-can-actually-save.test.js` builds its bodies **out of
+the rendered HTML** — every input by name, every select's first real option,
+every textarea — and requires a write. It also refuses a submission that logs
+an audit event and saves no record, which would otherwise satisfy "something was
+written". Deleting the variant fields again fails it, naming the endpoint and
+the body its own form produces.
+
+**Three findings that were not defects, recorded so they are not re-investigated.**
+`consent_basis_attested`, `primary_metric` and `assignment_unit` are form fields
+with no matching column, and all three are deliberate: the handlers route them
+into `provider_response` and `metadata` jsonb explicitly. A sweep that assumes
+every form field is a column reports these, and they are correct as they are.
+
+**Verified.** `pnpm run verify:launch` green, 1795 tests passing. All eight
+Growth Studio forms now save what they collect; the experiments form writes the
+experiment plus two variant rows at 0.5 each.
+
 ### 2026-08-13 — An approved agent action actually runs
 
 `/owner/agent-activity` carried a card saying approving was not wired up, and it
