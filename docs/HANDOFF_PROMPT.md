@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 146 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 147 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,48 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — Twenty-three columns reporting a number nobody recorded
+
+Started as a sweep of every record column and turned into one fix in three
+helpers.
+
+`money()`, `quantity()` and `percent()` all guarded with
+`Number.isFinite(Number(value))`. `Number(null)` is 0 and 0 is finite, so a
+column with nothing in it printed a confident figure: `$0.00` for a service with
+no price, `0` for an item nobody had counted, `0.0%` for a target nobody had set.
+Twenty-three columns across the owner and growth record pages did it.
+`countText()` and `percentText()` in `lib/sonara-growth-record-pages.cjs` were a
+second copy of the same fault.
+
+A stored `0` still renders as `0`. That is the point: absent and zero are
+different facts and the helpers can now tell them apart.
+
+Two more of the same shape found on the way. `lowStock` on the Business Builder
+snapshot read `Number.isFinite(Number(row.reorder_level))`, which accepts null,
+so an item with no reorder level was compared against a threshold of zero and
+any item with no quantity recorded counted as low stock -- the headline figure
+was inflated by items nobody had set a threshold for.
+`lib/sonara-record-checks.cjs` asks the same question correctly with
+`Number(row.reorder_level) > 0`; two modules, one question, two answers, and the
+wrong one was on the dashboard. And the segments page reported "0 people" for a
+segment nobody had evaluated.
+
+**And a bug I had introduced the change before.** `percent()` multiplies by 100,
+so every column feeding it holds a fraction. I stored recipe waste as a whole
+number and wrote "nothing read this column before, so the convention is set
+here" -- true about the column, wrong about the codebase, since every
+`numeric(7,4)` percent column in migration 014 is a fraction. A 5% waste
+displayed as 500.0%. The customer still types 5; the derive hook stores 0.05.
+
+`tests/no-column-invents-a-number.test.js` is the general check. It reads each
+column's fields with a Proxy rather than guessing them -- the first version
+probed an all-empty row and missed the menu margin, which only lies when the
+price is present and the cost is not -- then removes one numeric field at a time
+and requires the column either to say it does not know or not to print a figure.
+It was checked against a reintroduced `Number()` guard before being trusted.
+
+Verified: `pnpm run verify:launch` green end to end, 1,681 tests passing.
 
 ### 2026-08-13 — A day's takings, and a menu that stopped claiming 100% margin
 

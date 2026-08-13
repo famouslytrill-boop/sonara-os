@@ -54,17 +54,26 @@ describe("recipe costing", () => {
       assert.deepEqual(ingredients.derive({ quantity: "0.5", unit_cost_cents: "1000" }), { calculated_cost_cents: 500 });
     });
 
-    it("adds waste as a percentage, because that is what the field asks for", () => {
+    it("takes waste as a percentage and stores it as a fraction", () => {
       // 200g at 250 per unit is 50; 5% waste makes it 52.5, rounded to 53.
-      assert.deepEqual(ingredients.derive({ quantity: "0.2", unit_cost_cents: "250", waste_percent: "5" }), { calculated_cost_cents: 53 });
-      // The convention is set by this feature -- nothing read waste_percent
-      // before it. A customer typing 5 and meaning 5% getting 500% back is the
-      // failure the other reading of numeric(7,4) would have caused, so it is
-      // asserted rather than left to the field hint.
+      assert.deepEqual(
+        ingredients.derive({ quantity: "0.2", unit_cost_cents: "250", waste_percent: "5" }),
+        { calculated_cost_cents: 53, waste_percent: 0.05 }
+      );
+
+      // The first version of this stored the 5 and rendered it with percent(),
+      // which multiplies by 100 -- so a 5% waste displayed as 500.0%. Both
+      // halves are asserted here because getting either one alone right still
+      // shows the customer the wrong number.
       const fivePercent = ingredients.derive({ quantity: "1", unit_cost_cents: "100", waste_percent: "5" });
-      assert.equal(fivePercent.calculated_cost_cents, 105, "5 must mean 5%, not 500%");
+      assert.equal(fivePercent.calculated_cost_cents, 105, "5 must cost 5% more, not 500% more");
+      assert.equal(fivePercent.waste_percent, 0.05, "the column stores the fraction its neighbours store");
+
+      const wasteColumn = ingredients.columns.find((column) => column.label === "Waste");
+      assert.equal(wasteColumn.value({ waste_percent: fivePercent.waste_percent }), "5.0%", "what was typed is what is shown");
+
       const hint = ingredients.form.fields.find((field) => field.name === "waste_percent").hint;
-      assert.match(hint, /5 means 5%/, "the convention must be on the field a person types into");
+      assert.match(hint, /5 means 5%/, "the input convention must be on the field a person types into");
     });
 
     it("stores nothing rather than NaN when an input is not a number", () => {
@@ -76,6 +85,7 @@ describe("recipe costing", () => {
     it("treats a missing or negative waste as none, not as a discount", () => {
       assert.equal(ingredients.derive({ quantity: "1", unit_cost_cents: "100" }).calculated_cost_cents, 100);
       assert.equal(ingredients.derive({ quantity: "1", unit_cost_cents: "100", waste_percent: "" }).calculated_cost_cents, 100);
+      assert.equal(ingredients.derive({ quantity: "1", unit_cost_cents: "100" }).waste_percent, undefined, "no waste means no value written");
       assert.equal(
         ingredients.derive({ quantity: "1", unit_cost_cents: "100", waste_percent: "-20" }).calculated_cost_cents,
         100,

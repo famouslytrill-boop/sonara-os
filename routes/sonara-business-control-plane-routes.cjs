@@ -1,6 +1,7 @@
 "use strict";
 
 const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 const { randomUUID } = require("node:crypto");
 
@@ -328,7 +329,23 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       readable,
       pendingOrders: derived("orders", (row) => ["draft", "pending"].includes(row.status)),
       upcomingBookings: derived("bookings", (row) => ["requested", "confirmed"].includes(row.status)),
-      lowStock: derived("inventory", (row) => Number.isFinite(Number(row.reorder_level)) && Number(row.quantity || 0) <= Number(row.reorder_level))
+      // `Number.isFinite(Number(row.reorder_level))` accepted null, because
+      // Number(null) is 0 and 0 is finite -- so an item with no reorder level
+      // was compared against a threshold of zero, and any item with no quantity
+      // recorded counted as low stock. The headline figure on the business
+      // snapshot was inflated by items nobody had set a threshold for.
+      //
+      // lib/sonara-record-checks.cjs asks the same question and asks it
+      // correctly, with `Number(row.reorder_level) > 0`. Two modules, one
+      // question, two answers, and the wrong one was the one on the dashboard.
+      lowStock: derived("inventory", (row) => {
+        const reorderLevel = finiteNumber(row.reorder_level);
+        if (reorderLevel === null || reorderLevel <= 0) return false;
+        const quantity = finiteNumber(row.quantity);
+        // No quantity recorded is not the same as none in stock. An item
+        // nobody has counted cannot be reported as below its reorder level.
+        return quantity !== null && quantity <= reorderLevel;
+      })
     };
   }
 
