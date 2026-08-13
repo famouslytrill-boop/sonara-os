@@ -120,6 +120,63 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-12 — Seven products sold on plans the server refuses
+
+Started as a route fix on "Selling Your Work", which pointed at
+`/creator-studio/launch-readiness` -- server.js's generic
+`/:product/launch-readiness`, one setup checklist shared by all three products
+and not even signed-in gated. The identical fault had been fixed on Business
+Builder's exports product a change earlier and missed here, because the two rows
+were read a week apart and nothing compared a route to what the route renders.
+
+Checking the plan that product is sold on turned up the larger fault.
+`getCustomerPaidEntitlement` matches a subscriber's plan_slug against
+`getPaidEntitlementKeys(productKey)`. The catalog decided whether a product's
+paid access was real with `hasEnforcedPaidAccess(productKey)` -- whether the
+family enforces *anything*. Seven of fourteen paid products fell in the gap:
+Creator Studio enforces core_monthly and pro_monthly while three of its products
+advertised Starter, and Growth Studio enforces pro_monthly alone while four of
+its products advertised Starter or Core. Buying the advertised plan and clicking
+the product returned 402 upgrade_required, both halves working exactly as
+written and disagreeing about the price.
+
+Worth naming as a pattern, because it is the second time: this is the successor
+to `planFloor === "free"`. That one defined verified access as free access; this
+one defined it as somebody, somewhere in the family, being able to get in. Both
+are true statements about something other than what the customer is being sold,
+and both read as reasonable until you ask what question the code is answering.
+`planFloorOpensProduct` asks the one the customer is asking.
+
+The seven now report closed, which is honest but is not where they should stay.
+Which way they open is a pricing decision -- raise the floor, or widen what a
+plan buys -- so it is listed as a work queue with a note per product rather than
+decided here.
+
+Two routes also stopped colliding. "Customer & Enquiry Tracker" and "Bookings,
+Staff & Day-to-Day" both pointed at `/business-builder/dashboard`; they are the
+CRM and the operations hub respectively, not duplicates, and now go to
+`/business-builder/owner/customers` and `/business-builder/owner`.
+
+`tests/catalog-routes-go-somewhere-real.test.js` opens every catalog route
+against the booted application rather than reading
+`lib/sonara-route-registry.cjs`. The registry is hand-maintained and is not
+complete -- `/readiness` is a live public page, linked from three screens, with a
+plain-language title, and it appears in none of the registry's route arrays. A
+check reading the registry would have called that catalog row broken while the
+page was fine.
+
+`docs/2026-08-12-WHAT-ELSE-CAN-WE-SELL.md` is the research that came out of it.
+Two findings worth carrying forward. The seven are not seven mistakes: the
+catalog prices on a depth ladder while `PAID_ENTITLEMENT_KEYS` gates on breadth,
+and that map is already a workspace-access map wearing plan-tier clothing --
+which is independent evidence for the restructure in
+`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md`, this time from a bug rather
+than from a market comparison. And migration 014 is a complete restaurant margin
+schema, eighteen tables with ten working record pages, sold today as two words
+inside a $19 plan against a comparable at $350 per location per month.
+
+Verified: `pnpm run verify:launch` green end to end, 1,653 tests passing.
+
 ### 2026-08-12 — Eleven products removed, and the row that would have kept publishing them
 
 The catalog had 34 products and 21 that could not be run. Eight of those were
