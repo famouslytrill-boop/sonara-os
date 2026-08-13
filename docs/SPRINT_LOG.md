@@ -2,6 +2,45 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — The document the owner reads to decide whether to launch
+
+`docs/owner/WHAT-IS-LEFT.md` said "`pnpm test` is at 1347 passing and the
+eighteen-command `verify:launch` chain is green". The suite was at 1,733 and the
+chain at 21. Its by-the-numbers block was stale in five more places: 242 routes
+against 248, 301 tables against 302, 66 reviewed repositories against 82, 22
+owner record pages against 23.
+
+Every figure was right when it was written. None had anything watching it, which
+is the whole point: this is the document somebody reads to decide whether the
+thing is ready, and it was describing a repository three weeks behind.
+
+`scripts/verify-doc-counts.mjs` checks the two kinds of countable claim a live
+document can make. A chain length must match `verify:launch`. A **passing test
+count may not be stated at all** outside a generated document -- it is stale the
+next time anybody adds a test, and there is no version of it a hand-written file
+can keep true.
+
+Four things had to be right for the check to be worth having, and three of them
+were wrong first.
+
+`docs/HANDOFF_PROMPT.md` is generated and embeds the sprint log verbatim, so
+every historical "1,733 tests passing" reappeared in it -- the check was reading
+the same history twice and calling it a live claim. Two audit files open with
+"Date:" and "Verification date:", which makes them records of a day in the same
+way the sprint log is; correcting their counts would make them worse records, so
+the rule is a dated marker near the top rather than a list of filenames.
+`1,733` was read as `733`, because the pattern did not allow a thousands
+separator and the error quoted a number nobody had written. And
+`**21** verification commands` never matched at all, because emphasis sits
+between the word boundary and the digits -- so after the fix the check passed
+having examined **zero** claims. It refuses that now: no claim found anywhere is
+reported as the patterns having stopped matching, not as everything being fine.
+
+Adding the check to the chain made the chain 22 commands and the sentence I had
+just corrected wrong again, which the check caught on its first real run.
+
+Verified: `pnpm run verify:launch` green end to end across 22 commands.
+
 ### 2026-08-13 — The write half of the outage crawl, which found nothing
 
 The third of the outage crawls, and the one with the worst consequence if it

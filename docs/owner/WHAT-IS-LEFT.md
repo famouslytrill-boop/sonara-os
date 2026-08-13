@@ -8,8 +8,10 @@ done" means two different things and only one of them is countable.
 ## Shipping what exists: 4 steps, all yours
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
-failing checks. `pnpm test` is at 1347 passing and the eighteen-command
-`verify:launch` chain is green.
+failing checks: the whole suite passes and the `verify:launch` chain is green
+across all 22 commands. The test count is deliberately not written here
+-- it changes every time anybody adds one, and a number typed into prose has
+nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
 The four remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
 rather than interpreted:
@@ -68,10 +70,10 @@ never save and two POST handlers silently sharing one path.
 
 Counted from the repository on 12 August 2026, not recalled.
 
-- **242** registered GET routes
-- **301** tables, 208 of them organization-scoped
-- **22** owner record pages, **22** record checks
-- **1347** tests, **18** verification commands in the release chain
-- **66** external repositories reviewed with their licences read off each one
+- **248** registered GET routes
+- **302** tables created by the migrations, **209** of them organization-scoped
+- **23** owner record pages, **22** record checks
+- **22** verification commands in the release chain
+- **82** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision
