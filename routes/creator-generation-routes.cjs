@@ -1,6 +1,7 @@
 "use strict";
 
 const { createHash, randomUUID } = require("node:crypto");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getProvider,
   getProviderReadiness,
@@ -817,7 +818,11 @@ function jobSummaryCard(job, escape) {
   const status = generationStatus(job.status);
   const rows = [
     ["Where it is", `${status.label} — ${status.detail}`],
-    ["Progress", `${Number(job.progress_percent || 0)}%`],
+    // `Number(job.progress_percent || 0)%` reported "0%" for a job that has not
+    // recorded any progress, which reads as "started and got nowhere" rather
+    // than "nothing has said yet". Same fault as the segments page and the menu
+    // margin; this was the third copy.
+    ["Progress", finiteNumber(job.progress_percent) === null ? "Not reported yet" : `${finiteNumber(job.progress_percent)}%`],
     ["Kind", generationCapabilityLabel(job.capability)],
     ["Started", whenText(job.created_at)],
     ["Finished", job.completed_at ? whenText(job.completed_at) : "Not yet"]

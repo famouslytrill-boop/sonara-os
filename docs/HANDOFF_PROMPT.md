@@ -120,6 +120,28 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Three more copies of the confident zero, outside the record pages
+
+The general sweep reads column definitions, so it cannot see anything that
+renders through its own formatter. Three did.
+
+A Creator Studio generation job with no progress reported showed **0%**, which
+reads as started and stalled rather than nothing has said yet. And the Growth
+Studio conversion totals summed `Number(row.value || 0)` in two places, so a
+sale with no value recorded counted as zero and vanished into the figure -- a
+total short by however many sales are unpriced, presented as the value of every
+sale. The figure now sums only the rows that carry a value and says how many it
+left out, in the API's `computedOver` and in the label on the totals card.
+
+**The first version of the check failed on its own comment.** It searched the
+source for `Number(x || 0)` and matched the comment written directly above the
+fix, which quotes the pattern to say what it replaced. Comments are stripped
+before matching now -- the same trap `scripts/verify-open-source-registry.mjs`
+hit reading a type union out of a file whose comment contained a semicolon. A
+regex over source is a regex prose can satisfy.
+
+Verified: `pnpm run verify:launch` green end to end, 1,699 tests passing.
+
 ### 2026-08-13 — What a day made, and the wage rates that were blocking it
 
 `employee_wage_rates` had a schema, row level security and no page. That is why

@@ -1,6 +1,7 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getGrowthProvider,
   _getGrowthProviderReadiness,
@@ -530,7 +531,13 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       countRows(config, TABLES.experiments, context, scoped)
     ]);
 
-    const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+    // A conversion with no value recorded counted as zero and disappeared into
+    // the total, which then read as the value of every sale. Number(null) is 0
+    // and `|| 0` makes it explicit rather than accidental -- same result. The
+    // count of unpriced rows travels with the figure now.
+    const valued = conversions.rows.map((row) => finiteNumber(row.value));
+    const conversionValue = valued.filter((value) => value !== null).reduce((sum, value) => sum + value, 0);
+    const conversionsWithoutValue = valued.filter((value) => value === null).length;
     // What the value and the attribution breakdown were actually computed over.
     // Neither can be done in PostgREST without an RPC, so both are a sample of
     // the most recent conversions -- and a caller has to be told that rather
@@ -559,7 +566,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       // this many conversion rows. complete: false means there are more, and the
       // figures cover the most recent ones only; null means the count could not
       // be read, so neither answer is available.
-      computedOver: { conversions: conversionsRead, complete: conversionsComplete },
+      // conversionsWithoutValue is part of the same disclosure: the figure is
+      // the sum of the rows that carry a value, and this says how many did not.
+      // Without it a total short by ten unpriced sales is indistinguishable
+      // from a complete one.
+      computedOver: { conversions: conversionsRead, complete: conversionsComplete, withoutValue: conversionsWithoutValue },
       attribution: {
         reportedModels: countBy(conversions.rows, "attribution_model"),
         confidence: countBy(conversions.rows, "attribution_confidence"),
@@ -718,11 +729,17 @@ async function growthTotalsCard(config, context, ui) {
   if (!recentConversions.ok) {
     totals.push(["Value of those sales", "Not available just now"]);
   } else {
-    const value = recentConversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+    const valued = recentConversions.rows.map((row) => finiteNumber(row.value));
+    const unpriced = valued.filter((entry) => entry === null).length;
+    const value = valued.filter((entry) => entry !== null).reduce((sum, entry) => sum + entry, 0);
     const covered = recentConversions.rows.length;
     const partial = conversionCount.ok && typeof conversionCount.count === "number" && conversionCount.count > covered;
+    // A sale with no value recorded is not a sale worth nothing. Saying how
+    // many were left out is the difference between a total and a total that
+    // happens to be short.
+    const label = partial ? `Value of the ${covered} most recent sales` : "Value of those sales";
     totals.push([
-      partial ? `Value of the ${covered} most recent sales` : "Value of those sales",
+      unpriced ? `${label}, excluding ${unpriced} with no value recorded` : label,
       String(value)
     ]);
   }

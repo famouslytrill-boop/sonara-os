@@ -120,3 +120,34 @@ describe("no column invents a number", () => {
     assert.equal(stored.waste_percent, 0.05, "a column rendered by percent() must be stored as a fraction");
   });
 });
+
+// The same fault outside the record pages, where the general sweep above cannot
+// reach: these render through their own formatters rather than through a column
+// definition, and each was a separate copy of `Number(x || 0)`.
+describe("the same fault outside the record pages", () => {
+  // Comments stripped before matching. The first version of these assertions
+  // searched the raw source for `Number(x || 0)` and failed on the comment
+  // written directly above the fix, which quotes the pattern to say what it
+  // replaced. Same trap scripts/verify-open-source-registry.mjs hit reading a
+  // type union out of a file whose comment contained a semicolon: a regex over
+  // source that prose can satisfy.
+  const read = (file) =>
+    require("node:fs")
+      .readFileSync(require("node:path").join(__dirname, "..", file), "utf8")
+      .replace(/^\s*\/\/.*$/gm, "");
+
+  it("does not report a generation job as 0% when nothing has said", () => {
+    const source = read("routes/creator-generation-routes.cjs");
+    assert.doesNotMatch(source, /Number\(job\.progress_percent \|\| 0\)/, "a job with no progress reported reads as started and stalled");
+    assert.match(source, /finiteNumber\(job\.progress_percent\)/);
+  });
+
+  it("does not fold a sale with no value into the total as zero", () => {
+    const source = read("routes/growth-studio-control-routes.cjs");
+    assert.doesNotMatch(source, /sum \+ Number\(row\.value \|\| 0\)/, "an unpriced sale counted as nothing and vanished into the total");
+    // And the figure says how many it left out, which is the difference
+    // between a total and a total that happens to be short.
+    assert.match(source, /withoutValue: conversionsWithoutValue/);
+    assert.match(source, /excluding \$\{unpriced\} with no value recorded/);
+  });
+});
