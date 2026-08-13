@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 149 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 150 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,40 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — What a day made, and the wage rates that were blocking it
+
+`employee_wage_rates` had a schema, row level security and no page. That is why
+labour cost is not computable anywhere in this product: hours are recorded on
+`employee_time_entries`, rates were not recordable at all. It sits under Staff
+now, as a child of the person it belongs to -- the same relationship recipe
+ingredients have to a recipe.
+
+With that unblocked, each day under Daily sales states its own food cost: net
+sales off the day, food cost from the menu mix, and the share of sales it
+represents. The card **does not call the remainder profit.** In a food business
+labour is the second-largest cost after food, so a "gross profit" that quietly
+omits wages is not an approximation, it is a wrong number somebody might price
+against. It says "before labour" and says why labour is not in it, and there is
+a test asserting the word profit never appears.
+
+`/business-builder/owner/costs` says the narrower true thing now: the food-cost
+half is on each day, and combining it with labour into one figure per day is
+still not built.
+
+Three things in the test harness were wrong and only showed up because a child
+with a required *date* arrived. `requiredBody` filled every non-numeric required
+field with the word "Something", so a date column was posted the string
+Something -- accepted by the stub, rejected by Postgres, which means the harness
+was exercising a path no real submission takes. And "will not take the
+organization from the form" hand-wrote a body with `item_name` against
+`WITH_LINES[0]`; adding a child changed which page came first, its form asks for
+an amount and a date, and the submission was rejected before the tenant check it
+exists to run could happen. It builds the body from the page's own form now,
+which is the lesson this file had already learned once and applied everywhere
+except there.
+
+Verified: `pnpm run verify:launch` green end to end, 1,697 tests passing.
 
 ### 2026-08-13 — The half of the audit that nobody would have read
 

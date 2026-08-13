@@ -1267,6 +1267,14 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/wage-rates:
+    post:
+      operationId: createBusinessWageRate
+      tags: [Operations]
+      summary: Record what a member of staff is paid, from a given date.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/recipe-ingredients:
     post:
       operationId: createBusinessRecipeIngredient

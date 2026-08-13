@@ -98,8 +98,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500 },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000 }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500, rate_type: "hourly", amount_cents: 2500, effective_from: "2026-08-01" },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", amount_cents: 2000, effective_from: "2026-08-02" }
       ]);
     }
     return json([]);
@@ -117,7 +117,11 @@ function requiredBody(page, parentId, extra = {}) {
   // reject path on that page and nothing else.
   const body = { [page.lines.parentColumn]: parentId };
   for (const field of page.lines.form.fields.filter((entry) => entry.required)) {
-    body[field.name] = field.type === "number" ? "1250" : "Something";
+    // A date column given the word "Something" is rejected by Postgres, so a
+    // harness that posts it is testing a path no real submission takes. The
+    // stub accepts anything, which is exactly why this went unnoticed until a
+    // child with a required date arrived.
+    body[field.name] = field.type === "number" ? "1250" : field.type === "date" ? "2026-08-01" : "Something";
   }
   return { ...body, ...extra };
 }
@@ -148,7 +152,8 @@ const LINE_EVIDENCE = Object.freeze({
   customer_invoice_lines: "Call-out fee",
   customer_invoice_payments: "Bank transfer",
   recipe_ingredients: "Flour",
-  pos_menu_mix_items: "Flour"
+  pos_menu_mix_items: "Flour",
+  employee_wage_rates: "hourly"
 });
 
 describe("line items on the records that have them", () => {
@@ -173,7 +178,7 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 8, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 9, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
   });
@@ -417,9 +422,14 @@ describe("line items on the records that have them", () => {
   it("will not take the organization from the form", async () => {
     // Same hole as the record forms had: the insert runs with the service key,
     // so a submitted organization_id would write into another business.
+    // Was a hand-written body with item_name on WITH_LINES[0], which is the
+    // brittleness this file already learned once: adding a child changed which
+    // page was first, its form asks for an amount and a date, and the
+    // submission was rejected before the organization check it exists to test
+    // could run. requiredBody shapes the body from the page's own form.
     const page = WITH_LINES[0];
     inserts = [];
-    await postLine(page, { [page.lines.parentColumn]: OURS, item_name: "Salt", organization_id: THEIRS });
+    await postLine(page, requiredBody(page, OURS, { organization_id: THEIRS }));
     const insert = inserts.find((entry) => entry.table === page.lines.table);
     assert.ok(insert, "nothing was saved");
     assert.equal(insert.payload.organization_id, ORGANIZATION_ID, "a submitted organization_id overrode the session's organization");
