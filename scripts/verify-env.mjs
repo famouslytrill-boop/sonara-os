@@ -70,6 +70,11 @@ const OPTIONAL_CAPABILITY = new Set([
   // anything to charge for. Which price ids belong here is recorded in
   // docs/owner/OWNER-STEPS.md, verified against the live account.
   "STRIPE_PRICE_STARTER_MONTHLY", "STRIPE_PRICE_CORE_MONTHLY", "STRIPE_PRICE_PRO_MONTHLY",
+  // The breadth plans. No price object exists for these yet, which is why they
+  // are here rather than in the required list: the plan renders "Checkout is
+  // not configured for this plan yet" until the owner creates one, and that is
+  // the correct state rather than a fault.
+  "STRIPE_PRICE_WORKSPACE_MONTHLY", "STRIPE_PRICE_ALL_THREE_MONTHLY", "STRIPE_PRICE_TEAM_MONTHLY",
   "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
   "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
   "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",

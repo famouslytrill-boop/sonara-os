@@ -325,9 +325,15 @@ describe("the server.js split stays safe", () => {
     // the three workspaces were registered, rendering, and reachable only by
     // typing the URL, because the dashboards carried hand-written link lists
     // that had fallen behind the registry. Generated, so they cannot again.
+    // Then 59 for the plan table and the copy derived from it: STRIPE_PLANS is
+    // data with no behaviour and lives in lib/sonara-stripe-plans.cjs, together
+    // with which plans the pricing page offers and the two sentences that
+    // describe them. Moving it is how the three plans of the August pricing
+    // restructure were absorbed -- the ceiling comes down as they go in, rather
+    // than up to make room for them.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4124,
+      lines <= 4066,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

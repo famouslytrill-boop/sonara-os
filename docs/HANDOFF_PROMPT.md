@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4123 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4066 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 156 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 157 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -120,6 +120,84 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The pricing restructure applied, and one ladder on the page
+
+`docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` argued for pricing **breadth**
+— how many of the three workspaces you get — instead of depth. It is applied.
+
+**The three new plans.** `workspace_monthly` $19 (any one workspace),
+`all_three_monthly` $39, `team_monthly` $79 (all three plus the staff portal).
+They live in `lib/sonara-stripe-plans.cjs` and carry no Stripe price until the
+owner creates one, so they render "Not open for checkout yet" and cannot break
+anybody's checkout. **Starter / Core / Pro are untouched.** Stripe prices are
+immutable, and an existing subscriber has to keep paying what they agreed to.
+
+**$19 buys one workspace, not three.** `SINGLE_WORKSPACE_PLANS` and
+`billingRowOpensProduct` in `lib/sonara-paid-access.cjs` are what make that
+true: a `workspace_monthly` row opens a product only if
+`metadata.workspace` names it. Both match points in
+`lib/sonara-paid-entitlement.cjs` call it, and both selects now ask PostgREST
+for `metadata`. A row with no choice recorded fails closed with
+`workspace_not_chosen` and a sentence telling the customer to pick — listing
+the key without this check would have made $19 buy what $39 is for.
+
+**One ladder on the pricing page.** Listing every key put eight plans on it,
+two priced $19 and two priced $39, containing different things. The obvious
+half-fix — hide the old ladder — empties the page, because the new plans have
+no Stripe price yet and every card would say "not open". So `offeredPlanKeys`
+takes two rules: a superseded plan drops off once its replacement **can be
+bought**, and a replacement stays off until it can be, for as long as any plan
+it replaces still works. The page switches ladders by itself when the owner
+creates the prices, and there is no state where nothing is purchasable.
+
+The "any", rather than "its own predecessor", is deliberate: keyed to its own,
+a Pro whose price variable went missing would pull All three onto the page
+unbuyable beside it — two $39 plans, arriving from a misconfiguration.
+
+`Team` is not hidden, because nothing supersedes into it. It appears saying it
+is not open yet, which is what every unpriced plan does. Hiding every unpriced
+plan would be a tidier page bought by making a missing price invisible.
+
+**The prose moved with the cards.** "Pro covers all three for $39" was written
+out in two places and Pro is not on the new page; the successor is called
+"All three", which would have made it "All three covers all three for $39". The
+sentence is now `All three cost $39 together`, derived from the cheapest offered
+plan marked `coversAllThree`. "Which plan should I pick?" is built from the
+plans that are actually buyable, cheapest first, and says paid plans are not
+open yet when none are.
+
+**Pro against Core.** Both open all three workspaces, so after the August
+widening Pro had nothing exclusive. Locations are what separate them:
+`INCLUDED_LOCATIONS` gives Core 3 and Pro unlimited, enforced at
+`routes/sonara-last9-routes.cjs:706`. `all_three_monthly` inherits Pro's
+unlimited rather than a fresh middle rung — the restructure doc says it *is*
+Pro renamed at the same price, and giving it three would make the rename a
+reduction discovered at a customer's fourth site.
+
+**Two checks that had gone blind, found by moving the table.**
+`tests/dashboard-setup-doc.test.js` parsed price env vars out of `server.js`
+source with a regex; the moment the table moved it found zero, and "no env var
+is missing from the doc" was true of an empty list. Its own guard caught it, and
+it now reads the table object. `tests/database-query-contract.test.js` pinned a
+`doesNotMatch` on a PostgREST select string that the added `metadata` column
+would have slipped past.
+
+Also: `module.exports = STRIPE_PLANS` with `offeredPlanKeys` hung off the same
+object put a function into the plan table, so `Object.entries` yielded a ninth
+"plan" the pricing page would have tried to render. The table is now frozen and
+exported under a name.
+
+**Verified.** `pnpm run verify:launch` green, 1745 tests passing. The pricing
+page rendered under five environments — nothing connected, legacy only, legacy
+with Pro misconfigured, partly switched, fully switched — and each shows one
+coherent ladder with no two plans at the same price. `server.js` 4122 → 4065
+lines; the ratchet came down to 4066 and was confirmed to fail at 4068.
+
+**What the owner still has to do:** create the three Stripe price objects
+(`STRIPE_PRICE_WORKSPACE_MONTHLY` $19, `STRIPE_PRICE_ALL_THREE_MONTHLY` $39,
+`STRIPE_PRICE_TEAM_MONTHLY` $79) and set them in production. Nothing else is
+needed — the page switches on its own.
 
 ### 2026-08-13 — The tap-target rule, checked against a class nothing renders
 

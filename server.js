@@ -163,73 +163,11 @@ function isProductionEnvironment() {
 }
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
-// These prices already sit below every comparable tool we could find charging
-// for the same job -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md for the
-// survey that confirmed it, and for why they were left where they are.
-//
-// amountCents is the price this page promises. The amount actually charged
-// lives in the Stripe Price object named by `env`, and the two have to agree --
-// tests/pricing.test.js checks the page never shows a number the config does
-// not hold, and the pricing doc records what each Stripe Price must be created
-// at. Changing a price here means creating a new Stripe Price: Stripe prices
-// are immutable once created.
-const STRIPE_PLANS = {
-  free: {
-    name: "Free",
-    price: "$0",
-    amountCents: 0,
-    description: "A real account, the free tools in all three studios, and your saved work. No card needed.",
-    env: undefined,
-    mode: undefined
-  },
-  starter_monthly: {
-    name: "Starter",
-    price: "$7/mo",
-    amountCents: 700,
-    description: "One workspace, your offer, customer enquiries, the checklist tools, and your records saved.",
-    env: "STRIPE_PRICE_STARTER_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY"],
-    mode: "subscription"
-  },
-  core_monthly: {
-    name: "Core",
-    price: "$19/mo",
-    amountCents: 1900,
-    description: "Best value. A full studio, your customer and offer records, the launch checklist, and tracked support.",
-    env: "STRIPE_PRICE_CORE_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY"],
-    mode: "subscription"
-  },
-  pro_monthly: {
-    name: "Pro",
-    price: "$39/mo",
-    amountCents: 3900,
-    description: "All three studios together, deeper records, campaign planning, the full launch checklist, and priority support.",
-    env: "STRIPE_PRICE_PRO_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
-    mode: "subscription"
-  },
-  // Quoted, not sold through checkout.
-  //
-  // This used to carry a Stripe price and a Start checkout button while
-  // advertising no amount at all -- the live price was $197 and the first
-  // number a customer saw was on Stripe's page, after committing. It is
-  // done-for-you work whose scope varies, so a fixed self-serve price was the
-  // wrong shape for it anyway.
-  //
-  // The plan stays in this table rather than being deleted: it is an
-  // entitlement key, so anyone who has already been granted the package keeps
-  // their access. `quoted` is what removes it from checkout everywhere.
-  business_builder_one_time: {
-    name: "Business Builder setup",
-    price: "We quote you",
-    amountCents: null,
-    description: "A one-off package where our team sets your business up for you. Tell us what you need and we will quote it.",
-    quoted: true,
-    env: undefined,
-    mode: undefined
-  }
-};
+// The plan table moved to lib/sonara-stripe-plans.cjs. It is data with no
+// behaviour, and server.js is under a shrinking line ratchet; see that file for
+// the prices, what each plan is, which ones the pricing page offers, and why
+// the depth ladder was left untouched when the breadth one was added.
+const { STRIPE_PLANS, pricingLadderCopy } = require("./lib/sonara-stripe-plans.cjs");
 
 // Stripe and the billing records moved to lib/sonara-billing.cjs. The cut is at
 // the HTTP seam: handleCheckoutSessionRequest and handleStripeWebhook are still
@@ -240,7 +178,9 @@ const STRIPE_PLANS = {
 //
 // This binding has to sit here rather than at the top with the others: it reads
 // STRIPE_PLANS, which is the const immediately above, and a const is not
-// hoisted. Putting it with the shell require is the exact failure step 2 hit.
+// hoisted -- still true now that the table itself lives in lib/, because it is
+// the binding that is not hoisted, not the object it points at. Putting this
+// with the shell require is the exact failure step 2 hit.
 const {
   billingPanel,
   createStripeCheckoutSession,
@@ -888,15 +828,18 @@ app.get("/pricing", (req, res) => {
   const readiness = getReadiness();
   const planStatuses = getCheckoutPlanStatuses();
   const enabledPlanCount = Object.entries(planStatuses).filter(([plan, status]) => plan !== "free" && status.checkout === "enabled").length;
+  // What the page sells and what it says about it, both derived from which
+  // plans Stripe can actually take money for. lib/sonara-stripe-plans.cjs.
+  const { offered, allThreeSentence, whichPlan } = pricingLadderCopy((plan) => planStatuses[plan]?.checkout);
   const pricingFaq = `<section class="sonara-section sonara-faq" aria-label="Pricing questions">
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
-      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in August 2026 what the usual tools charge for these three jobs on monthly billing. Their entry plans came to about $87 a month for the set, and nearer $105 once you remove another company\u2019s logo from your emails and turn automation on. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in August 2026 what the usual tools charge for these three jobs on monthly billing. Their entry plans came to about $87 a month for the set, and nearer $105 once you remove another company\u2019s logo from your emails and turn automation on. ${allThreeSentence ? `${escapeHtml(allThreeSentence)}.` : ""} We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
-      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $7 if you want your work saved in one workspace, Core at $19 for a full studio, or Pro at $39 if you need all three.</p></details>
+      <details><summary>Which plan should I pick?</summary><p>${escapeHtml(whichPlan)}</p></details>
     </div>
   </section>`;
   return res.status(200).type("html").send(
@@ -909,8 +852,8 @@ app.get("/pricing", (req, res) => {
         ? "Every plan starts free — no card to begin. Upgrade for deeper records, more workspaces, and priority support, and cancel anytime."
         : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
-        ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $39 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $87 a month on monthly billing, from published prices in August 2026. The creator tool at that price also takes 5% of what you sell. Pro covers all three for $39 and takes nothing from your sales."),
+        ...offered.map((plan) => priceCard(plan, STRIPE_PLANS[plan], planStatuses[plan], readiness)),
+        brandCard("What it would cost elsewhere", `Buying these three jobs separately usually means about $39 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $87 a month on monthly billing, from published prices in August 2026. The creator tool at that price also takes 5% of what you sell.${allThreeSentence ? ` ${allThreeSentence}, and we take nothing from your sales.` : ""}`),
         brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],

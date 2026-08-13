@@ -15,8 +15,8 @@
 // payments were not set up, with nothing anywhere to say why. A prose doc
 // cannot fail, which is how it stayed wrong through several launches.
 //
-// This ties it to the code. The plan table in server.js is the authority on
-// which env vars exist; the doc has to name those and no others.
+// This ties it to the code. The plan table is the authority on which env vars
+// exist; the doc has to name those and no others.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -29,12 +29,20 @@ const serverSource = fs.readFileSync(path.join(root, "server.js"), "utf8");
 // Every price env var the server reads: the primary `env:` on each plan plus
 // its `envAliases`. Aliases are accepted at runtime but the doc should teach
 // the primary name, so they are collected separately.
+//
+// Read from the plan table itself rather than by regex over server.js source.
+// The regex version went blind the moment the table moved to lib/ -- it found
+// nothing, and "no env vars are missing from the doc" was true of an empty
+// list. The guard below caught it, and this removes the parser that needed
+// guarding.
+const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
+
 function planEnvNames() {
   const primary = new Set();
   const aliases = new Set();
-  for (const match of serverSource.matchAll(/env:\s*"(STRIPE_PRICE_[A-Z_]+)"/g)) primary.add(match[1]);
-  for (const match of serverSource.matchAll(/envAliases:\s*\[([^\]]*)\]/g)) {
-    for (const alias of match[1].matchAll(/"(STRIPE_[A-Z_]+)"/g)) aliases.add(alias[1]);
+  for (const config of Object.values(STRIPE_PLANS)) {
+    if (config.env) primary.add(config.env);
+    for (const alias of config.envAliases || []) aliases.add(alias);
   }
   return { primary: [...primary], aliases: [...aliases] };
 }

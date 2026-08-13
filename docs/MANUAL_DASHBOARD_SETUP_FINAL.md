@@ -26,6 +26,15 @@ are not set up with no indication of why.
 | Starter | `STRIPE_PRICE_STARTER_MONTHLY` | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo   |
 | Core    | `STRIPE_PRICE_CORE_MONTHLY`    | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo  |
 | Pro     | `STRIPE_PRICE_PRO_MONTHLY`     | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo  |
+| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | **not created yet** | $19/mo |
+| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | **not created yet** | $39/mo |
+| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | **not created yet** | $79/mo |
+
+The bottom three are the breadth ladder. The code half is done; the Stripe
+prices are yours to create, and until they exist those plans show as not open
+for checkout. The three above them keep working exactly as they are -- Stripe
+prices are immutable, so an existing subscriber goes on paying what they agreed
+to and nobody is migrated by a deploy.
 
 Business Builder setup ($197) is quoted, not sold through checkout, so it has no
 price env var. It keeps a Stripe price (`price_1TjCnv0dKtlEU3lAzjxJnhLK`) only
@@ -64,7 +73,8 @@ publishable key.
 - `STRIPE_SECRET_KEY` = your newly rotated live server value (`sk_live_...`)
 - `STRIPE_WEBHOOK_SECRET` = your webhook signing value (`whsec_...`)
 - `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_CORE_MONTHLY`,
-  `STRIPE_PRICE_PRO_MONTHLY` = the Price IDs from the table above
+  `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_WORKSPACE_MONTHLY`,
+  `STRIPE_PRICE_ALL_THREE_MONTHLY`, `STRIPE_PRICE_TEAM_MONTHLY` = the Price IDs from the table above
 
 After env var changes, redeploy without build cache.
 
