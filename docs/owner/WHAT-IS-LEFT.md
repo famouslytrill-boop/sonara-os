@@ -41,11 +41,12 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 66 reviewed repositories, 6 are
-reciprocal (AGPL/GPL/OSL) and reach network-served software, 2 declare no
-licence at all — which is not a review item, it is an absence of permission —
-and 1 ships a runtime whose licence specifically restricts hosting it as a
-service. "Install all repositories" has no completion state that is also legal.
+**Some of it cannot be built as stated.** Of 82 reviewed repositories, 9 carry a
+reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
+reaches a hosted product; 2 declare no licence at all — which is not a review
+item, it is an absence of permission — and 1 ships a runtime whose licence
+specifically restricts hosting it as a service. "Install all repositories" has
+no completion state that is also legal.
 
 **Part of it contradicts the rest of it.** "Fully autonomous with very little
 human intervening" and `AGENTS.md`'s seven owner-approval categories are both
@@ -71,7 +72,7 @@ never save and two POST handlers silently sharing one path.
 Counted from the repository on 12 August 2026, not recalled.
 
 - **248** registered GET routes
-- **302** tables created by the migrations, **209** of them organization-scoped
+- **303** tables created by the migrations, **210** of them organization-scoped
 - **23** owner record pages, **22** record checks
 - **23** verification commands in the release chain
 - **82** external repositories reviewed with their licences read off each one

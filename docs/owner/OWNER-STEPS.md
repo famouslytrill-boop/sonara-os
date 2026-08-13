@@ -136,7 +136,7 @@ four turn out to do.
 
 The advisor's remediation is to revoke `EXECUTE` from `authenticated` on twelve
 `SECURITY DEFINER` functions. **Do not do that.** Seven of them are load-bearing:
-`is_org_member` alone is called by **197 policies across 59 tables**, and a
+`is_org_member` alone is called by **202 policies across 64 tables**, and a
 policy evaluates as the calling role, so removing the grant can turn a working
 policy into a denial — customers locked out of their own records, silently.
 
@@ -165,7 +165,7 @@ outside version control, which is item 3's problem showing up again.
 pre-emptively, because a migration in this repository runs on deploy, and
 shipping this without the branch test would be acting past the evidence.
 
-**The other eleven stay as they are.** Seven because 197 policies is not a
+**The other eleven stay as they are.** Seven because 202 policies is not a
 number to gamble with, and four because they are the ones nobody can read yet.
 
 ---

@@ -2,6 +2,48 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Eight stale figures in the documents the owner reads
+
+`verify:doc-counts` exists because a figure typed into prose has nothing
+watching it. It shipped covering two claim shapes — the length of the release
+chain, and a raw "N passing" — and **eight live figures drifted underneath it
+anyway**, all of them in the two documents an owner reads to decide whether to
+launch:
+
+| Document | Said | Is |
+| --- | --- | --- |
+| `owner/WHAT-IS-LEFT.md` | 66 reviewed repositories | 82 |
+| `owner/WHAT-IS-LEFT.md` | 302 tables created | 303 |
+| `owner/WHAT-IS-LEFT.md` | 209 organization-scoped | 210 |
+| `SHIP_READINESS.md` | 77 migrations | 82 |
+| `SHIP_READINESS.md` | 497 policies | 505 |
+| `SHIP_READINESS.md` | 197 policies / 59 tables | 202 / 64 |
+| `owner/OWNER-STEPS.md` | 197 policies / 59 tables | 202 / 64 |
+
+Every one was right when written. That is the whole point, and it is why adding
+a check for one shape of figure does not watch the others.
+
+**The gate now derives four more.** Repositories on the open-source register,
+migration files, tables created by the migrations, and how many of those are
+organization-scoped — each read from the repository, each anchored on the noun
+phrase the documents actually use so a sentence about somebody else's
+repositories is not misread as a claim about ours. Six countable claims are
+checked where there were two, and every one of the four was confirmed to fail on
+the figure it had been carrying.
+
+**What was deliberately not automated.** "How many licences reach a hosted
+product" is a judgement recorded at review time, not something re-derivable from
+the register, so it stays a human's to keep — the check counts the nine
+reciprocal licences and leaves the reading to a person.
+
+**One number was left wrong on purpose.** `SHIP_READINESS.md` recounts a bug
+where a broken parser "saw 191 policies instead of 497". Correcting 497 to 505
+would falsify the history — 497 was true that day. It now says "where there were
+then 497" and points at the live figure above it, the same principle that keeps
+this log and the dated audits out of the check entirely. `docs/audits/` is now
+excluded by path, because those carry their date in the filename rather than in
+a `Date:` line the existing marker could see.
+
 ### 2026-08-13 — An applied migration could be edited and nothing would notice
 
 `scripts/generate-member-read-policies.cjs` carries this warning, in its own

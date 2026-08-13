@@ -16,6 +16,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 
 const root = process.cwd();
 const check = process.argv.includes("--check");
@@ -38,7 +39,11 @@ const EXCLUDED = new Set([
 // passing halfway down does not excuse a live document.
 const DATED_RECORD = /^(date|audit date|verification date|analysis date|researched|checked|retrieved|surveyed)\s*:/im;
 function isExcluded(file, text) {
-  if (EXCLUDED.has(file) || file.startsWith("docs/archive/")) return true;
+  // docs/audits/ holds dated engineering and market audits -- 2026-07-27 is in
+  // their filenames. Correcting their counts would make them worse records, the
+  // same reason SPRINT_LOG is excluded, and their date is in the path rather
+  // than in a Date: line the marker below would catch.
+  if (EXCLUDED.has(file) || file.startsWith("docs/archive/") || file.startsWith("docs/audits/")) return true;
   return DATED_RECORD.test(String(text || "").slice(0, 400));
 }
 
@@ -47,6 +52,43 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), 
 const chain = String(packageJson.scripts?.["verify:launch"] || "");
 const commandCount = chain ? chain.split("&&").length : 0;
 const testFiles = fs.readdirSync(path.join(root, "tests")).filter((name) => /\.(test\.js|test\.mjs)$/.test(name)).length;
+
+// Three more figures the owner's documents state and nothing was checking.
+//
+// This check shipped covering two claim shapes -- chain commands, and a raw
+// passing count -- and six live figures drifted underneath it anyway:
+// docs/owner/WHAT-IS-LEFT.md said 66 reviewed repositories against a register
+// that had reached 82, and 302 tables against 303; docs/SHIP_READINESS.md said
+// 77 migrations against 82. Every one was right when written. That is the point:
+// a figure typed into prose has nothing watching it, and adding a check for one
+// shape of figure does not watch the others.
+//
+// Only counts that can be *derived exactly* are added here. A judgement recorded
+// at review time -- how many licences reach a hosted product, say -- is not
+// re-derivable from the register and is deliberately left to a human.
+const registerSource = fs.readFileSync(path.join(root, "data", "open-source-tools.ts"), "utf8");
+const repositoryCount = (registerSource.match(/slug:\s*"/g) || []).length;
+const migrationCount = fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length;
+// Read as a module rather than parsed: the generated file holds Sets, and
+// counting quoted strings in it would count the header comment too.
+const tenantModule = createRequire(path.join(root, "package.json"))("./lib/sonara-tenant-scoped-tables.cjs");
+const scopedTableCount = tenantModule.TENANT_SCOPED_TABLES.size;
+const createdTableCount = scopedTableCount + tenantModule.GLOBAL_TABLES.size;
+
+for (const [label, value, floor] of [
+  ["repositories on the open-source register", repositoryCount, 40],
+  ["migrations", migrationCount, 50],
+  ["tables created by the migrations", createdTableCount, 100],
+  ["organization-scoped tables", scopedTableCount, 80]
+]) {
+  if (!Number.isFinite(value) || value < floor) {
+    // A figure this check cannot establish is one it must not vouch for. The
+    // alternative is comparing every document against a zero and reporting
+    // every correct number as wrong.
+    console.error(`ERROR: only ${value} ${label} could be counted; this check cannot vouch for a figure it cannot measure.`);
+    process.exit(1);
+  }
+}
 
 if (!commandCount) {
   console.error("ERROR: package.json has no verify:launch chain, so no command count could be established.");
@@ -88,6 +130,23 @@ for (const file of walk("docs")) {
     claimsChecked += 1;
     if (claimed !== commandCount) {
       problems.push(`${file}: says ${match[0].trim()}; verify:launch chains ${commandCount}`);
+    }
+  }
+
+  // The derivable counts. Each pattern is anchored on the noun phrase the
+  // documents actually use, so a sentence about somebody else's 66 repositories
+  // is not read as a claim about ours.
+  for (const [pattern, actual, what] of [
+    [/\b(\d[\d,]{0,4})\s+(?:reviewed\s+)?repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
+    [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
+    [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]
+  ]) {
+    for (const match of text.matchAll(pattern)) {
+      const claimed = Number(String(match[1]).replace(/,/g, ""));
+      if (!Number.isFinite(claimed)) continue;
+      claimsChecked += 1;
+      if (claimed !== actual) problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
     }
   }
 

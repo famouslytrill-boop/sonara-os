@@ -109,13 +109,13 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 77 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 82 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
-call it — 497 policies across the schema. Run it with `--check`; the release
+call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
 
 - **Seven of the eight in-repository functions are load-bearing.**
-  `is_org_member` is called by **197 policies across 59 tables**.
+  `is_org_member` is called by **202 policies across 64 tables**.
   `is_entity_member` by 25, `can_manage_entity` by 15, `is_org_owner_or_admin`
   and `sonara_is_org_member` by 9 each, `has_org_role` by 7, `has_entity_role`
   by 4. Revoking `EXECUTE` on any of these is the dangerous case the paragraph
@@ -144,9 +144,10 @@ itself is unaffected either way. That was checked in the code, not assumed.
 
 The first version of this report was wrong in the direction that costs the most.
 Its policy pattern could not read a quoted multi-word policy name — which is
-most of them — so it saw 191 policies instead of 497 and reported that six of
-these functions, including ones with dozens of dependents, were safe to lock
-down. It now runs two independent checks: the policy parse above, and a
+most of them — so it saw 191 policies where there were then 497, and reported
+that six of these functions, including ones with dozens of dependents, were safe
+to lock down. (Both figures are as they stood that day; the schema has grown
+since, and the count above is the live one.) It now runs two independent checks: the policy parse above, and a
 paren-balancing scan of every `using` and `with check` expression that does not
 know what a policy is and so cannot fail the same way. A disagreement between
 them fails the release rather than being resolved quietly.
