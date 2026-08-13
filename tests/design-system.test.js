@@ -148,9 +148,20 @@ describe("design system respects the platform constraints", () => {
     assert.doesNotMatch(controls, /fetch\(|XMLHttpRequest|import\(/, "controls must make no network calls");
   });
 
-  it("keeps mobile tap targets at 44px and prevents overflow", () => {
+  // This asserts the token exists and is 44px. It does not assert anything
+  // uses it, and nothing in the application does: --sonara-tap is consumed by
+  // .sonara-ds-button alone, which appears in no rendered page. Removing every
+  // min-height from the controls the product actually renders leaves this
+  // green.
+  //
+  // Kept, because the token is the right place for the number and a token that
+  // silently changed to 20px should fail something. The rule it is meant to
+  // express is checked against rendered pages in
+  // tests/mobile-rules-hold-on-what-is-rendered.test.js.
+  it("keeps the tap-target token at 44px", () => {
     assert.match(designSystem, /--sonara-tap:\s*44px/);
     assert.match(designSystem, /max-width:\s*100%/);
+    assert.match(designSystem, /min-height:\s*var\(--sonara-tap\)/, "the token is declared and consumed by nothing");
   });
 
   it("gives work surfaces a calm treatment", () => {

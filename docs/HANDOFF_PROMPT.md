@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 155 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 156 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -120,6 +120,46 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The tap-target rule, checked against a class nothing renders
+
+AGENTS.md: "Mobile layouts must avoid overflow and use large enough tap
+targets." **Both rules hold.** Neither was being checked.
+
+`tests/design-system.test.js` asserted `--sonara-tap: 44px` and
+`max-width: 100%` appear in `public/sonara-design-system.css`. The token is
+real. The only selector consuming it is `.sonara-ds-button`, and the
+application never renders one: across six representative pages the interactive
+elements are 43 bare `<button>`, 41 `a.action`, 39 bare `<input>`, 14 `<select>`
+and 2 `<textarea>`. Not one `.sonara-ds-button`.
+
+The rules that actually govern those controls live in
+`public/sonara-application-ui.css`, and had nothing watching them. Strip every
+`min-height` from the selectors the product renders and every control collapses
+-- while the design-system assertion stays green, because it is reading a
+different file about a different class.
+
+`tests/mobile-rules-hold-on-what-is-rendered.test.js` scrapes the controls off
+rendered pages and checks the served stylesheet against those, refusing to
+assert about a selector the sample does not contain. It also checks the two
+halves of the overflow rule that matter on a phone: the body must not scroll
+sideways, and a record table -- wider than any phone -- must scroll inside
+itself, or its columns are simply unreachable.
+
+**One correction worth recording.** The first attempt to prove the new check
+bites deleted the 46px rule and the check still passed, which read exactly like
+a check passing for the wrong reason. It was not: a second rule gives the same
+selectors 48px, so the guarantee genuinely still held and the experiment was
+wrong rather than the check. Removing *every* `min-height` on those selectors
+fails it, naming each control and how many of them are on the page. Being wrong
+about which of the two was broken is the easy mistake here, and worth the extra
+five minutes it took to find out.
+
+The old assertion is kept and renamed to what it does -- the token is the right
+place for the number, and a token quietly changed to 20px should still fail
+something.
+
+Verified: `pnpm run verify:launch` green end to end, 1,737 tests passing.
 
 ### 2026-08-13 — The document the owner reads to decide whether to launch
 
