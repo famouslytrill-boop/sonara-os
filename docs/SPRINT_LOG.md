@@ -2,6 +2,33 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — Rendering the day page, which nothing had done
+
+The labour work shipped with two test files that both passed and neither of
+which had run the page. `tests/what-a-day-made.test.js` calls `derivedCard`
+directly with hand-built arguments; `tests/labour-cost.test.js` calls
+`labourCostForDay` directly. The wiring between them -- the handler awaiting
+`derivedReads`, threading its result in as a fourth argument -- was never
+executed by anything, and a mistake anywhere along it leaves both files green
+and the page without a figure on it. That is the defect class this repository
+keeps finding, arrived at from the inside.
+
+It does work, and now something says so.
+`tests/the-day-page-renders-its-own-figures.test.js` opens
+`/business-builder/owner/sales/:id` through the real handler and reads the card
+off the rendered HTML. Breaking the wiring -- dropping the fourth argument --
+fails three of its six checks; that was tried before trusting it.
+
+Two things it asserts that the unit tests could not. The extra reads go out with
+the service key, which bypasses row level security, so **the organization filter
+in the query is the only thing between one business and another's payroll** --
+checked against the query strings that actually left, not against the code that
+builds them. And the hours query is bounded to the day being looked at rather
+than reading every entry a business has ever recorded, which is how a page gets
+slow without anybody noticing.
+
+Verified: `pnpm run verify:launch` green end to end, 1,721 tests passing.
+
 ### 2026-08-13 — The labour half, and four ways it is not knowable
 
 Each day under Daily sales now costs its own labour: hours from
