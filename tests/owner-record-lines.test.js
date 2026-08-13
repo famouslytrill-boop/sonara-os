@@ -98,8 +98,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5 },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0 }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500 },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000 }
       ]);
     }
     return json([]);
@@ -147,7 +147,8 @@ const LINE_EVIDENCE = Object.freeze({
   vendor_invoice_lines: "Flour",
   customer_invoice_lines: "Call-out fee",
   customer_invoice_payments: "Bank transfer",
-  recipe_ingredients: "Flour"
+  recipe_ingredients: "Flour",
+  pos_menu_mix_items: "Flour"
 });
 
 describe("line items on the records that have them", () => {
@@ -172,7 +173,7 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 7, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 8, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
   });
@@ -226,6 +227,42 @@ describe("line items on the records that have them", () => {
       assert.equal(finiteNumber(value), expected, `${JSON.stringify(value)} is a real number and must survive`);
     }
     assert.equal(finiteNumber(NaN), null);
+  });
+
+  // The reverse of form reachability, which nothing asked.
+  //
+  // tests/form-reachability.test.js checks that every create-shaped POST route
+  // can be reached from a form. It cannot see the other direction: a page
+  // declaring `api:` for an endpoint nobody registered renders a form that
+  // posts to a 404. The daily sales page was written that way and the button
+  // looked exactly like the working ones -- the child endpoint is registered
+  // automatically from the child spec, so only the parent was missing, and the
+  // OpenAPI gate flagged the child while saying nothing about the parent.
+  it("points every page form at an endpoint that exists", () => {
+    const app = require("../server");
+    const posts = new Set(
+      app._router.stack
+        .filter((layer) => layer.route && layer.route.methods?.post)
+        .map((layer) => layer.route.path)
+    );
+    assert.ok(posts.size >= 40, `only ${posts.size} POST routes found; this check has gone blind`);
+
+    // What the form posts to, which is not always page.api. The time page lists
+    // from /api/business/time-entries and its form posts to .../start, because
+    // clocking in is "start one now" rather than "create a time entry" -- so
+    // reading page.api alone reported a working page as broken. Same rule
+    // lib/sonara-form-reachability.cjs already learned.
+    const dangling = [];
+    for (const page of ALL_OWNER_PAGES) {
+      if (page.form) {
+        const action = page.form.action || page.api;
+        if (action && !posts.has(action)) dangling.push(`${page.path} posts to ${action}`);
+      }
+      for (const spec of childrenOf(page)) {
+        if (spec.form && spec.api && !posts.has(spec.api)) dangling.push(`${page.path} lines post to ${spec.api}`);
+      }
+    }
+    assert.deepEqual(dangling, [], "these forms would post to a route that is not registered");
   });
 
   it("gives every child its own endpoint", () => {

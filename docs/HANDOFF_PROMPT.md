@@ -120,6 +120,45 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — A day's takings, and a menu that stopped claiming 100% margin
+
+`/business-builder/owner/menu` has a "You keep" column that reported the whole
+selling price as profit, at 100%, for every dish. `theoretical_cost_cents` is
+`integer default 0` and nothing writes it, so every menu item a customer had
+entered read as costing nothing to make -- on the screen a restaurant uses to
+decide what to charge. Zero is read as "never costed" now, which is the same
+reading `lib/sonara-record-checks.cjs` already takes when it flags a dish with a
+price and no cost. A dish that genuinely costs nothing is not a case a kitchen
+has.
+
+`pos_sales_summaries` and `pos_menu_mix_items` have a page:
+`/business-builder/owner/sales`, a day at a time with what sold as its lines.
+
+And `/business-builder/owner/costs` stopped promising. Its body said the figures
+were "worked out from your own records rather than entered by hand" and its
+empty state said they "appear once you have sales and costs recorded" -- but
+nothing writes `daily_profit_snapshots`, so they would not have appeared however
+much a business recorded. The page is kept, because the table and the
+calculation are real work worth doing; what was wrong was telling a customer it
+was already happening. It now says which half is ready and which is not built.
+
+**The reverse of form reachability was unguarded, and I walked straight into
+it.** `tests/form-reachability.test.js` asks whether every create-shaped POST
+route can be reached from a form. Nothing asked the other direction: a page
+declaring `api:` for an endpoint nobody registered renders a form that posts to
+a 404. The daily sales page was written that way -- the child endpoint is
+registered automatically from the child spec, so only the parent was missing,
+and the OpenAPI gate flagged the child while saying nothing about the parent.
+The button looked exactly like the working ones.
+
+The check for it had to learn the same lesson `lib/sonara-form-reachability.cjs`
+did: a page's form may declare its own `action`, so reading `page.api` alone
+reported the working time-clock page as broken. Clocking in posts to
+`/api/business/time-entries/start`, because it is "start one now" rather than
+"create a time entry".
+
+Verified: `pnpm run verify:launch` green end to end, 1,677 tests passing.
+
 ### 2026-08-13 — A recipe that costs something, and a total that was short
 
 `recipe_cards` shipped with a page. `recipe_ingredients` shipped with a schema,

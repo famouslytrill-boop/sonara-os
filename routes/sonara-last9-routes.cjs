@@ -39,6 +39,7 @@ const RESOURCE_MAP = {
   "/api/business/inventory": { table: "inventory_items", required: ["name"], defaults: { status: "active", unit: "each" } },
   "/api/business/recipes": { table: "recipe_cards", required: ["name"], defaults: { status: "active" } },
   "/api/business/menu-items": { table: "menu_items", required: ["name"], defaults: { status: "active", currency: "usd" } },
+  "/api/business/sales-summaries": { table: "pos_sales_summaries", required: ["business_date"], defaults: { source: "manual" } },
   "/api/business/vehicles": { table: "vehicle_records", required: ["vehicle_type"], defaults: { status: "active" } },
   "/api/business/maintenance": { table: "maintenance_logs", required: ["description"], defaults: { status: "completed", currency: "usd" } },
   "/api/business/waste": { table: "waste_logs", required: ["item_name"], person: "logged_by", defaults: {} },

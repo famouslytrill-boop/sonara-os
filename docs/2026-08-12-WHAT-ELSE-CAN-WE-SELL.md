@@ -111,11 +111,17 @@ gap is not explained by what is missing.
 **What is missing** is eight tables with no page, and they are not evenly
 important:
 
-- `recipe_ingredients` — without it a recipe card has no ingredients, so recipe
-  costing does not cost anything. This is the one that makes the product work.
-- `pos_sales_summaries` and `pos_menu_mix_items` — the inputs to
-  `daily_profit_snapshots`, which currently has a read-only page showing figures
-  nothing can produce.
+- ~~`recipe_ingredients`~~ — **done 13 August.** A recipe now has ingredients, a
+  total ingredient cost and a cost per portion.
+- ~~`pos_sales_summaries` and `pos_menu_mix_items`~~ — **done 13 August.** A day's
+  takings and what sold are recordable at `/business-builder/owner/sales`.
+  `daily_profit_snapshots` is still written by nothing, and the Food Costs page
+  no longer claims otherwise: it said the figures "appear once you have sales
+  and costs recorded" and they would not have, however much a business
+  recorded. **The calculation is the next piece of work** — it needs net sales
+  (now recordable), food cost from the menu mix, and labour from
+  `employee_time_entries` (already recorded). All three inputs exist; nothing
+  joins them.
 - `waste_logs` — the difference between theoretical and actual food cost, which
   is the number a restaurant owner is buying.
 - `vendor_invoice_lines`, `purchase_order_lines`, `inventory_count_lines`,
@@ -217,9 +223,11 @@ In order of money per unit of work:
    Pro absorbs the staff features instead, the ladder works again without a
    fourth plan -- that is the cheaper version of item 4 and worth pricing before
    building anything.
-6. **Finish the restaurant product.** `recipe_ingredients` first, then POS
-   summaries and menu mix, then waste logs. This is the one with a competitor at
-   $350 a location.
+6. **Finish the restaurant product.** Recipe ingredients and the POS tables are
+   done as of 13 August. Next is the **daily profit calculation** — all three
+   inputs now exist and nothing joins them — then `waste_logs`, which is the
+   difference between theoretical and actual food cost. This is the one with a
+   competitor at $350 a location.
 
 Nothing here claims a conversion rate. There is no signup data to reason from,
 and inventing one would be the exact failure this codebase keeps finding.
