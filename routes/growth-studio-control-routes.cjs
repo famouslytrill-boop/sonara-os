@@ -12,27 +12,7 @@ const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs")
 const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
 const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
-const TABLES = Object.freeze({
-  campaigns: "growth_campaigns",
-  leads: "growth_leads",
-  // Business Builder's table, named here because a won lead becomes one. Every
-  // other call in this file goes through TABLES, and passing a literal name
-  // instead hides the table from the member-policy scan -- which is what the
-  // "no read helper hides from the policy check" test caught.
-  customers: "customers",
-  experiments: "growth_experiments",
-  automations: "automation_rules",
-  connections: "growth_provider_connections",
-  segments: "growth_audience_segments",
-  consents: "growth_contact_consents",
-  touchpoints: "growth_touchpoints",
-  conversions: "growth_conversions",
-  content: "growth_content_queue",
-  jobs: "growth_provider_jobs",
-  metrics: "growth_metric_snapshots",
-  variants: "growth_experiment_variants",
-  events: "growth_control_events"
-});
+const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 
 const OUTBOUND_CHANNELS = new Set(["email", "sms", "push", "whatsapp"]);
 const AUTOMATION_TRIGGERS = new Set(["lead_created", "lead_qualified", "form_submitted", "campaign_started", "conversion_recorded", "consent_granted", "content_ready"]);

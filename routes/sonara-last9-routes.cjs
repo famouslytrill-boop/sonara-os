@@ -10,6 +10,8 @@ const {
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
+const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 // `person` names the column that records who created the row, and it is here
@@ -353,10 +355,30 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // records: archive rather than hard-delete, and route genuine erasure through
   // support. An automated wipe of an entire organization is that decision at the
   // largest possible scale, which is the least defensible place to skip review.
+  // Everything the product keeps for a customer, from the pages that keep it.
+  //
+  // This was assembled from two of the three page collections and covered 30
+  // tables. It left out **21**: every Growth Studio record — leads, campaigns,
+  // consent records, contact history, conversions — and every line item inside
+  // a record, including what is on an invoice and what has been paid against
+  // it. Meanwhile /legal/terms says "What you put in stays yours. You can
+  // export it at any time from your data page."
+  //
+  // The consent records were the sharpest of those: growth_contact_consents is
+  // the proof somebody agreed to be contacted, and a business that leaves
+  // without it loses the basis for contacting its own customers.
+  //
+  // Derived from the page collections rather than listed, so a record type that
+  // ships with a page is in the export the same day — and
+  // tests/the-export-covers-every-record.test.js fails if one is not.
   const EXPORTABLE = [
     ...ALL_OWNER_PAGES.map((page) => ({ table: page.table, label: page.title })),
-    ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title }))
-  ].filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);
+    ...ALL_OWNER_PAGES.flatMap((page) => childrenOf(page).map((spec) => ({ table: spec.table, label: spec.title || spec.table }))),
+    ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title })),
+    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey }))
+  ]
+    .filter((entry) => entry.table)
+    .filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);
 
   app.get("/account/data", requireCustomer, async (req, res) => {
     const org = await resolveOrganization(req, deps);
@@ -418,7 +440,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       note: unreadable.length
         ? "Some record types could not be read when this file was made. They are listed under `unreadable` and are not missing from your account -- ask support for another copy."
         : "Every record type this export covers was readable.",
-      records: Object.fromEntries(parts.map(([table, rows]) => [table, rows || []]))
+      // null, not []. An unreadable table is named in `unreadable` above, but a
+      // consumer reading records.customers reads it as the customers — the same
+      // "a field called ok is read as ok" mistake one level down. null cannot be
+      // mistaken for "you have none", and anything iterating it fails loudly.
+      records: Object.fromEntries(parts.map(([table, rows]) => [table, rows]))
     });
   });
 

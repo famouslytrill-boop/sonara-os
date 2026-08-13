@@ -2,6 +2,44 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — The data export left out 21 of the 51 record types
+
+`/legal/terms` says: *"What you put in stays yours. You can export it at any
+time from your data page."* The export covered **30** tables. The product keeps
+**51**.
+
+Missing: **every Growth Studio record** — leads, campaigns, audience groups,
+contact history, conversions, automations — and **every line item inside a
+record**, including what is on an invoice and what has been paid against it.
+
+The sharpest of those was `growth_contact_consents`, the record proving somebody
+agreed to be contacted. A business that leaves without it loses the basis on
+which it contacts its own customers, and the export gave no sign anything was
+absent.
+
+The cause was ordinary and is the reason this keeps happening: `EXPORTABLE` was
+assembled by hand from two of the three page collections, and nothing compared
+it against the third or against the children. It is derived from all of them
+now, so a record type that ships with a page is in the export the day it ships.
+`GROWTH_TABLES` moved to `lib/` for it — the map lived inside the growth routes
+where the export could not reach it, which is how the gap opened.
+
+**An unreadable table is `null`, not `[]`.** The file already named unreadable
+tables under `unreadable` and set `complete: false`, and then wrote `[]` into
+`records` for them — so a consumer reading `records.growth_contact_consents`
+read it as the consents. That is the "a field called ok is read as ok" mistake
+one level down, and for a consent record the difference between `[]` and `null`
+is the difference between having permission and not.
+
+**Verified.** 1807 tests passing, chain green. The export was downloaded through
+Express with two tables failing: 51 record types present, the two named, both
+`null`, the rest carrying rows. Reverting to the two-collection list fails the
+new check, and so does putting `[]` back.
+
+**Also checked and sound, recorded so it is not re-swept.** The staff portal
+reports a failed personal read on all six pages rather than showing an empty
+schedule, and `/staff` itself states no count it could not support.
+
 ### 2026-08-13 — Eight stale figures in the documents the owner reads
 
 `verify:doc-counts` exists because a figure typed into prose has nothing
