@@ -73,6 +73,14 @@ where it belongs: every legal page says the terms are not legal advice,
 review, and `/readiness` still carries both the "Legal pages" and "Legal review
 boundary" cards.
 
+**Followed through on 13 August 2026.** Removing the item from this list left
+`/readiness` still reporting `legalPages: review_required`, so the permanent
+open item had moved rather than gone — same sentence, different surface. It now
+reports `published_with_disclaimer`, derived from the pages carrying the
+disclaimer rather than declared as a literal, so deleting the disclaimer changes
+what the page says. `legalReviewBoundary: not_attorney_reviewed` is untouched,
+and `docs/legal/LEGAL_REVIEW_REQUIRED.md` still holds the review itself.
+
 What replaces it is real, current, and came from the live project rather than
 from this repository. Supabase's security advisor reports:
 

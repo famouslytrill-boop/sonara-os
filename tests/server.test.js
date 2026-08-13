@@ -241,7 +241,10 @@ describe("health and readiness", () => {
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.resend));
     assert.ok(["configured", "missing", "deferred"].includes(res.body.services.googleOAuth));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.adminProtection));
-    assert.equal(res.body.services.legalPages, "review_required");
+    // Not "review_required". That was an item on a setup list that no change
+    // to this code could close -- a qualified legal review is a decision about
+    // engaging counsel. See lib/sonara-legal-position.cjs.
+    assert.equal(res.body.services.legalPages, "published_with_disclaimer");
     assert.ok(["enabled", "setup_required"].includes(res.body.services.checkout));
     assert.ok(["enabled", "setup_required", "invalid"].includes(res.body.services.emailDelivery));
     assert.ok(["configured", "missing", "invalid"].includes(res.body.services.accountDatabase));

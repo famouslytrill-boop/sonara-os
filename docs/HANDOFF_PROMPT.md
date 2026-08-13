@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4066 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4064 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 158 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 159 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -120,6 +120,49 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — The legal position stated as a disclaimer rather than a pending review
+
+`/readiness` reported `legalPages: review_required`. It rendered as "Legal
+pages: Review required", in a list beside "Payment connection: Missing" and
+"Checkout: Setup required" — items somebody closes by doing something. Nobody
+could close this one. A qualified legal review is a decision about engaging
+counsel, made outside this repository and with a cost, and no change to this
+code moves it.
+
+`docs/SHIP_READINESS.md` had already reached that conclusion and taken the item
+off the owner's list, for exactly that reason. The readiness surface had not
+caught up, so the permanent open item had moved rather than gone — same
+sentence, different page.
+
+It now reports `published_with_disclaimer`: the pages are published and every
+one says it is not legal advice. That is finished, and has no next step.
+
+**Derived, not declared.** The old value was a literal nothing could make
+false. `lib/sonara-legal-position.cjs` owns the disclaimer sentence, `legalPage()`
+renders it, and the status is computed from the page list and the sentence — so
+deleting the disclaimer changes what `/readiness` says. Three answers, not two:
+an empty page list returns `no_legal_pages` rather than passing vacuously, which
+is the shape this codebase keeps finding. A caller that forgets to inject the
+reader gets `unknown`, not the good answer.
+
+**The line this does not cross.** Dropping "review required" and asserting
+"reviewed" are different acts, and only the first happened.
+`legalReviewBoundary: not_attorney_reviewed` is untouched, every legal page is
+checked to claim no attorney review, `docs/legal/LEGAL_REVIEW_REQUIRED.md` and
+`COUNSEL_REVIEW_BRIEF.md` still hold the review itself, and the new test fails
+if either document is deleted or emptied — taking an item off a setup list must
+not quietly answer the question it asked.
+
+`scripts/smoke-live-routes.mjs` now asserts both values against the live site
+rather than one. `legalReviewBoundary` is the half somebody could drop without
+anybody noticing, and it was the half nothing watched.
+
+**Verified.** `pnpm run verify:launch` green, 1777 tests passing. Every route
+serving legal text was rendered and checked for the disclaimer — the routes are
+read off Express rather than from a list, so a new legal page is covered the day
+it ships. Replacing the disclaimer with a sentence that does not say "not legal
+advice" fails 23 tests, including the new one.
 
 ### 2026-08-13 — The artist system built, and a contract that was reading two of three directories
 

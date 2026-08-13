@@ -179,7 +179,12 @@ async function checkReadiness() {
       assertCheck(payload?.services?.[service] === expected, `${path}: expected ${service}=${expected}, received ${payload?.services?.[service] || "missing"}`);
     }
     assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google OAuth should remain explicitly deferred until configured`);
-    assertCheck(payload?.services?.legalPages === "review_required", `${path}: legal review boundary must remain explicit`);
+    // Both, because they are different claims. legalPages says the published
+    // pages carry a disclaimer; legalReviewBoundary says no attorney has
+    // reviewed them. The live site has to keep saying the second whatever it
+    // says about the first -- that is the one somebody could quietly drop.
+    assertCheck(payload?.services?.legalPages === "published_with_disclaimer", `${path}: legal pages must report their disclaimer`);
+    assertCheck(payload?.services?.legalReviewBoundary === "not_attorney_reviewed", `${path}: legal review boundary must remain explicit`);
 
     for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly"]) {
       assertCheck(payload?.checkoutPlans?.[plan]?.checkout === "enabled", `${path}: checkout plan ${plan} is not enabled`);

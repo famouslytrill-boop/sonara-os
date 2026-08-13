@@ -168,6 +168,7 @@ const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
 // the prices, what each plan is, which ones the pricing page offers, and why
 // the depth ladder was left untouched when the breadth one was added.
 const { STRIPE_PLANS, pricingLadderCopy } = require("./lib/sonara-stripe-plans.cjs");
+const { LEGAL_DISCLAIMER, legalPagesStatus } = require("./lib/sonara-legal-position.cjs");
 
 // Stripe and the billing records moved to lib/sonara-billing.cjs. The cut is at
 // the HTTP seam: handleCheckoutSessionRequest and handleStripeWebhook are still
@@ -232,7 +233,7 @@ const {
   getReadiness,
   getStripePlanPriceStatus,
   getStripeSecretStatus,
-} = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS });
+} = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS, getLegalPagesStatus: () => legalPagesStatus(legalPages()) });
 // Static assets were served with `Cache-Control: public, max-age=0`, which is
 // express.static's default and means the browser revalidates every stylesheet,
 // script, and logo on every single navigation. On a phone that is a round trip
@@ -2640,12 +2641,9 @@ function legalPage(res, title, points, canonical = "") {
       title,
       eyebrow: "Legal",
       heading: title,
-      // The review-status sentence was internal tracking on a customer-facing
-      // page and came off at the owner's direction. The disclaimer stays. No
-      // claim that counsel reviewed these may be added, because none has --
-      // dropping a statement is not the same as asserting its opposite. Still
-      // tracked in docs/legal/LEGAL_REVIEW_REQUIRED.md.
-      body: "These terms are not legal advice. They remain subject to applicable law and future revision. Questions about them can be sent through the contact route.",
+      // The disclaimer, and the only sentence on these pages about their own
+      // status. lib/sonara-legal-position.cjs owns it and says why.
+      body: LEGAL_DISCLAIMER,
       sections: points.map((point, index) => Array.isArray(point) ? brandCard(point[0], point[1]) : brandCard(`Section ${index + 1}`, point)),
       actions: [linkAction("/", "Home"), linkAction("/contact", "Contact")]
     })
