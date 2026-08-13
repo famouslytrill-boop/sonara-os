@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — The artist system built, and a contract that was reading two of three directories
+
+Migration 016 created eight tables with row level security and indexes.
+`routes/creator-artist-system-routes.cjs` was the only code that read five of
+them, `server.js` never required it, so its pages 404ed and the tables were
+never written in production — they read as *used* because a file existed that
+would have used them, had anything loaded it. The module was deleted and
+`lib/sonara-orphan-tables.cjs` recorded the choice: build the workspace
+properly from the real columns, or drop the tables. It is built.
+
+**Five pages**, through the same record-page machinery as everything else, so
+there is no second code path to fall out of use the way that module did:
+`/creator-studio/artists`, `/sound-identity`, `/album-cycles`,
+`/prompt-blueprints`, `/video-treatments`. The four children require
+`artist_profile_id` — it is nullable in the schema, and a row without one would
+be invisible on every page, since each lists by organisation and belongs to no
+artist.
+
+Three column kinds are deliberately absent from the forms: the jsonb rule
+blocks, `keys_allowed` (text[]), and `video_treatments.track_id`. A text input
+posting into jsonb or an array produces a failed insert or a shape nothing
+reads back.
+
+**The picker was going to be dead on arrival.** The creator page renderer
+called `formCard(page, {}, ui)` — harmless while no creator page had a
+reference field, wrong the moment one did. All four artist pickers would have
+read "Nothing to choose yet — add one first" to a customer with artists. That
+exact failure is recorded above `loadReferences`, where it shipped on the owner
+pages. The nav was also a hand-written list of four links sitting on what is
+now nine pages; it is generated from the pages themselves.
+
+**Not a second prompt library.** `creator_prompt_blueprints` and
+`sonara_prompt_templates` both hold prompt text, and the difference is not
+obvious, so the page says it: the library is where a prompt lives, with
+versions, provenance and licence status; a blueprint is a rule for one artist —
+what a track needs before a prompt is written from it, and how long it may be.
+The library has no column for either.
+
+**The contract was reading two of three runtime directories.**
+`scripts/verify-supabase-contract.mjs` scans the runtime for table references
+and failed anything uncontracted. It read `server.js` and `routes/` and not
+`lib/` — which is runtime, is where the record pages and record checks live,
+and is the same directory the production deploy gate greps for its paid-access
+markers. Widening it surfaced **seven** more tables the application reads and
+this contract had never named: the detail rows under purchase orders, stock
+counts, transfers and vendor invoices, plus `pos_menu_mix_items`,
+`employee_wage_rates` and `reviews`.
+
+`BUSINESS_OPERATIONS_TABLES` also turned out to pass through no create-or-RLS
+check at all — it existed only to stop the runtime scan failing, so a table
+could be listed as reviewed and exist nowhere. It now goes through
+`verifyExtension` against the five migrations that create its members.
+
+**Verified.** `pnpm run verify:launch` green, 1769 tests passing, 0 orphan
+tables. The five pages were rendered and posted to through Express: each
+returns 200, its form points at a registered endpoint, the artist picker shows
+a real artist, a save reaches the right table scoped to the organisation, and a
+child with no artist writes nothing. Both new checks were confirmed to bite —
+a table listed under operations that no named migration creates fails, and
+dropping `lib/` from the scan makes it pass while blind.
+
 ### 2026-08-13 — The pricing restructure applied, and one ladder on the page
 
 `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` argued for pricing **breadth**

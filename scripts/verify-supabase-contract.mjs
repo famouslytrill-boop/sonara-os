@@ -20,6 +20,21 @@ const businessControlMigrationNames = [
 const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
+const creatorArtistSystemMigrationNames = [
+  "016_creator_artist_system_schema.sql"
+];
+// The operations group spans five migrations rather than one, because it grew
+// as the workspaces did. Named individually rather than checked against every
+// migration at once: "some file somewhere creates this" is a weaker statement
+// than "these files do", and the weaker one passes even when a table has
+// quietly moved out of the subsystem it is listed under.
+const businessOperationsMigrationNames = [
+  "010_sonara_platform_current_schema.sql",
+  "013_sonara_business_employee_music_ops_schema.sql",
+  "014_sonara_restaurant_margin_ops_schema.sql",
+  "20260811220000_customer_invoices_accounts_receivable.sql",
+  "20260811234500_customer_invoice_lines.sql"
+];
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql"
 ];
@@ -44,7 +59,24 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "customer_invoice_lines",
   // quotes had a table, row level security and no page. It is the record the
   // receivable starts from, and customer_invoices.quote_id points back at it.
-  "quotes"
+  "quotes",
+  // Seven more the runtime reads and this contract had never named. They were
+  // invisible because the scan below read server.js and routes/ and not lib/,
+  // where the record pages, the record checks and the labour costing live.
+  //
+  // Six are the detail rows under records already in this list -- what is on a
+  // purchase order, a stock count, a transfer, a vendor invoice; what each menu
+  // item sold; what an employee is paid on a given date. The seventh, reviews,
+  // is read by the proof surfaces. All seven are created with row level
+  // security by migrations 010, 013 and 014, which verifyExtension now proves
+  // rather than this list asserting it.
+  "purchase_order_lines",
+  "inventory_count_lines",
+  "location_transfer_lines",
+  "vendor_invoice_lines",
+  "pos_menu_mix_items",
+  "employee_wage_rates",
+  "reviews"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
@@ -59,6 +91,25 @@ const CREATOR_GENERATION_TABLES = Object.freeze([
   "creator_generation_assets",
   "creator_reference_analyses",
   "creator_generation_events"
+]);
+// Migration 016's artist system. Reviewed rather than canonical, the same way
+// the operations tables are: the migration predates the 145-table canonical
+// contract, and the pages that read and write these -- /creator-studio/artists
+// and the four beside it -- were built afterwards.
+//
+// Five of them had no code at all until then. The sixth and seventh,
+// creator_tracks and creator_release_tasks, were never orphaned but were also
+// never in this contract, because the only code naming them is
+// lib/sonara-record-checks.cjs and the runtime scan below read server.js and
+// routes/ only. Widening that scan to lib/ is what surfaced them.
+const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
+  "creator_artist_profiles",
+  "creator_sonic_profiles",
+  "creator_album_cycles",
+  "creator_tracks",
+  "creator_prompt_blueprints",
+  "creator_video_treatments",
+  "creator_release_tasks"
 ]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
@@ -149,6 +200,8 @@ const contractSql = [contractMigrationPath, referenceContractExtensionPath, prod
 const operationalIndexSql = read(operationalIndexMigrationPath).toLowerCase();
 const businessControlSql = readExtension(businessControlMigrationNames, "Business Builder control-plane");
 const creatorGenerationSql = readExtension(creatorGenerationMigrationNames, "Creator Studio generation control-plane");
+const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, "Creator Studio artist system");
+const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
@@ -188,6 +241,11 @@ for (const required of [
 }
 
 verifyExtension(CREATOR_GENERATION_TABLES, creatorGenerationSql, "Creator Studio generation");
+verifyExtension(CREATOR_ARTIST_SYSTEM_TABLES, creatorArtistSystemSql, "Creator Studio artist system");
+// BUSINESS_OPERATIONS_TABLES was only ever used to stop the runtime scan
+// failing -- it was in the reviewed set and passed through no create-or-RLS
+// check at all, so a table could be listed here and exist nowhere.
+verifyExtension(BUSINESS_OPERATIONS_TABLES, businessOperationsSql, "Business Builder operations");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -283,12 +341,22 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text|refresh_token\s+text/i
   fail("Prompt Library tables must not persist provider credentials");
 }
 
+// server.js, routes/ and lib/.
+//
+// lib/ was missing, and it is runtime -- the same directory the production
+// deploy gate greps for its paid-access markers, and where
+// lib/sonara-record-checks.cjs queries creator_tracks and
+// creator_release_tasks. Neither was in this contract, and this check reported
+// no uncontracted references while not reading the file that made them. A scan
+// that names two of the three runtime directories is a scan measuring a
+// different population from the one it claims.
 const runtimeFiles = [
   path.join(root, "server.js"),
-  ...fs.readdirSync(path.join(root, "routes"))
-    .filter((name) => name.endsWith(".cjs"))
-    .sort()
-    .map((name) => path.join(root, "routes", name))
+  ...["routes", "lib"].flatMap((directory) =>
+    fs.readdirSync(path.join(root, directory))
+      .filter((name) => name.endsWith(".cjs"))
+      .sort()
+      .map((name) => path.join(root, directory, name)))
 ];
 const runtimeSource = runtimeFiles.map(read).join("\n");
 const runtimeTableReferences = new Set();
@@ -300,7 +368,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -424,7 +492,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

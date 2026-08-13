@@ -44,6 +44,19 @@ const RESOURCE_MAP = {
   "/api/business/maintenance": { table: "maintenance_logs", required: ["description"], defaults: { status: "completed", currency: "usd" } },
   "/api/business/waste": { table: "waste_logs", required: ["item_name"], person: "logged_by", defaults: {} },
   "/api/creator/music-projects": { table: "music_projects", required: ["title"], person: "user_id", defaults: { status: "draft", project_type: "song" } },
+  // The artist system. creator_artist_profiles records who set it up; the four
+  // below hang off it and record nobody, because migration 016 gives them no
+  // user column and inventing one here would fail the insert.
+  //
+  // artist_profile_id is required on all four. It is nullable in the schema, so
+  // the database would take a row without one -- and that row would be
+  // invisible on every page, because each page lists by organization and the
+  // record belongs to no artist. Refusing here is cheaper than orphan rows.
+  "/api/creator/artists": { table: "creator_artist_profiles", required: ["artist_name", "artist_key"], person: "user_id", defaults: { status: "active" } },
+  "/api/creator/sound-identity": { table: "creator_sonic_profiles", required: ["artist_profile_id", "name", "profile_key"], defaults: { status: "active" } },
+  "/api/creator/album-cycles": { table: "creator_album_cycles", required: ["artist_profile_id", "title", "slug"], defaults: { project_type: "album", release_status: "planning" } },
+  "/api/creator/prompt-blueprints": { table: "creator_prompt_blueprints", required: ["artist_profile_id", "name", "blueprint_key", "prompt_template"], defaults: { status: "active" } },
+  "/api/creator/video-treatments": { table: "creator_video_treatments", required: ["artist_profile_id", "title"], defaults: { status: "draft", platform_target: "social" } },
   "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "queued" } },
   "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
@@ -518,6 +531,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       let rows = [];
       let extra = [];
+      let references = {};
       let loaded = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
@@ -530,13 +544,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           const sideRows = await listRecordPage(config, side.table, org.organizationId, "created_at.desc", side.select || "*");
           return { side, rows: sideRows.ok ? sideRows.rows : [], loaded: sideRows.ok ? sideRows : null };
         }));
+        // The pickers. This passed {} to formCard, which was harmless while no
+        // creator page had a reference field and wrong the moment one did: the
+        // artist picker on all four artist-system pages would have rendered
+        // "Nothing to choose yet -- add one first" to a customer with artists.
+        // That exact failure is recorded above loadReferences, on the owner
+        // pages, where it shipped.
+        references = await loadReferences(config, org.organizationId, page);
       }
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
           recordsCard(page, rows, ui, loaded),
           ...extra.map(({ side, rows: sideRows, loaded: sideLoaded }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded)),
-          ...(page.form ? [formCard(page, {}, ui)] : [])
+          ...(page.form ? [formCard(page, references, ui)] : [])
         ];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
@@ -544,7 +565,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         heading: page.title,
         body: page.body,
         sections,
-        actions: [ui.link("/creator-studio/music-projects", "Music projects"), ui.link("/creator-studio/device-cues", "Sound and motion"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/dashboard", "Dashboard")]
+        // Generated from the pages themselves. The hand-written list named four
+        // links and stayed at four when five pages were added beside it, which
+        // is how the workspace index and the admin card index both went stale
+        // before being generated for the same reason.
+        actions: [
+          ...CREATOR_RECORD_PAGES.filter((other) => other.path !== page.path).map((other) => ui.link(other.path, other.title)),
+          ui.link("/creator-studio/dashboard", "Dashboard")
+        ]
       }));
     });
   });
