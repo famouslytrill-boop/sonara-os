@@ -204,6 +204,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // One entry per child table, in declaration order.
       let childRows = children.map(() => ({ ok: false, rows: [] }));
       let extra = null;
+      let references = {};
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -235,6 +236,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // Supabase config, so a page cannot write a query that forgets the
           // organization filter -- which is the one mistake that would let one
           // business read another's payroll.
+          // The line forms below have pickers of their own. The list handler
+          // loads these; the detail handler never did, which is the other half
+          // of why a child reference field always rendered empty.
+          references = await loadReferences(config, org.organizationId, page);
+
           if (typeof page.derivedReads === "function") {
             const scopedList = (table, query = "") =>
               supabaseList(config, table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}${query}&limit=500`);
@@ -248,7 +254,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         : [
             summaryCard(page, parent, ui),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
-            ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui)])
+            ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
 
       return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
@@ -842,14 +848,33 @@ function acceptsHtml(req) {
     || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
 }
 
+// The pickers on a page and on its line forms.
+//
+// This read `page.form.fields` only, and lineFormCard called formField with an
+// empty references object -- so every reference field on a child line form
+// rendered "Nothing to choose yet -- add one first", permanently, whatever the
+// business had. Three did: the service picker when writing an invoice line, the
+// stock picker on a recipe ingredient, and the menu picker on what sold. The
+// invoice one had been shipped that way for a long time, telling a business
+// with a full service catalogue to go and add a service first.
+//
+// The outcome travels too. `result.ok ? rows : []` rendered a failed read as
+// the same empty picker, so "we could not load your customers" and "you have no
+// customers" were the same sentence.
 async function loadReferences(config, organizationId, page) {
-  const needed = (page.form?.fields || []).filter((field) => field.type === "reference");
+  const fields = [
+    ...(page.form?.fields || []),
+    ...childrenOf(page).flatMap((spec) => spec.form?.fields || [])
+  ].filter((field) => field.type === "reference");
+
   const loaded = {};
-  await Promise.all(needed.map(async (field) => {
-    const source = REFERENCE_SOURCES[field.from];
+  await Promise.all([...new Set(fields.map((field) => field.from))].map(async (from) => {
+    const source = REFERENCE_SOURCES[from];
     if (!source) return;
     const result = await supabaseList(config, source.table, `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
-    loaded[field.from] = result.ok ? result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) : [];
+    loaded[from] = result.ok
+      ? { ok: true, options: result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) }
+      : { ok: false, options: [] };
   }));
   return loaded;
 }
@@ -1006,8 +1031,8 @@ function linesCard(spec, listed, ui) {
 // The parent id travels as a hidden field. The handler still checks the parent
 // belongs to this business before writing, because a hidden field is a value
 // the person submitting chooses.
-function lineFormCard(spec, recordId, ui) {
-  const fields = spec.form.fields.map((field) => formField(field, {}, ui)).join("");
+function lineFormCard(spec, recordId, ui, references = {}) {
+  const fields = spec.form.fields.map((field) => formField(field, references, ui)).join("");
   const parent = `<input type="hidden" name="${ui.escape(spec.parentColumn)}" value="${ui.escape(recordId)}">`;
   return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;
 }
@@ -1033,7 +1058,14 @@ function formField(field, references, ui) {
   const hint = field.hint ? `<span class="fine">${ui.escape(field.hint)}</span>` : "";
   const name = ui.escape(field.name);
   if (field.type === "reference") {
-    const options = (references[field.from] || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    // Three states, not two. A picker that could not be loaded must not read as
+    // one with nothing in it -- the first tells a customer to go and create a
+    // record they may already have dozens of.
+    const source = references[field.from];
+    const options = (source?.options || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    if (source && source.ok === false) {
+      return `<label>${label}<select name="${name}"${required}><option value="">We could not load these just now</option></select></label>${hint}`;
+    }
     if (!options) return `<label>${label}<select name="${name}"${required}><option value="">Nothing to choose yet — add one first</option></select></label>${hint}`;
     return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
   }

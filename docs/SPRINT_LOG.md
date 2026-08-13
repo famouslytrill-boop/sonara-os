@@ -2,6 +2,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-13 — A scan of the whole tree, and three pickers that never worked
+
+Swept 30,491 lines of runtime across 97 files for the failure shapes this
+sprint has been finding. Most instances of `result.ok ? rows : []` turned out
+to be fine -- the outcome travels in the returned object, and
+`lib/sonara-cash-position.cjs` and the Creator Studio consent list both already
+reason about the failure explicitly, in comments, with the right answer. What
+the scan found was elsewhere.
+
+**Three reference pickers on line forms had never worked.** `loadReferences`
+read `page.form.fields` only, and `lineFormCard` called `formField` with an
+empty references object, so every reference field on a child line form rendered
+"Nothing to choose yet -- add one first" regardless of what the business had.
+The service picker when writing an invoice line is the one that matters: it
+predates this sprint by a long way, and a business with a full service catalogue
+was being told to go and add a service first. The stock picker on a recipe
+ingredient and the menu picker on what sold were mine, added last week and
+broken from the moment they were written.
+
+The detail handler never loaded references at all, which is the other half of
+it. Both halves are fixed, and the invoice-line picker was checked through the
+rendered page rather than by reading the code.
+
+**And a picker now has three states rather than two.** A failed read collapsed
+to the same empty array as a source with nothing in it, so "we could not load
+your customers" and "you have no customers" were the same sentence -- and the
+second one tells a business to create records it may already have hundreds of.
+
+One note on the test harness. The first version of the picker assertion said
+"although the stub returns rows for every table", and the stub did not: it
+answers for parent and line tables and returned nothing for the tables behind
+the pickers. The stub was strengthened rather than the claim weakened, because
+the other way round is a check that passes for a reason unrelated to what it
+says.
+
+Verified: `pnpm run verify:launch` green end to end, 1,724 tests passing.
+
 ### 2026-08-13 — Rendering the day page, which nothing had done
 
 The labour work shipped with two test files that both passed and neither of

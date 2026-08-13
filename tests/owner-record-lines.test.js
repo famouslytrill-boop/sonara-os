@@ -102,6 +102,14 @@ function stubFetch() {
         { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", amount_cents: 2000, effective_from: "2026-08-02" }
       ]);
     }
+    // The tables behind the pickers. Without these the reference check below
+    // measures a stub that returns nothing rather than a page that renders
+    // nothing, and passes for the wrong reason.
+    const referenceTables = new Set(Object.values(REFERENCE_SOURCES).map((source) => source.table));
+    if (referenceTables.has(table)) {
+      return json([{ id: "ref-1", name: "Something to pick", display_name: "Something to pick", sku: "SKU-1" }]);
+    }
+
     return json([]);
   };
 }
@@ -268,6 +276,29 @@ describe("line items on the records that have them", () => {
       }
     }
     assert.deepEqual(dangling, [], "these forms would post to a route that is not registered");
+  });
+
+  // A picker on a line form.
+  //
+  // loadReferences read page.form.fields only, and lineFormCard called
+  // formField with an empty references object, so every reference field on a
+  // child line form rendered "Nothing to choose yet -- add one first" whatever
+  // the business had. Three did, and the invoice-line service picker had been
+  // shipped that way long enough that a business with a full service catalogue
+  // was being told to go and add a service first.
+  it("fills in the pickers on a line form", async () => {
+    const withReference = WITH_LINES.filter((page) => (page.lines.form.fields || []).some((field) => field.type === "reference"));
+    assert.ok(withReference.length >= 2, `only ${withReference.length} line forms have a picker; this check has gone blind`);
+
+    for (const page of withReference) {
+      const response = await asManager(`${page.path}/${OURS}`);
+      assert.equal(response.status, 200, `${page.path} did not render`);
+      assert.doesNotMatch(
+        String(response.text),
+        /Nothing to choose yet/,
+        `${page.path}'s line form renders an empty picker although the stub returns rows for every table`
+      );
+    }
   });
 
   it("gives every child its own endpoint", () => {
@@ -442,4 +473,32 @@ describe("line items on the records that have them", () => {
       assert.match(res.text, /Not found/i, "the 404 does not say anything to the reader");
     }
   });
+});
+
+// A picker that could not be loaded is not a picker with nothing in it.
+//
+// loadReferences collapsed a failed read to an empty array, so "we could not
+// load your customers" and "you have no customers" were the same sentence --
+// and the second one tells a business to go and create records it may already
+// have hundreds of.
+describe("a picker says which kind of empty it is", () => {
+  const { ALL_OWNER_PAGES: pages } = require("../lib/sonara-owner-record-pages.cjs");
+
+  it("has pages with pickers to be measuring", () => {
+    const withPickers = pages.filter((page) => (page.form?.fields || []).some((field) => field.type === "reference"));
+    assert.ok(withPickers.length >= 3, `only ${withPickers.length} pages have a picker`);
+  });
+
+  it("distinguishes an unreadable source from an empty one", () => {
+    const source = read("routes/sonara-last9-routes.cjs").replace(/^\s*\/\/.*$/gm, "");
+    // The three states, in the code that renders them.
+    assert.match(source, /ok: true, options:/, "a successful read must carry its rows and its outcome");
+    assert.match(source, /ok: false, options: \[\]/, "a failed read must be marked, not flattened");
+    assert.match(source, /We could not load these just now/, "and must read differently to the customer");
+    assert.match(source, /Nothing to choose yet/, "while a genuinely empty source still says so");
+  });
+
+  function read(file) {
+    return require("node:fs").readFileSync(require("node:path").join(__dirname, "..", file), "utf8");
+  }
 });
