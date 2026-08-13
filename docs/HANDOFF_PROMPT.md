@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 81 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 145 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 146 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -119,6 +119,56 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-13 — A recipe that costs something, and a total that was short
+
+`recipe_cards` shipped with a page. `recipe_ingredients` shipped with a schema,
+row level security, an index and no way to add one, so a recipe was a name, a
+yield and a block of method text. Recipe costing -- the number a food business
+is actually buying, and what a $350-a-location competitor sells -- could not be
+worked out from anything the product held.
+`docs/2026-08-12-WHAT-ELSE-CAN-WE-SELL.md` names this table first for that
+reason.
+
+Ingredients now hang off a recipe like invoice lines hang off an invoice, using
+the child-line machinery that already existed. Two things about it are
+deliberate. The cost is **derived, not asked for**: quantity, unit cost and
+waste are facts a person knows, and the cost is arithmetic over them, so asking
+for both would let the stored number disagree with its own inputs. That is
+deliberately unlike an invoice line, where `line_total_cents` is asked for and
+stored, because a line total is what the business decided to charge and
+recomputing it would overwrite a discount. Nobody discounts a recipe.
+
+`waste_percent` had no reader anywhere, so the convention is set here rather
+than inherited: 5 means 5%, written on the field a person types into, and
+asserted -- the other reading of `numeric(7,4)` would turn a customer typing 5
+into 500% waste.
+
+**Two defects came out of writing the tests for it.**
+
+`Number(null)` is `0` and `Number("")` is `0`, and both are finite. `linesCard`
+guarded its total with `Number.isFinite(Number(row[totalFrom]))`, so a line
+whose amount had never been entered counted as nothing and the total printed as
+"Total of these lines" while being short by however many were blank -- with the
+blank cell visible in the same table. That was live on invoices, purchase
+orders, stock counts, transfers and vendor invoices. `finiteNumber` replaces the
+guard at both sites.
+
+And the detail page read its child rows as `listed.ok ? listed.rows : []`, so an
+unreadable line list rendered as `spec.empty` -- "Nothing has been added to this
+invoice yet" -- for an invoice whose lines could not be read. The read outcome
+travels now, and an unreadable list says so instead.
+
+A smaller one, found by making the mistake: a `reference` field naming no entry
+in `REFERENCE_SOURCES` renders an empty picker rather than failing. Writing
+`from: "inventory"` before the source existed produced a control that looked
+like a way to choose something and offered nothing, and no check objected.
+`tests/owner-record-lines.test.js` refuses a dangling source now.
+
+The OpenAPI gate caught the new endpoint, which is the second time this session
+it has been the thing that noticed a route with no operation.
+
+Verified: `pnpm run verify:launch` green end to end, 1,673 tests passing.
 
 ### 2026-08-13 — Widened what a plan buys, and gave locations a limit
 

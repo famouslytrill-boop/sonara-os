@@ -34,7 +34,7 @@ const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key,
 
 const app = require("../server");
 const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
-const { ALL_OWNER_PAGES, childrenOf } = require("../lib/sonara-owner-record-pages.cjs");
+const { ALL_OWNER_PAGES, childrenOf, REFERENCE_SOURCES } = require("../lib/sonara-owner-record-pages.cjs");
 const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
 
 const USER = { id: "77777777-7777-4777-8777-777777777777", email: "owner@example.com" };
@@ -98,8 +98,8 @@ function stubFetch() {
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500 },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000 }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5 },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0 }
       ]);
     }
     return json([]);
@@ -146,7 +146,8 @@ const LINE_EVIDENCE = Object.freeze({
   location_transfer_lines: "Flour",
   vendor_invoice_lines: "Flour",
   customer_invoice_lines: "Call-out fee",
-  customer_invoice_payments: "Bank transfer"
+  customer_invoice_payments: "Bank transfer",
+  recipe_ingredients: "Flour"
 });
 
 describe("line items on the records that have them", () => {
@@ -171,9 +172,60 @@ describe("line items on the records that have them", () => {
   });
 
   it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 6, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
+    assert.equal(WITH_LINES.length, 7, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
+  });
+
+  // A `from:` naming no entry in REFERENCE_SOURCES renders an empty select: a
+  // control that looks like a way to pick something and offers nothing. Found
+  // by writing `from: "inventory"` for recipe ingredients before the source
+  // existed, and nothing objected.
+  it("points every reference field at a source that exists", () => {
+    const sources = new Set(Object.keys(REFERENCE_SOURCES));
+    assert.ok(sources.size >= 5, `only ${sources.size} reference sources found; this check has gone blind`);
+    const dangling = [];
+    for (const page of WITH_LINES) {
+      for (const field of page.lines.form.fields.filter((entry) => entry.type === "reference")) {
+        if (!sources.has(field.from)) dangling.push(`${page.lines.table}.${field.name} points at "${field.from}"`);
+      }
+      for (const field of (page.form?.fields || []).filter((entry) => entry.type === "reference")) {
+        if (!sources.has(field.from)) dangling.push(`${page.table}.${field.name} points at "${field.from}"`);
+      }
+    }
+    assert.deepEqual(dangling, [], "these reference fields would render an empty picker");
+  });
+
+  // A total that is short by however many lines were blank.
+  //
+  // linesCard guarded with `Number.isFinite(Number(row[totalFrom]))`, and
+  // Number(null) is 0, Number("") is 0, both finite. So a purchase order with
+  // one line whose total had not been entered totalled the rest and printed
+  // "Total of these lines" as though it were the whole order. The line was
+  // visible in the table with a blank cost, so the two disagreed on the same
+  // screen.
+  //
+  // Found by a recipe with one uncosted ingredient reporting a confident cost
+  // per portion; every line table had it.
+  it("does not treat a blank amount as zero when totalling", () => {
+    const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+    // Split, because they did not all get through. Number(undefined) is NaN, so
+    // the old guard did reject an absent column -- it was null, "" and false
+    // that passed as zero, which is what PostgREST returns for a column with no
+    // value in it. Writing all four as though they were the same was wrong and
+    // this assertion caught it.
+    for (const passedAsZero of [null, "", false]) {
+      assert.equal(finiteNumber(passedAsZero), null, `${JSON.stringify(passedAsZero)} must not read as a number`);
+      assert.equal(Number.isFinite(Number(passedAsZero)), true, "the old guard accepted this, which is why the check exists");
+    }
+    for (const alreadyRejected of [undefined, "nope"]) {
+      assert.equal(finiteNumber(alreadyRejected), null);
+      assert.equal(Number.isFinite(Number(alreadyRejected)), false, "the old guard already refused this one");
+    }
+    for (const [value, expected] of [[0, 0], ["0", 0], [2500, 2500], ["2500", 2500], [-5, -5], ["1.5", 1.5]]) {
+      assert.equal(finiteNumber(value), expected, `${JSON.stringify(value)} is a real number and must survive`);
+    }
+    assert.equal(finiteNumber(NaN), null);
   });
 
   it("gives every child its own endpoint", () => {

@@ -10,6 +10,7 @@ const {
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 // `person` names the column that records who created the row, and it is here
 // because leaving it implicit broke every form on these pages.
@@ -200,7 +201,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
       let parent = null;
       // One entry per child table, in declaration order.
-      let childRows = children.map(() => []);
+      let childRows = children.map(() => ({ ok: false, rows: [] }));
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -212,16 +213,26 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         parent = found.ok ? found.rows[0] : null;
         if (!parent) unavailable = "That record is not in your business, or it has been removed.";
         else {
+          // `listed.ok ? listed.rows : []` was here, and an unreadable list
+          // rendered as spec.empty -- "Nothing has been added to this invoice
+          // yet" -- for an invoice whose lines could not be read. The customer
+          // is told a definite thing about their records on the strength of a
+          // request that failed, and the total below it is computed over the
+          // same empty array. The outcome travels now.
           childRows = await Promise.all(children.map(async (spec) => {
             const listed = await supabaseList(config, spec.table, `?select=*&${spec.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
-            return listed.ok ? listed.rows : [];
+            return listed.ok ? { ok: true, rows: listed.rows } : { ok: false, rows: [] };
           }));
         }
       }
 
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [summaryCard(page, parent, ui), ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui)])];
+        : [
+            summaryCard(page, parent, ui),
+            ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui)].filter(Boolean) : []),
+            ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui)])
+          ];
 
       return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
         title: page.title,
@@ -271,7 +282,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       delete submitted.organization_id;
       delete submitted.user_id;
       delete submitted.id;
-      const payload = sanitizeObject({ ...submitted, [spec.parentColumn]: parentId, organization_id: org.organizationId });
+      // A child may compute a column rather than ask for it. Recipe ingredient
+      // cost is the first: quantity, unit cost and waste are facts a person
+      // knows, and the cost is arithmetic over them. Asking for both invites the
+      // stored number to disagree with its own inputs.
+      //
+      // Deliberately unlike an invoice line, where line_total_cents IS asked
+      // for and stored -- a line total is what the business decided to charge,
+      // and recomputing it would overwrite a discount. Nobody discounts a
+      // recipe.
+      const derived = typeof spec.derive === "function" ? spec.derive(submitted) : {};
+      const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
       return respond(saved?.ok === false ? 502 : 200, saved);
     });
@@ -938,19 +959,30 @@ function summaryCard(page, row, ui) {
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
 }
 
-function linesCard(spec, rows, ui) {
+function linesCard(spec, listed, ui) {
+  const loaded = listed?.ok === true;
+  const rows = listed?.rows || [];
   const head = spec.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
+  // "None yet" and "we could not read them" are different sentences, and only
+  // one of them is true when the request failed.
+  const nothing = loaded ? spec.empty : "We could not load these just now. Try again shortly.";
   const body = rows.length
     ? rows.map((row) => `<tr>${spec.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${spec.columns.length}">${ui.escape(spec.empty)}</td></tr>`;
+    : `<tr><td colspan="${spec.columns.length}">${ui.escape(nothing)}</td></tr>`;
   // Totalled from the lines that are actually here, and only when every one of
   // them carries a number. A total computed over rows with missing values would
   // read as the real figure while being short by however many were blank.
-  const amounts = rows.map((row) => Number(row[spec.totalFrom]));
-  const complete = amounts.length && amounts.every((amount) => Number.isFinite(amount));
-  const total = complete
-    ? `<p>Total of these lines: ${ui.escape(money(amounts.reduce((sum, amount) => sum + amount, 0)))}</p>`
-    : rows.length ? "<p>Not totalled: some lines have no amount recorded.</p>" : "";
+  // finiteNumber rather than Number, because Number(null) and Number("") are
+  // both 0 and both finite -- so a line with no amount recorded passed this
+  // guard, counted as nothing, and the total below printed as complete while
+  // being short. See lib/sonara-owner-record-pages.cjs.
+  const amounts = rows.map((row) => finiteNumber(row[spec.totalFrom]));
+  const complete = amounts.length && amounts.every((amount) => amount !== null);
+  const total = !loaded
+    ? ""
+    : complete
+      ? `<p>Total of these lines: ${ui.escape(money(amounts.reduce((sum, amount) => sum + amount, 0)))}</p>`
+      : rows.length ? "<p>Not totalled: some lines have no amount recorded.</p>" : "";
   return `<article class="card"><h2>${ui.escape(spec.title)}</h2>${total}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
 }
 
