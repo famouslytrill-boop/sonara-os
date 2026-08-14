@@ -86,6 +86,52 @@ describe("Business Builder operating system", () => {
     assert.doesNotMatch(visibleText, /Readiness JSON|Database readiness|organization_memberships|service-role|required tables/i);
   });
 
+  it("does not tell a business to create what it cannot see", async () => {
+    // The worst instance of "unreadable reads as zero" in this repository.
+    //
+    // dashboardSnapshot did `result.ok ? result.rows : []`, so every failed read
+    // became a count of 0 -- and nextBusinessAction is driven by those counts.
+    // An unreadable services table therefore told a business that already sells
+    // things to "Create the first offer", and an unreadable customers table told
+    // one with a full list to add its first customer. A wrong number is a bad
+    // dashboard. A wrong instruction tells somebody their work has vanished.
+    global.fetch = async (url) => {
+      const value = String(url);
+      if (value.includes("business_workspaces")) return response(200, [businessRecord()]);
+      // Everything the dashboard counts is unreadable.
+      return response(500, []);
+    };
+
+    const result = await request(buildApp()).get("/business-builder/dashboard").set("Accept", "text/html");
+    assert.equal(result.status, 200, "the dashboard should still render");
+    assert.doesNotMatch(result.text, /Create the first offer/, "an unreadable services table is being reported as having no offers");
+    assert.doesNotMatch(result.text, /Add the first customer/, "an unreadable customers table is being reported as having no customers");
+    assert.doesNotMatch(result.text, /Add where the business operates/, "an unreadable locations table is being reported as having no locations");
+
+    // And the figures say they are unknown rather than showing a confident zero,
+    // which on a dashboard reads as "your records are gone".
+    assert.doesNotMatch(result.text, /<strong>0<\/strong>/, "an unreadable count is being shown as zero");
+    assert.match(result.text, /—/, "nothing marks the figures as unavailable");
+    assert.doesNotMatch(result.text, /null/, "a null count is reaching the page as the word null");
+  });
+
+  it("says a figure is capped rather than presenting the cap as the total", async () => {
+    // 201 rows come back for a page of 200, which is how the read knows there
+    // are more. Reporting 200 would be the record-list defect again.
+    const many = (count, extra = {}) => Array.from({ length: count }, (_, index) => ({ id: `id-${index}`, status: "active", ...extra }));
+    global.fetch = async (url) => {
+      const value = String(url);
+      if (value.includes("business_workspaces")) return response(200, [businessRecord()]);
+      if (value.includes("customer_records")) return response(200, many(201));
+      return response(200, []);
+    };
+
+    const result = await request(buildApp()).get("/business-builder/dashboard").set("Accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /200\+/, "a capped count is being presented as the exact total");
+    assert.doesNotMatch(result.text, /<strong>201<\/strong>/, "the extra probe row is being counted as a record");
+  });
+
   it("shows real business records and an evidence-based next action", async () => {
     global.fetch = async (url) => {
       const value = String(url);

@@ -300,9 +300,40 @@ describe("the server.js split stays safe", () => {
     // shrank), and reportDegradedRateLimit gained the note explaining why its
     // console.error now goes through redactError -- it was interpolating a
     // Supabase error containing the apikey query parameter into the log.
+    // Then 1 for passing requireCustomer into the assistant routes, which /search
+    // needs: it searches a customer's own records across every workspace, so the
+    // per-workspace gate is the wrong one.
+    // Then 13 for /owner/agent-activity: the require, the registration block,
+    // and the dashboard card that links to it. The page itself is 190 lines in
+    // routes/sonara-agent-activity-routes.cjs -- this is the wiring cost of
+    // moving work out, which is the direction this ceiling exists to push.
+    // Then 3 for the account subpage links. /account offered only
+    // /account/setup, so profile, security, preferences, workspaces and
+    // integrations were registered, rendered, and reachable only by typing the
+    // URL -- the same defect /search had, five times over. The links are built
+    // from ACCOUNT_SECTIONS rather than written out, which is why fixing five
+    // unreachable pages cost three lines instead of thirteen.
+    // Then 15 for the admin page index and the notifications card. Ten admin
+    // pages -- database management, migrations, organizations, email,
+    // pipelines, deployments, audit, system design intelligence, model safety
+    // and the prompt library -- plus /notifications and /market-intelligence
+    // were registered, rendering, and linked from nowhere. The admin index is
+    // generated from the registry; the cards above it were the hand-kept list
+    // that had fallen behind.
+    // Then 29 for the workspace index: every page in a product workspace,
+    // generated from the route registry. Seventy-three product pages across
+    // the three workspaces were registered, rendering, and reachable only by
+    // typing the URL, because the dashboards carried hand-written link lists
+    // that had fallen behind the registry. Generated, so they cannot again.
+    // Then 59 for the plan table and the copy derived from it: STRIPE_PLANS is
+    // data with no behaviour and lives in lib/sonara-stripe-plans.cjs, together
+    // with which plans the pricing page offers and the two sentences that
+    // describe them. Moving it is how the three plans of the August pricing
+    // restructure were absorbed -- the ceiling comes down as they go in, rather
+    // than up to make room for them.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4058,
+      lines <= 4066,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

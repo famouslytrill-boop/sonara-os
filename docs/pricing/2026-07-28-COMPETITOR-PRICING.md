@@ -1,4 +1,12 @@
+> **Superseded in part on 12 August 2026.** The $77 stack figure below mixed
+> Jobber's annual price with Podia's monthly one. Corrected figures, and the
+> transaction fees this table never recorded, are in
+> `docs/market/2026-08-12-MARKET-AUDIT.md`. The per-product rows here remain
+> useful as the July snapshot they are.
+
 # Competitor pricing survey
+
+Review by: 2026-10-28
 
 Surveyed 28 July 2026. Every figure below is a published entry-level plan
 billed monthly, taken from the vendor or from a pricing review dated 2026.

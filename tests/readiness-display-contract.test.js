@@ -1,10 +1,8 @@
 const assert = require("node:assert/strict");
-const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 const request = require("supertest");
 const app = require("../server");
 
-const root = path.join(__dirname, "..");
 const ENV_KEYS = [
   "VERCEL_ENV",
   "VERCEL_GIT_COMMIT_SHA",

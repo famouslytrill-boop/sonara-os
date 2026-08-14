@@ -388,9 +388,12 @@ function registerRouteRegistryRoutes(app, deps) {
       : { ok: false, rows: [] };
     const sections = listed.ok && listed.rows.length
       ? listed.rows.map((row) => brandCard(row.name || "Unnamed area", `${String(row.zone_type || "area").replaceAll("_", " ")} · ${String(row.status || "active").replaceAll("_", " ")}`))
-      : [brandCard("No areas yet", listed.ok
-        ? "Add the areas you cover and they will appear here. Routes are planned from your locations and the areas you work in."
-        : "We could not load your areas just now. Try again shortly.")];
+      // The heading used to say "No areas yet" whichever branch ran, so a
+      // failed read announced an empty list above a body explaining that it
+      // could not be read. A customer skims headings.
+      : [listed.ok
+        ? brandCard("No areas yet", "Add the areas you cover and they will appear here. Routes are planned from your locations and the areas you work in.")
+        : brandCard("Areas not available just now", "We could not load your areas just now. Try again shortly.")];
     return sendPage(res, {
       title: "Routes",
       eyebrow: "Workspace module",
@@ -414,9 +417,12 @@ function registerRouteRegistryRoutes(app, deps) {
         row.evidence_type ? `Evidence: ${String(row.evidence_type).replaceAll("_", " ")}.` : "",
         row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
       ].filter(Boolean).join(" ")))
-      : [brandCard("No consent records yet", listed.ok
-        ? "Voice work needs a consent record before it will run. Records you add appear here with the evidence you attached."
-        : "We could not load your consent records just now. Try again shortly.")];
+      // Same heading fault, and on the surface where it matters most: a
+      // creator reading "No consent records yet" after a failed read might
+      // reasonably conclude a permission they recorded had been lost.
+      : [listed.ok
+        ? brandCard("No consent records yet", "Voice work needs a consent record before it will run. Records you add appear here with the evidence you attached.")
+        : brandCard("Consent records not available just now", "We could not load your consent records just now. Try again shortly.")];
     return sendPage(res, {
       title: "Rights",
       eyebrow: "Workspace module",

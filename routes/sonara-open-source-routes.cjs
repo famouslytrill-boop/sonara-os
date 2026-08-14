@@ -100,13 +100,33 @@ function registerTable(tools, escape) {
       escape(tool.license),
       escape(commercialLabel(tool.commercialUseStatus)),
       escape(integrationLabel(tool.integrationStatus)),
+      escape(placement(tool)),
       escape(tool.blockedUses.length ? tool.blockedUses.join(", ") : "None recorded")
     ];
     return `<tr>${cells.map((cell) => `<td>${cell}</td>`).join("")}</tr>`;
   }).join("");
-  const head = ["Repository", "Licence risk", "Licence", "Commercial use", "Integration", "Refused uses"]
+  const head = ["Repository", "Licence risk", "Licence", "Commercial use", "Integration", "Where it lands", "Refused uses"]
     .map((label) => `<th>${escape(label)}</th>`).join("");
   return `<article class="card"><h2>The register</h2><table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></article>`;
+}
+
+// Which part of the company a repository is for.
+//
+// The register listed licence, risk and refusals and never said where a
+// repository actually goes, so the page answered "may we use this?" and not
+// "what is it for?" -- and the second question is the one somebody opening this
+// page is usually asking.
+//
+// An empty productFit is a real answer rather than a gap. Every record with one
+// is either blocked, unresolved, or build-time tooling that never reaches a
+// customer, and saying so is more useful than leaving the cell blank and
+// letting the reader guess which.
+function placement(tool) {
+  const fit = (tool.productFit || []).filter((entry) => entry && entry !== "None");
+  if (fit.length) return fit.join(", ");
+  if (tool.integrationStatus === "blocked") return "Nowhere -- refused";
+  if (tool.integrationStatus === "needs_license_review") return "Nowhere yet -- licence unresolved";
+  return "Build-time only -- helps write SONARA, reaches no customer";
 }
 
 function countBy(items, key) {

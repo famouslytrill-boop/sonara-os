@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="SONARA administrator mark">
   <title>SONARA Administrator mark</title>
   <desc>An original shield around the SONARA approval core representing protected founder operations.</desc>
-  <defs><linearGradient id="a" x1="26" y1="18" x2="102" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#FFC43D"/><stop offset=".48" stop-color="#FF8A3D"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
+  <defs><linearGradient id="a" x1="26" y1="18" x2="102" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".48" stop-color="#5533E6"/><stop offset="1" stop-color="#6E4BFF"/></linearGradient></defs>
   <path d="M64 13 103 29v29c0 28-17 46-39 57-22-11-39-29-39-57V29z" fill="none" stroke="url(#a)" stroke-width="10" stroke-linejoin="round"/>
   <path d="M43 64c9-13 14 10 22-1 8-12 13 8 21-8" fill="none" stroke="#11162A" stroke-width="7" stroke-linecap="round"/>
   <circle cx="64" cy="64" r="8" fill="#fff" stroke="#11162A" stroke-width="4"/>

@@ -111,7 +111,7 @@ describe("the page after too many sign-in attempts", () => {
 
   // Rendered directly rather than by exhausting a real limiter, which would
   // need eleven requests and would leave the limiter tripped for other tests.
-  function render(retryAfterSeconds) {
+  function render(_retryAfterSeconds) {
     const source = require("node:fs").readFileSync(require("node:path").join(__dirname, "..", "server.js"), "utf8");
     const start = source.indexOf("function renderRateLimitPage");
     return source.slice(start, source.indexOf("\n}", start));

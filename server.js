@@ -24,8 +24,11 @@ const registerProductLifecycleRoutes = require("./routes/product-lifecycle-route
 const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-routes.cjs");
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
+const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
+const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
+const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
 // DATABASE_FUNCTIONS and DATABASE_SCHEMAS were kept here through the split
@@ -160,73 +163,12 @@ function isProductionEnvironment() {
 }
 const REQUIRED_OPERATION_TABLES = DATABASE_TABLES;
 const REQUIRED_STORAGE_BUCKETS = STORAGE_BUCKETS;
-// These prices already sit below every comparable tool we could find charging
-// for the same job -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md for the
-// survey that confirmed it, and for why they were left where they are.
-//
-// amountCents is the price this page promises. The amount actually charged
-// lives in the Stripe Price object named by `env`, and the two have to agree --
-// tests/pricing.test.js checks the page never shows a number the config does
-// not hold, and the pricing doc records what each Stripe Price must be created
-// at. Changing a price here means creating a new Stripe Price: Stripe prices
-// are immutable once created.
-const STRIPE_PLANS = {
-  free: {
-    name: "Free",
-    price: "$0",
-    amountCents: 0,
-    description: "A real account, the free tools in all three studios, and your saved work. No card needed.",
-    env: undefined,
-    mode: undefined
-  },
-  starter_monthly: {
-    name: "Starter",
-    price: "$7/mo",
-    amountCents: 700,
-    description: "One workspace, your offer, customer enquiries, the checklist tools, and your records saved.",
-    env: "STRIPE_PRICE_STARTER_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY"],
-    mode: "subscription"
-  },
-  core_monthly: {
-    name: "Core",
-    price: "$19/mo",
-    amountCents: 1900,
-    description: "Best value. A full studio, your customer and offer records, the launch checklist, and tracked support.",
-    env: "STRIPE_PRICE_CORE_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY"],
-    mode: "subscription"
-  },
-  pro_monthly: {
-    name: "Pro",
-    price: "$39/mo",
-    amountCents: 3900,
-    description: "All three studios together, deeper records, campaign planning, the full launch checklist, and priority support.",
-    env: "STRIPE_PRICE_PRO_MONTHLY",
-    envAliases: ["STRIPE_PRICE_ID_GROWTH_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_PRO_MONTHLY", "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"],
-    mode: "subscription"
-  },
-  // Quoted, not sold through checkout.
-  //
-  // This used to carry a Stripe price and a Start checkout button while
-  // advertising no amount at all -- the live price was $197 and the first
-  // number a customer saw was on Stripe's page, after committing. It is
-  // done-for-you work whose scope varies, so a fixed self-serve price was the
-  // wrong shape for it anyway.
-  //
-  // The plan stays in this table rather than being deleted: it is an
-  // entitlement key, so anyone who has already been granted the package keeps
-  // their access. `quoted` is what removes it from checkout everywhere.
-  business_builder_one_time: {
-    name: "Business Builder setup",
-    price: "We quote you",
-    amountCents: null,
-    description: "A one-off package where our team sets your business up for you. Tell us what you need and we will quote it.",
-    quoted: true,
-    env: undefined,
-    mode: undefined
-  }
-};
+// The plan table moved to lib/sonara-stripe-plans.cjs. It is data with no
+// behaviour, and server.js is under a shrinking line ratchet; see that file for
+// the prices, what each plan is, which ones the pricing page offers, and why
+// the depth ladder was left untouched when the breadth one was added.
+const { STRIPE_PLANS, pricingLadderCopy } = require("./lib/sonara-stripe-plans.cjs");
+const { LEGAL_DISCLAIMER, legalPagesStatus } = require("./lib/sonara-legal-position.cjs");
 
 // Stripe and the billing records moved to lib/sonara-billing.cjs. The cut is at
 // the HTTP seam: handleCheckoutSessionRequest and handleStripeWebhook are still
@@ -237,7 +179,9 @@ const STRIPE_PLANS = {
 //
 // This binding has to sit here rather than at the top with the others: it reads
 // STRIPE_PLANS, which is the const immediately above, and a const is not
-// hoisted. Putting it with the shell require is the exact failure step 2 hit.
+// hoisted -- still true now that the table itself lives in lib/, because it is
+// the binding that is not hoisted, not the object it points at. Putting this
+// with the shell require is the exact failure step 2 hit.
 const {
   billingPanel,
   createStripeCheckoutSession,
@@ -289,7 +233,7 @@ const {
   getReadiness,
   getStripePlanPriceStatus,
   getStripeSecretStatus,
-} = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS });
+} = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS, getLegalPagesStatus: () => legalPagesStatus(legalPages()) });
 // Static assets were served with `Cache-Control: public, max-age=0`, which is
 // express.static's default and means the browser revalidates every stylesheet,
 // script, and logo on every single navigation. On a phone that is a round trip
@@ -297,7 +241,7 @@ const {
 // 2026-07-28, every asset came back max-age=0.
 //
 // The stylesheets and scripts are already versioned: renderers link them as
-// `/sonara-one.js?v=sonara-ui-20260806-v10-cinematic`, and the token changes when
+// `/sonara-one.js?v=sonara-ui-20260811-v11-rebrand`, and the token changes when
 // the assets are rebuilt. A versioned URL can therefore be cached forever,
 // because a new build asks for a different URL.
 //
@@ -640,6 +584,22 @@ registerMarketIntelligenceRoutes(app, {
   supabaseHeaders
 });
 
+// getCustomerPaidEntitlement lives in lib/sonara-paid-entitlement.cjs now. It is
+// built here rather than lower down because it used to be a hoisted `async
+// function` and is now a const: the deps object below reads it at module load,
+// and a const declared after this point is in the temporal dead zone there.
+// The four strings the production deploy gate greps for moved with the function;
+// the gate reads server.js plus lib/ and routes/, and
+// tests/product-catalog-production-boundary.test.js resolves every marker
+// against all three -- written after an earlier move of this same code broke a
+// deploy while the whole suite stayed green.
+const getCustomerPaidEntitlement = createPaidEntitlementReader({
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders,
+  getPaidEntitlementKeys
+});
+
 registerLastNineHoursRoutes(app, {
   layout,
   brandCard,
@@ -650,6 +610,7 @@ registerLastNineHoursRoutes(app, {
   requireBusinessManager,
   requireWorkspaceAccess,
   getCustomerPrimaryOrganization,
+  getCustomerPaidEntitlement, // location limits need the plan; see lib/sonara-plan-limits.cjs
   getSupabaseServerConfig
 });
 
@@ -658,7 +619,20 @@ registerBusinessAssistantRoutes(app, {
   brandCard,
   linkAction,
   escapeHtml,
+  requireCustomer,
   requireWorkspaceAccess,
+  getCustomerPrimaryOrganization,
+  getSupabaseServerConfig,
+  supabaseHeaders
+});
+
+registerAgentActivityRoutes(app, {
+  layout,
+  brandCard,
+  linkAction,
+  escapeHtml,
+  requireCustomer,
+  requireBusinessManager, // approving is the owner's decision; the page only reads
   getCustomerPrimaryOrganization,
   getSupabaseServerConfig,
   supabaseHeaders
@@ -742,7 +716,7 @@ app.get("/", (req, res) => {
     variant: "home",
     surface: "marketing",
     body: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",
-    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what works today. See what still needs setting up or checking.</strong></div>\n    <p>What you can open depends on how far along a product is, which accounts you have connected, and your plan. Anything that is not finished stays closed until it genuinely works.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">See what is working</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organised business, with a setup plan, customer enquiries, quotes, billing, bookings, and your records in one place.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You always see where things stand, what to do next, and what has to be true before anything can run.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Anything missing stays visible: records, connected accounts, permissions, and plan.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, and anything you cannot undo wait for your approval.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Your saved records, proof of delivery, billing, and next steps all stay joined up.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest about what is ready</span><h2 id=\"lifecycle-heading\">Being listed here does not mean it is finished.</h2></div><p>We show what is coming as well as what is done, and we label the difference, so nothing on the roadmap gets sold to you as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"available\"><span>Active or beta</span><h3>You can get real work done</h3><p>You can do the main work now, once your account is set up and your plan covers it.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"setup\"><span>Setup required</span><h3>A little setup first</h3><p>Some setup has to be finished first: a connected account, your records, or your customer details.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"restricted\"><span>Coming soon, or in review</span><h3>Not open yet</h3><p>These stay closed until the work is built, tested, security-checked, approved, and covered by your plan.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Professional tools at a price that works</span><h2 id=\"value-heading\">Start free. Pay for what is proven to work, not vague promises.</h2><p>What you pay for and what you can open have to match. Where a connected service costs extra we say so, and we do not advertise an unfinished paid feature as working.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about what is free, what is paid, what is ready, and what happens to your data.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. We only advertise a paid feature as working once a real payment has actually unlocked it.</p></details>\n      <details><summary>Does everything in the catalog work today?</summary><p>No. Every product says where it stands. Anything marked coming soon, in review, or needs setup stays closed until it genuinely works.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, running a connected service, and anything you cannot undo all wait for your permission and approval.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA gives you the tools, the records, and the steps. It cannot promise you sales, keep you legal, make you secure, or get you ranked.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Your records belong to your organisation and are private by default. Only people you have given a role to can reach them.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid tools only once they are proven to work.</h2><p>Pick the workspace that fits the job, work through the setup honestly, and keep every important action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
+    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what works today. See what still needs setting up or checking.</strong></div>\n    <p>What you can open depends on how far along a product is, which accounts you have connected, and your plan. Anything that is not finished stays closed until it genuinely works.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">See what is working</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organised business, with a setup plan, customer enquiries, quotes, billing, bookings, and your records in one place.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You always see where things stand, what to do next, and what has to be true before anything can run.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Anything missing stays visible: records, connected accounts, permissions, and plan.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, and anything you cannot undo wait for your approval.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Your saved records, proof of delivery, billing, and next steps all stay joined up.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest about what is ready</span><h2 id=\"lifecycle-heading\">Being listed here does not mean it is finished.</h2></div><p>We show what is coming as well as what is done, and we label the difference, so nothing on the roadmap gets sold to you as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"available\"><span>Active or beta</span><h3>You can get real work done</h3><p>You can do the main work now, once your account is set up and your plan covers it.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"setup\"><span>Setup required</span><h3>A little setup first</h3><p>Some setup has to be finished first: a connected account, your records, or your customer details.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"restricted\"><span>Coming soon, or in review</span><h3>Not open yet</h3><p>These stay closed until the work is built, tested, security-checked, approved, and covered by your plan.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Professional tools at a price that works</span><h2 id=\"value-heading\">Start free. Pay for what is proven to work, not vague promises.</h2><p>What you pay for and what you can open have to match. Where a connected service costs extra we say so, and we do not advertise an unfinished paid feature as working.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"difference-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">What makes this different</span><h2 id=\"difference-heading\">Three things you can check for yourself.</h2></div><p>Not promises about what the software might do one day. Each of these is how it behaves today, and each one is covered by a test that fails if it stops being true.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">One record, not three</span><h3>Type it once.</h3><p>An enquiry becomes a customer, then a quote, then an invoice, then a payment reminder \u2014 without typing it again. Run three separate tools and each of those steps is a copy between products, and every copy is a chance for the number to differ.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Nothing is invented</span><h3>Every figure is one of yours.</h3><p>What you see on a screen is added up from your own saved records. Payment reminder drafts are assembled the same way, which is why they cannot refer to a reminder you never sent or to terms you never agreed.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">It says when it does not know</span><h3>A gap is shown as a gap.</h3><p>An invoice with no due date is left out of your totals and reported separately, rather than quietly counted as due today. A list that could not be read says so instead of showing zero, and a list showing the first hundred of something says that too.</p></article>\n    </div>\n  </section>\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about what is free, what is paid, what is ready, and what happens to your data.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. We only advertise a paid feature as working once a real payment has actually unlocked it.</p></details>\n      <details><summary>Does everything in the catalog work today?</summary><p>No. Every product says where it stands. Anything marked coming soon, in review, or needs setup stays closed until it genuinely works.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, running a connected service, and anything you cannot undo all wait for your permission and approval.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA gives you the tools, the records, and the steps. It cannot promise you sales, keep you legal, make you secure, or get you ranked.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Your records belong to your organisation and are private by default. Only people you have given a role to can reach them.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid tools only once they are proven to work.</h2><p>Pick the workspace that fits the job, work through the setup honestly, and keep every important action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
     actions: [linkAction("/signup", "Create free account"), linkAction("#companies-heading", "Explore the three studios"), linkAction("/pricing", "Compare plans")]
   }));
 });
@@ -856,15 +830,18 @@ app.get("/pricing", (req, res) => {
   const readiness = getReadiness();
   const planStatuses = getCheckoutPlanStatuses();
   const enabledPlanCount = Object.entries(planStatuses).filter(([plan, status]) => plan !== "free" && status.checkout === "enabled").length;
+  // What the page sells and what it says about it, both derived from which
+  // plans Stripe can actually take money for. lib/sonara-stripe-plans.cjs.
+  const { offered, allThreeSentence, whichPlan } = pricingLadderCopy((plan) => planStatuses[plan]?.checkout);
   const pricingFaq = `<section class="sonara-section sonara-faq" aria-label="Pricing questions">
     <div class="sonara-section-head"><div><span class="sonara-kicker">Pricing questions</span><h2>Clear answers on billing.</h2></div></div>
     <div class="sonara-faq-list">
       <details><summary>What do I get for free?</summary><p>A real account, free tools across all three companies, and saved work — no card required.</p></details>
-      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in July 2026 what the usual tools charge for these three jobs. Their entry plans came to roughly $77 a month for the set. Pro covers all three for $39. We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
+      <details><summary>Why is this cheaper than the alternatives?</summary><p>We checked in August 2026 what the usual tools charge for these three jobs on monthly billing. Their entry plans came to about $87 a month for the set, and nearer $105 once you remove another company\u2019s logo from your emails and turn automation on. ${allThreeSentence ? `${escapeHtml(allThreeSentence)}.` : ""} We run on free and open-source foundations and we do not pay for a sales team, so the saving reaches you instead of the price.</p></details>
       <details><summary>Can I cancel anytime?</summary><p>Yes. Manage billing from your account and cancel whenever you want; paid access relocks at the end of the period.</p></details>
       <details><summary>What happens if a payment fails?</summary><p>Paid tools relock until payment is confirmed again. Your saved records stay intact.</p></details>
       <details><summary>Do you offer refunds?</summary><p>Refunds follow our published <a href="/refund-policy">refund policy</a>.</p></details>
-      <details><summary>Which plan should I pick?</summary><p>Start free. Move to Starter at $7 if you want your work saved in one workspace, Core at $19 for a full studio, or Pro at $39 if you need all three.</p></details>
+      <details><summary>Which plan should I pick?</summary><p>${escapeHtml(whichPlan)}</p></details>
     </div>
   </section>`;
   return res.status(200).type("html").send(
@@ -877,8 +854,8 @@ app.get("/pricing", (req, res) => {
         ? "Every plan starts free — no card to begin. Upgrade for deeper records, more workspaces, and priority support, and cancel anytime."
         : "Every plan starts free — no card to begin. Paid plans are not open for checkout yet; we are still connecting payments.",
       sections: [
-        ...Object.entries(STRIPE_PLANS).map(([plan, config]) => priceCard(plan, config, planStatuses[plan], readiness)),
-        brandCard("What it would cost elsewhere", "Buying these three jobs separately usually means about $29 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $77 a month, based on published entry plans in July 2026. Pro covers all three for $39."),
+        ...offered.map((plan) => priceCard(plan, STRIPE_PLANS[plan], planStatuses[plan], readiness)),
+        brandCard("What it would cost elsewhere", `Buying these three jobs separately usually means about $39 a month for the business side, $39 for the creator side, and $9 for the marketing side — around $87 a month on monthly billing, from published prices in August 2026. The creator tool at that price also takes 5% of what you sell.${allThreeSentence ? ` ${allThreeSentence}, and we take nothing from your sales.` : ""}`),
         brandCard("Every plan includes", "Real records that belong to you, kept private to your organisation. Honest labels when something is not ready. Cancel whenever you like. No fake activity, and no enterprise maze."),
         pricingFaq
       ],
@@ -1061,6 +1038,7 @@ app.post("/auth/logout", (req, res) => {
   return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
+const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/setup", "Account setup"]];
 app.get("/account", (req, res) => {
   return res.status(200).type("html").send(
     layout({
@@ -1071,7 +1049,9 @@ app.get("/account", (req, res) => {
         ? "Email sign-in is set up and your session stays signed in safely. Real sign-ups still need one live test before we open this to customers."
         : "Setup needed: sign-in has to be connected before anyone can log in.",
       sections: accountSetupCards(),
-      actions: [linkAction("/account/setup", "Account setup"), linkAction("/login", "Login"), linkAction("/", "Home")]
+      // This offered /account/setup and nothing else, so profile, security,
+      // preferences, workspaces and integrations were reachable only by URL.
+      actions: [...ACCOUNT_SECTIONS.map(([path, label]) => linkAction(path, label)), linkAction("/login", "Login"), linkAction("/", "Home")]
     })
   );
 });
@@ -1141,6 +1121,9 @@ app.get("/dashboard", requireAppAccess, async (req, res) => {
         actionCard("Deliverables", summary.deliverablesSummary, [linkAction("/deliverables", "Deliverables")]),
         actionCard("Billing status", summary.billingSummary, [linkAction("/billing", "Billing"), linkAction("/pricing", "Pricing")]),
         actionCard("Support", summary.supportSummary, [linkAction("/support", "Support center"), linkAction("/contact", "Contact")]),
+        actionCard("Agent activity", "What the agents did for your organisation, and anything that stopped because your rules say you decide it.", [linkAction("/owner/agent-activity", "Agent activity")]),
+        // Registered, rendering, and linked from nowhere until this.
+        actionCard("Notifications and research", "Messages waiting for you, and what has been recorded about your market.", [linkAction("/notifications", "Notifications"), linkAction("/market-intelligence", "Market research")]),
         summary.blockersCard,
         actionCard("Next best action", summary.nextBestAction.message, [linkAction(summary.nextBestAction.href, summary.nextBestAction.label)]),
         ...(summary.adminCard ? [summary.adminCard] : []),
@@ -1241,7 +1224,7 @@ app.get("/billing", requireCustomer, (req, res) => res.redirect(303, "/business-
 app.get("/business-builder/billing", requireWorkspaceAccess("business_builder"), async (req, res) => {
   const readiness = getReadiness();
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-  const billing = organization.ok ? await getBillingPanelSummary(organization.organizationId) : { status: organization.code, rows: [] };
+  const billing = organization.ok ? await getBillingPanelSummary(organization.organizationId) : { ok: false, status: organization.code, rows: [] };
   return res.status(200).type("html").send(
     layout({
       title: "Business Builder Billing",
@@ -1846,7 +1829,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-module.exports = app;
+module.exports = Object.assign(app, { legalAliasHrefs: legalAliasPages().map((page) => page.href) });
 
 // The plan table is the one piece of config where a mistake charges somebody
 // the wrong amount, so tests/pricing.test.js reads it directly rather than
@@ -1890,7 +1873,8 @@ function registerProduct(slug, config) {
           brandCard("Paid tools", `Upgrade to use: ${routes.paid.map((page) => page.label).join(", ")}.`),
           workspaceRecordsCard(dashboard),
           workspaceActivityCard(dashboard),
-          brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations.")
+          brandCard("Next actions", "Open a free tool, submit a real form, or upgrade for paid workspace operations."),
+          workspaceIndexCard(productKey)
         ],
         actions: productDashboardActions(slug)
       })
@@ -1927,7 +1911,7 @@ function registerProduct(slug, config) {
 }
 
 
-function workspaceToolPage({ slug, config, page, access, paid, records = "" }) {
+function workspaceToolPage({ slug, config, page, paid, records = "" }) {
   const sections = [
     ...workspaceFormSections(page),
     brandCard("What this tool does", page.body),
@@ -1951,6 +1935,44 @@ function workspaceToolPage({ slug, config, page, access, paid, records = "" }) {
       logoutAction()
     ]
   });
+}
+
+// Every page in a workspace, generated from the route registry.
+//
+// Seventy-three product pages were registered, rendering, and reachable only by
+// typing the URL -- across all three workspaces. The dashboards and landing
+// pages carried hand-written link lists, and a hand-kept list of pages beside
+// the registry that defines the pages is a list that falls behind. It had.
+//
+// Generated, so it cannot. Routes with a path parameter are skipped: they are
+// reached from the record they belong to, and a link containing ":businessId"
+// goes nowhere.
+function workspaceIndexCard(productKey) {
+  const pages = ROUTE_REGISTRY.filter(
+    (entry) =>
+      entry.method === "GET" &&
+      entry.productOwner === productKey &&
+      !entry.route.includes(":") &&
+      !entry.route.startsWith("/api/")
+  );
+  if (pages.length === 0) return brandCard("Everything in this workspace", "No pages are registered for this workspace yet.");
+  const items = pages
+    .map((entry) => `<li>${linkAction(entry.route, plainRouteTitle(entry))}</li>`)
+    .join("");
+  return `<article class="card sonara-depth" data-sonara-enter><h2>Everything in this workspace</h2><p>${escapeHtml(
+    `All ${pages.length} pages, including the ones no other screen links to.`
+  )}</p><ul>${items}</ul></article>`;
+}
+
+function adminPageIndex() {
+  const pages = ROUTE_REGISTRY.filter(
+    (entry) => entry.method === "GET" && entry.visibility === "admin" && !entry.route.includes(":") && entry.route !== "/admin"
+  );
+  if (pages.length === 0) return brandCard("Every admin page", "No admin pages are registered.");
+  const items = pages.map((entry) => `<li>${linkAction(entry.route, plainRouteTitle(entry))}</li>`).join("");
+  return `<article class="card"><h2>Every admin page</h2><p>${escapeHtml(
+    `All ${pages.length}, including the ones no card above mentions.`
+  )}</p><ul>${items}</ul></article>`;
 }
 
 function workspaceServiceCard(page, paid) {
@@ -2039,7 +2061,14 @@ function adminPage(title, body, readiness, metrics = {}) {
     actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
     actionCard("Service operations", metrics.serviceRequests || "Customer service requests, operator-published deliverables, and workspace records for the Software-in-a-Service lifecycle.", [linkAction("/admin/requests", "Service requests"), linkAction("/admin/deliverables", "Deliverables"), linkAction("/admin/workspaces", "Workspaces"), linkAction("/admin/integrations", "Integrations"), linkAction("/admin/ai-gateway", "AI gateway")])
   ];
-  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness)], actions: adminActions() });
+  // Every admin page, generated. Ten of them -- database management,
+  // migrations, organizations, email, pipelines, deployments, audit, system
+  // design intelligence, model safety and the prompt library -- were
+  // registered, rendering, and linked from nowhere. The cards above list the
+  // ones somebody thought of, which is the same hand-kept list that had fallen
+  // behind on every other dashboard.
+  const adminIndex = adminPageIndex();
+  return layout({ title, eyebrow: "Founder operations", heading: title, body, sections: [...operations, ...readinessCards(readiness), adminIndex], actions: adminActions() });
 }
 
 function deploymentCard() {
@@ -2082,7 +2111,7 @@ function getProductConfigBySlug(slug) {
 async function getProductModuleCatalogCards() {
   const config = getSupabaseServerConfig();
   if (!config.ok) return [brandCard("Product modules", "Setup required: account database is not configured.")];
-  const count = await safeCountTable(config, "product_modules");
+  const count = await safeCountTable(config, "sonara_module_registry");
   return [brandCard("Product modules", formatMetric("Product modules", count))];
 }
 
@@ -2148,7 +2177,12 @@ async function getWorkspaceDashboardSummary(access, productKey) {
     productKey,
     organizationId: organization.organizationId,
     counts: { intake, checklist, support },
-    activity: activity.ok ? activity.rows : []
+    // `activity.ok ? activity.rows : []` was here, and the card below reads
+    // "No activity yet." off an empty array -- so a read that failed told a
+    // customer nothing had ever happened in their workspace. countLabel beside
+    // it already answers "unavailable" for a failed count, so the two halves of
+    // the same card disagreed about what a failure looks like.
+    activity: { ok: activity.ok === true, rows: activity.ok ? activity.rows : [] }
   };
 }
 
@@ -2164,8 +2198,9 @@ function workspaceRecordsCard(summary) {
 
 function workspaceActivityCard(summary) {
   if (!summary.ok) return brandCard("Recent activity", "No activity is shown until the account database and organization membership are ready.");
-  if (!summary.activity?.length) return brandCard("Recent activity", "No activity yet.");
-  return brandCard("Recent activity", summary.activity.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
+  if (summary.activity?.ok !== true) return brandCard("Recent activity", "We could not load your recent activity just now. Try again shortly.");
+  if (!summary.activity.rows.length) return brandCard("Recent activity", "No activity yet.");
+  return brandCard("Recent activity", summary.activity.rows.map((event) => `${displayStatus(event.event_type || "activity")} ${event.created_at || ""}`.trim()).join(" / "));
 }
 
 function countLabel(result) {
@@ -2214,7 +2249,12 @@ async function getCommandCenterSummary(req) {
       deliverablesSummary = "Setup required: the service_deliverables table is not available yet.";
     }
     const billing = await getBillingPanelSummary(organization.organizationId);
-    billingSummary = `${billing.status} Paid access unlocks only after payment updates record an active or trialing plan.`;
+    // The trailing sentence explains how access is granted, which is only worth
+    // saying when the plan could actually be read. Appended to "we could not
+    // check your plan" it reads as an explanation of why the customer has none.
+    billingSummary = billing.ok === false
+      ? billing.status
+      : `${billing.status} Paid access unlocks only after payment updates record an active or trialing plan.`;
   }
 
   const blockers = Object.entries(readiness.services)
@@ -2602,12 +2642,9 @@ function legalPage(res, title, points, canonical = "") {
       title,
       eyebrow: "Legal",
       heading: title,
-      // The review-status sentence was internal tracking on a customer-facing
-      // page and came off at the owner's direction. The disclaimer stays. No
-      // claim that counsel reviewed these may be added, because none has --
-      // dropping a statement is not the same as asserting its opposite. Still
-      // tracked in docs/legal/LEGAL_REVIEW_REQUIRED.md.
-      body: "These terms are not legal advice. They remain subject to applicable law and future revision. Questions about them can be sent through the contact route.",
+      // The disclaimer, and the only sentence on these pages about their own
+      // status. lib/sonara-legal-position.cjs owns it and says why.
+      body: LEGAL_DISCLAIMER,
       sections: points.map((point, index) => Array.isArray(point) ? brandCard(point[0], point[1]) : brandCard(`Section ${index + 1}`, point)),
       actions: [linkAction("/", "Home"), linkAction("/contact", "Contact")]
     })
@@ -2616,20 +2653,20 @@ function legalPage(res, title, points, canonical = "") {
 
 function legalPages() {
   return [
-    { href: "/legal/terms", title: "Terms of Service", points: ["SONARA Industries provides launch, creator, and growth software tools on an as-is operational basis.", "Users are responsible for lawful use, accurate business information, and approval of outbound actions.", "Production actions may require human review, configured providers, and audit-ready records."] },
-    { href: "/legal/privacy", title: "Privacy Policy", points: ["SONARA Industries collects account, contact, support, and operational records needed to provide the service.", "Server-side credentials and provider secrets are not exposed to public clients.", "Customer data should be handled according to consent, retention, and organization access controls."] },
-    { href: "/legal/refund-policy", title: "Refund Policy", points: ["Subscription and setup refund requests are reviewed based on plan terms, usage, and delivered work.", "Approved refunds are returned through the original payment provider when available.", "Chargeback, fraud, or abuse cases may require additional review."] },
-    { href: "/legal/cookie-policy", title: "Cookie Policy", points: ["SONARA Industries sets three cookies, all of them essential: a customer session cookie, a customer refresh cookie, and an administrator session cookie. All are HttpOnly and first-party.", "No advertising or analytics cookie is set. If that ever changes it will be disclosed here first, with a consent control, and not switched on quietly.", "Your device preferences — appearance, brightness, motion, sound, and tactile feedback — are stored in this browser's local storage and never sent to us.", "Pages load fonts and scripts from SONARA only. No third-party font, script, or tracker is requested, so opening a page does not tell any outside company that you did.", "Browser settings may be used to limit non-essential storage."] },
-    { href: "/legal/acceptable-use", title: "Acceptable Use", points: ["Do not use SONARA Industries for spam, credential capture, unlawful surveillance, piracy, or unsafe automation.", "AI-assisted outbound actions require preview, approval, and audit records.", "Voice, media, and creator tools require consent, provenance, and anti-clone safety."] },
-    { href: "/legal/accessibility", title: "Accessibility", points: ["SONARA Industries aims to provide clear navigation, readable layouts, and keyboard-accessible workflows.", "Accessibility issues can be reported through the contact route for review.", "Launch pages should remain usable without requiring animated or media-heavy experiences."] },
-    { href: "/legal/earnings-disclaimer", title: "Earnings Disclaimer", points: ["Pricing, launch tools, and campaign planning do not guarantee revenue.", "Results depend on market demand, offer quality, audience, execution, and provider setup.", "Any examples require owner review before public use."] },
-    { href: "/legal/ai-disclaimer", title: "AI and Tooling Disclaimer", points: ["Automated or assisted outputs require human review before use.", "The system must not be used to make deceptive claims or unsafe outbound actions.", "AI-assisted output should be checked for accuracy, rights, and provenance."] },
-    { href: "/legal/payment-terms", title: "Payment Terms", points: ["Stripe checkout activates only after owner configuration.", "Refunds, chargebacks, failed payments, and subscription changes require provider and owner review.", "Stripe restricted-business rules and payment-network rules apply."] },
-    { href: "/legal/data-processing", title: "Data Processing", points: ["Customer, support, billing, and module records may be processed to provide the service.", "Service-role credentials are server-only and must not be exposed to clients.", "Third-party processors may include Supabase, Vercel, Stripe, Resend, and analytics providers when configured.", "Pages are served from SONARA infrastructure and load no third-party fonts, scripts, or trackers, so no outside company receives your IP address by your simply opening a page. No advertising or analytics cookie is set by SONARA."] },
-    { href: "/legal/security-policy", title: "Security Policy", points: ["Report security issues through the contact route or configured support address.", "Do not submit secrets through public forms.", "Administrative routes require authenticated, authorised access, and administrative actions are recorded in an audit trail."] },
-    { href: "/legal/disclaimer", title: "General Disclaimer", points: ["SONARA Industries provides operational software and setup tools, not legal, tax, financial, or business guarantees.", "Customers remain responsible for reviewing outputs before use.", "No revenue, customer, or compliance outcome is guaranteed."] },
-    { href: "/legal/can-spam", title: "Commercial Email Reminder", points: ["Commercial email should use truthful subject and from information.", "Include unsubscribe language and a physical mailing address when required.", "Keep consent and audience-source notes before outreach."] },
-    { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: [["Service providers", "This template explains how SONARA Industries may use subprocessors for hosting, payments, email delivery, analytics, authentication, monitoring, and support operations."], ["Data handling", "Subprocessors should receive only the data needed to operate the service, subject to provider terms, contracts, and production configuration."], ["Changes to this list", "Subprocessors may change as the service changes. This notice describes current operational practice and is not legal advice."]] }
+    { href: "/legal/terms", title: "Terms of Service", points: [["What this is", "Software for running a small business, creative work, or growth activity. It is provided as it is, and it does not come with a guarantee of uptime, of revenue, or of a particular outcome for your business."], ["Your records are yours", "What you put in stays yours. You can export it at any time from your data page, and closing your account does not give us a claim over it."], ["What you are responsible for", "Using it lawfully, keeping your account details accurate, having the right to the material you upload, and checking anything the product drafts for you before you send or publish it."], ["What waits for your approval", "Sending messages to your customers, publishing content, spending money, changing security settings, and anything that cannot be undone. The product prepares these and stops. It does not do them because it decided to."], ["What is not finished", "Products are labelled with where they stand, and anything marked coming soon, in review, or needing setup stays closed until it genuinely works. Being listed in the catalog is not a promise that it is ready."], ["Ending it", "You can cancel at any time from the billing portal. We can close an account that is being used for the things the acceptable use page rules out, and we will tell you why."], ["Changes to these terms", "They will change as the product does. This page is the current version, and it is not legal advice."]] },
+    { href: "/legal/privacy", title: "Privacy Policy", points: [["What we collect", "Your account details (name, email, sign-in records), the records you create in your workspaces, your support requests, and your billing history. If you record your own customers in SONARA, their details are held on your behalf and belong to you."], ["Why we hold it", "To run the service you signed up for: to sign you in, to show you your records, to take payment, and to answer your support requests. We do not sell it, and we do not use your records to advertise to you or anyone else."], ["Who else processes it", "Four companies, because the service runs on them: Supabase stores the records, Vercel runs the server, Stripe takes the payments, and Resend delivers email. Each receives only what it needs to do that job. This is set out in more detail on the data processing page."], ["How long we keep it", "For as long as your account is open. Deleting a record inside the product archives it rather than removing it, so it can be recovered if the deletion was a mistake -- an archived record is still stored. Billing records are kept after an account closes where tax rules require it."], ["Getting a copy", "Your data page has an export that gives you your records as a file, immediately, with no request to make and nobody to ask. It names any record type it could not read rather than leaving it out silently."], ["Asking for erasure", "The same page sends an erasure request. It is a request rather than a button because erasing an organisation's records cannot be undone, so a person confirms it is really you asking and then tells you what was removed and what had to be kept."], ["Cookies and tracking", "Three cookies, all essential to signing you in, all first-party. No advertising or analytics cookie is set, and pages load no third-party font, script or tracker, so opening a page does not tell any outside company that you did."], ["Asking us about any of this", "Send it through the contact route. If something here does not match what the product actually does, that is a defect and we want to hear about it."]] },
+    { href: "/legal/refund-policy", title: "Refund Policy", points: [["Cancelling", "You can cancel from the billing portal in your account at any time. Cancelling stops future charges. It does not by itself refund a charge already taken, which is what the rest of this page is about."], ["Refunds are reviewed by a person", "There is no automatic refund, and nothing in the software issues one on its own. A refund is a decision somebody makes and records, which means you get an answer from a person rather than a silent approval or rejection."], ["What we look at", "How much of the billing period had run, whether the plan actually opened the products it promised, and whether anything on our side stopped it working. If you paid for something that did not work, say so -- that is the case this policy exists for."], ["How a refund is returned", "Through Stripe, to the original payment method. We do not hold card details ourselves, so we cannot return money any other way."], ["Chargebacks", "If you raise a chargeback with your bank we will respond to it with the records we hold. It is usually slower than asking us, and we would rather you asked us first."], ["Asking", "Through the contact or support route, with the email address on the account."]] },
+    { href: "/legal/cookie-policy", title: "Cookie Policy", points: [["The three cookies we set", "SONARA Industries sets three cookies, all of them essential: a customer session cookie, a customer refresh cookie, and an administrator session cookie. All are HttpOnly and first-party."], ["What we do not set", "No advertising or analytics cookie is set. If that ever changes it will be disclosed here first, with a consent control, and not switched on quietly."], ["Settings stay on your device", "Your device preferences -- appearance, brightness, motion, sound, and tactile feedback -- are stored in this browser's local storage and never sent to us."], ["Nothing loads from anyone else", "Pages load fonts and scripts from SONARA only. No third-party font, script, or tracker is requested, so opening a page does not tell any outside company that you did."], ["Turning them off", "Browser settings may be used to limit non-essential storage. The session cookies are what keep you signed in, so blocking those will sign you out."]] },
+    { href: "/legal/acceptable-use", title: "Acceptable Use", points: [["What this covers", "How SONARA may be used. Breaking these is the one reason we would close an account that is paying, and we would tell you which line and why."], ["Do not use it against people", "No spam, no harvested or purchased contact lists, no capturing anyone's login details, no surveillance of people who have not agreed to it, and no impersonating a real person or business."], ["Consent for voices and likenesses", "Voice and media tools need a consent record on file before they run, and the product enforces that rather than trusting the request. Copying a real person's voice or face without their permission is not a grey area here."], ["Rights to what you upload", "Only upload material you own or are allowed to use. We cannot check that for you, and saying the product cleared it would be untrue."], ["Outbound actions", "Messages to your customers, published content, and anything spending money wait for your approval. Configuring the product to bypass that is a use of it we do not support."], ["If we get it wrong", "If an account is closed and you think the reason is mistaken, reply and a person will look at it."]] },
+    { href: "/legal/accessibility", title: "Accessibility", points: [["What we aim for", "Pages that work with a keyboard, readable text, visible focus, and layouts that do not break on a small screen or at large text sizes."], ["Motion", "If your device asks for reduced motion, the product honours it: entrance animations, depth and the loading sequence all stop. Motion can also be switched off inside the product regardless of the device setting."], ["Sound and alerts", "Sounds, spoken announcements, vibration, SMS, push and email alerts are off unless you turn them on."], ["Printing", "Pages are readable printed or saved as PDF, including content that animates in on screen."], ["Where we know we fall short", "We have not had this tested by disabled users, and saying it meets a standard when nobody has audited it would be the kind of claim this page exists to avoid. Tell us what does not work and it gets fixed."]] },
+    { href: "/legal/earnings-disclaimer", title: "Earnings Disclaimer", points: [["No guarantee of revenue", "Nothing here promises you sales, customers, or income. Pricing tools, campaign planning and launch checklists organise work; they do not create demand."], ["Why results differ", "What you sell, who wants it, what you charge, how you follow up, and how much time you put in matter more than the software does."], ["No examples presented as typical", "We do not publish income screenshots, invented customer counts, or case studies that imply a normal outcome. If an example is ever shown it will say what it is."], ["What the product does claim", "That your records stay joined up, that figures come from rows you entered, and that it tells you when it does not know something. Those are checkable. Revenue is not."]] },
+    { href: "/legal/ai-disclaimer", title: "AI and Tooling Disclaimer", points: [["Nothing runs a model unless you connect one", "No part of this product sends your records to a model by default. Every provider connection is off until it is configured, and the features that do not need one -- your records, invoices, payment reminders, totals -- never call one at all."], ["Where a model is used", "Creator Studio generation calls the service you connected, and only that one. What it produces is a draft for you to check, not a finished thing to publish."], ["Check it before you use it", "Generated text, audio, images and video can be wrong, can resemble somebody else's work, and can invent details. Reviewing that is your part, and no automated check replaces it."], ["We do not claim it is intelligent", "This is software that fills in forms, adds up your records, and calls services you asked it to call. Where a figure is estimated or a list is incomplete, the product says so rather than presenting it as certain."], ["Provenance and consent", "Voice and likeness work requires a consent record, and provenance notes stay attached to what is produced."]] },
+    { href: "/legal/payment-terms", title: "Payment Terms", points: [["What you pay", "The price shown on the pricing page for the plan you chose, monthly, in US dollars, charged by Stripe. The amount on the page is checked against the amount Stripe holds before any charge is made, and a mismatch stops the checkout rather than charging you the other number."], ["We never see your card", "Card details go to Stripe and never reach our servers. We do not store card numbers or security codes, so we could not charge you outside Stripe even if we wanted to."], ["Renewals", "Plans renew monthly until cancelled. Cancelling from the billing portal stops future charges."], ["Failed payments", "If a charge fails, Stripe retries on its own schedule. Paid features close if it keeps failing, and your records stay where they are."], ["Price changes", "If a price changes, the change applies from your next renewal and not retrospectively."], ["Tax", "Prices are shown before any tax that applies where you are."]] },
+    { href: "/legal/data-processing", title: "Data Processing", points: [["What is processed", "Customer, support, billing, and module records are processed to provide the service. If you record your own customers in SONARA, their details are processed on your behalf and remain yours."], ["Credentials stay on the server", "Service-role credentials are server-only and are never sent to a browser. A check in the release pipeline fails the build if one appears in client code."], ["Who else is involved", "Supabase stores the records, Vercel runs the server, Stripe takes the payments, and Resend delivers email. Analytics providers are processed only where you have configured one."], ["Nothing third-party loads in your browser", "Pages are served from SONARA infrastructure and load no third-party fonts, scripts, or trackers, so no outside company receives your IP address by your simply opening a page. No advertising or analytics cookie is set by SONARA."], ["Getting a copy or asking for erasure", "Your data page exports your records immediately, and sends an erasure request that a person reviews."]] },
+    { href: "/legal/security-policy", title: "Security Policy", points: [["Reporting a problem", "Send it through the contact route. If you believe you have found something serious, say so in the first line and do not include working credentials in the message."], ["What we do", "Server credentials stay on the server and are never sent to a browser -- a check in the release pipeline fails the build if one appears in client code. Administrative actions are recorded in an audit trail. Sign-in passwords are checked against known breached-password lists at signup and reset."], ["What we do not claim", "No certification, no audit, and no guarantee that the service is unbreakable. Anyone telling you a product this size has been penetration-tested to a standard should be asked which standard."], ["Your side of it", "Use a password you do not use elsewhere, keep your workspace membership list current, and remove people who have left."], ["If something happens", "If customer data is exposed we will tell the affected accounts what we know, what we do not yet know, and what we are doing, rather than waiting until the picture is complete."]] },
+    { href: "/legal/disclaimer", title: "General Disclaimer", points: [["What this is not", "Not legal, tax, accounting, financial or business advice. Templates and checklists are starting points, not professional guidance for your situation."], ["Provided as it is", "The service comes without a warranty that it will be uninterrupted or error-free. Where something is unfinished, it is labelled unfinished."], ["Your decisions stay yours", "Prices you set, messages you send, records you keep and obligations you take on are yours. The product organises them; it does not take responsibility for them."], ["Getting a second opinion", "For anything with legal, tax or regulatory weight, ask somebody qualified in your jurisdiction."]] },
+    { href: "/legal/can-spam", title: "Commercial Email Reminder", points: [["This is about your sending, not ours", "When you use SONARA to contact your customers, the message is from your business and the rules land on you."], ["The basics", "Truthful subject and sender lines, a working unsubscribe, a physical mailing address where required, and honouring an unsubscribe promptly."], ["Consent", "Keep a note of where each contact came from and what they agreed to. The product stores consent records for that reason."], ["What the product will not do", "It will not send to a list on its own, and it will not send anything you have not approved. Bulk outreach is held for your review by design."]] },
+    { href: "/legal/subprocessor-notice", title: "Subprocessor Notice", points: [["Who processes data for us", "Four, and they are named rather than described: Supabase (database and file storage), Vercel (running the application), Stripe (payments and billing), and Resend (email delivery). Each receives only what it needs for that job."], ["What each one gets", "Supabase holds your records. Vercel handles the requests your browser makes. Stripe receives your billing details directly and we never see your card. Resend receives the address and content of mail we send you."], ["Where they are", "These are US-based providers. If you are outside the US, using the service means your records are processed there."], ["Optional connections you make yourself", "Any AI, analytics, or marketing service you connect becomes a processor of whatever you send it. Those are off until you configure them, and choosing one is your decision rather than ours."], ["Changes to this list", "If a processor is added or removed this page changes, and this notice describes current practice rather than a contractual commitment. It is not legal advice."]] }
   ];
 }
 
@@ -2994,13 +3031,15 @@ function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   return res.status(result.saved ? 200 : 503).type("html").send(compatiblePage);
 }
 
+// Same fault as listChecklistItems: `ok: true` whatever happened, with the real
+// outcome in `saved`. A consumer reads `ok`.
 async function readModuleRecords(req, productKey) {
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
   const result = await safeReadOrganizationScopedRecords(organization.organizationId, productKey);
   return {
-    ok: true,
+    ok: result.ok === true,
     saved: result.ok,
-    code: result.ok ? "records_available" : "setup_required",
+    code: result.ok ? "records_available" : organization.ok ? "records_unavailable" : "setup_required",
     productKey,
     records: result.records
   };
@@ -3106,15 +3145,25 @@ async function saveBusinessBuilderIntake(req, output) {
   };
 }
 
+// `ok: true` with an empty `items` was returned for all three failures here,
+// so a consumer checking the field that means success saw success and no
+// records -- indistinguishable from a customer who has none. createChecklistItem
+// directly below returns `ok: false` for the same two setup conditions, so one
+// file answered the same question two ways depending on whether you were
+// reading or writing.
+//
+// The read failing is also separated from setup being absent. "Your database is
+// not configured" and "the request to it did not come back" are different
+// things, and a consumer would retry one and not the other.
 async function listChecklistItems(req) {
   const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-  if (!organization.ok) return { ok: true, saved: false, code: "setup_required", service: "customer_organization", items: [] };
+  if (!organization.ok) return { ok: false, saved: false, code: "setup_required", service: "customer_organization", items: [] };
   const config = getSupabaseAdminClient();
-  if (!config.ok) return { ok: true, saved: false, code: "setup_required", service: "supabase", items: [] };
+  if (!config.ok) return { ok: false, saved: false, code: "setup_required", service: "supabase", items: [] };
   const response = await fetch(`${config.url}/rest/v1/launch_checklist_items?select=id,category,title,description,status,due_date,created_at,updated_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc`, {
     headers: supabaseHeaders(config)
   }).catch(() => undefined);
-  if (!response?.ok) return { ok: true, saved: false, code: "setup_required", service: "launch_checklist_items", items: [] };
+  if (!response?.ok) return { ok: false, saved: false, code: "records_unavailable", service: "launch_checklist_items", items: [] };
   return { ok: true, saved: true, code: "records_available", items: await response.json().catch(() => []) };
 }
 
@@ -3477,48 +3526,6 @@ async function getCustomerPrimaryOrganization(user, options = {}) {
   return { ok: false, code: "workspace_not_ready" };
 }
 
-async function getCustomerPaidEntitlement(user, productKey) {
-  const organization = await getCustomerPrimaryOrganization(user);
-  if (!organization.ok) return { ok: false, status: 402, code: "upgrade_required", reason: organization.code };
-
-  const config = getSupabaseServerConfig();
-  const allowedKeys = getPaidEntitlementKeys(productKey);
-  if (!allowedKeys.length) {
-    return {
-      ok: false,
-      status: 402,
-      code: "upgrade_required",
-      reason: "product_entitlement_unmapped",
-      message: "Paid access is not configured for this product."
-    };
-  }
-  const entitlementFilter = allowedKeys.map((key) => encodeURIComponent(key)).join(",");
-  const entitlementResponse = await fetch(`${config.url}/rest/v1/billing_entitlements?select=entitlement_key,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=eq.active&entitlement_key=in.(${entitlementFilter})&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (entitlementResponse?.ok) {
-    const rows = await entitlementResponse.json().catch(() => []);
-    const match = rows[0];
-    if (match?.entitlement_key && match.status === "active") return { ok: true, organizationId: organization.organizationId, source: "billing_entitlements", entitlementKey: match.entitlement_key };
-  }
-
-  const subscriptionResponse = await fetch(`${config.url}/rest/v1/billing_subscriptions?select=plan_slug,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&status=in.(active,trialing)&plan_slug=in.(${entitlementFilter})&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (subscriptionResponse?.ok) {
-    const rows = await subscriptionResponse.json().catch(() => []);
-    const match = rows[0];
-    if (match?.plan_slug && ["active", "trialing"].includes(match.status)) return { ok: true, organizationId: organization.organizationId, source: "billing_subscriptions", entitlementKey: match.plan_slug };
-  }
-
-  return {
-    ok: false,
-    status: 402,
-    code: "upgrade_required",
-    reason: "billing_state_missing",
-    message: "Paid access is locked until payment updates show an active or trialing plan, or an active one-time purchase."
-  };
-}
 
 
 async function verifyAdminRequest(req) {
@@ -3757,7 +3764,7 @@ async function getAdminMetrics() {
     safeCountTable(config, "billing_subscriptions"),
     safeCountTable(config, "billing_webhook_events"),
     safeCountTable(config, "support_requests"),
-    safeCountTable(config, "product_modules"),
+    safeCountTable(config, "sonara_module_registry"),
     safeCountTable(config, "service_requests")
   ]);
   return {

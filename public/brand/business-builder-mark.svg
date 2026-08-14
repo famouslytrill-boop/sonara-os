@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Business Builder Prism Forge-mode mark">
   <title>Business Builder Prism mark</title>
   <desc>An original rising forge path representing offers, operations, payments, and independent business momentum.</desc>
-  <defs><linearGradient id="forge" x1="18" y1="105" x2="109" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".55" stop-color="#FF7A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient></defs>
+  <defs><linearGradient id="forge" x1="18" y1="105" x2="109" y2="25" gradientUnits="userSpaceOnUse"><stop stop-color="#3DDC97"/><stop offset=".55" stop-color="#12E1C4"/><stop offset="1" stop-color="#3DDC97"/></linearGradient></defs>
   <path d="M18 96 45 70l17 15 44-51" fill="none" stroke="url(#forge)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
   <path d="M26 106h78M43 96V80M63 96V84M84 96V61" fill="none" stroke="#11162A" stroke-width="5.5" stroke-linecap="round"/>
   <circle cx="106" cy="34" r="8" fill="#fff" stroke="#11162A" stroke-width="4"/>

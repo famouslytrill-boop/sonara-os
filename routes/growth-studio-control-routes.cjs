@@ -1,31 +1,18 @@
 "use strict";
 
 const { randomUUID } = require("node:crypto");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 const {
   getGrowthProvider,
-  getGrowthProviderReadiness,
+  _getGrowthProviderReadiness,
   getGrowthProviderCatalog,
   chooseGrowthProvider
 } = require("../lib/growth-studio-provider-registry.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
-const { GROWTH_CREATE_SPECS, getGrowthCreateSpec } = require("../lib/sonara-growth-create-specs.cjs");
+const { getGrowthCreateSpec, CONSENT_CHANNELS } = require("../lib/sonara-growth-create-specs.cjs");
+const leadConversion = require("../lib/sonara-lead-conversion.cjs");
 
-const TABLES = Object.freeze({
-  campaigns: "growth_campaigns",
-  leads: "growth_leads",
-  experiments: "growth_experiments",
-  automations: "automation_rules",
-  connections: "growth_provider_connections",
-  segments: "growth_audience_segments",
-  consents: "growth_contact_consents",
-  touchpoints: "growth_touchpoints",
-  conversions: "growth_conversions",
-  content: "growth_content_queue",
-  jobs: "growth_provider_jobs",
-  metrics: "growth_metric_snapshots",
-  variants: "growth_experiment_variants",
-  events: "growth_control_events"
-});
+const { GROWTH_TABLES: TABLES } = require("../lib/sonara-growth-tables.cjs");
 
 const OUTBOUND_CHANNELS = new Set(["email", "sms", "push", "whatsapp"]);
 const AUTOMATION_TRIGGERS = new Set(["lead_created", "lead_qualified", "form_submitted", "campaign_started", "conversion_recorded", "consent_granted", "content_ready"]);
@@ -64,6 +51,70 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         arbitraryAutomationCode: false
       }
     });
+  });
+
+  // Turning a won lead into a customer.
+  //
+  // growth_leads and customers hold the same four fields and nothing joined
+  // them, so a lead that closed had to be retyped before it could be quoted or
+  // invoiced. That seam is what the "one system" claim is about: Growth Studio
+  // finds the work, Business Builder bills it.
+  //
+  // Both tables belong to the same organization, so this crosses a product
+  // boundary and not a tenancy one -- and every read and write below still
+  // carries the organization rather than trusting that.
+  //
+  // The owner acting, not an agent, for the same reason as the quote step: a
+  // person pressing a button they can see is the person.
+  app.post("/api/growth-studio/leads/:leadId/customer", access, async (req, res) => {
+    // The button on /growth-studio/enquiries posts here from a plain form, so
+    // the reply has to be a page. Handing a browser the JSON body shows the
+    // owner a wall of punctuation and loses the customer they just created --
+    // a working endpoint that reads as a crash.
+    const back = "/growth-studio/enquiries";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      // Somewhere useful on success: the customer now exists, so show it.
+      if (payload.ok) return res.redirect(303, "/business-builder/owner/customers");
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_converted")}`);
+    };
+
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return respond(context.status, context);
+    if (!validUuid(req.params.leadId)) return respond(400, { ok: false, code: "invalid_lead_id" });
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "supabase_setup_required" });
+
+    const found = await loadOne(config, TABLES.leads, context, req.params.leadId);
+    if (!found.ok) return respond(found.status, { ok: false, code: found.code });
+    const lead = found.row;
+
+    // Existing customers are read before deciding. An unreadable list is not an
+    // empty one -- treating a failed read as "no duplicates" is how the same
+    // person ends up in the customer list twice with half the invoices on each.
+    const customers = await list(config, TABLES.customers, context, 1000);
+    if (!customers.ok) return respond(503, { ok: false, code: "cannot_check_existing_customers" });
+
+    const refusal = leadConversion.reasonNotConvertible(lead, customers.rows);
+    if (refusal) return respond(409, { ok: false, code: "not_convertible", reason: refusal });
+
+    const created = await insert(config, TABLES.customers, leadConversion.customerFromLead(lead, {
+      organizationId: context.organizationId,
+      userId: context.userId
+    }));
+    if (!created.ok) return respond(502, { ok: false, code: created.code });
+
+    const customerId = created.rows[0]?.id || null;
+    if (!customerId) return respond(502, { ok: false, code: "customer_id_missing" });
+
+    // Best-effort, and deliberately after the customer exists. If this fails
+    // the customer is real and the lead simply does not know about it yet,
+    // which an owner can see and fix. Failing the whole thing here would leave
+    // the customer created and the caller told it was not.
+    const linked = await patchRows(config, TABLES.leads, context, lead.id, { customer_id: customerId });
+    if (created.ok) await controlEvent(config, context, "lead.converted", "success", { lead_id: lead.id, customer_id: customerId, linked: linked.ok });
+
+    return respond(201, { ok: true, customerId, leadLinked: linked.ok });
   });
 
   app.get("/api/growth/campaigns", access, listHandler(TABLES.campaigns, deps, "campaigns"));
@@ -160,14 +211,27 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     const name = clean(req.body.name, 240);
-    const definition = parseObject(req.body.segment_definition || req.body.segmentDefinition, null);
+    const description = nullable(req.body.description, 1000);
+    // The form collects "Who belongs in it" in plain words and this handler
+    // demanded a segment_definition object no form had a field for, so every
+    // submission from /growth-studio/segments failed and the only way to create
+    // a segment was to hand-craft an HTTP request.
+    //
+    // Written words rather than a rule builder, because nothing in this product
+    // evaluates segment_definition -- no code reads the column back to work out
+    // who is in the segment. A JSON rule box would look like a filter the
+    // product applies, and it would not be one. What is stored is what the
+    // customer said, marked as a description so a future evaluator can tell it
+    // apart from a rule it could execute.
+    const definition = parseObject(req.body.segment_definition || req.body.segmentDefinition, null)
+      || (description ? { described_as: description } : null);
     if (!name || !definition) return res.status(400).json({ ok: false, code: "segment_name_and_definition_required" });
     if (containsUnsafeExpression(definition)) return res.status(400).json({ ok: false, code: "segment_definition_not_allowed" });
     const created = await insert(config, TABLES.segments, {
       organization_id: context.organizationId,
       user_id: context.userId,
       name,
-      description: nullable(req.body.description, 1000),
+      description,
       segment_definition: definition,
       status: oneOf(req.body.status, ["draft", "active", "paused", "archived"], "draft")
     });
@@ -179,7 +243,11 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
-    const channel = oneOf(req.body.channel, ["email", "sms", "push", "whatsapp", "phone", "personalization", "analytics"], null);
+    // The list is imported rather than written here. The form rendered channel
+    // as free text labelled "email, sms, post, phone" -- and "post" is not on
+    // this list, so a customer who took the label at its word got
+    // consent_fields_required with no indication which field was wrong.
+    const channel = oneOf(req.body.channel, CONSENT_CHANNELS, null);
     const status = oneOf(req.body.consent_status || req.body.consentStatus, ["granted", "denied", "withdrawn", "expired", "unknown"], null);
     const purpose = clean(req.body.purpose, 300);
     const source = clean(req.body.source, 300);
@@ -332,7 +400,24 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const config = getConfig(deps);
     const name = clean(req.body.name, 240);
     const hypothesis = clean(req.body.hypothesis, 2000);
+    // A JSON caller posts `variants`; a form cannot post an array of objects, so
+    // the two named fields the page renders are turned into the same thing here.
+    //
+    // Without this the experiments form could never save: the handler has always
+    // required two variants whose weights sum to one, and no page offered a way
+    // to give it any. Every submission came back
+    // experiment_name_hypothesis_and_two_variants_required, naming a field the
+    // form does not have -- the same shape as the item_name defect.
+    //
+    // Split evenly rather than asking for weights. An even split is what an A/B
+    // test means unless somebody says otherwise, and a weight box on the form
+    // would be a number a customer has to get right for the save to work at all.
     const variants = parseArray(req.body.variants, []);
+    if (!variants.length) {
+      const a = clean(req.body.variant_a || req.body.variantA, 240);
+      const b = clean(req.body.variant_b || req.body.variantB, 240);
+      if (a && b) variants.push({ variant_key: "a", name: a, allocation_weight: 0.5 }, { variant_key: "b", name: b, allocation_weight: 0.5 });
+    }
     if (!name || !hypothesis || variants.length < 2) return res.status(400).json({ ok: false, code: "experiment_name_hypothesis_and_two_variants_required" });
     const totalWeight = variants.reduce((sum, variant) => sum + Number(variant.allocation_weight ?? variant.allocationWeight ?? 0), 0);
     if (Math.abs(totalWeight - 1) > 0.0001) return res.status(400).json({ ok: false, code: "variant_weights_must_equal_one" });
@@ -426,31 +511,91 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const campaignId = validUuid(req.query.campaign_id || req.query.campaignId) ? String(req.query.campaign_id || req.query.campaignId) : null;
-    const [campaigns, leads, touchpoints, conversions, content, experiments, snapshots] = await Promise.all([
-      list(config, TABLES.campaigns, context, 500, campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.leads, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.touchpoints, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
+    // Only two reads pull rows now. Five more used to fetch up to a thousand
+    // records each purely to call .length on them, and counting from the
+    // database made every one of those dead weight -- a count=exact costs a
+    // single row whatever the table holds. Conversions are still read because
+    // the value and the attribution breakdown are computed across them, and the
+    // snapshots are rendered.
+    const [conversions, snapshots] = await Promise.all([
       list(config, TABLES.conversions, context, 1000, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.content, context, 500, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
-      list(config, TABLES.experiments, context, 500, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : ""),
       list(config, TABLES.metrics, context, 100, campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "")
     ]);
-    const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+    // Totals asked of the database, not measured off the page.
+    //
+    // Every field below used to be `rows.length` from a read capped at 500 or
+    // 1000, under a key literally called `totals`. An API consumer has no way to
+    // tell a total from a page length, which makes this the worst surface for
+    // the substitution -- the totals card at least had a heading somebody might
+    // question. A count that cannot be read comes back null rather than 0.
+    const scoped = campaignId ? `&campaign_id=eq.${encodeURIComponent(campaignId)}` : "";
+    const scopedById = campaignId ? `&id=eq.${encodeURIComponent(campaignId)}` : "";
+    const [
+      campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount,
+      touchpointCount, conversionCount, contentCount, publishedCount, experimentCount
+    ] = await Promise.all([
+      countRows(config, TABLES.campaigns, context, scopedById),
+      countRows(config, TABLES.campaigns, context, `${scopedById}&status=eq.active`),
+      countRows(config, TABLES.leads, context, scoped),
+      countRows(config, TABLES.leads, context, `${scoped}&status=in.(qualified,won)`),
+      countRows(config, TABLES.touchpoints, context, scoped),
+      countRows(config, TABLES.conversions, context, scoped),
+      countRows(config, TABLES.content, context, scoped),
+      countRows(config, TABLES.content, context, `${scoped}&publish_status=eq.published`),
+      countRows(config, TABLES.experiments, context, scoped)
+    ]);
+
+    // A conversion with no value recorded counted as zero and disappeared into
+    // the total, which then read as the value of every sale. Number(null) is 0
+    // and `|| 0` makes it explicit rather than accidental -- same result. The
+    // count of unpriced rows travels with the figure now.
+    const valued = conversions.rows.map((row) => finiteNumber(row.value));
+    const conversionValue = valued.filter((value) => value !== null).reduce((sum, value) => sum + value, 0);
+    const conversionsWithoutValue = valued.filter((value) => value === null).length;
+    // What the value and the attribution breakdown were actually computed over.
+    // Neither can be done in PostgREST without an RPC, so both are a sample of
+    // the most recent conversions -- and a caller has to be told that rather
+    // than left to assume it covers everything.
+    const conversionsRead = conversions.rows.length;
+    const conversionsComplete = conversionCount.ok && typeof conversionCount.count === "number"
+      ? conversionCount.count <= conversionsRead
+      : null;
+
+    // Every figure below is null when its count could not be read, which is
+    // honest per field -- and the envelope still said ok: true, so a consumer
+    // checking the one field that means success saw success over a response in
+    // which nothing had been counted. Same envelope-versus-field split that
+    // /api/business-builder/records had.
+    const counts = [campaignCount, activeCampaignCount, leadCount, qualifiedLeadCount, touchpointCount, conversionCount, contentCount, publishedCount, experimentCount];
+    const readable = counts.filter((entry) => entry.ok).length;
     return res.status(200).json({
-      ok: true,
+      // False only when nothing at all could be counted. A partial read is
+      // reported through the nulls, which say precisely which figures are
+      // missing rather than discarding the ones that arrived.
+      ok: readable > 0,
+      countsRead: { readable, of: counts.length },
       scope: { organizationId: context.organizationId, campaignId },
       totals: {
-        campaigns: campaigns.rows.length,
-        activeCampaigns: campaigns.rows.filter((row) => row.status === "active").length,
-        leads: leads.rows.length,
-        qualifiedLeads: leads.rows.filter((row) => ["qualified", "won"].includes(row.status)).length,
-        touchpoints: touchpoints.rows.length,
-        conversions: conversions.rows.length,
+        campaigns: campaignCount.count,
+        activeCampaigns: activeCampaignCount.count,
+        leads: leadCount.count,
+        qualifiedLeads: qualifiedLeadCount.count,
+        touchpoints: touchpointCount.count,
+        conversions: conversionCount.count,
         conversionValue,
-        contentItems: content.rows.length,
-        publishedItems: content.rows.filter((row) => row.publish_status === "published").length,
-        experiments: experiments.rows.length
+        contentItems: contentCount.count,
+        publishedItems: publishedCount.count,
+        experiments: experimentCount.count
       },
+      // conversionValue and the attribution breakdown below are computed from
+      // this many conversion rows. complete: false means there are more, and the
+      // figures cover the most recent ones only; null means the count could not
+      // be read, so neither answer is available.
+      // conversionsWithoutValue is part of the same disclosure: the figure is
+      // the sum of the rows that carry a value, and this says how many did not.
+      // Without it a total short by ten unpriced sales is indistinguishable
+      // from a complete one.
+      computedOver: { conversions: conversionsRead, complete: conversionsComplete, withoutValue: conversionsWithoutValue },
       attribution: {
         reportedModels: countBy(conversions.rows, "attribution_model"),
         confidence: countBy(conversions.rows, "attribution_confidence"),
@@ -497,6 +642,8 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
         ui.link("/growth-studio/attribution", "Where results came from"),
         ui.link("/growth-studio/campaigns", "Campaigns"),
         ui.link("/growth-studio/leads", "Leads"),
+        ui.link("/growth-studio/enquiries", "People who got in touch"),
+        ui.link("/growth-studio/your-campaigns", "Your campaigns"),
         ui.link("/growth-studio/provider-jobs", "Work sent to services")
       ]
     }));
@@ -523,7 +670,16 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       }
       const sections = unavailable ? [ui.card("Not available right now", unavailable)] : [];
       if (!unavailable && page.includesTotals) sections.push(await growthTotalsCard(config, context, ui));
-      if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape));
+      // The refusal rules for a row action can need records this page does not
+      // list. A failed read is left as null rather than an empty array so the
+      // action reports "could not check" instead of quietly deciding there are
+      // no duplicates.
+      let actionContext = null;
+      if (!unavailable && page.needsCustomers) {
+        const existing = await list(config, TABLES.customers, context, 1000);
+        actionContext = { customers: existing.ok ? existing.rows : null };
+      }
+      if (!unavailable) sections.push(recordTableCard(page, rows, ui.escape, actionContext));
       // The form goes on the page that lists the records, so the way to add one
       // is where somebody looking at an empty list already is. A create route
       // reachable only by knowing its URL is the same as not having one.
@@ -542,41 +698,118 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   }
 };
 
-// The totals that /api/growth/metrics computes, on a page. Counted from the
-// records as they stand -- nothing here is estimated, projected or filled in.
+// The totals, counted by the database rather than by whatever fitted on a page.
+//
+// This card used to read up to 500 or 1000 rows and report `rows.length` as the
+// total, under a heading saying "counted from your own records". A business with
+// 1,200 enquiries was told it had 1,000. **The worst of them was money**: the
+// value of sales summed the capped read, so a real revenue figure was quietly
+// short by however many conversions did not fit -- and the home page now claims
+// every figure comes from the owner's own records and that the product says when
+// it does not know.
+//
+// Counts come from `count=exact` now, which is one row of transfer whatever the
+// size. The value is the one thing PostgREST cannot total without an RPC, so it
+// is labelled for exactly the rows it covers rather than presented as a total it
+// is not.
+const VALUE_SAMPLE = 1000;
+
 async function growthTotalsCard(config, context, ui) {
-  const [campaigns, leads, conversions, content] = await Promise.all([
-    list(config, TABLES.campaigns, context, 500),
-    list(config, TABLES.leads, context, 1000),
-    list(config, TABLES.conversions, context, 1000),
-    list(config, TABLES.content, context, 500)
+  const [
+    campaigns, campaignsActive, leads, leadsWorthFollowing,
+    conversionCount, content, contentPublished, recentConversions
+  ] = await Promise.all([
+    countRows(config, TABLES.campaigns, context),
+    countRows(config, TABLES.campaigns, context, "&status=eq.active"),
+    countRows(config, TABLES.leads, context),
+    countRows(config, TABLES.leads, context, "&status=in.(qualified,won)"),
+    countRows(config, TABLES.conversions, context),
+    countRows(config, TABLES.content, context),
+    countRows(config, TABLES.content, context, "&publish_status=eq.published"),
+    list(config, TABLES.conversions, context, VALUE_SAMPLE)
   ]);
-  if (!campaigns.ok && !leads.ok && !conversions.ok && !content.ok) {
+
+  const counts = [campaigns, campaignsActive, leads, leadsWorthFollowing, conversionCount, content, contentPublished];
+  if (counts.every((result) => !result.ok)) {
     return ui.card("Your totals", "We could not count these just now. Try again shortly.");
   }
-  const conversionValue = conversions.rows.reduce((sum, row) => sum + Number(row.value || 0), 0);
+
+  // A count that failed says so in its own row. The previous version only
+  // reported a problem when *every* read failed, so one unreadable table left a
+  // real 0 sitting beside six real numbers, indistinguishable from a business
+  // that had none of that thing.
+  const shown = (result) => (result.ok && typeof result.count === "number" ? String(result.count) : "Not available just now");
+
   const totals = [
-    ["Campaigns", campaigns.rows.length],
-    ["Campaigns running", campaigns.rows.filter((row) => row.status === "active").length],
-    ["People who got in touch", leads.rows.length],
-    ["Worth following up", leads.rows.filter((row) => ["qualified", "won"].includes(row.status)).length],
-    ["Sales recorded", conversions.rows.length],
-    ["Value of those sales", conversionValue],
-    ["Pieces of content", content.rows.length],
-    ["Published", content.rows.filter((row) => row.publish_status === "published").length]
+    ["Campaigns", shown(campaigns)],
+    ["Campaigns running", shown(campaignsActive)],
+    ["People who got in touch", shown(leads)],
+    ["Worth following up", shown(leadsWorthFollowing)],
+    ["Sales recorded", shown(conversionCount)],
+    ["Pieces of content", shown(content)],
+    ["Published", shown(contentPublished)]
   ];
+
+  // The money row, labelled for what it actually covers.
+  if (!recentConversions.ok) {
+    totals.push(["Value of those sales", "Not available just now"]);
+  } else {
+    const valued = recentConversions.rows.map((row) => finiteNumber(row.value));
+    const unpriced = valued.filter((entry) => entry === null).length;
+    const value = valued.filter((entry) => entry !== null).reduce((sum, entry) => sum + entry, 0);
+    const covered = recentConversions.rows.length;
+    const partial = conversionCount.ok && typeof conversionCount.count === "number" && conversionCount.count > covered;
+    // A sale with no value recorded is not a sale worth nothing. Saying how
+    // many were left out is the difference between a total and a total that
+    // happens to be short.
+    const label = partial ? `Value of the ${covered} most recent sales` : "Value of those sales";
+    totals.push([
+      unpriced ? `${label}, excluding ${unpriced} with no value recorded` : label,
+      String(value)
+    ]);
+  }
+
   const rows = totals.map(([label, value]) => `<tr><th scope="row">${ui.escape(label)}</th><td>${ui.escape(String(value))}</td></tr>`).join("");
   // Kept from the API response, because it is the honest part: attribution is
   // what a source reported, not proof that it caused the sale.
   return `<article class="card"><h2>Your totals</h2><table><tbody>${rows}</tbody></table><p>These are counted from your own records. Where a figure says a campaign brought in a sale, that is what the source reported, not proof it caused it.</p></article>`;
 }
 
-function recordTableCard(page, rows, escape) {
-  const head = page.columns.map((column) => `<th>${escape(column.label)}</th>`).join("");
+function recordTableCard(page, rows, escape, context = null) {
+  // A row can act on itself. The same shape as the owner record pages in
+  // routes/sonara-last9-routes.cjs, and here for the same reason: an endpoint
+  // that takes a path parameter is skipped by the form-reachability scan, so
+  // "the button does not exist" is a defect no check reports. Declaring the
+  // action beside the page means the row that can take it renders it, and the
+  // row that cannot says why in the same column instead of showing a button
+  // that will refuse.
+  const action = page.rowAction || null;
+  const heads = [...page.columns.map((column) => `<th>${escape(column.label)}</th>`)];
+  if (action) heads.push(`<th>${escape(action.columnLabel || "Action")}</th>`);
+  const width = heads.length;
   const body = rows.length
-    ? rows.map((row) => `<tr>${page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${page.columns.length}">${escape(page.empty)}</td></tr>`;
-  return `<article class="card"><h2>${escape(page.heading)}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+    ? rows.map((row) => {
+      const cells = page.columns.map((column) => `<td>${escape(safeValue(column, row))}</td>`);
+      if (action) cells.push(`<td>${actionCell(action, row, escape, context)}</td>`);
+      return `<tr>${cells.join("")}</tr>`;
+    }).join("")
+    : `<tr><td colspan="${width}">${escape(page.empty)}</td></tr>`;
+  return `<article class="card"><h2>${escape(page.heading)}</h2><table><thead><tr>${heads.join("")}</tr></thead><tbody>${body}</tbody></table></article>`;
+}
+
+// Either a button or the reason there is not one. A spec that throws on an odd
+// row must not take the page down, and it must not fall through to a button
+// either -- an unanswerable question is not a yes.
+function actionCell(action, row, escape, context) {
+  let reason;
+  try {
+    reason = action.reasonUnavailable ? action.reasonUnavailable(row, context) : null;
+  } catch {
+    reason = "This cannot be checked right now.";
+  }
+  if (reason) return escape(reason);
+  const id = encodeURIComponent(String(row.id || ""));
+  return `<form method="post" action="${escape(action.api.replace(":id", id))}"><button type="submit">${escape(action.label)}</button></form>`;
 }
 
 // A column reads fields off a record that a provider may have left in an
@@ -812,6 +1045,33 @@ function getConfig(deps) {
   return url && serviceRoleKey ? { ok: true, url: String(url).replace(/\/$/, ""), serviceRoleKey } : { ok: false };
 }
 
+// How many rows there are, asked of the database.
+//
+// PostgREST returns the total in Content-Range when Prefer: count=exact is set,
+// so this costs one row of transfer regardless of how many exist. rest() throws
+// the headers away, which is why this does its own fetch rather than passing a
+// prefer through.
+//
+// A failed count returns null rather than 0. Nothing here may turn "we could not
+// ask" into "there are none" -- that is the substitution the totals card was
+// making four times over.
+async function countRows(config, table, context, filter = "") {
+  if (!config?.ok && (!config?.url || !config?.serviceRoleKey)) return { ok: false, count: null };
+  const query = `select=id&organization_id=eq.${encodeURIComponent(context.organizationId)}${filter}&limit=1`;
+  const response = await fetch(`${config.url}/rest/v1/${table}?${query}`, {
+    headers: {
+      apikey: config.serviceRoleKey,
+      Authorization: `Bearer ${config.serviceRoleKey}`,
+      Prefer: "count=exact"
+    }
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, count: null };
+  const range = response.headers?.get?.("content-range") || "";
+  const match = range.match(/\/(\d+)$/);
+  if (!match) return { ok: false, count: null };
+  return { ok: true, count: Number(match[1]) };
+}
+
 async function rest(config, table, query = "", options = {}) {
   if (!config?.ok && (!config?.url || !config?.serviceRoleKey)) return { ok: false, status: 503, code: "supabase_setup_required", rows: [] };
   const response = await fetch(`${config.url}/rest/v1/${table}${query ? `?${query}` : ""}`, {
@@ -903,3 +1163,11 @@ function safeError(error) { return clean(error?.message || error || "Unknown pro
 function containsUnsafeExpression(value) { const text = JSON.stringify(value || {}).toLowerCase(); return /(?:javascript:|<script|child_process|exec\s*\(|spawn\s*\(|eval\s*\(|require\s*\(|__proto__|constructor\.prototype|file:\/\/|ssh:\/\/)/.test(text); }
 function sanitizeProviderPayload(value) { if (!value || typeof value !== "object") return {}; const copy = JSON.parse(JSON.stringify(value)); scrub(copy); return copy; }
 function scrub(value) { if (!value || typeof value !== "object") return; for (const key of Object.keys(value)) { if (/api.?key|token|authorization|credential|secret|password/i.test(key)) value[key] = "[redacted]"; else scrub(value[key]); } }
+
+// A browser form post announces itself either by Accept or by content type.
+// Same shape as routes/sonara-last9-routes.cjs, which is where the owner record
+// pages answer their own row actions.
+function acceptsHtml(req) {
+  return String(req.get?.("accept") || "").includes("text/html")
+    || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
+}

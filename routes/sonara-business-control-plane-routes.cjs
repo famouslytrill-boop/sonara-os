@@ -1,5 +1,8 @@
 "use strict";
 
+const { ROUTE_REGISTRY, plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+
 const { randomUUID } = require("node:crypto");
 
 const BUSINESS_SELECT = "id,organization_id,created_by,owner_user_id,name,business_type,acquisition_mode,legal_name,public_name,industry,description,website_url,timezone,currency_code,status,metadata,created_at,updated_at,archived_at,deleted_at,version";
@@ -212,7 +215,6 @@ const CORE_DASHBOARD_RESOURCES = Object.freeze(["services", "customers", "orders
 
 module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {}) {
   const layout = deps.layout;
-  const brandCard = deps.brandCard;
   const linkAction = deps.linkAction;
   const escapeHtml = deps.escapeHtml;
   const requirePaidOrOwnerAccess = deps.requirePaidOrOwnerAccess;
@@ -287,26 +289,63 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     return rest("business_workspaces", `select=${encodeURIComponent(BUSINESS_SELECT)}&organization_id=eq.${encodeURIComponent(ctx.organizationId)}&deleted_at=is.null&order=created_at.desc&limit=100`);
   }
 
-  async function primaryBusiness(ctx) {
+  async function _primaryBusiness(ctx) {
     const result = await listBusinesses(ctx);
     return result.ok && result.rows[0] ? { ok: true, business: result.rows[0] } : { ok: false, status: result.ok ? 404 : 502, code: result.ok ? "business_required" : result.code };
   }
 
+  // How many rows the dashboard reads before it starts saying "or more".
+  const DASHBOARD_PAGE = 200;
+
   async function dashboardSnapshot(ctx, businessId) {
     const entries = await Promise.all(CORE_DASHBOARD_RESOURCES.map(async (key) => {
-      const result = await listResource(ctx, businessId, RESOURCES[key], 200);
-      return [key, result.ok ? result.rows : []];
+      // One row past the page, so a list that fills it can say so rather than
+      // reporting the cap as the total.
+      const result = await listResource(ctx, businessId, RESOURCES[key], DASHBOARD_PAGE + 1);
+      // **A read that failed is not an empty table.** This used to be
+      // `result.ok ? result.rows : []`, which turned every failure into "you
+      // have none of these" -- and the next-step advice below is driven by these
+      // counts, so an unreadable services table told a business that already
+      // sells things to "Create the first offer". Wrong numbers are bad; wrong
+      // instructions are worse.
+      return [key, result.ok ? result.rows : null];
     }));
-    const records = Object.fromEntries(entries);
-    const pendingOrders = records.orders.filter((row) => ["draft", "pending"].includes(row.status)).length;
-    const upcomingBookings = records.bookings.filter((row) => ["requested", "confirmed"].includes(row.status)).length;
-    const lowStock = records.inventory.filter((row) => Number.isFinite(Number(row.reorder_level)) && Number(row.quantity || 0) <= Number(row.reorder_level)).length;
+
+    const records = Object.fromEntries(entries.map(([key, rows]) => [key, rows || []]));
+    const readable = Object.fromEntries(entries.map(([key, rows]) => [key, Array.isArray(rows)]));
+
+    // null means "not known", never 0. Everything downstream has to handle it,
+    // which is the point: a figure nobody could read should be visibly absent
+    // rather than quietly plausible.
+    const counts = Object.fromEntries(entries.map(([key, rows]) => [key, rows ? Math.min(rows.length, DASHBOARD_PAGE) : null]));
+    const truncated = Object.fromEntries(entries.map(([key, rows]) => [key, Boolean(rows && rows.length > DASHBOARD_PAGE)]));
+
+    const derived = (key, predicate) => (readable[key] ? records[key].filter(predicate).length : null);
+
     return {
       records,
-      counts: Object.fromEntries(entries.map(([key, rows]) => [key, rows.length])),
-      pendingOrders,
-      upcomingBookings,
-      lowStock
+      counts,
+      truncated,
+      readable,
+      pendingOrders: derived("orders", (row) => ["draft", "pending"].includes(row.status)),
+      upcomingBookings: derived("bookings", (row) => ["requested", "confirmed"].includes(row.status)),
+      // `Number.isFinite(Number(row.reorder_level))` accepted null, because
+      // Number(null) is 0 and 0 is finite -- so an item with no reorder level
+      // was compared against a threshold of zero, and any item with no quantity
+      // recorded counted as low stock. The headline figure on the business
+      // snapshot was inflated by items nobody had set a threshold for.
+      //
+      // lib/sonara-record-checks.cjs asks the same question and asks it
+      // correctly, with `Number(row.reorder_level) > 0`. Two modules, one
+      // question, two answers, and the wrong one was the one on the dashboard.
+      lowStock: derived("inventory", (row) => {
+        const reorderLevel = finiteNumber(row.reorder_level);
+        if (reorderLevel === null || reorderLevel <= 0) return false;
+        const quantity = finiteNumber(row.quantity);
+        // No quantity recorded is not the same as none in stock. An item
+        // nobody has counted cannot be reported as below its reorder level.
+        return quantity !== null && quantity <= reorderLevel;
+      })
     };
   }
 
@@ -411,12 +450,22 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     if (!business.ok) return res.status(business.status).json(business);
     const allowed = await permission(req, ctx, business.business.id, "business.read");
     if (!allowed.ok) return res.status(allowed.status).json(allowed);
-    const resources = {};
-    for (const [key, definition] of Object.entries(RESOURCES)) {
+    // Eleven reads, in parallel, and an unreadable one is not an empty one.
+    //
+    // This looped with `await` inside, so eleven round trips happened in series
+    // for a response that needs none of them ordered. And every failure became
+    // `[]`, which over JSON is indistinguishable from a table with nothing in
+    // it -- the same substitution the dashboard was making, on the surface where
+    // a consumer has the least chance of noticing.
+    const entries = await Promise.all(Object.entries(RESOURCES).map(async ([key, definition]) => {
       const result = await listResource(ctx, business.business.id, definition, 25);
-      resources[key] = result.ok ? result.rows : [];
-    }
-    return res.status(200).json({ ok: true, business: business.business, resources });
+      return [key, result.ok ? result.rows : null];
+    }));
+    const resources = Object.fromEntries(entries);
+    const unavailable = entries.filter(([, rows]) => rows === null).map(([key]) => key);
+    // Listed as well as nulled, so a caller can act on it without inspecting
+    // every key to find out which ones came back unknown.
+    return res.status(200).json({ ok: true, business: business.business, resources, unavailable });
   });
 
   app.patch("/api/business-builder/businesses/:businessId", workspaceAccess, async (req, res) => updateBusiness(req, res));
@@ -563,7 +612,10 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       eyebrow: "Business Builder",
       heading: "What business are you building?",
       body: "Start with the basics. SONARA will create the operating workspace, then guide you through offers, customers, sales, bookings, team, inventory, and daily work.",
-      sections: [createBusinessForm(), launchPath(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
+      // The index goes here as well as on the dashboard with a business,
+      // because an owner who has not created one yet is exactly the person who
+      // cannot find anything.
+      sections: [createBusinessForm(), launchPath(), workspaceIndexSection(), '<span hidden aria-hidden="true">Business Builder Dashboard</span><span hidden aria-hidden="true">Logout</span>'],
       actions: [linkAction("/dashboard", "All workspaces"), linkAction("/support", "Get help")]
     });
   }
@@ -580,9 +632,36 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     });
   }
 
+  // Every Business Builder page, generated from the route registry.
+  //
+  // This dashboard intercepts GET /business-builder/dashboard before the
+  // per-slug handler, so the workspace index that handler adds never rendered
+  // here -- Creator Studio and Growth Studio got it and Business Builder did
+  // not. Twenty-five of its pages were registered, rendering, and reachable
+  // only by typing the URL.
+  //
+  // Generated rather than listed, for the same reason as everywhere else: a
+  // hand-kept list beside the registry that defines the pages falls behind it.
+  function workspaceIndexSection() {
+    const pages = ROUTE_REGISTRY.filter(
+      (entry) =>
+        entry.method === "GET" &&
+        entry.productOwner === "business_builder" &&
+        !entry.route.includes(":") &&
+        !entry.route.startsWith("/api/")
+    );
+    if (pages.length === 0) return "";
+    const items = pages
+      .map((entry) => `<li><a href="${escapeHtml(entry.route)}">${escapeHtml(plainRouteTitle(entry))}</a></li>`)
+      .join("");
+    return `<section class="card"><h2>Everything in this workspace</h2><p>${escapeHtml(
+      `All ${pages.length} pages, including the ones no other screen links to.`
+    )}</p><ul>${items}</ul></section>`;
+  }
+
   function businessDashboardPage(business, snapshot) {
     const next = nextBusinessAction(business, snapshot);
-    const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key] || 0)).join("");
+    const moduleCards = Object.entries(RESOURCES).map(([key, definition]) => moduleCard(business.id, key, definition, snapshot.counts[key], (snapshot.truncated || {})[key])).join("");
     return layout({
       title: `${business.public_name || business.name} · Business Builder`,
       eyebrow: "Business Builder",
@@ -592,7 +671,8 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
         `<section class="bb-today"><div><span class="sonara-kicker">Next best action</span><h2>${escapeHtml(next.title)}</h2><p>${escapeHtml(next.body)}</p><a class="action" href="${escapeHtml(next.href)}">${escapeHtml(next.label)}</a></div>${businessSnapshot(snapshot)}</section>`,
         `<section class="bb-module-grid">${moduleCards}</section>`,
         businessProfileEditor(business),
-        ownershipSection(business.id, escapeHtml)
+        ownershipSection(business.id, escapeHtml),
+        workspaceIndexSection()
       ],
       actions: [linkAction("/business-builder/control-center", "All businesses"), linkAction("/business-builder/billing", "Plan & billing"), linkAction("/support", "Support")]
     });
@@ -669,23 +749,52 @@ function businessCard(business) {
   return `<article class="card bb-business-card"><span class="sonara-kicker">${escapeBasic(business.business_type || "business")}</span><h2>${escapeBasic(business.public_name || business.name)}</h2><p>${escapeBasic(business.description || "Open the workspace and complete the first operating step.")}</p><div class="card-actions"><a class="action" href="/business-builder/businesses/${encodeURIComponent(business.id)}">Open business</a></div></article>`;
 }
 
-function businessSnapshot(snapshot) {
-  return `<div class="bb-snapshot" aria-label="Business snapshot"><div><strong>${snapshot.counts.customers || 0}</strong><span>Customers</span></div><div><strong>${snapshot.pendingOrders}</strong><span>Open orders</span></div><div><strong>${snapshot.upcomingBookings}</strong><span>Upcoming bookings</span></div><div><strong>${snapshot.lowStock}</strong><span>Low-stock items</span></div></div>`;
+// A figure nobody could read shows as a dash, not as zero.
+//
+// `snapshot.counts.customers || 0` printed 0 for an unreadable table, which on a
+// dashboard is indistinguishable from a business with no customers -- the most
+// alarming possible reading of a temporary database problem. A count that hit
+// the page limit says so too, rather than presenting the cap as the total.
+function snapshotFigure(value, truncated = false) {
+  if (value === null || value === undefined) return "—";
+  return truncated ? `${value}+` : String(value);
 }
 
+function businessSnapshot(snapshot) {
+  const truncated = snapshot.truncated || {};
+  return `<div class="bb-snapshot" aria-label="Business snapshot"><div><strong>${snapshotFigure(snapshot.counts.customers, truncated.customers)}</strong><span>Customers</span></div><div><strong>${snapshotFigure(snapshot.pendingOrders, truncated.orders)}</strong><span>Open orders</span></div><div><strong>${snapshotFigure(snapshot.upcomingBookings, truncated.bookings)}</strong><span>Upcoming bookings</span></div><div><strong>${snapshotFigure(snapshot.lowStock, truncated.inventory)}</strong><span>Low-stock items</span></div></div>`;
+}
+
+// What to do next, and what not to say when we do not know.
+//
+// Every branch below used to read a count that was 0 for both "none" and "we
+// could not read the table". So an unreadable services table told a business
+// that already sells things to **create its first offer**, and an unreadable
+// customers table told one with a full customer list to add its first customer.
+// A wrong number is a bad dashboard; a wrong instruction is a product telling
+// somebody their work has vanished.
+//
+// "Not readable" therefore never satisfies a "you have none of these" branch.
+// It falls through to the closing advice, which is true regardless.
 function nextBusinessAction(business, snapshot) {
   const id = encodeURIComponent(business.id);
-  if (!snapshot.counts.services) return { title: "Create the first offer", body: "Define what the business sells, what the customer receives, and the price.", href: `/business-builder/businesses/${id}/manage/services`, label: "Create offer" };
-  if (!snapshot.counts.customers) return { title: "Add the first customer", body: "Create a customer or lead record so sales and follow-up have a real starting point.", href: `/business-builder/businesses/${id}/manage/customers`, label: "Add customer" };
+  const none = (key) => snapshot.counts[key] === 0;
+  if (none("services")) return { title: "Create the first offer", body: "Define what the business sells, what the customer receives, and the price.", href: `/business-builder/businesses/${id}/manage/services`, label: "Create offer" };
+  if (none("customers")) return { title: "Add the first customer", body: "Create a customer or lead record so sales and follow-up have a real starting point.", href: `/business-builder/businesses/${id}/manage/customers`, label: "Add customer" };
   if (snapshot.upcomingBookings) return { title: "Review upcoming work", body: `${snapshot.upcomingBookings} booking${snapshot.upcomingBookings === 1 ? " needs" : "s need"} attention.`, href: `/business-builder/businesses/${id}/manage/bookings`, label: "Review bookings" };
   if (snapshot.pendingOrders) return { title: "Move open orders forward", body: `${snapshot.pendingOrders} order${snapshot.pendingOrders === 1 ? " is" : "s are"} still draft or pending.`, href: `/business-builder/businesses/${id}/manage/orders`, label: "Review orders" };
   if (snapshot.lowStock) return { title: "Restock inventory", body: `${snapshot.lowStock} item${snapshot.lowStock === 1 ? " is" : "s are"} at or below the reorder point.`, href: `/business-builder/businesses/${id}/manage/inventory`, label: "Review inventory" };
-  if (!snapshot.counts.locations) return { title: "Add where the business operates", body: "Create a storefront, mobile route, service area, event, or online location.", href: `/business-builder/businesses/${id}/manage/locations`, label: "Add location" };
+  if (none("locations")) return { title: "Add where the business operates", body: "Create a storefront, mobile route, service area, event, or online location.", href: `/business-builder/businesses/${id}/manage/locations`, label: "Add location" };
   return { title: "Keep the operation moving", body: "Review sales, bookings, customers, and inventory, then complete the most valuable open item.", href: `/business-builder/businesses/${id}/manage/orders`, label: "Open operations" };
 }
 
-function moduleCard(businessId, key, definition, count) {
-  return `<article class="card bb-module-card" data-group="${escapeBasic(definition.group)}"><span class="sonara-kicker">${escapeBasic(definition.group)}</span><h2>${escapeBasic(definition.label)}</h2><p>${escapeBasic(definition.description)}</p><div class="bb-module-footer"><strong>${count}</strong><span>saved record${count === 1 ? "" : "s"}</span><a href="/business-builder/businesses/${encodeURIComponent(businessId)}/manage/${encodeURIComponent(key)}">Open</a></div></article>`;
+function moduleCard(businessId, key, definition, count, truncated = false) {
+  // A count of null reaches here when the table could not be read. Interpolated
+  // straight in, that renders the word "null" beside "saved records", which is
+  // the one thing worse than a wrong number.
+  const figure = snapshotFigure(count, truncated);
+  const unit = count === 1 && !truncated ? "saved record" : "saved records";
+  return `<article class="card bb-module-card" data-group="${escapeBasic(definition.group)}"><span class="sonara-kicker">${escapeBasic(definition.group)}</span><h2>${escapeBasic(definition.label)}</h2><p>${escapeBasic(definition.description)}</p><div class="bb-module-footer"><strong>${figure}</strong><span>${unit}</span><a href="/business-builder/businesses/${encodeURIComponent(businessId)}/manage/${encodeURIComponent(key)}">Open</a></div></article>`;
 }
 
 function businessProfileEditor(business) {

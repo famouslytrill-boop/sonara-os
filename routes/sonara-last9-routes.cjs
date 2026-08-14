@@ -1,12 +1,18 @@
 "use strict";
 
+const quoteConversion = require("../lib/sonara-quote-conversion.cjs");
 const {
   ALL_OWNER_PAGES,
+  childrenOf,
   CREATOR_RECORD_PAGES,
   REFERENCE_SOURCES,
   money,
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
+const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
+const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
+const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 // `person` names the column that records who created the row, and it is here
 // because leaving it implicit broke every form on these pages.
@@ -25,7 +31,7 @@ const {
 // below against lib/sonara-migration-columns.cjs, so a wrong name here fails
 // rather than shipping as a form that silently will not save.
 const RESOURCE_MAP = {
-  "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" } },
+  "/api/business/locations": { table: "business_locations", required: ["name"], defaults: { location_type: "storefront", status: "active" }, planLimit: "locations" },
   "/api/business/services": { table: "business_service_catalog", required: ["name"], defaults: { status: "active" } },
   "/api/business/bookings": { table: "business_bookings", required: ["customer_name"], defaults: { status: "requested" } },
   "/api/business/staff": { table: "business_employee_profiles", required: ["display_name"], person: "user_id", defaults: { status: "active", employment_type: "employee" } },
@@ -35,10 +41,24 @@ const RESOURCE_MAP = {
   "/api/business/inventory": { table: "inventory_items", required: ["name"], defaults: { status: "active", unit: "each" } },
   "/api/business/recipes": { table: "recipe_cards", required: ["name"], defaults: { status: "active" } },
   "/api/business/menu-items": { table: "menu_items", required: ["name"], defaults: { status: "active", currency: "usd" } },
+  "/api/business/sales-summaries": { table: "pos_sales_summaries", required: ["business_date"], defaults: { source: "manual" } },
   "/api/business/vehicles": { table: "vehicle_records", required: ["vehicle_type"], defaults: { status: "active" } },
   "/api/business/maintenance": { table: "maintenance_logs", required: ["description"], defaults: { status: "completed", currency: "usd" } },
   "/api/business/waste": { table: "waste_logs", required: ["item_name"], person: "logged_by", defaults: {} },
   "/api/creator/music-projects": { table: "music_projects", required: ["title"], person: "user_id", defaults: { status: "draft", project_type: "song" } },
+  // The artist system. creator_artist_profiles records who set it up; the four
+  // below hang off it and record nobody, because migration 016 gives them no
+  // user column and inventing one here would fail the insert.
+  //
+  // artist_profile_id is required on all four. It is nullable in the schema, so
+  // the database would take a row without one -- and that row would be
+  // invisible on every page, because each page lists by organization and the
+  // record belongs to no artist. Refusing here is cheaper than orphan rows.
+  "/api/creator/artists": { table: "creator_artist_profiles", required: ["artist_name", "artist_key"], person: "user_id", defaults: { status: "active" } },
+  "/api/creator/sound-identity": { table: "creator_sonic_profiles", required: ["artist_profile_id", "name", "profile_key"], defaults: { status: "active" } },
+  "/api/creator/album-cycles": { table: "creator_album_cycles", required: ["artist_profile_id", "title", "slug"], defaults: { project_type: "album", release_status: "planning" } },
+  "/api/creator/prompt-blueprints": { table: "creator_prompt_blueprints", required: ["artist_profile_id", "name", "blueprint_key", "prompt_template"], defaults: { status: "active" } },
+  "/api/creator/video-treatments": { table: "creator_video_treatments", required: ["artist_profile_id", "title"], defaults: { status: "draft", platform_target: "social" } },
   "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "queued" } },
   "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
@@ -53,6 +73,11 @@ const RESOURCE_MAP = {
   // Supplier payments and accounting exports. bill_payment_records records no
   // person; accounting_exports has created_by.
   "/api/business/bill-payments": { table: "bill_payment_records", required: [], defaults: { status: "scheduled", currency: "usd" } },
+  // Accounts receivable. customer_invoices records who raised it; the payments
+  // under it are reached through the invoice, the same way invoice lines are.
+  "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
+  "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
+  "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
   "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
 };
 
@@ -64,7 +89,7 @@ const PUBLIC_GETS = new Map([
 // lib/sonara-owner-record-pages.cjs, which is also where the reason they
 // needed rewriting is recorded.
 const OWNER_PAGES = [
-  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: locations, staff, services, bookings, inventory, vendors, invoices, food costs, vehicles, and maintenance."]
+  ["/business-builder/owner", "Owner Dashboard", "Run the business workspace: customers, quotes, invoices and what you are owed, plus locations, staff, services, bookings, inventory, vendors, food costs, vehicles, and maintenance."]
 ];
 
 // The staff portal.
@@ -108,14 +133,25 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           ui.card("You decide who sees what", "Owners and managers control staff access, locations, services, invoices, inventory, vehicles, and day-to-day operations."),
           ...summary.map((item) => ui.card(item.label, item.value))
         ],
+        // Every owner record page, generated from the same list that defines
+        // them.
+        //
+        // This was eleven hand-written links, and it had fallen eleven pages
+        // behind: purchase orders, stock counts, transfers, supplier payments,
+        // accounting exports, costs, maintenance, menu, recipes, vehicles and
+        // vendors were all registered, rendering, and reachable only by typing
+        // the URL. Adding the money pages by hand fixed five and left those.
+        //
+        // A hand-kept list of pages next to the list that defines the pages is
+        // a list that falls behind. This one cannot.
         actions: [
           // First, because it is the only one that tells the owner something
           // they did not already know they were looking for.
+          ui.link("/search", "Search your records"),
           ui.link("/business-builder/owner/assistant", "What needs attention"),
-          ui.link("/business-builder/owner/locations", "Locations"),
-          ui.link("/business-builder/owner/staff", "Staff"),
-          ui.link("/business-builder/owner/time", "Time"),
-          ui.link("/business-builder/owner/inventory", "Inventory"),
+          ui.link("/business-builder/owner/money-due", "Money due in and out"),
+          ui.link("/business-builder/owner/chase-drafts", "Chase drafts"),
+          ...ALL_OWNER_PAGES.map((ownerPage) => ui.link(ownerPage.path, ownerPage.title)),
           ui.link("/business-builder/dashboard", "Dashboard")
         ]
       }));
@@ -131,18 +167,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       let rows = [];
       let references = {};
+      let loaded = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
-        else rows = listed.rows;
+        else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
       }
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [recordsCard(page, rows, ui), ...(page.form ? [formCard(page, references, ui)] : [])];
+        : [recordsCard(page, rows, ui, loaded), ...(page.form ? [formCard(page, references, ui)] : [])];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
@@ -163,7 +200,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // classified all four line tables "build-with-parent" for that reason: a
   // standalone "add a line" form would be a way to create rows belonging to
   // nothing.
-  ALL_OWNER_PAGES.filter((page) => page.lines).forEach((page) => {
+  ALL_OWNER_PAGES.filter((page) => childrenOf(page).length > 0).forEach((page) => {
+    const children = childrenOf(page);
     app.get(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
@@ -178,7 +216,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       }));
 
       let parent = null;
-      let lines = [];
+      // One entry per child table, in declaration order.
+      let childRows = children.map(() => ({ ok: false, rows: [] }));
+      let extra = null;
+      let references = {};
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -190,28 +231,61 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         parent = found.ok ? found.rows[0] : null;
         if (!parent) unavailable = "That record is not in your business, or it has been removed.";
         else {
-          const listed = await supabaseList(config, page.lines.table, `?select=*&${page.lines.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
-          lines = listed.ok ? listed.rows : [];
+          // `listed.ok ? listed.rows : []` was here, and an unreadable list
+          // rendered as spec.empty -- "Nothing has been added to this invoice
+          // yet" -- for an invoice whose lines could not be read. The customer
+          // is told a definite thing about their records on the strength of a
+          // request that failed, and the total below it is computed over the
+          // same empty array. The outcome travels now.
+          childRows = await Promise.all(children.map(async (spec) => {
+            const listed = await supabaseList(config, spec.table, `?select=*&${spec.parentColumn}=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc&limit=200`);
+            return listed.ok ? { ok: true, rows: listed.rows } : { ok: false, rows: [] };
+          }));
+
+          // Some derived figures need rows this record does not own. The
+          // labour cost of a day's trading is the case that forced it: hours
+          // are on employee_time_entries and rates on employee_wage_rates, and
+          // neither is a child of a sales summary.
+          //
+          // The reader is handed a scoped list function rather than the
+          // Supabase config, so a page cannot write a query that forgets the
+          // organization filter -- which is the one mistake that would let one
+          // business read another's payroll.
+          // The line forms below have pickers of their own. The list handler
+          // loads these; the detail handler never did, which is the other half
+          // of why a child reference field always rendered empty.
+          references = await loadReferences(config, org.organizationId, page);
+
+          if (typeof page.derivedReads === "function") {
+            const scopedList = (table, query = "") =>
+              supabaseList(config, table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}${query}&limit=500`);
+            extra = await page.derivedReads(parent, scopedList);
+          }
         }
       }
 
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [summaryCard(page, parent, ui), linesCard(page, lines, ui), lineFormCard(page, recordId, ui)];
+        : [
+            summaryCard(page, parent, ui),
+            ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
+            ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
+          ];
 
       return res.status(unavailable && !parent && config.ok && org.ok ? 404 : 200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
         heading: page.title,
-        body: page.lines.title,
+        body: children.map((spec) => spec.title).join(" "),
         sections,
         actions: [ui.link(page.path, `All ${page.title.toLowerCase()}`), ui.link("/business-builder/owner", "Owner Dashboard"), ui.link("/business-builder/dashboard", "Dashboard")]
       }));
     });
 
     // Saving a line returns to the record it belongs to, not to a JSON body.
-    app.post(page.lines.api, requireBusinessManager, async (req, res) => {
-      const parentId = String(req.body[page.lines.parentColumn] || "");
+    children.forEach((spec) => {
+    app.post(spec.api, requireBusinessManager, async (req, res) => {
+      const parentId = String(req.body[spec.parentColumn] || "");
       const back = isUuid(parentId) ? `${page.path}/${parentId}` : page.path;
       const respond = (status, payload) => {
         if (!acceptsHtml(req)) return res.status(status).json(payload);
@@ -219,7 +293,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
       };
       if (!isUuid(parentId)) return respond(400, { ok: false, code: "parent_required" });
-      if (!String(req.body.item_name || "").trim()) return respond(400, { ok: false, code: "missing_required", missing: ["item_name"] });
+
+      // Required fields come from the child's own form declaration.
+      //
+      // This read `req.body.item_name` directly, which was true of the four
+      // line tables that existed when it was written -- all of them stock lines
+      // with an item name. customer_invoice_payments requires an amount and has
+      // no item name, so every payment submitted was rejected as
+      // missing_required for a field its form never asks for. The form rendered,
+      // the button worked, and nothing could ever save.
+      const requiredFields = spec.form.fields.filter((field) => field.required).map((field) => field.name);
+      const missing = requiredFields.filter((name) => !String(req.body[name] ?? "").trim());
+      if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
       const config = getConfig(deps);
       if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
       const org = await resolveOrganization(req, deps);
@@ -235,10 +320,218 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       delete submitted.organization_id;
       delete submitted.user_id;
       delete submitted.id;
-      const payload = sanitizeObject({ ...submitted, [page.lines.parentColumn]: parentId, organization_id: org.organizationId });
-      const saved = await supabaseInsert(config, page.lines.table, payload);
+      // A child may compute a column rather than ask for it. Recipe ingredient
+      // cost is the first: quantity, unit cost and waste are facts a person
+      // knows, and the cost is arithmetic over them. Asking for both invites the
+      // stored number to disagree with its own inputs.
+      //
+      // Deliberately unlike an invoice line, where line_total_cents IS asked
+      // for and stored -- a line total is what the business decided to charge,
+      // and recomputing it would overwrite a discount. Nobody discounts a
+      // recipe.
+      const derived = typeof spec.derive === "function" ? spec.derive(submitted) : {};
+      const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
+      const saved = await supabaseInsert(config, spec.table, payload);
       return respond(saved?.ok === false ? 502 : 200, saved);
     });
+    });
+  });
+
+  // Getting your records out, and asking for them to be gone.
+  //
+  // The product's whole pitch is that a business's records live in one place.
+  // "How do I get them out" and "how do I close this and have it gone" are the
+  // questions that follow, and neither had an answer: /account offered profile,
+  // security, preferences, workspaces, integrations and setup, and nothing else.
+  //
+  // Cancelling was already possible -- the Stripe billing portal handles it --
+  // so a customer could stop paying and still not leave.
+  //
+  // The two halves are deliberately not symmetrical. Export is immediate,
+  // because handing somebody a copy of their own rows is not a decision anybody
+  // needs to review. **Erasure is a request, not a button.** AGENTS.md forbids
+  // automating destructive data changes without owner approval, and
+  // lib/sonara-module-crud.cjs already settled the same question for single
+  // records: archive rather than hard-delete, and route genuine erasure through
+  // support. An automated wipe of an entire organization is that decision at the
+  // largest possible scale, which is the least defensible place to skip review.
+  // Everything the product keeps for a customer, from the pages that keep it.
+  //
+  // This was assembled from two of the three page collections and covered 30
+  // tables. It left out **21**: every Growth Studio record — leads, campaigns,
+  // consent records, contact history, conversions — and every line item inside
+  // a record, including what is on an invoice and what has been paid against
+  // it. Meanwhile /legal/terms says "What you put in stays yours. You can
+  // export it at any time from your data page."
+  //
+  // The consent records were the sharpest of those: growth_contact_consents is
+  // the proof somebody agreed to be contacted, and a business that leaves
+  // without it loses the basis for contacting its own customers.
+  //
+  // Derived from the page collections rather than listed, so a record type that
+  // ships with a page is in the export the same day — and
+  // tests/the-export-covers-every-record.test.js fails if one is not.
+  const EXPORTABLE = [
+    ...ALL_OWNER_PAGES.map((page) => ({ table: page.table, label: page.title })),
+    ...ALL_OWNER_PAGES.flatMap((page) => childrenOf(page).map((spec) => ({ table: spec.table, label: spec.title || spec.table }))),
+    ...CREATOR_RECORD_PAGES.map((page) => ({ table: page.table, label: page.title })),
+    ...GROWTH_RECORD_PAGES.map((page) => ({ table: GROWTH_TABLES[page.tableKey], label: page.title || page.tableKey }))
+  ]
+    .filter((entry) => entry.table)
+    .filter((entry, index, all) => all.findIndex((other) => other.table === entry.table) === index);
+
+  app.get("/account/data", requireCustomer, async (req, res) => {
+    const org = await resolveOrganization(req, deps);
+    const tables = EXPORTABLE.map((entry) => entry.label).sort();
+    return res.status(200).type("html").send(ui.layout({
+      title: "Your data",
+      eyebrow: "Your account",
+      heading: "Your data",
+      body: "What is stored, how to take a copy with you, and how to ask for it to be erased.",
+      sections: [
+        ui.card(
+          "What is kept",
+          `Your account details, the records you create in each workspace, your support requests, and your billing history. ` +
+          `The export below covers ${tables.length} kinds of record: ${tables.join(", ")}.`
+        ),
+        ui.card(
+          "How long it is kept",
+          "For as long as the account is open. Deleting a record inside the product archives it rather than removing it, so it can be brought back if it was a mistake -- which means an archived record is still stored. Erasure is the request below."
+        ),
+        ui.card(
+          "Take a copy",
+          `A file containing your records as they stand, in JSON. Nothing is left out of the kinds listed above, and nothing is transformed.` +
+          `<div class="card-actions"><a class="action" href="/account/data/export">Download a copy of your records</a></div>`
+        ),
+        ui.card(
+          "Ask for erasure",
+          `<p>This sends a request. It does not erase anything by itself, and we would rather say that plainly than have a button that quietly does something irreversible on one click.</p>` +
+          `<p>A person reviews it, confirms it is really you asking, and tells you what was removed and what has to be kept -- billing records generally have to be retained for tax purposes even after an account closes.</p>` +
+          `<form method="post" action="/account/data/erasure-request"><label>Anything we should know<textarea name="note" rows="3" maxlength="1000" placeholder="Optional"></textarea></label><button type="submit">Request erasure of my records</button></form>`
+        ),
+        ...(org.ok ? [] : [ui.card("Not signed in to a workspace", "Sign in and this page will show the records tied to your business.")])
+      ],
+      actions: [ui.link("/account", "Account"), ui.link("/support", "Contact support")]
+    }));
+  });
+
+  app.get("/account/data/export", requireCustomer, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok || !org.ok) {
+      return res.status(503).json({ ok: false, code: "export_unavailable", reason: "Your workspace could not be read just now. Nothing was exported." });
+    }
+
+    // A table that could not be read is named as unreadable rather than left
+    // out. An export silently missing a table is the worst version of this:
+    // the customer keeps the file believing it is complete.
+    const parts = await Promise.all(EXPORTABLE.map(async (entry) => {
+      const listed = await supabaseList(config, entry.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=10000`);
+      return [entry.table, listed.ok ? listed.rows : null];
+    }));
+
+    const unreadable = parts.filter(([, rows]) => rows === null).map(([table]) => table);
+    res.setHeader("Content-Disposition", `attachment; filename="sonara-records-${new Date().toISOString().slice(0, 10)}.json"`);
+    return res.status(200).json({
+      exportedAt: new Date().toISOString(),
+      organizationId: org.organizationId,
+      complete: unreadable.length === 0,
+      unreadable,
+      note: unreadable.length
+        ? "Some record types could not be read when this file was made. They are listed under `unreadable` and are not missing from your account -- ask support for another copy."
+        : "Every record type this export covers was readable.",
+      // null, not []. An unreadable table is named in `unreadable` above, but a
+      // consumer reading records.customers reads it as the customers — the same
+      // "a field called ok is read as ok" mistake one level down. null cannot be
+      // mistaken for "you have none", and anything iterating it fails loudly.
+      records: Object.fromEntries(parts.map(([table, rows]) => [table, rows]))
+    });
+  });
+
+  app.post("/account/data/erasure-request", requireCustomer, async (req, res) => {
+    const back = "/account/data";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?requested=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_recorded")}`);
+    };
+
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok || !org.ok) return respond(503, { ok: false, code: "workspace_unavailable" });
+
+    const note = String(req.body?.note || "").trim().slice(0, 1000);
+    const saved = await supabaseInsert(config, "support_requests", {
+      organization_id: org.organizationId,
+      user_id: org.userId || null,
+      subject: "Erasure request",
+      // Marked so it cannot be mistaken for an ordinary support ticket in a
+      // queue: this one has a clock on it in most jurisdictions.
+      message: `The account holder has asked for their records to be erased.${note ? `\n\nThey added: ${note}` : ""}`,
+      status: "open"
+    });
+    if (!saved.ok) return respond(502, { ok: false, code: "not_recorded" });
+    return respond(201, { ok: true, recorded: true });
+  });
+
+  // Turning a won quote into an invoice.
+  //
+  // The owner acting, not an agent: lib/sonara-agent-authority.cjs governs what
+  // runs without a person, and a person pressing a button they can see is the
+  // person. Routing this through the runner would classify the owner's own
+  // click as an unrecognised agent action and refuse it.
+  app.post("/api/business/quotes/:quoteId/invoice", requireBusinessManager, async (req, res) => {
+    const quoteId = String(req.params.quoteId || "");
+    const back = "/business-builder/owner/quotes";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, `/business-builder/owner/receivables/${payload.invoiceId}`);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_converted")}`);
+    };
+
+    if (!isUuid(quoteId)) return respond(400, { ok: false, code: "quote_required" });
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    // Scoped by organization as well as by id, because the service key bypasses
+    // row level security and a guessed id from another business would otherwise
+    // convert.
+    const found = await supabaseList(config, "quotes", `?select=*&id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    const quote = found.ok ? found.rows[0] : null;
+    if (!quote) return respond(404, { ok: false, code: "quote_not_yours" });
+
+    // Read what this quote has already produced before deciding. An unreadable
+    // list is not an empty one -- treating a failed read as "nothing yet" is
+    // how the same job gets billed twice.
+    const invoiced = await supabaseList(config, "customer_invoices", `?select=id,quote_id,invoice_number&quote_id=eq.${encodeURIComponent(quoteId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=5`);
+    if (!invoiced.ok) return respond(503, { ok: false, code: "cannot_check_existing" });
+
+    const refusal = quoteConversion.reasonNotConvertible(quote, invoiced.rows);
+    if (refusal) return respond(409, { ok: false, code: "not_convertible", reason: refusal });
+
+    const invoice = quoteConversion.invoiceFromQuote(quote, {
+      organizationId: org.organizationId,
+      userId: req.sonaraAccess?.user?.id || null
+    });
+    const saved = await supabaseInsert(config, "customer_invoices", invoice);
+    if (saved?.ok === false) return respond(502, saved);
+
+    // supabaseInsert asks for return=representation, so the created row comes
+    // back in `rows`. Read from that rather than assuming a shape.
+    const invoiceId = Array.isArray(saved?.rows) ? saved.rows[0]?.id || null : null;
+    if (!invoiceId) return respond(502, { ok: false, code: "invoice_id_missing" });
+
+    // The line is best-effort. An invoice that exists without its opening line
+    // is recoverable by adding one; failing the whole conversion after the
+    // invoice is already written would leave the owner unable to retry, because
+    // the duplicate check would then refuse.
+    await supabaseInsert(config, "customer_invoice_lines", {
+      ...quoteConversion.lineFromQuote(quote, { organizationId: org.organizationId }),
+      invoice_id: invoiceId
+    });
+
+    return respond(200, { ok: true, invoiceId });
   });
 
   STAFF_PAGES.forEach(([path, title, body]) => {
@@ -264,24 +557,33 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       let rows = [];
       let extra = [];
+      let references = {};
+      let loaded = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which workspace you are in. Sign in again and this will fill up.";
       else {
-        const listed = await supabaseList(config, page.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
-        else rows = listed.rows;
+        else { rows = listed.rows; loaded = listed; }
         extra = await Promise.all((page.also || []).map(async (side) => {
-          const sideRows = await supabaseList(config, side.table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.desc&limit=100`);
-          return { side, rows: sideRows.ok ? sideRows.rows : [] };
+          const sideRows = await listRecordPage(config, side.table, org.organizationId, "created_at.desc", side.select || "*");
+          return { side, rows: sideRows.ok ? sideRows.rows : [], loaded: sideRows.ok ? sideRows : null };
         }));
+        // The pickers. This passed {} to formCard, which was harmless while no
+        // creator page had a reference field and wrong the moment one did: the
+        // artist picker on all four artist-system pages would have rendered
+        // "Nothing to choose yet -- add one first" to a customer with artists.
+        // That exact failure is recorded above loadReferences, on the owner
+        // pages, where it shipped.
+        references = await loadReferences(config, org.organizationId, page);
       }
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
-          recordsCard(page, rows, ui),
-          ...extra.map(({ side, rows: sideRows }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui)),
-          ...(page.form ? [formCard(page, {}, ui)] : [])
+          recordsCard(page, rows, ui, loaded),
+          ...extra.map(({ side, rows: sideRows, loaded: sideLoaded }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded)),
+          ...(page.form ? [formCard(page, references, ui)] : [])
         ];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
@@ -289,7 +591,14 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         heading: page.title,
         body: page.body,
         sections,
-        actions: [ui.link("/creator-studio/music-projects", "Music projects"), ui.link("/creator-studio/device-cues", "Sound and motion"), ui.link("/creator-studio/generation/jobs", "Your generation work"), ui.link("/creator-studio/dashboard", "Dashboard")]
+        // Generated from the pages themselves. The hand-written list named four
+        // links and stayed at four when five pages were added beside it, which
+        // is how the workspace index and the admin card index both went stale
+        // before being generated for the same reason.
+        actions: [
+          ...CREATOR_RECORD_PAGES.filter((other) => other.path !== page.path).map((other) => ui.link(other.path, other.title)),
+          ui.link("/creator-studio/dashboard", "Dashboard")
+        ]
       }));
     });
   });
@@ -436,6 +745,31 @@ function registerRestResource(app, path, resource, deps, middleware) {
     if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return respond(403, org);
+
+    // Plan limits, for the resources that have one.
+    //
+    // The count is read before the insert rather than after, and a count that
+    // could not be read refuses with "we could not check" rather than with "you
+    // have hit your limit". Those are different sentences and only one of them
+    // is true when the read failed.
+    if (resource.planLimit === "locations") {
+      const entitlement = typeof deps.getCustomerPaidEntitlement === "function"
+        ? await deps.getCustomerPaidEntitlement(req.sonaraUser || req.sonaraAccess?.user || null, "business_builder")
+        : null;
+      const counted = await supabaseCount(config, resource.table, org.organizationId);
+      const allowance = locationAllowance(entitlement?.ok ? entitlement.entitlementKey : "free", counted);
+      if (!allowance.allowed) {
+        return respond(allowance.unknown ? 503 : 402, {
+          ok: false,
+          code: allowance.unknown ? "limit_not_checked" : "plan_limit_reached",
+          message: locationLimitMessage(allowance),
+          included: allowance.included,
+          used: allowance.used,
+          upgrade_url: "/pricing"
+        });
+      }
+    }
+
     // Only name a person column the table actually has. See RESOURCE_MAP.
     const person = resource.person ? { [resource.person]: org.userId || req.body[resource.person] || null } : {};
     // A form posts strings, so a blank optional field arrives as "" rather than
@@ -568,34 +902,138 @@ function acceptsHtml(req) {
     || String(req.get?.("content-type") || "").includes("application/x-www-form-urlencoded");
 }
 
+// The pickers on a page and on its line forms.
+//
+// This read `page.form.fields` only, and lineFormCard called formField with an
+// empty references object -- so every reference field on a child line form
+// rendered "Nothing to choose yet -- add one first", permanently, whatever the
+// business had. Three did: the service picker when writing an invoice line, the
+// stock picker on a recipe ingredient, and the menu picker on what sold. The
+// invoice one had been shipped that way for a long time, telling a business
+// with a full service catalogue to go and add a service first.
+//
+// The outcome travels too. `result.ok ? rows : []` rendered a failed read as
+// the same empty picker, so "we could not load your customers" and "you have no
+// customers" were the same sentence.
 async function loadReferences(config, organizationId, page) {
-  const needed = (page.form?.fields || []).filter((field) => field.type === "reference");
+  const fields = [
+    ...(page.form?.fields || []),
+    ...childrenOf(page).flatMap((spec) => spec.form?.fields || [])
+  ].filter((field) => field.type === "reference");
+
   const loaded = {};
-  await Promise.all(needed.map(async (field) => {
-    const source = REFERENCE_SOURCES[field.from];
+  await Promise.all([...new Set(fields.map((field) => field.from))].map(async (from) => {
+    const source = REFERENCE_SOURCES[from];
     if (!source) return;
     const result = await supabaseList(config, source.table, `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
-    loaded[field.from] = result.ok ? result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) : [];
+    loaded[from] = result.ok
+      ? { ok: true, options: result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) }
+      : { ok: false, options: [] };
   }));
   return loaded;
 }
 
-function recordsCard(page, rows, ui) {
+// What the list is allowed to claim.
+//
+// This used to be `${rows.length} records`, which is true only when the read
+// happened to return everything. A business with 250 customers saw "100
+// records" -- not a truncated list, a wrong total, and nothing on the page
+// said otherwise. The number of rows that came back is not the number of
+// records that exist, and the difference is exactly what a page must not
+// quietly collapse.
+//
+// Three cases, and each says only what is known:
+//   the read reached the end          -- the count is the count
+//   it did not, and the total is known -- say both, so the cap is visible
+//   it did not, and the count failed   -- "more than N", the honest floor
+function recordCountCaption(rows, loaded) {
+  const shown = rows.length;
+  const plural = (value) => (value === 1 ? "1 record" : `${value} records`);
+
+  // No paging information at all: an older caller, or a page that never asked.
+  // Describing what is on screen is the only claim available.
+  if (!loaded) return plural(shown);
+  if (loaded.loadedAll) return plural(loaded.total ?? shown);
+
+  // Which rows these are, not just how many. "Showing the 100 most recent" is
+  // wrong on page 2 -- they are not the most recent, they are the next 100 --
+  // and a customer who cannot tell which window they are looking at cannot tell
+  // whether the record they came for is missing or merely further along.
+  const first = (loaded.offset || 0) + 1;
+  const last = (loaded.offset || 0) + shown;
+  if (shown === 0) return typeof loaded.total === "number" ? `${plural(loaded.total)}. This page is past the end.` : "No records on this page.";
+  const window = `Showing ${first} to ${last}`;
+  if (typeof loaded.total === "number") return `${plural(loaded.total)}. ${window}.`;
+  return `More than ${last} records. ${window}.`;
+}
+
+// The way to the rest of them.
+//
+// The caption above was shipped first, saying a total existed beyond the cap
+// while the page offered no way to reach it. That is better than the silence it
+// replaced and it is not the same as being finished: a business told it has 250
+// customers and shown 100 now has a number it cannot act on.
+//
+// Plain links, because the rest of these pages are plain forms and a customer
+// who has disabled JavaScript still has a business to run.
+function pagerLinks(page, loaded, ui) {
+  if (!loaded || (!loaded.hasNext && !loaded.hasPrevious)) return "";
+  const at = (number) => `${page.path}?page=${number}`;
+  const links = [];
+  if (loaded.hasPrevious) links.push(ui.link(at(loaded.page - 1), "Previous 100"));
+  if (loaded.hasNext) links.push(ui.link(at(loaded.page + 1), "Next 100"));
+  return `<nav class="card-actions" aria-label="More records">${links.join("")}</nav>`;
+}
+
+function recordsCard(page, rows, ui, loaded = null) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
-  const opens = Boolean(page.lines);
-  const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...(opens ? ["<th>Details</th>"] : [])].join("");
-  const width = page.columns.length + (opens ? 1 : 0);
+  const opens = childrenOf(page).length > 0;
+
+  // And an action a row can take on itself.
+  //
+  // Turning an accepted quote into an invoice was built, tested and shipped
+  // with no way to press it -- the endpoint takes a path parameter, and the
+  // form-reachability scan skips those, so nothing reported that the button did
+  // not exist. Declaring the action beside the page means the row that can take
+  // it renders it, and the row that cannot says why in the same column rather
+  // than showing a button that will refuse.
+  const action = page.rowAction || null;
+  const extraHeads = [...(opens ? ["<th>Details</th>"] : []), ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])];
+  const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
+  const width = page.columns.length + extraHeads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      if (action) {
+        const id = encodeURIComponent(String(row.id || ""));
+        let reason = null;
+        try {
+          reason = action.reasonUnavailable ? action.reasonUnavailable(row) : null;
+        } catch {
+          // A spec that throws on an odd row must not take the page down.
+          reason = "This cannot be checked right now.";
+        }
+        cells.push(
+          reason
+            ? `<td>${ui.escape(reason)}</td>`
+            // Two shapes, because the endpoints are two shapes. Most take the
+            // record in the path; some take it in the body, and forcing those
+            // through a path parameter would mean changing a published API to
+            // suit the renderer.
+            : action.idField
+              ? `<td><form method="post" action="${ui.escape(action.api)}"><input type="hidden" name="${ui.escape(action.idField)}" value="${ui.escape(String(row.id || ""))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
+              : `<td><form method="post" action="${ui.escape(action.api.replace(":id", id))}"><button type="submit">${ui.escape(action.label)}</button></form></td>`
+        );
+      }
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
     : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
-  const count = rows.length === 1 ? "1 record" : `${rows.length} records`;
-  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
+  const count = recordCountCaption(rows, loaded);
+  const pager = page.path ? pagerLinks(page, loaded, ui) : "";
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
 }
 
 // One awkward value should cost its own cell, not the whole page.
@@ -617,29 +1055,38 @@ function summaryCard(page, row, ui) {
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
 }
 
-function linesCard(page, rows, ui) {
-  const spec = page.lines;
+function linesCard(spec, listed, ui) {
+  const loaded = listed?.ok === true;
+  const rows = listed?.rows || [];
   const head = spec.columns.map((column) => `<th>${ui.escape(column.label)}</th>`).join("");
+  // "None yet" and "we could not read them" are different sentences, and only
+  // one of them is true when the request failed.
+  const nothing = loaded ? spec.empty : "We could not load these just now. Try again shortly.";
   const body = rows.length
     ? rows.map((row) => `<tr>${spec.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`).join("")}</tr>`).join("")
-    : `<tr><td colspan="${spec.columns.length}">${ui.escape(spec.empty)}</td></tr>`;
+    : `<tr><td colspan="${spec.columns.length}">${ui.escape(nothing)}</td></tr>`;
   // Totalled from the lines that are actually here, and only when every one of
   // them carries a number. A total computed over rows with missing values would
   // read as the real figure while being short by however many were blank.
-  const amounts = rows.map((row) => Number(row[spec.totalFrom]));
-  const complete = amounts.length && amounts.every((amount) => Number.isFinite(amount));
-  const total = complete
-    ? `<p>Total of these lines: ${ui.escape(money(amounts.reduce((sum, amount) => sum + amount, 0)))}</p>`
-    : rows.length ? "<p>Not totalled: some lines have no amount recorded.</p>" : "";
+  // finiteNumber rather than Number, because Number(null) and Number("") are
+  // both 0 and both finite -- so a line with no amount recorded passed this
+  // guard, counted as nothing, and the total below printed as complete while
+  // being short. See lib/sonara-owner-record-pages.cjs.
+  const amounts = rows.map((row) => finiteNumber(row[spec.totalFrom]));
+  const complete = amounts.length && amounts.every((amount) => amount !== null);
+  const total = !loaded
+    ? ""
+    : complete
+      ? `<p>Total of these lines: ${ui.escape(money(amounts.reduce((sum, amount) => sum + amount, 0)))}</p>`
+      : rows.length ? "<p>Not totalled: some lines have no amount recorded.</p>" : "";
   return `<article class="card"><h2>${ui.escape(spec.title)}</h2>${total}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></article>`;
 }
 
 // The parent id travels as a hidden field. The handler still checks the parent
 // belongs to this business before writing, because a hidden field is a value
 // the person submitting chooses.
-function lineFormCard(page, recordId, ui) {
-  const spec = page.lines;
-  const fields = spec.form.fields.map((field) => formField(field, {}, ui)).join("");
+function lineFormCard(spec, recordId, ui, references = {}) {
+  const fields = spec.form.fields.map((field) => formField(field, references, ui)).join("");
   const parent = `<input type="hidden" name="${ui.escape(spec.parentColumn)}" value="${ui.escape(recordId)}">`;
   return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;
 }
@@ -650,7 +1097,13 @@ function isUuid(value) {
 
 function formCard(page, references, ui) {
   const fields = page.form.fields.map((field) => formField(field, references, ui)).join("");
-  return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(page.api)}">${fields}<button type="submit">Save</button></form></article>`;
+  // Most forms create a record at the page's own endpoint. A few do something
+  // to the page's records instead -- clocking in is not "create a time entry",
+  // it is "start one now" -- so the form may name its own action and its own
+  // button rather than being forced through the list endpoint.
+  const action = page.form.action || page.api;
+  const submit = page.form.submitLabel || "Save";
+  return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(action)}">${fields}<button type="submit">${ui.escape(submit)}</button></form></article>`;
 }
 
 function formField(field, references, ui) {
@@ -659,7 +1112,14 @@ function formField(field, references, ui) {
   const hint = field.hint ? `<span class="fine">${ui.escape(field.hint)}</span>` : "";
   const name = ui.escape(field.name);
   if (field.type === "reference") {
-    const options = (references[field.from] || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    // Three states, not two. A picker that could not be loaded must not read as
+    // one with nothing in it -- the first tells a customer to go and create a
+    // record they may already have dozens of.
+    const source = references[field.from];
+    const options = (source?.options || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    if (source && source.ok === false) {
+      return `<label>${label}<select name="${name}"${required}><option value="">We could not load these just now</option></select></label>${hint}`;
+    }
     if (!options) return `<label>${label}<select name="${name}"${required}><option value="">Nothing to choose yet — add one first</option></select></label>${hint}`;
     return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
   }
@@ -678,6 +1138,9 @@ function formField(field, references, ui) {
 
 function ownerActions(ui, currentPath) {
   return [
+    // On every owner record page, because the page a customer is on is the one
+    // where they realise they cannot find the record they came for.
+    ui.link("/search", "Search"),
     ui.link("/business-builder/owner", "Owner Dashboard"),
     ...ALL_OWNER_PAGES.filter((page) => page.path !== currentPath).slice(0, 4).map((page) => ui.link(page.path, page.title)),
     ui.link("/business-builder/dashboard", "Dashboard")
@@ -705,7 +1168,15 @@ async function operationsSummary(config, organizationId) {
     ["Time entries", "employee_time_entries"],
     ["Inventory", "inventory_items"],
     ["Vendors", "vendor_accounts"],
-    ["Invoices", "vendor_invoices"],
+    // "Invoices" meant vendor invoices, which is money going out. The label
+    // was ambiguous and the counterpart was missing entirely, so an owner
+    // looking at this dashboard saw what they owed and nothing about what they
+    // were owed -- the same outward-only bias the schema had before
+    // customer_invoices existed. Both sides now, both labelled.
+    ["Bills you owe", "vendor_invoices"],
+    ["Customers", "customers"],
+    ["Quotes", "quotes"],
+    ["Invoices you have sent", "customer_invoices"],
     ["Recipes", "recipe_cards"],
     ["Menu", "menu_items"],
     ["Daily profit", "daily_profit_snapshots"],
@@ -722,8 +1193,26 @@ async function resolveOrganization(req, deps) {
     const org = await deps.getCustomerPrimaryOrganization(user);
     if (org?.ok) return { ok: true, organizationId: org.organizationId, userId: user.id };
   }
+  // A development escape hatch, and it must stay one.
+  //
+  // This accepts an organization_id straight from the request body. There is no
+  // membership check on that value and there cannot be a useful one -- the
+  // whole point of the branch is to work without a resolved session. So while
+  // it is on, any request can name any organization and this returns ok, and
+  // every owner-record write that calls resolveOrganization would write into
+  // whichever tenant the body asked for.
+  //
+  // It was gated on the environment variable alone, which meant one wrong value
+  // in a production dashboard was a cross-tenant write hole with nothing in the
+  // release chain looking at it. It is now inert in production regardless of
+  // the variable: a convenience that can be switched on in production is not a
+  // convenience, it is a control somebody else can reach.
   const orgFromBody = sanitizeText(req.body.organization_id);
-  if (orgFromBody && process.env.SONARA_ALLOW_MANUAL_ORG_ID === "true") return { ok: true, organizationId: orgFromBody, userId: user?.id || null };
+  const manualOrgAllowed =
+    process.env.SONARA_ALLOW_MANUAL_ORG_ID === "true" &&
+    process.env.NODE_ENV !== "production" &&
+    String(process.env.VERCEL_ENV || "").toLowerCase() !== "production";
+  if (orgFromBody && manualOrgAllowed) return { ok: true, organizationId: orgFromBody, userId: user?.id || null };
   return { ok: false, code: "owner_access_required", message: "Business owner or staff session is required." };
 }
 
@@ -737,6 +1226,60 @@ function getConfig(deps) {
 
 function headers(config, extra = {}) {
   return { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json", ...extra };
+}
+
+// How many rows a record list loads at once.
+//
+// The number was already 100; what was missing was any acknowledgement of it.
+// A list capped at 100 and captioned "100 records" tells a business with 250
+// customers that it has 100 -- the page states a total it never measured.
+const PAGE_SIZE = 100;
+
+// Loads a page of records and knows whether it reached the end.
+//
+// Asking for one row more than we display is what makes the answer honest for
+// free: getting PAGE_SIZE + 1 back proves there are more without a second
+// query, and getting fewer proves there are not. The exact total is worth a
+// second request, but only when we already know it is going to say something
+// the first one could not -- so an account under the cap, which is nearly all
+// of them, still costs exactly one query.
+// `select` is the list view's level of detail: the fields its columns actually
+// read, rather than every column the table has. Measured across the 22 owner
+// record pages, `select=*` fetched 307 columns to render 112 -- 2.7x -- on
+// every page load, for every row. A page that has not declared one still gets
+// `*`, because a missing declaration must cost bandwidth rather than blank a
+// cell. tests/record-selects-cover-every-column.test.js is what keeps a
+// declaration honest as columns change.
+// A page number the customer typed, made safe.
+//
+// Anything that is not a whole number at or above 1 is page 1 -- an unreadable
+// ?page= should show the first page, not an error and not an empty table that
+// looks like an account with no records in it.
+function pageNumber(value) {
+  const parsed = Number.parseInt(String(value ?? "1"), 10);
+  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+}
+
+async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1) {
+  const offset = (page - 1) * PAGE_SIZE;
+  const window = offset > 0 ? `&offset=${offset}` : "";
+  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
+  const listed = await supabaseList(config, table, query);
+  if (!listed.ok) return listed;
+
+  const more = listed.rows.length > PAGE_SIZE;
+  const rows = more ? listed.rows.slice(0, PAGE_SIZE) : listed.rows;
+  const base = { ok: true, table, rows, page, offset, hasNext: more, hasPrevious: page > 1 };
+
+  // On the first page, reaching the end means the rows in hand are the total.
+  // On any later page it does not -- the rows before the offset are still
+  // records, and forgetting that would report page 3 of 250 as "12 records".
+  if (!more && page === 1) return { ...base, total: rows.length, loadedAll: true };
+
+  const counted = await supabaseCount(config, table, organizationId);
+  // A failed count is left null rather than guessed at, and the caption says
+  // only what the read itself established.
+  return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
 }
 
 async function supabaseList(config, table, query) {
@@ -802,3 +1345,8 @@ function passthrough(req, res, next) {
 // a column the table does not have is rejected by PostgREST, which is how every
 // form on these pages came to silently not save.
 module.exports.RESOURCE_MAP = RESOURCE_MAP;
+// Exported so the caption can be checked without a database. The defect it
+// exists for is a sentence, and a sentence is testable.
+module.exports.recordCountCaption = recordCountCaption;
+module.exports.PAGE_SIZE = PAGE_SIZE;
+module.exports.pageNumber = pageNumber;

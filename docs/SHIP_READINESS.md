@@ -10,27 +10,70 @@ something was left open has been forgotten.
 
 ## The state of the paid path
 
-Thirteen of thirty-four catalog products execute. Twenty-one do not.
+All twenty-three catalog products execute. None is restricted.
 
-That split is real rather than provisional. A paid product executes only where
-the server enforces an entitlement for its product family — `business_builder`,
-`creator_studio` and `growth_studio` have one; `sonara_industries` does not, so
-its nine paid entries stay shut. The remaining twelve are shut on lifecycle:
-planned, validation-required or setup-required.
+That took three passes and only one of them was a fix to the boundary itself.
 
-Until recently that number was three. The catalog defined "paid access is
-verified" as `planFloor === "free"`, which made every paid product permanently
-unreachable — not pending a check somebody could run, but false by construction
-— while the deploy printed "paid execution remains restricted until positive
-production entitlement verification" on every release, which reads like pending
-work rather than a definition that could never come true.
+First, the catalog defined "paid access is verified" as `planFloor === "free"`,
+which made every paid product permanently unreachable — not pending a check
+somebody could run, but false by construction — while the deploy printed "paid
+execution remains restricted until positive production entitlement
+verification" on every release, which reads like pending work rather than a
+definition that could never come true. Fixing that opened thirteen of
+thirty-four.
+
+Second, eight of the remaining twenty-one were only mislabelled: platform
+products priced on a plan `sonara_industries` enforces nothing for, and Growth
+Studio products whose pages were built and whose lifecycle field still said
+otherwise. Repricing and relabelling them opened those.
+
+Third, the last eleven described work that does not exist — pages that deliver
+a setup checklist under a name promising exports, features named for tables
+nothing writes to. They were removed from the catalog rather than relabelled,
+and `supabase/migrations/20260812120000_retire_removed_catalog_products.sql`
+retires their published rows, because `/service-catalog` merges the database
+over the code and would otherwise have gone on serving all eleven.
 
 **The one thing still unproven:** nobody has completed a paid signup in
 production end to end. `positiveSubscribedUserTest` reports `"pending"` on every
-deploy and should keep reporting it until somebody runs one. Thirteen products
-now depend on that path, and it is the last genuine unknown in it.
+deploy and should keep reporting it until somebody runs one. Every paid product
+depends on that path, and it is the last genuine unknown in it.
 
 ---
+
+## Open finding: /admin/database can stall on a healthy catalog
+
+Found 13 August 2026 while fixing the summary counts on that page, and **not
+diagnosed**. It is recorded here rather than in a test comment because a console
+that can hang is a worse problem than the one that was being fixed.
+
+**What happens.** In a Node process where other suites have already loaded the
+application, a request to `/admin/database` whose metadata catalog returns a
+*usable* snapshot does not complete — twice in a row, through eight-second
+deadlines. Requests whose catalog fails, and which therefore take the early
+"Database Management needs setup" return, answer in milliseconds in the same
+process. The full page renders normally when that file is the only one running.
+
+**Ruled out.** Request ordering — it is the healthy catalog that stalls, not
+whichever request happens to be first. The admin gate — the stalled request
+reaches the handler. The section default — it resolves to `schema-visualizer`,
+so nothing throws on an undefined definition. The environment — Supabase config
+and the admin allowlist are both set at render time. That leaves something in
+the full-page render path.
+
+**Why it might not be a production problem, and why that is not good enough.**
+It has only been observed under the test harness, with a stubbed `fetch` and
+several suites sharing one process, which production does not resemble. But the
+difference between a stalled request and a slow one is invisible from outside,
+Express answers neither, and the page it affects is the one an owner opens when
+they already think something is wrong. It needs a reproduction outside mocha
+before anyone concludes it is only a harness artefact.
+
+**Not covered by a test.** `tests/the-database-console-never-reports-an-empty-database.test.js`
+covers the summary-count fix and deliberately carries no healthy-page assertion,
+because a test that cannot run reads as coverage. The guard against those
+assertions passing over an empty page is that each reads a value out of a named
+summary card.
 
 ## Three things only the owner can close
 
@@ -64,6 +107,14 @@ where it belongs: every legal page says the terms are not legal advice,
 review, and `/readiness` still carries both the "Legal pages" and "Legal review
 boundary" cards.
 
+**Followed through on 13 August 2026.** Removing the item from this list left
+`/readiness` still reporting `legalPages: review_required`, so the permanent
+open item had moved rather than gone — same sentence, different surface. It now
+reports `published_with_disclaimer`, derived from the pages carrying the
+disclaimer rather than declared as a literal, so deleting the disclaimer changes
+what the page says. `legalReviewBoundary: not_attorney_reviewed` is untouched,
+and `docs/legal/LEGAL_REVIEW_REQUIRED.md` still holds the review itself.
+
 What replaces it is real, current, and came from the live project rather than
 from this repository. Supabase's security advisor reports:
 
@@ -92,13 +143,13 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 77 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 83 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
-call it — 497 policies across the schema. Run it with `--check`; the release
+call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
 
 - **Seven of the eight in-repository functions are load-bearing.**
-  `is_org_member` is called by **197 policies across 59 tables**.
+  `is_org_member` is called by **202 policies across 64 tables**.
   `is_entity_member` by 25, `can_manage_entity` by 15, `is_org_owner_or_admin`
   and `sonara_is_org_member` by 9 each, `has_org_role` by 7, `has_entity_role`
   by 4. Revoking `EXECUTE` on any of these is the dangerous case the paragraph
@@ -127,15 +178,68 @@ itself is unaffected either way. That was checked in the code, not assumed.
 
 The first version of this report was wrong in the direction that costs the most.
 Its policy pattern could not read a quoted multi-word policy name — which is
-most of them — so it saw 191 policies instead of 497 and reported that six of
-these functions, including ones with dozens of dependents, were safe to lock
-down. It now runs two independent checks: the policy parse above, and a
+most of them — so it saw 191 policies where there were then 497, and reported
+that six of these functions, including ones with dozens of dependents, were safe
+to lock down. (Both figures are as they stood that day; the schema has grown
+since, and the count above is the live one.) It now runs two independent checks: the policy parse above, and a
 paren-balancing scan of every `using` and `with check` expression that does not
 know what a policy is and so cannot fail the same way. A disagreement between
 them fails the release rather than being resolved quietly.
 
 **Leaked password protection is still disabled**, confirmed against the live
 project rather than assumed. Item 2 above covers it.
+
+### The agent tables use a different tenancy model from everything else
+
+Found while building `lib/sonara-agent-runner.cjs`, and recorded rather than
+worked around.
+
+`entity_action_runs` is scoped by `entity_id`. `entities` has **no
+`organization_id`** — the nineteen `entity_*` agent tables scope by entity
+membership, while every other table in this product scopes by organization.
+There is no join between the two. Those nineteen tables are still unwritten,
+and the architectural decision — give organizations entities, or re-scope the
+agent tables — is still one somebody should make on purpose.
+
+**What this section used to say, and why it was too broad.** It said a run had
+nowhere correct to go and the runner therefore persisted nothing. That was true
+of the `entity_*` tables and not true of the schema: `agent_action_logs` carries
+`organization_id`, has an `(organization_id, created_at desc)` index, and was
+read and written by nothing. The check had stopped at the tables whose names
+began with `entity_`. `lib/sonara-agent-action-log.cjs` now writes every run
+there and `/owner/agent-activity` reads them back.
+
+**The gap that is actually still open is a different one: nothing re-runs an
+action after approval.** The runner is called per request by the page that wants
+work done; there is no queue consuming approvals. A gated action is classified,
+refused, and recorded as pending, and that is where it stops.
+
+This is deliberately not being closed by building a queue, because there is
+nothing for a queue to execute. No handler in this repository performs a refund,
+a payout change, a policy publication or a customer send — the seven categories
+that need approval are categories no code implements. A queue over them would be
+the frame of a mechanism with no contents, and `/owner/agent-activity` would
+gain an approve button whose only effect was to change a word in a log. The
+runner already reports `unimplemented` for exactly this case, which is the
+honest answer until a handler exists.
+
+The order is therefore: build a gated capability first, then the approval path
+it needs. Not the reverse.
+
+### A table the application queries that no migration creates
+
+`product_modules` is counted twice in `server.js` and is created by no
+migration. It is the same class of finding as the four authorization functions
+above, and it was found the same way — by something noticing it could not
+classify a name, rather than by anybody reading.
+
+Nothing here invents a migration for it. Its real shape is in the live database
+and guessing it would put a definition into version control that may not match
+what production has, which is worse than the gap. Export it the same way as the
+four functions and it can be brought in.
+
+The queries degrade honestly in the meantime: `safeCountTable` reports a missing
+table as not set up rather than failing the page.
 
 **Fifteen tables have RLS enabled with no policy**, reported as INFO. That is
 the safe state, not a gap: RLS with no policy denies everything except the

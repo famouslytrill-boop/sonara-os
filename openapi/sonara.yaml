@@ -1132,9 +1132,55 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
-  /api/business/invoice-lines:
+  /api/growth-studio/leads/{leadId}/customer:
     post:
-      operationId: createBusinessInvoiceLine
+      operationId: convertGrowthLeadToCustomer
+      tags: [Operations]
+      summary: Turn a won lead into a customer so it can be quoted and invoiced.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/market-intelligence/fetch-source:
+    post:
+      operationId: fetchMarketIntelligenceSource
+      tags: [Operations]
+      summary: Fetch the text of a source page so it does not have to be pasted. Writes nothing.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/quotes:
+    get:
+      operationId: listBusinessQuotes
+      tags: [Operations]
+      summary: List quotes this business has written.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessQuote
+      tags: [Operations]
+      summary: Write a quote.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/quotes/{quoteId}/invoice:
+    post:
+      operationId: convertBusinessQuoteToInvoice
+      tags: [Operations]
+      summary: Turn an accepted quote into a draft invoice.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: quoteId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/receivable-lines:
+    post:
+      operationId: createBusinessReceivableLine
       tags: [Operations]
       summary: Add a line to a vendor invoice.
       description: The parent record must belong to the caller's organization. Lines are reachable only through the record they belong to.
@@ -1152,6 +1198,88 @@ paths:
       operationId: createBusinessBillPayment
       tags: [Operations]
       summary: Record one of the supplier payments.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/customers:
+    get:
+      operationId: listBusinessCustomers
+      tags: [Operations]
+      summary: List the customers this business works for.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessCustomer
+      tags: [Operations]
+      summary: Record a customer.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/receivables:
+    get:
+      operationId: listBusinessReceivables
+      tags: [Operations]
+      summary: List invoices this business has sent to its own customers.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessReceivable
+      tags: [Operations]
+      summary: Raise an invoice against a customer.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/invoice-lines:
+    post:
+      operationId: createBusinessInvoiceLine
+      tags: [Operations]
+      summary: Add a line to a customer invoice.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/invoice-payments:
+    post:
+      operationId: createBusinessInvoicePayment
+      tags: [Operations]
+      summary: Record a payment received against a customer invoice.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sales-summaries:
+    get:
+      operationId: listBusinessSalesSummaries
+      tags: [Operations]
+      summary: List the days of sales recorded for this business.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessSalesSummary
+      tags: [Operations]
+      summary: Record a day's takings.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "402": { $ref: "#/components/responses/Success" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/menu-mix:
+    post:
+      operationId: createBusinessMenuMixItem
+      tags: [Operations]
+      summary: Record an item that sold on a given day.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/wage-rates:
+    post:
+      operationId: createBusinessWageRate
+      tags: [Operations]
+      summary: Record what a member of staff is paid, from a given date.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recipe-ingredients:
+    post:
+      operationId: createBusinessRecipeIngredient
+      tags: [Operations]
+      summary: Add an ingredient to a recipe. The cost is worked out from the quantity, the unit cost and the waste rather than submitted.
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
@@ -1278,6 +1406,124 @@ paths:
       operationId: createCreatorMusicProject
       tags: [Creator Studio]
       summary: Create a creator music project.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/artists:
+    get:
+      operationId: listCreatorArtists
+      tags: [Creator Studio]
+      summary: List creator artist identities.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorArtist
+      tags: [Creator Studio]
+      summary: Create creator artist identitie.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/sound-identity:
+    get:
+      operationId: listCreatorSoundIdentities
+      tags: [Creator Studio]
+      summary: List creator sound identities.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorSoundIdentity
+      tags: [Creator Studio]
+      summary: Create creator sound identitie.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/album-cycles:
+    get:
+      operationId: listCreatorAlbumCycles
+      tags: [Creator Studio]
+      summary: List creator album and release cycles.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorAlbumCycle
+      tags: [Creator Studio]
+      summary: Create creator album and release cycle.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/prompt-blueprints:
+    get:
+      operationId: listCreatorPromptBlueprints
+      tags: [Creator Studio]
+      summary: List creator prompt blueprints.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorPromptBlueprint
+      tags: [Creator Studio]
+      summary: Create creator prompt blueprint.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/video-treatments:
+    get:
+      operationId: listCreatorVideoTreatments
+      tags: [Creator Studio]
+      summary: List creator video treatments.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createCreatorVideoTreatment
+      tags: [Creator Studio]
+      summary: Create creator video treatment.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/queue/propose:
+    post:
+      operationId: proposeAgentAction
+      tags: [Agents]
+      summary: Hand an agent a task; it runs if the rules allow it and queues for owner approval if not.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/queue/approve:
+    post:
+      operationId: approveAgentAction
+      tags: [Agents]
+      summary: Approve a queued agent action and re-run it.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/queue/decline:
+    post:
+      operationId: declineAgentAction
+      tags: [Agents]
+      summary: Decline a queued agent action.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/schedule:
+    post:
+      operationId: createAgentSchedule
+      tags: [Agents]
+      summary: Add a schedule saying when an agent job runs for this organisation.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/schedule/disable:
+    post:
+      operationId: disableAgentSchedule
+      tags: [Agents]
+      summary: Switch off one of this organisation's agent schedules.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/agents/schedule/tick:
+    post:
+      operationId: tickAgentSchedules
+      tags: [Agents]
+      summary: Run every schedule that is due. Called by a scheduler with a shared secret, not by a customer.
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
@@ -1473,6 +1719,21 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator/generation/voice-consents/{consentId}/revoke:
+    post:
+      operationId: revokeCreatorVoiceConsent
+      tags: [Creator Studio]
+      summary: Withdraw a recorded voice permission so no further voice job can rely on it.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: consentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
   /api/creator/reference-analyses:
     post:
       operationId: createCreatorReferenceAnalysis

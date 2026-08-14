@@ -21,6 +21,8 @@ const CONFIDENCE_LEVELS = new Set(["low", "medium", "high", "authoritative"]);
 const OPPORTUNITY_STATES = new Set(["watch", "validate", "prioritized", "building", "launched", "hold", "rejected"]);
 const REVIEW_DECISIONS = new Set(["prioritize", "validate", "watch", "hold", "reject"]);
 
+const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
+
 module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
@@ -120,6 +122,71 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     });
     if (created.ok) await recordEvent(config, context, "competitor.recorded", { competitor_id: created.rows[0]?.id, studio_key: studioKey, name, verified_at: verifiedAt });
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, competitor: created.rows[0], code: created.code });
+  });
+
+  // Fetch a source page instead of copying and pasting it.
+  //
+  // The first thing in this product that calls one of the six service adapters
+  // to do work rather than to report whether it is configured. Every market
+  // intelligence surface depended on somebody having the page open in another
+  // tab; this is the difference between "record what you found" and "go and
+  // look".
+  //
+  // **It fetches and it stops.** The text comes back for the owner to read, and
+  // nothing is written. It does not draft a summary, pick a signal type, or
+  // guess a confidence level -- a signal is evidence somebody has judged, and a
+  // summary this server invented would enter the record indistinguishable from
+  // one an owner wrote. The manual path is untouched and remains the only way a
+  // signal is created.
+  //
+  // Crawl4AI refuses loopback, link-local, cloud-metadata and private addresses
+  // before this server makes the request, because a URL somebody supplies plus a
+  // server that fetches it is a request forwarder otherwise.
+  app.post("/api/market-intelligence/fetch-source", requireCustomer, async (req, res) => {
+    const context = await resolveContext(req, deps);
+    if (!context.ok) return res.status(context.status).json(context);
+
+    const target = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
+    if (!target) return res.status(400).json({ ok: false, code: "https_source_url_required" });
+
+    const readiness = crawl4ai.getCrawl4aiReadiness();
+    if (readiness.status !== "configured") {
+      // Not an error. The page works without this and always did.
+      return res.status(200).json({
+        ok: true,
+        fetched: false,
+        code: readiness.status,
+        detail: `${readiness.detail} Paste the text yourself and the signal form works exactly as before.`
+      });
+    }
+
+    const page = await crawl4ai.fetchPage(target, { readiness });
+    if (!page.ok) {
+      return res.status(200).json({
+        ok: true,
+        fetched: false,
+        code: page.code,
+        detail: `${page.detail} Paste the text yourself instead.`
+      });
+    }
+
+    // Bounded again here. The adapter caps at 200k for its own reasons; a
+    // response a person is going to read through a form field is a different
+    // limit, and the caller is told it was cut rather than left to wonder.
+    const LIMIT = 20000;
+    const text = page.text.length > LIMIT ? page.text.slice(0, LIMIT) : page.text;
+
+    return res.status(200).json({
+      ok: true,
+      fetched: true,
+      sourceUrl: page.url,
+      truncated: page.text.length > LIMIT,
+      characters: text.length,
+      text,
+      // Said in the response rather than only in a comment, because the next
+      // caller reads this shape and not this file.
+      note: "This is the page text, not a signal. Read it, decide what it shows, and write the summary yourself."
+    });
   });
 
   app.get("/api/market-intelligence/signals", requireCustomer, listHandler(TABLES.signals, deps, "signals"));

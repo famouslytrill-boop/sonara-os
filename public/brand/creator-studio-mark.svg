@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Creator Studio Prism Canvas-mode mark">
   <title>Creator Studio Prism mark</title>
   <desc>An original canvas loop representing artist systems, music, media, releases, and human-approved creation.</desc>
-  <defs><linearGradient id="canvas" x1="18" y1="22" x2="111" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#A855F7"/><stop offset="1" stop-color="#526BFF"/></linearGradient></defs>
+  <defs><linearGradient id="canvas" x1="18" y1="22" x2="111" y2="108" gradientUnits="userSpaceOnUse"><stop stop-color="#B57BFF"/><stop offset=".5" stop-color="#6E4BFF"/><stop offset="1" stop-color="#B57BFF"/></linearGradient></defs>
   <path d="M101 37C82 17 46 18 27 39 8 60 19 91 45 101c25 10 51-5 51-31 0-24-25-38-44-24-17 13-10 39 10 43" fill="none" stroke="url(#canvas)" stroke-width="12" stroke-linecap="round"/>
   <path d="m57 49 27 16-27 17z" fill="#fff" stroke="#11162A" stroke-width="5" stroke-linejoin="round"/>
   <circle cx="101" cy="37" r="7" fill="#fff" stroke="#11162A" stroke-width="4"/>

@@ -37,6 +37,7 @@ const fail = (message) => {
   console.error(`[FAIL] ${message}`);
   failed = true;
 };
+let comparedLivePrices = false;
 const skip = (message) => console.log(`[SKIP] ${message}`);
 
 // ---------------------------------------------------------------------------
@@ -91,7 +92,14 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
 
     let price;
     try {
-      const response = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}`, {
+      // The product is expanded because lib/sonara-billing.cjs expands it and
+      // refuses `price_product_archived` at checkout. Without it this check
+      // passed a configuration the running server rejects: archiving a product
+      // in Stripe does not clear its prices' active flag, so `price.active`
+      // alone reads true and only the product says otherwise. Two checks of the
+      // same property that disagree are worse than one, because the release
+      // output is the one people read.
+      const response = await fetch(`https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}?expand[]=product`, {
         headers: { authorization: `Bearer ${secret}` }
       });
       if (!response.ok) {
@@ -138,6 +146,11 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
       fail(`${plan}: its Stripe price is archived, so checkout would fail`);
       continue;
     }
+    if (price.product && typeof price.product === "object" && price.product.active === false) {
+      fail(`${plan}: its Stripe price is live but the product behind it is archived, so Stripe would refuse the checkout`);
+      continue;
+    }
+    comparedLivePrices = true;
     ok(`${plan}: Stripe charges exactly what the pricing page advertises`);
   }
 }
@@ -146,4 +159,21 @@ if (failed) {
   console.error("\nStripe configuration verification failed.");
   process.exit(1);
 }
-console.log("\nStripe configuration verified against the deployed server.");
+// What this run actually established.
+//
+// The last line used to read "Stripe configuration verified against the deployed
+// server" whether or not the live comparison ran -- and it never runs in CI,
+// because STRIPE_SECRET_KEY is not present there. So every release output ended
+// with a sentence claiming the amounts had been checked against Stripe when the
+// [SKIP] two lines above said they had not. The skip was honest and the summary
+// overwrote it, and the summary is the line people read.
+if (comparedLivePrices) {
+  console.log("\nStripe configuration verified against the deployed server, including live prices.");
+} else {
+  console.log(
+    "\nStripe configuration verified offline: every paid plan names a variable, .env.example declares it, " +
+    "and the page agrees with the configured amount.\nLive prices were NOT compared in this run, so what " +
+    "Stripe would actually charge is unconfirmed here. lib/sonara-billing.cjs compares them at checkout, " +
+    "where the key is always present."
+  );
+}

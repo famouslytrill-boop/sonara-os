@@ -33,7 +33,7 @@ const migration = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrat
 
 describe("the published catalog matches the catalog in code", () => {
   it("carries every product", () => {
-    assert.ok(RECOMMENDED_PRODUCT_CATALOG.length >= 30, "the catalog looks empty; the comparison would be vacuous");
+    assert.ok(RECOMMENDED_PRODUCT_CATALOG.length >= 20, "the catalog looks empty; the comparison would be vacuous");
     for (const item of RECOMMENDED_PRODUCT_CATALOG) {
       assert.ok(
         migration.includes(`'${item.serviceKey}'`),
@@ -81,9 +81,26 @@ describe("the published catalog matches the catalog in code", () => {
     assert.ok(migration.includes(`'${CATALOG_VERSION}'`), "the migration must stamp the catalog version the gate expects");
   });
 
+  it("retires the rows the catalog no longer lists", () => {
+    // Removing a product from lib/catalog/*.cjs did not remove it from the
+    // page. /service-catalog reads service_catalog_items where status is
+    // active and merges those rows over the code defaults, so a row the code
+    // had stopped listing carried on being published from the database, with
+    // its old name and a route the customer could still click.
+    assert.match(migration, /set status = 'retired'/);
+    assert.match(migration, /service_key not in/);
+    for (const item of RECOMMENDED_PRODUCT_CATALOG) {
+      assert.ok(
+        migration.includes(`    '${item.serviceKey}'`),
+        `${item.serviceKey} is not in the keep list, so this migration would retire it`
+      );
+    }
+  });
+
   it("only updates rows, never inserts or deletes them", () => {
     // The rows were seeded by an earlier migration. Re-inserting would
-    // duplicate them; deleting would unpublish a product mid-release.
+    // duplicate them; deleting would take a product's history with it, which
+    // is why an unlisted product is retired by status rather than removed.
     assert.match(migration, /update public\.service_catalog_items/);
     assert.ok(!/insert\s+into\s+public\.service_catalog_items/i.test(migration), "this migration must not insert catalog rows");
     assert.ok(!/delete\s+from\s+public\.service_catalog_items/i.test(migration), "this migration must not delete catalog rows");
@@ -95,26 +112,35 @@ describe("the published catalog matches the catalog in code", () => {
 });
 
 describe("the deploy gate and the code cannot drift apart unnoticed", () => {
-  it("counts the products the gate expects", () => {
-    // The gate asserts exactly 34 rows and a per-company breakdown. If the
-    // catalog grows in code without the gate being updated, the deploy fails
-    // after the merge -- which is how four PRs got stranded.
-    const gate = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-production-product-catalog.mjs"), "utf8");
+  // This used to parse `rows.length, 34` and the four per-company numbers out
+  // of the gate and compare them to the catalog, because the gate held its own
+  // copy of both. That is a real class of failure -- four merged PRs once sat
+  // unshipped behind exactly this drift -- but the fix for a number kept in two
+  // places is one place, not a test reconciling the two. The gate reads the
+  // catalog now.
+  //
+  // So what is left to check is that it still does, because reintroducing a
+  // literal is a one-line change that nothing else would notice.
+  const gate = fs.readFileSync(path.join(__dirname, "..", "scripts", "verify-production-product-catalog.mjs"), "utf8");
 
-    const expectedTotal = Number((gate.match(/rows\.length,\s*(\d+)/) || [])[1]);
-    assert.equal(
-      RECOMMENDED_PRODUCT_CATALOG.length,
-      expectedTotal,
-      `the catalog has ${RECOMMENDED_PRODUCT_CATALOG.length} products but the production gate expects ${expectedTotal}. ` +
-        "Update scripts/verify-production-product-catalog.mjs, or the next deploy fails after merging."
+  it("takes its expected counts from the catalog rather than a second copy", () => {
+    assert.match(gate, /const expectedTotal = RECOMMENDED_PRODUCT_CATALOG\.length;/);
+    assert.match(gate, /assert\.equal\(rows\.length, expectedTotal,/);
+    assert.match(gate, /assert\.deepEqual\(companyCounts, countBy\(RECOMMENDED_PRODUCT_CATALOG/);
+
+    const relitigated = [...gate.matchAll(/(business_builder|creator_studio|growth_studio|sonara_industries):\s*(\d+)/g)];
+    assert.deepEqual(
+      relitigated.map((match) => match[0]),
+      [],
+      "the gate has gone back to hard-coding a per-company product count; it will drift from the catalog again"
     );
+    assert.doesNotMatch(gate, /rows\.length,\s*\d+/, "the gate has gone back to hard-coding the product total");
+  });
 
-    const counts = {};
-    for (const item of RECOMMENDED_PRODUCT_CATALOG) counts[item.productKey] = (counts[item.productKey] || 0) + 1;
-    const gateCounts = {};
-    for (const match of gate.matchAll(/(business_builder|creator_studio|growth_studio|sonara_industries):\s*(\d+)/g)) {
-      gateCounts[match[1]] = Number(match[2]);
-    }
-    assert.deepEqual(counts, gateCounts, "the per-company product counts the gate expects no longer match the catalog");
+  it("reads only the rows the catalog still publishes", () => {
+    // Retired rows keep product_type = 'software_product' and a service_key,
+    // so without the status filter the gate reads every product ever
+    // published and fails on each one it cannot find in the code.
+    assert.match(gate, /searchParams\.set\("status", "eq\.active"\)/);
   });
 });

@@ -32,16 +32,28 @@ const {
 
 // Reasons an endpoint has no form. Each key is an endpoint; each value says why.
 const NO_FORM_NEEDED = {
+  // Called by a scheduler, not a person. There is nobody signed in behind a
+  // cron, so it takes a shared secret rather than a session and has no page to
+  // render a form on. The customer-facing surface is /owner/agent-schedule,
+  // where they set when it runs for them.
+  "/api/agents/schedule/tick": "A scheduler calls this, not a customer. Customers set their schedule at /owner/agent-schedule.",
+
   // Posted by client scripts, not by a person filling anything in.
   "/api/motion/events": "Interface telemetry, posted by public/sonara-one.js.",
   "/api/location/events": "Location telemetry, posted by client script.",
   "/api/business-builder/checklist": "Driven by the checklist page's own controls rather than a form submit.",
 
-  // A JSON twin of an endpoint that does have a form. The customer-facing
-  // create path for both is /api/growth-studio/<type>, rendered on the
-  // campaigns and leads pages; these are the API surface for the same records.
-  "/api/growth/campaigns": "JSON twin of /api/growth-studio/campaigns, which has a form.",
-  "/api/growth/leads": "JSON twin of /api/growth-studio/leads, which has a form.",
+  // There used to be two entries here calling /api/growth/campaigns and
+  // /api/growth/leads "JSON twins" of /api/growth-studio/<type>. Neither was a
+  // twin: those endpoints call saveModuleOutput and write guidance text into
+  // module_outputs, not a growth_campaigns or growth_leads row. So the reason
+  // said "covered elsewhere" about two tables nothing could write to, and the
+  // lead-to-customer-to-quote-to-invoice chain began with a record no customer
+  // could create. Both have create specs now.
+  //
+  // Worth keeping the scar: the reason was what hid the gap. It was plausible,
+  // it was specific, it named a real endpoint, and it was wrong -- which is
+  // exactly what a reason somebody reasoned their way to looks like.
 
   // Reachable from a page route rather than the /api path.
   "/api/product-lifecycle/initiatives": "The page posts to /product-lifecycle/initiatives, which has a form.",
@@ -62,14 +74,16 @@ const NO_FORM_NEEDED = {
 
   // Endpoints with no page to put a form on. These are the actual work queue.
   "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
-  "/api/creator/generation/voice-consents": "NOT YET EXAMINED: consent record for voice work, no form found.",
   "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",
-  "/api/business/time-entries/start": "NOT YET EXAMINED: clock-in, likely wants a button rather than a form.",
-  "/api/business/time-entries/stop": "NOT YET EXAMINED: clock-out, likely wants a button rather than a form.",
   "/api/location/zones": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/integrations/jobs": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/haptic-patterns": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
+  // Examined, unlike the four below it. This one creates nothing at all -- it
+  // fetches the text of a page so it does not have to be pasted, and returns
+  // it. The create-shaped scan matches it on the POST, which is the right
+  // default and the wrong answer here.
+  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read, and the signal form is still the only way anything is written.",
   "/api/market-intelligence/competitors": "NOT YET EXAMINED: research record, no form found.",
   "/api/market-intelligence/opportunities": "NOT YET EXAMINED: research record, no form found.",
   "/api/market-intelligence/segments": "NOT YET EXAMINED: research record, no form found.",

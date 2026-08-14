@@ -264,18 +264,140 @@ describe("Growth Studio operating system", () => {
   });
 
   it("keeps the totals that the metrics summary used to carry", async () => {
-    global.fetch = async (url) => {
+    // The card asks the database how many rows there are rather than counting
+    // whatever fitted on a page, so this stub has to answer the way PostgREST
+    // does: a Content-Range whose tail is the total when count=exact is asked
+    // for. It honours the status filter too, otherwise "Campaigns" and
+    // "Campaigns running" would come back identical and the test would pass
+    // over a card that had stopped distinguishing them.
+    const CAMPAIGNS = [{ id: CAMPAIGN_ID, status: "active" }, { id: SNAPSHOT_ID, status: "draft" }];
+    const CONVERSIONS = [{ id: CONTENT_ID, value: 250 }];
+
+    global.fetch = async (url, options = {}) => {
       const stringUrl = String(url);
-      if (stringUrl.includes("growth_campaigns")) return jsonResponse(200, [{ id: CAMPAIGN_ID, status: "active" }, { id: SNAPSHOT_ID, status: "draft" }]);
-      if (stringUrl.includes("growth_conversions")) return jsonResponse(200, [{ id: CONTENT_ID, value: 250 }]);
-      return jsonResponse(200, []);
+      const rows = stringUrl.includes("growth_campaigns") ? CAMPAIGNS
+        : stringUrl.includes("growth_conversions") ? CONVERSIONS
+          : [];
+      const matching = rows.filter((row) => {
+        const wanted = stringUrl.match(/status=eq\.([a-z]+)/)?.[1];
+        return !wanted || row.status === wanted;
+      });
+      if (String(options.headers?.Prefer || "").includes("count=exact")) {
+        return jsonResponse(200, matching.slice(0, 1), { "content-range": `0-0/${matching.length}` });
+      }
+      return jsonResponse(200, matching);
     };
+
     const result = await request(buildApp()).get("/growth-studio/attribution").set("accept", "text/html");
     assert.match(result.text, /Your totals/);
     assert.match(result.text, /Campaigns running/);
     assert.match(result.text, /250/);
     // Attribution is what a source reported, not proof it caused the sale.
     assert.match(result.text, /not proof it caused it/);
+  });
+
+  it("lets a customer create the records the rest of Growth Studio depends on", async () => {
+    // growth_leads and growth_campaigns had no create form. Both endpoints were
+    // exempted as "JSON twins" of /api/growth-studio/<type> -- but those call
+    // saveModuleOutput and write guidance text into module_outputs, not a lead
+    // or campaign row. So the reason said "covered elsewhere" about two tables
+    // nothing could write to, and the lead-to-customer-to-quote-to-invoice
+    // chain started with a record no customer could create.
+    global.fetch = async () => jsonResponse(200, []);
+
+    const enquiries = await request(buildApp()).get("/growth-studio/enquiries").set("accept", "text/html");
+    assert.equal(enquiries.status, 200);
+    assert.match(enquiries.text, /action="\/api\/growth\/leads"/, "there is still no way to record an enquiry");
+
+    const campaigns = await request(buildApp()).get("/growth-studio/your-campaigns").set("accept", "text/html");
+    assert.equal(campaigns.status, 200);
+    assert.match(campaigns.text, /action="\/api\/growth\/campaigns"/, "there is still no way to create a campaign");
+
+    // And the planner is a different thing from the campaigns themselves. If
+    // this page ever posts to the module-output endpoint, the two have been
+    // conflated again -- which is the mistake that hid this for so long.
+    assert.doesNotMatch(campaigns.text, /action="\/api\/growth-studio\/campaigns"/, "the campaigns page is posting to the planner, which writes a module output rather than a campaign");
+  });
+
+  it("counts the table rather than the page, and says so when it cannot", async () => {
+    // The defect this replaced: up to 500 or 1000 rows were read and
+    // rows.length was reported as the total, under a heading saying "counted
+    // from your own records". A business over the cap was told it had exactly
+    // the cap.
+    global.fetch = async (url, options = {}) => {
+      if (String(options.headers?.Prefer || "").includes("count=exact")) {
+        // More rows than any page would carry.
+        return jsonResponse(200, [{ id: CAMPAIGN_ID }], { "content-range": "0-0/4210" });
+      }
+      return jsonResponse(200, []);
+    };
+    const counted = await request(buildApp()).get("/growth-studio/attribution").set("accept", "text/html");
+    assert.match(counted.text, /4210/, "the total came from the page rather than from the database");
+
+    // And a count that fails is not zero. The card used to report a problem
+    // only when *every* read failed, so one unreadable table left a real 0
+    // sitting beside real numbers, indistinguishable from having none.
+    //
+    // Only the leads count fails here, deliberately. Failing all of them makes
+    // the card short-circuit to "we could not count these", which renders no
+    // rows at all -- so an assertion written that way passes whatever the row
+    // logic does. That version of this check was written first and proved
+    // nothing; it was caught by breaking the code and watching it still pass.
+    global.fetch = async (url, options = {}) => {
+      const counting = String(options.headers?.Prefer || "").includes("count=exact");
+      if (!counting) return jsonResponse(200, []);
+      if (String(url).includes("growth_leads")) return jsonResponse(500, []);
+      return jsonResponse(200, [{ id: CAMPAIGN_ID }], { "content-range": "0-0/7" });
+    };
+    const partial = await request(buildApp()).get("/growth-studio/attribution").set("accept", "text/html");
+    assert.match(partial.text, /7/, "the counts that did work are not being shown");
+
+    // The specific row, not a blanket search for a zero anywhere on the page.
+    // A blanket check fails on the money row, which honestly reads 0 when there
+    // are no sales -- and a check that cannot tell an honest zero from a
+    // substituted one is not checking the thing it claims to.
+    const leadsRow = partial.text.match(/People who got in touch<\/th><td>([^<]*)<\/td>/);
+    assert.ok(leadsRow, "the enquiries row is not on the page at all");
+    assert.equal(
+      leadsRow[1],
+      "Not available just now",
+      `a count that could not be read is being shown as "${leadsRow[1]}" rather than saying it is unavailable`
+    );
+  });
+
+  it("reports metric totals from the database, and says what the value covers", async () => {
+    // `totals` is the worst surface for a page length dressed as a total: an
+    // API consumer has no heading to question, just a key called totals. Every
+    // field there used to be rows.length from a read capped at 500 or 1000.
+    global.fetch = async (url, options = {}) => {
+      const counting = String(options.headers?.Prefer || "").includes("count=exact");
+      if (counting) return jsonResponse(200, [{ id: CAMPAIGN_ID }], { "content-range": "0-0/3120" });
+      if (String(url).includes("growth_conversions")) return jsonResponse(200, [{ id: CONTENT_ID, value: 250 }, { id: SNAPSHOT_ID, value: 50 }]);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp()).get("/api/growth/metrics");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.totals.leads, 3120, "leads came from the page rather than from the database");
+    assert.equal(result.body.totals.conversions, 3120);
+
+    // The value cannot be summed by PostgREST, so it is a sample -- and the
+    // response has to say so rather than let a caller assume it is the total.
+    assert.equal(result.body.totals.conversionValue, 300);
+    assert.equal(result.body.computedOver.conversions, 2);
+    assert.equal(result.body.computedOver.complete, false, "the response does not admit the value covers a sample");
+  });
+
+  it("returns null rather than zero for a count it could not read", async () => {
+    // Zero is an answer. "We could not ask" is not the same answer, and an API
+    // that returns 0 for both leaves the caller unable to tell them apart.
+    global.fetch = async (url, options = {}) => {
+      if (String(options.headers?.Prefer || "").includes("count=exact")) return jsonResponse(500, []);
+      return jsonResponse(200, []);
+    };
+    const result = await request(buildApp()).get("/api/growth/metrics");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.totals.leads, null, "an unreadable count is being reported as a number");
+    assert.equal(result.body.computedOver.complete, null);
   });
 
   it("never puts a credential or a stored blob on a connected-services page", async () => {

@@ -92,7 +92,31 @@ describe("public pages speak plainly", () => {
   it("renders enough pages for the check to mean something", () => {
     // If a refactor stops these routes rendering, the check would pass by
     // examining nothing. It found 56 public pages when written.
-    assert.ok(result.renderedCount >= 50, `only ${result.renderedCount} public pages rendered; the scan is not covering the app`);
+    //
+    // It is 48 now, and the eight that left are accounted for rather than lost.
+    // /legal/* was always exempt, because a privacy policy that cannot write the
+    // word "Supabase" cannot disclose its subprocessors -- which is the one
+    // thing it exists to do. The eight legal aliases serve that identical text
+    // at a second URL, so the same sentence passed at /legal/privacy and failed
+    // at /privacy. Exempting them removed no distinct copy from this scan: every
+    // string on an alias is the same string on a page that was already exempt.
+    //
+    // The next test is what keeps that true. Without it this number could be
+    // lowered again for a reason nobody recorded.
+    assert.ok(result.renderedCount >= 45, `only ${result.renderedCount} public pages rendered; the scan is not covering the app`);
+  });
+
+  it("exempts the legal aliases, and only the legal aliases", () => {
+    // Binds the exemption list to the aliases it claims to be. Adding an alias
+    // without exempting it puts the same sentence back in the position of
+    // passing at one URL and failing at another; exempting a path that is not
+    // an alias quietly drops a real page out of the scan above.
+    const plainLanguage = require("../lib/sonara-plain-language.cjs");
+    const aliases = require("../server.js").legalAliasHrefs || null;
+    assert.ok(Array.isArray(aliases) && aliases.length >= 8, "server.js does not expose its legal aliases, so this check cannot bind to them");
+    for (const href of aliases) {
+      assert.equal(plainLanguage.isTechnicalRoute(href), true, `${href} is a legal alias and is not exempt, so it will fail on wording its /legal/ source is allowed`);
+    }
   });
 
   it("prints no engineering vocabulary", () => {

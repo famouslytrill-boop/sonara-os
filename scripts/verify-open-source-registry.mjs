@@ -30,7 +30,14 @@ function addRepositoryTarget(rawUrl, source, metadata = {}) {
   if (url.hostname !== "github.com" && url.hostname !== "www.github.com") return;
   const segments = url.pathname.split("/").filter(Boolean);
   if (segments.length === 0) {
-    warnings.push(`Unresolved generic GitHub placeholder in ${source}: ${rawUrl}`);
+    // Was a warning, and warnings are what nobody acts on. Nine of these
+    // printed on every release for months: records naming a genre rather than
+    // an artifact -- "LightRAG-style reference", "Voicebox-style voice
+    // synthesis" -- so there was nothing to review and no way to review it.
+    // Eight were removed and one turned out to be HKUDS/LightRAG. A register
+    // of repositories cannot hold a record that names no repository, so this
+    // fails now rather than reminding.
+    errors.push(`${source} has no repository behind it: ${rawUrl}. A record that names no artifact cannot be reviewed -- name the repository, or remove the record.`);
     return;
   }
 
@@ -92,6 +99,49 @@ const toolsSource = read("data/open-source-tools.ts");
 const toolBlocks = [...toolsSource.matchAll(/\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g)].map((match) => match[0]);
 if (toolBlocks.length === 0) errors.push("No open-source tool records were parsed from data/open-source-tools.ts.");
 
+// The allowed statuses, read out of the type union in the same file the records
+// live in rather than retyped here.
+//
+// integrationStatus was checked for presence and never for value, so a typo --
+// "adaptor_built", "reference-only" -- passed every gate and became a record
+// nobody could filter on. TypeScript would object, but a value this file never
+// compares against is one that only fails where somebody happens to look.
+// Comments are stripped before the union is read. They were not, and the first
+// version of this check reported every status but the first two as invalid --
+// a semicolon inside the comment explaining the new status terminated the
+// non-greedy match. Same class as the policy parser that once read 191 policies
+// where there were 497: a regex over source that prose can end early.
+const withoutComments = toolsSource.replace(/^\s*\/\/.*$/gm, "");
+const statusUnion = withoutComments.match(/export type OpenSourceIntegrationStatus =([\s\S]*?);/);
+const ALLOWED_STATUSES = new Set(
+  statusUnion ? [...statusUnion[1].matchAll(/\|\s*"([a-z_]+)"/g)].map((match) => match[1]) : []
+);
+if (ALLOWED_STATUSES.size === 0) {
+  errors.push("Could not read OpenSourceIntegrationStatus from data/open-source-tools.ts, so no status could be checked.");
+}
+
+// Every status must have a label a reader can be shown.
+//
+// openSourceToolStatuses ends in `satisfies Record<OpenSourceIntegrationStatus,
+// string>`, which looks like the compiler enforcing exactly that. It is not:
+// nothing in this repository compiles data/open-source-tools.ts, so the clause
+// is decoration. adapter_built was added to the union and taken by six records
+// while the map had no row for it, and the only symptom would have been a
+// status rendering as undefined wherever the map is read.
+const labelBlock = withoutComments.match(/export const openSourceToolStatuses = \{([\s\S]*?)\}\s*satisfies/);
+if (!labelBlock) {
+  errors.push("Could not read openSourceToolStatuses from data/open-source-tools.ts, so no label could be checked.");
+} else {
+  const labelled = new Set([...labelBlock[1].matchAll(/^\s*([a-z_]+):/gm)].map((match) => match[1]));
+  if (labelled.size === 0) errors.push("openSourceToolStatuses parsed as empty, so this check would pass on anything.");
+  for (const status of ALLOWED_STATUSES) {
+    if (!labelled.has(status)) errors.push(`Integration status "${status}" has no label in openSourceToolStatuses.`);
+  }
+  for (const status of labelled) {
+    if (!ALLOWED_STATUSES.has(status)) errors.push(`openSourceToolStatuses labels "${status}", which is not an integration status.`);
+  }
+}
+
 const seenSlugs = new Set();
 for (const block of toolBlocks) {
   const record = {
@@ -117,6 +167,25 @@ for (const block of toolBlocks) {
   if (unresolvedLicense && record.commercialUseStatus === "allowed_after_review" && record.integrationStatus !== "reference_only") {
     errors.push(`${record.name} cannot be marked allowed_after_review while its license remains unresolved.`);
   }
+  if (record.integrationStatus && ALLOWED_STATUSES.size > 0 && !ALLOWED_STATUSES.has(record.integrationStatus)) {
+    errors.push(`${record.name} has integrationStatus "${record.integrationStatus}", which is not one of: ${[...ALLOWED_STATUSES].join(", ")}.`);
+  }
+
+  // adapter_built is the one status that claims something about this repository
+  // rather than about the upstream project, so it is the one that can be false
+  // without anybody noticing. It has to name a module that exists.
+  if (record.integrationStatus === "adapter_built") {
+    const named = [...block.matchAll(/(lib\/[a-z0-9-]+\.cjs)/g)].map((match) => match[1]);
+    if (named.length === 0) {
+      errors.push(`${record.name} claims adapter_built without naming the adapter module in its notes.`);
+    }
+    for (const modulePath of named) {
+      if (!fs.existsSync(path.join(root, modulePath))) {
+        errors.push(`${record.name} claims adapter_built and names ${modulePath}, which does not exist.`);
+      }
+    }
+  }
+
   if (record.integrationStatus === "blocked" && !block.includes("blockedUses:")) {
     errors.push(`Blocked record ${record.name} must declare blockedUses.`);
   }
@@ -188,4 +257,24 @@ if (errors.length) {
   for (const error of errors) console.error(`ERROR: ${error}`);
   process.exit(1);
 }
-console.log("Open-source and external repository controls verified.");
+// What this run established, rather than what the script is capable of.
+//
+// This line used to read "Open-source and external repository controls
+// verified" whether or not --network was passed, and the release chain does not
+// pass it -- so the release log ended with the word "verified" while nothing had
+// confirmed that any of the registered repositories still exists. The line above
+// says "Network verification: disabled"; this one overwrote it, and the summary
+// is the line people read.
+//
+// Unlike the Stripe case, the network half is not unrun: it has its own
+// workflow. Naming it is more useful than a bare qualification, because the
+// question a reader has at this point is "then who does check".
+if (networkMode) {
+  console.log("Open-source and external repository controls verified, including that every registered repository still exists.");
+} else {
+  console.log(
+    "Open-source and external repository controls verified offline: the registry's records, licences and " +
+    "declared uses are consistent.\nWhether each registered repository still exists was NOT checked in this " +
+    "run -- that is `pnpm run verify:open-source:network`, which .github/workflows/external-repository-health.yml runs."
+  );
+}

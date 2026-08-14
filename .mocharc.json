@@ -1,0 +1,6 @@
+{
+  "require": "tests/setup-env.cjs",
+  "spec": ["tests/**/*.js", "tests/**/*.mjs"],
+  "timeout": 15000,
+  "exit": true
+}

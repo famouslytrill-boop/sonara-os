@@ -1,7 +1,7 @@
 const assert = require("node:assert");
 const fs = require("node:fs");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 const serverPath = path.join(root, "server.js");
@@ -14,6 +14,30 @@ const migrationPath = path.join(
 
 function read(filePath) {
   return fs.readFileSync(filePath, "utf8");
+}
+
+// The whole shipped runtime, not just server.js.
+//
+// The paid-access assertions below read server.js alone, and broke when
+// getCustomerPaidEntitlement moved into lib/sonara-paid-entitlement.cjs -- the
+// code was present, correct and shipped, and the test failed on where it lived.
+// That is the same fault the marker check in
+// tests/product-catalog-production-boundary.test.js was written for, one
+// directory over. These queries are a contract about what reaches PostgREST,
+// and which file holds them is not part of it.
+function readRuntime() {
+  const files = [serverPath];
+  for (const directory of ["lib", "routes"]) {
+    const walk = (current) => {
+      for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+        const full = path.join(current, entry.name);
+        if (entry.isDirectory()) walk(full);
+        else if (/\.(cjs|js|mjs)$/.test(entry.name)) files.push(full);
+      }
+    };
+    walk(path.join(root, directory));
+  }
+  return files.map((file) => fs.readFileSync(file, "utf8")).join("\n");
 }
 
 describe("database query contract", () => {
@@ -34,20 +58,25 @@ describe("database query contract", () => {
   });
 
   it("pushes paid-access filtering into PostgREST", function() {
-    const source = read(serverPath);
+    const source = readRuntime();
+    assert.ok(source.length > 200000, "the runtime scan collected almost nothing; these assertions would be measuring an empty string");
     assert.match(source, /if \(!allowedKeys\.length\)/);
     assert.match(source, /reason: "product_entitlement_unmapped"/);
+    // metadata is selected because workspace_monthly buys one workspace and
+    // which one is recorded on the row. Selecting it is what lets
+    // billingRowOpensProduct answer; without it every $19 plan would open all
+    // three, and the row would look identical to a $39 one.
     assert.match(
       source,
-      /billing_entitlements\?select=entitlement_key,status&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=eq\.active&entitlement_key=in\.\(\$\{entitlementFilter\}\)&limit=1/
+      /billing_entitlements\?select=entitlement_key,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=eq\.active&entitlement_key=in\.\(\$\{entitlementFilter\}\)&limit=1/
     );
     assert.match(
       source,
-      /billing_subscriptions\?select=plan_slug,status&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=in\.\(active,trialing\)&plan_slug=in\.\(\$\{entitlementFilter\}\)&limit=1/
+      /billing_subscriptions\?select=plan_slug,status,metadata&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}&status=in\.\(active,trialing\)&plan_slug=in\.\(\$\{entitlementFilter\}\)&limit=1/
     );
     assert.doesNotMatch(
       source,
-      /billing_subscriptions\?select=plan_slug,status&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}`/
+      /billing_subscriptions\?select=plan_slug,status[a-z_,]*&organization_id=eq\.\$\{encodeURIComponent\(organization\.organizationId\)\}`/
     );
   });
 

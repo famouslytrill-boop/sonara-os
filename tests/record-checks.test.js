@@ -47,6 +47,17 @@ const CASES = {
     catches: { id: "1", invoice_number: "INV-1", due_date: past, total_cents: 25000, payment_status: "pending" },
     ignores: { id: "2", invoice_number: "INV-2", due_date: past, total_cents: 25000, payment_status: "paid" }
   },
+  customer_invoices_overdue: {
+    catches: { id: "1", invoice_number: "AR-1", due_on: past, total_cents: 42000, status: "sent", currency: "usd" },
+    // Same overdue date, still a draft. A draft nobody has seen is not late,
+    // and this is the row that proves the status test is doing the work rather
+    // than the date alone.
+    ignores: { id: "2", invoice_number: "AR-2", due_on: past, total_cents: 42000, status: "draft", currency: "usd" }
+  },
+  customer_invoices_sent_without_due_date: {
+    catches: { id: "1", invoice_number: "AR-3", due_on: null, status: "sent" },
+    ignores: { id: "2", invoice_number: "AR-4", due_on: past, status: "sent" }
+  },
   services_without_price: {
     catches: { id: "1", name: "Consultation", price_cents: 0, status: "active" },
     ignores: { id: "2", name: "Deep clean", price_cents: 15000, status: "active" }

@@ -1,10 +1,8 @@
 const assert = require("node:assert/strict");
-const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 const request = require("supertest");
 const app = require("../server");
 
-const root = path.join(__dirname, "..");
 
 describe("payload-size guard", () => {
   it("applies the runtime patch idempotently", function() {

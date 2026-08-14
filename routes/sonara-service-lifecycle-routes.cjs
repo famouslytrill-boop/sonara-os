@@ -57,6 +57,18 @@ function catalogAccessReason(item) {
   return "open";
 }
 
+// What the button offers to do about it. This was written inline inside
+// catalogActions, where nothing could reach it without booting the router and
+// finding a closed product on the rendered page -- and once every product in
+// the catalog was open, there was no closed product to find, so the only check
+// on this wording went vacuous. It is a pure function of the reason, so it can
+// live here and be asked directly.
+function catalogRequestLabel(reason) {
+  if (reason === "awaiting_review") return "Ask about this one";
+  if (reason === "awaiting_paid_access") return "Ask us to open access";
+  return "Request this service";
+}
+
 function catalogCardBody(item) {
   const parts = [item.summary];
   if (item.customerOutcome) parts.push(`What you get: ${item.customerOutcome}`);
@@ -118,12 +130,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   function catalogActions(item, product) {
     const reason = catalogAccessReason(item);
     const canOpen = reason === "open";
-    const requestLabel = reason === "awaiting_review"
-      ? "Ask about this one"
-      : reason === "awaiting_paid_access"
-        ? "Ask us to open access"
-        : "Request this service";
-    const actions = [linkAction("/requests", requestLabel)];
+    const actions = [linkAction("/requests", catalogRequestLabel(reason))];
     if (canOpen) {
       const detailPath = item.route || (product ? `/${product.slug}` : "/start");
       actions.push(linkAction(detailPath, item.serviceKey && item.planFloor !== "free" ? "Open paid product" : product ? product.name : "Open product"));
@@ -139,7 +146,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       let product = null;
       try {
         product = resolveProduct(item) || null;
-      } catch (_) {
+      } catch {
         product = null;
       }
       const groupName = product?.name || (item?.productKey === "sonara_industries" ? "SONARA Industries" : displayStatus(item?.productKey || "Services"));
@@ -151,7 +158,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         try {
           const actions = catalogActions(item, product).join("");
           return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${escapeHtml(item.name || "Catalog item")}</h3><p>${escapeHtml(catalogCardBody(item))}</p></div><div class="actions">${actions}</div></article>`;
-        } catch (_) {
+        } catch {
           const fallbackName = escapeHtml(item?.name || "Catalog item");
           const fallbackSummary = escapeHtml(item?.summary || "This catalog entry needs review before it can be opened.");
           return `<article class="catalog-row"><div class="catalog-row-copy"><h3>${fallbackName}</h3><p>${fallbackSummary}</p></div><div class="actions">${linkAction("/requests", "Request catalog review")}</div></article>`;
@@ -1530,3 +1537,9 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     );
   });
 };
+
+// Exposed for tests. Both decide what a customer is told about a product that
+// is not open to them, and neither is reachable through the rendered page when
+// every product happens to be open.
+module.exports.catalogAccessReason = catalogAccessReason;
+module.exports.catalogRequestLabel = catalogRequestLabel;

@@ -2,9 +2,9 @@
   <title>SONARA Prism Wave</title>
   <desc>Three original prism ribbons form an open S around a human approval core, representing Business Builder, Creator Studio, and Growth Studio connected through SONARA One.</desc>
   <defs>
-    <linearGradient id="forge" x1="34" y1="38" x2="214" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D6D"/><stop offset=".56" stop-color="#FF8A3D"/><stop offset="1" stop-color="#FFC43D"/></linearGradient>
-    <linearGradient id="canvas" x1="30" y1="92" x2="220" y2="176" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4D8D"/><stop offset=".5" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4F6FFF"/></linearGradient>
-    <linearGradient id="signal" x1="44" y1="154" x2="208" y2="226" gradientUnits="userSpaceOnUse"><stop stop-color="#4F6FFF"/><stop offset=".52" stop-color="#14C8E5"/><stop offset="1" stop-color="#20C98B"/></linearGradient>
+    <linearGradient id="forge" x1="34" y1="38" x2="214" y2="110" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".56" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
+    <linearGradient id="canvas" x1="30" y1="92" x2="220" y2="176" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".5" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
+    <linearGradient id="signal" x1="44" y1="154" x2="208" y2="226" gradientUnits="userSpaceOnUse"><stop stop-color="#6E4BFF"/><stop offset=".52" stop-color="#5533E6"/><stop offset="1" stop-color="#12E1C4"/></linearGradient>
   </defs>
   <g fill="none" stroke-linecap="round">
     <path d="M197 55C170 32 127 31 91 45C57 58 39 81 49 104C58 124 85 130 126 128" stroke="url(#forge)" stroke-width="22"/>

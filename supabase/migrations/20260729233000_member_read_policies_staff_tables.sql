@@ -102,6 +102,71 @@ $$;
 
 do $$
 begin
+  if to_regclass('public.customers') is null then
+    raise notice 'skipping customers: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.customers enable row level security';
+  execute 'drop policy if exists "customers_select_member" on public.customers';
+  execute 'create policy "customers_select_member" on public.customers for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.customer_invoices') is null then
+    raise notice 'skipping customer_invoices: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.customer_invoices enable row level security';
+  execute 'drop policy if exists "customer_invoices_select_member" on public.customer_invoices';
+  execute 'create policy "customer_invoices_select_member" on public.customer_invoices for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.customer_invoice_lines') is null then
+    raise notice 'skipping customer_invoice_lines: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.customer_invoice_lines enable row level security';
+  execute 'drop policy if exists "customer_invoice_lines_select_member" on public.customer_invoice_lines';
+  execute 'create policy "customer_invoice_lines_select_member" on public.customer_invoice_lines for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.customer_invoice_payments') is null then
+    raise notice 'skipping customer_invoice_payments: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.customer_invoice_payments enable row level security';
+  execute 'drop policy if exists "customer_invoice_payments_select_member" on public.customer_invoice_payments';
+  execute 'create policy "customer_invoice_payments_select_member" on public.customer_invoice_payments for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.quotes') is null then
+    raise notice 'skipping quotes: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.quotes enable row level security';
+  execute 'drop policy if exists "quotes_select_member" on public.quotes';
+  execute 'create policy "quotes_select_member" on public.quotes for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
   if to_regclass('public.module_outputs') is null then
     raise notice 'skipping module_outputs: table not present';
     return;

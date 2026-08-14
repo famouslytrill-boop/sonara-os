@@ -1,10 +1,8 @@
 const assert = require("node:assert");
-const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { _execFileSync } = require("node:child_process");
 const request = require("supertest");
 const app = require("../server");
 
-const root = path.join(__dirname, "..");
 const ENV_KEYS = [
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
@@ -76,11 +74,19 @@ describe("paid launch finalization", () => {
   // customer-facing page and it read as unfinished, so it was removed at the
   // owner's direction.
   //
-  // The gate itself did not move. Readiness still reports legalPages as
-  // review_required, docs/legal/LEGAL_REVIEW_REQUIRED.md and
-  // COUNSEL_REVIEW_BRIEF.md still track it, and the pages still must not claim
-  // a review that has not happened. Removing a statement and making the
-  // opposite one are different things, and only the first was asked for.
+  // The gate itself did not move, and still has not.
+  // docs/legal/LEGAL_REVIEW_REQUIRED.md and COUNSEL_REVIEW_BRIEF.md still track
+  // the review, legalReviewBoundary still reports not_attorney_reviewed, and
+  // the pages still must not claim a review that has not happened. Removing a
+  // statement and making the opposite one are different things, and only the
+  // first was ever asked for.
+  //
+  // What did move is legalPages, from "review_required" to
+  // "published_with_disclaimer". That is the same distinction applied one level
+  // up: the pages carrying a disclaimer is a finished fact, and reporting it as
+  // a pending review put a permanent open item on a setup list. It says nothing
+  // about whether counsel has been engaged, which is what legalReviewBoundary
+  // is for and why both are asserted below.
   it("keeps the legal-review gate while the pages stop reporting their own status", async function() {
     const response = await request(app).get("/legal/terms").set("Accept", "text/html");
     assert.equal(response.status, 200);
@@ -94,7 +100,7 @@ describe("paid launch finalization", () => {
     );
 
     const readiness = await request(app).get("/api/readiness").set("Accept", "application/json");
-    assert.equal(readiness.body.services.legalPages, "review_required");
+    assert.equal(readiness.body.services.legalPages, "published_with_disclaimer");
     assert.equal(readiness.body.services.ownerLegalApproval, "owner_approved");
     assert.equal(readiness.body.services.pricingCatalog, "owner_approved");
     assert.equal(readiness.body.services.legalReviewBoundary, "not_attorney_reviewed");

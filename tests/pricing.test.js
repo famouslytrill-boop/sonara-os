@@ -13,6 +13,8 @@
 // Price has to be created at.
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const request = require("supertest");
 
 const app = require("../server");
@@ -75,7 +77,16 @@ describe("pricing", () => {
   });
 
   it("dates its competitor comparison instead of stating it as a standing fact", () => {
-    assert.match(page, /July 2026/, "the competitor comparison must carry the date it was surveyed");
+    // The month is read from the audit rather than pinned here. This said
+    // "July 2026", so re-surveying the market -- which is the thing that keeps
+    // the claim true -- broke the test that exists to keep it honest. What
+    // matters is that a date is carried and that it is the date of the research
+    // the page is quoting, not which month that happens to be.
+    const audit = fs.readFileSync(path.join(__dirname, "..", "docs", "market", "2026-08-12-MARKET-AUDIT.md"), "utf8");
+    const surveyed = audit.match(/Researched (\d+ [A-Z][a-z]+ \d{4})/)?.[1];
+    assert.ok(surveyed, "the audit does not state when it was researched");
+    const month = surveyed.replace(/^\d+ /, "");
+    assert.ok(page.includes(month), `the competitor comparison must carry the date it was surveyed (${month})`);
   });
 
   it("does not offer checkout on a plan that has no price configured", async () => {
