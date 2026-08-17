@@ -47,6 +47,7 @@ const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
+const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -93,6 +94,8 @@ const {
 tenantGuard.install();
 
 const app = express();
+// Before any route: an async handler that throws must answer, not hang. See lib/sonara-async-route-safety.cjs.
+installAsyncRouteSafety(app);
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
 const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
@@ -1828,6 +1831,11 @@ app.use((error, req, res, next) => {
     maxBytes: 1048576
   });
 });
+
+// Last, so every route and the 413 handler above get their turn first.
+app.use(createAsyncErrorHandler({
+  renderHtml: () => responsePage("Something went wrong", "This page could not be built just now. Try again, and tell us if it keeps happening.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
+}));
 
 module.exports = Object.assign(app, { legalAliasHrefs: legalAliasPages().map((page) => page.href) });
 

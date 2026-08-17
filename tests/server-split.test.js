@@ -331,9 +331,16 @@ describe("the server.js split stays safe", () => {
     // describe them. Moving it is how the three plans of the August pricing
     // restructure were absorbed -- the ceiling comes down as they go in, rather
     // than up to make room for them.
+    // Raised once, by 7, on 17 August 2026, and this is the exception the
+    // ceiling exists to make expensive rather than impossible. The seven lines
+    // are a require, a one-line call after `const app = express()`, and a
+    // four-line terminal error handler at the very end -- all three of which
+    // must live in this file because they bracket every route registered in it.
+    // The behaviour is in lib/sonara-async-route-safety.cjs, which is where the
+    // ceiling wants it. Anything that could have gone into that module did.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4066,
+      lines <= 4073,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

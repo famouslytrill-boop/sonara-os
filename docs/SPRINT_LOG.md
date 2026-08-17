@@ -2,6 +2,59 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-17 — a route that fails now answers, instead of hanging
+
+`docs/SHIP_READINESS.md` carried one open finding since 13 August: a request to
+`/admin/database` with a *healthy* catalog did not complete, while requests whose
+catalog failed answered in milliseconds. It was never diagnosed. It is now, and
+the cause was not in that route.
+
+**Express 4 ignores the promise an async handler returns.** A handler that
+throws, or awaits something that rejects, never reaches `next(error)`. Nothing
+writes a response. The request stays open until whoever is at the other end
+gives up. Probed directly against this application: `UNHANDLED REJECTION` on the
+process, and no response at all through a five-second deadline. There are **225
+async handlers** here. `/admin/database` was where somebody happened to be
+looking, and its healthy branch is simply the one with more code in it to fail.
+
+**A stall is not a slow 500**, which is why this got a module rather than a
+try/catch in the handler that was noticed. The customer sees a spinner, so they
+retry rather than report. The serverless function is billed until its own
+timeout rather than until the error. And it landed on the page an owner opens
+when they already think something is wrong.
+
+**Fixed at registration.** `lib/sonara-async-route-safety.cjs` patches
+`app.get/post/put/patch/delete/use/all` once, before the first route exists, so
+a rejection becomes `next(error)`; a terminal handler registered last answers
+500 — a branded page, or JSON under `/api/` — with no error text and no stack in
+it. Wrappers keep their argument count, because Express decides what is an error
+handler by counting parameters, and a 4-argument handler wrapped in a
+3-argument one silently stops being one and starts receiving the error as `req`.
+Express routers are left unwrapped so `verify-route-registry` can still walk
+their stacks. 225 handlers cannot be individually remembered, and the 226th gets
+written by somebody who never read this entry.
+
+**The test's first assertion is that the defect exists.** An unpatched Express 4
+app must stall; otherwise the four passing cases after it would be green against
+a framework that never had the problem. Then: a page for a browser, JSON for an
+API caller, no error text or stack in either, a synchronous throw caught too,
+and a response already sent left alone — a 500 written over work that succeeded
+is worse than the stall. Two more read the real router stack: every registered
+handler wrapped, terminal handler last.
+
+**The one thing still unknown**, said plainly rather than closed over: what made
+`/admin/database` throw was never identified and no longer reproduces — 2ms
+inside the full suite, 40ms standalone. An unidentified throw is still an
+unidentified throw. What changed is that it can no longer take a request down
+with it, and if it comes back it arrives as a 500 with a stack in the log rather
+than as silence.
+
+**One ratchet moved.** `server.js` grew 7 lines and the ceiling in
+`tests/server-split.test.js` went 4066 → 4073, with the reason written next to
+it: a require, one call after `const app = express()`, and a four-line terminal
+handler, all of which must be in that file because they bracket every route
+registered in it. Everything else went into the module.
+
 ### 2026-08-17 — "GitHub is down" is not "the repository is gone"
 
 `external-repository-health` went red on PR #202 with thirty-five lines of

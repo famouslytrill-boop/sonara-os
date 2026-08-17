@@ -41,39 +41,55 @@ depends on that path, and it is the last genuine unknown in it.
 
 ---
 
-## Open finding: /admin/database can stall on a healthy catalog
+## Closed 17 August 2026: /admin/database could stall — and so could 224 other routes
 
-Found 13 August 2026 while fixing the summary counts on that page, and **not
-diagnosed**. It is recorded here rather than in a test comment because a console
-that can hang is a worse problem than the one that was being fixed.
+Recorded here on 13 August as an open, undiagnosed finding: a request to
+`/admin/database` whose metadata catalog returned a *usable* snapshot did not
+complete, twice in a row, through eight-second deadlines, while requests whose
+catalog failed answered in milliseconds. It was written up rather than left in a
+test comment because a console that can hang is worse than the summary bug that
+was being fixed.
 
-**What happens.** In a Node process where other suites have already loaded the
-application, a request to `/admin/database` whose metadata catalog returns a
-*usable* snapshot does not complete — twice in a row, through eight-second
-deadlines. Requests whose catalog fails, and which therefore take the early
-"Database Management needs setup" return, answer in milliseconds in the same
-process. The full page renders normally when that file is the only one running.
+**The cause was not in that route.** Express 4 ignores the promise an async
+handler returns. A handler that throws — or awaits something that rejects —
+never reaches `next(error)`, so nothing writes a response and the request stays
+open until the client gives up. Probed directly against this application, a
+throwing async handler produced `UNHANDLED REJECTION` on the process and no
+response at all through a five-second deadline. There are **225 async handlers**
+here; `/admin/database` was where it happened to be noticed, and the healthy
+path is simply the branch with more code in it to fail.
 
-**Ruled out.** Request ordering — it is the healthy catalog that stalls, not
-whichever request happens to be first. The admin gate — the stalled request
-reaches the handler. The section default — it resolves to `schema-visualizer`,
-so nothing throws on an undefined definition. The environment — Supabase config
-and the admin allowlist are both set at render time. That leaves something in
-the full-page render path.
+**Why it was worth more than a try/catch.** A stall is not a slow 500. The
+customer sees a spinner, so they retry instead of reporting. A serverless
+function is billed until its own timeout rather than until the error. And the
+page it was found on is the one an owner opens when they already suspect
+something is broken.
 
-**Why it might not be a production problem, and why that is not good enough.**
-It has only been observed under the test harness, with a stubbed `fetch` and
-several suites sharing one process, which production does not resemble. But the
-difference between a stalled request and a slow one is invisible from outside,
-Express answers neither, and the page it affects is the one an owner opens when
-they already think something is wrong. It needs a reproduction outside mocha
-before anyone concludes it is only a harness artefact.
+**The fix is at registration, not at call sites.** `lib/sonara-async-route-safety.cjs`
+patches `app.get/post/put/patch/delete/use/all` once, before any route exists,
+so a rejected handler becomes `next(error)`; a terminal error handler registered
+last answers 500 with a branded page, or JSON on `/api/`, carrying no error text
+and no stack. 225 handlers cannot be individually remembered, and the 226th
+would be written by somebody who never read the file.
 
-**Not covered by a test.** `tests/the-database-console-never-reports-an-empty-database.test.js`
-covers the summary-count fix and deliberately carries no healthy-page assertion,
-because a test that cannot run reads as coverage. The guard against those
-assertions passing over an empty page is that each reads a value out of a named
-summary card.
+**What the test asserts, and why its first case is a failure.**
+`tests/a-failing-route-answers-instead-of-hanging.test.js` first asserts that an
+unpatched Express 4 app *does* stall. Without that, the four passing assertions
+would prove nothing about a framework that never had the problem. It then checks
+the answer for a page, for an API caller, that no error text or stack reaches
+the customer, that a synchronous throw is caught too, and that a response
+already sent is left alone — a 500 written over work that succeeded is worse
+than the stall. Two further assertions read the real application's router stack:
+that every registered route handler is wrapped, and that the terminal handler is
+last.
+
+**What remains unknown, and is now harmless.** The specific condition that made
+`/admin/database` throw was never identified, and no longer reproduces — the
+healthy-catalog render answers in 2ms inside the full suite and 40ms standalone.
+That is worth stating plainly: an unidentified throw is still an unidentified
+throw. The difference is that it can no longer take a request down with it, and
+if it returns it arrives as a 500 in the logs with a stack, rather than as
+silence.
 
 ## Three things only the owner can close
 
