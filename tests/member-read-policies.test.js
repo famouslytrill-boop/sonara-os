@@ -60,7 +60,7 @@ function tablesTheRuntimeReads() {
   // Adding a helper is easy and forgetting to add it here is easier, so the
   // final assertion in this file fails when a `(config, "table_name")` call
   // uses a name that is not listed.
-  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered|supabaseList|supabaseCount|supabaseInsert|supabasePatch|rest)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
+  const helper = /(?:safeListTable|safeCountTable|safeCountFiltered|supabaseList|supabaseCount|supabaseInsert|supabasePatch|readMemberships|rest)\(\s*(?:config,\s*)?["']([a-z_]+)["']/g;
   const literal = /\/rest\/v1\/([a-z_]+)[?"'`]/g;
   for (const file of files) {
     const source = fs.readFileSync(file, "utf8");
@@ -170,6 +170,10 @@ describe("no read helper hides from the policy check", () => {
     "supabaseCount",
     "supabaseInsert",
     "supabasePatch",
+    // Reads organization_memberships and business_memberships in
+    // lib/sonara-customer-organization.cjs -- the tenant boundary itself, so
+    // the one read path this check least wants to be blind to.
+    "readMemberships",
     "rest"
   ];
 

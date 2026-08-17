@@ -2,6 +2,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-17 — a read that failed could hand a customer a second workspace
+
+Found while sweeping for the absent-vs-empty collapse this codebase keeps
+producing. This one is in the tenant boundary itself, which makes it the worst
+place it has turned up.
+
+**What it was.** `getCustomerPrimaryOrganization` looks in
+`organization_memberships`, then `business_memberships`, and if neither has a
+row it calls `sonara_bootstrap_customer_workspace` to make one. Both lookups
+were written as `if (response?.ok) { ... }` with no else, so "the read failed"
+and "there is no row" fell through to the third step identically.
+
+**Why it was not caught by the RPC being idempotent.** It is idempotent — but
+only against `organization_memberships`, which it checks for an active
+membership before creating anything. It never looks at `business_memberships`.
+So a failed read of the first table was covered by accident, and a failed read
+of the second was not: a customer whose only membership lives there, on a
+request where that read failed, was handed a brand-new empty organization while
+their real one sat untouched with every record in it. From their side the
+product had lost their business.
+
+**The fix is a refusal, not a retry.** Both reads must answer before "there is
+nothing to find" is a conclusion anyone may write against. `readMemberships`
+returns the rows or `null`, never `[]`, for exactly that reason — and it returns
+null for a 200 carrying something that is not an array too, which is a real
+PostgREST failure mode and read as "no membership" before.
+
+**And the same collapse one level up.** "No workspace" and "could not check"
+were both `workspace_not_ready`, a code that reads as a fact about the customer.
+Someone mid-outage was told they had no workspace and offered a button to create
+one. `workspace_unreadable` is now separate; callers testing only `.ok` are
+unaffected, which is nearly all 95 of them.
+
+**Extracted while fixing**, to `lib/sonara-customer-organization.cjs`. server.js
+came down 40 lines and the ratchet in `tests/server-split.test.js` went to 4033
+— below where it stood before this morning's seven-line rise for the async route
+safety net.
+
+**Two existing guards caught the move before the tests did**, which is worth
+recording because both were written after being fooled once.
+`tests/member-read-policies.test.js` refuses any function handed a table name
+that it does not know, so `readMemberships` had to be registered before its two
+tables could go unchecked. And `tests/database-query-contract.test.js` pins the
+deterministic membership query — explicit total order and `limit=1`, without
+which a customer in two organizations flips between them per request. Its
+assertions now read the whole runtime rather than server.js, per that file's own
+note that which file holds a query is not part of the contract, and check that
+both tables go through one shared query rather than each carrying its own.
+
 ### 2026-08-17 — a route that fails now answers, instead of hanging
 
 `docs/SHIP_READINESS.md` carried one open finding since 13 August: a request to

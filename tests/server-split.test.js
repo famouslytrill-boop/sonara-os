@@ -338,9 +338,13 @@ describe("the server.js split stays safe", () => {
     // must live in this file because they bracket every route registered in it.
     // The behaviour is in lib/sonara-async-route-safety.cjs, which is where the
     // ceiling wants it. Anything that could have gone into that module did.
+    //
+    // Then straight back down past where it started, to 4033: the tenant
+    // boundary moved to lib/sonara-customer-organization.cjs the same day, and
+    // came down 40 lines with it.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4073,
+      lines <= 4033,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

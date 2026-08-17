@@ -48,6 +48,7 @@ const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
+const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -106,6 +107,8 @@ const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 // Bound this early because route registration below runs at module load and
 // receives responsePage among its dependencies. legalPages, readinessStatusClass
 // and safeListTable are hoisted function declarations, so they resolve from here.
+// The tenant boundary. Bound here because moduleCrud below takes it as a dependency.
+const getCustomerPrimaryOrganization = createCustomerPrimaryOrganizationResolver({ getSupabaseServerConfig, supabaseHeaders });
 const moduleCrud = createModuleCrud({
   getSupabaseServerConfig,
   supabaseHeaders,
@@ -3490,49 +3493,6 @@ async function requireBusinessManager(req, res, next) {
   return next();
 }
 
-async function getCustomerPrimaryOrganization(user, options = {}) {
-  const config = getSupabaseServerConfig();
-  const userId = String(user?.id || "").trim();
-  if (!config.ok) return { ok: false, code: "workspace_unavailable" };
-  if (!userId) return { ok: false, code: "customer_auth_required" };
-
-  const organizationMembership = await fetch(`${config.url}/rest/v1/organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (organizationMembership?.ok) {
-    const rows = await organizationMembership.json().catch(() => []);
-    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_memberships" };
-  }
-
-  const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (businessMembership?.ok) {
-    const rows = await businessMembership.json().catch(() => []);
-    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "business_memberships" };
-  }
-
-  if (options.autoBootstrap !== false) {
-    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_bootstrap_customer_workspace`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { "content-type": "application/json" }),
-      body: JSON.stringify({
-        p_user_id: userId,
-        p_email: user?.email || null,
-        p_organization_name: null,
-        p_product_path: "dashboard"
-      })
-    }).catch(() => undefined);
-    if (response?.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const value = Array.isArray(payload) ? payload[0] : payload;
-      const organizationId = value?.organization_id || value?.organizationId;
-      if (organizationId) return { ok: true, organizationId, source: "automatic_workspace_bootstrap" };
-    }
-  }
-
-  return { ok: false, code: "workspace_not_ready" };
-}
 
 
 
