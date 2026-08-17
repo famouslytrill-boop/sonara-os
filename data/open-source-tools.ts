@@ -2106,6 +2106,38 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "Awesome DeepSeek Agent",
+    slug: "awesome-deepseek-agent-integration-guides",
+    category: ["model integration guides", "documentation index", "reviewed on request"],
+    useCase: ["reading how third-party tools are pointed at a DeepSeek endpoint"],
+    productFit: ["Private Model Mode", "Internal Development"],
+    license:
+      "None declared. Checked three ways on 17 August 2026 rather than assumed: the repository page shows no LICENSE file, the GitHub repository API returns no licence field, and https://api.github.com/repos/deepseek-ai/awesome-deepseek-agent/license answers 404, which is what GitHub returns when it detects no licence. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
+    licenseRisk: "critical",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing from it -- no text, no table, no configuration snippet",
+      "do not treat it as a reason to add a DeepSeek code path; the model name is already an environment variable",
+      "if a DeepSeek endpoint needs configuring, read the vendor's own documentation, which carries terms somebody actually granted",
+    ],
+    officialUrl: "https://github.com/deepseek-ai/awesome-deepseek-agent",
+    repoUrl: "https://github.com/deepseek-ai/awesome-deepseek-agent",
+    notes:
+      "A curated set of guides for pointing 24 third-party tools -- Cline, Cherry Studio, AstrBot, a TUI, and others -- at a DeepSeek endpoint. Read from the repository rather than from the pitch that arrived with it: it contains documentation only, no runnable code, no installer and no agent skill, so there is nothing here that can be installed anywhere. Two details in the pitch did not survive checking. It said twenty applications; the repository's own contents table lists 24. And the one-million-token context window is stated in the repository for one specific tool's DeepSeek-TUI entry, not as a general property of a model -- a figure worth being exact about, because it is the kind of number that gets repeated into marketing copy and then has to be defended. The repository references DeepSeek-V4-Pro and DeepSeek-V4-Flash by name; their pricing, terms and availability were NOT verified here, and cost is a constraint of the same weight as licence. The more useful finding is that this changes nothing about what this codebase can do, and for a reason that is good news: lib/sonara-open-webui-adapter.cjs sends `model: readiness.model`, read from SONARA_OPEN_WEBUI_MODEL. The model is already a configuration value, not a code path. DeepSeek can be served behind the owner's own Open WebUI or gateway today without a line changing here, which is exactly the arrangement docs/architecture/EXTERNAL-SERVICES.md describes and the reason the register already carries DeepSeek V3 as an optional gateway model family rather than as a dependency. Recorded as blocked rather than reference_only, and that was a correction: it was first filed as reference_only on the reading that reading a public page needs no licence, which is true and is not what this register governs. tests/open-source-licence-terms.test.js refused it, on the rule that a record whose licence text says nothing was declared must be blocked. The rule is right to be absolute. The moment an undeclared licence can sit at reference_only, the line between may-read and may-take rests on whoever opens the entry next, and that is the erosion these guards exist to stop -- so the record moved, not the check.",
+    safetyBoundaries: [
+      "no text, table or guide from this repository is copied into this codebase or its documentation",
+      "any DeepSeek use goes through the Provider Gateway or an approved server-side adapter, never a configuration copied from a guide into client code",
+      "no customer data reaches a hosted model endpoint outside that path",
+    ],
+    blockedUses: [
+      "copying its prose into SONARA documentation",
+      "vendoring or redistributing any part of it",
+      "quoting its context-window or model claims in customer-facing copy without checking them at the source",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

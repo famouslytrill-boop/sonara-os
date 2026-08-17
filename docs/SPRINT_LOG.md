@@ -2,6 +2,59 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-17 — Awesome DeepSeek Agent reviewed; the answer is that nothing needs adding
+
+Added to the register on request. **Blocked**, and the more useful half of the
+finding is that the request it came with was already satisfied.
+
+**No licence, checked three ways** rather than assumed: the repository page shows
+no LICENSE file, the repository API returns no licence field, and
+`/repos/deepseek-ai/awesome-deepseek-agent/license` answers 404, which is what
+GitHub returns when it detects none. No licence is not permissive by default. It
+is all rights reserved, and nobody here can grant what the author has not.
+
+**Two claims in the pitch did not survive reading the repository.** It described
+twenty applications; the contents table lists 24. And the one-million-token
+context window is stated there for one tool's DeepSeek-TUI entry, not as a
+property of a model — worth being exact about, because that is precisely the kind
+of figure that gets repeated into marketing copy and then has to be defended.
+`DeepSeek-V4-Pro` and `DeepSeek-V4-Flash` are referenced by name in the
+repository; their pricing, terms and availability were **not** verified here, and
+cost is a constraint of the same weight as licence.
+
+**There is nothing to install.** It is documentation — 24 setup guides, no
+runnable code, no installer, no agent skill.
+
+**And DeepSeek already works without a line of code changing here.**
+`lib/sonara-open-webui-adapter.cjs` sends `model: readiness.model`, read from
+`SONARA_OPEN_WEBUI_MODEL`. The model is a configuration value, not a code path,
+so a DeepSeek model served behind the owner's own Open WebUI or gateway is
+reachable today. That is the arrangement `docs/architecture/EXTERNAL-SERVICES.md`
+describes, and the reason the register has carried DeepSeek V3 as an optional
+gateway model family rather than as a dependency since before this.
+
+**A second stale number fell out of it.** The doc-count guard rejected the
+release for `docs/owner/WHAT-IS-LEFT.md` saying "85 reviewed repositories", which
+is what it is for. Counting the rest of that sentence by hand found the next
+clause wrong too: it said **2** repositories declare no licence, and the register
+held **4** before today. That figure was never checked, because
+`verify-doc-counts.mjs` deliberately leaves licence questions to a human — and
+rightly, for the interpretive ones. Whether a reciprocal licence reaches a hosted
+product is a judgement. How many records say no licence was declared is not; it
+is a fact about the register, and it is now derived and compared like the other
+counts. Verified by putting the wrong figure back and watching it fail before
+trusting the green. The sentence now reads 86 and 5.
+
+**One correction worth recording, because a guard made it.** The record was first
+filed as `reference_only`, reasoning that reading a public page needs no licence.
+That reasoning is true and it is not what this register governs.
+`tests/open-source-licence-terms.test.js` refused it: a record whose licence text
+says nothing was declared must be `blocked`. The rule is right to be absolute —
+the moment an undeclared licence can sit at `reference_only`, the line between
+may-read and may-take rests on whoever opens the entry next. **The record moved,
+not the check.** Weakening it would also have needed a documented reason in
+`SECURITY_NOTES.md`, which is the second reason not to.
+
 ### 2026-08-17 — the fourth instance, and this one is what the customer sees
 
 Went looking for it deliberately. Three fixes today were the same collapse in

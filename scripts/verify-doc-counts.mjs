@@ -68,6 +68,15 @@ const testFiles = fs.readdirSync(path.join(root, "tests")).filter((name) => /\.(
 // re-derivable from the register and is deliberately left to a human.
 const registerSource = fs.readFileSync(path.join(root, "data", "open-source-tools.ts"), "utf8");
 const repositoryCount = (registerSource.match(/slug:\s*"/g) || []).length;
+// How many registered repositories declare no licence at all.
+//
+// The note above says licence *interpretation* is left to a human, and it still
+// is -- whether a reciprocal licence reaches a hosted product is a judgement.
+// This is not that. A record whose own licence text says nothing was declared is
+// a fact about the register, and the figure drifted anyway: docs/owner/WHAT-IS-LEFT.md
+// said two while the register held four, which is the sort of number that gets
+// quoted at somebody deciding what may be adopted.
+const undeclaredLicenceCount = (registerSource.match(/license:\s*\n?\s*"(?:None declared|No licence file|No licence declared)/g) || []).length;
 const migrationCount = fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length;
 // Read as a module rather than parsed: the generated file holds Sets, and
 // counting quoted strings in it would count the header comment too.
@@ -77,6 +86,7 @@ const createdTableCount = scopedTableCount + tenantModule.GLOBAL_TABLES.size;
 
 for (const [label, value, floor] of [
   ["repositories on the open-source register", repositoryCount, 40],
+  ["registered repositories declaring no licence", undeclaredLicenceCount, 1],
   ["migrations", migrationCount, 50],
   ["tables created by the migrations", createdTableCount, 100],
   ["organization-scoped tables", scopedTableCount, 80]
@@ -138,6 +148,7 @@ for (const file of walk("docs")) {
   // is not read as a claim about ours.
   for (const [pattern, actual, what] of [
     [/\b(\d[\d,]{0,4})\s+(?:reviewed\s+)?repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
     [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]

@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-85 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 85.
+86 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 86.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -116,11 +116,12 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-39 repositories.
+40 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [Awesome (sindresorhus)](https://github.com/sindresorhus/awesome) | CC0-1.0 | Read only | index of curated lists |
+| [Awesome DeepSeek Agent](https://github.com/deepseek-ai/awesome-deepseek-agent) | None declared. Checked three ways on 17 August 2026 rather than  | Blocked | model integration guides |
 | [Awesome Free LLM APIs (mnfst)](https://github.com/mnfst/awesome-free-llm-apis) | CC0-1.0 | Read only | provider directory |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
