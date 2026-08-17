@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 167 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 168 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,52 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-17 — the fourth instance, and this one is what the customer sees
+
+Went looking for it deliberately. Three fixes today were the same collapse in
+three different modules, so the question was where else it lives — and the
+answer was one layer further out, in the rendering rather than the reading.
+
+**`workspaceRecordCards` returned `""` for a read that failed.** It returns `""`
+for three unrelated situations: a page with no records section, a read that
+failed, and a read that could not be attempted. The reasoning above it is sound
+and is kept — *"a records list that cannot load should leave the tool usable
+rather than take the page down with it"*. The mistake is the choice of `""` for
+the middle one. `""` is what a page with no records section looks like, so a
+customer with twenty saved leads saw the form and nothing under it. On a page
+titled Records, an empty page is not the absence of a statement.
+
+**The neighbouring renderers already had it right for the case they could see.**
+`renderRecordCards` on a genuinely empty list says *"Nothing saved yet. Use the
+form above and it will appear here."* That sentence is true after a successful
+read and false after a failed one, and nothing told them apart — the failure
+never reached the renderer at all.
+
+`renderRecordsUnavailable` now says the list could not be loaded, that it is our
+side, and that nothing has been deleted. Setup codes stay silent, because a
+customer with no workspace yet is not looking at a failure and the page has its
+own setup card; a "we could not load" banner on a brand-new account would be a
+new false statement in place of the old one.
+
+**Two smaller things found on the way in.** `moduleCrud.list` passed a 200
+carrying a non-array straight through as `records`, which reached `.map` in the
+renderers — before this morning's route safety net that hung the request, and
+after it a 500. It is a read failure now. And `readModuleRecords` reported
+`setup_required` for every organization failure, which since this morning
+includes `workspace_unreadable`; only a genuine `workspace_not_ready` maps there
+now.
+
+**The test's second half is the half that matters.** For each of the two page
+shapes it asserts the failed read says so — and then that a *successful* empty
+read still says "Nothing saved yet" and does not say "could not load". Without
+that pair, a page apologising unconditionally would pass, and that is the same
+lie told in the commoner direction, to every customer who genuinely has not
+saved anything yet.
+
+**Line-neutral in server.js**, which stays at 4032: two `return ""` became two
+calls, and the new markup lives in `lib/sonara-module-crud.cjs` beside the
+renderers it belongs with.
 
 ### 2026-08-17 — a customer who had paid could be shown a paywall
 

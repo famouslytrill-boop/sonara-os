@@ -45,7 +45,7 @@ const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
-const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
+const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
@@ -2028,7 +2028,7 @@ async function workspaceRecordCards(req, page, config) {
   if (page.module === "free_records") {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
-    if (!result?.saved) return "";
+    if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
     return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace" });
   }
 
@@ -2037,7 +2037,7 @@ async function workspaceRecordCards(req, page, config) {
   const result = await moduleCrud
     .list({ ...req, query: { ...req.query, limit: 20 } }, match.productKey, match.resource)
     .catch(() => ({ ok: false }));
-  if (!result.ok) return "";
+  if (!result.ok) return renderRecordsUnavailable({ noun: match.spec?.noun, code: result.body?.code || "read_failed" });
   const slug = match.productKey.replace(/_/g, "-");
   return renderRecordCards({
     records: result.body.records || [],
@@ -3050,7 +3050,7 @@ async function readModuleRecords(req, productKey) {
   return {
     ok: result.ok === true,
     saved: result.ok,
-    code: result.ok ? "records_available" : organization.ok ? "records_unavailable" : "setup_required",
+    code: result.ok ? "records_available" : organization.ok || organization.code !== "workspace_not_ready" ? "records_unavailable" : "setup_required",
     productKey,
     records: result.records
   };
