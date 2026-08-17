@@ -49,6 +49,7 @@ const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputC
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
+const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -816,9 +817,10 @@ app.post("/contact", async (req, res) => {
   }
 
   const result = await saveSupportRequest(request.value);
-  if (wantsJson) return res.status(200).json(result);
-  return res.status(200).type("html").send(
-    responsePage(result.ok ? "Request received" : "Request queued", result.message, [linkAction("/", "Return home"), linkAction("/contact", "Contact")])
+  // 503 when nothing was stored and nothing was sent, so a caller reading only the status code cannot take a vanished request for a filed one.
+  if (wantsJson) return res.status(result.ok ? 200 : 503).json(result);
+  return res.status(result.ok ? 200 : 503).type("html").send(
+    responsePage(result.heading, result.message, [linkAction("/", "Return home"), linkAction("/contact", "Contact")])
   );
 });
 
@@ -2066,7 +2068,7 @@ function adminPage(title, body, readiness, metrics = {}) {
     deploymentCard(),
     actionCard("Readiness", "Live setup state for account database, checkout, email delivery, Google sign-in, and founder access.", [linkAction("/admin/env-readiness", "Environment"), linkAction("/api/readiness", "Readiness JSON")]),
     actionCard("Users and roles", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed."), [linkAction("/admin/users", "Users"), linkAction("/admin/roles", "Roles")]),
-    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
+    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests are emailed rather than filed, and are not listed here."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
     actionCard("Billing and webhooks", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."), [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates"), linkAction("/pricing", "Pricing")]),
     actionCard("Product catalog", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas.", [linkAction("/admin/catalog", "Catalog"), linkAction("/business-builder", "Business"), linkAction("/creator-studio", "Creator"), linkAction("/growth-studio", "Growth")]),
     actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
@@ -2232,14 +2234,14 @@ async function getCommandCenterSummary(req) {
         linkAction("/support", "Contact support")
       ]);
 
-  let requestsSummary = "Setup needed: your records are not connected yet, so requests are tracked with a safe fallback.";
+  let requestsSummary = "Setup needed: your records are not connected yet, so requests are not listed here.";
   let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
   let billingSummary = readiness.services.checkout === "enabled"
     ? "Checkout is configured. Paid access unlocks only after payment updates record an active or trialing plan."
     : "Setup required: checkout is not fully configured yet. Paid access stays locked until payment updates are recorded.";
   const supportSummary = readiness.services.supabase === "configured"
     ? "Support requests are recorded in the account database with reference IDs."
-    : "Setup required: support requests use the safe fallback queue with reference IDs.";
+    : "Setup needed: your records are not connected, so a support request is emailed to us rather than filed against your account.";
 
   let openRequestCount = null;
   if (hasOrg) {
@@ -2746,9 +2748,7 @@ async function saveSupportRequest(request) {
   const email = await sendSupportNotification({ ...request, referenceId });
   if (supportRequestId) await updateSupportEmailStatus(supportRequestId, email);
 
-  if (stored && email.ok) return { ok: true, referenceId, status: "received", message: `Your request was received. Reference ID: ${referenceId}. Email notification: sent.` };
-  if (stored && !email.ok) return { ok: true, referenceId, status: "email_notification_failed", message: `Your request was received. Reference ID: ${referenceId}. Email notification failed and remains queued.` };
-  return { ok: true, referenceId, status: "setup_required", message: `Setup required: the account database is not configured, so the request used the safe fallback queue. Reference ID: ${referenceId}.` };
+  return supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
 }
 
 async function sendSupportNotification(request) {
@@ -2986,7 +2986,7 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
       service: organization.code || "customer_organization",
       productKey,
       moduleKey,
-      referenceId: randomUUID(),
+      referenceId: null, // was randomUUID(): a reference number for a row nobody wrote
       output
     };
   }
@@ -2994,7 +2994,7 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
   const domain = await safeInsertDomainModuleRecord(organization.organizationId, req.sonaraUser?.id, productKey, moduleKey, input, output);
   const operating = await safeInsertBusinessBuilderOperatingRecord(organization.organizationId, req.sonaraUser?.id, productKey, moduleKey, input, output);
   const anySaved = saved.ok || domain.ok || operating.ok;
-  const referenceId = saved.rows?.[0]?.id || domain.rows?.[0]?.id || operating.rows?.[0]?.id || randomUUID();
+  const referenceId = saved.rows?.[0]?.id || domain.rows?.[0]?.id || operating.rows?.[0]?.id || null;
   return {
     ok: true,
     saved: anySaved,
@@ -3026,11 +3026,11 @@ function sendValidationFailure(req, res, validation, backHref) {
 
 function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json(result);
-  const reference = result.referenceId || result.intakeRequestId || result.output?.referenceId || "pending";
   const title = result.saved ? successTitle : "Your result is ready";
+  // No reference number on the unsaved path -- it identified nothing, and a number is what makes somebody believe the work is filed.
   const message = result.saved
-    ? `Saved to your workspace. Reference ID: ${reference}.`
-    : `Your result was created, but it could not be saved yet. Try again in a moment. Reference ID: ${reference}.`;
+    ? `Saved to your workspace. Reference ID: ${result.referenceId || result.intakeRequestId || result.output?.referenceId || "pending"}.`
+    : "Your result was created, but it could not be saved yet. Try again in a moment.";
   const page = responsePage(title, message, [
     linkAction(backHref, "Return to tool"),
     linkAction("/dashboard", "My workspace"),

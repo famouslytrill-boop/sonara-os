@@ -257,7 +257,7 @@ describe("software-in-a-service platform upgrade", () => {
       }
     });
 
-    it("POST /service-requests names the service_requests table when the insert is unavailable", async function() {
+    it("POST /service-requests refuses the request when the insert is unavailable", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
@@ -270,11 +270,18 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Authorization", "Bearer customer-session")
           .set("Accept", "application/json")
           .send({ productKey: "business_builder", serviceName: "Launch Website Setup", summary: "Need a site", details: "Full details of the request." });
-        assert.equal(res.status, 200);
+        // The old assertions were 200 with `saved: false` and a reference ID,
+        // which is the shape of an accepted request. `saved: false` carried the
+        // truth and nothing surfaced it: the page said "Setup required" and gave
+        // a reference number minted by randomUUID() for a row that was never
+        // written. A number that identifies nothing is what makes somebody
+        // believe they have a case open.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
         assert.equal(res.body.saved, false);
-        assert.equal(res.body.code, "setup_required");
+        assert.equal(res.body.code, "not_recorded");
         assert.equal(res.body.service, "service_requests");
-        assert.ok(res.body.referenceId);
+        assert.equal(res.body.referenceId, null);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);
@@ -348,7 +355,7 @@ describe("software-in-a-service platform upgrade", () => {
       assert.equal(res.body.code, "validation_failed");
     });
 
-    it("POST /support/request uses the safe fallback queue with a reference ID when database is missing", async function() {
+    it("POST /support/request says a request went nowhere, rather than inventing a reference for it", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       clearSupabaseEnv();
       try {
@@ -356,10 +363,18 @@ describe("software-in-a-service platform upgrade", () => {
           .post("/support/request")
           .set("Accept", "application/json")
           .send({ name: "Casey Customer", email: "casey@example.com", subject: "Access question", message: "I need help understanding workspace setup.", category: "support", consent: "yes" });
-        assert.equal(res.status, 200);
-        assert.equal(res.body.ok, true);
-        assert.ok(res.body.referenceId);
-        assert.match(res.body.message, /Reference ID/);
+        // This test asserted the fabrication. Its old name was "uses the safe
+        // fallback queue with a reference ID when database is missing", and
+        // there is no fallback queue -- no table, no file, no in-memory store.
+        // With Supabase cleared and no email provider the request was stored
+        // nowhere and sent nowhere, and the customer was handed ok:true, a
+        // reference number and the word "queue", which is everything somebody
+        // needs to stop chasing it.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
+        assert.equal(res.body.status, "not_recorded");
+        assert.equal(res.body.referenceId, null);
+        assert.doesNotMatch(res.body.message, /queue|Reference ID/i);
       } finally {
         restoreEnv(snapshot);
       }
@@ -489,7 +504,10 @@ describe("software-in-a-service platform upgrade", () => {
         assert.equal(res.body.code, "setup_required");
         assert.match(res.body.output.baseCost, /\$200\.00/);
         assert.match(res.body.output.targetPrice, /\$400\.00/);
-        assert.ok(res.body.referenceId);
+        // "honest save state" is `saved: false`; the reference ID was the part
+        // that was not honest. It came from randomUUID() and identified no row
+        // in any table, on the one path where nothing had been written.
+        assert.equal(res.body.referenceId, null);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);

@@ -6,7 +6,6 @@
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
 
-const { randomUUID } = require("node:crypto");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
@@ -926,10 +925,12 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
 
     const config = getSupabaseServerConfig();
     if (!config.ok) {
-      const referenceId = randomUUID();
-      const payload = { ok: true, saved: false, code: "setup_required", service: "supabase", referenceId, message: `Setup required: the account database is not configured. Reference ID: ${referenceId}.` };
-      if (wantsJson(req)) return res.status(200).json(payload);
-      return res.status(200).type("html").send(responsePage("Setup required", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
+      // No reference ID. It used to mint one with randomUUID() for a request
+      // that was never written, which is a number identifying nothing -- and it
+      // is the artefact that makes somebody believe they have a case open.
+      const payload = { ok: false, saved: false, code: "setup_required", service: "supabase", referenceId: null, message: "Your request was not recorded, because the account database is not connected. Nothing was saved, so please try again shortly rather than waiting to hear back." };
+      if (wantsJson(req)) return res.status(503).json(payload);
+      return res.status(503).type("html").send(responsePage("Your request was not recorded", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
     }
 
     const record = {
@@ -948,14 +949,23 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }).catch(() => undefined);
 
     if (!response?.ok) {
-      const referenceId = randomUUID();
-      const payload = { ok: true, saved: false, code: "setup_required", service: "service_requests", referenceId, message: `Setup required: the service_requests table is not available yet. Reference ID: ${referenceId}.` };
-      if (wantsJson(req)) return res.status(200).json(payload);
-      return res.status(200).type("html").send(responsePage("Setup required", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
+      const payload = { ok: false, saved: false, code: "not_recorded", service: "service_requests", referenceId: null, message: "Your request was not recorded. Nothing was saved, so please try again shortly rather than waiting to hear back." };
+      if (wantsJson(req)) return res.status(503).json(payload);
+      return res.status(503).type("html").send(responsePage("Your request was not recorded", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
     }
 
-    const rows = await response.json().catch(() => []);
-    const requestId = rows[0]?.id || randomUUID();
+    // The write succeeded, so this id exists. It used to fall back to
+    // randomUUID(), which handed out a reference to a row nobody could find on
+    // the one path where the insert worked and the representation did not come
+    // back -- the hardest version of this to notice, because everything else
+    // about the request was fine.
+    const rows = await response.json().catch(() => null);
+    const requestId = Array.isArray(rows) ? rows[0]?.id : undefined;
+    if (!requestId) {
+      const payload = { ok: false, saved: true, code: "reference_unavailable", service: "service_requests", referenceId: null, message: "Your request was saved, but we could not read back its reference number. It is recorded -- check your requests list rather than submitting it again." };
+      if (wantsJson(req)) return res.status(200).json(payload);
+      return res.status(200).type("html").send(responsePage("Saved, without a reference number", payload.message, [linkAction("/requests", "My requests"), linkAction("/dashboard", "Dashboard")]));
+    }
     await fetch(`${config.url}/rest/v1/service_request_events`, {
       method: "POST",
       headers: supabaseHeaders(config),
@@ -984,7 +994,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     } else {
       const rows = await safeListTable("service_requests", `?select=id,service_name,product_key,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=20`);
       if (!rows.ok) {
-        sections.push(brandCard("Setup required", "The service_requests table is not available yet. Submitted requests will use the safe fallback path with a reference ID until the account database is migrated."));
+        sections.push(brandCard("Setup required", "The service_requests table is not available yet, so a request submitted now cannot be recorded and will be refused rather than accepted quietly."));
       } else if (!rows.rows.length) {
         sections.push(brandCard("No requests yet", "Submit your first service request below or browse the service catalog."));
       } else {
@@ -1142,9 +1152,13 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       return res.status(400).type("html").send(responsePage("Request not accepted", request.message, [linkAction("/support", "Try again")]));
     }
     const result = await saveSupportRequest(request.value);
-    if (wantsJson(req)) return res.status(200).json(result);
-    return res.status(200).type("html").send(
-      responsePage(result.ok ? "Support request received" : "Support request queued", result.message, [linkAction("/support", "Support"), linkAction("/dashboard", "Dashboard"), linkAction("/", "Home")])
+    // 503 when the request was stored nowhere and sent nowhere. The heading came
+    // from `result.ok ? ... : "Support request queued"`, and there is no queue --
+    // so the one path where nothing happened had the most reassuring page.
+    const status = result.ok ? 200 : 503;
+    if (wantsJson(req)) return res.status(status).json(result);
+    return res.status(status).type("html").send(
+      responsePage(result.heading, result.message, [linkAction("/support", "Support"), linkAction("/dashboard", "Dashboard"), linkAction("/", "Home")])
     );
   });
 

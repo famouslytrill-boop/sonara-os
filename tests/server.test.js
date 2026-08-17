@@ -368,7 +368,7 @@ describe("contact support", () => {
     assert.match(res.text, /Enter your name/);
   });
 
-  it("POST /contact returns setup_required fallback safely when providers are missing", async function() {
+  it("POST /contact refuses the request when no provider can take it", async function() {
     const res = await request(app)
       .post("/contact")
       .type("form")
@@ -380,10 +380,14 @@ describe("contact support", () => {
         message: "Please review the paid launch readiness path.",
         consent: "yes"
       });
-    assert.equal(res.status, 200);
+    // Was: 200, a "Reference ID:", and "Setup required". With no database and no
+    // email provider the request reached nothing at all, and the reference
+    // number pointed at no record anywhere -- it was the artefact that made a
+    // vanished request look like a filed one.
+    assert.equal(res.status, 503);
     assert.equal(res.type, "text/html");
-    assert.match(res.text, /Reference ID:/);
-    assert.match(res.text, /Setup required|received|email notification failed/i);
+    assert.match(res.text, /did not go through/);
+    assert.doesNotMatch(res.text, /Reference ID/);
   });
 });
 

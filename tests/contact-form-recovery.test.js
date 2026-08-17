@@ -118,9 +118,28 @@ describe("a rejected contact request", () => {
 
   it("still accepts a valid request", async () => {
     // The guard against fixing the failure path by breaking the success path.
+    //
+    // This used to assert 200 and "Request received|Request queued". Nothing is
+    // configured in this suite, so the request reached neither the database nor
+    // the notification email, and "Request queued" was the page saying it had
+    // gone into a fallback queue that does not exist. The guard is about
+    // validation -- that a good submission is not sent back as a bad one -- so
+    // it now checks that, and checks the outcome page honestly.
     const res = await submit();
-    assert.equal(res.status, 200);
-    assert.match(res.text, /Request received|Request queued/);
+    assert.notEqual(res.status, 400, "a valid submission was rejected as invalid");
+    assert.doesNotMatch(res.text, /<textarea name="message"/, "a valid submission was sent back to the form");
+    assert.match(res.text, /Request received|did not go through/);
+  });
+
+  it("tells a valid submitter the truth when nothing could take the request", async () => {
+    // Nothing is configured here, so this is the real outcome rather than a
+    // contrived one. 503 rather than 200, because a caller reading only the
+    // status code must not record a vanished request as a filed one.
+    const res = await submit();
+    assert.equal(res.status, 503);
+    assert.match(res.text, /did not go through/);
+    assert.doesNotMatch(res.text, /queue/i, "the page still describes a queue that does not exist");
+    assert.doesNotMatch(res.text, /Reference ID/, "a reference number was given for a request that was never recorded");
   });
 
   it("answers JSON callers with JSON, not a page", async () => {

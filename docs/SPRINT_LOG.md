@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-17 — the queue that was not there
+
+Fifth instance, and the first one that is not a read collapsing. This is a
+**mechanism described to the customer that was never built**, with a passing test
+asserting it.
+
+**The sentence.** A support request whose insert failed ended at:
+
+> "Setup required: the account database is not configured, so the request used
+> the safe fallback queue. Reference ID: `<uuid>`."
+
+There is no fallback queue. Searched for: no table, no file, no in-memory store,
+nothing scheduled. The phrase was in five strings — the support result, two
+dashboard cards, an admin card and a service-lifecycle page — and every one of
+them described something that does not exist.
+
+**What actually happened on that path.** The insert had failed *and* the
+notification email had failed, so nothing was stored and nothing was sent. The
+customer got `ok: true`, HTTP 200, a reference number, and the word "queue". They
+would reasonably stop chasing it. **A support request that silently disappears is
+worse than a form that refuses to submit, because the second one gets retried** —
+and this was the one page somebody reaches when something has already gone wrong.
+
+**A test asserted the fabrication**, by name: *"POST /support/request uses the
+safe fallback queue with a reference ID when database is missing"*. It cleared
+the Supabase environment and checked for `ok: true` and a reference ID. The
+guarantee had a green tick and no implementation, which is this codebase's stated
+recurring defect in its purest form.
+
+**The reference number is the part that does the damage.** It is minted before
+the insert and written into the row as `reference_id`, so when the row is stored
+it genuinely identifies it — and when the row is not stored but the email went
+out, it is in the email body, so support can still find it. Both real, in
+different places, and the message now says which. When neither happened it
+identifies nothing anywhere, and handing it over is the artefact that makes
+somebody believe they have a case open. That case now returns **no reference at
+all**, `ok: false`, and 503 — so a caller reading only the status code cannot
+record a vanished request as a filed one.
+
+`lib/sonara-support-outcome.cjs` holds the four-way decision. Its test asserts
+the two success endings *first*, because every "did not go through" assertion
+would otherwise pass against a form that refuses everything.
+
+**Three more invented references, swept in the same pass.** `POST
+/service-requests` minted one with `randomUUID()` on two failure branches and, on
+the success branch, fell back to `randomUUID()` when the insert worked but the
+representation did not come back — the hardest of the three to notice, because
+everything else about the request was fine. `saveModuleOutput` did the same in
+two places, and `sendWorkspacePostResult` printed the result on a page that had
+already, correctly, said the work could not be saved. All now null, and the
+unsaved page prints no reference.
+
+**Lint proved the sweep was complete** in one file: removing the last
+`randomUUID()` call left the import unused and the build said so. That is a
+better completeness check than my own reading of the file.
+
+Four tests changed. Each asserted the old behaviour, and each was read before
+being touched — one of them, *"still accepts a valid request"*, is a real guard
+against fixing a failure path by breaking a success path, so it kept its job and
+lost only its acceptance of the word "queued".
+
 ### 2026-08-17 — Awesome DeepSeek Agent reviewed; the answer is that nothing needs adding
 
 Added to the register on request. **Blocked**, and the more useful half of the
