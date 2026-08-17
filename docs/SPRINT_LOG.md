@@ -2,6 +2,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-14 — the 124 policy-less tables are correct, and now provably so
+
+The Supabase work asked for was a search for what is broken. What it found was
+a property that is right and undefended, which is a different kind of problem
+and a worse one, because the fix for it looks like a fix.
+
+**The finding.** Row level security is enabled on every table in this schema.
+124 of them carry no policy at all. A security advisor reads that as a gap, and
+the obvious remedy is to write policies. Both readings are wrong. RLS enabled
+with zero policies denies every row to `anon` and to `authenticated`; the
+service role bypasses RLS entirely. Every query this product makes goes through
+Express holding the service key, so deny-all is not a gap in the wall — it *is*
+the wall, and it is the strongest state available. Writing policies to satisfy
+the advisor would open 124 tables to any signed-in user of any organization, in
+exchange for nothing, because nothing is being denied that anybody wanted.
+
+**Why it held.** Checked rather than assumed: no file under `public/` or
+`packages/` names `/rest/v1/`, a `*.supabase.co` host, or `createClient(`. The
+anon key appears only in server-side modules. The browser genuinely has no route
+to PostgREST, so the tenant boundary is the `organization_id` filter in Express
+and nothing depends on a policy that isn't there.
+
+**What was missing.** Nothing checked the "no route to PostgREST" half. That is
+the load-bearing assumption, it is invisible from the database side, and the
+first client script to query PostgREST directly would get empty results from 124
+tables and send whoever wrote it straight to the policy editor. The database
+cannot warn about this; only the client tree can.
+
+**What was added.** `scripts/client-secret-scan.cjs`, already in
+`verify:launch`, now also fails if a browser file names a PostgREST path, a
+Supabase host, or a Supabase client constructor — with the reasoning in the
+failure text, so the person who trips it reads why before deciding what to do.
+The scan also throws on zero files read, since a walk that stopped matching
+would otherwise report both of its checks green having read nothing, which is
+this codebase's recurring defect exactly.
+
+**Verified to bite.** Appending a `fetch("https://<ref>.supabase.co/rest/v1/customers")`
+call to `public/sonara-one.js` fails the scan; so does a bare Supabase host
+string with no fetch around it. The restored tree passes and names the count of
+files it read.
+
+**Still open and owner-only.** Leaked-password protection is a dashboard toggle
+in Supabase Auth and no tool here can set it. The four authorization functions
+(`is_admin`, `is_current_user_admin`, `has_scope`, `has_company_access`) exist
+in the live database and not in any migration; exporting them needs the Supabase
+MCP connector authorized, which it is not.
+
 ### 2026-08-14 — watermarks-remover reviewed and refused
 
 Added to the register on request, and **blocked**. The name suggests removing a
