@@ -122,6 +122,44 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-17 — "GitHub is down" is not "the repository is gone"
+
+`external-repository-health` went red on PR #202 with thirty-five lines of
+`ERROR: GitHub returned 504 for ...`, naming `rust-lang/rust`,
+`sindresorhus/awesome` and `ollama/ollama` among others. Nothing was wrong with
+the register. GitHub's API was returning gateway timeouts, and the checker
+reported that as evidence about the repositories.
+
+**Why this one mattered more than the noise.** The obvious response to a red
+external-repository-health run is to go and remove the named entries from
+`data/open-source-tools.ts`. A check that cannot tell *this repository is gone*
+from *GitHub did not answer* does not merely fail uselessly — it argues for
+deleting eighty-five records that are fine, in the one place where the argument
+looks authoritative.
+
+**Three outcomes now, not two.** Confirmed means GitHub answered and the answer
+was good; error means GitHub answered and the answer was bad — 404, 410,
+disabled, no default branch; indeterminate means GitHub did not answer — 5xx,
+timeout, transport failure, rate limit. 429 and 5xx are retried twice with
+backoff first, because a gateway timeout is usually a moment rather than a
+state; a rate limit is not retried, since burning attempts against it only
+deepens it. Transport failures were folded in too — an offline runner used to
+report every registered repository as broken.
+
+**And the pass had to be tightened at the same time.** Downgrading 5xx to a
+warning on its own would have turned thirty-five false errors into a silent
+green, which is this codebase's recurring defect wearing its other face. So a
+`--network` run that confirms *zero* targets now fails, and the summary line
+reports the population it actually reached rather than the one it was given.
+That line already lied on the rate-limit path, which breaks out of the loop
+partway and then went on to claim "every registered repository still exists".
+
+**Verified against a stubbed API rather than reasoned about**, since a check
+about failure handling that has only been read is a check nobody has run: three
+504s among ninety-one targets warn and exit 0 naming 88 of 91 confirmed; a 404
+on `rust-lang/rust` still exits 1; a rate limit on the first target exits 1 for
+having established nothing; and the offline release-chain path is unchanged.
+
 ### 2026-08-14 — the 124 policy-less tables are correct, and now provably so
 
 The Supabase work asked for was a search for what is broken. What it found was

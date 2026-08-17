@@ -202,6 +202,32 @@ for (const match of registrySource.matchAll(/github\.com\/([A-Za-z0-9_.-]+)\/([A
   addRepositoryTarget(`https://github.com/${match[1]}/${match[2]}`, "docs/SONARA_EXTERNAL_REPOSITORY_REGISTRY.md");
 }
 
+// What a run of this check can conclude, and what it cannot.
+//
+// Three outcomes, not two. `confirmed` means GitHub answered about this target
+// and the answer was good. `errors` means GitHub answered and the answer was
+// bad -- a 404, a disabled repository, no default branch. `indeterminate` means
+// GitHub did not answer: a 5xx, a timeout, a rate limit.
+//
+// The third one used to be folded into the second, and on 17 August 2026 that
+// turned a GitHub gateway outage into thirty-five lines reading
+// "ERROR: GitHub returned 504 for rust-lang/rust". Nothing was wrong with the
+// register. The natural response to a red external-repository-health run is to
+// go and delete entries from it, so a check that cannot tell "this repository
+// is gone" from "GitHub is down" is worse than one that does not run: it argues
+// for removing records that are fine.
+const networkOutcome = { confirmed: 0, indeterminate: [], unattempted: 0 };
+
+// Retried, because a 5xx is usually a moment rather than a state. Three
+// attempts and then give up and say so -- retrying until it works is how a
+// health check becomes an outage amplifier.
+const RETRY_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [1000, 4000];
+
+function label(target) {
+  return `${target.owner}${target.repository ? `/${target.repository}` : ""}`;
+}
+
 async function verifyNetworkTarget(target) {
   const endpoint = target.kind === "repository"
     ? `https://api.github.com/repos/${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repository)}`
@@ -214,27 +240,52 @@ async function verifyNetworkTarget(target) {
   if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 
   let response;
-  try {
-    response = await fetch(endpoint, { headers, signal: globalThis.AbortSignal.timeout(12000) });
-  } catch (error) {
-    errors.push(`Network check failed for ${target.owner}${target.repository ? `/${target.repository}` : ""}: ${error.message}`);
-    return;
+  let lastFailure = "";
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
+    if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt - 1]));
+    try {
+      response = await fetch(endpoint, { headers, signal: globalThis.AbortSignal.timeout(12000) });
+    } catch (error) {
+      // A transport failure is the same kind of not-an-answer as a 504, and it
+      // was the same kind of false error before this: an offline runner used to
+      // report every registered repository as broken.
+      response = null;
+      lastFailure = error.message;
+      continue;
+    }
+    if (!RETRY_STATUSES.has(response.status)) break;
+    lastFailure = `GitHub returned ${response.status}`;
+    // A rate limit is not going to clear inside a retry window, and burning the
+    // remaining attempts against it only deepens the limit.
+    if (response.status === 403 || (response.status === 429 && response.headers.get("x-ratelimit-remaining") === "0")) break;
+    response = null;
+  }
+
+  if (!response) {
+    networkOutcome.indeterminate.push(`${label(target)}: ${lastFailure}`);
+    return "indeterminate";
   }
 
   if (response.status === 404 || response.status === 410) {
-    errors.push(`Registered GitHub ${target.kind} is unavailable: ${target.owner}${target.repository ? `/${target.repository}` : ""}`);
+    errors.push(`Registered GitHub ${target.kind} is unavailable: ${label(target)}`);
     return;
   }
-  if (response.status === 403 && response.headers.get("x-ratelimit-remaining") === "0") {
+  if ((response.status === 403 || response.status === 429) && response.headers.get("x-ratelimit-remaining") === "0") {
     warnings.push("GitHub API rate limit reached; remaining remote checks are indeterminate.");
+    networkOutcome.indeterminate.push(`${label(target)}: rate limited`);
     return "rate_limited";
   }
+  if (RETRY_STATUSES.has(response.status)) {
+    networkOutcome.indeterminate.push(`${label(target)}: ${lastFailure || `GitHub returned ${response.status}`}`);
+    return "indeterminate";
+  }
   if (!response.ok) {
-    errors.push(`GitHub returned ${response.status} for ${target.owner}${target.repository ? `/${target.repository}` : ""}.`);
+    errors.push(`GitHub returned ${response.status} for ${label(target)}.`);
     return;
   }
 
   const payload = await response.json();
+  networkOutcome.confirmed += 1;
   if (target.kind === "repository") {
     if (payload.disabled) errors.push(`Registered repository is disabled: ${payload.full_name}`);
     if (payload.archived) warnings.push(`Registered repository is archived: ${payload.full_name}`);
@@ -243,9 +294,24 @@ async function verifyNetworkTarget(target) {
 }
 
 if (networkMode) {
-  for (const target of repositoryTargets.values()) {
-    const result = await verifyNetworkTarget(target);
-    if (result === "rate_limited") break;
+  const targets = [...repositoryTargets.values()];
+  for (let index = 0; index < targets.length; index += 1) {
+    const result = await verifyNetworkTarget(targets[index]);
+    if (result === "rate_limited") {
+      networkOutcome.unattempted = targets.length - index - 1;
+      break;
+    }
+  }
+
+  // A run that confirmed nothing is not a clean run. Without this the outage
+  // above would have gone from thirty-five false errors to a silent pass, which
+  // is the same defect wearing the other face: the check would report the
+  // register healthy having established nothing about it.
+  if (targets.length && !networkOutcome.confirmed) {
+    errors.push(
+      `Network verification confirmed none of ${targets.length} registered targets, so this run established ` +
+      "nothing about whether they exist. Check GitHub availability and the token, then run it again."
+    );
   }
 }
 
@@ -270,7 +336,22 @@ if (errors.length) {
 // workflow. Naming it is more useful than a bare qualification, because the
 // question a reader has at this point is "then who does check".
 if (networkMode) {
-  console.log("Open-source and external repository controls verified, including that every registered repository still exists.");
+  // Reports the population it actually reached. The old line claimed "every
+  // registered repository still exists" whenever --network was passed, which
+  // was already untrue on the rate-limit path -- that breaks out of the loop
+  // partway and the summary went on to speak for the targets it never asked
+  // about.
+  if (networkOutcome.indeterminate.length || networkOutcome.unattempted) {
+    for (const entry of networkOutcome.indeterminate) console.warn(`INDETERMINATE: ${entry}`);
+    console.log(
+      `Open-source and external repository controls verified offline, and ${networkOutcome.confirmed} of ` +
+      `${repositoryTargets.size} registered targets confirmed to still exist. GitHub did not answer for ` +
+      `${networkOutcome.indeterminate.length}${networkOutcome.unattempted ? `, and ${networkOutcome.unattempted} were not attempted` : ""}, ` +
+      "so those are unconfirmed rather than broken -- do not remove them from the register on the strength of this run."
+    );
+  } else {
+    console.log("Open-source and external repository controls verified, including that every registered repository still exists.");
+  }
 } else {
   console.log(
     "Open-source and external repository controls verified offline: the registry's records, licences and " +
