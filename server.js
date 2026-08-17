@@ -3415,7 +3415,7 @@ function requirePaidOrOwnerAccess(productKey) {
       };
       if (acceptsHtml(req)) {
         return res.status(entitlement.status || 402).type("html").send(
-          responsePage("Upgrade required", payload.message, [linkAction("/pricing", "View pricing"), linkAction("/dashboard", "Dashboard")])
+          responsePage(entitlement.heading || "Upgrade required", payload.message, entitlement.heading ? [linkAction("/dashboard", "Dashboard")] : [linkAction("/pricing", "View pricing"), linkAction("/dashboard", "Dashboard")])
         );
       }
       return res.status(entitlement.status || 402).json(payload);

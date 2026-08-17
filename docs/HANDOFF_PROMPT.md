@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 166 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 167 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,56 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-17 — a customer who had paid could be shown a paywall
+
+Third instance of the same collapse in one day, and the one that touches money.
+
+`getCustomerPaidEntitlement` asks two tables whether this customer holds a plan
+that opens this product: `billing_entitlements`, then `billing_subscriptions`.
+Both reads were `if (response?.ok) { ... }` with no else. A read that failed and
+a read that found nothing ended in the same place — **HTTP 402**, under the
+heading **"Upgrade required"**, beside a link to pricing, with the sentence
+*"Paid access is locked until payment updates show an active or trialing plan."*
+
+So during an outage on our side, a paying customer was told they had not paid.
+402 is literally Payment Required. The first thought of somebody shown a paywall
+they already paid past is that they have been charged wrongly, and every element
+of that page agreed with them.
+
+A plan can live in either table, so **one** silent read is enough to make the
+conclusion unfounded — the subscription read failing alone was sufficient, with
+the entitlement read answering correctly and finding nothing.
+
+**Now:** `readBilling` returns rows or `null`, never `[]`, and treats a 200
+carrying a non-array as failed too. If either read came back null and neither
+found a match, the answer is `503 entitlement_unreadable` with a message that
+says whose fault it is and does not mention payment. `workspace_unreadable` and
+`workspace_unavailable` from the tenant resolver land there as well, rather than
+being flattened into `upgrade_required` as every organization failure was.
+
+**The page had to change with it.** The heading was hardcoded, so a 503 would
+still have rendered under "Upgrade required". The result now carries a `heading`,
+and server.js drops the pricing link when it is present — there is nothing to buy.
+Results that genuinely mean upgrade carry no heading and are untouched, which is
+what the test's `assert.equal(unpaid.heading, undefined)` is for.
+
+**The test asserts the paid paths and the genuine-402 path first**, so the three
+503 cases are not green against a reader that stopped charging anybody.
+
+Two notes for whoever is next. The four production markers
+`verify-production-product-catalog.mjs` greps for are intact — both PostgREST
+paths, the active-or-trialing filter, and the locked message, which is still the
+text of a genuine 402. And `billingRowOpensProduct`, which refuses a
+`workspace_monthly` row for the wrong workspace, still returns its own 402: that
+is a real answer about a real row, not a read that failed.
+
+**A container reset landed mid-change** and put the tree back on `f3e51f2`, four
+commits behind. Recovered by fetching and fast-forwarding rather than resetting
+hard. Worth recording because the first version of this fix was written against
+the stale file — which had neither `metadata` in its selects nor
+`billingRowOpensProduct` — and the patch's own assertion is the only reason it
+did not apply cleanly onto code that had moved on.
 
 ### 2026-08-17 — a read that failed could hand a customer a second workspace
 
