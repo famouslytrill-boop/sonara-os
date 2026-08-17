@@ -2075,6 +2075,37 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "watermarks-remover (remove-ai-marks)",
+    slug: "watermarks-remover-remove-ai-marks",
+    category: ["AI provenance removal", "anti-detection tooling", "reviewed and refused"],
+    useCase: ["reviewed on request; no use in this product"],
+    productFit: ["AI Governance"],
+    license: "MIT",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not install its agent skill into any assistant used on this codebase",
+      "do not expose watermark or provenance removal to customers in any workspace",
+      "if a creator needs location data stripped from their own photos before publishing, build that narrow thing directly -- it is EXIF privacy hygiene and does not require a provenance-defeating dependency",
+    ],
+    officialUrl: "https://github.com/guillaumemeyer/watermarks-remover",
+    repoUrl: "https://github.com/guillaumemeyer/watermarks-remover",
+    notes:
+      "The name suggests removing a photographer's visible watermark. It does something else. Read from the repository: it strips multi-vendor AI provenance marks -- C2PA Content Credentials, SynthID-class statistical text watermarks, invisible Unicode markers, and EXIF/XMP metadata -- across PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML and Markdown. Its own skill manifest describes the purpose as \"anti-detect clean AI output\" and \"multi-vendor anti-detection hygiene\", and it ships a reference document on defeating one specific vendor's marks. Licence is MIT, so there is no licence obstacle at all -- and that is exactly why this record matters, because the obstacle is entirely our own. AGENTS.md says, in as many words: enforce provenance, consent, and anti-clone safety. C2PA and SynthID are the provenance layer. A product that sells provenance enforcement and also ships a provenance stripper is not offering two features, it is contradicting itself, and the contradiction would be discovered by whichever customer relied on the first one. The repository's own framing is privacy and hygiene on content you own, and one slice of that is genuine: removing GPS coordinates from your own photograph before publishing is real privacy hygiene that creators need. That slice does not require this. It is a metadata field, it can be built directly against the files a customer already uploads, and building it that way keeps it separable from provenance removal rather than bundled with it.",
+    safetyBoundaries: [
+      "no assistant working on this repository has this skill installed",
+      "no product surface offers removal of C2PA, SynthID or any provenance mark",
+      "any future EXIF-privacy feature strips location and device fields only, and leaves content credentials intact",
+    ],
+    blockedUses: [
+      "installing skills/remove-ai-marks into any agent used on this codebase",
+      "any customer-facing feature that removes AI provenance or content credentials",
+      "presenting provenance removal as privacy, which is the framing that makes the two hard to tell apart",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

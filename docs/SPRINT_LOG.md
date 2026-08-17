@@ -2,6 +2,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-14 — watermarks-remover reviewed and refused
+
+Added to the register on request, and **blocked**. The name suggests removing a
+photographer's visible watermark. Read from the repository, it does something
+else: it strips multi-vendor **AI provenance marks** — C2PA Content Credentials,
+SynthID-class statistical text watermarks, invisible Unicode markers, and
+EXIF/XMP metadata — across PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML and
+Markdown. Its own skill manifest gives the purpose as *"anti-detect clean AI
+output"*, and it ships a reference document on defeating one specific vendor's
+marks.
+
+**The licence is MIT, and that is the point of this entry.** There is no licence
+obstacle whatsoever. The obstacle is ours. `AGENTS.md` says, in as many words:
+*enforce provenance, consent, and anti-clone safety*. C2PA and SynthID **are**
+the provenance layer. A product that sells provenance enforcement and also ships
+a provenance stripper is not offering two features — it is contradicting itself,
+and the contradiction gets discovered by whichever customer relied on the first
+one. This is the register's most useful shape: a repository with a clean licence
+that still cannot be used, for a reason that has nothing to do with copyright.
+
+**The legitimate slice, acknowledged rather than flattened.** The project frames
+itself as privacy and hygiene on content you own, and one part of that is real:
+stripping GPS coordinates out of your own photograph before publishing is
+privacy hygiene creators genuinely need. That slice does not require this. It is
+a metadata field, it can be built against the files a customer already uploads,
+and building it separately is what keeps it from arriving bundled with
+provenance removal. The register entry says so, and the safety boundary written
+against it is that any future EXIF-privacy feature strips location and device
+fields only and leaves content credentials intact.
+
+**Not installed anywhere.** The repository ships an agent-skill installer
+(`skills/remove-ai-marks/`, `install-skill.sh`). It was not installed into this
+session or into the repository's skills, and "installing that skill into any
+agent used on this codebase" is written into `blockedUses` so the reason
+outlives whoever read it.
+
 ### 2026-08-13 — Every connector reconciled against what the application actually uses
 
 A connector being available as a tool is not the same as the product depending
