@@ -2407,6 +2407,38 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "The Code — Developer Resources (newsletter landing page)",
+    slug: "the-code-newsletter-resource-index",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["none: there is nothing here to adopt"],
+    productFit: [],
+    license:
+      "All rights reserved. The page carries \"© 2026 The Code Newsletter\" in its own footer and grants nothing. Free to view is a price of zero, not a licence -- the same reading applied to the IONOS guide, and for the same reason.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing from it: the whole document is fourteen titles and fourteen one-line descriptions, and all of it is somebody's copyrighted wording",
+      "treat the fourteen destinations as fourteen separate questions if any is ever wanted; each is a hosted microsite with its own terms, not a repository",
+      "the observation about what it covers is a fact and may be used; the sentences it is written in may not",
+    ],
+    officialUrl: "https://learn-code-tiles.lovable.app/",
+    repoUrl: "https://learn-code-tiles.lovable.app/",
+    notes:
+      "Submitted 18 August 2026 as a saved MHTML page. Assessed rather than assumed: the archive is 125 KB, and the entire visible text is 1,746 characters -- a heading, fourteen resource titles with a category and a one-line description each, and a copyright line. There is no code, no data, no specification and no attachment. It is a newsletter's landing page, and every tile is an outbound link to a separate hosted site (eleven on lovable.app, one netlify, one vercel, one more). None of the fourteen is a repository, so none is a thing this register can assess for licence; they are hosted products with their own terms, which is the same category as the proprietary services already recorded here and as ripienaar/free-for-dev's linked destinations. What can honestly be taken from it is a count, not a sentence: eight of the fourteen resources are about Claude Code, the Claude Agent SDK, or building AI agents. That is a dated, checkable observation about where a developer newsletter believes its audience's attention is, and it is recorded in docs/market/ where market observations belong.",
+    safetyBoundaries: [
+      "no wording, structure or curation copied from the page into this product or its documentation",
+      "each linked destination is a separate licence and terms question if it is ever wanted, and none has been asked",
+    ],
+    blockedUses: [
+      "reproducing its titles, categories or descriptions",
+      "republishing its list, in whole or in part, as a resource page in this product",
+      "treating a free-to-view page carrying an explicit copyright notice as permission",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "StreamCap (multi-platform live stream recorder)",
     slug: "streamcap-stream-recorder",
     category: ["live streaming", "stream capture", "category sweep 2026-08-18"],

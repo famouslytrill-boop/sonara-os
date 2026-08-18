@@ -2,6 +2,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a submitted document, assessed rather than assumed
+
+A saved MHTML archive of a newsletter landing page was submitted with the
+instruction to use its information in the product and in the Claude setup. It was
+opened before anything was done with it, which settled the question quickly.
+
+**The archive is 125 KB and its entire visible text is 1,746 characters** — a
+heading, fourteen resource tiles carrying a title, a category and a one-line
+description each, and a footer reading `© 2026 The Code Newsletter`. No code, no
+data, no specification, no attachment. Every tile is an outbound link to a
+separate hosted site, eleven of them on `lovable.app`, and **none of the fourteen
+is a repository**, so none is something this register can assess for a licence.
+
+Registered **blocked**, on the reading already applied to the IONOS guide: a
+document that is free to view and carries an explicit copyright notice has
+granted nothing. Free is a price, not a licence. Register at **108**.
+
+**What could honestly be taken was a count, not a sentence.** Eight of the
+fourteen resources are about Claude Code, the Claude Agent SDK or building AI
+agents. That is a dated, checkable observation about where a developer newsletter
+believes its subscribers' attention is, and
+`docs/market/2026-08-18-SUBMITTED-RESOURCE-INDEX.md` records it along with
+something more useful: a table mapping the subjects those tiles name against what
+this repository already has — the agent runner, the seven owner-approval
+categories, the hourly scheduler, the approval queue that re-asks the gate, and
+the 23-command release chain. Nothing on that list came from the document, and
+the table says so plainly. **The subjects are current and the work is already
+here.**
+
+Written down deliberately rather than left implicit: none of the fourteen
+destinations was fetched to extract its content. Reading somebody's guide in
+order to lift it is exactly what the register exists to refuse, and a page being
+publicly reachable is not a grant.
+
+`verify:launch` green, 1932 tests passing.
+
 ### 2026-08-18 — the unexamined queue is empty
 
 `tests/form-reachability.test.js` carried **thirteen** entries reading "NOT YET
