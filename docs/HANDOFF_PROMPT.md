@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-99 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+100 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,43 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — three for three, and a rule worth more than the repositories
+
+Fifth sweep pass: events, RSVP and ticketing. `topic:event-management` turns out
+to be mostly **software event dispatchers** — fourth topic-name trap, after
+`topic:pos`, `topic:scheduling` and `topic:paywall`. Four of eight results above
+300 stars are event buses and listener libraries, `saltstack/salt` among them.
+
+One real hit, `HiEventsDev/Hi.Events` (3,981 stars, Eventbrite alternative), and
+its detected licence is **NOASSERTION** — the third in a row.
+
+**That is now the most useful thing this whole sweep produced.** Three
+categories, three leaders, three licences GitHub cannot classify: twenty (CRM,
+55,066 stars, twenty.com behind it), Carbon (manufacturing, carbon.ms),
+Hi.Events (ticketing, hi.events). Written up as a rule rather than three
+anecdotes:
+
+> A project positioned as "the open-source alternative to X", with a hosted
+> commercial product behind it, has usually written a licence specifically
+> against being resold as a hosted service. That is what this product is.
+
+Three consequences, all of which change how the next sweep should be run.
+**Star count and category leadership predict licence trouble, not licence
+safety** — the more polished the alternative-to-X project, the more likely a
+company is protecting it. **Read the licence first**, because screening by stack
+or stars and checking the licence afterwards means doing the fit analysis on
+exactly the repositories least likely to be usable. And **NOASSERTION is not
+"unknown, probably fine"** — it means GitHub read a real licence file and could
+not match it to anything standard, which is what a lawyer-written custom licence
+looks like from outside.
+
+None of the three is blocked, and all three are worth reading for their domain
+models, which needs no licence resolved. What none of them is, on current
+evidence, is something to take code from.
+
+Register at **100** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — the closest fit keeps having the worst licence
 

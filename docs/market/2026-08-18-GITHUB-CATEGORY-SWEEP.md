@@ -224,3 +224,53 @@ decide between what is left.
 Recorded at `needs_license_review`. Reading Carbon's manufacturing domain model —
 work orders, routings, quality records, configure-to-order pricing — needs no
 licence resolved. Taking any of it does.
+
+
+## Pass five: events, RSVP and ticketing
+
+**`topic:event-management` is mostly software event dispatchers.** Fourth
+topic-name trap. Of eight results above 300 stars pushed in the last year, four
+are event buses and listener libraries — `saltstack/salt` (15,616),
+`golevelup/nestjs`, `laminas-eventmanager`, `gookit/event` — with nothing to do
+with a real-world event. Two more, `hitobito` and `admidio`, are club and
+membership systems under 500 stars.
+
+**One real hit:** `HiEventsDev/Hi.Events` (3,981 stars), self-hosted event
+management and ticket selling, positioned against Eventbrite, Tito and Ticket
+Tailor. Laravel and React, so off this runtime's stack; the value is the domain
+model, not the code.
+
+Its detected licence is **NOASSERTION**.
+
+## The NOASSERTION pattern, now three for three
+
+| Repository | Category | Stars | Hosted product behind it | Detected licence |
+| --- | --- | --- | --- | --- |
+| `twentyhq/twenty` | CRM | 55,066 | twenty.com | **NOASSERTION** |
+| `crbnos/carbon` | Manufacturing ERP/MES | 2,366 | carbon.ms | **NOASSERTION** |
+| `HiEventsDev/Hi.Events` | Ticketing | 3,981 | hi.events | **NOASSERTION** |
+
+Three categories, three leaders, three licences GitHub cannot classify. This is
+the most useful thing found in the whole sweep, so it is worth stating as a rule
+rather than three anecdotes:
+
+> **A project positioned as "the open-source alternative to X", with a hosted
+> commercial product behind it, has usually written a licence specifically
+> against being resold as a hosted service. That is what this product is.**
+
+The practical consequences:
+
+1. **Star count and category leadership predict licence trouble, not licence
+   safety.** The bigger and more polished the alternative-to-X project, the more
+   likely there is a company protecting it.
+2. **Read the licence first.** Screening by stack or stars and checking the
+   licence afterwards means doing the fit analysis on the repositories least
+   likely to be usable. Reading the licence first and letting stack decide
+   between what survives is strictly cheaper.
+3. **NOASSERTION is not "unknown, probably fine".** It means GitHub read a real
+   licence file and could not match it to anything standard — which is what a
+   custom licence written by a company's lawyers looks like from the outside.
+
+None of the three is blocked. All three are `needs_license_review`, and all three
+are worth *reading* for their domain models, which needs no licence resolved at
+all. What none of them is, on current evidence, is something to take code from.

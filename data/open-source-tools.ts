@@ -2407,6 +2407,34 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Hi.Events (event management and ticket selling)",
+    slug: "hi-events-ticketing",
+    category: ["events", "ticketing", "RSVP", "category sweep 2026-08-18"],
+    useCase: ["reference for how ticket types, capacity, check-in and door management fit together for a business running an event"],
+    productFit: ["Growth Studio", "Business Builder"],
+    license:
+      "Not classifiable by GitHub. Detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the licence file and could not match it to a known licence. Nobody here has read it, so this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the licence file before anything else; a hosted product at hi.events sits behind this repository",
+      "read it for the domain model -- ticket types, capacity, QR check-in, door management -- which needs no licence resolved",
+      "any ticket sale is money changing hands, so it goes through the same provider path as every other payment here: no card data, no CVV, success only after provider confirmation",
+    ],
+    officialUrl: "https://hi.events",
+    repoUrl: "https://github.com/HiEventsDev/Hi.Events",
+    notes:
+      "3,981 stars, pushed within the last year. Self-hosted event management and ticket selling, positioned against Eventbrite, Tito and Ticket Tailor, built on Laravel and React. Found under topic:event-management, where four of the eight results above 300 stars are software event *dispatchers* -- saltstack/salt, golevelup/nestjs, laminas-eventmanager, gookit/event -- rather than anything to do with real-world events. This is the third repository in this sweep that leads its category, has a hosted commercial product behind it, and returns NOASSERTION; twenty in CRM and Carbon in manufacturing are the other two. Three for three is no longer a coincidence worth mentioning in passing: the \"open-source alternative to X\" projects are the ones most likely to have written a licence against being resold as a hosted service, which is what this product is. PHP and Laravel also put it off this runtime's stack, so the realistic value here is the domain model rather than the code.",
+    safetyBoundaries: [
+      "no code copied before somebody reads the licence file at source",
+      "ticket payments follow the same rules as every other payment: no raw card data or CVV stored, and success shown only after provider confirmation",
+      "attendee lists are personal data under the same consent and retention rules as customer records",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "Carbon (open ERP, MES and QMS for manufacturing)",
     slug: "carbon-manufacturing-erp-mes",
     category: ["manufacturing", "ERP", "MES", "category sweep 2026-08-18"],
