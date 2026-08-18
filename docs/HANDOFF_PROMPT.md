@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-88 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+91 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,61 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — a GitHub category sweep, and the search that returned postcss
+
+Two categories swept properly out of roughly forty asked for. Method and findings
+in `docs/market/2026-08-18-GITHUB-CATEGORY-SWEEP.md`; three records added.
+
+**The failed search is the useful half of the method.** The first attempt used
+free text — `restaurant OR point-of-sale OR pos in:name,description` — and
+returned **postcss, postgrest, oh-my-posh, postal, node-postgres and
+postgres-operator**. Substring matching on "pos". Zero of eight results were
+relevant and the call cost about thirty thousand tokens. `topic:` filters find
+the category; free text finds the spelling. Written down so the next person does
+not spend the same thirty thousand tokens discovering it.
+
+**Finding one: the POS category is mostly closed to us, on licensing.** Of
+eighteen point-of-sale projects above 200 stars pushed in the last year, **eight
+are reciprocal and every large one is** — erpnext at 38.2k, frappe/books, NexoPOS,
+lakasir, OCA/pos, viewtouch. That includes **ury**, the only purpose-built
+restaurant system in the set and otherwise the obvious candidate. A reciprocal
+licence triggers on network use, and this is a hosted product.
+
+The route that stays open is not adoption but an **owner-operated deployment
+reached through an adapter**, where the obligation sits with that deployment
+rather than with this codebase — the arrangement `EXTERNAL-SERVICES.md` already
+describes. Five of the eighteen are permissive, and none of those five is a
+restaurant system.
+
+**Finding two: four of the five headline speech projects are voice cloning.**
+GPT-SoVITS (61k, clones from one minute of audio), VoxCPM, CosyVoice and dia are
+all permissively licensed and all pushed recently — and `AGENTS.md` says *enforce
+provenance, consent, and anti-clone safety*. They are recorded as **one** record
+rather than four, because they pose one question. None is unusable; all are
+unusable *as a general feature*. Cloning a voice whose owner has recorded
+permission is the legitimate case and the only one, and the difference is a
+`creator_voice_consents` row, not a disclaimer.
+
+**The one worth pursuing is the one that runs offline.** `sherpa-onnx` —
+Apache-2.0, 14.2k stars — does speech-to-text, text-to-speech, diarization and
+VAD with **no network call at all**. That is the same commercial argument that
+made the calculator tools worth building: no per-customer cost, and no customer
+audio leaving the machine. It is also the only headline speech project in the
+shortlist not built around cloning.
+
+**What these three records claim, stated precisely.** Licence and fit, from the
+GitHub API licence field and the project's own description. **Not a source read.**
+The other 88 records were read before they were written, and writing three that
+quietly implied the same standard would be the defect this register exists to
+prevent. Each says so in its own licence field.
+
+**And what was not done.** The request named around forty categories and asked
+for "all repositories at github.com". GitHub holds hundreds of millions; there is
+no completion state for that, and a register claiming to have swept it would be
+this codebase's recurring defect at the largest scale yet attempted. Two
+categories cost six searches and an afternoon of judgement. Forty is a programme,
+best done in the order the product actually needs them.
 
 ### 2026-08-18 — a storyboard that adds up, and a guide that cannot be copied
 

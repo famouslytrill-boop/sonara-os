@@ -2197,6 +2197,97 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "sherpa-onnx (k2-fsa)",
+    slug: "k2-fsa-sherpa-onnx",
+    category: ["speech to text", "text to speech", "offline inference", "category sweep 2026-08-18"],
+    useCase: ["transcription, synthesis and speaker separation with no network call"],
+    productFit: ["Creator Studio", "Private Model Mode"],
+    license:
+      "Apache-2.0, read from the GitHub API licence field on 18 August 2026. The source has not been read; this record is a licence and fit assessment, not a code review.",
+    licenseRisk: "low",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read the source and the model licences separately before any adapter is written -- the code is Apache-2.0 and the models it downloads may not be",
+      "run it as an owner-operated service reached through an adapter, the way Open WebUI already is, rather than bundling it",
+      "keep customer audio on the owner's machine; the whole reason to prefer this is that nothing has to leave",
+    ],
+    officialUrl: "https://github.com/k2-fsa/sherpa-onnx",
+    repoUrl: "https://github.com/k2-fsa/sherpa-onnx",
+    notes:
+      "Speech-to-text, text-to-speech, speaker diarization, speech enhancement, source separation and voice activity detection, running offline with onnxruntime across embedded devices, mobile, and servers, in twelve programming languages. 14.2k stars, pushed within the last year. Found in the 18 August 2026 category sweep and the strongest candidate it produced, for a reason that is commercial as much as technical: it makes no network call, so it has no per-customer cost and no customer audio leaves the machine it runs on. That is the same argument that made the deterministic calculator tools worth building. It is also the one headline speech project in the shortlist that is not built around voice cloning, which puts it on a different footing from VoxCPM, CosyVoice, GPT-SoVITS and dia under the AGENTS.md anti-clone rule. Nothing is installed and no adapter exists yet.",
+    safetyBoundaries: [
+      "no customer audio is sent to a third party by any adapter built against this",
+      "model licences are checked separately from the Apache-2.0 code licence before use",
+      "no voice is synthesised in the likeness of a real person without a recorded consent row",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia",
+    slug: "voice-cloning-cluster-2026-08",
+    category: ["voice cloning", "speech synthesis", "category sweep 2026-08-18"],
+    useCase: ["none approved as a general feature"],
+    productFit: ["Creator Studio", "AI Governance"],
+    license:
+      "Permissive on the code (MIT or Apache-2.0 per the GitHub API on 18 August 2026) and separately licensed on the model weights, which have not been checked. The licence is not what constrains these.",
+    licenseRisk: "medium",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_security_review",
+    recommendedAction: [
+      "treat the four as one decision, because they pose one question",
+      "never expose voice cloning as a general feature; the only legitimate path is behind the existing consent gate",
+      "a recorded consent row for the specific voice is a precondition, not a setting",
+      "check the model weight licences separately from the code licence before any of them is run",
+    ],
+    officialUrl: "https://github.com/RVC-Boss/GPT-SoVITS",
+    repoUrl: "https://github.com/RVC-Boss/GPT-SoVITS",
+    notes:
+      "Four of the five headline text-to-speech projects found in the 18 August 2026 sweep are voice cloning: GPT-SoVITS (61k stars, clones from one minute of audio), VoxCPM (35.8k), CosyVoice (22.8k) and dia (19.4k). All permissively licensed, all pushed within the last year, and all recorded together because they pose a single question rather than four. AGENTS.md says: enforce provenance, consent, and anti-clone safety. This codebase already implements that with creator_voice_consents and song_fingerprints. None of these is unusable -- they are unusable as a general feature. Cloning a voice whose owner has recorded permission is the legitimate case and the only one, and the difference between the two is a database row, not a disclaimer. Recorded as needs_security_review rather than blocked because the gate that would make them safe already exists and is enforced; what has not happened is anybody reading the source or the model licences.",
+    safetyBoundaries: [
+      "no voice is cloned without a recorded consent row naming that voice",
+      "no cloned voice output is published without provenance retained",
+      "model weight licences are read before any weights are downloaded",
+    ],
+    blockedUses: [
+      "exposing voice cloning to customers as an unmodified general feature",
+      "cloning any voice for which consent has not been recorded",
+      "treating a permissive code licence as permission for the model weights",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "ury (ERPNext restaurant management)",
+    slug: "ury-erp-restaurant",
+    category: ["restaurant management", "point of sale", "category sweep 2026-08-18"],
+    useCase: ["none approved for incorporation; possible owner-operated deployment"],
+    productFit: ["Business Builder"],
+    license:
+      "GPL/AGPL family, per the GitHub API licence filter on 18 August 2026. Reciprocal, and this is a hosted product.",
+    licenseRisk: "high",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not incorporate any part of it into this codebase",
+      "if the owner wants it, run it as a separate deployment they operate, reached through an adapter -- the licence obligation then sits with that deployment rather than with this product",
+      "read the exact licence file before any deployment decision; the API family is not the same as the text",
+    ],
+    officialUrl: "https://github.com/ury-erp/ury",
+    repoUrl: "https://github.com/ury-erp/ury",
+    notes:
+      "A free and open-source restaurant management system built on ERPNext: table ordering, restaurant POS, the lot. 336 stars, pushed within the last year, and the only purpose-built restaurant system in the 18 August 2026 point-of-sale sweep -- which would make it the obvious candidate if the licence allowed it. It does not. It sits in the reciprocal family, and CLAUDE.md is explicit that a reciprocal licence triggers on network use, so incorporating it into this hosted product would oblige releasing this product's source under the same terms. Worth recording rather than skipping, because the finding generalises: of eighteen point-of-sale projects above 200 stars pushed in the last year, eight are reciprocal and every large one is, including erpnext at 38.2k stars. The route that stays open is an owner-operated deployment reached through an adapter, which is what docs/architecture/EXTERNAL-SERVICES.md already describes.",
+    safetyBoundaries: [
+      "no code, schema or template from it is copied into this codebase",
+      "any deployment is the owner's, on their infrastructure, with the licence obligation theirs",
+      "no customer data is sent to it except through a reviewed adapter",
+    ],
+    blockedUses: [
+      "incorporating any part of it into this hosted product",
+      "treating an owner-operated deployment as permission to vendor the code",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
