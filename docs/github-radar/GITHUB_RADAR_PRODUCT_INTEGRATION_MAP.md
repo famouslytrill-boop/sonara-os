@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-100 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 100.
+101 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 101.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-42 repositories.
+43 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -27,6 +27,7 @@ Create, launch, run and manage a business.
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [erxes](https://github.com/erxes/erxes) | AGPL-3.0 | Read only | CRM and support suite |
+| [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
 | [HyperFormula](https://github.com/handsontable/hyperformula) | GPL-3.0, or a paid proprietary licence from the vendor. | Read only | formula engine |
@@ -61,7 +62,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-28 repositories.
+29 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -73,6 +74,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |

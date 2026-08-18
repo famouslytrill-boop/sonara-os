@@ -2407,6 +2407,34 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Excalidraw",
+    slug: "excalidraw-drawing-canvas",
+    category: ["drawing", "whiteboard", "diagrams", "category sweep 2026-08-18"],
+    useCase: ["a drawing and diagram canvas a creator could sketch in, and a business could lay out a floor plan or seating chart in"],
+    productFit: ["Creator Studio", "Business Builder"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Detected at the repository root, and this is a monorepo, so a specific package still has to be checked before code is taken from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "decide the vendoring question before the feature question: this runtime has no bundler, so using it means serving a prebuilt bundle from this origin and owning that bundle's updates",
+      "check the specific package's licence, not the root, before taking code rather than using the published build",
+      "anything a customer draws is their own work and belongs to them, under the same provenance and export rules as every other record here",
+    ],
+    officialUrl: "https://excalidraw.com",
+    repoUrl: "https://github.com/excalidraw/excalidraw",
+    notes:
+      "129,927 stars, pushed within the last year, MIT. Found by filtering on licence before assessing fit, which is the method this sweep arrived at after three category leaders in a row turned out to carry licences GitHub could not classify. It is also the counterexample to that rule, and is recorded partly for that reason: Excalidraw has a hosted commercial product at excalidraw.com behind it and still ships MIT at the root. So \"alternative-to-X projects with a company behind them protect themselves against hosted resale\" is a tendency worth searching by, not a law, and it was stated after three data points and contradicted by the fourth. What stands between this and a shipped feature is not the licence. It is published as a React package, and this application is server-rendered Express with no build step and a Content-Security-Policy of script-src 'self'. Using it means serving a prebuilt bundle from this origin -- which the CSP permits -- and taking on that bundle's size and its updates permanently. That is a supply-chain and page-weight decision for the owner, and it is a real one; it is not a licence problem and should not be recorded as one.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "a customer's drawings are their own work, exportable and erasable with the rest of their account",
+      "off by default until the vendoring decision is made, rather than half-added",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "Hi.Events (event management and ticket selling)",
     slug: "hi-events-ticketing",
     category: ["events", "ticketing", "RSVP", "category sweep 2026-08-18"],

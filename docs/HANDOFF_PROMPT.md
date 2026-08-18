@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-100 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+101 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — the rule broke on its first test, which is the useful part
+
+Sixth sweep pass, run licence-first — `license:mit` in the query before any
+assessment of fit, which is what the previous pass concluded to do. The method
+works. It also broke the rule that motivated it, in one category.
+
+**Digital signage** yields three MIT results above 200 stars and nothing worth
+registering: a Flutter embedder, an Android kiosk lockdown app, a 363-star
+signage CMS. Hardware-adjacent enough that signage would be a new product rather
+than an improvement to an existing one.
+
+**Whiteboard and drawing** yields `excalidraw/excalidraw` at **129,927 stars**,
+verified **MIT** — and Excalidraw has a hosted commercial product at
+excalidraw.com behind it, exactly like twenty, Carbon and Hi.Events. The rule was
+stated after three data points and contradicted by the fourth, which is about
+what three data points are worth. It stays in the sweep document as a good thing
+to *search* by and not as something to conclude from. Recording that explicitly
+matters more than the rule did: a generalisation that survives in a document
+because nobody went back to check it reads exactly like one that held.
+
+Same result set, same old lesson: `poteto/hiring-without-whiteboards` at 51,379
+stars is a **list of companies**, not software.
+
+**The bottleneck has moved, and that is the finding of the day.** Excalidraw is
+the first candidate in the whole sweep whose licence, size, maturity and product
+fit all pass. What stops it is that it is a React package and this application is
+server-rendered Express with **no build step** and `script-src 'self'`. Using it
+means vendoring a prebuilt bundle served from this origin — permitted by the CSP
+— and owning its size and updates permanently. A supply-chain decision for the
+owner, and explicitly not a licence problem, so the record does not describe it
+as one.
+
+Counting this pass with the speech-recognition pass: of the four repositories
+added whose licences are fully settled and permissive — whisper.cpp, whisperX,
+vosk, Excalidraw — **all four are blocked by this runtime rather than by their
+terms**. Licence was the binding constraint when this sweep started. It is not
+any more.
+
+Register at **101** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — three for three, and a rule worth more than the repositories
 

@@ -274,3 +274,53 @@ The practical consequences:
 None of the three is blocked. All three are `needs_license_review`, and all three
 are worth *reading* for their domain models, which needs no licence resolved at
 all. What none of them is, on current evidence, is something to take code from.
+
+
+## Pass six: licence-first, and the rule breaks on its first test
+
+The previous pass ended with "read the licence first". This pass ran that way —
+`license:mit` in the query before any assessment of fit — and it works. It also
+produced a counterexample to the rule that motivated it, within one category.
+
+**Digital signage, licence-first:** three MIT results above 200 stars.
+`ardera/flutter-pi` (1,981, a Flutter embedder), `RushB-fr/freekiosk` (549,
+Android kiosk lockdown), `screenlite/screenlite` (363, signage CMS). A real
+category, thin at the top, and hardware-adjacent enough that a signage feature
+would be a new product rather than an improvement to an existing one. Nothing
+registered.
+
+**Whiteboard and drawing, licence-first:** six MIT results above 1,000 stars, led
+by `excalidraw/excalidraw` at **129,927 stars**. Verified MIT at the root.
+
+Two things worth taking from it.
+
+### The rule is a tendency, not a law
+
+Excalidraw has a hosted commercial product at excalidraw.com behind it, exactly
+like twenty, Carbon and Hi.Events — and it ships **MIT**. The rule was stated
+after three data points and contradicted by the fourth, which is roughly what
+three data points are worth. It stays in this document because it is still a good
+thing to *search* by; it does not stay as something to conclude from.
+
+Also visible in the same result set: `poteto/hiring-without-whiteboards` at
+51,379 stars is a **list of companies**, not software. Star-ranked topic results
+keep including things that are not programs, which is the same lesson as
+`ai-creator-academy` in the creator-economy pass.
+
+### The blocker was architecture, again
+
+Excalidraw is the first candidate in this whole sweep whose licence, size,
+maturity and product fit all pass. What stands between it and a shipped feature
+is that it is published as a React package, and this application is
+server-rendered Express with **no build step** and a Content-Security-Policy of
+`script-src 'self'`. Using it means serving a prebuilt bundle from this origin —
+which the CSP permits — and owning that bundle's size and updates permanently.
+
+That is a supply-chain and page-weight decision for the owner. It is a real one,
+and it is **not** a licence problem, so the record does not describe it as one.
+
+Counting this pass and the ASR pass together: of the four repositories added
+whose licences are fully settled and permissive, **all four are blocked by this
+runtime rather than by their terms**. The register's bottleneck has moved.
+Licence was the constraint that stopped things at the start of this sweep; by the
+end of it, architecture is.
