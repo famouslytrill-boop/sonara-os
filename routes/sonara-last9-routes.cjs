@@ -61,7 +61,15 @@ const RESOURCE_MAP = {
   "/api/creator/album-cycles": { table: "creator_album_cycles", required: ["artist_profile_id", "title", "slug"], defaults: { project_type: "album", release_status: "planning" } },
   "/api/creator/prompt-blueprints": { table: "creator_prompt_blueprints", required: ["artist_profile_id", "name", "blueprint_key", "prompt_template"], defaults: { status: "active" } },
   "/api/creator/video-treatments": { table: "creator_video_treatments", required: ["artist_profile_id", "title"], defaults: { status: "draft", platform_target: "social" } },
-  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "queued" } },
+  // "queued" was the default and nothing consumes this table: grep finds the
+  // insert above, the tenant-scoped list, and no runner. "Queued" states that
+  // something is waiting to be processed, so every row written here claimed a
+  // worker that does not exist -- the same shape as accounting_exports, which
+  // said "whether each one finished" about a file nothing produced.
+  //
+  // manual_required is already in the schema's check constraint and is true: a
+  // person has to do this. One word, no migration, and the row stops promising.
+  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "manual_required" } },
   "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
   "/api/sensory/haptic-patterns": { table: "haptic_patterns", required: ["pattern_key", "name", "event_name"], defaults: { status: "active" } },

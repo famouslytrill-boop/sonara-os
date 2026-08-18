@@ -76,7 +76,12 @@ const NO_FORM_NEEDED = {
   "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
   "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",
   "/api/location/zones": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
-  "/api/integrations/jobs": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
+  // Examined. integration_jobs is inserted here and read by nothing: no runner,
+  // no page, no status transition anywhere in the repository. A form would let
+  // somebody queue work that will never run, which is worse than no form. Its
+  // default status is manual_required rather than queued for the same reason --
+  // a row that says "queued" claims a worker this system does not have.
+  "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
   "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/haptic-patterns": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   // Examined, unlike the four below it. This one creates nothing at all -- it

@@ -2,6 +2,36 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the same defect, found by generalising the last one
+
+The accounting export was one instance of a shape: a row written with a status
+that promises processing, and nothing that processes it. Rather than wait to trip
+over the next one, the shape was searched for — every table inserted with a
+default status through the generic write endpoints, thirty-one of them.
+
+Most defaults are `active` or `draft`, which are honest initial states a *person*
+changes by editing the record. Two words promise a machine: `queued` and
+`scheduled`. **`integration_jobs` is the other `queued` one**, and grep finds the
+insert, the tenant-scoped list, and no runner anywhere — no page, no status
+transition, nothing that reads it.
+
+Its default is **`manual_required`** now, which is already in the schema's check
+constraint and is true: a person has to do this. One word, no migration, and the
+row stops claiming a worker this system does not have.
+
+**This one was already recorded as unexamined, and that is the part worth
+keeping.** `tests/form-reachability.test.js` listed it as *"NOT YET EXAMINED:
+resource in RESOURCE_MAP with no page."* — one of fourteen such entries. The
+codebase had honestly written down that it did not know, rather than assuming it
+was fine, and examining it took ten minutes and closed it. The entry now says
+what is true: nothing consumes `integration_jobs`, so a form would let somebody
+queue work that will never run, which is worse than no form.
+
+Thirteen "NOT YET EXAMINED" entries remain, and they are a better queue of real
+work than the rest of the GitHub category sweep.
+
+`verify:launch` green, 1932 tests passing.
+
 ### 2026-08-18 — a status nothing could advance, and a cell that runs as code
 
 Checking the product before searching again, this time across every record type:
