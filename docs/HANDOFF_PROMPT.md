@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-98 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+99 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — the closest fit keeps having the worst licence
+
+Fourth sweep pass: manufacturing and industrial. 13 repositories above 300 stars
+pushed in the last year, splitting cleanly in two.
+
+**Most of the category is MQTT and protocol plumbing** — emqx (16,630), vernemq,
+nanomq, node-opcua, neuron. Brokers for talking to PLCs and sensors. Correctly
+tagged and irrelevant: Business Builder helps somebody run a business, not read a
+Siemens S7. The ERP half is dominated by the GPL family (ERPNext at 38,211,
+metasfresh), which reaches a hosted product.
+
+**`crbnos/carbon` is the second closest-fit-worst-licence in this sweep.** ERP,
+MES and QMS on **Supabase, PostgreSQL, TypeScript and React Router** — this
+product's exact stack — and its detected licence is **NOASSERTION**. So is
+`twentyhq/twenty`, the closest fit in the CRM category, also Supabase and
+TypeScript, also with a hosted commercial product behind it.
+
+That is not a coincidence and it is now written down where the next sweep will
+find it: **a project with a company behind it writes a licence protecting it
+from being resold as a hosted service, which is exactly the use this product
+would make of it.** Searching by stack and then checking the licence walks into
+that every time. Reading the licence first and letting the stack decide between
+what is left is the cheaper order.
+
+**And the doc-count guard fired on a true sentence.** Writing that finding up
+produced "13 repositories above 300 stars pushed in the last year", which the
+register-count pattern read as a claim about our register and failed the release
+over. Rewording the prose would have been the wrong fix — a check that fires on
+true statements does not get fixed, it gets written around, and then it is
+training people to avoid it rather than measuring anything. The pattern now
+requires "**reviewed** repositories".
+
+Narrowing a pattern is a quiet weakening on its own, so it comes with the thing
+that stops it being one: the check now **refuses to pass if that pattern matches
+nothing at all**. Three cases were run before trusting it — the register count
+wrong (caught), the claim reworded out of the document entirely (caught by the
+new guard), and the true sentence about search results (correctly ignored).
+
+Register at **99** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — the search term that would have got it backwards
 

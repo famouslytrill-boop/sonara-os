@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-98 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 98.
+99 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 99.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-40 repositories.
+41 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ Create, launch, run and manage a business.
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
 | [Cal (calcom/cal.diy, formerly cal.com)](https://github.com/calcom/cal.diy) | MIT at the repository root, from GitHub's detected licence field | Licence unresolved | appointment booking |
+| [Carbon (open ERP, MES and QMS for manufacturing)](https://github.com/crbnos/carbon) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | manufacturing |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |

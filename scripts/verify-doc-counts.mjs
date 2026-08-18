@@ -148,6 +148,12 @@ function walk(directory) {
 
 const problems = [];
 let claimsChecked = 0;
+// A pattern that matches nothing passes, which is the failure this whole file
+// exists to catch one level up. The register count is stated in a live document
+// today; if a rewording makes it stop matching, that is a hole opening, not a
+// document improving, and it should stop the release rather than go unnoticed.
+const REGISTER_CLAIM = "repositories on the open-source register";
+let registerClaimsSeen = 0;
 
 for (const file of walk("docs")) {
   const raw = fs.readFileSync(path.join(root, file), "utf8");
@@ -172,7 +178,17 @@ for (const file of walk("docs")) {
   // documents actually use, so a sentence about somebody else's 66 repositories
   // is not read as a claim about ours.
   for (const [pattern, actual, what] of [
-    [/\b(\d[\d,]{0,4})\s+(?:reviewed\s+)?repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    // "reviewed" is required, not optional. It was optional, and the pattern
+    // then read "13 repositories above 300 stars pushed in the last year" -- a
+    // count of GitHub search results in a sweep document -- as a claim about
+    // this register, and failed the release on a sentence that was correct.
+    //
+    // A check that fires on true statements does not get fixed; the prose gets
+    // reworded around it, and then the check is training people to avoid it
+    // rather than measuring anything. The narrower pattern would be a quiet
+    // weakening on its own, so REGISTER_CLAIMS below refuses to pass if it stops
+    // matching anything at all.
+    [/\b(\d[\d,]{0,4})\s+reviewed\s+repositories\b/gi, repositoryCount, "repositories on the open-source register"],
     [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
     [/\b(\d[\d,]{0,4})\s+carry\s+a\s+reciprocal\s+licence\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
@@ -183,6 +199,7 @@ for (const file of walk("docs")) {
       const claimed = Number(String(match[1]).replace(/,/g, ""));
       if (!Number.isFinite(claimed)) continue;
       claimsChecked += 1;
+      if (what === REGISTER_CLAIM) registerClaimsSeen += 1;
       if (claimed !== actual) problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
     }
   }
@@ -198,6 +215,15 @@ for (const file of walk("docs")) {
         "say what the suite covers, or let docs/HANDOFF_PROMPT.md carry the number, which is generated."
     );
   }
+}
+
+if (!registerClaimsSeen) {
+  console.error(
+    `ERROR: no document states the reviewed-repository count, so the pattern for it checked nothing. ` +
+      "Either a live document lost the claim, or the pattern stopped matching how it is written -- " +
+      "both are the check going quiet rather than the documents getting better."
+  );
+  process.exit(1);
 }
 
 if (problems.length) {

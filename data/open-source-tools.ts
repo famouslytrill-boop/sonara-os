@@ -2407,6 +2407,33 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Carbon (open ERP, MES and QMS for manufacturing)",
+    slug: "carbon-manufacturing-erp-mes",
+    category: ["manufacturing", "ERP", "MES", "category sweep 2026-08-18"],
+    useCase: ["reference for how work orders, routings, quality records and configure-to-order pricing hang together on this product's own stack"],
+    productFit: ["Business Builder"],
+    license:
+      "Not classifiable by GitHub. Detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the licence file and could not match it to a known licence. Nobody here has read it either, so this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the licence file before anything else; the architectural fit is what makes this tempting and is not a reason to skip that",
+      "read it for the manufacturing domain model rather than to adopt: work orders, routings and quality records are the hard part, and they are readable without taking code",
+      "a hosted commercial product at carbon.ms sits behind it, which usually means the repository licence is written to protect that -- expect the file to restrict exactly the use this product would make of it",
+    ],
+    officialUrl: "https://carbon.ms",
+    repoUrl: "https://github.com/crbnos/carbon",
+    notes:
+      "2,366 stars, created June 2024, pushed within the last year. ERP, MES and QMS for complex assembly and contract manufacturing, built on Supabase, PostgreSQL, TypeScript and React Router -- the same database and language this product runs on, which makes it the closest architectural fit found in the manufacturing sweep. That is also why it is worth stating what it has in common with twenty, the closest fit in the CRM sweep: both are Supabase-and-TypeScript, both have a hosted commercial product behind them, and both return NOASSERTION. The pattern is not a coincidence. A project with a company behind it writes a licence protecting itself against being resold as a hosted service, which is precisely the use a hosted product like this one would make of it. The closest architectural fits are systematically the ones with the least usable licences, and searching by stack rather than by licence walks straight into it.",
+    safetyBoundaries: [
+      "no code, schema or migration copied before somebody reads the licence file at source",
+      "reading the domain model is not adoption and does not need the licence resolved; taking anything does",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "whisper.cpp",
     slug: "whisper-cpp-local-transcription",
     category: ["speech recognition", "transcription", "category sweep 2026-08-18"],

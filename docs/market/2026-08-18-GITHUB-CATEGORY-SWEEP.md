@@ -183,3 +183,44 @@ diarization models it downloads at runtime, which are the pieces doing the work.
 And diarization attributes speech to a person — under this product's provenance
 and consent rules that is a draft for a human to confirm, never a label published
 automatically.
+
+
+## Pass four: manufacturing and industrial
+
+13 repositories above 300 stars pushed in the last year. The category splits
+cleanly in two and only one half is relevant.
+
+**Most of it is MQTT and industrial protocol plumbing** — `emqx` (16,630),
+`vernemq` (3,620), `nanomq` (2,592), `node-opcua` (1,653), `emqx/neuron`
+(1,384). Brokers and connectivity servers for talking to PLCs and sensors. Real
+software, correctly tagged, and nothing to do with what Business Builder does:
+this product helps somebody run a business, not read a Siemens S7.
+
+**The ERP half is the relevant one**, and it is dominated by reciprocal licences
+— `frappe/erpnext` (38,211) and `metasfresh` (2,400) both sit in the GPL family,
+which reaches a hosted product. `aureuserp` (11,764) is Laravel/PHP, off-stack
+for a Node product.
+
+### The closest architectural fit had the least usable licence, again
+
+`crbnos/carbon` (2,366 stars, created June 2024) is ERP, MES and QMS built on
+**Supabase, PostgreSQL, TypeScript and React Router** — the same database and
+language this product runs on. Its detected licence is **NOASSERTION**: GitHub
+read the licence file and could not match it to anything known.
+
+That is the second time in this sweep. `twentyhq/twenty`, the closest
+architectural fit in the CRM category, is also Supabase-and-TypeScript, also has
+a hosted commercial product behind it, and also returns NOASSERTION.
+
+**The pattern is not a coincidence and is worth carrying into the next sweep.** A
+project with a company behind it writes a licence that protects it from being
+resold as a hosted service — which is exactly the use a hosted product like this
+one would make of it. So the repositories that look most adoptable on stack
+grounds are systematically the ones whose licences are written against this
+specific use. Searching by stack and then checking the licence walks into it
+every time; the cheaper order is to read the licence first and let the stack
+decide between what is left.
+
+Recorded at `needs_license_review`. Reading Carbon's manufacturing domain model —
+work orders, routings, quality records, configure-to-order pricing — needs no
+licence resolved. Taking any of it does.
