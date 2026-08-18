@@ -2407,6 +2407,62 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "WebAV (browser video editing SDK on WebCodecs)",
+    slug: "webav-browser-video-sdk",
+    category: ["video editing", "browser-side media", "category sweep 2026-08-18"],
+    useCase: ["trimming, compositing and exporting video in the customer's own browser, with no server touching the file"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\").",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "settle the vendoring question first, exactly as for Excalidraw: no build step here, and script-src 'self' means serving a prebuilt bundle from this origin and owning its updates",
+      "check WebCodecs support and device capability before promising the feature, and design what a browser without it is told -- an editor that silently does nothing is worse than one that is honestly unavailable",
+      "note it was last pushed January 2026, which is inside the year but by seven months",
+    ],
+    officialUrl: "https://webav-tech.github.io/WebAV",
+    repoUrl: "https://github.com/WebAV-Tech/WebAV",
+    notes:
+      "2,085 stars, TypeScript, MIT, built on WebCodecs. Registered less for what it does than for where it runs. Every permissive repository added to this register during this sweep -- whisper.cpp, whisperX, vosk, Spleeter, seek-tune, Ghost -- is blocked by the same thing: it needs a server the owner runs, which is infrastructure, cost, and customer media leaving the customer's machine. A WebCodecs library has none of that shape. The work happens in the browser the customer already has, so there is no per-customer cost, no queue, and no upload of a file that was never meant to leave their device. That is a materially better fit for a product whose rules say a feature must cost the customer nothing and keep their work theirs. The constraint does not vanish, it changes: WebCodecs is not available everywhere, video work is heavy on a phone, and this still needs a vendored bundle under script-src 'self'. Those are different questions from the ones the server-side candidates raise, and they are answerable without the owner running anything.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "a browser without WebCodecs is told the feature is unavailable rather than shown an editor that does nothing",
+      "the customer's video stays on the customer's device: nothing here creates an upload that did not already exist",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "FreeCut (browser video editor)",
+    slug: "freecut-browser-video-editor",
+    category: ["video editing", "browser-side media", "category sweep 2026-08-18"],
+    useCase: ["reference for what a multi-track timeline, keyframes and export look like when the whole editor runs client-side"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Its own dependencies, including mediabunny, carry their own terms and have not been checked.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read it as the worked example of the shape WebAV provides the parts for, rather than adopting a whole editor",
+      "check its dependency licences before taking code; the repository's MIT does not travel to what it installs",
+      "weigh its age honestly: created November 2025, so its 2,046 stars were earned in about nine months and it has not been maintained through a long tail of browser changes yet",
+    ],
+    officialUrl: "http://freecut.net",
+    repoUrl: "https://github.com/walterlow/freecut",
+    notes:
+      "2,046 stars, React and TypeScript on WebCodecs and WebGPU, MIT, pushed within the last year. A complete multi-track video editor running entirely in the browser -- keyframe animation, real-time preview, exports. Recorded beside WebAV because the two answer different questions: WebAV is an SDK somebody builds an editor with, and this is what an editor built that way looks like when it is finished. For a product that does not want to write a timeline from scratch, the second is the more useful thing to read. React puts it in the same position as Excalidraw with respect to this runtime, and the same vendoring decision applies. Its youth is the honest caution: a browser-side editor's real cost is keeping up with codec and browser changes, and this project has not yet had to.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "dependency licences are checked before any code is taken, because MIT on the repository is not MIT on what it installs",
+      "the customer's video stays on the customer's device",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "seek-tune (Shazam-style audio fingerprinting)",
     slug: "seek-tune-audio-fingerprinting",
     category: ["audio fingerprinting", "anti-clone safety", "category sweep 2026-08-18"],

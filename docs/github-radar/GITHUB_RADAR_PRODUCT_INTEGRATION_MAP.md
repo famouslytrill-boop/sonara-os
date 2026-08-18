@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-104 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 104.
+106 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 106.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -62,7 +62,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-32 repositories.
+34 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -76,6 +76,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
+| [FreeCut (browser video editor)](https://github.com/walterlow/freecut) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | video editing |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Ghost](https://github.com/TryGhost/Ghost) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | publishing |
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
@@ -95,6 +96,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
+| [WebAV (browser video editing SDK on WebCodecs)](https://github.com/WebAV-Tech/WebAV) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | video editing |
 | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | speech recognition |
 | [WhisperX](https://github.com/m-bain/whisperX) | BSD-2-Clause, from GitHub's detected licence field on 18 August  | Adapt after review | speech recognition |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |

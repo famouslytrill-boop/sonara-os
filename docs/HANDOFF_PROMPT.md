@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-104 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+106 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — the blocker was a server-side blocker
+
+Ninth sweep pass: video, licence-first. Fourteen MIT results above 1,000 stars.
+Most are Python pipelines — moviepy, backgroundremover, autoclip, FunClip — with
+the familiar blocker. **Two are a different shape**, both verified MIT:
+**WebAV** (2,085 stars, WebCodecs SDK) and **FreeCut** (2,046, a complete
+browser editor on WebCodecs and WebGPU).
+
+**This qualifies the conclusion from pass six.** That pass ended "licence was the
+constraint when this sweep started, architecture is now", on the strength of six
+permissive repositories all blocked by this runtime. Every one of those six needs
+**a server the owner runs** — infrastructure they pay for, a queue, and the
+customer's media leaving the customer's machine.
+
+A WebCodecs library has none of that shape. The work happens in the browser the
+customer already has: no per-customer cost, no queue, and no upload of a file
+that was never meant to leave their device. That is the same pair of constraints
+this product's rules impose anyway, satisfied for free.
+
+So architecture is the constraint **for server-side tools**, and there is a class
+of candidate for which it is not. The sweep had not looked at that class until
+now, only because every earlier category's leaders happened to be Python — which
+is a fact about the categories chosen, not about what exists. A generalisation
+drawn from six samples that shared a hidden property; the second one this sweep
+has had to walk back, after the NOASSERTION rule.
+
+What does **not** change, written into both records rather than glossed:
+WebCodecs is not available everywhere and a browser without it must be *told* the
+feature is unavailable rather than shown an editor that silently does nothing;
+video work is heavy on a phone and `AGENTS.md` requires mobile to work; the
+vendoring decision under `script-src 'self'` is the same one Excalidraw needs;
+and FreeCut was created November 2025, so a browser editor's real cost — keeping
+up with codec and browser changes — is a cost it has not paid yet.
+
+Carried forward for the remaining categories: **ask where a candidate runs before
+asking what it does.** Client-side and server-side are not two implementations of
+one capability here — they are a free feature and a funded one.
+
+Register at **106** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — a table whose name promised something its columns do not have
 

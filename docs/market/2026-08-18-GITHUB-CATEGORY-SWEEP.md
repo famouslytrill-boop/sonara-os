@@ -423,3 +423,60 @@ And the safety point stands ahead of the engineering one: a false positive
 accuses a creator of copying. The flow that consumes a match is the
 safety-critical part, not the matcher, and the registry was already right that
 nothing should act on a match until that flow is designed.
+
+
+## Pass nine: video — and a shape that does not have the blocker
+
+`topic:video-editing`, MIT, above 1,000 stars, pushed in the last year: 14
+results. Most are Python pipelines (`moviepy` 14,850, `backgroundremover` 8,019,
+`autoclip` 6,384, `FunClip` 6,160) — the familiar shape, and the familiar
+blocker: a server the owner has to run.
+
+**Two are not that shape**, and both verified MIT:
+
+| Repository | Stars | Licence | Runs where |
+| --- | --- | --- | --- |
+| `WebAV-Tech/WebAV` | 2,085 | **MIT** | The customer's browser, on WebCodecs |
+| `walterlow/freecut` | 2,046 | **MIT** | The customer's browser, on WebCodecs + WebGPU |
+
+### The register's blocker was a server-side blocker
+
+Every permissive repository added during this sweep — whisper.cpp, whisperX,
+vosk, Spleeter, seek-tune, Ghost — is stopped by the same thing. Not its licence:
+it needs **a server the owner runs**. That means infrastructure the owner pays
+for, a queue, and the customer's media leaving the customer's machine.
+
+A WebCodecs library has none of that shape. The work happens in the browser the
+customer already has. **No per-customer cost, no queue, and no upload of a file
+that was never meant to leave their device** — which is the same pair of
+constraints (cost to the customer, and their work staying theirs) that this
+product's rules impose anyway.
+
+So the conclusion at the end of pass six — "licence was the constraint, now
+architecture is" — needs qualifying. Architecture is the constraint **for
+server-side tools**. There is a whole class of candidate for which it is not, and
+this sweep had not looked at it until now, because every earlier category's
+leaders happened to be Python.
+
+### What that does not mean
+
+The constraint changes rather than disappears, and the records say so:
+
+- **WebCodecs is not available everywhere.** A browser without it must be told
+  the feature is unavailable, not shown an editor that silently does nothing.
+- **Video work is heavy on a phone**, and `AGENTS.md` requires mobile layouts to
+  work.
+- **The vendoring question is unchanged.** No build step and `script-src 'self'`
+  means serving a prebuilt bundle from this origin and owning its updates — the
+  same decision Excalidraw needs.
+- **Age matters here more than elsewhere.** FreeCut was created November 2025, so
+  its 2,046 stars were earned in about nine months; a browser-side editor's real
+  cost is keeping up with codec and browser changes, and it has not had to yet.
+  WebAV was last pushed January 2026 — inside the year, by seven months.
+
+These are answerable without the owner running anything, which is what makes them
+different from the questions the server-side candidates raise.
+
+**Worth carrying into the remaining categories: ask where a candidate runs before
+asking what it does.** Client-side and server-side are not two implementations of
+one capability for this product — they are a free feature and a funded one.
