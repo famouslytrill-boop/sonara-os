@@ -10,6 +10,7 @@ const {
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+const { buildCalendarInvite } = require("../lib/sonara-calendar-invite.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
@@ -118,6 +119,59 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireBusinessManager = deps.requireBusinessManager || requireCustomer;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
+
+  // A booking, as a file the business's own calendar will open.
+  //
+  // business_bookings had starts_at and ends_at and nothing turned either into
+  // a calendar entry, so a business could take a booking and still have to
+  // retype it into whatever they actually use. That is the one thing a booking
+  // is for, and every product this one competes with does it.
+  //
+  // Deliberately a download rather than an invitation email. Sending mail is a
+  // customer campaign under AGENTS.md and needs owner approval; handing
+  // somebody a file they asked for is neither.
+  app.get("/business-builder/owner/bookings/:recordId/calendar", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+
+    // Each refusal says which one it is. A download that silently produces an
+    // empty file is the failure this whole module was written against.
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That booking reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this booking cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    // Scoped by organization as well as by id: the service key bypasses row
+    // level security, so without the organization filter a guessed id from
+    // another business would download.
+    const found = await supabaseList(
+      config,
+      "business_bookings",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    // A read that failed and a booking that is not there are different things,
+    // and answering 404 to both would tell a business their booking is gone
+    // during an outage.
+    if (!found.ok) return res.status(503).type("text").send("We could not read that booking just now. Nothing has changed; try again shortly.");
+    const booking = found.rows[0];
+    if (!booking) return res.status(404).type("text").send("That booking is not in your business, or it has been removed.");
+
+    // No business name is passed, and that is deliberate rather than an
+    // omission: resolveOrganization returns { ok, organizationId, userId } and
+    // nothing else, so `org.organizationName` would be undefined and the
+    // summary would silently lose it. Reading a field that does not exist is
+    // how a line of code comes to look wired up while doing nothing.
+    const invite = buildCalendarInvite(booking, { now: new Date() });
+    // 422 rather than 500: the row is readable and the request is well formed,
+    // and what is wrong is the booking itself. The message names the field.
+    if (!invite.ok) return res.status(422).type("text").send(invite.message);
+
+    res.setHeader("Content-Type", invite.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${invite.filename}"`);
+    // A calendar file is a snapshot of a row that can change.
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(invite.body);
+  });
 
   OWNER_PAGES.forEach(([path, title, body]) => {
     app.get(path, requireBusinessManager, async (req, res) => {

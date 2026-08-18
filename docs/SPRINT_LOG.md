@@ -2,6 +2,60 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a booking you can put in a calendar
+
+Thirteenth sweep pass: calendar. Checking the product before searching ended it
+before a query was run.
+
+`business_bookings` has `starts_at`, `ends_at`, a customer and a status. Three
+booking tables, an API, a page. A grep for `VCALENDAR`, `text/calendar`, `VEVENT`
+or `.ics` across `server.js`, `lib/` and `routes/` found **nothing**, and
+`package.json` has no calendar dependency. A business could take a booking and
+still have to retype it into whatever they actually use.
+
+**No repository was needed.** RFC 5545 for one event is a few lines of text.
+`lib/sonara-calendar-invite.cjs` builds it: no dependency, no bundle, no service
+the owner runs, no per-customer cost, works offline. Against this sweep's other
+findings — six repositories cleared on licence and blocked on architecture or
+bandwidth — the capability worth shipping needed nothing adopted at all. That is
+a fifth kind of result: **the gap was real and the answer was not a repository**,
+and a sweep looking only for things to adopt does not find it.
+
+`/business-builder/owner/bookings/:id/calendar` serves it, organization-scoped
+like every sibling read, because the service key bypasses row level security and
+the tenant filter is the only boundary. A download rather than an emailed
+invitation on purpose: sending mail is a customer campaign under `AGENTS.md` and
+needs owner approval; handing somebody a file they asked for is not. A failed
+read answers 503 and a missing booking 404, because answering 404 to both would
+tell a business their booking is gone during an outage.
+
+**The parts of the spec that fail silently are done rather than approximated.** A
+malformed `.ics` does not error — the calendar declines it, or imports it at the
+wrong time, and the business finds out when nobody arrives. CRLF on every line
+including the last. Folding at 75 **octets** via `Buffer.byteLength`, because
+counting characters splits a multi-byte character in half and one accented name
+does it. UTC with `Z`, since a local time without `VTIMEZONE` is the commonest
+way an invite lands an hour out. A stable UID, so downloading twice replaces the
+entry rather than double-booking the day. An unrecognised status stays
+`TENTATIVE`; a booking with no end time is refused by name rather than given a
+guessed hour.
+
+**And the bug worth keeping.** `escapeText` was written
+`.replace(/;/g, "\;")` — in a JavaScript literal that is just `";"`, so it
+compiles, runs, and emits an unescaped semicolon. Caught by printing the
+generated file, not by reading the code. Then the test asserting the fix was
+written with **the same literal**, agreed with the broken implementation, and
+failed against the correct one. Running it caught that. Neither would have caught
+itself, which is the whole argument for doing both.
+
+The member-read-policy check then caught the new read: `business_bookings` had no
+policy a signed-in member could read through. Added to `ORGANIZATION_READ_TABLES`
+rather than the service-role escape hatch, because it is ordinary workspace data
+— a business's own appointments, sibling to `customer_records` — and the hatch is
+for privilege and audit tables. 50 organization-scoped policies now.
+
+Register unchanged at **107**. `verify:launch` green, **1919** tests passing.
+
 ### 2026-08-18 — the category that was already built, and a description I nearly acted on
 
 Twelfth sweep pass: automation. Twelve Apache-2.0 results above 2,000 stars —

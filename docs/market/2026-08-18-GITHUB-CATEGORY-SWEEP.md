@@ -645,3 +645,58 @@ would have meant *removing a working, tested approve button*. The whole finding
 came from opening the files instead of trusting a description of them, which is
 the same discipline the `song_fingerprints` record turned on and the same one
 this sweep has needed at every step.
+
+
+## Pass thirteen: calendar — the search was not needed
+
+Checking what the product already does before searching, which is the habit the
+last two passes established, ended this one before a query was run.
+
+`business_bookings` has `starts_at`, `ends_at`, a customer and a status. There
+are three booking tables, an API at `/api/business/bookings` and a page at
+`/business-builder/owner/bookings`. A grep across `server.js`, `lib/` and
+`routes/` for `VCALENDAR`, `text/calendar`, `VEVENT` or `.ics` found **nothing**,
+and `package.json` has no calendar dependency.
+
+So a business could take a booking and neither they nor their customer could put
+it in the calendar they actually use — which is the one thing a booking is for,
+and which every product this one competes with does.
+
+**No repository was needed.** RFC 5545 for a single event is a few lines of
+text. `lib/sonara-calendar-invite.cjs` builds it: no dependency, no bundle, no
+service the owner runs, no per-customer cost, and it works offline. Set against
+this sweep's other findings — six repositories cleared on licence and blocked on
+architecture or bandwidth — the useful capability was the one that needed nothing
+adopted at all.
+
+That is a **fifth kind of result**, and the most valuable so far: *the gap was
+real and the answer was not a repository*. A sweep looking only for things to
+adopt does not find it.
+
+### What the spec punishes
+
+A malformed `.ics` does not error. The calendar declines to import it, or imports
+it at the wrong time, and the business finds out when nobody arrives. So the
+parts that fail silently are done rather than approximated: **CRLF on every line
+including the last**; **folding at 75 octets counted with `Buffer.byteLength`**,
+because counting characters splits a multi-byte character in half and one
+accented name is enough; **escaping** backslash, semicolon, comma and newline;
+**UTC with a `Z` suffix**, since a local time without a `VTIMEZONE` block is the
+commonest way an invite lands an hour out; and a **stable UID**, so downloading
+twice replaces the entry instead of double-booking the day.
+
+An unrecognised status stays `TENTATIVE` rather than becoming `CONFIRMED`, and a
+booking with no end time is refused by name rather than given a guessed hour —
+a calendar entry that looks right and is not, with nothing telling the business
+it was guessed, is the failure this codebase is written against.
+
+### The bug that proves the point
+
+`escapeText` was written with `.replace(/;/g, "\;")`. In a JavaScript string
+literal that is just `";"` — it compiles, runs, and emits an unescaped semicolon.
+It was caught by printing the generated file, not by reading the code.
+
+Then the test asserting the fix was written with **the same literal**, so it
+agreed with the broken implementation and failed against the correct one. Running
+it caught that. **Neither would have caught itself**, which is the argument for
+doing both.

@@ -74,6 +74,12 @@ const ORGANIZATION_READ_TABLES = [
   "billing_subscriptions",
   "business_memberships",
   "business_service_catalog",
+  // Added when /business-builder/owner/bookings/:id/calendar began reading it
+  // to build an .ics file. Ordinary workspace data -- a business's own
+  // appointments, sibling to customer_records above -- so it takes the same
+  // member-scoped read policy rather than the service-role escape hatch, which
+  // is for privilege and audit tables.
+  "business_bookings",
   "customer_records",
   // Accounts receivable and the quotes that feed it. Read by
   // /business-builder/owner/receivables, /quotes, /money-due and two record
