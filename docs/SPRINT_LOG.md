@@ -2,6 +2,57 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the sweep became a check, and the check found the billing page
+
+The scratch sweep that found the consent-scope bug is now
+`scripts/report-unused-selected-columns.mjs`, in the release chain. Getting it
+right took two attempts, and the failed one is the part worth keeping.
+
+**The first version would not have caught the bug it was written for.** It
+compared each selected column against the whole file, and
+`routes/creator-generation-routes.cjs` names `consent_scope` eight times — in the
+consent POST handler, in the permission picker, in a constant — so the one
+function ignoring it was hidden behind seven that did not. Reintroducing the bug
+left the check green. A check reporting success over the defect it exists to find
+is the defect, so it was thrown away rather than shipped.
+
+The second version parses each file and asks per function. That does catch it:
+putting the bug back names `evaluatePolicy()` and `consent_scope`, and removing
+it again clears the finding.
+
+**Two tiers, and only one of them gates.** Tier 1 is "named nowhere in the file"
+— three of those, each opened and ruled on. Tier 2 is "used in the file, not in
+the function that asked", which is the tier that catches the consent shape and
+also catches sixteen perfectly correct helpers reading a row their caller
+fetched. Gating on tier 2 would mean sixteen exemptions written to clear a gate,
+and exemptions written that way are how a reason nobody rechecks becomes what the
+next person reads instead of checking — the failure this session already found in
+`tests/form-reachability.test.js`. So tier 2 prints and a person looks.
+
+**It found one immediately.** `getBillingPanelSummary` selected
+`current_period_end` and never used it, so the billing page fetched the renewal
+date and did not show it. Worse, it never asked for `cancel_at_period_end` at
+all — the Stripe webhook has always written that column and nothing had ever
+read it — so a customer who had already **cancelled** read "Core monthly: active"
+and nothing about it ending. True, and misleading in the one direction that costs
+a support ticket.
+
+The page says what happens next now, in three states, because absent is not
+false: cancelling with a date, renewing with a date, or a date with no answer
+about renewal, which says only when the period ends. A row with no date says
+nothing rather than guessing a month ahead. The protection the function already
+had is asserted alongside: a failed read is still "we could not check your plan",
+never "no active paid plan".
+
+espree is loaded through eslint's own require, and **if it cannot be found the
+script stops** rather than falling back to the file-level comparison. A check
+that quietly downgrades to a weaker measure while still printing "passed" is
+precisely what this one exists to catch.
+
+Verified: `verify:launch` green end to end with the new command (24 in the
+chain now), 2013 tests passing. Both tiers were confirmed against real defects —
+tier 2 against the consent bug put back, tier 1 against a planted select.
+
 ### 2026-08-18 — a sweep for the defect that keeps recurring, and what it found
 
 The consent-scope bug had a shape worth generalising: **a column a query selects
