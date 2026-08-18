@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-106 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+107 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — a cost that grows when the customer succeeds
+
+Tenth sweep pass: streaming, licence-first, MIT and Apache-2.0 run separately
+because qualifiers cannot be OR'd. Six results above 800 stars, and pass nine's
+rule sorted them on sight: `srs` (29,145), `vidgear` and `red5-server` are media
+servers; `rx-player` (932) is client-side but a browser already plays ordinary
+video, so it earns its place only for adaptive streaming with DRM, which this
+product does not have.
+
+**"A server the owner runs" was hiding two different costs, and the distinction
+matters.** Every server-side candidate so far — whisper.cpp, vosk, Spleeter,
+Ghost — costs compute **per file, once**: transcribe a video and the cost is paid
+and finished. A media server costs **bandwidth, per viewer, every time**. It is
+the one shape where the bill grows with the customer's success — a business whose
+event goes well pays more than one whose event nobody watched, and pays again on
+every replay.
+
+The shorthand this sweep has used since the speech-recognition pass was accurate
+and was concealing that. For a product whose rule is that a feature costs the
+customer nothing, per-viewer bandwidth is the one cost that cannot be absorbed by
+buying a bigger box once.
+
+**And the category produced a second conduct block.** `ihmily/StreamCap` — 4,113
+stars, verified Apache-2.0, second-largest result — monitors and automatically
+records live streams from TikTok, Twitch, YouTube, Bilibili, Douyin, Douyu and
+Huya. Every recording is somebody else's broadcast, taken without their
+involvement. AGENTS.md requires this product to enforce provenance, consent and
+anti-clone safety; this is not a borderline reading of that rule, it is the case
+the rule describes. Recorded `blocked`, on **conduct rather than licence** — the
+same shape as watermarks-remover, also permissive and also blocked.
+
+Worth keeping visible for how it presents: legitimate topic, legitimate search,
+clean permissive licence, high stars, and **nothing in its metadata flags it**.
+Only the description does. That is `topic:paywall` again — a search term right
+for the capability and wrong for the intent — and it is the concrete argument
+against screening on licence and stars and skipping the reading, which is
+otherwise the fastest way to run these passes.
+
+Register at **107** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — the blocker was a server-side blocker
 

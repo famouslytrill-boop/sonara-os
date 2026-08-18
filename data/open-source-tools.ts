@@ -2407,6 +2407,37 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "StreamCap (multi-platform live stream recorder)",
+    slug: "streamcap-stream-recorder",
+    category: ["live streaming", "stream capture", "category sweep 2026-08-18"],
+    useCase: ["none approved: what it does is the thing this product's rules exist to prevent"],
+    productFit: [],
+    license:
+      "Apache-2.0, from GitHub's detected licence field on 18 August 2026 (license.key \"apache-2.0\", spdx_id \"Apache-2.0\"). Permissive, and not the reason this record is blocked.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt: the block is on conduct, not licence, so a permissive licence does not resolve it",
+      "if a customer ever needs to record a broadcast, it is their own broadcast, and that is a different capability built on their own stream rather than on somebody else's platform",
+    ],
+    officialUrl: "https://github.com/ihmily/StreamCap",
+    repoUrl: "https://github.com/ihmily/StreamCap",
+    notes:
+      "4,113 stars, Apache-2.0, pushed within the last year, and blocked for the same reason as watermarks-remover: the licence permits it and this product's own rules do not. It monitors and automatically records live streams from TikTok, Twitch, YouTube, Bilibili, Douyin, Douyu and Huya. Every one of those recordings is somebody else's broadcast, captured without their involvement and generally against the platform's terms. AGENTS.md requires this product to enforce provenance, consent and anti-clone safety; shipping a tool whose whole function is to take a creator's live work off a platform and keep a copy is not a borderline reading of that rule, it is the case the rule describes. Worth keeping visible because of how it was found: it is the second-largest result in a legitimate search, under a legitimate topic, with a clean permissive licence, and nothing about its metadata flags it. Only reading the description does. That is the same failure mode as topic:paywall returning four paywall removers -- a search term that is right for the capability and wrong for the intent.",
+    safetyBoundaries: [
+      "no capability that records a third party's broadcast, whatever its licence permits",
+      "recording is offered, if ever, only for a customer's own stream with their own credentials",
+    ],
+    blockedUses: [
+      "recording or archiving any stream the customer does not own",
+      "monitoring another creator's channel for when they go live",
+      "adapting its platform extractors into this product under any licence",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "WebAV (browser video editing SDK on WebCodecs)",
     slug: "webav-browser-video-sdk",
     category: ["video editing", "browser-side media", "category sweep 2026-08-18"],

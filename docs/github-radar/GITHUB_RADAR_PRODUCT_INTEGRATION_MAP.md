@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-106 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 106.
+107 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 107.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -218,6 +218,7 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | [Skylos](https://github.com/duriantaco/skylos) | Apache-2.0 | Read only | dead code detection |
 | [Social Media App (adrianhajdin)](https://github.com/adrianhajdin/social_media_app) | None declared. With no licence, default copyright applies and no | Blocked | see the register |
 | [Streambert / movie streaming piracy-style references](https://example.invalid/blocked) | Piracy/copyright infringement risk. | Blocked | see the register |
+| [StreamCap (multi-platform live stream recorder)](https://github.com/ihmily/StreamCap) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Blocked | see the register |
 | [Suno API (unofficial)](https://github.com/SunoAI-API/Suno-API) | MIT for the wrapper code; the upstream service it calls is gover | Blocked | see the register |
 | [Superpowers](https://github.com/obra/superpowers) | MIT | Adapt after review | developer workflow |
 | [Vibe-Trading agent](https://github.com/HKUDS/Vibe-Trading) | MIT | Research only | automated trading |

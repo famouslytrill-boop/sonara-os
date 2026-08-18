@@ -480,3 +480,57 @@ different from the questions the server-side candidates raise.
 **Worth carrying into the remaining categories: ask where a candidate runs before
 asking what it does.** Client-side and server-side are not two implementations of
 one capability for this product — they are a free feature and a funded one.
+
+
+## Pass ten: streaming — a cost that scales with success
+
+`topic:live-streaming` licence-first, MIT and Apache-2.0 separately (they cannot
+be OR'd): six results above 800 stars. Applying pass nine's rule — where does it
+run — sorts them immediately.
+
+**Server-side, and worse than the earlier server-side candidates:** `ossrs/srs`
+(29,145, MIT, C++ media server), `vidgear` (3,721, Apache-2.0, Python),
+`Red5/red5-server` (3,418, a Java media server whose topic list still says
+`flash` and `flv`).
+
+**Client-side:** `canalplus/rx-player` (932, Apache-2.0, TypeScript) — a DASH/HLS
+player. It runs in the browser, but a browser already plays ordinary video with a
+`<video>` element; rx-player earns its place only for adaptive streaming with
+DRM, which this product does not have.
+
+### "A server the owner runs" was hiding two different costs
+
+Every server-side candidate so far — whisper.cpp, vosk, Spleeter, Ghost — costs
+compute **per file, once**. Transcribe a video and the cost is paid and finished.
+
+A media server costs **bandwidth, per viewer, every time**. It is the one shape
+where the bill grows with the customer's success: a business whose event goes
+well pays more than one whose event nobody watched, and pays it again on every
+replay.
+
+That is a materially different thing from "the owner runs a service", which is
+the shorthand this document has been using since the speech-recognition pass. It
+was accurate and it was hiding the distinction. **For a product whose rule is
+that a feature must cost the customer nothing, per-viewer bandwidth is the one
+cost that cannot be absorbed by buying a bigger box once.**
+
+### And a blocked record found the same way `topic:paywall` was
+
+`ihmily/StreamCap` — 4,113 stars, verified **Apache-2.0**, second-largest result
+in the category — monitors and automatically records live streams from TikTok,
+Twitch, YouTube, Bilibili, Douyin, Douyu and Huya.
+
+Every one of those recordings is **somebody else's broadcast**, captured without
+their involvement. `AGENTS.md` requires this product to enforce provenance,
+consent and anti-clone safety. Shipping this is not a borderline reading of that
+rule; it is the case the rule describes.
+
+Recorded as `blocked`, and the block is **on conduct, not licence** — the same
+shape as `watermarks-remover`, which is also permissively licensed and also
+blocked.
+
+Worth keeping visible for how it presents: legitimate topic, legitimate search,
+clean permissive licence, high star count, and **nothing in its metadata flags
+it**. Only the description does. That is `topic:paywall` again — a search term
+that is right for the capability and wrong for the intent. A sweep that screens
+on licence and stars and skips the reading ships this one.
