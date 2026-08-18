@@ -587,3 +587,61 @@ stripped from a real file (caught, named), and the population emptied to zero
 `AGENTS.md` puts sounds, voice announcements and haptics off by default or under
 explicit user control. Motion is the same kind of thing, and the operating system
 already carries the user's answer.
+
+
+## Pass twelve: automation — a fourth kind of empty result
+
+`topic:workflow-automation`, Apache-2.0, above 2,000 stars, pushed in the last
+year: twelve results. `conductor` (32,100), `trigger.dev` (16,054), `dagster`
+(16,015), `cadence` (9,404), `argo-events` (2,685) and others.
+
+This looked like the most product-relevant category in the whole sweep, because
+the codebase has a named gap that this class of software fills: an agent action
+refused by the approval gate needs something to re-run it once the owner
+approves, and a serverless runtime has no process running when no request is in
+flight.
+
+**The gap is closed. It was closed here, and better than any of these would close
+it.**
+
+What already exists, checked rather than assumed:
+
+- An hourly Vercel cron at `/api/agents/schedule/tick`, secret-gated, that reads
+  `agent_schedules` across tenants — deliberately unscoped, with the reason
+  stated to `buildTenantQuery` rather than hand-built to slip past the guard —
+  and scopes every run to the `organization_id` on its own row.
+- `agent_pending_actions`, holding a refused run together with its own inputs.
+- `lib/sonara-agent-queue.cjs`, where approving calls the **same runner** again
+  with an approval attached.
+- `tests/an-approved-agent-action-actually-runs.test.js`.
+
+And the design does three things none of these engines would do for us: the
+classification is **re-derived from the action type** rather than read off the
+row, because a stored classification is a column the subject can write;
+**approving is not running**, and an approved action nothing implements writes
+`unimplemented` rather than reporting a job as done; and **a decision is made
+once**, because approving claims the row out of `waiting` first.
+
+Adopting any of these would mean putting the approval gate inside a third-party
+execution engine — which is exactly where `AGENTS.md`'s rule would be hardest to
+enforce and easiest to bypass. The requirement here was never durable distributed
+execution. It was a gate that cannot be got around, and that is a different
+problem.
+
+**Fourth kind of empty result, then:** *already built*. The four are now:
+
+1. **Wrong word** — the software exists under a different term.
+2. **Wrong intent** — it does the opposite of what this product needs.
+3. **Wrong altitude** — real software, but infrastructure for us rather than a
+   product for a customer.
+4. **Already built** — and, where the requirement is a safety property rather
+   than throughput, built better than the general-purpose answer.
+
+A note on method. This pass began from a paragraph stating that nothing re-runs
+an action after approval and that no button should suggest otherwise. That
+paragraph was true when written and the repository has since moved past it —
+`lib/sonara-agent-queue.cjs` is the queue it says does not exist. Acting on it
+would have meant *removing a working, tested approve button*. The whole finding
+came from opening the files instead of trusting a description of them, which is
+the same discipline the `song_fingerprints` record turned on and the same one
+this sweep has needed at every step.

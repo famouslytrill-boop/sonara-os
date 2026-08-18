@@ -122,6 +122,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the category that was already built, and a description I nearly acted on
+
+Twelfth sweep pass: automation. Twelve Apache-2.0 results above 2,000 stars —
+`conductor` (32,100), `trigger.dev`, `dagster`, `cadence`, `argo-events`.
+
+This looked like the most product-relevant category yet, because a paragraph
+describing this codebase says an agent action refused by the approval gate has
+nothing to re-run it once the owner approves, and a serverless runtime has no
+process running when no request is in flight. That is exactly what this class of
+software is for.
+
+**The gap is closed, and it was closed here.** Checked rather than assumed: an
+hourly Vercel cron at `/api/agents/schedule/tick`, secret-gated, reading
+`agent_schedules` across tenants — deliberately unscoped with the reason *stated*
+to `buildTenantQuery` rather than hand-built to slip past the guard — and scoping
+every run to the `organization_id` on its own row; `agent_pending_actions`
+holding a refused run with its inputs; `lib/sonara-agent-queue.cjs` calling the
+**same runner** again on approval; and a test.
+
+It is also better for this purpose than any candidate, because the requirement
+was never durable distributed execution. The classification is re-derived from
+the action type rather than read off the row, since a stored classification is a
+column the subject can write. Approving is not running, and approving something
+unimplemented writes `unimplemented` rather than reporting a job as done. A
+decision is made once, because approving claims the row out of `waiting` first.
+Adopting Conductor or Cadence would put the approval gate inside a third-party
+execution engine — the one place `AGENTS.md`'s rule is hardest to enforce.
+
+**Fourth kind of empty result: *already built*.** With wrong word, wrong intent
+and wrong altitude, that is the full set this sweep has needed.
+
+**And a methodological note worth more than the pass.** I began from that
+paragraph and was ready to treat the gap as real. The paragraph was true when
+written; the repository has moved past it, and `lib/sonara-agent-queue.cjs` is
+the queue it says does not exist. Acting on it would have meant **removing a
+working, tested approve button** — the paragraph even says no button should
+suggest otherwise. The finding came only from opening the files instead of
+trusting a description of them.
+
+That is the same failure the `song_fingerprints` record turned on, pointing the
+other way: there, a description promised a capability the columns did not have;
+here, a description denied one the code does have. Descriptions drift in both
+directions, and nothing executes them either way.
+
+Register unchanged at **107**. `verify:launch` green, 1910 tests passing.
+
 ### 2026-08-18 — a category that yields tooling, and a property nothing was holding
 
 Eleventh sweep pass: animation. Ten results above 1,000 stars, and **every one
