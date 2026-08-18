@@ -2983,6 +2983,765 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  // ---------------------------------------------------------------------------
+  // Twenty-eight repositories submitted together on 18 August 2026, with the
+  // instruction to "insure all technology is free and open source".
+  //
+  // They are not. Every licence below was read from the GitHub API's detected
+  // `license.spdx_id` rather than from a README or a memory, and the batch
+  // divides three ways that matter more than the count:
+  //
+  //   THREE DECLARE NO LICENCE AT ALL -- philtabor/MADDPG,
+  //   ripienaar/free-for-dev and SadServers/sadservers. CLAUDE.md states the
+  //   rule and it is worth restating: the absence of a licence is not
+  //   permission. All three are all rights reserved, and the largest of them
+  //   has 132,000 stars, which is exactly why "everyone uses it" is not a
+  //   licence check.
+  //
+  //   SIX ARE RECIPROCAL -- three of the four figranium repositories, plus
+  //   nautilus_trader, flox and Self-Driving-Car-in-Video-Games. These ARE free
+  //   and open source in the strict sense, and adopting one into this hosted
+  //   product obliges releasing this product's source under the same terms.
+  //   figranium-templates is AGPL-3.0, where serving it over a network is
+  //   itself the trigger.
+  //
+  //   THREE ARE "NOASSERTION" -- Unity ml-agents, GenAI_Agents and PostHog.
+  //   GitHub could not classify the licence, which is a prompt to read the file
+  //   rather than a verdict either way.
+  //
+  // The remaining sixteen are MIT, Apache-2.0 or Unlicense.
+  //
+  // TWENTY-SEVEN RECORDS FOR TWENTY-EIGHT SUBMISSIONS. boxyhq/saas-starter-kit
+  // was already in this register, reviewed earlier and carried further than a
+  // fresh review would have taken it -- its status is
+  // optional_adapter_after_review with the team, role and audit-log modelling
+  // already marked as worth adapting. A second record was written and then
+  // deleted: the duplicate-slug check refused it, which is the check doing
+  // exactly its job. Re-reviewing a repository from scratch would have replaced
+  // a considered decision with a shallower one.
+  //
+  // Five also fail the freshness rule set for this register -- reviewed
+  // repositories should have been created or updated within the last year --
+  // and each says so in its own record rather than being quietly dropped.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Figranium",
+    slug: "figranium",
+    category: ["browser automation", "workflow builder", "submitted 2026-08-18"],
+    useCase: ["visual block-based browser workflows executed through an API"],
+    productFit: ["Growth Studio", "Research Lab"],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Free and open source, and reciprocal: incorporating it into this product obliges releasing this product's source under the GPL.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not incorporate: GPL-3.0 reaches this product's own source, and SONARA is a hosted commercial product",
+      "running it as a separate service the owner operates, called over HTTP, is the arrangement that does not trigger the obligation -- and that is an infrastructure and cost decision, not a licensing one",
+      "read the workflow model freely; reading is not adopting",
+    ],
+    officialUrl: "https://figranium.dev",
+    repoUrl: "https://github.com/figranium/figranium",
+    notes:
+      "480 stars, 19 forks, TypeScript, pushed the same day it was submitted, so it is alive. It stacks blocks into browser workflows and runs them through an API, which overlaps with what Crawl4AI already covers in this register as an optional adapter. The licence is the whole story here: Crawl4AI is Apache-2.0 and this is GPL-3.0, and that difference decides which of the two can ever be more than a service on the other end of a request. Playwright-based headless browsing also means a machine with a browser on it, which this runtime -- Express on Vercel serverless, no build step -- does not have.",
+    safetyBoundaries: [
+      "no GPL code enters this repository under any circumstance short of the owner deciding to release SONARA under the GPL",
+      "if ever run as an owner-operated service, it is reached through the Provider Gateway like every other external service, and its credentials stay server-only",
+      "scraping somebody else's site is a legal question about that site, separate from this licence question",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "n8n-nodes-figranium",
+    slug: "n8n-nodes-figranium",
+    category: ["workflow integration", "n8n community node", "submitted 2026-08-18"],
+    useCase: ["calling a locally running Figranium from n8n"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive, and notably NOT the licence of the thing it drives -- figranium itself is GPL-3.0.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "nothing to adopt: it is an n8n node, and this product does not run n8n",
+      "recorded because a permissive wrapper around a reciprocal core is a shape worth being able to recognise -- the MIT here buys nothing, because the node is useless without the GPL service behind it",
+    ],
+    officialUrl: "https://github.com/figranium/n8n-nodes-figranium",
+    repoUrl: "https://github.com/figranium/n8n-nodes-figranium",
+    notes:
+      "2 stars, 0 forks, TypeScript, pushed 13 August 2026. Its own description says it calls Figranium 'via the local API', which is the arrangement that keeps the GPL at arm's length -- and also means the useful half is the GPL half.",
+    safetyBoundaries: [
+      "an MIT wrapper does not relicense what it wraps",
+    ],
+  },
+  {
+    name: "Figranium MCP server",
+    slug: "figranium-mcp",
+    category: ["model context protocol", "agent tooling", "submitted 2026-08-18"],
+    useCase: ["exposing Figranium tools to Claude and other MCP clients"],
+    productFit: [],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not vendor: GPL-3.0, same reasoning as figranium itself",
+      "an MCP server the owner runs on their own machine and connects to their own Claude is their business and not this product's supply chain -- the distinction is whether SONARA ships it",
+    ],
+    officialUrl: "https://github.com/figranium/figranium-mcp",
+    repoUrl: "https://github.com/figranium/figranium-mcp",
+    notes:
+      "1 star, JavaScript, created 4 August 2026 and pushed on the 7th. Submitted alongside a request to add capability 'to Claude', and the honest reading is that this is a tool for the owner's own Claude sessions rather than something SONARA integrates. docs/architecture/EXTERNAL-SERVICES.md already records why: a serverless function cannot see the owner's laptop.",
+    safetyBoundaries: [
+      "nothing GPL is shipped by this product",
+      "an MCP server that drives a browser can reach anything the machine running it can reach, so it stays on a machine whose owner accepts that",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Figranium Templates",
+    slug: "figranium-templates",
+    category: ["automation presets", "marketplace", "submitted 2026-08-18"],
+    useCase: ["shared automation presets importable into Figranium"],
+    productFit: [],
+    license:
+      "AGPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. The strongest reciprocal licence in this batch: network use is itself the trigger, so serving it to users over HTTP obliges offering this product's source.",
+    licenseRisk: "critical",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "blocked rather than reference_only, and the difference is deliberate: AGPL-3.0 catches exactly the arrangement that keeps the plain GPL at arm's length",
+      "running it as a separate owner-operated service does NOT avoid the obligation the way it does for figranium itself, because the AGPL was written for that case",
+    ],
+    blockedUses: [
+      "incorporating any of it into this hosted product, which the AGPL network clause catches even when the code runs on a separate machine",
+    ],
+    officialUrl: "https://templates.figranium.dev",
+    repoUrl: "https://github.com/figranium/figranium-templates",
+    notes:
+      "1 star, TypeScript, pushed 8 August 2026. Worth recording precisely because the four figranium repositories carry three different licences -- GPL-3.0, MIT and AGPL-3.0 -- across one organisation. An organisation is not a licence, and checking one repository tells you nothing about its siblings.",
+    safetyBoundaries: [
+      "nothing AGPL is served by this product, hosted or otherwise",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "NautilusTrader",
+    slug: "nautilus-trader",
+    category: ["algorithmic trading", "event-driven engine", "submitted 2026-08-18"],
+    useCase: ["backtesting and live trading infrastructure"],
+    productFit: [],
+    license:
+      "LGPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal, though weakly: changes to the library must be released under the LGPL, while a program that merely links it need not be.",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "no product fit: SONARA Industries builds, creates and grows businesses. It does not trade, and none of Business Builder, Creator Studio or Growth Studio has a surface where an order would go",
+      "recorded rather than dismissed, because the LGPL distinction is worth having written down somewhere in this register",
+    ],
+    officialUrl: "https://nautilustrader.io",
+    repoUrl: "https://github.com/nautechsystems/nautilus_trader",
+    notes:
+      "26,250 stars, 3,398 forks, Rust with Python bindings, pushed 18 August 2026 -- by far the most active repository in this batch. It is genuinely excellent and genuinely unrelated to this product. Adopting it would mean SONARA acquired a trading capability, which is a regulated activity in every market it would operate in and a decision nobody has made. That is a product boundary rather than a licence problem, and it is the reason this record stops at research_only.",
+    safetyBoundaries: [
+      "no financial-advice or trade-execution surface is added to any SONARA product without an explicit owner decision and a regulatory review",
+      "LGPL modifications, if it were ever used, must be published",
+    ],
+    blockedUses: [
+      "presenting any output as financial advice",
+      "executing trades on a customer's behalf",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Flox",
+    slug: "flox",
+    category: ["developer environments", "package management", "submitted 2026-08-18"],
+    useCase: ["reproducible development environments built on Nix"],
+    productFit: ["Internal Development"],
+    license:
+      "GPL-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "using a GPL tool to build software does not make the software GPL -- the obligation follows the code you ship, not the compiler you ran",
+      "so flox is usable as a development tool by anyone working here, and is not a dependency of this product",
+      "recorded because that distinction is the one people get wrong about GPL tooling in both directions",
+    ],
+    officialUrl: "https://flox.dev",
+    repoUrl: "https://github.com/flox/flox",
+    notes:
+      "4,096 stars, Rust, pushed 18 August 2026. It solves a problem this repository does not currently have: the runtime is Express CommonJS with no build step, and CI installs with `pnpm install --frozen-lockfile`, which is already reproducible enough that a Nix layer would be added complexity rather than removed. Worth revisiting only if the deploy ever grows a real build.",
+    safetyBoundaries: [
+      "no GPL code enters this product's source; using the tool is not incorporating it",
+    ],
+  },
+  {
+    name: "free-for.dev",
+    slug: "free-for-dev",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["finding services with free tiers"],
+    productFit: ["Research Lab"],
+    license:
+      "None declared. The GitHub API returns no `license` object at all for this repository -- not NOASSERTION, absent. Under CLAUDE.md's rule that is all rights reserved: the absence of a licence is not permission, and nobody here can grant what its author has not.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "copy nothing: not the list, not an entry, not the wording of a description",
+      "read it as research and act on the facts it points at -- that a given vendor has a free tier is a fact about the vendor, and checkable at the vendor",
+      "if a service found through it is ever adopted, the record goes in this register on its own terms with its own licence read from source",
+    ],
+    blockedUses: [
+      "reproducing the list, an entry, or the wording of any description",
+      "resting a shipped SONARA feature on a vendor free tier found through it",
+    ],
+    officialUrl: "https://free-for.dev/",
+    repoUrl: "https://github.com/ripienaar/free-for-dev",
+    notes:
+      "132,144 stars and 13,871 forks -- the most-starred repository in this batch by a factor of three, and the one with the least permission attached to it. That combination is the entire reason this record exists. Popularity is not a licence, and a repository everyone has forked is still one nobody may copy from.\n\nIts subject is also a constraint this register already takes seriously: CLAUDE.md says cost is a constraint of the same weight as licence, and that a shipped feature resting on a vendor's free tier stops working when the tier changes, which is the vendor's decision and not this project's. A directory of free tiers is therefore a directory of things to be careful about, not a shopping list.",
+    safetyBoundaries: [
+      "no text from the list is reproduced in this repository or in any SONARA-facing copy",
+      "a free tier is a price, not a licence, and never a basis for a shipped capability",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "SadServers",
+    slug: "sadservers",
+    category: ["training scenarios", "devops practice", "submitted 2026-08-18"],
+    useCase: ["Linux and DevOps troubleshooting exercises"],
+    productFit: [],
+    license:
+      "None declared. The GitHub API returns no `license` object for this repository. All rights reserved.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing: the scenarios, their Terraform and their wording all belong to their author",
+      "no product fit either -- SONARA does not teach system administration, so there is nothing here that would have been adopted even if the licence allowed it",
+    ],
+    blockedUses: [
+      "copying, adapting or paraphrasing any scenario, its infrastructure code, or its wording",
+    ],
+    officialUrl: "https://sadservers.com",
+    repoUrl: "https://github.com/SadServers/sadservers",
+    notes:
+      "2,966 stars, HCL, pushed 13 August 2026, so it is maintained. Its own description calls it a SaaS, and the repository is the scenario definitions behind a paid product -- which is a coherent reason for an author to publish source without a licence, and a decisive reason for anybody else not to use it.",
+    safetyBoundaries: [
+      "nothing from an unlicensed repository is copied, adapted, or paraphrased into this product",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "MADDPG reference implementation (philtabor)",
+    slug: "philtabor-maddpg",
+    category: ["reinforcement learning", "research code", "submitted 2026-08-18"],
+    useCase: ["multi-agent deep deterministic policy gradients in PyTorch"],
+    productFit: [],
+    license:
+      "None declared. The GitHub API returns no `license` object for this repository. All rights reserved.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "copy nothing from it",
+      "the ALGORITHM is published research and is not the author's to restrict -- MADDPG comes from a 2017 paper. This particular implementation of it is",
+      "no product fit regardless: nothing in SONARA trains a reinforcement-learning policy, and 'multi-agent' here means cooperating RL policies rather than the approval-gated task agents this product runs",
+    ],
+    blockedUses: [
+      "copying or adapting this implementation, which carries no licence",
+      "training or running a reinforcement-learning policy inside this application",
+    ],
+    officialUrl: "https://github.com/philtabor/Multi-Agent-Deep-Deterministic-Policy-Gradients",
+    repoUrl: "https://github.com/philtabor/Multi-Agent-Deep-Deterministic-Policy-Gradients",
+    notes:
+      "380 stars, 79 forks, Python, and last pushed on 8 April 2021 -- the day after it was created, and more than five years before it was submitted. It fails this register's freshness rule outright.\n\nWorth stating plainly because the word travelled: this was submitted in a batch of repositories named 'agents', and it is a different sense of the word. lib/sonara-agent-authority.cjs governs agents that take actions on a business's behalf behind seven owner-approval categories. MADDPG is about training neural network policies that cooperate in a simulated environment. Nothing in this product would use it, and reading the name as though the two were related is how an unrelated dependency gets adopted.",
+    safetyBoundaries: [
+      "nothing from an unlicensed repository is copied or adapted",
+      "no model training runs inside this application; AGENTS.md routes AI work through the Provider Gateway or an approved server-side adapter",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Unity ML-Agents Toolkit",
+    slug: "unity-ml-agents",
+    category: ["reinforcement learning", "game simulation", "submitted 2026-08-18"],
+    useCase: ["training agents inside Unity environments"],
+    productFit: [],
+    license:
+      "NOASSERTION: GitHub detects a licence file it cannot classify. Unity publishes this toolkit under its own terms, and 'the API could not name it' is a reason to read the file rather than a verdict either way. Unresolved here, and recorded as unresolved.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read Unity's actual licence text before anything else, and do not assume Apache-2.0 from the presence of an Apache header somewhere in the tree",
+      "no product fit in any case: SONARA does not ship a Unity game or a simulation environment",
+    ],
+    officialUrl: "https://unity.com/products/machine-learning-agents",
+    repoUrl: "https://github.com/Unity-Technologies/ml-agents",
+    notes:
+      "19,633 stars, C#, pushed 14 August 2026. Same naming coincidence as MADDPG above: 'agents' here means characters learning behaviours in a game engine. reciprocalLicense is recorded false because nothing found says otherwise, and that is a statement about what has been read rather than a conclusion -- the licence review this record asks for is what would settle it.",
+    safetyBoundaries: [
+      "nothing is adopted from a repository whose licence has not been read in full",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "PostHog",
+    slug: "posthog",
+    category: ["product analytics", "session replay", "feature flags", "submitted 2026-08-18"],
+    useCase: ["product analytics, experiments, error tracking, surveys"],
+    productFit: ["Growth Studio", "Admin Command Center"],
+    license:
+      "NOASSERTION: GitHub cannot classify it because the repository carries more than one licence. PostHog publishes the bulk under MIT and holds parts -- historically the `ee/` directory -- under its own enterprise terms. A per-directory licence is the trap here: 'PostHog is MIT' is true of most of the tree and false of the repository.",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "if any code is ever taken, establish which licence covers that exact path -- the repository-level answer does not exist",
+      "the realistic arrangement is not code at all: PostHog is a service, self-hosted or cloud, reached over HTTP, and that is a hosting and cost decision like every other in this register",
+      "before any of it: AGENTS.md requires consent and provenance, and session replay records what customers do on a page",
+    ],
+    officialUrl: "https://posthog.com",
+    repoUrl: "https://github.com/PostHog/posthog",
+    notes:
+      "37,750 stars, Python and TypeScript, pushed 18 August 2026. The strongest genuine product fit in this batch: Growth Studio already has attribution that says when it is not established, and lib/sonara-growth-tables.cjs already models touchpoints and experiments -- so this is a thing SONARA does, not a new direction.\n\nWhat stops it short of an adapter is not the licence. It is that session replay and event capture put customer behaviour into a third party, and this product's whole position is that provenance and consent are enforced rather than assumed. A `hand_entered` column exists on growth_touchpoints precisely so a typed-in touchpoint cannot be counted as a measured one; wiring in an analytics vendor is the opposite decision and belongs to the owner.",
+    safetyBoundaries: [
+      "no customer personal data leaves this product to any analytics service without recorded consent",
+      "service-role secrets stay server-only; an analytics key is not a reason to loosen that",
+      "session replay is not enabled by default under any circumstance -- AGENTS.md keeps sounds, alerts and anything intrusive off unless a person turns it on, and recording a customer's screen is squarely in that family",
+    ],
+    blockedUses: [
+      "recording customer sessions without disclosure and consent",
+      "sending raw payment or card fields anywhere, which is forbidden outright",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "GenAI Agents (NirDiamant)",
+    slug: "genai-agents-tutorials",
+    category: ["tutorials", "agent patterns", "submitted 2026-08-18"],
+    useCase: ["50+ worked implementations of generative-AI agent techniques"],
+    productFit: ["Research Lab"],
+    license:
+      "NOASSERTION: GitHub detects a licence file it cannot classify. Until it is read, what may be copied from it is unknown.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read as research: understanding a pattern and copying an implementation are different acts, and only the second needs a licence",
+      "copy no notebook cell into this repository until the licence is read",
+    ],
+    officialUrl: "https://diamant-ai.com",
+    repoUrl: "https://github.com/NirDiamant/GenAI_Agents",
+    notes:
+      "23,845 stars, Jupyter notebooks, pushed 15 August 2026. Its value here is the same as microsoft/ai-agents-for-beginners below -- patterns rather than parts. Everything it demonstrates is Python against hosted model APIs, and this runtime is Express CommonJS on Vercel with no build step, so nothing in it could be a dependency even with a permissive licence.",
+    safetyBoundaries: [
+      "nothing is copied from a repository whose licence has not been read",
+      "any pattern adopted still runs through the Provider Gateway or an approved server-side adapter, and any action an agent takes still passes lib/sonara-agent-runner.cjs",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "wshobson/agents",
+    slug: "wshobson-claude-agents",
+    category: ["agent skills", "Claude Code plugins", "submitted 2026-08-18"],
+    useCase: ["a marketplace of subagents, skills and plugins for coding harnesses"],
+    productFit: ["Internal Development", "AI Code Assistant"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "the clearest answer in this batch to 'add skills to Claude': these are prompt and configuration files, not runtime code, so nothing about this repository's shape fights this one",
+      "adopt the FORM, not the files -- a skill that describes a generic codebase is worse than no skill here, because this repository's rules are specific and a generic one dilutes them",
+      "any skill added to this repository states the conventions that are actually checked by the release chain, so it cannot drift from the code without the build noticing",
+    ],
+    officialUrl: "https://sethhobson.com",
+    repoUrl: "https://github.com/wshobson/agents",
+    notes:
+      "38,898 stars, 4,143 forks, pushed 18 August 2026, and the second most-starred repository in this batch. Genuinely relevant, and relevant in a narrow way worth being precise about: it is a large collection of subagent definitions and skill markdown for Claude Code, Codex, Cursor and others. None of it executes inside SONARA. It changes how somebody works ON this codebase, not what the product does.\n\nRead against this repository, the useful observation is that the skills worth having here are the ones nobody else can write: pnpm only, no npm and no package-lock.json; the twenty-four-command release chain; that a check must be verified against bad input before it is trusted green; that absent is not false. A general-purpose 'code reviewer' skill would say none of that.",
+    safetyBoundaries: [
+      "a skill is instructions, and instructions from a third-party repository are read before they are trusted -- the same rule this product applies to any external content",
+      "nothing from it is wired into a runtime path; AGENTS.md governs what SONARA's own agents may do, and no external skill file changes that gate",
+    ],
+  },
+  {
+    name: "Open SaaS (wasp-lang)",
+    slug: "open-saas",
+    category: ["SaaS boilerplate", "agent skills", "submitted 2026-08-18"],
+    useCase: ["a free full-stack SaaS starter with auth, payments, jobs and an AGENTS.md"],
+    productFit: ["Internal Development", "Business Builder"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "reference, not adoption: it is a Wasp/React/Prisma application and this is Express CommonJS on Vercel with no build step, so it cannot be a dependency and switching to it would be a rewrite of a working product",
+      "the part worth reading is what it ships alongside the code -- a tailored AGENTS.md, skills, and a Claude Code plugin, which is the same idea this repository already applies in AGENTS.md and CLAUDE.md",
+      "its Stripe and Polar payment flows are worth comparing against lib/sonara-billing.cjs, reading only",
+    ],
+    officialUrl: "https://opensaas.sh",
+    repoUrl: "https://github.com/wasp-lang/open-saas",
+    notes:
+      "15,506 stars, 1,853 forks, pushed 6 August 2026. Of the four SaaS boilerplates in this batch it is the one that has thought about the same problem this repository has: how an AI assistant picks up work on a codebase without being told everything twice. SONARA answers that with AGENTS.md as rules and docs/HANDOFF_PROMPT.md generated from the repository so it cannot drift; Open SaaS answers it with a shipped AGENTS.md and plugin. Both answers are worth having seen.\n\nWhat it does not change: this product already has auth, organizations, plans, Stripe checkout, entitlements and a billing portal, all built and tested. A boilerplate is valuable before that exists.",
+    safetyBoundaries: [
+      "no payment code is copied; card data and CVV are never stored here and payment success is shown only after provider confirmation",
+      "reading a domain model needs no service running and no code taken",
+    ],
+  },
+  {
+    name: "OpenAI Agents SDK (Python)",
+    slug: "openai-agents-python",
+    category: ["agent framework", "orchestration", "submitted 2026-08-18"],
+    useCase: ["multi-agent workflows, handoffs, guardrails, tracing"],
+    productFit: ["AI Governance", "Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "cannot be a dependency: Python, and this runtime is Node with no Python anywhere in the deploy",
+      "its guardrail and handoff model is worth reading against lib/sonara-agent-authority.cjs, which solves the same problem with a deny-by-default classifier and seven owner-approval categories",
+      "note the difference before borrowing anything: its guardrails are advisory to the developer, and SONARA's gate is enforced and tested by scripts/verify-supabase-contract.mjs on every release",
+    ],
+    officialUrl: "https://openai.github.io/openai-agents-python/",
+    repoUrl: "https://github.com/openai/openai-agents-python",
+    notes:
+      "28,752 stars, pushed 18 August 2026. Also carries a vendor-lock consideration that has nothing to do with the licence: it is built around one provider's API, and this product routes AI through a Provider Gateway precisely so no single provider is load-bearing.",
+    safetyBoundaries: [
+      "any orchestration pattern adopted still runs through lib/sonara-agent-runner.cjs -- classify, decide, run, record -- rather than beside it",
+      "no provider key reaches the client; AI calls stay server-side",
+    ],
+  },
+  {
+    name: "LiveKit Agents",
+    slug: "livekit-agents",
+    category: ["realtime voice", "agent framework", "submitted 2026-08-18"],
+    useCase: ["realtime voice and video AI agents over WebRTC"],
+    productFit: ["Creator Studio", "Business Builder"],
+    license:
+      "Apache-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "blocked on architecture and cost rather than licence, which is the commonest verdict in this register",
+      "realtime voice means a persistent WebRTC connection and a media server; Vercel serverless functions are request-scoped and cannot hold one",
+      "cost has the shape this register flags hardest: bandwidth per participant per minute, which grows with the customer's success -- the same warning already recorded against live streaming",
+    ],
+    officialUrl: "https://docs.livekit.io/agents",
+    repoUrl: "https://github.com/livekit/agents",
+    notes:
+      "13,065 stars, 3,574 forks, Python, pushed 18 August 2026. A real product fit exists -- a business taking bookings by phone, a creator running a live session -- and it is the fit that would cost the most to serve. Recorded at research_only for that reason rather than dismissed.\n\nAnything voice here also lands on rules that already exist: AGENTS.md requires provenance, consent and anti-clone safety, and routes/creator-generation-routes.cjs already refuses a voice job whose recorded permission does not cover the capability being asked for. A realtime voice agent speaking as somebody is exactly the case those rules were written for.",
+    safetyBoundaries: [
+      "a synthetic voice resembling a real person requires a live consent record whose scope covers that capability -- already enforced for generation jobs and would apply here",
+      "no call is recorded without disclosure and consent",
+      "sounds and voice announcements stay off unless a person turns them on",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Cloudflare Agents",
+    slug: "cloudflare-agents",
+    category: ["agent framework", "edge runtime", "submitted 2026-08-18"],
+    useCase: ["stateful AI agents on Durable Objects and Workers"],
+    productFit: ["Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "TypeScript and genuinely close to this stack, and still not adoptable: it is built on Durable Objects, which exist on Cloudflare and not on Vercel",
+      "adopting it means moving hosting, which is an infrastructure decision and a migration, not an integration",
+      "its durable-state model is worth reading against agent_schedules and agent_pending_actions, which solve the same 'an agent's work outlives one request' problem with Postgres rows and an hourly scheduler",
+    ],
+    officialUrl: "https://developers.cloudflare.com/agents/",
+    repoUrl: "https://github.com/cloudflare/agents",
+    notes:
+      "5,458 stars, TypeScript, pushed 18 August 2026. Worth recording that the existing approach is not a workaround for lacking Durable Objects: a row in agent_pending_actions carries the action's own inputs and is re-classified when approved, which is auditable in a way an in-memory object is not. Different tools for a problem that looks the same from outside.",
+    safetyBoundaries: [
+      "an agent that can resume work still passes the approval gate on each run; durability must not become a way to carry an old approval forward",
+    ],
+  },
+  {
+    name: "Microsoft 365 Agents SDK",
+    slug: "microsoft-365-agents-sdk",
+    category: ["agent framework", "channel integration", "submitted 2026-08-18"],
+    useCase: ["agents for Teams, M365, Copilot Studio and Webchat"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence is permissive and the dependency is not: it targets Microsoft channels, which means an Azure tenant, app registrations and Microsoft's own terms sitting behind the MIT",
+      "no SONARA product publishes into Teams or Copilot Studio, and adding one is a market decision rather than an engineering one",
+    ],
+    officialUrl: "https://aka.ms/agentsdkdocs",
+    repoUrl: "https://github.com/microsoft/Agents",
+    notes:
+      "1,041 stars, TypeSpec, pushed 18 August 2026 -- much smaller than its namesake microsoft/ai-agents-for-beginners, and a different thing entirely. Recorded mainly so the two Microsoft repositories in this batch are not confused with each other later: one is a course, this is an SDK.",
+    safetyBoundaries: [
+      "an MIT SDK for a proprietary platform does not make the platform's terms permissive",
+    ],
+  },
+  {
+    name: "aiwaves-cn/agents",
+    slug: "aiwaves-agents",
+    category: ["agent framework", "research", "submitted 2026-08-18"],
+    useCase: ["data-centric self-evolving autonomous language agents"],
+    productFit: [],
+    license:
+      "Apache-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "fails this register's freshness rule: last pushed 26 September 2024, nearly two years before it was submitted",
+      "the licence is fine and the maintenance is the problem -- an unmaintained dependency in a hosted product is a security question that answers itself over time",
+      "'self-evolving' is also the opposite of what AGENTS.md requires: unknown sensitive actions default to owner review, and an agent that rewrites its own behaviour is one whose classification cannot be checked",
+    ],
+    officialUrl: "https://github.com/aiwaves-cn/agents",
+    repoUrl: "https://github.com/aiwaves-cn/agents",
+    notes:
+      "5,954 stars, Python. Two independent reasons not to adopt, and the second matters more than the first: this product's agent design is deliberately a fixed classifier with a deny-by-default rule, checked on every release. A framework whose selling point is agents that change themselves cannot be reconciled with a gate that has to be provable.",
+    safetyBoundaries: [
+      "no agent in this product modifies its own authority; lib/sonara-agent-authority.cjs is code, reviewed and version-controlled",
+    ],
+  },
+  {
+    name: "Archon",
+    slug: "archon-coding-harness",
+    category: ["AI coding harness", "workflow engine", "submitted 2026-08-18"],
+    useCase: ["making AI coding deterministic and repeatable"],
+    productFit: ["AI Code Assistant", "Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "a development tool rather than a product dependency: it shapes how code gets written here, and ships nothing to a customer",
+      "read its harness model against what this repository already does -- AGENTS.md as rules, docs/HANDOFF_PROMPT.md generated so it cannot drift, and a release chain that fails on a stale count",
+      "it also needs Bun, which is not in this toolchain and would be a second package manager in a repository whose rules say pnpm only",
+    ],
+    officialUrl: "https://archon.diy",
+    repoUrl: "https://github.com/coleam00/Archon",
+    notes:
+      "23,222 stars, 3,461 forks, TypeScript, pushed 18 August 2026. Its stated goal -- deterministic, repeatable AI coding -- is the same goal this repository pursues by different means: generated documentation that cannot disagree with the code, and twenty-four release checks that have to pass. Worth reading for what it does that generated docs do not.",
+    safetyBoundaries: [
+      "a coding harness gets whatever access the person running it has; it is a local tool and not part of the deployed product",
+      "AGENTS.md's build rules still apply to anything it produces: pnpm only, no npm, no package-lock.json",
+    ],
+  },
+  {
+    name: "AI Agents for Beginners (Microsoft)",
+    slug: "ai-agents-for-beginners",
+    category: ["course", "agent patterns", "submitted 2026-08-18"],
+    useCase: ["18 lessons on building AI agents"],
+    productFit: ["AI Code Assistant", "Research Lab"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "course material: read it, take no dependency",
+      "MIT covers the code samples; the prose and images may carry Microsoft's separate documentation terms, so quote sparingly and attribute",
+    ],
+    officialUrl: "https://aka.ms/ai-agents-beginners",
+    repoUrl: "https://github.com/microsoft/ai-agents-for-beginners",
+    notes:
+      "72,558 stars and 24,016 forks -- the most-starred repository in this batch after free-for-dev, and unlike free-for-dev it carries a licence that permits use. Python notebooks against Azure and Semantic Kernel, so nothing here runs in an Express CommonJS deploy.\n\nThe part with real value for this repository is the design vocabulary: tool use, planning, reflection, multi-agent handoff, and how to evaluate whether an agent did the right thing. That last one is the gap SONARA has not closed -- lib/sonara-agent-action-log.cjs records that a run happened, and nothing scores whether it should have.",
+    safetyBoundaries: [
+      "patterns adopted still route through the Provider Gateway and still pass the approval gate",
+    ],
+  },
+  {
+    name: "500 AI Agents Projects",
+    slug: "500-ai-agents-projects",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["an indexed collection of AI agent use cases by industry"],
+    productFit: ["Research Lab"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "an index, so its value is the destinations rather than the file -- and each destination is a separate licence question, not covered by this repository's MIT",
+      "worth contrasting with free-for-dev above, which is the same kind of artefact with no licence at all: the difference is not popularity, it is whether the author granted anything",
+    ],
+    officialUrl: "https://ashishpatel26.github.io/500-AI-Agents-Projects/",
+    repoUrl: "https://github.com/ashishpatel26/500-AI-Agents-Projects",
+    notes:
+      "36,663 stars, 6,541 forks, pushed 27 July 2026. Organised by industry -- healthcare, finance, education, retail -- which is the axis Business Builder cares about, so it is a reasonable place to look for what businesses in a sector actually want automated. Treat every entry it points at as unreviewed until it has its own record here.",
+    safetyBoundaries: [
+      "linking to a repository is not reviewing it; nothing is adopted from a destination without its own record in this register",
+    ],
+  },
+  {
+    name: "async-labs/saas",
+    slug: "async-labs-saas",
+    category: ["SaaS boilerplate", "submitted 2026-08-18"],
+    useCase: ["React, Next, Express, MongoDB SaaS boilerplate"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "fails this register's freshness rule: last pushed 21 March 2025, seventeen months before submission",
+      "also the wrong database: MongoDB, where this product is Postgres through Supabase with row level security and an organization_id tenant boundary on 213 tables",
+      "nothing to take",
+    ],
+    officialUrl: "https://saas-app.async-await.com",
+    repoUrl: "https://github.com/async-labs/saas",
+    notes:
+      "4,500 stars, TypeScript. The oldest and least maintained of the four SaaS boilerplates submitted, and the one with the least overlap. Recorded rather than dropped so the same repository is not re-reviewed in six months.",
+    safetyBoundaries: [
+      "no authentication or session code is adopted from an unmaintained boilerplate",
+    ],
+  },
+  {
+    name: "Chakra UI",
+    slug: "chakra-ui",
+    category: ["component library", "design system", "submitted 2026-08-18"],
+    useCase: ["accessible React component system"],
+    productFit: ["Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "cannot be a dependency: React with a build step, and this product renders HTML from Express with no bundler at all",
+      "adopting it means introducing a front-end build, which is a larger decision than a component library",
+      "its accessibility work is worth reading as specification -- focus management, ARIA roles, keyboard behaviour -- because those are requirements this product has to meet whatever renders them",
+    ],
+    officialUrl: "https://chakra-ui.com",
+    repoUrl: "https://github.com/chakra-ui/chakra-ui",
+    notes:
+      "40,579 stars, TypeScript, pushed 18 August 2026. Excellent and structurally incompatible, which is the same verdict this register has reached for every front-end framework submitted. The constraint is recorded once in docs/architecture/EXTERNAL-SERVICES.md and holds here: no bundler, no build step, HTML rendered server-side.",
+    safetyBoundaries: [
+      "AGENTS.md's UI rules hold regardless of what renders them: mobile layouts avoid overflow, tap targets stay large enough, and motion respects the reduced-motion setting",
+    ],
+  },
+  {
+    name: "Nuxt SaaS template",
+    slug: "nuxt-ui-saas-template",
+    category: ["SaaS boilerplate", "marketing site", "submitted 2026-08-18"],
+    useCase: ["a Nuxt UI and Nuxt Content SaaS marketing template"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "Vue and Nuxt, so the same structural answer as Chakra UI: not adoptable without a build step this product does not have",
+      "smallest repository of the four SaaS templates at 556 stars, and mostly a marketing page rather than an application",
+    ],
+    officialUrl: "https://saas-template.nuxt.dev",
+    repoUrl: "https://github.com/nuxt-ui-templates/saas",
+    notes:
+      "556 stars, Vue, pushed 18 August 2026. Maintained, permissive, and aimed at the one part of this product that already exists and is already tested -- the public marketing pages, which have their own dark-first design and a check that they make no third-party requests.",
+    safetyBoundaries: [
+      "public pages make no third-party requests, which is asserted by tests; a template that loads external fonts or scripts would break that",
+    ],
+  },
+  {
+    name: "game-reversing",
+    slug: "game-reversing",
+    category: ["reverse engineering", "learning materials", "submitted 2026-08-18"],
+    useCase: ["beginner materials on reverse engineering video games"],
+    productFit: [],
+    license:
+      "The Unlicense, read from the GitHub API's detected license.spdx_id on 18 August 2026. A public-domain dedication -- the most permissive result in this batch.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence permits everything and there is nothing here this product would use",
+      "last pushed 5 April 2023, so it fails the freshness rule as well",
+      "worth stating why it is not blocked despite the subject: reverse engineering is a lawful skill, and the material is educational. What would be out of bounds is applying it to circumvent a protection measure or to defeat somebody else's licensing -- and nothing in SONARA has a reason to",
+    ],
+    officialUrl: "https://github.com/kovidomi/game-reversing",
+    repoUrl: "https://github.com/kovidomi/game-reversing",
+    notes:
+      "1,676 stars, 109 forks. Assembly and x86 tutorials. Recorded because it was submitted, and because the licence result is a useful contrast: the most permissive licence in the batch sits on the repository with the least product relevance, while the least permissive sits on the one with 132,000 stars.",
+    safetyBoundaries: [
+      "no technique from it is applied to circumvent a technical protection measure, a licence check, or anti-cheat in any product",
+      "SONARA ships no emulator and no game client",
+    ],
+    blockedUses: [
+      "circumventing DRM, licensing, or anti-tamper protection in any software",
+    ],
+  },
+  {
+    name: "Self-Driving Car in Video Games",
+    slug: "self-driving-car-video-games",
+    category: ["computer vision", "research code", "submitted 2026-08-18"],
+    useCase: ["a neural network that learns to drive in video games"],
+    productFit: [],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "GPL-3.0, so nothing from it enters this product's source",
+      "last pushed 1 January 2024, failing the freshness rule",
+      "no product fit: it drives a car in a game from screen capture, and no SONARA product has a screen to watch or a vehicle to steer",
+    ],
+    officialUrl: "https://github.com/ikergarcia1996/Self-Driving-Car-in-Video-Games",
+    repoUrl: "https://github.com/ikergarcia1996/Self-Driving-Car-in-Video-Games",
+    notes:
+      "775 stars, Python and PyTorch. Third repository in this batch matched on the word 'agent' or on machine learning generally, and third with no path into a business operations product. Recorded so the pattern is visible: a submitted batch organised by keyword will contain things the keyword only appears to connect.",
+    safetyBoundaries: [
+      "no GPL code enters this repository",
+      "no model runs inside this application; AI work goes through the Provider Gateway or an approved server-side adapter",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

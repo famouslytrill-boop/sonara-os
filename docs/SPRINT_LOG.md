@@ -2,6 +2,66 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — twenty-eight repositories, submitted as "free and open source"
+
+They are not, and the register now says so with every licence read from the
+GitHub API's detected `license.spdx_id` rather than from a README. The batch
+divides three ways, and the groups need different decisions:
+
+**Three declare no licence at all** — `ripienaar/free-for-dev` (132,144 stars),
+`SadServers/sadservers`, `philtabor/MADDPG`. All rights reserved. The most-starred
+repository in the batch, by a factor of three, is the one with the least
+permission attached to it: **popularity is not a licence.**
+
+**Six are reciprocal** — three figranium repositories, `flox`, `nautilus_trader`,
+`Self-Driving-Car-in-Video-Games`. These *are* free and open source, and adopting
+one obliges releasing this product's source. Two distinctions recorded because
+they decide different cases: the AGPL closes the door the plain GPL leaves open
+(running it as a separate service is exactly what the AGPL was written for), and
+using a GPL tool to build software does not make the software GPL.
+
+**An organisation is not a licence.** The four figranium repositories carry three
+different licences across one org — GPL-3.0, MIT and AGPL-3.0. Checking one told
+you nothing about its siblings.
+
+**Three are NOASSERTION.** PostHog is the instructive one: MIT for most of the
+tree and its own enterprise terms for parts of it, so "PostHog is MIT" is true of
+most files and false of the repository.
+
+**The register's own checks caught two things I would have shipped wrong.** The
+duplicate-slug check refused a second `boxyhq-saas-starter-kit` record — already
+reviewed, and carried further than my fresh review would have taken it, so
+re-reviewing would have replaced a considered decision with a shallower one. And
+four `blocked` records were refused for not declaring `blockedUses`. Both are the
+register doing the job it exists for.
+
+**The doc-count guard caught the third.** Adding six reciprocal repositories moved
+a figure quoted at the owner in `docs/owner/WHAT-IS-LEFT.md` from 11 to 17, and
+the guard failed the build rather than letting it drift — which is the exact
+failure the required `reciprocalLicense` field was added to prevent.
+
+Eight repositories in the batch are named `agents` and mean at least three
+unrelated things: task agents that act for a business, reinforcement-learning
+policies, and prompt files for coding assistants. A batch assembled by keyword
+contains things the keyword only appears to connect, and the register is where
+that gets caught before something unrelated becomes a dependency.
+
+**Two skills written, and deliberately not copied from anything submitted.**
+`wshobson/agents` (MIT, 38,898 stars) and `open-saas` both ship skills for coding
+assistants, and reading them the useful conclusion was that the form transfers and
+the files do not — a general-purpose "code reviewer" skill would say nothing about
+pnpm-only, the 24-command chain, or that absent is not false. So
+`.claude/skills/adding-a-record-page` is the eight-file sequence and the six ways
+the chain refuses an incomplete one, and `.claude/skills/checks-that-cannot-lie`
+is the six shapes of the recurring defect, each with the case in this repository
+that produced it — including the one where the first version of a check would not
+have caught the bug it was written for.
+
+Analysis in `docs/market/2026-08-18-SUBMITTED-REPOSITORIES-BATCH-2.md`.
+
+Verified: `verify:launch` green end to end, 138 registry records, 139 unique
+GitHub targets, 2013 tests passing.
+
 ### 2026-08-18 — the sweep became a check, and the check found the billing page
 
 The scratch sweep that found the consent-scope bug is now
