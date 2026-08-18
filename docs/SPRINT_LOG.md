@@ -2,6 +2,56 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a storyboard that adds up, and a guide that cannot be copied
+
+**The IONOS guide cannot go into the product, and the reason is on its cover.**
+Submitted as a PDF to add to the application: *"Smarter business with AI — the
+ultimate prompting guide for entrepreneurs"*, fourteen pages, and the cover reads
+**COPYRIGHT © 2025 IONOS INC.** It grants nothing. A free download is a price of
+zero, not a licence, and copying its text in would be the failure this register
+exists to prevent with prose instead of code.
+
+Two things can be taken from it legitimately, and both were. The **intelligence**:
+a hosting competitor is spending marketing budget teaching small businesses to
+prompt, which says where that market believes the value is. And the **techniques**
+— role prompting, style targeting, prompt chaining, few-shot, progressive
+layering — which are industry-standard, predate the document by years and belong
+to nobody. What is theirs is the wording, and none of it has been used. Registered
+as blocked with that reasoning attached.
+
+**The Creator Studio tool, built rather than offered.** The storyboard prompt
+circulating online produces a handsome document whose shot durations do not sum
+to the runtime. That is not cosmetic: a creator books a shoot, a voice artist and
+an edit against those numbers and finds out on the timeline that the shot list
+was thirty seconds long for a fifteen-second slot.
+
+So the arithmetic is the product. `allocateSeconds` uses **largest-remainder**
+rather than rounding each shot independently — eight shots rounded separately
+lose or gain up to four seconds against the runtime, which is exactly the defect.
+The test checks the property across nine awkward runtimes and three shot counts,
+including 7 seconds over 8 shots, where independent rounding falls apart.
+
+**What is ours and what is film grammar.** The shape — hook, subject, tension,
+demonstration, message, payoff, climax, ending — is in every screenwriting text
+for fifty years and is nobody's property. Ours is the **weighting**: the hook and
+the ending get more than an even split, because those two shots decide whether
+the middle is watched at all. That is asserted rather than asserted-to: the test
+compares both against `total / count`.
+
+It also refuses. No runtime, no shot list — a plan built on a guessed runtime is
+worse than none. No idea, no subject invented. And a runtime that leaves shots
+under two seconds gets told so, without the warning costing the sum.
+
+**Not done, and said plainly rather than left to look done.** The request also
+asked to improve all products, to research breakthrough technology worldwide, and
+to review "all GitHub repositories at github.com that pertains to our
+application". The register holds 88 records, each one read before it was written;
+GitHub holds hundreds of millions. There is no version of that last item that
+finishes, and a sweep that pretends to would be this codebase's own recurring
+defect at the largest scale it has yet been attempted. The forty-two catalog
+products can be improved one at a time against stated criteria, which is a real
+piece of work with a real shape, and it is the next thing worth doing.
+
 ### 2026-08-18 — nine more products, this time from what the market complains about
 
 The first nine were built from what a small business obviously needs. These nine

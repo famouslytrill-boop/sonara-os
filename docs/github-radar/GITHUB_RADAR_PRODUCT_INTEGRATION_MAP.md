@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-87 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 87.
+88 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 88.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -116,7 +116,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-41 repositories.
+42 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -139,6 +139,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [free-for.dev](https://github.com/ripienaar/free-for-dev) | Not verified. The repository page did not surface a licence and  | Licence unresolved | free-tier service index |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | Apache-2.0 | Read only | developer CLI |
+| [IONOS \](https://www.ionos.com) | All rights reserved. The document carries \ | Blocked | competitor marketing material |
 | [kimi-k3-in-c](https://github.com/FareedKhan-dev/kimi-k3-in-c) | Apache-2.0 | Read only | CPU-only model inference |
 | [LangChain](https://github.com/langchain-ai/langchain) | MIT; integration packages and providers require separate review. | Read only | agent framework |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | adapter_built | visual agent builder |

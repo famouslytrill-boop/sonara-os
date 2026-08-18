@@ -2165,6 +2165,38 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "IONOS \"Smarter business with AI\" prompting guide (PDF)",
+    slug: "ionos-smarter-business-with-ai-guide",
+    category: ["competitor marketing material", "market reference", "reviewed on request"],
+    useCase: ["reading what a hosting competitor tells small businesses about AI"],
+    productFit: ["Internal Development"],
+    license:
+      "All rights reserved. The document carries \"COPYRIGHT (c) 2025 IONOS INC.\" on its cover and grants nothing. A free download is a price of zero, not a licence.",
+    licenseRisk: "critical",
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "read it as competitor intelligence; reading a published document needs no permission",
+      "copy no sentence, heading, table or template from it into this product or its documentation",
+      "where a technique in it is genuinely useful, build our own and describe it in our own words -- the techniques are industry-standard and belong to nobody, the wording is theirs",
+    ],
+    officialUrl: "https://www.ionos.com",
+    repoUrl: "https://www.ionos.com",
+    notes:
+      "A fourteen-page lead-magnet guide from IONOS, a hosting and small-business services company, teaching entrepreneurs to prompt: role prompting, style targeting, prompt chaining, few-shot, progressive layering, then templates for website copy, email marketing, blog writing, business planning and social media, and three walkthroughs. Submitted on 18 August 2026 with a request to add it to this product. It cannot be added. The cover reads COPYRIGHT (c) 2025 IONOS INC. and the document grants no licence, so copying its text into SONARA would be the same failure this register exists to prevent, with prose instead of code -- and the fact that it is free to download is a price, not a permission. Two things can be taken from it legitimately. The first is the intelligence: a hosting competitor is spending marketing budget teaching small businesses to prompt, which tells us where that market thinks the value is, and it is a useful data point for docs/market/. The second is that the named techniques are not IONOS's inventions -- role prompting and few-shot prompting are industry-standard and predate this document by years, so building our own equivalents and describing them in our own words is unobstructed. What is theirs is the expression, and none of it has been used.",
+    safetyBoundaries: [
+      "no sentence, heading, table or template from this PDF appears in this codebase or its documentation",
+      "any statistic quoted from it is traced to its original source before being repeated, never cited as IONOS's",
+      "competitor marketing is never the basis of a claim we make about our own product",
+    ],
+    blockedUses: [
+      "copying or paraphrasing its text into product copy, help pages or documentation",
+      "redistributing the PDF",
+      "treating a free download as a licence",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
