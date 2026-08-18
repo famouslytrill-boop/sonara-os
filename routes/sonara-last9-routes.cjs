@@ -89,7 +89,13 @@ const RESOURCE_MAP = {
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
   "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
-  "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
+  "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } },
+  // The product catalogue. Status defaults to draft rather than active on
+  // purpose: a product with no versions has no price, so listing it as on sale
+  // the moment it is created would be the page claiming something it cannot
+  // support. The versions under it are reached through the product, the same
+  // way invoice lines are reached through the invoice.
+  "/api/business/merchant-products": { table: "merchant_products", required: ["name"], person: "created_by", defaults: { status: "draft" } }
 };
 
 const PUBLIC_GETS = new Map([
@@ -1171,7 +1177,13 @@ async function loadReferences(config, organizationId, page) {
   await Promise.all([...new Set(fields.map((field) => field.from))].map(async (from) => {
     const source = REFERENCE_SOURCES[from];
     if (!source) return;
-    const result = await supabaseList(config, source.table, `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
+    // "*" for eight of the nine sources. merchant_product_variants embeds its
+    // parent's name, because a version row on its own says "Large" and that
+    // labels nothing. A source that asks for an embed and does not get one
+    // comes back not-ok, and formField renders "We could not load these just
+    // now" rather than a picker full of adjectives.
+    const select = encodeURIComponent(source.select || "*");
+    const result = await supabaseList(config, source.table, `?select=${select}&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
     loaded[from] = result.ok
       ? { ok: true, options: result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) }
       : { ok: false, options: [] };

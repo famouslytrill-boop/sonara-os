@@ -1105,6 +1105,31 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/merchant-products:
+    get:
+      operationId: listBusinessMerchantProducts
+      tags: [Operations]
+      summary: List the products the business sells.
+      description: Things rather than time. A product carries no price of its own; the price is on each version of it.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessMerchantProduct
+      tags: [Operations]
+      summary: List a product for sale.
+      description: Created as a draft. A product with no versions has no price, so it is not offered as on sale until one exists.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/product-variants:
+    post:
+      operationId: createBusinessProductVariant
+      tags: [Operations]
+      summary: Add a version of a product, with its price.
+      description: The parent product must belong to the caller's organization. Versions are reachable only through the product they belong to, and the price lives here rather than on the product.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/purchase-order-lines:
     post:
       operationId: createBusinessPurchaseOrderLine

@@ -40,7 +40,8 @@ const businessOperationsMigrationNames = [
   "013_sonara_business_employee_music_ops_schema.sql",
   "014_sonara_restaurant_margin_ops_schema.sql",
   "20260811220000_customer_invoices_accounts_receivable.sql",
-  "20260811234500_customer_invoice_lines.sql"
+  "20260811234500_customer_invoice_lines.sql",
+  "20260818100000_merchant_product_catalogue.sql"
 ];
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql"
@@ -83,7 +84,13 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "vendor_invoice_lines",
   "pos_menu_mix_items",
   "employee_wage_rates",
-  "reviews"
+  "reviews",
+  // Selling something that is not a service. Every table above prices work or
+  // tracks stock; neither models a thing sold in sizes at different prices.
+  // The versions table is the child of the product, on the same footing as the
+  // six line tables above it.
+  "merchant_products",
+  "merchant_product_variants"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",

@@ -2,6 +2,66 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — selling something that is not a service
+
+Business Builder could price work and had no way to list a **thing**.
+`business_service_catalog` carries one flat `price_cents` and a
+`duration_minutes`, which is a service; `menu_items` is a menu; `inventory_items`
+is stock on hand. A search across all 88 migrations for a variant or price-tier
+table found only `growth_experiment_variants`, which is A/B testing. So a
+business selling objects in sizes, colours or pack sizes had to retype every one
+of them onto every invoice.
+
+`merchant_products` and `merchant_product_variants` close that, with the record
+page at `/business-builder/owner/products` and the versions as its child.
+
+**The price is on the version and nowhere else.** A product with two sizes at one
+price is a product with two versions that happen to agree. A price on the parent
+as well would give two answers to "what does this cost", and the two would
+disagree the first time somebody edited one. `tests/a-product-is-priced-through-its-versions.test.js`
+asserts no column on `merchant_products` matches `/price|amount|cost/` and that
+the form does not ask for one — verified by adding `price_cents` to the migration
+and watching five tests fail.
+
+**Named `merchant_products` rather than fighting for the word.** `products`
+already exists and means something else: its `product_key` is constrained to
+`business_builder`, `creator_studio`, `growth_studio` and `sonara_one`, so it
+records which SONARA product an organization enabled. Two tables called products,
+one of them meaning something else, is how the next person loses an afternoon.
+
+**Scope, stated so nobody assumes the rest arrived with it.** This is a
+catalogue: what you sell, in which variations, at what price. There is **no cart,
+no checkout, no tax calculation and no shipping**. Those touch money rules
+`AGENTS.md` governs, and a half-built checkout is worse than none. Quotes and
+invoices already exist to take money for these.
+
+**The one thing that could have looked finished and been useless.** An invoice
+line can now name a catalogue version, which is what makes the catalogue worth
+having — otherwise it is a list you retype. But a variant row says "Large",
+"Blue", "Box of 12", and a dropdown offering three different products' "Large"
+is a control that looks like a choice and is not one. `REFERENCE_SOURCES` grew an
+optional `select`, used by exactly one of its nine sources, so the picker embeds
+`merchant_products(name)` and each option reads "Oak shelf — Large". If the embed
+does not come back the read is not-ok and the field renders "We could not load
+these just now" rather than a list of adjectives. Verified by deleting the
+`select` line and watching the test fail.
+
+**Whether a product can be sold is a fact about its children**, so it is a card
+on the detail page rather than a column on the list. Five states, and each says
+only what is known: read failed, no versions, all versions archived, versions
+with no price, and a price or a range. A blank price is not a free product —
+`finiteNumber` again, for the same reason as every other total in that file.
+
+`totalFrom` is now genuinely optional on a child spec, and the versions table
+declares none. Adding up the prices of a small, a medium and a large produces a
+number nobody is ever charged. `tests/owner-record-lines.test.js` distinguishes
+"left out" from "set to undefined", so the omission is a decision rather than a
+gap.
+
+Verified: `pnpm run verify:launch` green end to end (exit 0), 1973 tests passing,
+orphan-table check at 0 unused tables — the two new tables have a read path, which
+is why the migration could not be committed on its own.
+
 ### 2026-08-18 — the third row claiming a worker, and a form not built
 
 Went to close the reference-analysis dead end — a page listing analyses with no
