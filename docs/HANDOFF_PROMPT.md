@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4033 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 84 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 172 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 173 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,60 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — nine new products, three for each product line
+
+Built on what is already here rather than on anything new: the free-tool runtime,
+the module-output save path, the records pages, the catalog, and the outage crawl
+written this morning — which covered all nine the moment they were registered,
+without a line added to it.
+
+**Why calculators and not generators.** The fifteen tools that came before are
+mostly outline and script builders: words in, better-organised words out. What a
+small business is actually stuck on is arithmetic it does not trust itself to do
+— what price covers the cost, how long the cash lasts, whether a referral reward
+is affordable, whether the splits add to a hundred. Those have one right answer
+and an expensive wrong one.
+
+So all nine are deterministic. No model call, no provider, no network, **no
+per-customer cost**, same inputs to same output. `docs/SHIP_READINESS.md` records
+eleven catalog products removed for describing work that did not exist, and the
+cheapest way not to repeat that is to ship things that compute.
+
+**Business Builder** — Break-Even and Runway; Shift Rota Cost Planner; Deposit and
+Payment Schedule.
+**Creator Studio** — Rate Card Builder; Split Sheet and Credits; Repurposing
+Planner.
+**Growth Studio** — Campaign Budget Split; Referral Reward Planner; Follow-Up
+Schedule.
+
+**Two rules run through all of them.** A number that cannot be read is *named*,
+never turned into `NaN` — `numberFrom` returns null and every tool checks before
+doing arithmetic, so the customer is told which box was unreadable rather than
+shown `$NaN`. And a case with no answer says so rather than returning zero: a
+business losing money on every sale has **no** break-even, and "0 sales needed"
+would be the most dangerous possible rounding of that. A rota with no expected
+sales reports that the labour share cannot be worked out and *"is not zero"*.
+
+**Guards caught three things on the way in**, each a real integration the work
+would otherwise have half-done:
+
+- `verify-route-registry` refused nine routes that existed but were not
+  canonically registered.
+- The catalog seed migration `20260725180000` is applied and **frozen**, so the
+  new products could not be added to it. They are seeded by a new migration
+  instead, and the test that checked "one migration seeds every product" now asks
+  whether each product is seeded *anywhere* — which is the actual guarantee. It
+  also refuses to count the generated sync migration, because that one only
+  updates: a product listed there and nowhere else would be retired-proof and
+  never created.
+- `verify-doc-counts` caught a migration count that moved 83 → 84.
+
+**One assumption checked rather than acted on.** The existing tools use
+`parsePositiveNumber`, which returns null, and null in arithmetic gives `NaN` —
+so I expected `$NaN` on the pricing tool for prose input and went to fix it.
+Submitted it: zero occurrences. The existing path already handles it. Nothing was
+changed on the strength of a defect I had reasoned my way to rather than seen.
 
 ### 2026-08-18 — a malformed role read could take out every admin page
 

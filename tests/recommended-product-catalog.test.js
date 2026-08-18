@@ -52,13 +52,35 @@ describe("SONARA recommended product catalog", () => {
   });
 
   it("seeds every product through an idempotent service catalog migration", () => {
-    const sql = fs.readFileSync(path.join(root, "supabase", "migrations", "20260725180000_recommended_product_catalog.sql"), "utf8");
-    assert.match(sql, /add column if not exists service_key text/i);
-    assert.match(sql, /on conflict \(service_key\).*do update/is);
-    assert.match(sql, /lifecycle_status/i);
-    assert.match(sql, /plan_floor/i);
+    // Read across every migration rather than one file.
+    //
+    // 20260725180000 seeded the catalog as it stood, and it is applied and
+    // frozen: rewriting it would change what a fresh database gets without
+    // changing any database that already ran it. So a product added afterwards
+    // is seeded by a later migration, and this check has to ask whether the
+    // product is seeded *anywhere* -- which is the actual guarantee. Pinning it
+    // to one filename made the check a statement about where the answer lives
+    // rather than about whether it exists.
+    //
+    // The generated sync migration does not count for the insert: it only
+    // updates, so a product listed only there would be retired-proof and never
+    // created.
+    const base = fs.readFileSync(path.join(root, "supabase", "migrations", "20260725180000_recommended_product_catalog.sql"), "utf8");
+    assert.match(base, /add column if not exists service_key text/i);
+    assert.match(base, /on conflict \(service_key\).*do update/is);
+    assert.match(base, /lifecycle_status/i);
+    assert.match(base, /plan_floor/i);
+
+    const directory = path.join(root, "supabase", "migrations");
+    const seeding = fs.readdirSync(directory)
+      .filter((name) => name.endsWith(".sql"))
+      .map((name) => ({ name, sql: fs.readFileSync(path.join(directory, name), "utf8") }))
+      .filter((file) => /insert\s+into\s+public\.service_catalog_items/i.test(file.sql));
+
+    assert.ok(seeding.length >= 1, "no migration inserts into service_catalog_items; this check would pass over an empty set");
     for (const item of RECOMMENDED_PRODUCT_CATALOG) {
-      assert.match(sql, new RegExp(`'${item.serviceKey}'`), `migration is missing ${item.serviceKey}`);
+      const seeded = seeding.some((file) => new RegExp(`'${item.serviceKey}'`).test(file.sql));
+      assert.ok(seeded, `no migration inserts ${item.serviceKey}, so the catalog lists a product the database will never have`);
     }
   });
 

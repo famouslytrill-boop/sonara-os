@@ -5,6 +5,7 @@
 // stay consistent with the rest of the app. No secrets are ever rendered.
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
+const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
 
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
@@ -728,7 +729,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       fields: GROWTH_READINESS_CHECKS.map((check) => yesNoField(check.name, check.label)),
       requiredFields: GROWTH_READINESS_CHECKS.map((check) => check.name),
       build: (body) => scoreReadiness(body, GROWTH_READINESS_CHECKS)
-    }
+    },
+    // Nine planning tools, three per product line. See lib/sonara-planner-tools.cjs
+    // for why they are calculators rather than generators.
+    ...PLANNER_TOOLS
   ];
 
   // Exposed so a test can post to every free tool rather than to the one
