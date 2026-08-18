@@ -8,6 +8,7 @@
 const assert = require("node:assert/strict");
 const {
   buildCalendarInvite,
+  buildCalendarFeed,
   invitability,
   escapeText,
   foldLine,
@@ -136,6 +137,59 @@ describe("a booking becomes a calendar entry", () => {
     const verdict = invitability({ id: "a", starts_at: "not a date", ends_at: "2026-09-01T11:00:00Z" });
     assert.equal(verdict.ok, false);
     assert.equal(verdict.code, "no_start_time");
+  });
+
+  it("puts a whole diary in one file, built by the same code as one booking", () => {
+    const feed = buildCalendarFeed(
+      [BOOKING, { ...BOOKING, id: "second", starts_at: "2026-09-02T09:00:00Z", ends_at: "2026-09-02T09:30:00Z" }],
+      { now: "2026-08-18T11:00:00Z" }
+    );
+    assert.equal(feed.ok, true);
+    assert.equal(feed.included, 2);
+    assert.deepEqual(feed.skipped, []);
+    // One VCALENDAR wrapper, two VEVENTs inside it.
+    assert.equal(feed.body.split("BEGIN:VCALENDAR").length - 1, 1);
+    assert.equal(feed.body.split("BEGIN:VEVENT").length - 1, 2);
+    assert.equal(feed.body.split("END:VEVENT").length - 1, 2);
+
+    // The same booking must render identically whether downloaded alone or as
+    // part of the diary, or the two paths have drifted.
+    const single = buildCalendarInvite(BOOKING, { now: "2026-08-18T11:00:00Z" });
+    const eventOf = (body) => body.slice(body.indexOf("BEGIN:VEVENT"), body.indexOf("END:VEVENT"));
+    assert.equal(eventOf(feed.body), eventOf(single.body));
+  });
+
+  it("counts what it left out rather than quietly shortening the diary", () => {
+    // A feed that silently omits appointments is a diary that lies by being
+    // incomplete, and the business has no way to notice.
+    const feed = buildCalendarFeed(
+      [BOOKING, { id: "no-end", starts_at: "2026-09-02T09:00:00Z" }, { id: "backwards", starts_at: "2026-09-03T10:00:00Z", ends_at: "2026-09-03T09:00:00Z" }],
+      { now: "2026-08-18T11:00:00Z" }
+    );
+    assert.equal(feed.ok, true);
+    assert.equal(feed.included, 1);
+    assert.equal(feed.skipped.length, 2);
+    assert.deepEqual(feed.skipped.map((entry) => entry.code).sort(), ["ends_before_it_starts", "no_end_time"]);
+    // Each skip names the booking, so the page can point at it.
+    assert.deepEqual(feed.skipped.map((entry) => entry.id).sort(), ["backwards", "no-end"]);
+  });
+
+  it("separates a business with no bookings from bookings it could not read", () => {
+    const empty = buildCalendarFeed([], { now: "2026-08-18T11:00:00Z" });
+    assert.equal(empty.ok, true);
+    assert.equal(empty.included, 0);
+    // An empty diary is still a valid calendar file: it parses and imports
+    // nothing, which is the correct outcome.
+    assert.match(empty.body, /BEGIN:VCALENDAR/);
+    assert.match(empty.body, /END:VCALENDAR/);
+    assert.equal(empty.body.includes("BEGIN:VEVENT"), false);
+
+    // A failed read is not an empty diary, and must not render as one.
+    for (const notAList of [null, undefined, { rows: [] }, "nothing"]) {
+      const unreadable = buildCalendarFeed(notAList, {});
+      assert.equal(unreadable.ok, false, `expected ${JSON.stringify(notAList)} to be refused`);
+      assert.equal(unreadable.code, "not_a_list");
+    }
   });
 
   it("carries the structure a calendar needs to parse it at all", () => {

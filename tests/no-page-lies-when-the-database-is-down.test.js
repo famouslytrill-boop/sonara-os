@@ -153,6 +153,13 @@ const leaks = [];
     }
   });
 
+  // Routes whose successful response is a file rather than a page. Listed by
+  // hand and deliberately short: a route added here stops being checked for
+  // page markers, so it has to be a genuine download and not a page somebody
+  // found inconvenient to fix.
+  const FILE_DOWNLOADS = new Set(["/business-builder/owner/bookings/calendar"]);
+  const downloadResponses = [];
+
   async function crawlAs(routes, label, cookieName) {
     for (const route of routes) {
       let response;
@@ -175,6 +182,23 @@ const leaks = [];
       // a 500 is a defect for a different check.
       const readable = response.status === 200
         || (response.status === 503 && /<\/html>|<article|<main/i.test(String(response.text || "")));
+
+      // A route that serves a *file* is not a page and must not be judged as
+      // one. /business-builder/owner/bookings/calendar answers a calendar
+      // download; rendering an HTML page into a .ics request would be the wrong
+      // thing, so it answers 503 with a plain sentence instead.
+      //
+      // The HTML markers above were always a proxy for "a human can read what
+      // came back", chosen because everything crawled until now was a page.
+      // Widening that proxy for every route would weaken it, so downloads are
+      // taken out of this population and checked separately, and more strictly,
+      // in the assertion below -- the count of routes accounted for does not
+      // fall, and these gain a check the pages do not have.
+      if (!readable && FILE_DOWNLOADS.has(route)) {
+        downloadResponses.push({ route, label, status: response.status, body: String(response.text || "") });
+        continue;
+      }
+
       if (!readable) {
         // Recorded per route, not per pass. Neither session can reach
         // everything -- the owner cookie is redirected away from /billing and
@@ -227,6 +251,36 @@ const leaks = [];
     // Two passes now, so the floor is higher than the 150 the customer pass
     // alone reached.
     assert.ok(rendered >= 400, `only ${rendered} page renders with the database down; the crawl has gone blind`);
+  });
+
+  it("makes a file download explain itself during an outage", () => {
+    // Not weaker than the page rule -- stricter. A page has to contain HTML
+    // markers; these have to answer 503 with a sentence a person can read,
+    // carry no JSON blob, and leak no placeholder.
+    assert.ok(
+      downloadResponses.length > 0,
+      "no file-download route was crawled, so this check looked at nothing. If a download moved, point FILE_DOWNLOADS at where it went."
+    );
+
+    const wrong = [];
+    for (const entry of downloadResponses) {
+      if (entry.status !== 503) {
+        wrong.push(`${entry.route} answered ${entry.status} with the database down; a download that cannot be built must say so with 503`);
+        continue;
+      }
+      const body = entry.body.trim();
+      if (body.length < 20) wrong.push(`${entry.route} answered 503 with nothing a person could read`);
+      // A JSON error object is a machine's answer, and this is a link somebody
+      // clicked in a browser.
+      if (/^[[{]/.test(body)) wrong.push(`${entry.route} answered 503 with JSON rather than a sentence: ${body.slice(0, 60)}`);
+      if (/\b(null|undefined|NaN|\[object Object\])\b/.test(body)) wrong.push(`${entry.route} leaked a placeholder into its outage message: ${body.slice(0, 80)}`);
+      // It has to say something about what happened, not just fail.
+      if (!/could not|not connected|try again|sign in/i.test(body)) {
+        wrong.push(`${entry.route} answered 503 without explaining what went wrong: ${body.slice(0, 80)}`);
+      }
+    }
+
+    assert.deepEqual(wrong, [], wrong.join("\n  "));
   });
 
   it("accounts for every page it could not render", () => {

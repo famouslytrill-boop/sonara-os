@@ -10,7 +10,7 @@ const {
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
-const { buildCalendarInvite } = require("../lib/sonara-calendar-invite.cjs");
+const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
@@ -171,6 +171,43 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // A calendar file is a snapshot of a row that can change.
     res.setHeader("Cache-Control", "no-store");
     return res.send(invite.body);
+  });
+
+  // The diary, not one appointment.
+  //
+  // Registered before the :recordId route above would ever be reached for this
+  // path -- Express matches in registration order and "calendar" is not a uuid,
+  // so isUuid would have refused it -- but ordering by accident is not ordering,
+  // and this is declared first on purpose.
+  app.get("/business-builder/owner/bookings/calendar", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so there are no bookings to read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "business_bookings",
+      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=starts_at.asc&limit=500`
+    );
+    // `found.ok ? found.rows : []` here would hand back an empty but perfectly
+    // valid calendar during an outage, and the business would read it as having
+    // no bookings.
+    if (!found.ok) return res.status(503).type("text").send("We could not read your bookings just now. Nothing has changed; try again shortly.");
+
+    const feed = buildCalendarFeed(found.rows, { now: new Date() });
+    if (!feed.ok) return res.status(503).type("text").send(feed.message);
+
+    res.setHeader("Content-Type", feed.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${feed.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    // Said out loud rather than dropped. A diary missing three appointments
+    // because they have no end time is incomplete, and a header is the only
+    // place to say so on a file download.
+    if (feed.skipped.length) {
+      res.setHeader("X-Sonara-Bookings-Skipped", String(feed.skipped.length));
+    }
+    return res.send(feed.body);
   });
 
   OWNER_PAGES.forEach(([path, title, body]) => {

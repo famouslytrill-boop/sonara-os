@@ -2,6 +2,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the diary, and a crawl that judged a file as if it were a page
+
+The per-booking calendar download shipped as half a feature. A business wants
+their week in their calendar, not to click twenty times.
+`/business-builder/owner/bookings/calendar` is the diary.
+
+**One builder, not two.** The feed was going to assemble its own VEVENT lines,
+which is how two builders of one format drift until a client accepts the download
+and rejects the feed. `eventLines` is now shared, and a test asserts the same
+booking renders **identically** whether downloaded alone or inside the diary.
+
+**What it does with a booking a calendar cannot show is the point.** It skips it
+and *counts* it, and the count is returned rather than dropped — a feed that
+quietly omits three appointments is a diary that lies by being incomplete, and
+the business has no way to notice. The route sends the number in a header. `null`
+and `[]` stay different answers too: a failed read is refused with
+`not_a_list` rather than rendered as a business with no bookings, and the route
+answers 503 instead of handing back an empty but perfectly valid calendar.
+
+**Then the outage crawl failed, correctly, and the fix was not to relax it.**
+The crawl requires every route to render a page with HTML markers. This route
+serves a *file*; putting an HTML page into a `.ics` request would be the wrong
+thing, so it answers 503 with a plain sentence.
+
+The HTML rule was always a proxy for "a human can read what came back", chosen
+because everything crawled until now was a page. **Widening that proxy for every
+route would have weakened it.** Instead downloads come out of that population
+into a separate, *stricter* assertion: 503, a body a person can read, no JSON
+blob, no placeholder, and wording that says what actually happened. The count of
+routes accounted for does not fall, and these gain a check the pages do not have.
+`FILE_DOWNLOADS` is listed by hand and deliberately short, because a route added
+there stops being checked for page markers.
+
+Verified against bad input: answering JSON instead of a sentence fails, a
+placeholder leaking into the message fails, and emptying `FILE_DOWNLOADS` fails
+rather than passing on nothing.
+
+**A note on how nearly this went wrong.** The first two probe runs appeared to
+show the new check passing on bad input, and the honest conclusion looked like
+"the check does not work". It did work — `head -3` was truncating the output
+before the summary line, and the visible matches were test *names* containing the
+word "failing". Printing what the check had actually collected settled it in one
+run. A probe that lies about a check is the same defect one level up, and the
+only cure is looking at the data rather than at a filtered view of it.
+
+`verify:launch` green, **1923** tests passing.
+
 ### 2026-08-18 — a booking you can put in a calendar
 
 Thirteenth sweep pass: calendar. Checking the product before searching ended it
