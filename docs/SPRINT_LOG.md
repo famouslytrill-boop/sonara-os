@@ -2,6 +2,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the production gate did not require four tables four pages read
+
+Found by checking an exclusion list against the runtime instead of reading it.
+
+`lib/sonara-database-retirement-contract.cjs` names tables "from superseded
+schemas" that "are not active SONARA runtime tables". Being on it is not
+cosmetic: `scripts/verify-production-supabase.mjs` drops those names from
+`expectedTables` and verifies them with **`required: false`**, so an absent one
+is not a failure — and each run emits a warning saying the table "should be
+reviewed for archival".
+
+Four of the twenty-seven were queried by live code:
+
+| Table | Read by |
+| --- | --- |
+| `employee_announcements` | `/staff/announcements` |
+| `employee_tasks` | `/staff/tasks` |
+| `quotes` | `/business-builder/owner/quotes` and `/api/business/quotes` |
+| `reviews` | the "Reviewed" stage of the customer-journey funnel |
+
+So **if `quotes` disappeared from production the gate would pass**, while
+recommending it be archived. None of the four is in the canonical
+`DATABASE_TABLES` either, which is what would have put them back into the
+required set.
+
+All four are off the list. The guard that would have caught it is now in
+`tests/supabase-active-contract-reconciliation.test.js`: no entry on the
+retirement list may be a table runtime code queries. Verified by putting `quotes`
+back and watching it name `quotes`.
+
+**Two things about how it was found, both worth keeping.** The first pass used a
+plain word-boundary grep and reported twelve — `files`, `payments`, `leads` and
+`campaigns` are ordinary English and ordinary variable names, and one of them was
+matching a variable in my own scratch script. Redone with the four patterns
+`verify-supabase-contract.mjs` already treats as a runtime table reference, it was
+four. A sloppy measure that over-reports is not the safe direction; it buries the
+real four in eight false ones.
+
+And `reviews` survived that second pass on a route suffix — `["reviews",
+addStageReview]` in the product-lifecycle routes — so it was checked a third time
+before being called live. It is: `lib/sonara-customer-journey.cjs` reads it as a
+funnel stage.
+
+Verified: `verify:launch` green end to end, 2017 tests passing. The production
+verifier itself cannot be run from here — it needs live Supabase credentials — so
+what changed is which tables it will require on its next run against production.
+
 ### 2026-08-18 — two audits that found the schema right, and one gap they left
 
 Ran two systematic hunts generalised from defects already found today. Both are
