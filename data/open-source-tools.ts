@@ -2407,6 +2407,36 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Lunar (headless e-commerce for Laravel)",
+    slug: "lunar-headless-ecommerce",
+    category: ["e-commerce", "product catalogue", "submitted 2026-08-18"],
+    useCase: ["reference for the parts of selling this product has no model for: variants, price tiers, carts, tax rules, shipping and discounts"],
+    productFit: ["Business Builder"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Clean and permissive. It is not what decides this one.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the catalogue and pricing model rather than adopting the package: variants, price breaks, tax rules and discount stacking are the hard part and are readable without taking code",
+      "if it is ever run, it is a separate Laravel application the owner hosts and this product reaches through an adapter under docs/architecture/EXTERNAL-SERVICES.md -- it is a Composer package and cannot be a dependency of an Express CommonJS server with no build step",
+      "keep its payment adapters out of scope: money in this product goes through the existing provider path, with no card data or CVV stored and success shown only after provider confirmation",
+      "any refund path it offers is one of the seven owner-approval categories in AGENTS.md and does not become automatic by being imported",
+    ],
+    officialUrl: "https://lunarphp.com",
+    repoUrl: "https://github.com/lunarphp/lunar",
+    notes:
+      "3,650 stars, 495 forks, MIT, pushed the day it was submitted, and the first e-commerce record in this register -- a real gap, the same way speech recognition was. Submitted with the instruction to add it to the application, so the useful thing to say is what adding it would actually mean. It is a Composer package for Laravel and this application is Express CommonJS on Vercel serverless with no build step, so it cannot be a dependency here in any sense; adopting it means the owner runs a second application with its own database, which is an infrastructure and cost decision rather than a licensing one. What it is genuinely good for is the model. Checking what Business Builder already has turned up something worth recording on its own: the table called `products` is not a merchant catalogue at all -- its `product_key` is constrained to business_builder, creator_studio, growth_studio and sonara_one, so it records which SONARA product an organization has enabled. The merchant-facing tables are business_service_catalog, menu_items and inventory_items, and quotes and customer_invoices sit on top of them. So a business here can price a service and invoice for it, and has no product catalogue with variants, no cart, no checkout, no tax rules and no shipping. Lunar has all of those, worked out and tested, and reading how it models them costs nothing.",
+    safetyBoundaries: [
+      "no payment code adopted: card data and CVV are never stored, and payment success is shown only after provider confirmation",
+      "refunds stay behind owner approval, whatever an imported library would allow",
+      "customer and order records stay organization-scoped under the same tenant boundary as every other record here",
+      "reading the domain model needs no service running and no code taken",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "The Code — Developer Resources (newsletter landing page)",
     slug: "the-code-newsletter-resource-index",
     category: ["link directory", "market intelligence", "submitted 2026-08-18"],

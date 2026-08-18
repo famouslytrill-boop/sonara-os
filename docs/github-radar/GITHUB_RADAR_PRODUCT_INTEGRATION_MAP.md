@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-108 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 108.
+109 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 109.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-43 repositories.
+44 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -35,6 +35,7 @@ Create, launch, run and manage a business.
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | adapter_built | visual agent builder |
 | [LightRAG](https://github.com/HKUDS/LightRAG) | MIT | Read only | retrieval augmented generation |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
+| [Lunar (headless e-commerce for Laravel)](https://github.com/lunarphp/lunar) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Read only | e-commerce |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |

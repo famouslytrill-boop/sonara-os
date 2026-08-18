@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-108 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+109 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,48 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — the first e-commerce record, and a table named for the wrong thing
+
+`lunarphp/lunar` was submitted with the instruction to add it to the application.
+Verified **MIT** from GitHub's detected licence field, 3,650 stars, 495 forks,
+pushed the day it was submitted. Registered at **109** — and it is the register's
+**first e-commerce record**, which is a real gap in the same way speech
+recognition was.
+
+**It cannot be added as a dependency, and the licence is not why.** It is a
+Composer package for Laravel; this application is Express CommonJS on Vercel
+serverless with no build step. Adopting it means the owner runs a second
+application with its own database — an infrastructure and cost decision, not a
+licensing one. Recorded `reference_only` for that reason.
+
+**Checking what Business Builder already has turned up the more interesting
+thing.** The table called `products` is not a merchant catalogue at all: its
+`product_key` is constrained to `business_builder`, `creator_studio`,
+`growth_studio` and `sonara_one`, so it records *which SONARA product an
+organization has enabled*. The merchant-facing tables are
+`business_service_catalog`, `menu_items` and `inventory_items`, with quotes and
+`customer_invoices` on top.
+
+So a business here can price a service and invoice for it, and has **no product
+catalogue with variants, no cart, no checkout, no tax rules and no shipping**.
+That is a larger gap than the submission implied, and it is worth knowing before
+anybody plans around the word "products".
+
+Third table this week whose name points somewhere its columns do not —
+`song_fingerprints` holds descriptions rather than audio, `accounting_exports`
+promised a file nothing produced, and now `products` names SONARA's own
+enablement rather than anything a customer sells. None is a bug. All three are
+the kind of thing somebody builds a plan on.
+
+What Lunar is genuinely good for is the model: variants, price breaks, tax rules
+and discount stacking are the hard part of selling, they are worked out and
+tested there, and reading them costs nothing and needs no service running. Its
+payment and refund paths are explicitly out of scope — money here goes through
+the existing provider path, and refunds are one of the seven owner-approval
+categories whatever an imported library would allow.
+
+`verify:launch` green, 1932 tests passing.
 
 ### 2026-08-18 — a submitted document, assessed rather than assumed
 
