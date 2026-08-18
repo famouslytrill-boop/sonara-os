@@ -124,7 +124,17 @@ function requiredBody(page, parentId, extra = {}) {
   // asks for an amount and never for an item name, so a shared body tested the
   // reject path on that page and nothing else.
   const body = { [page.lines.parentColumn]: parentId };
-  for (const field of page.lines.form.fields.filter((entry) => entry.required)) {
+  // A child may require "either a reference, or these fields" rather than
+  // marking them required outright -- an invoice line can name a catalogue
+  // version instead of carrying a description and a total. Reading only
+  // `required` posted neither and every submission was rejected, which looked
+  // like the endpoint was broken rather than like the harness was.
+  //
+  // The typed branch is exercised here; the reference branch has its own tests.
+  const alsoRequired = page.lines.requireEither
+    ? page.lines.form.fields.filter((entry) => page.lines.requireEither.fields.includes(entry.name))
+    : [];
+  for (const field of [...page.lines.form.fields.filter((entry) => entry.required), ...alsoRequired]) {
     // A date column given the word "Something" is rejected by Postgres, so a
     // harness that posts it is testing a path no real submission takes. The
     // stub accepts anything, which is exactly why this went unnoticed until a

@@ -2,6 +2,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a claim I published, made true
+
+The capability audit sent to the owner said of the product catalogue: "An invoice
+line can name one, **so a catalogue item goes onto a bill without being
+retyped**." Checking my own sentence against the code: the line recorded
+`variant_id`, and `description` and `line_total_cents` were both `required`, so a
+person picked "Oak shelf — Large" and then typed the name and the price they had
+just set on it. The catalogue saved nobody anything.
+
+Either the claim was wrong or the feature was unfinished. It was the feature.
+
+Picking a version now fills the description, the unit price and the line total.
+Four rules, and three of them are about not doing too much:
+
+- **Only blanks are filled.** `dropBlanks` has already removed anything left
+  empty, so `submitted[key] === undefined` is exactly "they did not type this".
+  A typed price is a discount somebody meant, and the migration is explicit that
+  a line total is what the business decided to charge.
+- **A blank quantity is the column's own `not null default 1`**, not a guess.
+  Without that, a version picked with nothing else typed saved a priced line
+  totalling zero.
+- **The lookup is scoped by organization**, like the parent check above it. The
+  service key bypasses row level security, so a guessed id would otherwise price
+  a line from another business's catalogue.
+- **A read that failed is not a version that does not exist.** The first would
+  put a null into a not-null column and surface as a database error nobody can
+  act on; the second is somebody else's row. They refuse separately and say
+  which.
+
+The two `required` flags had to come off, and that is the part worth
+understanding rather than copying: with `required` in the HTML the browser blocks
+the submission before the server can fill anything. So the rule moved to
+`requireEither: { reference, fields }` — pick one, or type those — and the server
+re-checks the **full** list after filling, so a reference that produced no
+description still refuses rather than inserting a null.
+
+`tests/owner-record-lines.test.js` built its submissions from `required` alone and
+so posted neither field, which made three unrelated tests look like the endpoint
+had broken. The harness knows about `requireEither` now; a harness that does not
+know what a page requires reports the page as broken.
+
+Verified: `verify:launch` green, 2025 tests passing. Both rules that matter were
+confirmed by breaking them — filling over typed values, and dropping the
+organization filter from the lookup — and each is caught.
+
 ### 2026-08-18 — the production gate did not require four tables four pages read
 
 Found by checking an exclusion list against the runtime instead of reading it.

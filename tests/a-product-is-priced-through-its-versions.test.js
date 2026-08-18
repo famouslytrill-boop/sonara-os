@@ -291,6 +291,119 @@ describe("a product is priced through its versions", () => {
       assert.ok(columns.has("variant_id"), "the form asks for a column that is not there, so nothing would save");
     });
 
+    // The promise the catalogue is for. Recording which version a line came
+    // from and then making somebody retype its name and price is a catalogue
+    // that saves nobody anything.
+    describe("putting a version on an invoice line", () => {
+      const INVOICE = "12345678-1234-4234-8234-123456789012";
+      const VARIANT = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+      let inserted;
+
+      function stub({ variantRows, readable = true } = {}) {
+        return async (url, options = {}) => {
+          const target = String(url);
+          requested.push(target);
+          const method = (options.method || "GET").toUpperCase();
+          if (target.includes("/auth/v1/user")) return json(USER);
+          if (target.includes("/rest/v1/rpc/")) return json({});
+          if (!target.includes("/rest/v1/")) return undefined;
+          const table = (target.split("/rest/v1/")[1] || "").split("?")[0];
+          if (table === "organization_memberships") {
+            return json([{ organization_id: ORGANIZATION_ID, user_id: USER.id, role: "owner", status: "active" }]);
+          }
+          if (table === "business_memberships") {
+            return json([{ id: "m", organization_id: ORGANIZATION_ID, workspace_id: "w", role: "owner", status: "active" }]);
+          }
+          if (method === "POST") {
+            inserted = JSON.parse(options.body || "{}");
+            return json([{ id: "created" }], 201);
+          }
+          if (table === "customer_invoices") return json([{ id: INVOICE }]);
+          if (table === "merchant_product_variants") {
+            if (!readable) return json({ message: "no" }, 500);
+            return json(variantRows === undefined
+              ? [{ id: VARIANT, variant_name: "Large", price_cents: 4000, merchant_products: { name: "Oak shelf" } }]
+              : variantRows);
+          }
+          return json([]);
+        };
+      }
+
+      function addLine(body, options) {
+        inserted = null;
+        global.fetch = stub(options);
+        return request(app)
+          .post("/api/business/invoice-lines")
+          .set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub`)
+          .set("Accept", "text/html")
+          .type("form")
+          .send({ invoice_id: INVOICE, ...body })
+          .redirects(0);
+      }
+
+      it("fills the description, the price and the total from the version", async () => {
+        await addLine({ variant_id: VARIANT, quantity: "3" });
+        assert.ok(inserted, "nothing was saved");
+        assert.equal(inserted.description, "Oak shelf \u2014 Large");
+        assert.equal(inserted.unit_price_cents, 4000);
+        assert.equal(inserted.line_total_cents, 12000);
+      });
+
+      // A blank quantity is the column's own `not null default 1`. Without this
+      // a version picked with nothing else typed saves a priced line totalling
+      // zero.
+      it("totals a version picked on its own at its own price", async () => {
+        await addLine({ variant_id: VARIANT });
+        assert.equal(inserted.line_total_cents, 4000);
+      });
+
+      // The rule the migration is explicit about: a line total is what the
+      // business decided to charge, and a typed price is a discount somebody
+      // meant.
+      it("never overwrites a price somebody typed", async () => {
+        await addLine({ variant_id: VARIANT, quantity: "2", line_total_cents: "5000", description: "Two shelves, agreed rate" });
+        assert.equal(inserted.line_total_cents, "5000", "a discount was overwritten by the catalogue price");
+        assert.equal(inserted.description, "Two shelves, agreed rate");
+      });
+
+      it("still takes a line typed out with no version at all", async () => {
+        await addLine({ description: "Call-out fee", line_total_cents: "4500" });
+        assert.equal(inserted.description, "Call-out fee");
+        assert.equal(inserted.line_total_cents, "4500");
+      });
+
+      it("refuses a line with neither a version nor a description", async () => {
+        const result = await addLine({ quantity: "1" });
+        assert.match(result.headers.location || "", /problem=missing_required/);
+        assert.equal(inserted, null, "a line with no description was saved");
+      });
+
+      // The service key bypasses row level security, so the variant lookup is
+      // scoped by organization exactly like the parent check above it.
+      it("will not price a line from another business's catalogue", async () => {
+        const result = await addLine({ variant_id: VARIANT }, { variantRows: [] });
+        assert.match(result.headers.location || "", /problem=reference_not_yours/);
+        assert.equal(inserted, null);
+      });
+
+      // A read that failed is not a version that does not exist. Saving here
+      // would put a null into a not-null column and fail as a database error
+      // nobody can act on.
+      it("refuses rather than saving a blank line when the catalogue cannot be read", async () => {
+        const result = await addLine({ variant_id: VARIANT }, { readable: false });
+        assert.match(result.headers.location || "", /problem=catalogue_unreadable/);
+        assert.equal(inserted, null);
+      });
+
+      it("scopes the version lookup to this business", async () => {
+        requested = [];
+        await addLine({ variant_id: VARIANT });
+        const reads = requested.filter((url) => url.includes("/rest/v1/merchant_product_variants"));
+        assert.ok(reads.length, "the version was never looked up");
+        for (const url of reads) assert.ok(url.includes(`organization_id=eq.${ORGANIZATION_ID}`), `unscoped: ${url}`);
+      });
+    });
+
     // The embed is the whole point of the source. If loadReferences dropped it
     // the picker would still render, and every option in it would be an
     // adjective -- a page that works and means nothing.

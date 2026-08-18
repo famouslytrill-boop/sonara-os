@@ -566,6 +566,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const requiredFields = spec.form.fields.filter((field) => field.required).map((field) => field.name);
       const missing = requiredFields.filter((name) => !String(req.body[name] ?? "").trim());
       if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
+
+      // "Either pick one, or type it out."
+      //
+      // An invoice line may name a catalogue version instead of carrying a
+      // description and a total. Those two fields cannot simply be `required`,
+      // because the browser would block the submission before the server could
+      // fill anything -- so the rule lives here, where it can be one or the
+      // other. Without a reference, every field in the list is required again.
+      const reference = spec.requireEither ? String(req.body[spec.requireEither.reference] || "") : "";
+      if (spec.requireEither && !isUuid(reference)) {
+        const untyped = spec.requireEither.fields.filter((name) => !String(req.body[name] ?? "").trim());
+        if (untyped.length) return respond(400, { ok: false, code: "missing_required", missing: untyped });
+      }
+
       const config = getConfig(deps);
       if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
       const org = await resolveOrganization(req, deps);
@@ -591,6 +605,44 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // and recomputing it would overwrite a discount. Nobody discounts a
       // recipe.
       const derived = typeof spec.derive === "function" ? spec.derive(submitted) : {};
+
+      // What a chosen catalogue version fills in.
+      //
+      // Scoped by organization as well as by id, for the same reason the parent
+      // check above is: the service key bypasses row level security, so a
+      // guessed id from another business would otherwise price this line from
+      // their catalogue.
+      //
+      // Only blanks are filled. dropBlanks has already removed anything the
+      // person left empty, so `submitted[key] === undefined` is exactly "they
+      // did not type this" -- and a typed value is a decision that stands.
+      if (spec.fillFrom && isUuid(String(req.body[spec.fillFrom.field] || ""))) {
+        const referenceId = String(req.body[spec.fillFrom.field]);
+        const found = await supabaseList(
+          config,
+          spec.fillFrom.table,
+          `?select=${encodeURIComponent(spec.fillFrom.select)}&id=eq.${encodeURIComponent(referenceId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+        );
+        // A read that failed is not a reference that does not exist. The first
+        // saves a line with no description against a not-null column; the
+        // second is somebody else's row. Both refuse, and say which.
+        if (!found.ok) return respond(502, { ok: false, code: "catalogue_unreadable" });
+        if (!found.rows[0]) return respond(403, { ok: false, code: "reference_not_yours" });
+        const values = spec.fillFrom.values(found.rows[0], submitted) || {};
+        for (const [key, value] of Object.entries(values)) {
+          if (submitted[key] === undefined && value !== null && value !== undefined) submitted[key] = value;
+        }
+      }
+
+      // Re-checked after filling, against the full list rather than the reduced
+      // one. A reference that produced no description would otherwise insert a
+      // null into a not-null column and fail as a database error the customer
+      // cannot act on.
+      if (spec.requireEither) {
+        const stillMissing = spec.requireEither.fields.filter((name) => submitted[name] === undefined || submitted[name] === null);
+        if (stillMissing.length) return respond(400, { ok: false, code: "missing_required", missing: stillMissing });
+      }
+
       const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
       return respond(saved?.ok === false ? 502 : 200, saved);
