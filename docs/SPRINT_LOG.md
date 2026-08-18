@@ -2,6 +2,48 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — two audits that found the schema right, and one gap they left
+
+Ran two systematic hunts generalised from defects already found today. Both are
+worth recording for what they did *not* find, because "checked and clean" is
+information the next person otherwise pays for again.
+
+**Boolean columns defaulting to `true`** — the generalisation of the
+feedback-profile fix, where the database decided a question `AGENTS.md` says a
+person has to. Twenty-one such columns across the migrations. Almost all are
+**fail-closed safety defaults and correct**: `requires_approval`,
+`human_review_required`, `security_review_required`, `rls_required`,
+`owner_review_required`, `license_review_required`, `private_required`,
+`no_artist_name_prompting`. Defaulting those on is the right way round.
+
+`notification_preferences` turned out to be exemplary rather than suspect:
+`sound_effects`, `voice_announcements`, `haptics`, `email_alerts`, `sms_alerts`
+and `browser_push` **all default `false`** — the six things `AGENTS.md` names —
+and only `visual_alerts`, the least intrusive kind and not on that list, defaults
+true. Somebody implemented that rule properly and it is still holding.
+
+One left alone deliberately: `creator_tracks.explicit_version_allowed` defaults
+true, and nothing in the runtime writes or reads it or the
+`clean_version_required` beside it. Changing a default on a column with no
+surface is motion, not a fix.
+
+**Columns a page renders but never asks for** — the inverse of
+`report:selected-columns`, and the more dangerous direction. A record page
+hand-writes `select` and `columns` separately; a column read but not selected is
+`undefined` on every row, so the page renders "Not set" for every record forever.
+That is indistinguishable by eye from a column nobody filled in.
+
+370 column reads across every record page, child table and `also` block: **all
+clean.** But nothing had been checking, and four record pages were hand-written
+in a single day this week, each with its own select string. It is a test now,
+verified by dropping one column from one select and watching it fail.
+
+Neither audit produced a product change. The first found the schema already
+right; the second found the pages already right and left a guard behind so they
+stay that way.
+
+Verified: `verify:launch` green end to end, 2016 tests passing.
+
 ### 2026-08-18 — the location page knew how precisely it had tracked somebody
 
 Worked the sixteen advisory findings from `pnpm run report:selected-columns`,

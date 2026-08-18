@@ -302,6 +302,50 @@ describe("Creator Studio record pages show real records", () => {
     assert.match(select, /<option value="true">Yes</);
   });
 
+  // The inverse of the selected-but-unused defect, and the one that shipped
+  // silently rather than loudly.
+  //
+  // A record page hand-writes two things that have to agree: `select`, the
+  // columns it asks Supabase for, and `columns`, the accessors that read them.
+  // A column read but not asked for is `undefined` on every row, so the page
+  // renders its fallback -- "Not set", "None", "Not recorded" -- for every
+  // record forever. It looks like a working page over a column nobody filled
+  // in, which is indistinguishable from the truth by eye.
+  //
+  // Four record pages were hand-written in one day when this was added, each
+  // with its own select string, and nothing compared the two.
+  it("asks for every column its pages actually render", () => {
+    const pages = require("../lib/sonara-owner-record-pages.cjs");
+    const findings = [];
+    let reads = 0;
+
+    const examine = (label, select, columns) => {
+      // A page selecting "*" gets everything and cannot have this fault.
+      if (!select || select === "*" || !Array.isArray(columns)) return;
+      const asked = new Set(String(select).split(",").map((entry) => entry.trim()));
+      for (const column of columns) {
+        if (typeof column.value !== "function") continue;
+        for (const match of column.value.toString().matchAll(/\brow\.([a-z0-9_]+)/g)) {
+          reads += 1;
+          if (!asked.has(match[1])) findings.push(`${label}: column "${column.label}" reads row.${match[1]}, which its select does not ask for`);
+        }
+      }
+    };
+
+    for (const value of Object.values(pages)) {
+      if (!Array.isArray(value)) continue;
+      for (const page of value) {
+        if (!page || !page.path) continue;
+        examine(page.path, page.select, page.columns);
+        for (const child of pages.childrenOf(page)) examine(`${page.path} → ${child.table}`, child.select, child.columns);
+        for (const side of page.also || []) examine(`${page.path} → ${side.table}`, side.select, side.columns);
+      }
+    }
+
+    assert.ok(reads >= 200, `only ${reads} column reads examined; this check has gone blind`);
+    assert.deepEqual(findings, [], `these columns render their fallback on every row:\n  ${findings.join("\n  ")}`);
+  });
+
   // The other half, and the half that would rot silently: the copy above is
   // only honest while nothing reads these tables. If somebody builds the
   // consumer, this fails and says which file to look at -- rather than leaving
