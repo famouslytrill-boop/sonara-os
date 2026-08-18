@@ -129,6 +129,159 @@ describe("Creator Studio generation platform", () => {
     assert.equal(result.body.code, "active_voice_consent_required");
   });
 
+  // The scope column existed, was selected on every voice job, and decided
+  // nothing. A permission given for text-to-speech authorised a voice clone --
+  // the read is what made it look checked. AGENTS.md: "Enforce provenance,
+  // consent, and anti-clone safety."
+  describe("a voice permission has to be a permission for this", () => {
+    const CONSENT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    function withConsent(scope, extra = {}) {
+      return async (url, options = {}) => {
+        const target = String(url);
+        if (target.includes("/rest/v1/creator_voice_consents")) {
+          return jsonResponse(200, [{ id: CONSENT_ID, consent_attested: true, consent_scope: scope, expires_at: null, revoked_at: null, ...extra }]);
+        }
+        if (target.includes("/rest/v1/creator_generation_jobs") && options.method === "POST") {
+          return jsonResponse(201, [jobRecord({ capability: "voice_clone", status: "approved" })]);
+        }
+        if (target.includes("/rest/v1/creator_generation_events")) return jsonResponse(201, []);
+        return jsonResponse(200, []);
+      };
+    }
+
+    // voice_clone for the refusals and speech_to_speech for the acceptances,
+    // and the difference is not cosmetic: no provider declares voice_clone, so
+    // a permitted voice_clone is refused later by the provider check. The
+    // refusal cases stop at the policy, which is what they are about; the
+    // acceptance cases have to reach the end, so they use the gated capability
+    // ElevenLabs actually does.
+    function jobWith(capability, scope, extra) {
+      global.fetch = withConsent(scope, extra);
+      return request(buildApp())
+        .post("/api/creator/generation/jobs")
+        .send({
+          capability,
+          provider_key: "elevenlabs",
+          prompt: "Use the recording I have a signed release for",
+          rights_attested: true,
+          consent_attested: true,
+          voice_consent_id: CONSENT_ID
+        });
+    }
+
+    const cloneWith = (scope, extra) => jobWith("voice_clone", scope, extra);
+    const convertWith = (scope, extra) => jobWith("speech_to_speech", scope, extra);
+
+    it("refuses a voice clone on a permission given for text to speech", async () => {
+      const result = await cloneWith("text_to_speech");
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, "voice_consent_scope_mismatch");
+      // The message has to send them somewhere other than "record a
+      // permission", which is what they already did.
+      assert.match(String(result.body.reasons?.[0] || ""), /voice clone/);
+    });
+
+    it("refuses a voice clone on a permission given for singing", async () => {
+      const result = await cloneWith("singing_voice");
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, "voice_consent_scope_mismatch");
+    });
+
+    it("refuses voice conversion on a permission given for singing", async () => {
+      const result = await convertWith("singing_voice");
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, "voice_consent_scope_mismatch");
+    });
+
+    it("allows the one it was given for", async () => {
+      const result = await convertWith("speech_to_speech");
+      assert.equal(result.status, 201, `refused a matching permission: ${JSON.stringify(result.body)}`);
+    });
+
+    it("allows a blanket permission", async () => {
+      const result = await convertWith("all_voice_generation");
+      assert.equal(result.status, 201, `refused a blanket permission: ${JSON.stringify(result.body)}`);
+    });
+
+    // The scope check must not become the only check. A revoked or expired
+    // permission with exactly the right scope is still not a permission.
+    it("still refuses a revoked permission whose scope matches", async () => {
+      const result = await cloneWith("voice_clone", { revoked_at: "2026-08-01T00:00:00Z" });
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, "active_voice_consent_required");
+    });
+
+    it("still refuses an expired permission whose scope matches", async () => {
+      const result = await cloneWith("voice_clone", { expires_at: "2026-01-01T00:00:00Z" });
+      assert.equal(result.status, 400);
+      assert.equal(result.body.code, "active_voice_consent_required");
+    });
+
+    // The build-time half. Adding a capability to the gated set without
+    // deciding what covers it fails here rather than at runtime, where the
+    // answer is a refusal nobody can explain.
+    it("has decided which permission covers every gated capability", () => {
+      const routes = require("../routes/creator-generation-routes.cjs");
+      const gated = [...routes.VOICE_CAPABILITIES];
+      assert.ok(gated.length >= 5, `only ${gated.length} gated capabilities; this check has gone blind`);
+      const undecided = gated.filter((capability) => !Array.isArray(routes.CONSENT_SCOPE_FOR_CAPABILITY[capability]));
+      assert.deepEqual(undecided, [], "these are refused for a reason nobody can act on, because no scope was chosen for them");
+    });
+
+    // And the scopes named have to be scopes the database will accept, or a
+    // permission that satisfies the check could never be created.
+    it("names only scopes the consent table allows", () => {
+      const fs = require("node:fs");
+      const path = require("node:path");
+      const routes = require("../routes/creator-generation-routes.cjs");
+      const sql = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", "20260723080000_creator_generation_control_plane.sql"), "utf8");
+      const constraint = sql.match(/consent_scope text not null check \(consent_scope in \(([^)]*)\)\)/);
+      assert.ok(constraint, "the consent_scope constraint is gone; this check is asserting about nothing");
+      const allowed = new Set([...constraint[1].matchAll(/'([a-z_]+)'/g)].map((match) => match[1]));
+      assert.ok(allowed.size >= 4, `only ${allowed.size} scopes parsed; this check has gone blind`);
+      assert.ok(allowed.has(routes.BLANKET_CONSENT_SCOPE), "the blanket scope is not one the table accepts");
+      const unstorable = [];
+      for (const [capability, scopes] of Object.entries(routes.CONSENT_SCOPE_FOR_CAPABILITY)) {
+        for (const scope of scopes) if (!allowed.has(scope)) unstorable.push(`${capability} accepts "${scope}", which the table refuses`);
+      }
+      assert.deepEqual(unstorable, [], unstorable.join("\n  "));
+    });
+  });
+
+  // The menu and the providers, kept in agreement by construction rather than
+  // by somebody remembering.
+  it("offers no capability that no provider can do", () => {
+    const routes = require("../routes/creator-generation-routes.cjs");
+    const { getCreatorGenerationCatalog } = require("../lib/creator-generation-provider-registry.cjs");
+    const supported = new Set(getCreatorGenerationCatalog().flatMap((provider) => provider.capabilities || []));
+    assert.ok(supported.size >= 10, `only ${supported.size} provider capabilities; this check has gone blind`);
+
+    const offered = routes.offeredCapabilities();
+    assert.ok(offered.length >= 5, `only ${offered.length} capabilities offered; the form has gone empty`);
+    const impossible = offered.filter((capability) => !supported.has(capability));
+    assert.deepEqual(impossible, [], "the form offers these and nothing can run them");
+
+    // And the intent list has to stay a superset, so dropping a capability
+    // from the menu is a decision somebody makes rather than a provider
+    // registry edit doing it silently.
+    const stray = offered.filter((capability) => !routes.FORM_CAPABILITY_ORDER.includes(capability));
+    assert.deepEqual(stray, [], "offered without being on the list this form is meant to show");
+  });
+
+  // The two that are currently filtered out. Written as an assertion rather
+  // than a comment because the day a provider declares one, this fails and
+  // tells the next person the menu just grew.
+  it("still cannot run a voice clone or a singing voice, and says so by not offering them", () => {
+    const routes = require("../routes/creator-generation-routes.cjs");
+    const offered = new Set(routes.offeredCapabilities());
+    for (const capability of ["voice_clone", "singing_voice"]) {
+      assert.ok(routes.FORM_CAPABILITY_ORDER.includes(capability), `${capability} left the intent list; it should reappear on its own, not be deleted`);
+      assert.ok(routes.VOICE_CAPABILITIES.has(capability), `${capability} is no longer gated by a voice permission`);
+      assert.equal(offered.has(capability), false, `${capability} is offered now -- a provider declares it, so check the permission scope covers it and update this test`);
+    }
+  });
+
   it("records Higgsfield jobs as external MCP work rather than pretending to call an undocumented REST endpoint", async () => {
     const calls = [];
     global.fetch = async (url, options = {}) => {
@@ -285,7 +438,17 @@ describe("Creator Studio generation platform", () => {
     global.fetch = async (url) => jsonResponse(200, String(url).includes("voice_consents") ? [CONSENT] : []);
     const withConsent = await request(buildApp()).get("/creator-studio/generation").set("accept", "text/html");
     assert.match(withConsent.text, /value="speech_to_speech"/, "voice conversion is still not offered");
-    assert.match(withConsent.text, /value="voice_clone"/);
+    // Was `value="voice_clone"`, and it passed while the option could not run.
+    // The list is derived from what a provider declares now; no provider in
+    // lib/creator-generation-provider-registry.cjs does voice_clone or
+    // singing_voice, so offering them meant a customer recorded a permission
+    // naming a real person and then got capability_not_supported. The two
+    // gated capabilities a provider does do are asserted instead, and the
+    // check below is what would notice if the menu and the providers parted
+    // company again.
+    assert.match(withConsent.text, /value="music_voice_profile"/, "a gated capability a provider does do is missing");
+    assert.match(withConsent.text, /value="talking_avatar"/);
+    assert.doesNotMatch(withConsent.text, /value="voice_clone"/, "voice_clone is offered and nothing can run it");
     assert.match(withConsent.text, new RegExp(`value="${CONSENT.id}"`), "the permission is not selectable on the form");
 
     // With nothing on file the picker would be an empty dropdown beside a

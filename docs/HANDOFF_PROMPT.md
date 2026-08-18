@@ -122,6 +122,57 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the consent record's one meaningful field decided nothing
+
+Went to check the consent-capture flow was really built, since `AGENTS.md`
+requires it: "Enforce provenance, consent, and anti-clone safety." It is —
+create, list, revoke, a page, and `evaluatePolicy` refusing a voice job without
+a live record. Two things inside it were not.
+
+**`consent_scope` was selected on every voice job and compared to nothing.** It
+is the field that says *what the person agreed to* — text-to-speech, speech-to-
+speech, voice clone, singing voice, or all of it — and a permission granted for
+text-to-speech authorised a voice clone. The column being in the `select` list is
+what made it look checked; that is this repository's recurring defect exactly, on
+the most sensitive gate in the product.
+
+There is now a map from capability to acceptable scopes, and a capability with no
+entry is **refused** rather than let through on the blanket scope, so adding one
+to `VOICE_CAPABILITIES` without deciding what covers it fails closed. A test
+asserts every gated capability has an entry, and a second asserts every scope
+named is one migration 20260723080000's check constraint will actually store —
+otherwise a permission that satisfies the check could never be created.
+
+`music_voice_profile` and `talking_avatar` have no scope of their own in that
+constraint, so only `all_voice_generation` covers them. Stated rather than
+quietly widened: the alternative is deciding on somebody's behalf that "singing
+voice" included their face.
+
+The mismatch has its own code and its own sentence. "Record a permission" would
+send somebody to create a second one identical to the first; what they need is to
+pick a different one or widen the one they have.
+
+**And the form offered two capabilities nothing can run.** The capability list was
+hand-written and included `voice_clone` and `singing_voice`; **no provider in
+`lib/creator-generation-provider-registry.cjs` declares either.** So the two most
+sensitive things on the menu were the two that could not work — a customer picked
+"Voice copy", was told voice work needs a permission on file, went and recorded
+one **naming a real person**, came back, pressed the button and got
+`capability_not_supported`. A consent record about a real human being, collected
+for nothing.
+
+The list is derived from what providers declare now, filtered through an explicit
+intent order, so both come back on their own the moment a provider offers them —
+and a test asserts they are still filtered out, so the day that happens somebody
+is told the menu grew rather than finding out later.
+
+The check the change had to survive: the scope test must not become the only
+test. A revoked or expired permission whose scope matches exactly is still
+refused, and both are asserted.
+
+Verified: `verify:launch` green end to end, 1999 tests passing. The scope check
+was confirmed by disabling it and watching three tests fail.
+
 ### 2026-08-18 — the database was answering a question AGENTS.md says a person has to
 
 Went to give `sensory_feedback_profiles` — the last of the three device tables
