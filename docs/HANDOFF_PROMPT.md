@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 88 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 182 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 183 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — a sweep for the defect that keeps recurring, and what it found
+
+The consent-scope bug had a shape worth generalising: **a column a query selects
+and the file never uses again**. Being in the `select` list is what made it look
+checked. So I swept every `select=` in `routes/`, `lib/` and `server.js` for
+columns fetched and never named again, with comments stripped so a column
+mentioned only in prose does not count as used.
+
+Three hits, and one of them was real.
+
+`/creator-studio/rights` selects `subject_type` and never uses it. Its cards are
+headed `row.subject_name || "Consent record"` — and **`subject_name` is nullable
+while `subject_type` is `not null`**, so the page discarded the fact that is
+always there in favour of the one that might not be. A permission recorded
+without a name was headed "Consent record" and named nobody.
+
+The same page also printed `consent_scope` with its underscores swapped for
+spaces, so one permission read "Voice copying" on
+`/creator-studio/voice-permissions` and **"voice clone"** on this one — two
+vocabularies for one table, which is how they drift, and a database value in
+front of a customer either way.
+
+`voiceSubjectLabel`, `voiceScopeLabel` and `voiceEvidenceLabel` now live in
+`lib/sonara-plain-language.cjs` with the product's other words, and both pages
+use them.
+
+The guard that matters most is not either page: **the label maps are checked
+against the migration's own check constraints.** A map that stops covering its
+column answers "Not recorded" for a real value — a permission that exists, shown
+as one that was not written down — and that is silent. Adding a value to the
+constraint now fails the build.
+
+The other two hits are not defects: `/api/integrations/providers` is a JSON API
+whose caller uses the fields, and a notification `category` is carried for the
+response rather than the render. Recorded here so the next person running the
+sweep does not re-examine them.
+
+Verified: `verify:launch` green end to end, 2005 tests passing. The three
+page-level checks were confirmed by putting the old expressions back and watching
+them fail.
 
 ### 2026-08-18 — the consent record's one meaningful field decided nothing
 

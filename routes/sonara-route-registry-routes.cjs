@@ -398,12 +398,21 @@ function registerRouteRegistryRoutes(app, deps) {
       ? await safeListTable("creator_voice_consents", `?select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
       : { ok: false, rows: [] };
     const sections = listed.ok && listed.rows.length
-      ? listed.rows.map((row) => brandCard(row.subject_name || "Consent record", [
-        `${consentState(row)}.`,
-        `Covers ${String(row.consent_scope || "voice work").replaceAll("_", " ")}.`,
-        row.evidence_type ? `Evidence: ${String(row.evidence_type).replaceAll("_", " ")}.` : "",
-        row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
-      ].filter(Boolean).join(" ")))
+      ? listed.rows.map((row) => brandCard(
+        // subject_name is nullable and subject_type is not null, so the heading
+        // fell back to "Consent record" -- discarding the fact that is always
+        // there in favour of the one that might not be.
+        row.subject_name || plainLanguage.voiceSubjectLabel(row.subject_type),
+        [
+          `${consentState(row)}.`,
+          // Was consent_scope with its underscores swapped for spaces, so the
+          // same permission read "Voice copying" on /creator-studio/voice-permissions
+          // and "voice clone" here. One vocabulary now, in
+          // lib/sonara-plain-language.cjs.
+          `Covers ${plainLanguage.voiceScopeLabel(row.consent_scope).toLowerCase()}.`,
+          row.evidence_type ? `Evidence: ${plainLanguage.voiceEvidenceLabel(row.evidence_type).toLowerCase()}.` : "",
+          row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
+        ].filter(Boolean).join(" ")))
       // Same heading fault, and on the surface where it matters most: a
       // creator reading "No consent records yet" after a failed read might
       // reasonably conclude a permission they recorded had been lost.

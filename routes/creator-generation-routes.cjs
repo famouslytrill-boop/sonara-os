@@ -12,7 +12,10 @@ const {
   generationStatus,
   generationStatusLabel,
   generationCapabilityLabel,
-  generationFailureText
+  generationFailureText,
+  voiceSubjectLabel,
+  voiceScopeLabel,
+  voiceEvidenceLabel
 } = require("../lib/sonara-plain-language.cjs");
 
 const JOB_TABLE = "creator_generation_jobs";
@@ -1126,17 +1129,8 @@ function voicePermissionForm(escape) {
     `<button type="submit">Record permission</button></form></article>`;
 }
 
-function voiceSubjectLabel(value) {
-  return { self: "My own voice", authorized_person: "A person who gave permission", licensed_voice: "A licensed voice", synthetic_voice: "A synthetic voice" }[String(value || "")] || "Not recorded";
-}
 
-function voiceScopeLabel(value) {
-  return { all_voice_generation: "All voice work", text_to_speech: "Spoken audio", speech_to_speech: "Voice conversion", voice_clone: "Voice copying", singing_voice: "Singing" }[String(value || "")] || "Not recorded";
-}
 
-function voiceEvidenceLabel(value) {
-  return { signed_release: "Signed release", license_record: "Licence record", provider_voice_id: "Provider voice id", self_attestation: "Own attestation", other: "Other" }[String(value || "")] || "Not recorded";
-}
 
 // Exported for the tests, on the precedent set by RESOURCE_MAP in
 // routes/sonara-last9-routes.cjs. The pair is what makes the scope check
