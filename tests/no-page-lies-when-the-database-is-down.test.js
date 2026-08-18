@@ -32,24 +32,29 @@ const request = require("supertest");
 const SUPABASE_ENV = Object.freeze({
   NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
   NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-anon-key-for-outage",
-  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-role-for-outage"
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-role-for-outage",
+  ADMIN_EMAILS: "owner-outage@example.com"
 });
 const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key, process.env[key]]));
 
 const app = require("../server");
-const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
+const { CUSTOMER_SESSION_COOKIE, ADMIN_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
 const { ROUTE_REGISTRY } = require("../lib/sonara-route-registry.cjs");
 
 const USER = { id: "33333333-3333-4333-8333-333333333333", email: "outage@example.com" };
+// The owner's own view of an outage. `ADMIN_EMAILS` is set alongside the
+// Supabase stubs below so the admin gate resolves without a role read.
+const ADMIN = { id: "55555555-5555-4555-8555-555555555555", email: "owner-outage@example.com" };
 const ORGANIZATION_ID = "44444444-4444-4444-8444-444444444444";
 
 const json = (body, status = 200) => ({ ok: status < 400, status, headers: { get: () => null }, json: async () => body });
 const unreachable = () => ({ ok: false, status: 500, headers: { get: () => null }, json: async () => ({}) });
 
-function stubFetch() {
+function stubFetch(asAdmin = false) {
   return async (url) => {
     const target = String(url);
-    if (target.includes("/auth/v1/user")) return json(USER);
+    if (target.includes("/auth/v1/user")) return json(asAdmin ? ADMIN : USER);
+    if (asAdmin && (target.split("/rest/v1/")[1] || "").split("?")[0] === "user_roles") return json([{ role: "owner" }]);
     if (target.includes("/rest/v1/rpc/")) return json({});
     if (!target.includes("/rest/v1/")) return undefined;
     const table = (target.split("/rest/v1/")[1] || "").split("?")[0];
@@ -81,7 +86,8 @@ const NOT_A_CLAIM_ABOUT_RECORDS = [
   [/nothing here reflects your plan/i, "The billing panel's own failure wording, added by this check's first run."],
   [/no reviews are published/i, "Proof and review publishing is owner-gated; a statement of policy."],
   [/nothing here has been sent/i, "Chase drafts, saying a draft is not a message. A statement about what the page does not do."],
-  [/nothing here publishes anything on its own/i, "The release calendar, saying it schedules rather than publishes."]
+  [/nothing here publishes anything on its own/i, "The release calendar, saying it schedules rather than publishes."],
+  [/nothing here says your database is empty/i, "The database console's caveat card, which exists to stop an owner concluding exactly the thing this check hunts for. It is the opposite of the claim -- flagged only because the pattern matches the words \"Nothing here\" wherever they appear. Found by the owner pass on its first run, on /admin/database, /admin/database-management and /admin/migrations, all rendering the same card."]
 ];
 
 function excused(context) {
@@ -91,6 +97,8 @@ function excused(context) {
 describe("no page lies when the database is down", () => {
   let realFetch;
   const findings = [];
+  const renderedRoutes = new Set();
+  const refusedBy = new Map();
   let rendered = 0;
 
 // A value the page meant to print and could not.
@@ -126,15 +134,48 @@ const leaks = [];
       .filter((entry) => entry.method === "GET" && !entry.route.includes(":"))
       .map((entry) => entry.route);
 
+    // Two passes over the same routes: once as a customer, once as the owner.
+    //
+    // The customer pass alone silently skipped 49 of 260 routes -- 46 of them
+    // redirects to a login this session cannot pass, and almost all of those
+    // the admin area. So the file that says "every page, rendered with every
+    // data read failing" had never rendered /admin, /admin/database,
+    // /admin/users or /admin/system, which are the pages an *owner* opens
+    // during an outage. That is where a false "you have no records" does the
+    // most damage, because the owner is the person deciding whether anything
+    // has actually been lost.
+    //
+    // `skipped` is kept and asserted rather than dropped on the floor, so the
+    // population cannot shrink again without somebody being told.
+    for (const [label, cookie, admin] of [["customer", CUSTOMER_SESSION_COOKIE, false], ["owner", ADMIN_SESSION_COOKIE || "sonara_admin_session", true]]) {
+      global.fetch = stubFetch(admin);
+      await crawlAs(routes, label, cookie);
+    }
+  });
+
+  async function crawlAs(routes, label, cookieName) {
     for (const route of routes) {
       let response;
       try {
-        response = await request(app).get(route).set("Accept", "text/html").set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub`).redirects(0);
+        response = await request(app).get(route).set("Accept", "text/html").set("Cookie", `${cookieName}=stub`).redirects(0);
       } catch (error) {
-        findings.push(`${route} threw with the database down: ${error.message}`);
+        findings.push(`${route} threw with the database down as ${label}: ${error.message}`);
         continue;
       }
-      if (response.status !== 200) continue;
+      if (response.status !== 200) {
+        // Recorded per route, not per pass. Neither session can reach
+        // everything -- the owner cookie is redirected away from /billing and
+        // /account/*, the customer cookie away from /admin/* -- so a route only
+        // counts as unreachable when *both* passes were refused.
+        // An alias counts as covered: /business-builder/tutorial is a 302 to
+        // /tutorials/business-builder and /business-builder/pricing a 302 to
+        // /pricing, both of which this crawl renders. What is left after those
+        // are removed is the real gap.
+        const destination = String(response.headers?.location || "").split("#")[0].split("?")[0];
+        refusedBy.set(route, { detail: `${route} -> ${label} ${response.status}`, destination });
+        continue;
+      }
+      renderedRoutes.add(route);
       rendered += 1;
       const visible = String(response.text || "")
         .replace(/<script[\s\S]*?<\/script>/gi, " ")
@@ -151,7 +192,7 @@ const leaks = [];
       // blind exactly where a page has the most to say.
       for (const match of visible.matchAll(CLAIMS_EMPTY_ALL)) {
         const context = visible.slice(Math.max(0, match.index - 60), match.index + 140);
-        if (!excused(context)) findings.push(`${route} says "${match[0].trim()}" in: ${context.trim().slice(0, 120)}`);
+        if (!excused(context)) findings.push(`${route} says "${match[0].trim()}" as ${label}, in: ${context.trim().slice(0, 120)}`);
       }
 
       for (const match of visible.matchAll(PLACEHOLDER_LEAK_ALL)) {
@@ -159,7 +200,7 @@ const leaks = [];
         leaks.push(`${route} shows "${match[0]}" in: ${context.trim().slice(0, 130)}`);
       }
     }
-  });
+  }
 
   after(() => {
     global.fetch = realFetch;
@@ -170,7 +211,39 @@ const leaks = [];
   });
 
   it("rendered enough pages to be measuring something", () => {
-    assert.ok(rendered >= 150, `only ${rendered} pages rendered with the database down; the crawl has gone blind`);
+    // Two passes now, so the floor is higher than the 150 the customer pass
+    // alone reached.
+    assert.ok(rendered >= 400, `only ${rendered} page renders with the database down; the crawl has gone blind`);
+  });
+
+  it("accounts for every page it could not render", () => {
+    // `rendered >= 400` says how much was looked at. It does not say what was
+    // missed, and for most of this file's life the answer was 49 routes that
+    // redirected to a login -- the whole admin area among them -- dropped by a
+    // bare `continue`. A crawl that cannot say what it skipped is a crawl whose
+    // population can shrink quietly.
+    //
+    // The owner session reaches the admin area, so what is left is genuinely
+    // out of reach: sign-in and callback routes, and pages that redirect by
+    // design. The cap is what makes this an assertion rather than a log.
+    const unreachable = [...refusedBy.entries()]
+      .filter(([route, entry]) => !renderedRoutes.has(route) && !renderedRoutes.has(entry.destination))
+      .map(([, entry]) => entry.detail);
+
+    // Pinned at what is actually there rather than at a number that sounds
+    // tidy. These are pages behind a session this crawl does not establish --
+    // it signs in as a customer and as the owner, and these want something
+    // more. They have not been examined one by one, and that is stated rather
+    // than papered over: the value of pinning the count is that the set cannot
+    // grow without somebody being told, which is strictly better than the bare
+    // `continue` that dropped forty-nine routes in silence.
+    assert.ok(
+      unreachable.length <= 13,
+      `${unreachable.length} routes rendered for neither session and are not aliases of a rendered page:\n  ${unreachable.join("\n  ")}`
+    );
+    // And the map must not be empty, because an empty one would mean the
+    // recording stopped rather than that everything rendered.
+    assert.ok(refusedBy.size > 0, "no refusal was recorded at all, so the accounting is no longer running");
   });
 
   it("prints no value it failed to work out", () => {

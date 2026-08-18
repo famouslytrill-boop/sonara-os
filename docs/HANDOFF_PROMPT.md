@@ -122,6 +122,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the outage crawl had never once opened the admin area
+
+`tests/no-page-lies-when-the-database-is-down.test.js` opens with the sentence
+*"Every page, rendered with every data read failing."* It was not every page. It
+was 211 of 260.
+
+**The `continue` that hid it.** The crawl skipped any route that did not answer
+200, with a bare `continue` and no record. Measured: **49 routes skipped**, 46 of
+them redirects to a login the customer session cannot pass, and almost all of
+those the admin area. So the file whose whole job is catching a page that tells
+somebody they have no records had never rendered `/admin`, `/admin/database`,
+`/admin/users` or `/admin/system` — the pages an **owner** opens during an
+outage, which is where that false claim does the most damage, because the owner
+is the person deciding whether anything has actually been lost.
+
+The guard beside it, `rendered >= 150`, says how much was looked at and says
+nothing about what was missed. That is the shape worth remembering: a population
+check that cannot shrink-detect is not a population check.
+
+**Two passes now**, customer and owner, over the same routes. The stub answers
+`user_roles` with `owner` and `ADMIN_EMAILS` is set alongside the Supabase
+stubs, so the admin gate resolves.
+
+**What the owner pass found on its first run: nothing false.** Three findings,
+all the same sentence, all the database console's own caveat card — *"Nothing
+here says your database is empty."* That card exists to stop an owner concluding
+exactly the thing this check hunts for, so it is the opposite of a lie, flagged
+only because the pattern matches the words "Nothing here" anywhere. It went into
+`NOT_A_CLAIM_ABOUT_RECORDS` with that reason, which is what the excuse list is
+for. Reporting it as a defect found would have been the easy write-up and the
+wrong one.
+
+**Accounting, rather than a bare skip.** A route now counts as unreachable only
+when *both* sessions were refused — neither cookie reaches everything, the owner
+being redirected away from `/billing` and `/account/*` just as the customer is
+from `/admin/*`. Aliases are covered too: `/business-builder/tutorial` is a 302
+to `/tutorials/business-builder` and `/business-builder/pricing` a 302 to
+`/pricing`, both of which the crawl renders, so a redirect whose destination was
+rendered is not a gap.
+
+**Thirteen routes are left, and that is stated rather than dressed up.** They
+sit behind a session this crawl does not establish, and they have not been
+examined one by one. The count is pinned so the set cannot grow without somebody
+being told — which is strictly better than the `continue` that dropped
+forty-nine in silence, and honestly worse than examining them. Next person: that
+is the open end of this.
+
 ### 2026-08-18 — nine new products, three for each product line
 
 Built on what is already here rather than on anything new: the free-tool runtime,
