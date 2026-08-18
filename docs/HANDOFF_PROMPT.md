@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 170 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 171 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,58 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — a crawl for the pages nobody crawled, and the branch it proved unreachable
+
+Six instances of this pattern were found by hand today. The seventh was found by
+a check, which is the point: the last two lived on **pages a customer only sees
+after pressing a button**, and every sweep in this repository issues GETs.
+
+**Placeholder leakage, everywhere.**
+`tests/no-page-lies-when-the-database-is-down.test.js` already renders 150+ pages
+with every read failing. It now also fails on `null`, `undefined`, `NaN` and
+`[object Object]` in visible text — the four things a JavaScript template
+produces when the value behind it is missing, and none of them a word this
+product's copy would use. It found nothing on the GET pages, which is why it was
+proved rather than trusted: injecting `Reference ID: null.` into one real card
+fails the run, and removing it passes.
+
+**Its self-check caught a trap on the way in.** A `/g` regex carries `lastIndex`
+between calls, so the recognition test matched its first sentence, resumed from
+that offset for the second, and reported that the pattern had stopped working.
+The file already had this shape for its other pattern — `CLAIMS_EMPTY` and
+`CLAIMS_EMPTY_ALL` — and the new one now follows it. **The check written to prove
+the check works is what caught it.**
+
+**And the pages that were never crawled at all.**
+`tests/every-tool-result-page-survives-an-outage.test.js` posts to all **fifteen**
+free tools with the session resolved, the workspace found, and every write
+refused — the state a real customer is in during an outage, and the state where a
+result page has most to get wrong: the tool worked, so there is an answer to
+show, and the save did not, so there is bad news beside it. `TOOLS` is exposed
+through `app.locals.sonaraFreeTools`, following the same pattern
+`sonaraDatabaseManagementPage` already uses.
+
+**The generated submission was wrong first, and the fix was to stop guessing.**
+The first draft chose values by field name — numbers for `/cost|price|rate|…/`,
+prose otherwise — and got `visitors`, `leads` and `customers` wrong, so the KPI
+calculator correctly refused with a 400 and this file reported its own bad input
+as a missing page. Every field now gets `"12"`, which the calculators parse and
+the text tools accept. A per-name heuristic is a thing that drifts silently the
+moment somebody adds the sixteenth tool.
+
+**Then the crawl found what hand-testing had missed.** Re-injecting yesterday's
+`Reference ID: null` defect did **not** fail the run — because the branch it
+lives in was unreachable. `saveModuleOutput` returned `code: "setup_required"`
+for *every* unsaved outcome, including this one: past a resolved workspace, past
+a working config, with only the writes failing. So `sendToolResult` always took
+its setup branch, and the "this is on our side" wording added yesterday had never
+once rendered. The code is `save_failed` now, the branch is reachable, and the
+crawl bites on the defect it was written for.
+
+That is the part worth remembering. Yesterday's fix was verified by a test that
+asserted the *new* wording appears — and it did, on the one path that test drove.
+It never asked whether the other path could happen at all.
 
 ### 2026-08-17 — "Reference ID: null", which I put there
 

@@ -731,6 +731,18 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }
   ];
 
+  // Exposed so a test can post to every free tool rather than to the one
+  // somebody remembered. Each carries its own required fields, which is what
+  // makes a generated submission possible: "Reference ID: null" reached a
+  // customer on one of these result pages and was found by hand, because the
+  // page crawl only ever issued GETs.
+  app.locals.sonaraFreeTools = TOOLS.map((tool) => ({
+    path: tool.path,
+    title: tool.title,
+    requiredFields: [...(tool.requiredFields || [])],
+    fields: (tool.fields || []).map((field) => field.name)
+  }));
+
   // ---------------------------------------------------------------------------
   // Free tool pages and POST actions
   // ---------------------------------------------------------------------------

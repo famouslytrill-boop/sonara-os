@@ -2998,7 +2998,7 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
   return {
     ok: true,
     saved: anySaved,
-    code: anySaved ? "saved" : "setup_required",
+    code: anySaved ? "saved" : "save_failed", // was "setup_required" for every unsaved outcome, so the result page always blamed setup
     productKey,
     moduleKey,
     referenceId,

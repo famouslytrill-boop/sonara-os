@@ -504,7 +504,10 @@ describe("software-in-a-service platform upgrade", () => {
         assert.equal(res.status, 503);
         assert.equal(res.body.ok, false);
         assert.equal(res.body.saved, false);
-        assert.equal(res.body.code, "setup_required");
+        // Was "setup_required". This stub has a resolved workspace and a working
+        // config; only the writes fail, so setup is not the reason and the
+        // result page was choosing its wording from this code.
+        assert.equal(res.body.code, "save_failed");
         assert.match(res.body.output.baseCost, /\$200\.00/);
         assert.match(res.body.output.targetPrice, /\$400\.00/);
         // "honest save state" is `saved: false`; the reference ID was the part

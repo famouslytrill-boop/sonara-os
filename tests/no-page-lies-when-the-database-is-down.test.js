@@ -93,6 +93,29 @@ describe("no page lies when the database is down", () => {
   const findings = [];
   let rendered = 0;
 
+// A value the page meant to print and could not.
+//
+// "Reference ID: null." reached a customer-facing page on 17 August, because a
+// fix correctly stopped inventing a reference for unsaved work and the template
+// printed the null through String() anyway. Nothing objected: the coverage read
+// the JSON body, and the page-level assertions checked for the *presence* of the
+// string "Reference ID", which "null" satisfies.
+//
+// These four tokens are what a JavaScript template produces when the value
+// behind it is missing. None of them is a word this product's copy would ever
+// use, so any appearance in visible page text is a defect rather than a style
+// question. Checked over the same stripped text as the claims above, which is
+// what a customer actually reads -- attribute values, class names and inline
+// data are none of this check's business.
+// Two copies, the same way CLAIMS_EMPTY and CLAIMS_EMPTY_ALL are two copies.
+// A /g regex carries lastIndex between calls, so the first draft of the
+// recognition test below matched its first sentence, resumed from that offset
+// for the second, and reported that the pattern had stopped working. The check
+// written to prove this check works is the thing that caught it.
+const PLACEHOLDER_LEAK = /(?:\[object Object\]|\bundefined\b|\bNaN\b|\bnull\b)/;
+const PLACEHOLDER_LEAK_ALL = new RegExp(PLACEHOLDER_LEAK.source, "g");
+const leaks = [];
+
   before(async function crawl() {
     this.timeout(180000);
     Object.assign(process.env, SUPABASE_ENV);
@@ -130,6 +153,11 @@ describe("no page lies when the database is down", () => {
         const context = visible.slice(Math.max(0, match.index - 60), match.index + 140);
         if (!excused(context)) findings.push(`${route} says "${match[0].trim()}" in: ${context.trim().slice(0, 120)}`);
       }
+
+      for (const match of visible.matchAll(PLACEHOLDER_LEAK_ALL)) {
+        const context = visible.slice(Math.max(0, match.index - 70), match.index + 70);
+        leaks.push(`${route} shows "${match[0]}" in: ${context.trim().slice(0, 130)}`);
+      }
     }
   });
 
@@ -143,6 +171,23 @@ describe("no page lies when the database is down", () => {
 
   it("rendered enough pages to be measuring something", () => {
     assert.ok(rendered >= 150, `only ${rendered} pages rendered with the database down; the crawl has gone blind`);
+  });
+
+  it("prints no value it failed to work out", () => {
+    assert.deepEqual(
+      leaks,
+      [],
+      "a page showed a JavaScript placeholder where a value should have been; the customer reads that as part of the sentence"
+    );
+  });
+
+  it("would recognise a placeholder if one appeared", () => {
+    // The assertion above passes by finding nothing, which is also what it does
+    // when the pattern has stopped matching. This is the difference.
+    for (const sentence of ["Reference ID: null.", "Saved undefined records.", "Total: NaN", "Owner: [object Object]"]) {
+      assert.match(sentence, PLACEHOLDER_LEAK, `the pattern no longer recognises "${sentence}"`);
+    }
+    assert.doesNotMatch("Your annulled booking was refunded in full.", PLACEHOLDER_LEAK, "the pattern matches ordinary prose");
   });
 
   it("tells nobody they have no records when the records could not be read", () => {
