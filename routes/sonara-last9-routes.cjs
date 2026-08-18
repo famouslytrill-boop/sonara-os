@@ -15,6 +15,7 @@ const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
 const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
+const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 // `person` names the column that records who created the row, and it is here
@@ -1138,10 +1139,27 @@ async function staffSections(config, org, me, path, ui) {
   if (path === "/staff/location") {
     const listed = await supabaseList(config, "location_events", `?select=event_type,created_at,privacy_mode&organization_id=eq.${encodeURIComponent(org.organizationId)}&employee_id=eq.${employeeId}&order=created_at.desc&limit=50`);
     if (!listed.ok) return [ui.card("Not available right now", "We could not load your check-ins just now.")];
+    // Each check-in says how precisely it recorded where the person was.
+    //
+    // privacy_mode was in this query and rendered nowhere, so somebody reading
+    // their own location history was not told which of precise, approximate,
+    // masked or manual applied to them -- while the column is `not null default
+    // 'precise'` and nothing has ever set it to anything else. The most precise
+    // setting, chosen by the database, shown to nobody.
+    //
+    // The card also says what IS kept rather than only what does not happen.
+    // "Nothing tracks you in the background" was true and one-sided; a person
+    // looking at their own location record wants the other half of the sentence.
     return [
-      ui.card("Nothing runs on its own", "Check-ins happen when you choose to record one and your device allows it. Nothing here tracks you in the background."),
+      ui.card(
+        "What is recorded, and what is not",
+        "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
+      ),
       ...(listed.rows.length
-        ? listed.rows.map((row) => ui.card(String(row.event_type || "check-in").replaceAll("_", " "), `${when(row.created_at)}.`))
+        ? listed.rows.map((row) => ui.card(
+          String(row.event_type || "check-in").replaceAll("_", " "),
+          `${when(row.created_at)}. ${plainLanguage.locationPrecisionLabel(row.privacy_mode)}.`
+        ))
         : [ui.card("No check-ins", STAFF_EMPTY)])
     ];
   }

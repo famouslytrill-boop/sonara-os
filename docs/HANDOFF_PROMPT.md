@@ -123,6 +123,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the location page knew how precisely it had tracked somebody
+
+Worked the sixteen advisory findings from `pnpm run report:selected-columns`,
+which had never been examined. One was a real defect and it is on the most
+sensitive surface in the staff portal.
+
+`/staff/location` selected `privacy_mode` and rendered nothing. The column allows
+**precise, approximate, masked and manual**, it is `not null default 'precise'`,
+and `grep` finds nothing anywhere — client or server — that has ever set it to
+anything else. So every check-in is stored at the most precise setting, the
+database chose that, and **the page a person opens to see what was recorded about
+them did not say which of the four applied.**
+
+Each check-in now says. The card copy changed too: "Nothing here tracks you in
+the background" was true and one-sided, which is the easy half of a sentence
+about somebody's location. It now says what *is* kept as well.
+
+**The default was deliberately not changed**, and the reason belongs next to the
+fix. A job-site check-in exists to record that somebody was there, and quietly
+degrading it to "approximate" would damage a business record on my judgement
+rather than the owner's. The fix is that the person is told, not that the fact is
+altered. That is the opposite call from the feedback-profile fix earlier today,
+where `AGENTS.md` requires sound and vibration off by default and the value
+itself was wrong.
+
+Labels live in `lib/sonara-plain-language.cjs` with the product's other words, and
+absent renders "Not recorded" rather than the most invasive of the four — asserted,
+because a missing value reported as `precise` is the same defect one level down.
+
+**The other fifteen findings were checked and are cross-function uses, exactly as
+the tool's tier 2 documents.** Worth recording so nobody re-examines them:
+
+- `isBusinessManagerUser` selects `organization_id` and returns `membership`, so
+  it reaches the caller. This one was opened first because it is authorization.
+- `staffSections` selects `break_minutes` for `workedHours()`, one function over.
+- `listSupportRequests` selects three columns the `/admin/support` handler
+  renders. Its `email_delivery_status || "pending"` fallback matches the column's
+  own `not null default 'pending'`, so it guesses nothing.
+- The rest are handlers passing rows to renderers.
+
+That is the tiering calibrated correctly: one real defect, fifteen benign, and the
+gate stayed on tier 1 where the rulings are verified.
+
+Verified: `verify:launch` green end to end, 2015 tests passing. The two new checks
+were confirmed by dropping the precision from the card again and watching them
+fail.
+
 ### 2026-08-18 — "install all reciprocal repositories", worked through and answered
 
 Asked, and it needed the owner first: installing reciprocal code obliges
