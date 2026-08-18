@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-109 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 109.
+111 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 111.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-44 repositories.
+45 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -53,6 +53,7 @@ Create, launch, run and manage a business.
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
 | [TastyIgniter](https://github.com/tastyigniter/TastyIgniter) | MIT | Adapt after review | online ordering |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [ury (ERPNext restaurant management)](https://github.com/ury-erp/ury) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | restaurant management |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
@@ -63,7 +64,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-34 repositories.
+36 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -94,10 +95,12 @@ Organize, protect, publish, monetize and grow creative work.
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Spleeter](https://github.com/deezer/spleeter) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio processing |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
 | [WebAV (browser video editing SDK on WebCodecs)](https://github.com/WebAV-Tech/WebAV) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | video editing |
+| [WebLLM](https://github.com/mlc-ai/web-llm) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [whisper.cpp](https://github.com/ggml-org/whisper.cpp) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | speech recognition |
 | [WhisperX](https://github.com/m-bain/whisperX) | BSD-2-Clause, from GitHub's detected licence field on 18 August  | Adapt after review | speech recognition |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
@@ -106,7 +109,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-26 repositories.
+28 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -132,9 +135,11 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Not classifiable by GitHub. Its detected licence on 18 August 20 | Licence unresolved | CRM |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [wacrm (self-hostable WhatsApp CRM template)](https://github.com/ArnasDon/wacrm) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Adapt after review | CRM |
+| [WebLLM](https://github.com/mlc-ai/web-llm) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
 
 ## Shared Platform

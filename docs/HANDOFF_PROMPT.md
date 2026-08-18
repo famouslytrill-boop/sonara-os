@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4033 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 86 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 87 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 179 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 180 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-109 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+111 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,75 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — which AI is possible here, and the column two features were waiting on
+
+Two pieces of work, and the first decided the second.
+
+**Researching what AI could be added produced an answer about headers, not
+models.** `AGENTS.md` requires AI calls through the Provider Gateway or an
+approved adapter, and a feature must cost the customer nothing. Together those
+rule out every hosted model API as a shipped capability: a per-token bill cannot
+sit behind a free tool, and a free tier is a price somebody else can change. So
+the question is *which AI has no per-use cost*, and there are two answers.
+
+**The first is that the plumbing already exists and is switched off.** Six
+adapters — Ollama, Open WebUI, Dify, Langflow, RAGFlow, Crawl4AI — plus the
+gateway itself, every one reporting setup-required until configured, with no page
+noticing its absence. The realistic zero-cost version of AI here is **Ollama on
+hardware the owner already owns**, and that is configuration rather than
+engineering.
+
+**The second is browser-side inference**, and it mirrors the video sweep exactly:
+the constraint that blocks server-side tools does not apply to something running
+on the customer's own device. **Transformers.js** (16,261 stars) and **WebLLM**
+(18,569), both verified Apache-2.0, registered at **111**.
+
+Both are `needs_security_review` rather than adapters, and the reasons are in
+this application's own headers, read out of `server.js` rather than assumed.
+`connect-src` names Supabase and Stripe and nothing else, so a model download
+from huggingface.co is refused — either that list grows or the weights are served
+from here and this product pays the bandwidth. **`Cross-Origin-Embedder-Policy`
+is not set anywhere in the codebase**: COOP is, COEP is not, so the page is not
+cross-origin isolated, `SharedArrayBuffer` is unavailable, and multithreaded WASM
+inference cannot run. And `script-src 'self'` with no bundler means a vendored
+bundle this project then owns. None of that refuses the idea; it makes it an
+owner decision about security posture.
+
+WebLLM carries one more constraint that decides it alone: a usable model is
+hundreds of megabytes at best and usually several gigabytes, once per device, on
+the customer's connection. **Free that costs somebody two gigabytes of data is
+not free.**
+
+**Then the column two refused features were waiting on.** `growth_touchpoints`
+and `sonara_prompt_templates` both refuse a form for the same reason: a typed row
+would be indistinguishable from a tracked or curated one.
+`lib/sonara-growth-create-specs.cjs` says so in as many words and names the fix —
+"the honest version starts with a column recording that a person entered it".
+
+`hand_entered` is that column, and it is **nullable on purpose**: true means a
+person typed it, false means it arrived tracked or curated, and **null means
+nobody recorded which**. A `not null default false` would write a claim about
+every existing row — that it is *known* to be machine-recorded — on the strength
+of nothing, which is the collapse this repository keeps finding, introduced
+deliberately.
+
+`tests/hand-entered-stays-three-state.test.js` pins that against the
+well-intentioned tidy-up. Verified against both: making it `not null default
+false` fails by name, and adding a backfill fails separately, because an UPDATE
+is the same claim written another way.
+
+Nothing writes the column yet, and that is stated rather than glossed. Before a
+touchpoint form ships, two things have to happen: the form sets `hand_entered`
+true, and the **"Reached" stage of `lib/sonara-customer-journey.cjs` stops
+counting hand-entered rows as measured** — a funnel a business makes decisions on
+must not quietly include evidence somebody typed.
+
+A container reset landed mid-task and destroyed the migration, the research
+document and the register edits before they were committed. All three were
+rewritten. Sixth reset in twelve check-ins.
+
+Register at **111**, 87 migrations. `verify:launch` green, **1948** tests passing.
 
 ### 2026-08-18 — contacts, and the same literal mistake for the third and fourth time
 
