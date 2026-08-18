@@ -30,7 +30,7 @@ Create, launch, run and manage a business.
 | [Excalidraw](https://github.com/excalidraw/excalidraw) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | drawing |
 | [Full Stack FastAPI Template](https://github.com/fastapi/full-stack-fastapi-template) | MIT | Read only | application template |
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
-| [HyperFormula](https://github.com/handsontable/hyperformula) | GPL-3.0, or a paid proprietary licence from the vendor. | Read only | formula engine |
+| [HyperFormula](https://github.com/handsontable/hyperformula) | GPL-3.0, or a paid proprietary licence from the vendor. The only | Read only | formula engine |
 | [Implem.Pleasanter](https://github.com/Implem/Implem.Pleasanter) | AGPL-3.0 | Read only | no-code record platform |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | adapter_built | visual agent builder |
 | [LightRAG](https://github.com/HKUDS/LightRAG) | MIT | Read only | retrieval augmented generation |

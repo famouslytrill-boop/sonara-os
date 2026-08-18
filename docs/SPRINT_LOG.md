@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — "install all reciprocal repositories", worked through and answered
+
+Asked, and it needed the owner first: installing reciprocal code obliges
+publishing SONARA's own source under the same licence, which is a decision about
+the business rather than the build. The answer was **install what can be
+installed without changing SONARA's licence, and nothing that would change it.**
+
+Enumerating the 17 was the useful part, because the licence turned out not to be
+the binding constraint for most of them:
+
+- **Eleven are whole applications**, in four language runtimes this deploy does
+  not have — C#/.NET, PHP, Rust, Python. You run them; you do not install them
+  into an Express CommonJS app with no build step.
+- **Three are reference material** with no installable artifact.
+- **Exactly one is a library this runtime could load**: HyperFormula.
+
+**The clearest result was a reason not to build.** Figranium is GPL-3.0 and does
+what `lib/sonara-crawl4ai-adapter.cjs` already does — fetch a page, return
+readable text — except Crawl4AI is Apache-2.0, already built, already called from
+`routes/market-intelligence-routes.cjs`, and already refuses loopback,
+link-local, cloud-metadata and private ranges. Adopting it would trade a
+permissive licence for a reciprocal one and gain nothing. That kind of result
+does not announce itself, so it is written into the register's
+`recommendedAction` rather than left in a chat.
+
+**HyperFormula has two non-reciprocal routes and one missing fact.** Buy the
+vendor licence, or run it as a separate service called over HTTP — GPL is not
+AGPL, so the service boundary is the settled reading. Both are blocked on a price
+nobody has asked for, and `hyperformula.handsontable.com` is blocked by this
+environment's egress proxy, so **the number is not in any document I wrote.** It
+is an owner step now, phrased as the exact question to send.
+
+Neither route is worth taking yet: nothing lets a customer write a formula, so an
+adapter today would be a capability with no caller — the dead-end shape this
+month has been spent closing.
+
+**The AGPL and OSL eleven stay untouched, and the reason is stated as what it
+is.** `CLAUDE.md` takes the conservative reading and nothing here loosens it.
+Whether an AGPL service held at arm's length is genuinely separable is a lawyer's
+question, not this repository's, and the arrangement above is proposed only where
+the separation is settled.
+
+**A guard was missing and is now there.** `docs/architecture/EXTERNAL-SERVICES.md`
+read "The eight reciprocal repositories are a separate decision" — stale by nine,
+with nothing watching it, because the doc-count pattern requires the words "carry
+a reciprocal licence" and this phrasing has neither. One number, two sentences,
+one guard. A second pattern now covers "N reciprocal repositories", verified by
+putting the stale figure back and watching it fail.
+
+Two things worth carrying forward from that. **A derived count spelled as a word
+is invisible to every pattern** — "eight" could never have been caught, so write
+derived counts as digits. And the new guard caught its own author on first use:
+"the other 16 reciprocal repositories" reads as a claim about the total, and the
+fix was to stop putting a number in that sentence at all.
+
+Verified: `verify:launch` green end to end, 10 countable claims checked, 138
+registry records, 2013 tests passing. **Nothing was installed, and that is the
+finished state of the decision rather than a deferral.**
+
 ### 2026-08-18 — twenty-eight repositories, submitted as "free and open source"
 
 They are not, and the register now says so with every licence read from the

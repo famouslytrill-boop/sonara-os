@@ -1304,7 +1304,8 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["formula engine", "calculation reference"],
     useCase: ["dependency-graph recalculation", "formula parsing and error propagation"],
     productFit: ["Business Builder"],
-    license: "GPL-3.0, or a paid proprietary licence from the vendor.",
+    license:
+      "GPL-3.0, or a paid proprietary licence from the vendor. The only repository in this register where money removes a reciprocal obligation outright, which makes the price a fact worth having rather than an aside.",
     licenseRisk: "high",
     reciprocalLicense: true,
     commercialUseStatus: "needs_review",
@@ -1312,7 +1313,9 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     recommendedAction: [
       "read the dependency-graph recalculation approach",
       "do not add the package; GPL-3.0 is the only free option and it is reciprocal",
-      "if a formula engine is genuinely needed, price the proprietary licence as an owner decision",
+      "TWO non-reciprocal routes exist, established 18 August 2026 when the reciprocal question was worked through: buy the vendor licence, or run HyperFormula as a separate service this application calls over HTTP -- GPL is not AGPL, so the service boundary is the settled reading rather than an argument",
+      "both are blocked on the same missing fact: nobody has asked the vendor for a price. That is now an owner step",
+      "and neither is worth doing before a surface exists. Nothing in this product lets a customer write their own formula today, so an adapter would be a capability with no caller",
     ],
     officialUrl: "https://hyperformula.handsontable.com",
     repoUrl: "https://github.com/handsontable/hyperformula",
@@ -3040,6 +3043,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "do not incorporate: GPL-3.0 reaches this product's own source, and SONARA is a hosted commercial product",
       "running it as a separate service the owner operates, called over HTTP, is the arrangement that does not trigger the obligation -- and that is an infrastructure and cost decision, not a licensing one",
       "read the workflow model freely; reading is not adopting",
+      "SUPERSEDED as a candidate, 18 August 2026: lib/sonara-crawl4ai-adapter.cjs already does this under Apache-2.0, is already built, and is already called from routes/market-intelligence-routes.cjs. Adopting Figranium would trade a permissive licence for a reciprocal one and gain nothing",
     ],
     officialUrl: "https://figranium.dev",
     repoUrl: "https://github.com/figranium/figranium",

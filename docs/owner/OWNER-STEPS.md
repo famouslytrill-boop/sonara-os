@@ -170,6 +170,45 @@ number to gamble with, and four because they are the ones nobody can read yet.
 
 ---
 
+## Optional, blocking nothing — ask HyperFormula's vendor for a price
+
+Deliberately unnumbered. The four above block a launch; this one blocks a
+capability nobody has asked for yet, and numbering it five would put it in a
+list whose whole point is that finishing it means you can ship. It is here
+because it is the one open fact from the reciprocal-licence decision, and
+because it is a two-line email nobody has sent.
+
+`data/open-source-tools.ts` records 17 registered repositories under a
+reciprocal licence. Working through them on 18 August 2026 established that
+only one is both technically installable here and genuinely useful:
+HyperFormula, a headless formula engine. It is dual-licensed — GPL-3.0, which
+would oblige publishing SONARA's source, **or** a paid proprietary licence,
+which would not.
+
+I could not get the price. `hyperformula.handsontable.com` is blocked by this
+environment's network egress proxy, and I will not put a number in a document
+that I could not check. So:
+
+> Ask Handsontable what a commercial HyperFormula licence costs for one hosted
+> SaaS product, and whether the price is per developer, per application, or
+> per deployment.
+
+Three things worth knowing before you spend anything on it:
+
+- **There is a free alternative to buying.** Running HyperFormula as a separate
+  service this application calls over HTTP keeps the GPL at arm's length —
+  GPL is not AGPL, and the service boundary is the settled reading there. That
+  costs a machine instead of a licence.
+- **Neither is worth doing yet.** Nothing in the product lets a customer write
+  their own formula, so an adapter today would be a capability with no caller —
+  the exact dead-end shape this repository has spent the month closing.
+- **The deterministic tools do not need it.** `lib/sonara-formula-library.cjs`
+  computes break-even, food cost, labour and the rest as ordinary arithmetic
+  over the owner's own rows, with no engine and no service behind them.
+
+Record the answer in the HyperFormula entry in `data/open-source-tools.ts` and
+this step closes.
+
 ## Before any of the above: what has to be switched on
 
 `docs/owner/WHAT-MUST-BE-ON.md` lists the ten environment variables a paying
@@ -185,6 +224,13 @@ Core customer pays more. It is not here because item 1 comes first: changing
 prices on a path nobody has walked is changing a number nobody has tested. Once
 you have bought a plan in production, tell me to apply it and I will do the code
 half — the new entitlement keys — while you create the Stripe price objects.
+
+**Installing the rest of the reciprocal repositories.** Asked and answered on
+18 August 2026: eleven are AGPL-3.0 or OSL-3.0 and stay untouched; the rest are
+either whole applications in languages this runtime does not have, or duplicates
+of something already installed under a permissive licence. Figranium is the
+clearest of those — GPL-3.0, doing what the Apache-2.0 Crawl4AI adapter already
+does. `docs/architecture/EXTERNAL-SERVICES.md` has the full working.
 
 **Legal review.** Every legal page states the terms are not legal advice, and a
 test asserts no page ever claims attorney review. Engaging counsel is a business

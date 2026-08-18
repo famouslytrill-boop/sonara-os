@@ -23,7 +23,10 @@ rather than interpreted:
 | 3 | Export four authorization functions into version control | They exist in the live database and in no migration |
 | 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
 
-Nothing else is blocking a launch of what is built.
+Nothing else is blocking a launch of what is built. `OWNER-STEPS.md` carries one
+further item below those four, deliberately unnumbered because it blocks nothing:
+asking HyperFormula's vendor for a price, which is the single open fact left from
+the reciprocal-licence decision of 18 August 2026.
 
 ## Building everything discussed: not a number, and here is why
 

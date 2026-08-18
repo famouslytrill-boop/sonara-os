@@ -191,6 +191,17 @@ for (const file of walk("docs")) {
     [/\b(\d[\d,]{0,4})\s+reviewed\s+repositories\b/gi, repositoryCount, "repositories on the open-source register"],
     [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
     [/\b(\d[\d,]{0,4})\s+carry\s+a\s+reciprocal\s+licence\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
+    // The same figure, written the other way round. docs/architecture/EXTERNAL-SERVICES.md
+    // said "The eight reciprocal repositories are a separate decision" and went
+    // stale from 8 to 17 with nothing watching it, because the pattern above
+    // requires the words "carry a reciprocal licence" and this phrasing has
+    // neither. One number, two sentences, one guard: the second sentence needs
+    // its own pattern or it is unguarded prose.
+    //
+    // It also has to be written as a DIGIT. "eight" is invisible to every
+    // pattern here, so a derived count spelled as a word cannot be checked at
+    // all -- which is worth knowing before writing one.
+    [/\b(\d[\d,]{0,4})\s+reciprocal\s+repositories\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
     [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]

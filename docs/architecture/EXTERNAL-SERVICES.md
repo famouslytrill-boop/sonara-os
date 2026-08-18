@@ -140,13 +140,63 @@ from here, and it needs the service itself to be network-isolated.
 
 ## What this does not solve
 
-Licence. An adapter calls a service over HTTP; it does not copy anyone's code,
-which is why Apache and MIT services need nothing beyond attribution. The eight
-reciprocal repositories are a separate decision and are deliberately untouched.
+Licence, mostly. An adapter calls a service over HTTP; it does not copy anyone's
+code, which is why Apache and MIT services need nothing beyond attribution. The
+17 reciprocal repositories were a separate decision, and it has now been taken
+— see below.
 
 Cost. Every one of these is free because it runs on hardware you already pay
 for. A hosted model API behind the same adapter would be metered, and that
 changes what may depend on it.
+
+---
+
+## The reciprocal decision, and what it settled
+
+Asked on 18 August 2026, decided the same day: **install what can be installed
+without changing SONARA's own licence, and install nothing that would change
+it.** The 17 reciprocal repositories in `data/open-source-tools.ts` were
+enumerated and worked through against that rule. Three things came out of it,
+and two were surprises.
+
+**Most of them are not things you install.** Eleven are whole applications in
+four different language runtimes — C#/.NET, PHP, Rust, Python — and this is
+Express CommonJS on Vercel with no build step. Three are reference material with
+no installable artifact. Exactly one, HyperFormula, is a library this runtime
+could load. So the licence was never the binding constraint for fourteen of the
+seventeen; the runtime was.
+
+**The one browser-automation candidate is a worse-licensed duplicate.**
+Figranium is GPL-3.0 and does what `lib/sonara-crawl4ai-adapter.cjs` already
+does — fetch a page, get readable text back — except Crawl4AI is Apache-2.0,
+already built, already called from `routes/market-intelligence-routes.cjs`, and
+already refuses loopback, link-local, cloud-metadata and private ranges. Adopting
+Figranium would trade a permissive licence for a reciprocal one and gain nothing.
+That is the single clearest result of the exercise and it is a reason not to
+build, which is the kind of result that does not announce itself.
+
+**The AGPL and OSL ones stay untouched, and the reason is not a legal opinion.**
+Eleven of the seventeen are AGPL-3.0 or OSL-3.0. `CLAUDE.md` takes the
+conservative reading — that a reciprocal licence triggers on network use and so
+reaches a hosted product — and nothing here loosens it. Whether an AGPL service
+held at arm's length behind an HTTP boundary is genuinely separable is a
+question for a lawyer and not for this file. The arrangement below is proposed
+only for the plain-GPL ones, where the separation is the settled reading.
+
+### What that leaves
+
+| Repository | Licence | Outcome |
+| --- | --- | --- |
+| HyperFormula | GPL-3.0 **or** commercial | The only real candidate. Two non-reciprocal routes: buy the vendor licence, or run it as a service this application calls. Blocked on a price nobody has asked for — see `docs/owner/OWNER-STEPS.md`. |
+| Flox | GPL-2.0 | Already usable today, and no adapter is possible or needed. Using a GPL tool to build software does not make the software GPL; the obligation follows the code you ship, not the compiler you ran. |
+| Figranium, Figranium MCP | GPL-3.0 | Not adopted. Crawl4AI already covers it under Apache-2.0. |
+| NautilusTrader, Self-Driving Car | LGPL-3.0, GPL-3.0 | No product fit. A trading engine and a video-game driving model. |
+| The other 11 | AGPL-3.0 / OSL-3.0 | Untouched, per the paragraph above. |
+
+**Nothing was installed, and that is the finished state of this decision rather
+than a deferral.** The register records why for each one. If a calculated-field
+surface is ever built, HyperFormula is the first thing to reconsider and the
+price is the question to settle first.
 
 ---
 
