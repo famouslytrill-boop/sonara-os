@@ -2407,6 +2407,35 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Ghost",
+    slug: "ghost-publishing-memberships",
+    category: ["publishing", "memberships", "paid subscriptions", "category sweep 2026-08-18"],
+    useCase: ["the reference for how paid memberships, tiers, gated posts and newsletters fit together for somebody selling their own writing"],
+    productFit: ["Creator Studio", "Growth Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Detected at the root of a large monorepo, so a specific package still needs checking before code is taken from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read it for the membership model first -- tiers, gated posts, what a member sees before and after paying -- which is the part this product does not have and needs no licence resolved to study",
+      "if adopted, it is a service the owner runs and this application reaches through an adapter, under the four rules in docs/architecture/EXTERNAL-SERVICES.md; it is a full application, not a library to import",
+      "any money it handles goes through the same provider path as every other payment here: no card data, no CVV, success only after provider confirmation",
+    ],
+    officialUrl: "https://ghost.org",
+    repoUrl: "https://github.com/TryGhost/Ghost",
+    notes:
+      "54,789 stars, Node.js, MIT, pushed within the last year, and it answers a question an earlier pass of this sweep failed to answer. Searching topic:paywall for a way to help creators put work behind a paywall returned four tools for *defeating* paywalls and nothing that builds one. The thing that builds one was under topic:publishing all along, described as \"publishing, memberships, subscriptions and newsletters\". The search term was the whole of the failure, which is worth remembering next time a category looks empty. It is also the strongest counterexample to this sweep's NOASSERTION observation: Ghost(Pro) is not a side business, it is how the project is funded, and the software is still MIT. Being Node.js puts it in the same language as this application, which is less useful than it sounds -- Ghost is a full application with its own database and admin client, so adopting it means running it, not importing it. The value available without adopting anything is the membership model itself.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "never a dependency: a creator's own records stay readable from this product whether or not any publishing service is reachable",
+      "readiness reports a host, never a URL, and the admin API key gets the same treatment as every other credential here",
+      "member lists are personal data under the same consent and retention rules as customer records",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "Excalidraw",
     slug: "excalidraw-drawing-canvas",
     category: ["drawing", "whiteboard", "diagrams", "category sweep 2026-08-18"],

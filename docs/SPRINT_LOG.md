@@ -2,6 +2,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the empty category was the wrong word
+
+Seventh sweep pass: publishing. `topic:publishing` splits between publishing and
+**package** publishing — lerna, gradle-play-publisher and intuit/auto are all
+about shipping software releases. Fifth ambiguity, milder than the rest because
+the real hits still sit at the top.
+
+**And the top result is what pass three went looking for and reported as absent.**
+Pass three searched `topic:paywall` for a way to help creators put work *behind*
+a paywall and get paid, found four tools for defeating paywalls, and wrote the
+category up as yielding nothing. It was not an empty category. It was the wrong
+word: nobody building membership software tags it "paywall" — the people using
+that tag are the ones removing them. **`TryGhost/Ghost`**, 54,789 stars, Node.js,
+verified **MIT**, describes itself as "publishing, memberships, subscriptions and
+newsletters", and was under `topic:publishing` the whole time.
+
+Carried into the sweep document as a rule, because it will happen again: **when a
+category comes back empty or hostile, suspect the search term before concluding
+the software does not exist.** An empty result is evidence about vocabulary at
+least as often as evidence about the world.
+
+Ghost is also the strongest counterexample yet to the NOASSERTION observation
+from pass five. Ghost(Pro) is not a side business, it is how the project is
+funded, and the software is still MIT. Two clear exceptions out of six data
+points now. The tendency stays as something to search by; both documents say
+plainly it is not something to conclude from.
+
+What is actually available: being Node.js is less useful than it sounds, since
+Ghost is a full application with its own database and admin client — adopting it
+means running it, not importing it. The part that needs no licence resolved and
+no service run is the **membership model** — tiers, gated posts, what a member
+sees before and after paying. That is the piece this product does not have.
+
+Register at **102** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
 ### 2026-08-18 — the rule broke on its first test, which is the useful part
 
 Sixth sweep pass, run licence-first — `license:mit` in the query before any

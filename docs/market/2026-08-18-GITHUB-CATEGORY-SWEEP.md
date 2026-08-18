@@ -324,3 +324,51 @@ whose licences are fully settled and permissive, **all four are blocked by this
 runtime rather than by their terms**. The register's bottleneck has moved.
 Licence was the constraint that stopped things at the start of this sweep; by the
 end of it, architecture is.
+
+
+## Pass seven: publishing — and the answer the paywall search missed
+
+`topic:publishing` splits between publishing and **package** publishing —
+`lerna` (36,050), `gradle-play-publisher` (4,311), `intuit/auto` (2,499) are all
+about shipping software releases. A fifth ambiguity, milder than the others
+because the real hits are still at the top.
+
+And the top result is the one that matters. **`TryGhost/Ghost`** — 54,789 stars,
+Node.js, verified **MIT** — describes itself as *"publishing, memberships,
+subscriptions and newsletters"*.
+
+### That is what pass three went looking for and could not find
+
+Pass three searched `topic:paywall` for a way to help creators put work **behind**
+a paywall and get paid. It returned four tools for *defeating* paywalls and
+nothing that builds one, and the pass was written up as an empty category.
+
+It was not an empty category. It was the wrong word. Nobody building membership
+software tags it "paywall" — the people who tag things "paywall" are the people
+removing them. The capability was under `topic:publishing` the whole time.
+
+**Worth carrying forward: when a category comes back empty or hostile, suspect
+the search term before concluding the software does not exist.** An empty result
+is evidence about the vocabulary at least as often as it is evidence about the
+world.
+
+### And the strongest counterexample yet to the NOASSERTION observation
+
+Ghost(Pro) is not a side business — it is how Ghost is funded — and the software
+is still MIT. Combined with Excalidraw, the "hosted product behind it means a
+protective licence" tendency now has two clear exceptions out of six data points.
+It stays a reasonable thing to search by. It is not something to conclude from,
+and this document should not be read as saying it is.
+
+### What is actually available here
+
+Being Node.js puts Ghost in the same language as this application, which is less
+useful than it sounds: it is a full application with its own database and admin
+client, so adopting it means *running* it, not importing it — an adapter to a
+service the owner runs, under the four rules in
+`docs/architecture/EXTERNAL-SERVICES.md`.
+
+The value available without adopting anything, and without resolving any licence,
+is the **membership model itself**: tiers, gated posts, and what a member sees
+before and after paying. That is the part this product does not have, and it is
+readable for free.
