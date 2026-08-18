@@ -32,13 +32,15 @@ export type OpenSourceToolRecord = {
   // deciding what may be adopted, and it drifted from 10 to 11 with nothing
   // watching it, so the figure needs to be derivable from the register.
   //
-  // Deriving it by searching the licence text does not work. One record's
-  // licence reads "it appeared in neither the permissive filter (MIT,
-  // Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0,
-  // ...)" -- prose that names four reciprocal licences in the course of saying
-  // the repository is in none of them. A substring match counts it and reports
-  // 12, which is the exact defect CLAUDE.md describes: a signal that reports
-  // success without being true.
+  // Deriving it by searching the licence text does not work, and the case that
+  // proved it is worth keeping even though that record has since been rewritten.
+  // twenty's licence field read "it appeared in neither the permissive filter
+  // (MIT, Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0,
+  // GPL-3.0, ...)" -- prose naming four reciprocal licences in the course of
+  // saying the repository is in none of them. A substring match counted it and
+  // reported 12, which is the exact defect CLAUDE.md describes: a signal that
+  // reports success without being true. Any licence field can acquire prose
+  // like that again, which is why the flag is a field rather than a search.
   //
   // Required rather than optional because the failure that matters is somebody
   // adding an AGPL repository and the count silently staying where it was. A
@@ -1167,12 +1169,18 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["hospitality reference", "front-end study"],
     useCase: ["none approved until the licence is confirmed"],
     productFit: [],
-    license: "Not verified. The README describes free personal and educational use, which is not a licence grant, and LICENSE returned 404 at the paths checked.",
-    licenseRisk: "unknown",
+    license:
+      "No licence declared. Settled on 18 August 2026: GitHub's repository object for it carries no license key at all, which is what GitHub returns when it finds no licence file -- not an unread field, an absent one. The README describes free personal and educational use, and that is a description of the author's intent rather than a grant. With no licence, default copyright applies and no permission to copy, modify or distribute is given.",
+    licenseRisk: "critical",
     reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
-    integrationStatus: "needs_license_review",
-    recommendedAction: ["do not adopt until a licence file is confirmed", "TastyIgniter covers the same ground under a verified MIT licence"],
+    integrationStatus: "blocked",
+    recommendedAction: ["do not adopt: there is no licence to adopt under, and this is now established rather than pending", "TastyIgniter covers the same ground under a verified MIT licence"],
+    blockedUses: [
+      "copying any of its code, markup or styling into this product",
+      "shipping a feature derived from it",
+      "treating the README's mention of free personal and educational use as permission",
+    ],
     officialUrl: "https://github.com/Shahzaib-Awann/Foodya-Restaurant",
     repoUrl: "https://github.com/Shahzaib-Awann/Foodya-Restaurant",
     notes:
@@ -2250,7 +2258,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     useCase: ["searching the published Claude Code skill ecosystem for an existing skill"],
     productFit: ["Internal Development"],
     license:
-      "Not verified. The repository was submitted from a social post rather than read, and no licence file has been checked against it. Until somebody opens LICENSE at github.com/vercel-labs/skills, this record states nothing about what it permits.",
+      "MIT. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. The source has not been read; this settles the licence and nothing else.",
     licenseRisk: "unknown",
     reciprocalLicense: false,
     commercialUseStatus: "needs_review",
@@ -2339,7 +2347,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     useCase: ["none approved as a general feature"],
     productFit: ["Creator Studio", "AI Governance"],
     license:
-      "Permissive on the code (MIT or Apache-2.0 per the GitHub API on 18 August 2026) and separately licensed on the model weights, which have not been checked. The licence is not what constrains these.",
+      "MIT on the repository code. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. The model weights are licensed separately and have not been checked. The licence is not what constrains this one -- the status below is a consent question, not a licence question.",
     licenseRisk: "medium",
     reciprocalLicense: false,
     commercialUseStatus: "needs_review",
@@ -2373,7 +2381,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     useCase: ["none approved for incorporation; possible owner-operated deployment"],
     productFit: ["Business Builder"],
     license:
-      "GPL/AGPL family, per the GitHub API licence filter on 18 August 2026. Reciprocal, and this is a hosted product.",
+      "AGPL-3.0. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. Reciprocal, and this is a hosted product, so incorporating it would oblige releasing this product's source under the same terms.",
     licenseRisk: "high",
     reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
@@ -2399,17 +2407,44 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "Cal (calcom/cal.diy, formerly cal.com)",
+    slug: "cal-scheduling-infrastructure",
+    category: ["appointment booking", "scheduling infrastructure", "category sweep 2026-08-18"],
+    useCase: ["reference for availability rules, timezone handling, booking types and reschedule/cancel flows"],
+    productFit: ["Business Builder"],
+    license:
+      "MIT at the repository root, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Read as exactly that and no further: GitHub detects the *root* LICENSE file, and this is a large monorepo. A root licence is not a statement about every directory under it, and projects in this category commonly keep an enterprise directory under separate commercial terms. Anybody taking code from a specific package has to check that package.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "check the licence of the specific directory anything is taken from, not the root, because the root licence is the only thing established here",
+      "read it for availability and timezone rules rather than adopting it -- booking already exists in this product and the hard part is the rules, not the schema",
+      "treat any hosted cal.com service as a separate commercial question from the repository licence",
+    ],
+    officialUrl: "https://cal.diy",
+    repoUrl: "https://github.com/calcom/cal.diy",
+    notes:
+      "Scheduling infrastructure, 47,768 stars and 14,818 forks, pushed within the last year. Recorded here mainly because of how it was found. The earlier pass of this sweep reported that its licence could not be verified: repo:calcom/cal.com returned 422 and the licence API returned 403, and the honest reading at the time was that the session lacked permission. The repository had been renamed. Same repository id 350360184, same 2021 creation date, now calcom/cal.diy -- so the 422 was accurate and the inference drawn from it was not. A 422 saying \"the resource does not exist or you do not have permission\" was read as the second clause when it was the first. That is worth keeping: a refusal that names two causes is not evidence for whichever one you already suspected. Note also that repo: still returns 422 for names containing a dot, which is why this was found through an org: query instead.",
+    safetyBoundaries: [
+      "no code taken from any subdirectory before that subdirectory's own licence is read",
+      "booking data stays organization-scoped under the same rules as every other record in this product",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "wacrm (self-hostable WhatsApp CRM template)",
     slug: "wacrm-supabase-crm-template",
     category: ["CRM", "self-hosted template", "category sweep 2026-08-18"],
     useCase: ["reference for shared inbox, pipeline and broadcast structure on the stack this product already runs"],
     productFit: ["Growth Studio", "Business Builder"],
     license:
-      "Not established. A GitHub search filter placed it in the permissive family (MIT, Apache-2.0 or BSD-3-Clause) on 18 August 2026, and a search filter is not a licence. The LICENSE file has not been opened -- an attempt on 18 August 2026 was refused, because api.github.com/repos/ArnasDon/wacrm/license answers 403 to a session scoped to this repository only. Until somebody reads it, this record states nothing about what the licence permits.",
-    licenseRisk: "unknown",
+      "MIT. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. A first version of this record said only \"permissive family\", which is why the record is worded this way now.",
+    licenseRisk: "low",
     reciprocalLicense: false,
-    commercialUseStatus: "needs_review",
-    integrationStatus: "needs_license_review",
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
       "read the LICENSE file and the source before taking anything, because a template is copied rather than depended on",
       "treat it as a reference for structure -- shared inbox, pipeline stages, broadcast records -- not as something to vendor wholesale",
@@ -2433,7 +2468,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     useCase: ["none approved; licence unknown"],
     productFit: ["Growth Studio"],
     license:
-      "Unknown. On 18 August 2026 it appeared in neither the permissive filter (MIT, Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0, GPL-2.0, LGPL-3.0) against the same query, so its terms are neither of the two families this register usually sorts into. Nobody here has read them.",
+      "Not classifiable by GitHub. Its detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the repository's licence file and could not match it to a known licence. That is why it appeared in neither the permissive nor the reciprocal filter earlier in this sweep: it is in neither family, rather than having been missed by both. Somebody has to read the file itself, and until they do this record states nothing about what it permits.",
     licenseRisk: "unknown",
     reciprocalLicense: false,
     commercialUseStatus: "needs_review",
@@ -2460,7 +2495,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     useCase: ["none approved for incorporation; possible owner-operated deployment"],
     productFit: ["Growth Studio", "Creator Studio"],
     license:
-      "AGPL, declared by the project's own topic list on 18 August 2026. Reciprocal, and this is a hosted product. The licence file has not been opened.",
+      "AGPL-3.0. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. Its own topic list also says agpl, which is what this record first rested on; the detected licence confirms that rather than relying on it. Reciprocal, and this is a hosted product.",
     licenseRisk: "high",
     reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",

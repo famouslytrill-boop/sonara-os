@@ -2,6 +2,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the repository had been renamed, and six licences were guesses
+
+Having just written that a search filter is not a licence, the obvious next
+question was whether anything *could* verify one from here. Something can, and it
+changed six records.
+
+**`search_repositories` with `minimal_output: false` returns GitHub's detected
+licence.** The full repository object carries `license.spdx_id` — what GitHub
+read out of the root `LICENSE` file — as distinct from the licence *filter*,
+which only says which bucket a repository sorted into. Every record resting on a
+family was re-read, and **none of the six was as recorded**: wacrm **MIT**
+(back into the adoption path), vercel-labs/skills **MIT**, GPT-SoVITS **MIT** on
+the code, ury **AGPL-3.0**, brightbean-studio **AGPL-3.0** confirmed rather than
+inferred from its topic list, and twenty **NOASSERTION** — GitHub read its
+licence file and could not match it to any known licence, which is a far better
+answer than "appeared in neither filter" and means the same thing.
+
+**Foodya-Restaurant settled the other way.** Its repository object has **no
+`license` key at all**, which is what GitHub returns when it finds no licence
+file: an established absence, not an unread field. The record moved
+`needs_license_review` → `blocked`. Repositories declaring no licence went 5 →
+6, and `verify-doc-counts` — added hours earlier — caught the stale figure in
+`docs/owner/WHAT-IS-LEFT.md` before it could ship. That is the check earning its
+place on its first live change.
+
+**Cal.com was not refused. It was renamed.** Yesterday's note recorded that
+`repo:calcom/cal.com` returned 422 and concluded the session lacked permission.
+The repository is now **`calcom/cal.diy`** — same repository id `350360184`, same
+2021 creation date, 47,768 stars. The 422 was accurate; the inference was not.
+GitHub's message says *"the resource does not exist **or** you do not have
+permission"*, and it was read as the second clause because that was the clause
+already suspected. **A refusal that names two causes is not evidence for
+whichever one you came in believing.** It is now record 95, at
+`needs_license_review` despite a clean MIT at the root — because GitHub detects
+the *root* licence and this is a monorepo, and projects in this category
+routinely keep an enterprise directory under separate commercial terms. The root
+is established; the packages are not, and taking code from one means reading that
+one.
+
+Method note for whoever sweeps next: `repo:` returns 422 for any repository name
+containing a dot. Use `org:` plus a filter for those.
+
+Register at **95** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
 ### 2026-08-18 — a bucket is not a grant, and half an adoption path
 
 Three CRM and social-scheduling repositories went onto the register from a

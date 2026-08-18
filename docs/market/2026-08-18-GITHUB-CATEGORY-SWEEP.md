@@ -72,6 +72,27 @@ Also: `OR` does not apply to qualifiers. `topic:a OR topic:b` is a 422, and mult
 
 **Cal.com is the obvious candidate and its licence was not verified.** `repo:` search is refused for repositories outside this session's scope, and the GitHub API returns 403 to unauthenticated fetches from here. Its licence is **not recorded** rather than recalled — this document does not carry a figure nobody checked.
 
+> **Corrected later the same day.** The paragraph above is right that nothing was verified and wrong about why. The repository had been **renamed**: `calcom/cal.com` is now [`calcom/cal.diy`](https://github.com/calcom/cal.diy), same repository id `350360184`, same 2021 creation date, 47,768 stars. So the 422 was accurate and the inference drawn from it was not. GitHub's 422 says *"the resource does not exist **or** you do not have permission"*, and it was read as the second clause because that was the one already suspected. A refusal naming two causes is not evidence for whichever one you came in believing.
+>
+> Two method notes came out of it. `repo:` still returns 422 for any repository name containing a dot, so `org:` plus a filter is the way to reach those. And the licence question is now answerable in general: `search_repositories` with `minimal_output: false` returns the full repository object, including GitHub's **detected** `license.spdx_id`. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into.
+
+### Licences settled by the detected-licence method, 18 August 2026
+
+Every record in this register that rested on a licence *family* rather than a licence was re-read this way. None of the six was as recorded.
+
+| Repository | Was recorded as | Is |
+| --- | --- | --- |
+| `ArnasDon/wacrm` | "permissive family" | **MIT** |
+| `twentyhq/twenty` | "in neither filter, unknown" | **NOASSERTION** — GitHub read its licence file and could not match it to any known licence |
+| `vercel-labs/skills` | "not verified, submitted from a social post" | **MIT** |
+| `RVC-Boss/GPT-SoVITS` | "MIT or Apache-2.0" | **MIT** on the code; weights separate and still unchecked |
+| `ury-erp/ury` | "GPL/AGPL family" | **AGPL-3.0** |
+| `brightbeanxyz/brightbean-studio` | "AGPL per its own topic list" | **AGPL-3.0**, confirmed rather than assumed |
+
+And one absence settled the other way: `Shahzaib-Awann/Foodya-Restaurant` returns **no `license` key at all**, which is what GitHub returns when it finds no licence file. That is an established absence rather than an unread field, so the record moved from `needs_license_review` to `blocked`. Repositories declaring no licence went 5 → 6, which `verify-doc-counts` caught in `docs/owner/WHAT-IS-LEFT.md` before it could be published wrong.
+
+One caveat the method does not remove: GitHub detects the **root** `LICENSE` file. For a monorepo — Cal is one — a root licence says nothing about a subdirectory kept under separate commercial terms, which is a common arrangement in this category. The root is established; the packages are not.
+
 ## Finding 4 — CRM is the healthiest category swept so far
 
 Of **37** CRM projects above 1,000 stars pushed in the last year:
