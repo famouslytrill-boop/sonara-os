@@ -25,4 +25,16 @@ jobs:
         with:
           node-version: "22"
       - name: Validate registry policy and remote repository health
+        # Authenticated, because unauthenticated is 60 requests an hour shared
+        # across every runner on the same address, and this check reads 115
+        # targets. It failed on 18 August 2026 with "rate limit reached" and
+        # "confirmed none of 115 registered targets" -- the checker refusing to
+        # report success on a run that established nothing, which is correct.
+        #
+        # scripts/verify-open-source-registry.mjs has read GITHUB_TOKEN since it
+        # was written, and its own failure message says to check the token. The
+        # workflow never passed one. `permissions: contents: read` above is
+        # enough for the public repository metadata this reads.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/verify-open-source-registry.mjs --network

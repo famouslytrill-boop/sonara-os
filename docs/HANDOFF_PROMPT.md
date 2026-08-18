@@ -122,6 +122,38 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a network check that could never have passed
+
+`verify-external-repositories` failed on the branch head, and the log said what
+happened without ambiguity:
+
+> WARNING: GitHub API rate limit reached; remaining remote checks are indeterminate.
+> ERROR: Network verification confirmed **none of 115** registered targets, so this run established nothing about whether they exist.
+
+**The checker was right and behaved correctly.** It reached the rate limit before
+confirming a single repository, and refused to report success on a run that
+established nothing. That is the same discipline as every list-based check here:
+a check satisfied by an empty result is worse than a check that fails.
+
+**The workflow ran unauthenticated.** No token, which means 60 GitHub API
+requests an hour shared across every runner on the same address, against **115
+targets**. It could not have passed reliably at any point, and the register
+growing from ninety-odd records to 111 this week turned "unlikely" into
+"certain".
+
+`scripts/verify-open-source-registry.mjs` has read `GITHUB_TOKEN` since it was
+written — its own failure message ends "check GitHub availability and **the
+token**". The workflow simply never passed one. One `env:` block does it, and
+the existing `permissions: contents: read` is enough for the public repository
+metadata it reads.
+
+Worth stating plainly because the shape recurs: this was not a flaky check and
+not a bad record. It was a check whose *preconditions were never met*, failing
+honestly for months' worth of scheduled runs and only becoming visible when the
+population grew past the free allowance. Nothing about the registry was wrong.
+
+`verify:launch` green, 1954 tests passing.
+
 ### 2026-08-18 — offline touchpoints, refused twice and now built
 
 The refusal note in `lib/sonara-growth-create-specs.cjs` named its own
