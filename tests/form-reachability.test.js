@@ -84,15 +84,35 @@ const NO_FORM_NEEDED = {
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
   "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
   "/api/sensory/haptic-patterns": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
-  // Examined, unlike the four below it. This one creates nothing at all -- it
-  // fetches the text of a page so it does not have to be pasted, and returns
-  // it. The create-shaped scan matches it on the POST, which is the right
-  // default and the wrong answer here.
-  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read, and the signal form is still the only way anything is written.",
-  "/api/market-intelligence/competitors": "NOT YET EXAMINED: research record, no form found.",
-  "/api/market-intelligence/opportunities": "NOT YET EXAMINED: research record, no form found.",
-  "/api/market-intelligence/segments": "NOT YET EXAMINED: research record, no form found.",
-  "/api/market-intelligence/signals": "NOT YET EXAMINED: research record, no form found.",
+  // Examined. This one creates nothing at all -- it fetches the text of a page
+  // so it does not have to be pasted, and returns it. The create-shaped scan
+  // matches it on the POST, which is the right default and the wrong answer
+  // here.
+  //
+  // Its reason used to end "and the signal form is still the only way anything
+  // is written". There is no signal form. Nothing in this repository posts to
+  // any market-intelligence endpoint from a page -- grep finds no form action,
+  // no create spec, nothing. The clause described a form that was never built,
+  // which is the same defect as a page describing a capability it does not have,
+  // sitting in the reason a check was excused.
+  "/api/market-intelligence/fetch-source": "Creates no record. It returns page text for a person to read; nothing is written by it.",
+  // The four below are examined now, and they share one answer.
+  //
+  // All four accept POSTs and no page offers a form for any of them. That is
+  // deliberate rather than missing: /*/market-intelligence is guidance plus a
+  // count of what the organization has recorded, and these are research records
+  // whose fields are structured enough that a free-text form would produce
+  // exactly the invented market data the page exists to refuse.
+  //
+  // What was genuinely wrong is now fixed and is worth stating here, because it
+  // is why these were worth examining at all: the page claimed "the workspace
+  // starts empty until organization-scoped evidence is recorded" while reading
+  // nothing, so a record written through any of these four was invisible from
+  // the moment it was created. The page counts them now.
+  "/api/market-intelligence/competitors": "API-only research record. No form by design: the page counts what is recorded rather than offering free text, which is how invented market data gets in.",
+  "/api/market-intelligence/opportunities": "API-only research record, scored and reviewed through their own endpoints rather than typed. The page counts what is recorded.",
+  "/api/market-intelligence/segments": "API-only research record. No form by design; the page counts what is recorded.",
+  "/api/market-intelligence/signals": "API-only research record. No form by design; the page counts what is recorded.",
   "/api/prompt-library/collections": "NOT YET EXAMINED: prompt library record, no form found.",
   "/api/prompt-library/connections": "NOT YET EXAMINED: prompt library record, no form found.",
   "/api/prompt-library/runs": "NOT YET EXAMINED: prompt library record, no form found.",

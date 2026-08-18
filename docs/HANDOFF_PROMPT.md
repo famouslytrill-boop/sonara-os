@@ -122,6 +122,50 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a page that never showed what it told you it would show
+
+Working the "NOT YET EXAMINED" queue in `tests/form-reachability.test.js`. The
+four market-intelligence entries examined together, and the examination found
+something bigger than the entries.
+
+**`/*/market-intelligence` said "The workspace starts empty until
+organization-scoped evidence is recorded."** That tells a customer that recording
+evidence changes what they see. The handler was **synchronous**, read nothing,
+and rendered the same static framework cards whether the organization had one
+competitor recorded or four hundred. Four endpoints accept POSTs — segments,
+competitors, signals, opportunities — no page displayed any of them, and no form
+anywhere posts to them, so a record written through the API was invisible from
+the moment it was created.
+
+The page counts the organization's own evidence now, and a record type that could
+not be read is **named** rather than folded into a zero.
+
+**One exemption reason described a form that does not exist.**
+`/api/market-intelligence/fetch-source` was excused with "…and the signal form is
+still the only way anything is written". There is no signal form: no form action,
+no create spec, nothing posts to any market-intelligence endpoint from a page.
+The same defect as a page describing a capability it does not have, sitting in
+the reason a check was excused.
+
+**Then the crawl let the new page lie, and that was the real find.** Injecting
+`0` in place of "could not be read" left the whole suite green. `CLAIMS_EMPTY`
+looks for *words* — "no", "nothing", "yet" — and **"Competitors: 0" contains
+none of them.** Any page rendering counts could tell somebody they have none of
+something during a total outage and this crawl would pass it.
+
+`CLAIMS_ZERO` closes that. No page renders a bare "Label: 0" today, so it is an
+addition with nothing to clean up behind it, and it is deliberately narrow — a
+pattern that fired on money would be switched off within a week.
+
+**And the first version of `CLAIMS_ZERO` matched nothing at all.** Its lookahead
+`0(?![.\d])` rejected "Competitors: 0." because the sentence-ending full stop
+looked like a decimal point. It passed, while measuring zero pages — this file's
+own defect, inside this file's own check — and the only thing that found it was
+injecting the bug again and watching it stay green. **A check that has not been
+run against bad input is not a check, however carefully it was written.**
+
+`verify:launch` green, 1932 tests passing.
+
 ### 2026-08-18 — the same defect, found by generalising the last one
 
 The accounting export was one instance of a shape: a row written with a status

@@ -70,6 +70,29 @@ function stubFetch(asAdmin = false) {
   };
 }
 
+// A count of zero is an empty-state claim, and the word pattern below cannot
+// see one. "Competitors: 0" contains no "no", no "nothing", no "yet" -- so a
+// page rendering counts could tell somebody they have none of something while
+// every read was failing, and this crawl would pass it.
+//
+// Found by injecting exactly that: a counting page written during this session
+// reported `0` instead of "could not be read" and the whole suite stayed green.
+// No page renders a bare "Label: 0" today, so this is an addition with nothing
+// to clean up behind it.
+//
+// Deliberately narrow. It wants a label, a colon and a bare zero -- not "0.00",
+// not "10", not a zero inside a date or a price -- because a pattern that fires
+// on money would be turned off within a week.
+// `0(?![.\d])` was the first version and it matched nothing at all, because
+// "Competitors: 0." ends a sentence and the lookahead rejected the full stop as
+// though it were a decimal point. It passed, and it was measuring zero pages --
+// the exact defect this file exists to catch, in the check itself, caught only
+// by injecting the bug and watching it stay green.
+//
+// The zero must not be followed by a digit, nor by a decimal point *and* a
+// digit. A full stop with a space after it is the end of a sentence.
+const CLAIMS_ZERO = /\b[A-Za-z][A-Za-z ]{2,30}:\s*0(?!\d)(?!\.\d)/;
+const CLAIMS_ZERO_ALL = new RegExp(CLAIMS_ZERO.source, "g");
 // A sentence claiming the customer has none of something.
 const CLAIMS_EMPTY = /(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i;
 const CLAIMS_EMPTY_ALL = new RegExp(CLAIMS_EMPTY.source, "gi");
@@ -227,6 +250,11 @@ const leaks = [];
       // one, so a page whose opening safety statement is excused could carry a
       // real claim further down and never be looked at -- a check that goes
       // blind exactly where a page has the most to say.
+      for (const match of visible.matchAll(CLAIMS_ZERO_ALL)) {
+        const phrase = String(match[0]).trim();
+        if (excused(phrase)) continue;
+        findings.push(`${route} counts "${phrase}" as ${label} while every read is failing`);
+      }
       for (const match of visible.matchAll(CLAIMS_EMPTY_ALL)) {
         const context = visible.slice(Math.max(0, match.index - 60), match.index + 140);
         if (!excused(context)) findings.push(`${route} says "${match[0].trim()}" as ${label}, in: ${context.trim().slice(0, 120)}`);
@@ -372,6 +400,15 @@ const leaks = [];
   it("would recognise the claim it is looking for", () => {
     for (const sentence of ["No activity yet.", "You have not added anybody yet.", "Nothing here yet.", "No consent records yet"]) {
       assert.match(sentence, CLAIMS_EMPTY, `the pattern no longer recognises "${sentence}"`);
+    }
+    // And the numeric form, which the sentence pattern above cannot see.
+    // The sentence-ending form is the one the first version missed.
+    for (const counted of ["Competitors: 0", "Market signals: 0.", "Customer segments:  0. Competitors: 0."]) {
+      assert.match(counted, CLAIMS_ZERO, `the zero pattern no longer recognises "${counted}"`);
+    }
+    // Things it must not fire on, or it gets switched off rather than fixed.
+    for (const fine of ["Total: 0.00", "Balance: 10", "Owed: 0.5", "Due: 2026-08-18", "Rate: 04"]) {
+      assert.doesNotMatch(fine, CLAIMS_ZERO, `the zero pattern wrongly flags "${fine}"`);
     }
     assert.ok(excused("No guarantee of revenue"), "the excuse list is not being consulted");
   });

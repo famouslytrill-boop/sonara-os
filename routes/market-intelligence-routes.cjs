@@ -351,14 +351,44 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, review: created.rows[0], code: created.code });
   });
 
-  registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui);
-  registerWorkspacePage(app, "/business-builder/market-intelligence", requireWorkspaceAccess("business_builder"), "Business Builder", "business_builder", ui);
-  registerWorkspacePage(app, "/creator-studio/market-intelligence", requireWorkspaceAccess("creator_studio"), "Creator Studio", "creator_studio", ui);
-  registerWorkspacePage(app, "/growth-studio/market-intelligence", requireWorkspaceAccess("growth_studio"), "Growth Studio", "growth_studio", ui);
+  registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui, deps);
+  registerWorkspacePage(app, "/business-builder/market-intelligence", requireWorkspaceAccess("business_builder"), "Business Builder", "business_builder", ui, deps);
+  registerWorkspacePage(app, "/creator-studio/market-intelligence", requireWorkspaceAccess("creator_studio"), "Creator Studio", "creator_studio", ui, deps);
+  registerWorkspacePage(app, "/growth-studio/market-intelligence", requireWorkspaceAccess("growth_studio"), "Growth Studio", "growth_studio", ui, deps);
 };
 
-function registerWorkspacePage(app, path, access, label, studioKey, ui) {
-  app.get(path, access, (req, res) => {
+// What the customer has actually recorded, alongside the guidance.
+//
+// This page said "The workspace starts empty until organization-scoped evidence
+// is recorded", which tells somebody that recording evidence changes what they
+// see. It did not: the handler was synchronous, read nothing, and rendered the
+// same static framework cards whether the organization had one competitor
+// recorded or four hundred. Four endpoints accept POSTs -- segments,
+// competitors, signals, opportunities -- and no page displayed any of them, so a
+// record written through the API was invisible from that moment on.
+//
+// Counts rather than rows: this is a summary page beside guidance, and the API
+// already lists the rows themselves. What matters is that the number is real.
+const RECORDED_EVIDENCE = Object.freeze([
+  ["segments", "Customer segments"],
+  ["competitors", "Competitors"],
+  ["signals", "Market signals"],
+  ["opportunities", "Opportunities"]
+]);
+
+async function recordedEvidence(config, organizationId) {
+  return Promise.all(RECORDED_EVIDENCE.map(async ([key, label]) => {
+    const table = TABLES[key];
+    const listed = await rest(config, table, `select=id&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1000`).catch(() => undefined);
+    // `listed.ok ? rows.length : 0` would report a failed read as "none
+    // recorded", on a page whose whole subject is not turning estimates into
+    // facts. null travels instead, and the card says which it is.
+    return { label, count: listed?.ok && Array.isArray(listed.rows) ? listed.rows.length : null };
+  }));
+}
+
+function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {}) {
+  app.get(path, access, async (req, res) => {
     const framework = getMarketIntelligenceFramework();
     const market = studioKey ? framework.markets[studioKey] : null;
     const sections = market
@@ -372,8 +402,38 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui) {
           ui.card("Portfolio thesis", framework.portfolioThesis.join(" ")),
           ui.card("Pricing position", framework.pricingPosition.conclusion),
           ui.card("Evidence-led decisions", "Score demand, willingness to pay, strategic fit, underserved need, differentiation, channel access, delivery complexity, and compliance risk before work advances."),
-          ui.card("No invented market data", "The workspace starts empty until organization-scoped evidence is recorded. Static research guidance is labeled by source and date.")
+          ui.card("No invented market data", "Everything below the guidance is your own recorded evidence, and nothing else. Static research guidance is labeled by source and date.")
         ];
+
+    // The customer's own evidence, appended to whichever set of guidance cards
+    // was chosen above.
+    const config = getConfig(deps);
+    const context = await resolveContext(req, deps).catch(() => ({ ok: false }));
+    if (!config.ok || !context.ok) {
+      sections.push(ui.card(
+        "Your recorded evidence",
+        "We could not read your workspace just now, so this does not say how much evidence you have recorded. Nothing has changed."
+      ));
+    } else {
+      const counted = await recordedEvidence(config, context.organizationId);
+      const unreadable = counted.filter((entry) => entry.count === null).map((entry) => entry.label);
+      const readable = counted.filter((entry) => entry.count !== null);
+      sections.push(ui.card(
+        "Your recorded evidence",
+        readable.length
+          ? readable.map((entry) => `${entry.label}: ${entry.count}`).join(". ") + "."
+          : "Nothing could be read just now."
+      ));
+      // Named rather than folded into a zero. A record type that could not be
+      // read is not a record type with nothing in it.
+      if (unreadable.length) {
+        sections.push(ui.card(
+          "Not counted just now",
+          `${unreadable.join(", ")} could not be read, so they are left out of the figures above rather than counted as none.`
+        ));
+      }
+    }
+
     return res.status(200).type("html").send(ui.layout({
       title: `${label} Market Intelligence`,
       eyebrow: "Evidence-led market strategy",
