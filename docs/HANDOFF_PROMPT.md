@@ -122,6 +122,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the unexamined queue is empty
+
+`tests/form-reachability.test.js` carried **thirteen** entries reading "NOT YET
+EXAMINED". There are none left. Each now states what was checked and what was
+found, and the answers divide into two kinds that matter more than the entries do.
+
+**Listed somewhere, creatable nowhere.** A page displays the records and no form
+makes one, so a customer sees an empty list with no way to fill it.
+
+- `creator_reference_analyses` is rendered at
+  `/creator-studio/generation/reference-analysis`, and the generation form's
+  capability picker does not offer `reference_analysis` at all — the validator
+  even special-cases it. Only a direct POST creates one.
+- `haptic_patterns` is rendered on `/creator-studio/device-cues` as an `also`
+  block, and **no `also` block in the whole file carries a create form**; that
+  page's one form makes sound cues.
+
+The second one was telling a customer something false. Its empty state read
+*"You have not defined any vibration patterns yet"* — which says they simply had
+not got round to it, when there is no way for them to do it at all. It now says
+so, and states the `AGENTS.md` position while it is there: vibration stays off
+until one exists. **A page inviting an action it does not offer is the same
+defect as a page claiming a capability it does not have.**
+
+**Displayed nowhere at all.** `waste_logs`, `location_zones` and
+`sensory_feedback_profiles` appear only in the generic RESOURCE_MAP — a GET that
+lists and a POST that inserts, with no page anywhere. A record written through
+them is invisible from the moment it is created, which is exactly the shape that
+made the market-intelligence page worth fixing. A form would make that worse
+rather than better, and the entries say so.
+
+**The four prompt-library endpoints are reachable only by API**, and the reason
+is now stated rather than left as an absence. The library's single form —
+"Fill the template" — posts to `/prompt-library/:slug/render`, produces a preview
+to read, and saves nothing. What those pages render is curated content in
+`data/prompts-chat-reference.cjs`, so a customer-authored row saved beside it
+would be indistinguishable from the curated set on the page that lists them.
+That is the same objection already recorded for growth touchpoints, and it wants
+the same answer first: **a column marking a row as customer-authored.**
+
+Two of the thirteen turned into fixes; the rest turned into reasons somebody can
+disagree with. Both are better than "not yet examined", which is a note that
+survives indefinitely because nothing about it ever fails.
+
+`verify:launch` green, 1932 tests passing.
+
 ### 2026-08-18 — a page that never showed what it told you it would show
 
 Working the "NOT YET EXAMINED" queue in `tests/form-reachability.test.js`. The

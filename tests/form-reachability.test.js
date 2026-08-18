@@ -72,18 +72,36 @@ const NO_FORM_NEEDED = {
   "/api/growth/touchpoints": "Records that something happened, with no field marking a row as hand-entered. A form would put fabricated evidence beside tracked evidence with nothing to tell them apart.",
   "/api/formulas/results": "Written when a formula is evaluated, not composed by hand.",
 
-  // Endpoints with no page to put a form on. These are the actual work queue.
-  "/api/creator/reference-analyses": "NOT YET EXAMINED: Creator Studio endpoint with no form found.",
-  "/api/business/waste": "NOT YET EXAMINED: Business Builder resource with no owner page entry.",
-  "/api/location/zones": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
+  // Examined, all of them. They divide into two kinds, and the distinction
+  // matters more than the individual entries.
+  //
+  // **Listed somewhere, creatable nowhere** -- a page displays them and no form
+  // makes one, so a customer sees an empty list with no way to fill it. That is
+  // a dead end rather than a design.
+  //
+  // **Displayed nowhere at all** -- only the generic GET and POST in
+  // routes/sonara-last9-routes.cjs exist, so a record written through them is
+  // invisible from the moment it is created. That is the shape that made the
+  // market-intelligence page worth fixing.
+  // Listed at /creator-studio/generation/reference-analysis. The generation
+  // form's capability picker does not offer reference_analysis, and the
+  // validator special-cases it (`capability !== "reference_analysis"`), so only
+  // a direct POST makes one.
+  "/api/creator/reference-analyses": "Listed at /creator-studio/generation/reference-analysis and creatable only by direct POST; the generation form's capability picker does not offer reference_analysis. A form belongs on that page.",
+  "/api/business/waste": "No page displays waste_logs; only the generic list and insert exist. A form without a page to read the result on would be worse, not better.",
+  "/api/location/zones": "No page displays location_zones; only the generic list and insert exist.",
   // Examined. integration_jobs is inserted here and read by nothing: no runner,
   // no page, no status transition anywhere in the repository. A form would let
   // somebody queue work that will never run, which is worse than no form. Its
   // default status is manual_required rather than queued for the same reason --
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
-  "/api/sensory/profiles": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
-  "/api/sensory/haptic-patterns": "NOT YET EXAMINED: resource in RESOURCE_MAP with no page.",
+  "/api/sensory/profiles": "No page displays sensory_feedback_profiles; only the generic list and insert exist.",
+  // Listed on /creator-studio/device-cues as an `also` block, and no `also`
+  // block in lib/sonara-owner-record-pages.cjs carries a create form -- that
+  // page's one form makes sound cues. Its empty text said "You have not defined
+  // any vibration patterns yet", inviting an action the page does not offer.
+  "/api/sensory/haptic-patterns": "Listed on /creator-studio/device-cues as an `also` block, which carries no create form. Only a direct POST makes one, and the empty text now says so rather than implying the customer simply has not.",
   // Examined. This one creates nothing at all -- it fetches the text of a page
   // so it does not have to be pasted, and returns it. The create-shaped scan
   // matches it on the POST, which is the right default and the wrong answer
@@ -113,10 +131,21 @@ const NO_FORM_NEEDED = {
   "/api/market-intelligence/opportunities": "API-only research record, scored and reviewed through their own endpoints rather than typed. The page counts what is recorded.",
   "/api/market-intelligence/segments": "API-only research record. No form by design; the page counts what is recorded.",
   "/api/market-intelligence/signals": "API-only research record. No form by design; the page counts what is recorded.",
-  "/api/prompt-library/collections": "NOT YET EXAMINED: prompt library record, no form found.",
-  "/api/prompt-library/connections": "NOT YET EXAMINED: prompt library record, no form found.",
-  "/api/prompt-library/runs": "NOT YET EXAMINED: prompt library record, no form found.",
-  "/api/prompt-library/templates": "NOT YET EXAMINED: prompt library record, no form found."
+  // Examined together. The prompt library has pages -- /prompt-library and
+  // /prompt-library/:slug -- carrying exactly one form: "Fill the template",
+  // which posts to /prompt-library/:slug/render, produces a preview to read,
+  // and saves nothing. So none of these four is reachable from a page.
+  //
+  // Left without forms for a stated reason rather than as a gap: what these
+  // pages render is curated content in data/prompts-chat-reference.cjs, and a
+  // customer-authored row saved beside it would be indistinguishable from the
+  // curated set on the page that lists them. That is the same objection
+  // recorded for growth touchpoints above, and it wants the same answer first:
+  // a column marking a row as customer-authored.
+  "/api/prompt-library/collections": "Reachable only by API. The library's one form renders a preview and saves nothing, and a customer-authored row would be indistinguishable from the curated reference set beside it.",
+  "/api/prompt-library/connections": "Reachable only by API, for the same reason as collections above.",
+  "/api/prompt-library/runs": "Reachable only by API. A run records that a template was used; the form that would create one renders a preview instead.",
+  "/api/prompt-library/templates": "Reachable only by API. Saving a customer's own template needs a column separating it from the curated reference set first."
 };
 
 describe("form reachability", () => {
