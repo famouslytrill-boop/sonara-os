@@ -73,6 +73,10 @@ const ORGANIZATION_READ_TABLES = [
   "billing_entitlements",
   "billing_subscriptions",
   "business_memberships",
+  // Added when /business-builder/owner/accounting-exports/:id/download began
+  // reading the export row to build the file. Ordinary workspace data: which
+  // period a business asked for, and whether it worked.
+  "accounting_exports",
   "business_service_catalog",
   // Added when /business-builder/owner/bookings/:id/calendar began reading it
   // to build an .ics file. Ordinary workspace data -- a business's own

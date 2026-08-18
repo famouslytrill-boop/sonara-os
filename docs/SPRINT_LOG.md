@@ -2,6 +2,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a status nothing could advance, and a cell that runs as code
+
+Checking the product before searching again, this time across every record type:
+**the application emitted no CSV at all.** 141 HTML responses, 10 plain text, one
+XML. Nothing else.
+
+That matters because `/business-builder/owner/accounting-exports` said *"Batches
+of your records prepared for an accountant or accounting software, and whether
+each one finished."* `accounting_exports` carries `export_type`, a period, a
+`status` and a `file_url`. **Nothing wrote `file_url`. Nothing moved `status`
+past `queued`.** The only code touching the table is the endpoint that inserts
+the request. So a customer asked for an export, saw "Queued" under a column
+promising to say whether it finished, and the answer could never change.
+
+**The file is built when it is asked for**, not queued and stored. There is no
+worker here, and a status only a worker could advance is how the promise came to
+be written.
+
+Three export types are served — bills, sales, inventory — and
+`payroll_summary` and `journal_entries` are **refused by name**. Both need
+accounting judgement this code has not been given: what belongs in a journal
+line, how gross pay reconciles to cost. Guessing would put wrong figures in front
+of an accountant, which is worse than putting none, and "not supported" tells
+somebody nothing about whether to wait.
+
+**A cell is not a formula, and that is a security property.** A value beginning
+`=`, `+`, `-`, `@`, tab or carriage return is executed by Excel, Sheets and
+LibreOffice on open — so a note a customer typed becomes code running on their
+accountant's machine. `lib/sonara-record-csv.cjs` prefixes such a value with an
+apostrophe, which **changes it**, so the count is returned and the route sends it
+in a header rather than rewriting somebody's records silently.
+
+**And the first version of that broke the export it was protecting.** `-` is a
+formula-start character, so every negative amount came out as `'-12.50` — text,
+in a file whose whole purpose is for an accountant to sum it. A plain number is
+exempt now, by an exact pattern rather than a permissive one: `-1+cmd|'/c calc'!A1`
+still fails it. The test caught this by asserting the behaviour and my reading
+what that meant, not by going red.
+
+Three more things the checks caught, each a real ambiguity rather than a nuisance:
+`accounting_exports` had no member read policy (added, 51 now); the page copy I
+wrote to replace the old promise said *"nothing sits here waiting to be
+processed"*, which the outage crawl read as a claim that the customer has no
+exports — ambiguous rather than wrong, and reworded rather than exempted; and the
+"Status" column, which on seven other pages tracks something that moves, is
+labelled **"Asked for"** here because nothing advances it.
+
+`verify:launch` green, **1932** tests passing.
+
 ### 2026-08-18 — the diary, and a crawl that judged a file as if it were a page
 
 The per-booking calendar download shipped as half a feature. A business wants

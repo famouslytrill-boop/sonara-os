@@ -11,6 +11,7 @@ const {
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
+const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
@@ -171,6 +172,80 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // A calendar file is a snapshot of a row that can change.
     res.setHeader("Cache-Control", "no-store");
     return res.send(invite.body);
+  });
+
+  // An accounting export as a file, because until now it was only ever a row.
+  //
+  // accounting_exports carries export_type, a period, a status and a file_url.
+  // Nothing wrote file_url, nothing moved status past "queued", and there was no
+  // CSV anywhere in this repository -- so /business-builder/owner/accounting-exports
+  // listed "Queued" under a column headed "whether each one finished", and the
+  // answer could never change. A page reporting the state of a job nothing runs.
+  //
+  // The file is built when it is asked for rather than queued and stored. There
+  // is no worker here, and a status that only a worker could advance is how the
+  // lie got written in the first place.
+  //
+  // Only the three types whose meaning is unambiguous are served. payroll_summary
+  // and journal_entries are refused by name: both require accounting judgement
+  // this code has not been given -- what belongs in a journal line, and how gross
+  // pay reconciles to cost -- and inventing them would put wrong figures in front
+  // of an accountant, which is worse than putting none.
+  const EXPORT_SOURCES = Object.freeze({
+    bills: { table: "vendor_invoices", dateColumn: "created_at", columns: ["id", "created_at", "vendor_name", "invoice_number", "invoice_date", "due_date", "amount", "currency", "status", "notes"] },
+    sales: { table: "pos_sales_summaries", dateColumn: "created_at", columns: ["id", "created_at", "business_date", "gross_sales", "net_sales", "tax_total", "discount_total", "transaction_count", "currency"] },
+    inventory: { table: "inventory_items", dateColumn: "created_at", columns: ["id", "created_at", "item_name", "sku", "unit", "quantity_on_hand", "unit_cost", "reorder_point", "location_id"] }
+  });
+
+  app.get("/business-builder/owner/accounting-exports/:recordId/download", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That export reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this export cannot be built.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "accounting_exports",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return res.status(503).type("text").send("We could not read that export just now. Nothing has changed; try again shortly.");
+    const record = found.rows[0];
+    if (!record) return res.status(404).type("text").send("That export is not in your business, or it has been removed.");
+
+    const source = EXPORT_SOURCES[String(record.export_type || "")];
+    if (!source) {
+      // Named, not generic. "Not supported" tells somebody nothing about
+      // whether to wait for it.
+      return res.status(422).type("text").send(
+        `A file for "${String(record.export_type || "unknown")}" exports is not built. Payroll summaries and journal entries need accounting decisions this system has not been given, and producing them from guesses would put wrong figures in front of your accountant. Bills, sales and inventory exports do download.`
+      );
+    }
+
+    // The period bounds the rows. A missing bound means that side is open, which
+    // is a real request and not an error.
+    const filters = [`organization_id=eq.${encodeURIComponent(org.organizationId)}`];
+    if (record.period_start) filters.push(`${source.dateColumn}=gte.${encodeURIComponent(record.period_start)}`);
+    if (record.period_end) filters.push(`${source.dateColumn}=lte.${encodeURIComponent(`${record.period_end}T23:59:59.999Z`)}`);
+    const rows = await supabaseList(config, source.table, `?select=*&${filters.join("&")}&order=${source.dateColumn}.asc&limit=10000`);
+    // `rows.ok ? rows.rows : []` here would hand an accountant an empty file for
+    // a period that has records in it.
+    if (!rows.ok) return res.status(503).type("text").send("We could not read the records for that period. Nothing has changed, and no file was made; try again shortly.");
+
+    const csv = buildRecordCsv(rows.rows, source.columns);
+    if (!csv.ok) return res.status(503).type("text").send(csv.message);
+
+    const period = `${record.period_start || "start"}-to-${record.period_end || "now"}`.replace(/[^a-zA-Z0-9-]/g, "");
+    res.setHeader("Content-Type", csv.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${String(record.export_type)}-${period}.csv"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Sonara-Export-Rows", String(csv.rowCount));
+    // Said out loud. A value that would otherwise be executed as a formula by a
+    // spreadsheet is prefixed with an apostrophe, and that changes it, so the
+    // customer is told how many rather than left to find out.
+    if (csv.neutralised) res.setHeader("X-Sonara-Export-Values-Altered", String(csv.neutralised));
+    return res.send(csv.body);
   });
 
   // The diary, not one appointment.
