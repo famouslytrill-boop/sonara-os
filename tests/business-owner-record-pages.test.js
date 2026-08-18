@@ -231,11 +231,74 @@ describe("Creator Studio record pages show real records", () => {
     assert.match(result.text, /Vibration patterns/);
   });
 
-  it("says nothing plays or vibrates on its own", async () => {
+  it("does not tell a customer their cue will play, because it will not", async () => {
     // AGENTS.md: sounds, haptics and motion are off or explicitly
-    // user-controlled by default, and the page has to say so.
+    // user-controlled by default, and the page has to say so. It did, and it
+    // also said "a cue only runs when something you do asks for it" -- which
+    // says a cue runs. Nothing reads sound_cues or haptic_patterns anywhere in
+    // the runtime; the sound and vibration the app makes come from a hardcoded
+    // map of five kinds in public/sensory-device-client.js.
     const result = await request(buildApp()).get("/creator-studio/device-cues").set("accept", "text/html");
-    assert.match(result.text, /Nothing plays, vibrates or moves on its own/);
+    assert.match(result.text, /does not make it play/);
+    assert.match(result.text, /stay off until you turn them on/);
+    assert.doesNotMatch(result.text, /a cue only runs when/, "the page is back to promising playback");
+  });
+
+  // The form under an `also` block is new machinery, and the failure it can
+  // have is the one that shipped on every record form once already: a payload
+  // naming a column that is not there is rejected by PostgREST, and every stub
+  // in the suite accepts it, so the button works and nothing saves.
+  it("asks an also-block form only for columns that exist", () => {
+    const { CREATOR_RECORD_PAGES, ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+    const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
+    const blocks = [...CREATOR_RECORD_PAGES, ...ALL_OWNER_PAGES].flatMap((page) => (page.also || []).map((side) => ({ page, side })));
+    assert.ok(blocks.length >= 1, "no also blocks found; this check has gone blind");
+    const withForms = blocks.filter(({ side }) => side.form);
+    assert.ok(withForms.length >= 1, "no also block declares a form; this check would pass on nothing");
+
+    const wrong = [];
+    for (const { side } of withForms) {
+      const columns = tableColumns(side.table);
+      if (!columns) {
+        wrong.push(`${side.table} is not in the migrations`);
+        continue;
+      }
+      // Without an endpoint the form renders no action a customer can press.
+      if (!side.form.action && !side.api) wrong.push(`${side.table} has a form and no endpoint`);
+      if (!columns.has("organization_id")) wrong.push(`${side.table} has no organization_id, so it cannot be tenant scoped`);
+      for (const field of side.form.fields) {
+        if (!columns.has(field.name)) wrong.push(`${side.table} has no column ${field.name}`);
+      }
+    }
+    assert.deepEqual(wrong, [], wrong.join("\n  "));
+  });
+
+  // The other half, and the half that would rot silently: the copy above is
+  // only honest while nothing reads these tables. If somebody builds the
+  // consumer, this fails and says which file to look at -- rather than leaving
+  // a page telling customers their cues do nothing after they started working.
+  it("still has no consumer for the tables that copy is about", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const root = path.join(__dirname, "..");
+    const files = [path.join(root, "server.js")];
+    for (const directory of ["routes", "lib", "public"]) {
+      for (const name of fs.readdirSync(path.join(root, directory))) {
+        if (/\.(cjs|js|mjs)$/.test(name)) files.push(path.join(root, directory, name));
+      }
+    }
+    assert.ok(files.length > 50, `only ${files.length} runtime files read; this check has gone blind`);
+
+    // The record page writes and lists them, which is the surface the copy is
+    // about. Anything else naming them is a consumer.
+    const surface = new Set(["sonara-owner-record-pages.cjs", "sonara-last9-routes.cjs", "sonara-tenant-scoped-tables.cjs", "sonara-database-contract.cjs"]);
+    const consumers = [];
+    for (const file of files) {
+      if (surface.has(path.basename(file))) continue;
+      const source = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/gm, "$1 ");
+      if (/\b(sound_cues|haptic_patterns)\b/.test(source)) consumers.push(path.relative(root, file));
+    }
+    assert.deepEqual(consumers, [], "something reads these now, so /creator-studio/device-cues must stop saying nothing does");
   });
 });
 

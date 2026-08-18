@@ -97,11 +97,6 @@ const NO_FORM_NEEDED = {
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
   "/api/sensory/profiles": "No page displays sensory_feedback_profiles; only the generic list and insert exist.",
-  // Listed on /creator-studio/device-cues as an `also` block, and no `also`
-  // block in lib/sonara-owner-record-pages.cjs carries a create form -- that
-  // page's one form makes sound cues. Its empty text said "You have not defined
-  // any vibration patterns yet", inviting an action the page does not offer.
-  "/api/sensory/haptic-patterns": "Listed on /creator-studio/device-cues as an `also` block, which carries no create form. Only a direct POST makes one, and the empty text now says so rather than implying the customer simply has not.",
   // Examined. This one creates nothing at all -- it fetches the text of a page
   // so it does not have to be pasted, and returns it. The create-shaped scan
   // matches it on the POST, which is the right default and the wrong answer

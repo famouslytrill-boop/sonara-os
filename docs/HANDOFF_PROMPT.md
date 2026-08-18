@@ -122,6 +122,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the cue page was promising playback
+
+Went to close the vibration-patterns dead end — a list with no way to add to it —
+and checked what happens to a row before building the form, which is now the
+habit. Found something bigger than the missing form.
+
+`/creator-studio/device-cues` said: "Nothing plays, vibrates or moves on its own
+— **a cue only runs when something you do asks for it** and your device allows
+it." The first clause is the `AGENTS.md` position and was always true. The second
+says a cue runs. **Nothing reads `sound_cues` or `haptic_patterns` anywhere.**
+`grep` across `server.js`, `routes/` and `lib/` finds the record page, the generic
+insert, and no consumer; the sound and vibration the application actually makes
+come from a hardcoded map of five kinds in `public/sensory-device-client.js` —
+success, error, warning, tap, complete — which never looks a row up.
+
+So a customer could define a cue, be told it would fire when they did something,
+and it would never fire. **The sound cue form has been in that position the whole
+time** — the vibration list was the visible half of a problem both halves had.
+
+The copy says what the rows are now: definitions, written down, not yet read by
+anything. And with that true of both, the vibration form is honest, so it exists.
+This is the fourth dead end examined this week and the first where the answer was
+a door rather than a status — because the door's neighbour was already open.
+
+`also` blocks carry forms now. That needed three things, and the third is the one
+that would have rotted quietly:
+
+- `routes/sonara-last9-routes.cjs` renders `formCard` under an `also` list when
+  the block declares a form and an endpoint.
+- `loadReferences` walks `also` form fields. **None of them is a reference
+  today**, which is exactly when a picker breaks silently — the first one added
+  would render "Nothing to choose yet" to a customer with records. That failure
+  has now shipped twice in this file, on child forms and on the artist pages, and
+  both were found afterwards.
+- `lib/sonara-form-reachability.cjs` sees them, so `/api/sensory/haptic-patterns`
+  came off the exemption list. Its stated reason was "no `also` block carries a
+  create form" — an excuse that outlives its reason is the same defect as a page
+  describing a capability it does not have.
+
+**Two new checks, both verified by breaking them.** One asserts no runtime file
+outside the record page's own surface names either table, so if somebody builds
+the consumer the copy stops being true *and the build says so, naming the file* —
+rather than leaving a page telling customers their cues do nothing after they
+started working. The other checks every `also` form field against
+`lib/sonara-migration-columns.cjs`, because a payload naming a column that is not
+there is rejected by PostgREST while every stub in the suite accepts it: the
+button works and nothing saves, which is how all nineteen record forms shipped
+broken once.
+
+Verified: `verify:launch` green end to end, 1975 tests passing.
+
+Two rewrites the outage crawl forced, worth recording because the wording rule is
+not obvious. "Nothing here plays, vibrates or moves" and "Nothing plays these"
+both failed `tests/no-page-lies-when-the-database-is-down.test.js` — "Nothing
+here" reads as *you have no records* on a page whose reads are failing. Reworded
+to "Writing one down does not make it play", which says the same thing about the
+feature and nothing about the customer's rows. Rewording beat adding an
+exemption, the same call as the accounting-exports copy.
+
 ### 2026-08-18 — selling something that is not a service
 
 Business Builder could price work and had no way to list a **thing**.

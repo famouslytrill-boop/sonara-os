@@ -834,7 +834,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
           recordsCard(page, rows, ui, loaded),
-          ...extra.map(({ side, rows: sideRows, loaded: sideLoaded }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded)),
+          // An `also` block renders its list and, when it declares one, its own
+          // form directly under it.
+          //
+          // None of them carried a form, and vibration patterns were the cost:
+          // the block listed them, the page's one form made sound cues, and the
+          // only way to create a pattern was a direct POST. A list with no way
+          // to add to it beside a list with one is not a design, and the empty
+          // text had already been rewritten once to stop implying otherwise.
+          //
+          // formCard reads `form.action || api`, so a block needs both a form
+          // and an api. A block with neither renders exactly as before.
+          ...extra.flatMap(({ side, rows: sideRows, loaded: sideLoaded }) => [
+            recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded),
+            ...(side.form && (side.form.action || side.api) ? [formCard(side, references, ui)] : [])
+          ]),
           ...(page.form ? [formCard(page, references, ui)] : [])
         ];
       return res.status(200).type("html").send(ui.layout({
@@ -1170,7 +1184,13 @@ function acceptsHtml(req) {
 async function loadReferences(config, organizationId, page) {
   const fields = [
     ...(page.form?.fields || []),
-    ...childrenOf(page).flatMap((spec) => spec.form?.fields || [])
+    ...childrenOf(page).flatMap((spec) => spec.form?.fields || []),
+    // `also` blocks carry forms now. None of their fields is a reference today,
+    // and that is exactly when a picker breaks quietly: the first one added
+    // would render "Nothing to choose yet" to a customer with records, which is
+    // the failure recorded above for the child forms and again for the artist
+    // pages. Both were found after they shipped.
+    ...(page.also || []).flatMap((side) => side.form?.fields || [])
   ].filter((field) => field.type === "reference");
 
   const loaded = {};
