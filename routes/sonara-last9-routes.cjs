@@ -71,7 +71,15 @@ const RESOURCE_MAP = {
   // manual_required is already in the schema's check constraint and is true: a
   // person has to do this. One word, no migration, and the row stops promising.
   "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "manual_required" } },
-  "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
+  // The four toggles are defaulted off here, and the reason is a rule rather
+  // than a preference. AGENTS.md: "Sounds, voice announcements, haptics, SMS,
+  // push, and email alerts must be off or explicitly user-controlled by
+  // default." Migration 015 gives sound_enabled and vibration_enabled a column
+  // default of true, so a row created without an answer was born with both on
+  // -- harmless only because nothing reads this table, which is not a reason to
+  // leave it. The form asks all four explicitly; these cover a request that
+  // does not.
+  "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active", sound_enabled: false, vibration_enabled: false, motion_enabled: false, location_enabled: false } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
   "/api/sensory/haptic-patterns": { table: "haptic_patterns", required: ["pattern_key", "name", "event_name"], defaults: { status: "active" } },
   "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } },
@@ -1402,7 +1410,16 @@ function formField(field, references, ui) {
     return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
   }
   if (field.type === "select") {
-    const options = (field.options || []).map((option) => `<option value="${ui.escape(option)}">${ui.escape(String(option).replaceAll("_", " "))}</option>`).join("");
+    // A string option is its own label, which is right for a status column
+    // whose values are already words. It is wrong for a boolean: "true" and
+    // "false" are not what somebody choosing whether a sound plays should be
+    // reading. An option may be { value, label } for that case, and every
+    // string list already written is unchanged.
+    const options = (field.options || []).map((option) => {
+      const value = option && typeof option === "object" ? option.value : option;
+      const shown = option && typeof option === "object" ? option.label : String(option).replaceAll("_", " ");
+      return `<option value="${ui.escape(value)}">${ui.escape(shown)}</option>`;
+    }).join("");
     return `<label>${label}<select name="${name}"${required}>${options}</select></label>${hint}`;
   }
   if (field.type === "textarea") {

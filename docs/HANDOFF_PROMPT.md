@@ -122,6 +122,41 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the database was answering a question AGENTS.md says a person has to
+
+Went to give `sensory_feedback_profiles` — the last of the three device tables
+with an insert endpoint and no surface — a list and a form on
+`/creator-studio/device-cues`, and found something in the schema on the way.
+
+`AGENTS.md`: "Sounds, voice announcements, haptics, SMS, push, and email alerts
+must be **off or explicitly user-controlled by default**." Migration 015 gives
+`sensory_feedback_profiles.sound_enabled` and `.vibration_enabled` a **column
+default of `true`**, and the insert path never named either. So every profile
+created arrived with sound and vibration on, decided by the database, on a
+question the rule says the person has to answer.
+
+It is harmless today because nothing reads the table. That is not a reason to
+leave it — the row is written now and read whenever somebody builds the consumer,
+and by then nobody is looking at this. The four toggles are defaulted off in the
+insert and asked for explicitly on the form. Both halves are tested: created off
+when unasked, and **still on when somebody says yes**, because a default that
+cannot be overridden is not a default and the rule is "off or explicitly
+user-controlled" rather than "off".
+
+Select options may now be `{ value, label }` as well as strings. `"true"` and
+`"false"` in a dropdown is the schema talking to the customer; the eleven string
+lists already written are untouched.
+
+The "Uses" column folds four booleans into one readable cell and keeps the
+distinction this repository keeps rediscovering: **absent is not false**. A row
+whose columns did not come back reads "Not set"; all four genuinely off reads
+"Nothing". Both are asserted, along with the two mixed cases.
+
+That closes the third and last of the write-only device tables. All three
+exemptions are gone from `tests/form-reachability.test.js` rather than reworded.
+
+Verified: `verify:launch` green end to end, 1988 tests passing.
+
 ### 2026-08-18 — two tables nothing showed, and a wrong reason in an exemption list
 
 `waste_logs` and `location_zones` were both excused in

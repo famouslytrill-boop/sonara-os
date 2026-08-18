@@ -273,6 +273,35 @@ describe("Creator Studio record pages show real records", () => {
     assert.deepEqual(wrong, [], wrong.join("\n  "));
   });
 
+  // Four booleans shown as one column of what is on. The trap is the one this
+  // repository keeps finding in a different shape: absent is not false. A row
+  // whose columns did not come back would otherwise render "Nothing", telling a
+  // customer their profile uses no sound on the strength of columns nobody read.
+  it("does not report a missing toggle as a toggle that is off", () => {
+    const { CREATOR_RECORD_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+    const cues = CREATOR_RECORD_PAGES.find((entry) => entry.path === "/creator-studio/device-cues");
+    const profiles = (cues.also || []).find((side) => side.table === "sensory_feedback_profiles");
+    assert.ok(profiles, "no feedback profiles block; this check has gone blind");
+    const uses = profiles.columns.find((column) => column.label === "Uses");
+    assert.ok(uses, "no Uses column");
+
+    assert.equal(uses.value({}), "Not set", "a row with none of the columns read as all four off");
+    assert.equal(uses.value({ sound_enabled: null, vibration_enabled: null, motion_enabled: null, location_enabled: null }), "Not set");
+    assert.equal(uses.value({ sound_enabled: false, vibration_enabled: false, motion_enabled: false, location_enabled: false }), "Nothing", "all four off is an answer and must say so");
+    assert.equal(uses.value({ sound_enabled: true, vibration_enabled: false, motion_enabled: false, location_enabled: false }), "sound");
+    assert.equal(uses.value({ sound_enabled: true, vibration_enabled: true, motion_enabled: false, location_enabled: false }), "sound, vibration");
+  });
+
+  // A boolean rendered as "true"/"false" is the schema talking to the customer.
+  it("offers the toggles as yes and no, not as true and false", async () => {
+    const result = await request(buildApp()).get("/creator-studio/device-cues").set("accept", "text/html");
+    assert.match(result.text, /name="sound_enabled"/, "the profile form did not render");
+    const control = result.text.slice(result.text.indexOf('name="sound_enabled"'));
+    const select = control.slice(0, control.indexOf("</select>"));
+    assert.match(select, /<option value="false">No</);
+    assert.match(select, /<option value="true">Yes</);
+  });
+
   // The other half, and the half that would rot silently: the copy above is
   // only honest while nothing reads these tables. If somebody builds the
   // consumer, this fails and says which file to look at -- rather than leaving

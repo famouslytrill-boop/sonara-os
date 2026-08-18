@@ -94,7 +94,6 @@ const NO_FORM_NEEDED = {
   // default status is manual_required rather than queued for the same reason --
   // a row that says "queued" claims a worker this system does not have.
   "/api/integrations/jobs": "Nothing consumes integration_jobs: no runner, no page, no status transition. A form would let somebody queue work that will never run.",
-  "/api/sensory/profiles": "No page displays sensory_feedback_profiles; only the generic list and insert exist.",
   // Examined. This one creates nothing at all -- it fetches the text of a page
   // so it does not have to be pasted, and returns it. The create-shaped scan
   // matches it on the POST, which is the right default and the wrong answer
