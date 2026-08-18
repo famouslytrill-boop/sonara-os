@@ -30,7 +30,13 @@ const NO_GRANT = /none declared|no licence declared|no license declared/i;
 const UNVERIFIED = /not verified|unverified|could not be (confirmed|verified)/i;
 
 // Statuses that mean code may end up in the product.
-const ADOPTION_STATUSES = new Set(["optional_adapter_after_review"]);
+// Both, not just the first. This set was "optional_adapter_after_review" alone,
+// so the checks below measured the status meaning "an adapter may be built"
+// while skipping the status meaning "an adapter is built and something calls
+// it" -- the stronger commitment, and the only one where code from a
+// repository is already here. A check named for the whole adoption path that
+// covers half of it reports a guarantee it never tested.
+const ADOPTION_STATUSES = new Set(["optional_adapter_after_review", "adapter_built"]);
 
 describe("open-source register licence terms", () => {
   const records = readOpenSourceTools();
@@ -93,7 +99,14 @@ describe("open-source register licence terms", () => {
     // somebody can look up. Qualifications after it are fine -- "MIT; model
     // licences are reviewed separately" is a settled licence with a true note
     // attached -- but the first thing said has to be the licence.
-    const IDENTIFIER = /^(MIT|MIT-0|Apache-2\.0|BSD-[23]-Clause|ISC|CC0-1\.0|CC-BY-4\.0|Unlicense|MPL-2\.0|Zlib)\b/;
+    //
+    // Two named project licences are settled without being SPDX. "Dify Open
+    // Source License" and "Open WebUI License" are single documents somebody
+    // can open and read, which is the property this check is actually testing
+    // for; an allowlist keeps that judgement visible rather than letting a
+    // looser pattern admit the next vague sentence as well.
+    const IDENTIFIER =
+      /^(MIT|MIT-0|Apache-2\.0|BSD-[23]-Clause|ISC|CC0-1\.0|CC-BY-4\.0|Unlicense|MPL-2\.0|Zlib|Dify Open Source License|Open WebUI License)\b/;
     const vague = records
       .filter((record) => ADOPTION_STATUSES.has(record.integrationStatus))
       .filter((record) => !IDENTIFIER.test(record.license));

@@ -2,6 +2,54 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a bucket is not a grant, and half an adoption path
+
+Three CRM and social-scheduling repositories went onto the register from a
+second GitHub sweep, and closing the counts behind them turned up two checks
+measuring less than they claimed.
+
+**A search filter is not a licence.** `wacrm` was recorded as permissive because
+GitHub's licence *filter* sorted it into the permissive bucket, and it shipped
+at `optional_adapter_after_review` on that basis.
+`tests/open-source-licence-terms.test.js` rejected it, correctly: a filter
+reports which bucket a repository fell into, not what its author granted.
+Reading the file itself was refused — `api.github.com/repos/ArnasDon/wacrm/license`
+answers **403** to a session scoped to this repository only — so the record now
+says the licence is **not established** and sits at `needs_license_review`. The
+same 403 is why Cal.com's licence is still recorded as unverified rather than
+recalled.
+
+**The adoption-path check covered half the adoption path.** Its name says
+"everything in the adoption path"; its status set held
+`optional_adapter_after_review` alone. `adapter_built` — the status meaning code
+from that repository *is already here and something calls it*, the stronger
+commitment of the two — was outside the population it claimed to measure. The
+covered set went **13 → 19**. Two named-but-not-SPDX licences (Dify, Open WebUI)
+are allowlisted explicitly rather than admitted by loosening the pattern.
+
+**The reciprocal-licence count is derived now, and could not be derived the
+obvious way.** `docs/owner/WHAT-IS-LEFT.md` quotes it at somebody deciding what
+may legally be adopted, and it had drifted **10 → 11** with nothing watching.
+Searching the licence prose for `AGPL` reports **12**: one record's licence text
+reads *"it appeared in neither the permissive filter (MIT, Apache-2.0,
+BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0, ...)"* — four
+reciprocal licences named in the course of saying the repository is in none of
+them. So the register states the fact instead, in a **required** `reciprocalLicense`
+field: a missing flag is a type error, and `verify-doc-counts` refuses to run
+the count unless all 94 records answer. Optional would have let somebody add an
+AGPL repository, omit the flag, and leave the figure sitting where it was.
+
+**Each of the three new checks was run against bad input before being trusted.**
+Wrong number in prose, a dropped flag, an AGPL record flagged false, and a vague
+licence promoted to `adapter_built` — all four fail. The first pattern written
+for the prose claim matched *nothing*, because the document wraps "carry a /
+reciprocal licence" across a line break and the pattern had a literal space in
+it; it reported green while checking zero claims. Countable claims went 7 → 8
+only after that was fixed, which is how it was caught.
+
+Register at **94** repositories, 11 reciprocal, 5 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
 ### 2026-08-18 — the open end closed, and the pin that was loose by more than double
 
 Yesterday's entry recorded thirteen routes the outage crawl could not render,

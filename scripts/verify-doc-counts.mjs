@@ -77,6 +77,30 @@ const repositoryCount = (registerSource.match(/slug:\s*"/g) || []).length;
 // said two while the register held four, which is the sort of number that gets
 // quoted at somebody deciding what may be adopted.
 const undeclaredLicenceCount = (registerSource.match(/license:\s*\n?\s*"(?:None declared|No licence file|No licence declared)/g) || []).length;
+// How many registered repositories carry a reciprocal licence.
+//
+// Read from the register's own reciprocalLicense field, not from its licence
+// prose. The prose cannot be searched for this: one record's licence text reads
+// "it appeared in neither the permissive filter (MIT, Apache-2.0, BSD-3-Clause)
+// nor the reciprocal filter (AGPL-3.0, GPL-3.0, ...)", so a substring match on
+// AGPL counts the one repository that record explicitly rules out and reports
+// one too many. That is the failure this file exists to prevent, not commit.
+//
+// docs/owner/WHAT-IS-LEFT.md quotes this figure at somebody deciding what may
+// be adopted, and it drifted from 10 to 11 with nothing watching it.
+const reciprocalFlags = registerSource.match(/^\s*reciprocalLicense: (true|false),$/gm) || [];
+const reciprocalLicenceCount = reciprocalFlags.filter((line) => line.includes("true")).length;
+// Every record must answer. An optional field lets somebody add an AGPL
+// repository, omit the flag, and leave the count sitting where it was --
+// a check satisfied by an absence, which is the empty-list failure in a
+// different coat.
+if (reciprocalFlags.length !== repositoryCount) {
+  console.error(
+    `ERROR: ${repositoryCount} records on the open-source register but ${reciprocalFlags.length} state reciprocalLicense; ` +
+      "every record must declare whether its licence is reciprocal, or the count below is measuring a smaller population than it claims."
+  );
+  process.exit(1);
+}
 const migrationCount = fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length;
 // Read as a module rather than parsed: the generated file holds Sets, and
 // counting quoted strings in it would count the header comment too.
@@ -87,6 +111,7 @@ const createdTableCount = scopedTableCount + tenantModule.GLOBAL_TABLES.size;
 for (const [label, value, floor] of [
   ["repositories on the open-source register", repositoryCount, 40],
   ["registered repositories declaring no licence", undeclaredLicenceCount, 1],
+  ["registered repositories carrying a reciprocal licence", reciprocalLicenceCount, 1],
   ["migrations", migrationCount, 50],
   ["tables created by the migrations", createdTableCount, 100],
   ["organization-scoped tables", scopedTableCount, 80]
@@ -149,6 +174,7 @@ for (const file of walk("docs")) {
   for (const [pattern, actual, what] of [
     [/\b(\d[\d,]{0,4})\s+(?:reviewed\s+)?repositories\b/gi, repositoryCount, "repositories on the open-source register"],
     [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
+    [/\b(\d[\d,]{0,4})\s+carry\s+a\s+reciprocal\s+licence\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
     [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]

@@ -50,3 +50,48 @@ The request named roughly forty categories and asked for "all repositories at gi
 - **The register's standard is per-record.** All 88 existing records were reviewed before they were written. Bulk-adding candidates from search metadata would produce records asserting a review nobody did. The entries added today say exactly what they are based on: licence and metadata from the GitHub API and the project's own description, **not** a source read.
 
 Two categories done properly cost roughly six searches and an afternoon of judgement. Forty categories is a programme of work, and it is worth doing one category at a time in the order the product actually needs them.
+
+---
+
+# Second pass — 18 August 2026, later the same day
+
+## Another topic-name trap, in a new form
+
+`topic:scheduling` returns **cron and batch job schedulers** — luigi, apscheduler, quartznet, croner — not appointment booking. The word means something different in this ecosystem than in our domain, which is the same failure as "pos" matching postcss, arriving through a valid topic rather than a bad search.
+
+Two rules now, and they are opposites:
+
+- **Short, ambiguous terms need `topic:`** — "pos" as free text is useless.
+- **Distinctive terms are better as free text** — "calendly" in a description found the one relevant project that no topic filter surfaced.
+
+Also: `OR` does not apply to qualifiers. `topic:a OR topic:b` is a 422, and multiple `topic:` filters are ANDed. One search per topic.
+
+## Finding 3 — appointment booking is thin, and the obvious answer is unverifiable from here
+
+`topic:booking` above 300 stars returns **two** results, one of which is a Gantt/timeline UI component rather than a booking system. `topic:calendly` returns two, the notable one being **CloudMeet** (518 stars, created December 2025, a Calendly alternative on Cloudflare's free tier).
+
+**Cal.com is the obvious candidate and its licence was not verified.** `repo:` search is refused for repositories outside this session's scope, and the GitHub API returns 403 to unauthenticated fetches from here. Its licence is **not recorded** rather than recalled — this document does not carry a figure nobody checked.
+
+## Finding 4 — CRM is the healthiest category swept so far
+
+Of **37** CRM projects above 1,000 stars pushed in the last year:
+
+| Licence family | Count | Notable |
+| --- | --- | --- |
+| Permissive (MIT/Apache/BSD) | **13** | krayin/laravel-crm (23.7k), Django-CRM (2.4k), **wacrm (1.9k)**, open-mercato (1.6k) |
+| Reciprocal (GPL/AGPL/LGPL) | **12** | erpnext (38.2k), monica (25.1k), dolibarr (7.5k), SuiteCRM (5.7k), espocrm (3.2k), frappe/crm (3.3k), ever-gauzy (4.3k), relaticle (1.5k) |
+| Other or undeclared | 12 | **twenty (55.1k)** |
+
+Two things stand out.
+
+**The largest open CRM in the world carries neither a permissive nor a reciprocal licence** by the API's reckoning. `twenty` at 55.1k stars appears in neither filtered result, which means its terms have to be read rather than assumed in either direction. That is a finding about the category's headline project, not a gap in the search.
+
+**`wacrm` is the closest architectural fit found in any category so far.** Self-hostable CRM on **Supabase, Next.js and TypeScript** — the same database this product runs on — with a shared inbox, pipelines, broadcasts and no-code automations. Its own description says *"Fork it, brand it, host it"*, and its ratio confirms it: **5,221 forks against 1,961 stars**. That is a template, not a dependency, and adopting it would mean forking rather than importing.
+
+## Finding 5 — the social scheduling answer is reciprocal
+
+**brightbean-studio** (2,152 stars, created March 2026) is a self-hostable social media management platform — schedule and publish across ten-plus platforms, an explicit Buffer, Sendible and SocialPilot alternative. Directly in Growth Studio's territory. Its own topic list begins with **`agpl`**, so the same rule applies as everywhere else in this document: reciprocal triggers on network use, and this is a hosted product.
+
+## Running tally
+
+Four categories swept properly: point-of-sale, text-to-speech, CRM, and appointment booking. Of roughly forty asked for. The pattern holding across all four is that **the strongest project in a category is more often reciprocal than not**, and the usable ones are smaller, newer, or templates.

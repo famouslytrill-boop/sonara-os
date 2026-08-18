@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-91 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 91.
+94 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 94.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-37 repositories.
+38 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -50,19 +50,21 @@ Create, launch, run and manage a business.
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [ury (ERPNext restaurant management)](https://github.com/ury-erp/ury) | GPL/AGPL family, per the GitHub API licence filter on 18 August  | Research only | restaurant management |
+| [wacrm (self-hostable WhatsApp CRM template)](https://github.com/ArnasDon/wacrm) | Not established. A GitHub search filter placed it in the permiss | Licence unresolved | CRM |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
 
 ## Creator Studio
 
 Organize, protect, publish, monetize and grow creative work.
 
-24 repositories.
+25 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
+| [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL, declared by the project's own topic list on 18 August 2026 | Research only | social media scheduling |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
@@ -89,13 +91,14 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-21 repositories.
+24 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
+| [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL, declared by the project's own topic list on 18 August 2026 | Research only | social media scheduling |
 | [Business Machine Learning (firmai)](https://github.com/firmai/business-machine-learning) | AGPL-3.0 | Read only | applied analytics index |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
@@ -112,7 +115,9 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
+| [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Unknown. On 18 August 2026 it appeared in neither the permissive | Licence unresolved | CRM |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
+| [wacrm (self-hostable WhatsApp CRM template)](https://github.com/ArnasDon/wacrm) | Not established. A GitHub search filter placed it in the permiss | Licence unresolved | CRM |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
 
 ## Shared Platform

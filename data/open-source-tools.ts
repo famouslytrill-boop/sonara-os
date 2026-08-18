@@ -25,6 +25,25 @@ export type OpenSourceToolRecord = {
   productFit: string[];
   license: string;
   licenseRisk: OpenSourceLicenseRisk;
+  // Does this licence oblige releasing SONARA's own source if it is adopted?
+  //
+  // Required, not optional, and stated rather than inferred. Both of those are
+  // deliberate. docs/owner/WHAT-IS-LEFT.md quotes this count at somebody
+  // deciding what may be adopted, and it drifted from 10 to 11 with nothing
+  // watching it, so the figure needs to be derivable from the register.
+  //
+  // Deriving it by searching the licence text does not work. One record's
+  // licence reads "it appeared in neither the permissive filter (MIT,
+  // Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0,
+  // ...)" -- prose that names four reciprocal licences in the course of saying
+  // the repository is in none of them. A substring match counts it and reports
+  // 12, which is the exact defect CLAUDE.md describes: a signal that reports
+  // success without being true.
+  //
+  // Required rather than optional because the failure that matters is somebody
+  // adding an AGPL repository and the count silently staying where it was. A
+  // missing field is a type error; a wrong field is a decision somebody made.
+  reciprocalLicense: boolean;
   commercialUseStatus: OpenSourceCommercialUseStatus;
   integrationStatus: OpenSourceIntegrationStatus;
   recommendedAction: string[];
@@ -45,6 +64,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -78,6 +98,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT for source code and site-authored content; CC0-1.0 for prompt content and data.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["use original SONARA implementation", "keep one SONARA login and Supabase tenant model", "preserve provenance and license per imported record", "keep remote MCP and prompt fetching disabled by default"],
@@ -105,6 +126,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Research Lab", "Creator Studio analytics", "Graph Builder"],
     license: "Public repository license requires review before production use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -139,6 +161,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Growth Studio", "Smart Search", "Files & Records", "Business Memory Graph"],
     license: "Apache-2.0. The README asks for badge attribution, which is a request rather than a licence term; the Apache NOTICE obligation is the binding one. Any model or provider called through it carries its own separate terms.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -174,6 +197,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     license: "Model/code licenses require review before commercial use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -198,6 +222,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab", "Performance Planner", "Render & Speed Tools"],
     license: "Model/code licenses require review before commercial use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -224,6 +249,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Asset Vault", "Creator Tool Library", "Project Launch Checklist"],
     license: "BSD-style project license must be verified before recommendations are finalized.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -249,6 +275,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Research Lab"],
     license: "Terms and API permissions require review.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -269,6 +296,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Performance Planner", "Secure Compute Layer", "Developer Formula Studio"],
     license: "Reference material licenses vary and require source-level review.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -289,6 +317,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Business Builder"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -315,6 +344,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -352,6 +382,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "Remotion: source-available under the Remotion License — free for individuals and small companies, paid company licence required for for-profit organisations above a size threshold. MapLibre GL JS: BSD-3-Clause.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -375,6 +406,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Creator Studio", "Files & Records"],
     license: "External provider terms and model licenses require review.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: ["external/reference only unless licensed", "do not build surveillance workflows"],
@@ -393,6 +425,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Support Center", "Admin Command Center", "Customer Success"],
     license: "License, hosting, and security review required before self-hosting or adapter work.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["external/reference", "possible self-hosted integration after review", "do not copy branding"],
@@ -410,6 +443,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Files & Records", "Asset Vault"],
     license: "Review repository license before any implementation.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["external/reference only", "no hidden file transfer", "no unauthorized device access"],
@@ -427,6 +461,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Developer Formula Studio"],
     license: "Repository licenses require review before copying examples.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["education/reference only", "do not copy code without license review"],
@@ -444,6 +479,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["None"],
     license: "Piracy/copyright infringement risk.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: ["do not integrate", "do not promote", "do not link as a product feature", "do not build similar piracy functionality"],
@@ -462,6 +498,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Founder Operations", "Research Lab"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["private gateway only", "readiness probe first", "review every enabled tool"],
@@ -480,6 +517,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Founder Operations"],
     license: "Sustainable Use License with separate enterprise terms.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
     recommendedAction: [
@@ -499,6 +537,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab", "Founder Operations"],
     license: "MIT; model licenses are reviewed separately.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -522,6 +561,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Founder Operations"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -541,6 +581,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Creator Studio", "Growth Studio"],
     license: "Dify Open Source License, Apache-2.0 based with additional conditions.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -561,6 +602,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Worker Orchestration"],
     license: "MIT; integration packages and providers require separate review.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["worker-only reference", "allowlist tools", "avoid duplicate web-process orchestration"],
@@ -579,6 +621,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Founder Operations", "Research Lab"],
     license: "Open WebUI License, BSD-3-Clause based with branding conditions.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -598,6 +641,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Private Model Mode"],
     license: "Repository code is MIT; model weights use the upstream DeepSeek model license.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
     recommendedAction: ["do not bundle weights", "record exact served model", "review compute, data, and model terms"],
@@ -616,6 +660,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Internal Development"],
     license: "Apache-2.0",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["developer workstation only", "repository-scoped permissions", "review every patch"],
@@ -634,6 +679,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Files & Records", "Business Memory", "Research Lab"],
     license: "Apache-2.0 noted upstream; bundled service and dependency licenses require review.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -654,6 +700,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Internal Development"],
     license: "Anthropic product terms; not treated as a redistributable open-source runtime.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["developer workstation only", "managed permissions", "review every patch"],
@@ -678,6 +725,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Admin Command Center", "AI Safety Review", "System Design Intelligence"],
     license: "AGPL-3.0 upstream with a stated commercial-license option; legal review required before any code use.",
     licenseRisk: "critical",
+    reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -720,6 +768,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center", "Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["background worker only", "start with read-only pilot", "audit and approve every consequential action"],
@@ -742,6 +791,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -769,6 +819,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "No licence file. Default copyright applies, which means all rights reserved.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -806,6 +857,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -833,6 +885,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -860,6 +913,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT for the wrapper code; the upstream service it calls is governed by its own terms, which this wrapper does not grant.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -890,6 +944,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "Apache-2.0 for the starter kit itself; the n8n runtime it provisions ships under the fair-code Sustainable Use License, which is not an OSI-approved open-source licence and restricts hosting it as a service.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -916,6 +971,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -941,6 +997,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -967,6 +1024,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "Not verified. The repository page did not surface a licence and LICENSE returned 404 at the paths checked.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "needs_license_review",
     recommendedAction: [
@@ -991,6 +1049,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1018,6 +1077,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1043,6 +1103,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["use for discovery", "review anything found through it on its own terms before use"],
@@ -1061,6 +1122,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1088,6 +1150,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["read alongside TastyIgniter", "prefer the larger project's domain model where they disagree"],
@@ -1106,6 +1169,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Not verified. The README describes free personal and educational use, which is not a licence grant, and LICENSE returned 404 at the paths checked.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "needs_license_review",
     recommendedAction: ["do not adopt until a licence file is confirmed", "TastyIgniter covers the same ground under a verified MIT licence"],
@@ -1124,6 +1188,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT-0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1150,6 +1215,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1178,6 +1244,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab"],
     license: "AGPL-3.0, read from the repository sidebar and restated in its README.",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1205,6 +1272,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1230,6 +1298,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "GPL-3.0, or a paid proprietary licence from the vendor.",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1255,6 +1324,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1281,6 +1351,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1306,6 +1377,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "OSL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1331,6 +1403,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1359,6 +1432,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["read the feed and engagement modelling", "do not adopt the frontend stack"],
@@ -1377,6 +1451,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "None declared. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1402,6 +1477,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "None declared. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1427,6 +1503,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1448,6 +1525,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0, verified from the repository's own licence badge. The post that recommended it said MIT; the repository says otherwise, and the repository is what binds.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1474,6 +1552,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1500,6 +1579,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1525,6 +1605,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1546,6 +1627,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Research Lab"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1571,6 +1653,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1596,6 +1679,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Proprietary per-seat subscriptions. These are hosted services, not source anybody can read, adopt or self-host. No open-source licence applies to any of them.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     // Blocked, and the word is exact: blocked as a product dependency. Nobody
     // is stopping the owner from buying a subscription and using one to do
@@ -1630,6 +1714,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "A curated bookmark page, not software. The hundreds of services it links to each carry their own terms, and several of them are not licences at all.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1661,6 +1746,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1682,6 +1768,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1704,6 +1791,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "No licence declared",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1726,6 +1814,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1749,6 +1838,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1770,6 +1860,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1792,6 +1883,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1814,6 +1906,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "AGPL-3.0",
     licenseRisk: "critical",
+    reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1836,6 +1929,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1858,6 +1952,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1878,6 +1973,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1900,6 +1996,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1922,6 +2019,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1943,6 +2041,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1964,6 +2063,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1990,6 +2090,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -2019,6 +2120,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "AI Governance"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -2051,6 +2153,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "AI Governance"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -2083,6 +2186,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["AI Governance"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -2115,6 +2219,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "None declared. Checked three ways on 17 August 2026 rather than assumed: the repository page shows no LICENSE file, the GitHub repository API returns no licence field, and https://api.github.com/repos/deepseek-ai/awesome-deepseek-agent/license answers 404, which is what GitHub returns when it detects no licence. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -2147,6 +2252,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "Not verified. The repository was submitted from a social post rather than read, and no licence file has been checked against it. Until somebody opens LICENSE at github.com/vercel-labs/skills, this record states nothing about what it permits.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
     recommendedAction: [
@@ -2174,6 +2280,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "All rights reserved. The document carries \"COPYRIGHT (c) 2025 IONOS INC.\" on its cover and grants nothing. A free download is a price of zero, not a licence.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -2206,6 +2313,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "Apache-2.0, read from the GitHub API licence field on 18 August 2026. The source has not been read; this record is a licence and fit assessment, not a code review.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -2233,6 +2341,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "Permissive on the code (MIT or Apache-2.0 per the GitHub API on 18 August 2026) and separately licensed on the model weights, which have not been checked. The licence is not what constrains these.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_security_review",
     recommendedAction: [
@@ -2266,6 +2375,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "GPL/AGPL family, per the GitHub API licence filter on 18 August 2026. Reciprocal, and this is a hosted product.",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -2281,6 +2391,93 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "no code, schema or template from it is copied into this codebase",
       "any deployment is the owner's, on their infrastructure, with the licence obligation theirs",
       "no customer data is sent to it except through a reviewed adapter",
+    ],
+    blockedUses: [
+      "incorporating any part of it into this hosted product",
+      "treating an owner-operated deployment as permission to vendor the code",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "wacrm (self-hostable WhatsApp CRM template)",
+    slug: "wacrm-supabase-crm-template",
+    category: ["CRM", "self-hosted template", "category sweep 2026-08-18"],
+    useCase: ["reference for shared inbox, pipeline and broadcast structure on the stack this product already runs"],
+    productFit: ["Growth Studio", "Business Builder"],
+    license:
+      "Not established. A GitHub search filter placed it in the permissive family (MIT, Apache-2.0 or BSD-3-Clause) on 18 August 2026, and a search filter is not a licence. The LICENSE file has not been opened -- an attempt on 18 August 2026 was refused, because api.github.com/repos/ArnasDon/wacrm/license answers 403 to a session scoped to this repository only. Until somebody reads it, this record states nothing about what the licence permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the LICENSE file and the source before taking anything, because a template is copied rather than depended on",
+      "treat it as a reference for structure -- shared inbox, pipeline stages, broadcast records -- not as something to vendor wholesale",
+      "any WhatsApp Business API use it implies is a separate commercial and consent question, and is not covered by this record",
+    ],
+    officialUrl: "https://github.com/ArnasDon/wacrm",
+    repoUrl: "https://github.com/ArnasDon/wacrm",
+    notes:
+      "Self-hostable CRM built on Supabase, Next.js and TypeScript -- the same database this product runs on, which makes it the closest architectural fit found in any category swept so far. Shared inbox, contacts, sales pipelines, broadcasts and no-code automations. 1,961 stars, created April 2026, pushed within the last year. Its own description says \"Fork it, brand it, host it\", and the ratio confirms the shape: 5,221 forks against 1,961 stars, which is a template rather than a library. That distinction is the whole of the recommendation here. A dependency can be added and updated; a template is copied once and then maintained by whoever copied it, so taking it means taking on its code permanently, and the licence file has to be read first rather than inferred from an API field. This record first said the licence was permissive on the strength of that search filter, and shipped in the adoption path on that basis. tests/open-source-licence-terms.test.js rejected it, correctly: a filter reports which bucket a repository sorted into, and a bucket is not a grant. It sits at needs_license_review until the file itself is read, which is the difference between knowing and having been told. The WhatsApp Business API it is built around carries its own commercial terms and its own consent obligations under this product's rules, and nothing in this record speaks to either.",
+    safetyBoundaries: [
+      "no code copied before the LICENSE file is read at source",
+      "no customer messaging feature ships without the consent rules AGENTS.md already requires",
+      "WhatsApp Business API terms are reviewed separately from this repository's licence",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "twenty (open Salesforce alternative)",
+    slug: "twenty-crm-open-salesforce-alternative",
+    category: ["CRM", "licence unread", "category sweep 2026-08-18"],
+    useCase: ["none approved; licence unknown"],
+    productFit: ["Growth Studio"],
+    license:
+      "Unknown. On 18 August 2026 it appeared in neither the permissive filter (MIT, Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0, GPL-2.0, LGPL-3.0) against the same query, so its terms are neither of the two families this register usually sorts into. Nobody here has read them.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the LICENSE file before anything else; a project this size with a non-standard licence usually has a reason for it",
+      "expect a source-available or dual-licence arrangement rather than a plain open-source one, and check what it says about hosting",
+      "do not treat 55,000 stars as evidence about terms",
+    ],
+    officialUrl: "https://github.com/twentyhq/twenty",
+    repoUrl: "https://github.com/twentyhq/twenty",
+    notes:
+      "At 55,065 stars the largest open CRM found in the 18 August 2026 sweep, describing itself as the open alternative to Salesforce. Recorded because of what the sweep could not establish rather than what it could: run against 37 CRM projects above 1,000 stars, the permissive filter returned 13 and the reciprocal filter returned 12, and this project was in neither. That is not a search failure -- both filters were the same query with one qualifier changed -- so its licence is something other than the six most common identifiers. Projects of this size with non-standard terms are frequently source-available or dual-licensed, and those arrangements usually say something specific about hosting the software as a service, which is exactly what this product would be doing. None of that is asserted here. What is asserted is that the terms are unread, and that a star count is not evidence about them.",
+    safetyBoundaries: [
+      "no code, schema or interface copied while the licence is unread",
+      "no assumption that a popular project is permissively licensed",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "brightbean-studio (self-hosted social scheduling)",
+    slug: "brightbean-studio-social-scheduling",
+    category: ["social media scheduling", "reciprocal licence", "category sweep 2026-08-18"],
+    useCase: ["none approved for incorporation; possible owner-operated deployment"],
+    productFit: ["Growth Studio", "Creator Studio"],
+    license:
+      "AGPL, declared by the project's own topic list on 18 August 2026. Reciprocal, and this is a hosted product. The licence file has not been opened.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not incorporate any part of it into this codebase",
+      "if the owner wants it, run it as a deployment they operate, reached through an adapter, so the obligation sits with that deployment",
+      "read the licence file before any deployment decision; a topic tag is a claim by the author, not the licence itself",
+    ],
+    officialUrl: "https://github.com/brightbeanxyz/brightbean-studio",
+    repoUrl: "https://github.com/brightbeanxyz/brightbean-studio",
+    notes:
+      "A self-hostable social media management platform -- schedule, publish and manage content across ten-plus platforms from one dashboard, described by its authors as a free alternative to Buffer, Sendible and SocialPilot. 2,152 stars, created March 2026, pushed within the last year. Squarely in Growth Studio's territory, which is why it is recorded rather than skipped. Its own topic list begins with agpl, and the rule that has now applied in three of the four categories swept holds again: a reciprocal licence triggers on network use, so incorporating it into this hosted product would oblige releasing this product's source under the same terms. Worth noting the pattern across the sweep so far, because it is the useful part: in point-of-sale, in CRM and here, the strongest project in the category is more often reciprocal than not, and the permissively licensed options are smaller, newer, or templates.",
+    safetyBoundaries: [
+      "no code, schema or template copied into this codebase",
+      "any deployment is the owner's, on their infrastructure, with the licence obligation theirs",
+      "publishing to a customer's social accounts stays inside the owner-approval categories AGENTS.md already names",
     ],
     blockedUses: [
       "incorporating any part of it into this hosted product",
