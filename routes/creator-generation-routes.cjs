@@ -262,7 +262,18 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       structural_features: {},
       originality_constraints: { ...constraints, create_original_output_only: true, identity_imitation_prohibited: true },
       prohibited_identity_targets: parseArray(req.body.prohibited_identity_targets || req.body.prohibitedIdentityTargets, []),
-      status: "queued"
+      // "queued" was the default and nothing consumes this table: grep finds
+      // the constant, this insert, and no runner, no status transition, and no
+      // reader. Every row written here claimed work was waiting to be picked
+      // up, and none ever was -- the same shape as accounting_exports, which
+      // reported "whether each one finished" about a file nothing produced, and
+      // integration_jobs, whose rows claimed a worker that does not exist.
+      //
+      // review_required is in the schema's check constraint and is true twice
+      // over. Nothing automated will touch it, and analysing reference material
+      // is exactly the kind of thing AGENTS.md puts in front of a person:
+      // provenance, consent and anti-clone safety are judgements, not jobs.
+      status: "review_required"
     });
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, analysis: created.rows[0], code: created.code });
   });

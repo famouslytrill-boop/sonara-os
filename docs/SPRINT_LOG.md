@@ -2,6 +2,47 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the third row claiming a worker, and a form not built
+
+Went to close the reference-analysis dead end — a page listing analyses with no
+way to create one — and checked what happens to a row before building the form
+that would make them. Nothing happens to it.
+
+`grep` for `creator_reference_analyses` finds the constant, one insert, and
+**no runner, no status transition and no reader**. The endpoint wrote
+`status: "queued"`, so every row claimed work waiting to be picked up and none
+ever was. **Third instance of that shape this week**, after `accounting_exports`
+reporting "whether each one finished" about a file nothing produced and
+`integration_jobs` claiming a worker that does not exist.
+
+Status is `review_required` now — in the schema's check constraint, and true
+twice over. Nothing automated will touch it, and analysing reference material is
+exactly what `AGENTS.md` puts in front of a person: provenance, consent and
+anti-clone safety are judgements rather than jobs.
+
+**The form was deliberately not built.** Adding one would let a customer queue an
+analysis that never runs and watch it sit there, which is the defect this session
+has now fixed three times. A dead end is better closed by telling the truth than
+by adding a door onto nothing.
+
+**What remains is an owner decision, not an engineering one.**
+`/creator-studio/generation/reference-analysis` is a 302 into the generation page
+carrying `capability=reference_analysis`, and the generation form's capability
+picker does not offer it — the policy check even special-cases it
+(`capability !== "reference_analysis"`). So the link names a capability the page
+it lands on cannot perform. Either reference analysis is a product, in which case
+it needs something that runs it, or it is not, in which case the signpost should
+go. Both are decisions about what the product does.
+
+**One thing checked and found not to be a bug.** `evaluatePolicy` lets
+`reference_analysis` past the prompt requirement and then reads `prompt.length`
+on the next line, which looks like a crash on a missing prompt. It is not:
+`clean()` returns `String(value || "")`, so the prompt is always at least an
+empty string. Reported here because the next person will read those two lines
+the same way.
+
+`verify:launch` green, 1954 tests passing.
+
 ### 2026-08-18 — a network check that could never have passed
 
 `verify-external-repositories` failed on the branch head, and the log said what
