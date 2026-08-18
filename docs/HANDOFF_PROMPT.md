@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 169 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 170 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-17 — "Reference ID: null", which I put there
+
+Sixth instance, and the first one this session's own work created. Worth the
+entry for that reason rather than its size.
+
+**What happened.** Two commits earlier, `saveModuleOutput` stopped minting a
+`randomUUID()` reference for work it had not saved and returned `null` instead.
+That was right. `sendToolResult` printed the value through `String(...)`
+unconditionally, so every unsaved free-tool result rendered:
+
+> Save requires account database setup. Your output was generated and is shown
+> above. … **Reference ID: null.**
+
+A fix that swapped a misleading number for the literal word "null" on a
+customer's screen. Nothing objected, because **no test rendered that page** — the
+existing coverage asserted the JSON body, and the two page-level assertions in
+`saas-platform-upgrade` were checking for the presence of the string "Reference
+ID", which `null` satisfies.
+
+**The test I wrote to catch it was itself wrong first**, and that is the more
+useful half. Its first draft asked for `text/html` while calling `.send(object)`,
+which sets `Content-Type: application/json` — and this application answers JSON
+to that regardless of `Accept`. So two assertions about page content passed
+against a body with no page in it. They went green immediately, which is the only
+reason I looked: a check that passes the moment you write it has not been shown
+to work. The HTML case posts a form now, the way a browser does.
+
+**Two more things wrong on the same card.** *"Save requires account database
+setup"* states a cause, and it is false whenever the workspace is finished and
+the write failed underneath it — `workspace_unreadable` and `records_unavailable`
+both arrive here, and both sent the customer to a setup page with nothing on it
+to do. There are two messages now, and which one shows depends on the code rather
+than on the assumption. And a JSON caller got **200 with `ok: true`** for a write
+that stored nothing, while `POST /service-requests` and `sendWorkspacePostResult`
+both answer 503 with `ok: false` for the same failure — one product, one kind of
+failure, two answers. Now 503 either way.
+
+**The output still renders in every case**, asserted first, because a free tool
+that loses the answer it just worked out to a save failure would be a worse
+product than the one with the bad label.
 
 ### 2026-08-17 — the queue that was not there
 

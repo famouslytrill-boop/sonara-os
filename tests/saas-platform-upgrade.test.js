@@ -498,8 +498,11 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Authorization", "Bearer customer-session")
           .set("Accept", "application/json")
           .send({ costBasis: "100", hoursPerUnit: "2", hourlyRate: "50", targetMargin: "50" });
-        assert.equal(res.status, 200);
-        assert.equal(res.body.ok, true);
+        // "honest save state" now includes the status code and `ok`. A write
+        // that stored nothing answered 200 with ok: true, while POST
+        // /service-requests answered 503 with ok: false for the same failure.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
         assert.equal(res.body.saved, false);
         assert.equal(res.body.code, "setup_required");
         assert.match(res.body.output.baseCost, /\$200\.00/);
@@ -528,11 +531,20 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Accept", "text/html")
           .type("form")
           .send({ leadName: "Jordan", service: "Growth audit", lastTouch: "call on Tuesday", consentStatus: "opted_in" });
-        assert.equal(res.status, 200);
+        // Was: 200, "Save requires account database setup.", and a "Reference ID".
+        // All three were wrong here. This stub sets the Supabase environment and
+        // answers the membership read, so setup is finished and it is the write
+        // that fails -- the message sent the customer to a setup page with
+        // nothing on it to do. The reference was printed through String(null)
+        // after referenceId stopped being an invented randomUUID(), so the page
+        // read "Reference ID: null". And a write that saved nothing answered 200
+        // while its two sibling endpoints answered 503.
+        assert.equal(res.status, 503);
         assert.equal(res.type, "text/html");
-        assert.match(res.text, /Save requires account database setup\./);
+        assert.match(res.text, /could not be saved/i);
+        assert.doesNotMatch(res.text, /Reference ID/);
+        // The output is the point of a free tool and survives either way.
         assert.match(res.text, /Jordan/);
-        assert.match(res.text, /Reference ID/);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);

@@ -217,21 +217,36 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   }
 
   function sendToolResult(req, res, result, tool) {
-    if (wantsJson(req)) return res.status(200).json(result);
+    // 503 with ok: false when nothing was saved, matching the two sibling write
+    // endpoints. This answered 200 with ok: true for a write that stored
+    // nothing, so one product gave two answers to one kind of failure.
+    if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json({ ...result, ok: result.saved === true });
+
+    // Whether "setup" is the reason. It is when the workspace is genuinely
+    // unconfigured, and it is not when a read or a write failed underneath a
+    // workspace that is already finished -- workspace_unreadable and
+    // records_unavailable both arrive here, and both used to send the customer
+    // to a setup page with nothing on it to do.
+    const setupIsTheReason = ["setup_required", "customer_organization", "supabase"].includes(String(result.service || result.code));
     const sections = [toolOutputCard(result.output)];
     if (result.saved) {
       sections.push(brandCard("Record saved", `Saved for your organization. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+    } else if (setupIsTheReason) {
+      // No reference number. referenceId is null for unsaved work -- it used to
+      // be a randomUUID() identifying no row -- and this printed it through
+      // String(), so the customer read the literal word "null".
+      sections.push(brandCard("Not saved yet", `Your output was generated and is shown above. ${escapeHtml(plainLanguage.setupRequiredSentence(result.service || result.code))} Saving it needs that finished first.`));
     } else {
-      sections.push(brandCard("Save requires account database setup.", `Your output was generated and is shown above. ${escapeHtml(plainLanguage.setupRequiredSentence(result.service || result.code))} Saving it needs that finished first. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+      sections.push(brandCard("Your result could not be saved", "Your output was generated and is shown above. We could not save it to your workspace just now, and that is on our side rather than anything you need to set up. Run it again shortly if you want it kept."));
     }
-    return res.status(200).type("html").send(
+    return res.status(result.saved ? 200 : 503).type("html").send(
       layout({
         title: tool.title,
         eyebrow: "Free tool result",
         heading: `${tool.title} result`,
         body: result.saved
           ? "Your output was generated and saved as an organization record."
-          : "Your output was generated. Save requires account database setup.",
+          : "Your output was generated. It could not be saved to your workspace.",
         sections,
         actions: [
           linkAction(tool.path, "Run again"),
