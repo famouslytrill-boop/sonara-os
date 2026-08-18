@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4033 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 84 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 85 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 173 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 174 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-86 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+87 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,76 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — nine more products, this time from what the market complains about
+
+The first nine were built from what a small business obviously needs. These nine
+were built from dated survey figures, and each one is only defensible while its
+number holds. Sources in `docs/market/2026-08-18-PRODUCT-GAP-RESEARCH.md`, with a
+February 2027 review date on them.
+
+**The three numbers that drove the design.**
+
+- **67% of creators had a contract or payment dispute in the past year** (HubSpot
+  2025), and the average creator earns **$44,293** (CreatorIQ 2026). That is a
+  market with a paperwork problem and no budget for a lawyer. The crowded answer
+  is contract *generators*; the gap is the moment before a contract exists.
+- **83% of small businesses call referrals their best acquisition source, up from
+  65%; 87% at ten staff or fewer** (LocaliQ 2026). The channel most businesses
+  rate first is the one almost no software measures, because a referral has no
+  click to attribute.
+- **52% of buyers switch business software over inefficiency, not price**, and
+  the feature they need is *"buried, missing, or on the enterprise tier at three
+  times the budget"*. Competing on breadth competes where the complaint is, so
+  three of these are deliberately narrow.
+
+**Business Builder** — Price Rise Planner (pricing tools compute a price; none
+answer *how many customers can I afford to lose*); Software Spend Auditor (the
+category's own products add to the stack, this one measures it); Quiet Month Cash
+Plan (forecasts project a trend, this names the month you run out).
+
+**Creator Studio** — Deal Memo Recorder; Late Payment Escalation (invoicing tools
+resend, this prices the delay); Usage Rights Expiry (no mainstream creator tool
+tracks a licence *end* date, and the failure is silent — the brand keeps using
+the work and nobody is doing anything wrong on purpose).
+
+**Growth Studio** — Referral Source Tracker; Review Recency Score (review tools
+optimise the average while the survey says **recency** is what moved); Enquiry
+Response Clock.
+
+**Profitability, stated rather than assumed.** All nine are deterministic: no
+model call, no provider, no network, **no per-customer cost**. A tool with a
+per-use cost cannot sit on a free tier and act as the reason somebody signs up,
+which is the whole commercial argument for building them this way.
+
+**Where the tools refuse to answer.** A price rise on a price already below cost
+returns no "customers you can afford to lose" figure at all, because there is
+not one — it says the rise is not the first move. Late payment accrues no
+interest before the due date. The response-time tool states its rule in the
+output and says plainly *"not a measurement of your business"*, because it is one
+explicit assumption applied to the customer's own numbers, and dressing that as
+data would be the most saleable thing on the page and the least honest.
+
+**Three of my own test expectations were wrong**, and running them is what found
+it: a cash plan whose figures never actually went negative while the test
+asserted a month it ran out; a licence expiry asserted as December when 12 × 30.44
+days lands in January; and a response-time gap asserted at double its real value.
+The code was right in all three. The corrections are in the test with the
+arithmetic spelled out, because the next person will otherwise redo the same
+sums.
+
+**Also registered: `vercel-labs/skills`** (`find-skills`), as
+`needs_license_review` — its licence has not been read, and that is stated rather
+than assumed from a social post. The reason it is not simply low-risk developer
+tooling: its output is *an install command for somebody else's skill*, so the
+thing under review is not one repository but a channel for arbitrary ones, and
+`npx` fetches and executes on the spot. Recorded with the boundary that nothing
+it recommends is installed without its own register entry.
+
+**And `watermarks-remover` arrived again, and stays blocked.** The screenshot
+adds detail that confirms the original review rather than changing it: 5k stars,
+v0.4.0, and a table naming C2PA, EXIF and XMP across PNG, JPEG, PDF, DOCX, HTML
+and Markdown. Popularity is not a licence argument and was never the objection.
 
 ### 2026-08-18 — the outage crawl had never once opened the admin area
 

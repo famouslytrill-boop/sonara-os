@@ -80,5 +80,6 @@
   "20260812041500_growth_lead_to_customer.sql": "7ef390af747f69f6ab45375b7d7f1e12cff5bc482370a9b9814b47db5a780f1b",
   "20260813120000_agent_pending_actions.sql": "c27e9899177bf6d993cc6ed0da6fb87e2a030060807452c78afc7848da4d8ece",
   "20260813180000_agent_schedules.sql": "e156b5497c2555ec2bdad12b57cedda7e4a6329d7444de06bb8c8ffe624b1deb",
-  "20260818060000_planning_tool_catalog_products.sql": "7395c1c5401c6f17e7a983a283ebc878e2712d042259cbfc0ce3b1dabe5f3f98"
+  "20260818060000_planning_tool_catalog_products.sql": "7395c1c5401c6f17e7a983a283ebc878e2712d042259cbfc0ce3b1dabe5f3f98",
+  "20260818070000_market_research_catalog_products.sql": "243ce21e76bf72f5ca4b8e0fc4cb8295d73817c144783a4204bbef2075355225"
 }

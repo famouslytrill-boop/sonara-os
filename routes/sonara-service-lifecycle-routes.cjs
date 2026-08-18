@@ -6,6 +6,7 @@
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
 const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
+const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
@@ -732,7 +733,10 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     },
     // Nine planning tools, three per product line. See lib/sonara-planner-tools.cjs
     // for why they are calculators rather than generators.
-    ...PLANNER_TOOLS
+    ...PLANNER_TOOLS,
+    // Nine more, built against documented market complaints rather than from a
+    // blank page. Sources in docs/market/2026-08-18-PRODUCT-GAP-RESEARCH.md.
+    ...MARKET_TOOLS
   ];
 
   // Exposed so a test can post to every free tool rather than to the one

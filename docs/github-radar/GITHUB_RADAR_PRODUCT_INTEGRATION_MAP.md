@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-86 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 86.
+87 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 87.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -116,7 +116,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-40 repositories.
+41 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -158,6 +158,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
+| [Vercel Labs Skills (find-skills)](https://github.com/vercel-labs/skills) | Not verified. The repository was submitted from a social post ra | Licence unresolved | agent skills |
 | [watermarks-remover (remove-ai-marks)](https://github.com/guillaumemeyer/watermarks-remover) | MIT | Blocked | AI provenance removal |
 | [X/Twitter Recommendation Algorithm](https://github.com/twitter/the-algorithm) | Public repository license requires review before production use. | Read only | recommendation systems |
 

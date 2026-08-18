@@ -2138,6 +2138,33 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "Vercel Labs Skills (find-skills)",
+    slug: "vercel-labs-skills-find-skills",
+    category: ["agent skills", "developer tooling", "reviewed on request"],
+    useCase: ["searching the published Claude Code skill ecosystem for an existing skill"],
+    productFit: ["Internal Development"],
+    license:
+      "Not verified. The repository was submitted from a social post rather than read, and no licence file has been checked against it. Until somebody opens LICENSE at github.com/vercel-labs/skills, this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the LICENSE file before running the installer, not after",
+      "if it is installed, install it for a developer session only -- never as a dependency of the running product",
+      "treat any skill it recommends as a separate review; a finder that suggests installs is a supply chain, not a search box",
+    ],
+    officialUrl: "https://github.com/vercel-labs/skills",
+    repoUrl: "https://github.com/vercel-labs/skills",
+    notes:
+      "A skill that searches published Claude Code skills and returns an install command ready to run. Submitted on 18 August 2026 from a social post showing `npx skills add https://github.com/vercel-labs/skills --skill find-skills`. Two things about it are worth separating. The tool itself is developer tooling: it would run in somebody's terminal, not in this product, and nothing a customer touches would depend on it. That is the low-risk half. The other half is what it is for -- it recommends *other* people's skills and hands over the command to install them, which means the thing being reviewed is not one repository but a channel for arbitrary ones. `npx` fetches and executes on the spot. This register exists because a repository's licence and behaviour have to be read before use, and a tool whose output is 'here is the install command' is a tool that routes around that habit by design. Recorded as needs_license_review rather than blocked, because there is nothing wrong with it that reading the licence and keeping installs off the product would not resolve.",
+    safetyBoundaries: [
+      "never a runtime dependency of the deployed application",
+      "no skill it recommends is installed without its own register entry",
+      "no installer is run against this repository from an automated session",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
