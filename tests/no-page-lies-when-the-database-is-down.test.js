@@ -162,7 +162,20 @@ const leaks = [];
         findings.push(`${route} threw with the database down as ${label}: ${error.message}`);
         continue;
       }
-      if (response.status !== 200) {
+      // 503 bodies are read as well as 200s.
+      //
+      // /business-builder/dashboard and /business-builder/control-center answer
+      // 503 during an outage and render a real page -- "Business Builder is
+      // temporarily unavailable". Skipping every non-200 meant this crawl never
+      // inspected the pages *written for* the state it exists to test, which are
+      // the pages most likely to make a claim about a customer's records because
+      // they are the ones with something to explain.
+      //
+      // Only 503, and only when a body came back: a 302 has nothing to read, and
+      // a 500 is a defect for a different check.
+      const readable = response.status === 200
+        || (response.status === 503 && /<\/html>|<article|<main/i.test(String(response.text || "")));
+      if (!readable) {
         // Recorded per route, not per pass. Neither session can reach
         // everything -- the owner cookie is redirected away from /billing and
         // /account/*, the customer cookie away from /admin/* -- so a route only
@@ -226,20 +239,42 @@ const leaks = [];
     // The owner session reaches the admin area, so what is left is genuinely
     // out of reach: sign-in and callback routes, and pages that redirect by
     // design. The cap is what makes this an assertion rather than a log.
+    // Follow the whole redirect chain, not one hop.
+    //
+    // /creator-studio/billing redirects to /billing, which redirects again to
+    // /business-builder/billing, which this crawl renders. A single-hop rule
+    // called that a gap because it only ever looked at the middle of the chain.
+    // `seen` is there because a redirect loop would otherwise hang the check
+    // that exists to stop things going unnoticed.
+    const landsOnARenderedPage = (start) => {
+      const seen = new Set();
+      let at = start;
+      while (at && !seen.has(at)) {
+        if (renderedRoutes.has(at)) return true;
+        seen.add(at);
+        at = refusedBy.get(at)?.destination;
+      }
+      return false;
+    };
+
     const unreachable = [...refusedBy.entries()]
-      .filter(([route, entry]) => !renderedRoutes.has(route) && !renderedRoutes.has(entry.destination))
+      .filter(([route, entry]) => !renderedRoutes.has(route) && !landsOnARenderedPage(entry.destination))
       .map(([, entry]) => entry.detail);
 
-    // Pinned at what is actually there rather than at a number that sounds
-    // tidy. These are pages behind a session this crawl does not establish --
-    // it signs in as a customer and as the owner, and these want something
-    // more. They have not been examined one by one, and that is stated rather
-    // than papered over: the value of pinning the count is that the set cannot
-    // grow without somebody being told, which is strictly better than the bare
-    // `continue` that dropped forty-nine routes in silence.
-    assert.ok(
-      unreachable.length <= 13,
-      `${unreachable.length} routes rendered for neither session and are not aliases of a rendered page:\n  ${unreachable.join("\n  ")}`
+    // Zero, and that is the honest number rather than a tidy one.
+    //
+    // It was pinned at 13 while the real figure was 6, which is a pin that would
+    // not have noticed seven new failures. Examining the six is what closed it:
+    // two render an honest outage page under 503 and are now read, three are
+    // aliases whose chain ends on a rendered page, and /auth/callback answers
+    // "OAuth deferred" to a request carrying no OAuth code, which is correct.
+    //
+    // Every route is now either rendered or lands on a page that was. If that
+    // stops being true, this says so on the first run rather than the fiftieth.
+    assert.deepEqual(
+      unreachable,
+      [],
+      `${unreachable.length} routes rendered for neither session and do not redirect to a page that did:\n  ${unreachable.join("\n  ")}`
     );
     // And the map must not be empty, because an empty one would mean the
     // recording stopped rather than that everything rendered.

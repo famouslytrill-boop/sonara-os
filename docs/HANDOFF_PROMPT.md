@@ -122,6 +122,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — the open end closed, and the pin that was loose by more than double
+
+Yesterday's entry recorded thirteen routes the outage crawl could not render,
+unexamined, with the count pinned "so the set cannot grow unnoticed". Examining
+them found something about the pin itself first.
+
+**There were six, not thirteen.** The 13 came from a run before the alias rule
+took effect and was never re-measured. A pin set at more than double the real
+figure would have sat green through **seven** new failures — which is the same
+defect as the bare `continue` it replaced, only quieter, because a number that
+looks deliberate invites less suspicion than an obvious gap.
+
+**Examining the six closed all of them.**
+
+- `/business-builder/dashboard` and `/business-builder/control-center` answer
+  **503 and render a real page** — *"Business Builder is temporarily
+  unavailable"*. The crawl skipped every non-200, which meant **it had never
+  inspected the pages written for the state it exists to test**. Those are the
+  pages most likely to make a claim about a customer's records, because they are
+  the ones with something to explain. 503 bodies are read now, when a body came
+  back; a 302 has nothing to read and a 500 is a different check's problem.
+- `/creator-studio/billing` and `/growth-studio/billing` redirect to `/billing`,
+  which redirects again to `/business-builder/billing`, which the crawl renders.
+  **A two-hop chain against a one-hop rule.** The rule follows the chain now,
+  with a `seen` set, because a redirect loop would otherwise hang the check that
+  exists to stop things going unnoticed.
+- `/business-builder/businesses` is a 302 to `/control-center`, resolved by the
+  same two fixes together.
+- `/auth/callback` answers *"OAuth deferred"* to a request carrying no OAuth
+  code, which is correct.
+
+**The pin is now zero**, asserted as `deepEqual(unreachable, [])`. Every route is
+either rendered or lands on a page that was. Proved rather than assumed: adding
+one unrenderable route to the registry fails the run, and removing it passes.
+
+Worth keeping the shape of this. The finding was not in the six routes — five of
+the six were behaving correctly all along. The finding was that **the number
+guarding them was wrong, and wrong in the permissive direction**, which is the
+only direction that stays quiet.
+
 ### 2026-08-18 — a GitHub category sweep, and the search that returned postcss
 
 Two categories swept properly out of roughly forty asked for. Method and findings
