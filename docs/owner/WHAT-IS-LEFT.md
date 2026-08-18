@@ -41,7 +41,7 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 102 reviewed repositories, 11 carry a
+**Some of it cannot be built as stated.** Of 104 reviewed repositories, 11 carry a
 reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
 reaches a hosted product; 6 declare no licence at all — which is not a review
 item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable

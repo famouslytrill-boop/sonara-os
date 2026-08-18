@@ -372,3 +372,54 @@ The value available without adopting anything, and without resolving any licence
 is the **membership model itself**: tiers, gated posts, and what a member sees
 before and after paying. That is the part this product does not have, and it is
 readable for free.
+
+
+## Pass eight: audio and music
+
+Licence-first again: `topic:audio-processing`, MIT, above 2,000 stars, pushed in
+the last year. Five results, and two worth registering.
+
+| Repository | Stars | Licence (verified) | What it is |
+| --- | --- | --- | --- |
+| `deezer/spleeter` | 28,379 | **MIT** | Splits a mix into vocals, drums, bass, other |
+| `cgzirim/seek-tune` | 5,595 | **MIT** | Shazam's recognition algorithm, in Go |
+
+Both carry the split now familiar from WhisperX: **the code is MIT and the
+pretrained models are separately licensed**, and the models are the part doing
+the work. Both are also outside this runtime — Python/TensorFlow and Go — so
+they are services the owner runs, not libraries this application imports.
+
+### The trap in seek-tune, which is the reason it is registered
+
+This repository already has a table called **`song_fingerprints`**, and the
+subsystem registry described it as backing anti-clone matching. Pointing an
+acoustic fingerprinter at it is the obvious move and it is wrong.
+
+Its columns are `song_title`, `creator_name`, `identity`, `mood`,
+`audience_signal`, `sonic_palette`, and a `fingerprint_id` that is **a plain text
+field somebody supplies**. No audio. No hash. Nothing derived from a recording.
+It is a description of a work's creative identity, and the word "fingerprint" in
+its name means something entirely different from the word "fingerprint" in
+seek-tune's.
+
+`grep` finds no writer either — the migration, the tenant-scoped list, and the
+registry note, and no code that reads or writes it.
+
+So acoustic matching is **new storage and a new safety flow**, not a column added
+to a table that already sounds right.
+
+The registry's description said *"Fingerprints used to tell one piece of work from
+another"* — which is exactly what an acoustic fingerprint does, and so read as a
+promise the columns do not keep. **That description has been corrected** to say
+what the table actually holds. The table itself cannot be renamed from here:
+migration 004 is frozen, and a rename is a destructive data change, which
+`AGENTS.md` puts behind owner approval.
+
+This is the recurring defect of this codebase found one layer out from the code —
+a *description* claiming a capability that does not exist, which is harder to
+notice than a function that lies, because nothing runs it.
+
+And the safety point stands ahead of the engineering one: a false positive
+accuses a creator of copying. The flow that consumes a match is the
+safety-critical part, not the matcher, and the registry was already right that
+nothing should act on a match until that flow is designed.

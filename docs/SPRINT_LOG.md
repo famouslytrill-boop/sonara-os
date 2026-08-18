@@ -2,6 +2,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a table whose name promised something its columns do not have
+
+Eighth sweep pass: audio and music, licence-first. Two registered, both verified
+MIT — **spleeter** (28,379 stars, stem separation) and **seek-tune** (5,595, Go,
+Shazam's recognition algorithm). Both carry the split that WhisperX established:
+the code is MIT and the pretrained models are separately licensed, and the models
+are the part doing the work. Both are outside this runtime, so both are services
+the owner runs.
+
+**seek-tune is registered mainly because of a trap next to it.** This repository
+has a table called `song_fingerprints`, and the subsystem registry described it
+as backing anti-clone matching. Pointing an acoustic fingerprinter at it is the
+obvious move and it is wrong.
+
+Its columns are `song_title`, `creator_name`, `identity`, `mood`,
+`audience_signal`, `sonic_palette`, and a `fingerprint_id` that is **a plain text
+field somebody supplies**. No audio, no hash, nothing derived from a recording.
+The word "fingerprint" in its name means something entirely different from the
+word "fingerprint" in seek-tune's. `grep` finds no writer either — the migration,
+the tenant-scoped list, the registry note, and no code.
+
+So acoustic matching is new storage and a new safety flow, not a column added to
+a table that already sounds right.
+
+**The registry's description was the part that misled, and it is fixed.** It read
+*"Fingerprints used to tell one piece of work from another"* — which is precisely
+what an acoustic fingerprint does, so it promised what the columns do not hold.
+It now says what the table actually stores. The table cannot be renamed from
+here: migration 004 is frozen and a rename is a destructive data change, which
+`AGENTS.md` puts behind owner approval, so the description was moved to the
+columns rather than the other way round.
+
+This is the codebase's recurring defect found one layer out from the code. A
+*description* claiming a capability that does not exist is harder to catch than a
+function that lies, because nothing executes a description — no test fails, no
+page breaks, and it reads as documentation of something real for as long as
+nobody opens the schema.
+
+The safety point sits ahead of the engineering one and the registry already had
+it right: a false positive accuses a creator of copying, so the flow that
+consumes a match is the safety-critical part, not the matcher, and nothing should
+act on a match until that flow exists.
+
+Register at **104** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
 ### 2026-08-18 — the empty category was the wrong word
 
 Seventh sweep pass: publishing. `topic:publishing` splits between publishing and

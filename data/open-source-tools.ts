@@ -2407,6 +2407,62 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     humanReviewRequired: true,
   },
   {
+    name: "seek-tune (Shazam-style audio fingerprinting)",
+    slug: "seek-tune-audio-fingerprinting",
+    category: ["audio fingerprinting", "anti-clone safety", "category sweep 2026-08-18"],
+    useCase: ["recognising that two recordings are the same recording, which is the matching half of the anti-clone rule AGENTS.md states"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\").",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "do not wire this to song_fingerprints on the strength of the name -- read that table's columns first, and see the note below",
+      "the safety flow comes before the matching: lib/sonara-subsystem-registry.cjs already records that nothing should act on a match until one is designed, and a matcher without it is worse than no matcher",
+      "reach it as a service the owner runs; it is Go with a database behind it, not a library this runtime imports",
+    ],
+    officialUrl: "https://github.com/cgzirim/seek-tune",
+    repoUrl: "https://github.com/cgzirim/seek-tune",
+    notes:
+      "5,595 stars, Go, MIT, last pushed November 2025 -- inside the last year but by nine months, which is worth knowing before depending on it. It implements Shazam's recognition algorithm: spectrogram peaks, hashed constellation pairs, matched against a database. The reason this record exists is a trap it would be easy to walk into. This repository already has a table called song_fingerprints, described in the subsystem registry as backing anti-clone matching, and the obvious move is to point an acoustic fingerprinter at it. The columns say otherwise. song_fingerprints holds song_title, creator_name, identity, mood, audience_signal and sonic_palette, and its fingerprint_id is a plain text field somebody supplies. There is no audio, no hash, no value derived from a recording -- it is a description of a work's creative identity, and the word fingerprint in its name means something entirely different from the word fingerprint in this repository's. Nothing in the runtime reads or writes it either: grep finds the migration, the tenant-scoped list and the registry note, and no writer. So adopting acoustic fingerprinting is new storage and a new safety flow, not a column added to an existing table. The registry's own status line is the honest one and still holds: nothing matches or blocks today, and the flow has to be designed before anything acts on a match.",
+    safetyBoundaries: [
+      "no automated action on a match: a match is evidence for a person to look at, never a takedown, a block or a published accusation",
+      "a false positive accuses a creator of copying, so the flow that consumes a match is the safety-critical part, not the matcher",
+      "recordings uploaded for matching are the uploader's own work and are subject to the same consent, retention and export rules as every other record here",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Spleeter",
+    slug: "spleeter-source-separation",
+    category: ["audio processing", "stem separation", "category sweep 2026-08-18"],
+    useCase: ["splitting a recording into vocals, drums, bass and other, so a creator can reuse or remix their own material"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). The pretrained models it ships are published by Deezer under their own terms and are not covered by this record.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "check the pretrained models' terms separately: the code is MIT and the models are the part that does the work, which is the same split as WhisperX",
+      "reach it as a service the owner runs; it is Python and TensorFlow, which is not what a serverless function loads",
+      "separation is only offered on material the uploader owns -- pulling stems out of somebody else's record is exactly what the anti-clone rule exists to prevent",
+    ],
+    officialUrl: "https://research.deezer.com/projects/spleeter.html",
+    repoUrl: "https://github.com/deezer/spleeter",
+    notes:
+      "28,379 stars, MIT, pushed within the last year, from Deezer's research group. Separates a mix into vocals, drums, bass and other. The obvious Creator Studio use is a creator reworking their own material -- pulling an a cappella out of a track they own, or a backing track for live use -- and the obvious misuse is doing it to somebody else's record, which is why the boundary below is stated rather than assumed. Two constraints beyond the licence, both familiar from the speech-recognition records: TensorFlow and Python put it outside this runtime, and its MIT licence covers the code rather than the pretrained models, which are separately published and are the part that actually separates anything.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "separation offered only on material the uploader owns, under the same provenance rules as every other upload",
+      "never a dependency: a creator's records stay readable whether or not any audio service is reachable",
+    ],
+    humanReviewRequired: true,
+  },
+  {
     name: "Ghost",
     slug: "ghost-publishing-memberships",
     category: ["publishing", "memberships", "paid subscriptions", "category sweep 2026-08-18"],
