@@ -271,6 +271,14 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
   });
 
   app.get("/api/growth/touchpoints", access, listHandler(TABLES.touchpoints, deps, "touchpoints"));
+  // true, false, or "nobody said". Absent is not false.
+  function handEnteredFrom(body) {
+    const raw = body?.hand_entered ?? body?.handEntered;
+    if (raw === undefined || raw === null || raw === "") return null;
+    if (raw === false || raw === "false" || raw === 0 || raw === "0") return false;
+    return truthy(raw) ? true : null;
+  }
+
   app.post("/api/growth/touchpoints", access, async (req, res) => {
     const context = await resolveContext(req, deps);
     if (!context.ok) return res.status(context.status).json(context);
@@ -297,9 +305,23 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
       value: numberOrNull(req.body.value),
       currency: nullable(req.body.currency, 20),
       occurred_at: validDate(req.body.occurred_at || req.body.occurredAt) || new Date().toISOString(),
+      // Whether a person typed this row, and the three answers are on purpose.
+      //
+      // A caller that says so gets true or false recorded. A caller that says
+      // nothing gets null -- "nobody recorded which" -- rather than false,
+      // because defaulting to false would assert that every integration-written
+      // row is *known* to be machine-recorded, which is a claim about callers
+      // this endpoint has never met.
+      //
+      // The "Reached" stage of lib/sonara-customer-journey.cjs excludes true
+      // from its measured count and reports it separately. That is the half
+      // that makes an offline-touchpoint form safe to offer at all: without it,
+      // typing a touchpoint raises your own reach and lowers your own apparent
+      // drop-off.
+      hand_entered: handEnteredFrom(req.body),
       metadata: parseObject(req.body.metadata, {})
     });
-    if (created.ok) await controlEvent(config, context, "touchpoint.recorded", "success", { touchpoint_id: created.rows[0]?.id, event_name: eventName, deduplication_key: deduplicationKey }, created.rows[0]?.campaign_id);
+    if (created.ok) await controlEvent(config, context, "touchpoint.recorded", "success", { touchpoint_id: created.rows[0]?.id, event_name: eventName, deduplication_key: deduplicationKey, hand_entered: handEnteredFrom(req.body) }, created.rows[0]?.campaign_id);
     return res.status(created.ok ? 201 : created.status === 409 ? 409 : 502).json({ ok: created.ok, touchpoint: created.rows[0], code: created.ok ? "ok" : "touchpoint_duplicate_or_invalid" });
   });
 

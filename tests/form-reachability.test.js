@@ -69,7 +69,7 @@ const NO_FORM_NEEDED = {
   // is matched against. Conversions got a form because attribution_confidence
   // lets a hand-entered sale say it is not established; this table has no
   // equivalent. An offline-touchpoint feature starts with that column.
-  "/api/growth/touchpoints": "Records that something happened, with no field marking a row as hand-entered. A form would put fabricated evidence beside tracked evidence with nothing to tell them apart.",
+
   "/api/formulas/results": "Written when a formula is evaluated, not composed by hand.",
 
   // Examined, all of them. They divide into two kinds, and the distinction

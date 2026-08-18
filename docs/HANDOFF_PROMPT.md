@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 87 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 180 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 181 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,54 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — offline touchpoints, refused twice and now built
+
+The refusal note in `lib/sonara-growth-create-specs.cjs` named its own
+condition: *"If offline touchpoints are wanted later, the honest version starts
+with a column recording that a person entered it."* That column landed earlier
+today, so the feature is built — and the three parts that make it safe landed
+together rather than in sequence.
+
+**The form.** A business can record the conversation at the counter, the phone
+call, the person who mentioned where they heard of you. It deliberately does not
+offer `provider_key`, `anonymous_id` or `external_event_id`: those identify a
+tracked source, and putting them on a hand-entry form is offering to dress a
+typed row as a measured one.
+
+**The endpoint records which.** `true` for anything the form submits, and
+**`null` — not `false` — when a caller says nothing**, because defaulting to
+false would assert that every integration-written row is *known* to be
+machine-recorded, which is a claim about callers this endpoint has never met.
+
+**The funnel excludes it, and this is the half that matters.** The "Reached"
+stage counts only rows that are not hand-entered. Every drop rate below it is
+computed against that number, so without this a business could raise its own
+reach and lower its own apparent drop-off by typing. `!== true` rather than
+`=== false`, because null means "nobody recorded which" and every row written
+before the column existed is tracked as far as anybody knows — treating null as
+hand-entered would erase the whole history from the funnel.
+
+The typed ones are **reported, not dropped**. `countStage` returns `handEntered`
+alongside `count`. Excluding them silently would be as misleading as counting
+them: the business recorded those on purpose and is entitled to see them, just
+not inside a measured figure.
+
+**Three existing checks refused the change, and each was right.** The
+Growth-forms test caught that the handler wants `tracking_basis_attested` and the
+form had no field for it — a form that submits into a 400 the customer cannot
+act on, which is a defect that test already guards for content. The
+form-reachability test caught its own now-stale exemption. And the test that had
+refused this form twice failed by name.
+
+That third one was rewritten rather than deleted, and it now asserts the
+**invariant instead of the absence**: the column exists, the funnel excludes
+typed rows and still counts null ones, the form offers no tracked-source field,
+and the attestation is present and not pre-ticked. Verified by removing each of
+those three protections in turn — every one fails, and the funnel one fails by
+name.
+
+`verify:launch` green, **1954** tests passing.
 
 ### 2026-08-18 — an existence check that was asking the wrong module
 
