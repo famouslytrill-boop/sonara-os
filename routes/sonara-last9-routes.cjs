@@ -12,6 +12,7 @@ const {
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
 const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
+const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
@@ -180,6 +181,77 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     // A calendar file is a snapshot of a row that can change.
     res.setHeader("Cache-Control", "no-store");
     return res.send(invite.body);
+  });
+
+  // Customers as contact cards.
+  //
+  // The third record type to get a file somebody else's software opens, after
+  // bookings became calendar entries and accounting exports became CSV. A grep
+  // for VCARD across server.js, lib/ and routes/ found nothing before this, so
+  // "Customer & Enquiry Tracker" -- a paid product -- could hold a customer's
+  // number and offer no way to get it into the phone you would ring them from.
+  //
+  // The whole list first, so the static path is matched before the :recordId
+  // route below could take "contacts" for an identifier. Declared in this order
+  // deliberately rather than by luck.
+  app.get("/business-builder/owner/customers/contacts", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so there are no customers to read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "customers",
+      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=name.asc&limit=2000`
+    );
+    // `found.ok ? found.rows : []` would hand back an empty address book during
+    // an outage, which reads as a business with no customers.
+    if (!found.ok) return res.status(503).type("text").send("We could not read your customers just now. Nothing has changed; try again shortly.");
+
+    const book = buildContactBook(found.rows, { now: new Date() });
+    if (!book.ok) return res.status(503).type("text").send(book.message);
+
+    res.setHeader("Content-Type", book.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${book.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Sonara-Contacts-Included", String(book.included));
+    // Said out loud. A customer with no email and no phone cannot become a
+    // contact, and an address book quietly missing nine people is one the
+    // business has no way to notice is short.
+    if (book.skipped.length) res.setHeader("X-Sonara-Contacts-Skipped", String(book.skipped.length));
+    return res.send(book.body);
+  });
+
+  app.get("/business-builder/owner/customers/:recordId/contact", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That customer reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this customer cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    // Scoped by organization as well as by id: the service key bypasses row
+    // level security, so without the organization filter a guessed id from
+    // another business would download.
+    const found = await supabaseList(
+      config,
+      "customers",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return res.status(503).type("text").send("We could not read that customer just now. Nothing has changed; try again shortly.");
+    const customer = found.rows[0];
+    if (!customer) return res.status(404).type("text").send("That customer is not in your business, or they have been removed.");
+
+    const card = buildContactCard(customer, {});
+    // 422 rather than 500: the row is readable and the request is well formed,
+    // and what is missing is a way to reach the person. The message names it.
+    if (!card.ok) return res.status(422).type("text").send(card.message);
+
+    res.setHeader("Content-Type", card.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${card.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(card.body);
   });
 
   // An accounting export as a file, because until now it was only ever a row.

@@ -180,7 +180,10 @@ const leaks = [];
   // hand and deliberately short: a route added here stops being checked for
   // page markers, so it has to be a genuine download and not a page somebody
   // found inconvenient to fix.
-  const FILE_DOWNLOADS = new Set(["/business-builder/owner/bookings/calendar"]);
+  const FILE_DOWNLOADS = new Set([
+    "/business-builder/owner/bookings/calendar",
+    "/business-builder/owner/customers/contacts"
+  ]);
   const downloadResponses = [];
 
   async function crawlAs(routes, label, cookieName) {

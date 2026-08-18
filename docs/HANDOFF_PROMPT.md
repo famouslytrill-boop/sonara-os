@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 86 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 178 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 179 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,50 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — contacts, and the same literal mistake for the third and fourth time
+
+Third record type to become a file somebody else's software opens, after
+bookings became calendar entries and accounting exports became CSV. A grep for
+`VCARD` across `server.js`, `lib/` and `routes/` found nothing, so **"Customer &
+Enquiry Tracker" — a paid product — could hold a customer's phone number and
+offer no way to get it into the phone you would ring them from.**
+
+`/business-builder/owner/customers/:id/contact` for one,
+`/business-builder/owner/customers/contacts` for the address book. No dependency,
+no service the owner runs, no per-customer cost. The static path is declared
+before the parameterised one deliberately rather than by luck.
+
+Two judgements written into the module rather than left implicit. **A name and
+nothing else is a valid vCard and a useless one** — it imports somebody you still
+cannot contact — so a card needs an email or a phone and the refusal says which
+is missing. And **N is not guessed**: the product stores one `name` column, and
+treating the last word as a family name is wrong for most of the world, so the
+whole value goes in the first component and the rest stay empty.
+
+**Then the same mistake, twice more.** `escapeText` was written
+`.replace(/;/g, "\;")` — which in a JavaScript literal is just `";"`. In a vCard
+that is worse than in a calendar file: `N` is positional and semicolon-separated,
+so an unescaped semicolon in "Ashby; Ltd" imports as a family name and a given
+name. Then the test asserting the fix was written with the same literal and
+agreed with the broken code. That is the **third** and **fourth** occurrence of
+one two-character mistake across three files.
+
+So the guard is no longer per-module. One test now asserts that **both**
+`sonara-contact-card.cjs` and `sonara-calendar-invite.cjs` escape a semicolon, a
+comma and a backslash, and names which one failed. Verified by regressing each
+module in turn: the calendar regression fails with "calendar invite leaves a
+semicolon unescaped", the contact regression with "contact card leaves a
+semicolon unescaped". Each module's own test would have caught only its own copy,
+and the second copy was written *after* the first was fixed.
+
+The outage crawl asked for the new download to be listed in `FILE_DOWNLOADS`,
+which is the hand-maintained list added when the diary shipped. That puts it
+under the stricter download assertion — 503, a readable body, no JSON blob, no
+placeholder — rather than the page rule, which is the designed path and not a
+weakening.
+
+`verify:launch` green, **1944** tests passing.
 
 ### 2026-08-18 — the first e-commerce record, and a table named for the wrong thing
 
