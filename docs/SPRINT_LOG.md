@@ -2,6 +2,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — a category that yields tooling, and a property nothing was holding
+
+Eleventh sweep pass: animation. Ten results above 1,000 stars, and **every one
+runs in the browser** — the good shape by pass nine's rule. By the standard the
+owner set, none of them qualifies. `anime.js` (72,222 stars, the most-starred
+repository found anywhere in this sweep), `mojs`, `svg.js`, `two.js`, `thorvg`
+and the rest are **libraries for building our own interface**. They would make
+these pages nicer. None is something a Creator Studio customer would ever see
+listed as a feature.
+
+That is a third kind of empty result, and the three are worth keeping distinct:
+**wrong word** (`topic:paywall`, where the software existed under
+`topic:publishing`), **wrong intent** (paywall removers, StreamCap), and now
+**wrong altitude** — real, well-licensed, well-shaped software that is
+infrastructure for us rather than a product for a customer. A sweep optimising
+for registrations adds `anime.js` on its star count, and the register then holds
+a JavaScript animation library inside a programme of work about products that
+solve customer problems.
+
+**What the pass produced instead.** Asking whether the product needed an
+animation library meant checking what it already does, and that turned up an
+unguarded property rather than a defect.
+
+Eight client assets start motion. **All eight respect `prefers-reduced-motion`,
+so nothing is broken.** What did not exist was anything holding it there:
+`tests/motion-brand-system.test.js` asserts that
+`public/sonara-application-ui.css` carries a reduced-motion block — true, and
+about that one loader. A ninth animating file with no guard would have failed
+nothing, and the suite would have stayed green while the guarantee quietly
+stopped being true. That is this codebase's defect class in its purest form: not
+a signal reporting success falsely, but a guarantee with no signal at all.
+
+`tests/motion-respects-the-reduced-motion-setting.test.js` now asserts it across
+every asset in `public/`, and asserts the list is non-empty first, because a
+list-based check passes by being empty. **Verified three ways before being
+trusted**: a new animating file with no guard (caught), the guard stripped from a
+real file (caught and named), and the population emptied to zero (caught by the
+non-empty assertion rather than passing silently).
+
+`AGENTS.md` puts sounds, voice announcements and haptics off by default or under
+explicit user control. Motion is the same kind of thing, and the operating system
+already carries the user's answer.
+
+Register unchanged at **107** repositories. `verify:launch` green, **1910** tests
+passing.
+
 ### 2026-08-18 — a cost that grows when the customer succeeds
 
 Tenth sweep pass: streaming, licence-first, MIT and Apache-2.0 run separately

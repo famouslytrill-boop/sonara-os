@@ -534,3 +534,56 @@ clean permissive licence, high star count, and **nothing in its metadata flags
 it**. Only the description does. That is `topic:paywall` again — a search term
 that is right for the capability and wrong for the intent. A sweep that screens
 on licence and stars and skips the reading ships this one.
+
+
+## Pass eleven: animation — a category that yields tooling, not products
+
+`topic:animation` + `topic:svg`, above 1,000 stars, pushed in the last year: ten
+results, and **every one runs in the browser**. By pass nine's rule that is the
+good shape. By the standard the owner actually set — a product must solve a real
+problem, have real-world usage, and be marketable — none of them qualifies.
+
+`anime.js` (72,222 stars, the most-starred repository found anywhere in this
+sweep), `mojs`, `svg.js`, `two.js`, `thorvg`, `morphicons` and the rest are
+**libraries for building our own interface**. They would make SONARA's pages
+nicer. They are not something a customer of Creator Studio would ever see listed
+as a feature.
+
+That is a third kind of empty result, distinct from the two already recorded:
+
+1. **Wrong word** — the software exists under a different term (`topic:paywall`
+   → Ghost under `topic:publishing`).
+2. **Wrong intent** — the software does the opposite of what this product needs
+   (paywall removers, StreamCap).
+3. **Wrong altitude** — the software is real, well-licensed, well-shaped, and is
+   *infrastructure for us* rather than a product for a customer.
+
+Nothing registered. Recording the reason matters more than the result: a sweep
+optimising for registrations would have added `anime.js` on its star count, and
+the register would then hold a JavaScript animation library filed under a
+programme of work about products that solve customer problems.
+
+### What the pass produced instead
+
+Checking whether the product needed an animation library meant checking what it
+already does, and that turned up something worth fixing — not a defect, an
+unguarded property.
+
+**Eight client assets start motion. All eight respect
+`prefers-reduced-motion`.** The property holds today. What did not exist was
+anything holding it there: `tests/motion-brand-system.test.js` asserts that
+`public/sonara-application-ui.css` carries a reduced-motion block, which is true
+and is about that one loader. A ninth animating file with no guard would have
+failed nothing, and the suite would have stayed green while the guarantee
+quietly stopped being true.
+
+`tests/motion-respects-the-reduced-motion-setting.test.js` now asserts the
+property across every asset in `public/`, and — because a list-based check can
+pass by being empty — asserts the list is non-empty first. Verified three ways
+before being trusted: a new animating file with no guard (caught), the guard
+stripped from a real file (caught, named), and the population emptied to zero
+(caught by the non-empty assertion rather than passing silently).
+
+`AGENTS.md` puts sounds, voice announcements and haptics off by default or under
+explicit user control. Motion is the same kind of thing, and the operating system
+already carries the user's answer.
