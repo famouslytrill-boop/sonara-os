@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 83 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 171 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 172 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -121,6 +121,39 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — a malformed role read could take out every admin page
+
+Ten focused minutes on the sweep, and the one thing found is the worst-placed
+instance of the day.
+
+**`getUserRoles` iterated whatever came back.** It read `user_roles` and ran
+`for (const row of rows)` on the parsed body. PostgREST answers **200 with an
+object** in some failure modes — an error body rather than a row list — and
+`for...of` on an object throws. This is the admin authorization path; every admin
+page calls it. Before the route safety net landed earlier in this branch that
+throw hung the request forever, and after it the same throw is a **500 on every
+admin page at once**, from a database that is answering.
+
+Verified by removing the guard and watching `TypeError: rows is not iterable` at
+`getUserRoles` on `/admin`, rather than by reading the code and reasoning about
+it.
+
+The fix fails closed, which is the only acceptable direction here: an unreadable
+role list grants nothing. `row?.role` rather than `row.role` for the same reason —
+a ragged array denies instead of throwing, and a valid row after a bad one is
+still honoured.
+
+**Two smaller cause-claims corrected while there.** The dashboard said *"Setup
+required: the service_requests table is not available yet"* and the same for
+deliverables, whenever `safeListTable` returned not-ok. A 500 is not a missing
+table, and that sentence sends an owner to run a migration that is already
+applied. Both now say the figure could not be read.
+
+**Two sibling reads were already guarded** — storage buckets and the agent
+activity queue both do `Array.isArray(rows) ? rows : []`. `getUserRoles` was the
+outlier, which is the useful shape of the finding: the pattern was known here and
+the one place it was missing is the one that gates administration.
 
 ### 2026-08-18 — a crawl for the pages nobody crawled, and the branch it proved unreachable
 

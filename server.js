@@ -2253,13 +2253,13 @@ async function getCommandCenterSummary(req) {
         ? `${open.length} open of ${requests.rows.length} recent service requests.`
         : "No service requests yet. Browse the catalog to submit the first one.";
     } else {
-      requestsSummary = "Setup required: the service_requests table is not available yet.";
+      requestsSummary = "We could not read your service requests just now, so this figure is missing rather than zero.";
     }
     const deliverables = await safeListTable("service_deliverables", `?select=id,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=updated_at.desc&limit=20`);
     if (deliverables.ok) {
       deliverablesSummary = deliverables.rows.length ? `${deliverables.rows.length} recent deliverables on record.` : "No deliverables yet. They appear when an operator publishes work.";
     } else {
-      deliverablesSummary = "Setup required: the service_deliverables table is not available yet.";
+      deliverablesSummary = "We could not read your deliverables just now, so this figure is missing rather than zero.";
     }
     const billing = await getBillingPanelSummary(organization.organizationId);
     // The trailing sentence explains how access is granted, which is only worth
@@ -3541,9 +3541,9 @@ async function getUserRoles(user) {
   const query = `/rest/v1/user_roles?select=role&user_id=eq.${encodeURIComponent(userId)}`;
   const response = await fetch(`${config.url}${query}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
   if (response?.ok) {
-    const rows = await response.json().catch(() => []);
-    for (const row of rows) {
-      if (["owner", "admin", "customer", "employee"].includes(row.role)) roles.add(row.role);
+    const rows = await response.json().catch(() => null);
+    for (const row of Array.isArray(rows) ? rows : []) { // PostgREST can answer 200 with an error object, and for...of on one throws -- here, on the admin authorization path
+      if (["owner", "admin", "customer", "employee"].includes(row?.role)) roles.add(row.role);
     }
   }
   return { ok: roles.size > 0, roles: Array.from(roles) };
