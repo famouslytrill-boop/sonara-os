@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-95 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+98 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -121,6 +121,52 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-18 — the search term that would have got it backwards
+
+Third sweep pass: paywall, creator economy, speech recognition.
+
+**`topic:paywall` is paywall *bypassing*.** Third topic-name trap after
+`topic:pos` (postcss, postgrest, oh-my-posh) and `topic:scheduling` (cron, not
+appointments), and the first one where following the results would have been
+actively harmful rather than merely wasteful. Five repositories carry the topic
+above 200 stars; **four exist to defeat paywalls** — `everywall/ladder` at 8,819
+stars leads the category. Creator Studio's job is to help creators put work
+*behind* a paywall and get paid. A sweep that ranked by stars and skipped the
+reading would have reported the most popular anti-paywall tool on GitHub as the
+category leader for a product that sells paywalls. Nothing registered, and
+licence had nothing to do with it.
+
+**`topic:creator-economy` is thin and yields nothing.** Four repositories above
+50 stars in the last year: a curriculum, a Google-Drive-plus-crypto video
+platform, a 100-star project with 161 open issues, and a cookbook for a keyed
+hosted API that also "finds verified emails" — a price rather than a licence, and
+a lead-scraping capability that meets this product's consent rules head-on. The
+empty result is recorded deliberately: research that only reports hits cannot be
+distinguished from research that found nothing and said nothing.
+
+**Speech recognition was a real gap.** 33 projects above 3,000 stars pushed in
+the last year, and the register held **nothing at all** under it across 95
+records — while captions and transcripts are squarely Creator Studio's job and
+the owner named speech recognition explicitly. Three added, each licence verified
+by the detected-licence method: **whisper.cpp** MIT (52,977 stars),
+**whisperX** BSD-2-Clause (23,617), **vosk-api** Apache-2.0 (15,064).
+
+**Licence is not what constrains any of the three, and the records say so.** This
+is Express on Vercel serverless with no build step. A C++ binary with
+multi-gigabyte weights, a Python GPU pipeline and native bindings are none of
+them things a serverless function loads. All three sit at
+`optional_adapter_after_review` because adopting them means the owner runs a
+service reached under the four rules in `docs/architecture/EXTERNAL-SERVICES.md`
+— infrastructure and cost, not licensing. Two further things the licence does not
+cover, written into the records rather than left to be found: WhisperX's
+permissive licence does not reach the alignment and diarization models it
+downloads at runtime, which are the pieces doing the work; and diarization
+attributes speech to a named person, which under this product's provenance and
+consent rules is a draft for a human to confirm, never a published label.
+
+Register at **98** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
 
 ### 2026-08-18 — the repository had been renamed, and six licences were guesses
 

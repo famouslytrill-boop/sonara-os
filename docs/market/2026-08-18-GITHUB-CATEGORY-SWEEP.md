@@ -116,3 +116,70 @@ Two things stand out.
 ## Running tally
 
 Four categories swept properly: point-of-sale, text-to-speech, CRM, and appointment booking. Of roughly forty asked for. The pattern holding across all four is that **the strongest project in a category is more often reciprocal than not**, and the usable ones are smaller, newer, or templates.
+
+
+## Pass three: paywall, creator economy, speech recognition
+
+### `topic:paywall` is paywall *bypassing*, and this is the trap that matters
+
+Third topic-name trap in this sweep, after `topic:pos` (postcss, postgrest,
+oh-my-posh) and `topic:scheduling` (cron and batch jobs, not appointments). This
+one is different in kind, because the results are plausible, popular, and would
+be actively harmful to adopt.
+
+Five repositories carry the topic above 200 stars. **Four of them exist to defeat
+paywalls**: `everywall/ladder` (8,819 stars, "selfhosted alternative to 12ft.io"),
+`manualdousuario/marreta`, `burlesco/burlesco`, `stefanw/bibbot`. The fifth,
+`paywallpro/paywall-gallery`, is a screenshot gallery of iOS subscription
+paywalls — a design reference, not software.
+
+Creator Studio's job is to help creators **put** work behind a paywall and get
+paid for it. The most popular software under the obvious search term is built to
+take that away from them. A sweep that ranked by stars and skipped the reading
+would have surfaced an 8,800-star "paywall" project as the category leader.
+Nothing here is registered, and the reason is not licence.
+
+### `topic:creator-economy` is thin, and nothing in it is adoptable
+
+Four repositories above 50 stars pushed in the last year, and each fails on
+something other than licence:
+
+- `ai-creator-academy` (1,947 stars) — a curriculum. Not software.
+- `drivetube` (130 stars) — video platform on Google Drive with cryptocurrency
+  payments. Two hard dependencies this product does not want.
+- `InPactAI` (100 stars) — sponsorship matching; 161 open issues against 100
+  stars, which is a project earlier than its star count suggests.
+- `stormy-cookbook` (59 stars) — a cookbook for a **hosted, keyed API** that
+  also "finds verified emails". A price, not a licence, and a lead-scraping
+  capability that runs straight into this product's consent rules.
+
+Recording an empty category is the point. "Extensive research" that only reports
+hits cannot be told apart from research that found nothing and said nothing.
+
+### `topic:speech-recognition` — the real gap, and it was not licence
+
+33 projects above 3,000 stars pushed in the last year, and the register held
+**nothing at all** under speech recognition across 95 records, while captions and
+transcripts are squarely Creator Studio's job. Three were verified and added:
+
+| Repository | Stars | Licence (detected) | Why it is here |
+| --- | --- | --- | --- |
+| `ggml-org/whisper.cpp` | 52,977 | **MIT** | Runs on ordinary CPUs — no per-minute cost, no audio leaving the owner's hardware |
+| `m-bain/whisperX` | 23,617 | **BSD-2-Clause** | Word-level timestamps and diarization: the difference between a transcript and a publishable caption file |
+| `alphacep/vosk-api` | 15,064 | **Apache-2.0** | Small models on modest hardware, where the Whisper family will not run |
+
+All three permissive, and **licence is not what constrains any of them**. This
+application is Express on Vercel serverless with no build step. A C++ binary with
+multi-gigabyte weights, a Python GPU pipeline, and native bindings are all things
+a serverless function does not load. Adopting any of them means the owner runs a
+service and this application reaches it through an adapter under the four rules
+in `docs/architecture/EXTERNAL-SERVICES.md` — an infrastructure and cost
+decision, not a licensing one. All three are recorded at
+`optional_adapter_after_review` for that reason and no other.
+
+Two things the licence does not cover, stated in the records rather than left to
+be discovered. WhisperX's permissive licence does not reach the alignment and
+diarization models it downloads at runtime, which are the pieces doing the work.
+And diarization attributes speech to a person — under this product's provenance
+and consent rules that is a draft for a human to confirm, never a label published
+automatically.
