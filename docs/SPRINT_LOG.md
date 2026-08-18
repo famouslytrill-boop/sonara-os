@@ -2,6 +2,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — an existence check that was asking the wrong module
+
+Adding `hand_entered` to a customer-journey stage failed validation, which
+turned out to be the validation's fault rather than the column's.
+
+`lib/sonara-migration-columns.cjs` answers two different questions.
+`tableColumns` says which columns **exist** — including the 229 added by
+`alter table` across the migrations. `describedColumns` says which columns can
+be **described**, meaning declared inside a `create table` block with a parsed
+type; it deliberately omits the rest, and says why: *"a form field with a
+made-up type is worse than a missing one"*.
+
+`lib/sonara-customer-journey.cjs` used the second to answer the first. Its
+`validate()` exists so no column is typed from memory, and it would have
+reported a real column as missing — **35 columns across 22 tables exist without
+being describable**, and the first stage to name one would have been rejected.
+`sonara_sound_assets` alone has 13 of them.
+
+Existence uses `tableColumns` now. Nothing in that file needed a type, so the
+describable helper went out with the switch rather than staying beside it as a
+second way to ask.
+
+Verified in both directions, because a permissive check that stops rejecting
+anything is the obvious way to "fix" this and would have been worse: a stage
+naming a column that does not exist is still caught by name, and a stage naming
+a real `alter table` column is now accepted.
+
+**And a fix that was not made.** The first read of this looked like a 229-column
+blind spot in the module itself, and the first instinct was to teach it to
+describe `alter table` columns too. Reading the code stopped that. The omission
+is deliberate, documented, and protective: describing those 35 columns would put
+them into forms built from descriptions, and `hand_entered` reaching a customer
+form is exactly the wrong outcome. The narrow fix was in the caller, not the
+module.
+
+`verify:launch` green, 1948 tests passing.
+
 ### 2026-08-18 — which AI is possible here, and the column two features were waiting on
 
 Two pieces of work, and the first decided the second.
