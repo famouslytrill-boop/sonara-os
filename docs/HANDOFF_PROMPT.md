@@ -122,6 +122,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-18 — two tables nothing showed, and a wrong reason in an exemption list
+
+`waste_logs` and `location_zones` were both excused in
+`tests/form-reachability.test.js` as "no page displays this". One reason was
+right and the other was false.
+
+**`waste_logs` was right.** The endpoint existed, the columns existed, and a row
+written through it was invisible from the moment it was created; the exemption
+said "a form without a page to read the result on would be worse, not better",
+which is true and describes the wrong fix. `/business-builder/owner/waste` is the
+page. It belongs beside recipes and daily sales because it is the third number in
+the same sum — `lib/sonara-formula-library.cjs` already defines `waste_cost` over
+`waste_logs` and `inventory_items`, and a kitchen that knows its food cost and not
+its waste knows the smaller half of where the money went.
+
+**`location_zones` was false.** "No page displays location_zones; only the
+generic list and insert exist" — `/business-builder/routes` has listed them the
+whole time, and its empty state read "Add the areas you cover and they will
+appear here" above no form, on a page that never had one. **A wrong reason inside
+an exemption is worse than no exemption**, because it is what the next person
+reads instead of checking. `/business-builder/owner/areas` lists and creates them;
+the routes page redirects there, on the precedent set for vehicles — one page per
+kind of record rather than a second view that can drift.
+
+`polygon_geojson` is deliberately not on the form. Pasting GeoJSON into a text box
+is not a form, and nothing here draws a polygon or reads one.
+
+Two checks caught things on the way, both worth recording:
+
+- The outage crawl rejected "Nothing is dispatched and nothing is tracked in the
+  background" — "nothing is" reads as *you have no records* on a page whose reads
+  are failing. Reworded to "It dispatches nobody and follows nobody". That is the
+  **third** time this session the fix was the wording rather than an exemption.
+- `tests/search-keeps-up.test.js` refused both pages until they were searchable.
+  Waste searches by item and by the customer's own word for why; areas by name and
+  kind. Not by cost — a number is not a search term.
+
+Verified: `verify:launch` green end to end, 1981 tests passing, 277 required GET
+routes.
+
 ### 2026-08-18 — the cue page was promising playback
 
 Went to close the vibration-patterns dead end — a list with no way to add to it —

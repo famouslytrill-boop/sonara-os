@@ -88,8 +88,6 @@ const NO_FORM_NEEDED = {
   // validator special-cases it (`capability !== "reference_analysis"`), so only
   // a direct POST makes one.
   "/api/creator/reference-analyses": "Listed at /creator-studio/generation/reference-analysis and creatable only by direct POST; the generation form's capability picker does not offer reference_analysis. A form belongs on that page.",
-  "/api/business/waste": "No page displays waste_logs; only the generic list and insert exist. A form without a page to read the result on would be worse, not better.",
-  "/api/location/zones": "No page displays location_zones; only the generic list and insert exist.",
   // Examined. integration_jobs is inserted here and read by nothing: no runner,
   // no page, no status transition anywhere in the repository. A form would let
   // somebody queue work that will never run, which is worse than no form. Its
