@@ -143,7 +143,20 @@ const STAFF_PAGES = [
   ["/staff/location", "My Location", "Check-ins you have recorded for job sites, routes and deliveries."]
 ];
 
+// Customer-designed record types, registered from here rather than from
+// server.js.
+//
+// They are the same product area -- everything below serves
+// /business-builder/owner/* and this module already receives every dependency
+// they need -- and server.js is under a line ratchet in
+// tests/server-split.test.js whose whole point is that behaviour leaves it
+// rather than arriving. Four more lines there to reach a module that belongs
+// beside these ones would have been four lines in the wrong direction.
+const registerSubAppRoutes = require("./sonara-sub-app-routes.cjs");
+
 module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
+  registerSubAppRoutes(app, deps);
+
   const ui = buildUi(deps);
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireBusinessManager = deps.requireBusinessManager || requireCustomer;

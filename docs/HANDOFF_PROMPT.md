@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4033 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 90 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 91 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 188 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 189 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -123,6 +123,74 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — Sub-apps: records this product does not have a page for
+
+The owner's choice for the next block of work. Five `business_sub_app_*` tables
+were created on 30 May 2026 and nothing has ever read them;
+`lib/sonara-subsystem-registry.cjs` records why, honestly: "Designed, never
+built."
+
+**Why it could not have been built as it stood.**
+`business_sub_app_database_schemas` holds a `fields` jsonb describing what a
+record looks like, and **there was no table holding records**. A customer could
+design a record type and have nowhere to put one — a schema designer with no
+rows, which is the same shape as the feature it was meant to be.
+`20260819040000_sub_app_records.sql` is the missing half, and it is the first
+migration of the build rather than the last.
+
+One table for every customer record type, not one table each. Creating a real
+table per record type would mean this application issuing DDL at runtime with
+the service-role key, against a database whose migrations are frozen and
+checksummed precisely so nothing does that. Rows are jsonb, validated against
+the schema's own field list on the way in.
+
+The same migration adds what the original five tables never had: check
+constraints on their `status` columns — all of them were `text not null default
+'draft'` accepting any string, the gap `research_sources` carried until this
+morning — a constraint that `fields` is a non-empty array, and a unique index on
+`(sub_app_id, schema_key)` so two record types cannot claim the same page.
+
+**Seven field types**, and the shortness is the point: text, long text, number,
+money, date, yes/no, and one-of-a-list. Every one renders as an input, validates
+on the way in, and reads back as the same value. A type that cannot do all three
+is a column that looks supported and is not. File uploads, references between
+sub-apps and computed fields are absent on purpose — each needs storage,
+integrity or an evaluator that does not exist, and each would be a half-answer
+that looks whole in a dropdown.
+
+Four decisions worth not rediscovering:
+
+- **Money is whole cents.** `42.50` stores as `4250`, the rule every other money
+  column here follows, and a negative amount is refused rather than stored.
+- **A blank optional field is stored as `null`, not omitted.** Present-and-null
+  says "left blank"; absent says "this field did not exist when the record was
+  made", and those are different facts.
+- **An unticked checkbox is `false`, not unknown.** That is the one place absence
+  is a value rather than a gap, and it is true of every HTML form.
+- **A record is checked against the schema in the database, never against the
+  form that was submitted.** A form is HTML and a browser can edit it; the
+  stored field list cannot be.
+
+**Nothing writes `business_sub_app_deployments`.** It carries a
+`deployment_url` and this product cannot fill it: no build step, no per-tenant
+hosting, one serverless function serving every route. A sub-app lives inside
+SONARA at a path. A test asserts the route file never names that table or that
+column, because the next person to see `deployment_url` will reasonably assume
+it is meant to be written to.
+
+Registered from `routes/sonara-last9-routes.cjs` rather than from `server.js`:
+same product area, every dependency already in scope, and `server.js` is under a
+line ratchet whose whole point is that behaviour leaves it rather than arrives.
+It stays at 4,033.
+
+Twenty-five tests. Two probes fired correctly — dropping the organization filter
+from the schema lookup, and accepting any value for a list field. One existing
+guard caught a real problem in the new page: `no page lies when the database is
+down` flagged the sentence "nothing here will offer you one" as an empty-state
+claim about the customer's records. It was reworded rather than exempted.
+
+Suite 2,092 passing.
 
 ### 2026-08-19 — Applying the pricing restructure, and the plan that was selling nothing
 

@@ -1159,6 +1159,33 @@ paths:
           required: true
           schema: { type: string, format: uuid }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-apps:
+    post:
+      operationId: createBusinessSubApp
+      tags: [Operations]
+      summary: Build a set of records this product does not already have a page for.
+      description: A sub-app is a named collection of customer-designed record types, living at a page inside SONARA rather than at its own web address. The name becomes its address within the business and must be unique there.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-app-schemas:
+    post:
+      operationId: createBusinessSubAppSchema
+      tags: [Operations]
+      summary: Describe a record type inside a sub-app.
+      description: Takes a name and a field list. Each field has a label and one of seven types; a list field also carries its options. The parent sub-app must belong to the caller's organization, and a record type with no fields is refused because nothing could be entered against it.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-app-records:
+    post:
+      operationId: createBusinessSubAppRecord
+      tags: [Operations]
+      summary: Save one record against a customer-designed record type.
+      description: Checked against the field list stored on the record type, read from the database rather than taken from the submitted form. Amounts are stored in whole cents, dates as a calendar day, and a blank optional field as null rather than being dropped.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/purchase-order-lines:
     post:
       operationId: createBusinessPurchaseOrderLine

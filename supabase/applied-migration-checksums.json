@@ -86,5 +86,6 @@
   "20260818090000_hand_entered_provenance.sql": "9c18d4d3b069c75b7ff24c5b26f784ce6bef83f11cf8491b41056d7d8b59d91a",
   "20260818100000_merchant_product_catalogue.sql": "9972c607ed6cc05054fa0a45069993fe29c8b3cb0d40398d341ef313d00e4233",
   "20260819020000_research_source_permission_values.sql": "339e7844327be7d31222d7f92be74fafeb19c69f03e9ba993a81160e2fd844b3",
-  "20260729233000_member_read_policies_staff_tables.sql": "b7ecf1aaf89f35da2fdfc6cef48a2821c74be6bd53eb604817b30a27ae697a29"
+  "20260729233000_member_read_policies_staff_tables.sql": "b7ecf1aaf89f35da2fdfc6cef48a2821c74be6bd53eb604817b30a27ae697a29",
+  "20260819040000_sub_app_records.sql": "51cce9203c2d25678ed38fe403b82ee227bf250469c225ef74fb1be026acf74b"
 }
