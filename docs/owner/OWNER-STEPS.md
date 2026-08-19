@@ -1,6 +1,6 @@
 # The steps only you can take
 
-Four of them. Each is written to be run, not interpreted — the SQL, the exact
+Five of them. Each is written to be run, not interpreted — the SQL, the exact
 dashboard path, and how to tell whether it worked.
 
 Nothing in this list can be done from inside the repository, which is why it is
@@ -170,6 +170,67 @@ number to gamble with, and four because they are the ones nobody can read yet.
 
 ---
 
+## 5 — Create three Stripe prices for the new plans
+
+**Added 19 August 2026, when you chose to apply the pricing restructure now.**
+
+**Why nobody else can.** Creating a Price object charges through your live
+Stripe account. The Supabase and Stripe credentials in this repository are not
+able to, and should not be.
+
+**The code half is done.** `lib/sonara-stripe-plans.cjs` holds the three plans at
+the amounts `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` sets,
+`lib/sonara-paid-access.cjs` maps each to every workspace it covers,
+`lib/sonara-plan-limits.cjs` gives each its location allowance, and the staff
+portal is now gated on Team. Nothing is waiting on me.
+
+**Do this.** In Stripe, create three recurring monthly prices. Put each on its
+own Product so the customer's invoice names the plan they bought.
+
+| Plan | Amount | Interval | Variable to set in Vercel |
+| --- | --- | --- | --- |
+| One workspace | **$19.00** | monthly | `STRIPE_PRICE_WORKSPACE_MONTHLY` |
+| All three | **$39.00** | monthly | `STRIPE_PRICE_ALL_THREE_MONTHLY` |
+| Team | **$79.00** | monthly | `STRIPE_PRICE_TEAM_MONTHLY` |
+
+Set each variable to the price id, which begins `price_`. Set them for
+Production.
+
+**How to tell it worked.**
+
+```
+pnpm run verify:stripe
+```
+
+With `STRIPE_SECRET_KEY` set it fetches each price from Stripe and compares the
+amount against what the pricing page promises, and fails if they differ. Without
+the key it checks the offline half and says plainly that live prices were not
+compared — so read the last line, not just the exit code.
+
+**What happens on the pricing page as you go.** The old ladder does not vanish
+the moment the new plans exist. `offeredPlanKeys` in
+`lib/sonara-stripe-plans.cjs` keeps both ladders off or on as sets: a superseded
+plan drops off only once its replacement can actually be bought, and a
+replacement stays hidden while any plan it replaces is still buyable. So the
+page never shows two plans at $19 meaning different things, and never shows a
+page with nothing purchasable on it. Setting all three variables at once is the
+clean switchover.
+
+**Two decisions that are yours and are not in the code.**
+
+- **Anybody on Core $19** moves to One workspace at the same $19 — but the
+  location allowance goes from three to one. `lib/sonara-plan-limits.cjs` says
+  so in a comment and does not migrate anybody. Nobody should be moved across
+  automatically on the strength of the price matching.
+- **Anybody on Starter $7** is grandfathered or moved with notice. Stripe prices
+  are immutable, so an existing subscriber keeps paying what they agreed to
+  until you change their subscription yourself.
+
+Neither applies to anyone today, because nobody has bought a plan in production —
+which is item 1, and still the thing worth doing first.
+
+---
+
 ## Optional, blocking nothing — ask HyperFormula's vendor for a price
 
 Deliberately unnumbered. The four above block a launch; this one blocks a
@@ -218,12 +279,9 @@ verify:env` checks that classification on every release.
 
 ## What is not on this list, and why
 
-**Pricing.** `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` recommends Free $0
-/ One workspace $19 / All three $39 / Team $79, with $19 chosen so no existing
-Core customer pays more. It is not here because item 1 comes first: changing
-prices on a path nobody has walked is changing a number nobody has tested. Once
-you have bought a plan in production, tell me to apply it and I will do the code
-half — the new entitlement keys — while you create the Stripe price objects.
+**Pricing.** It moved onto the list as item 5 on 19 August 2026, when you chose
+to apply the restructure now rather than after item 1. The code half is done and
+the Stripe half is yours.
 
 **Installing the rest of the reciprocal repositories.** Asked and answered on
 18 August 2026: eleven are AGPL-3.0 or OSL-3.0 and stay untouched; the rest are

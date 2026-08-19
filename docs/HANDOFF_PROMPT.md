@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 90 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 187 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 188 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -123,6 +123,55 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — Applying the pricing restructure, and the plan that was selling nothing
+
+The owner chose to apply it now rather than after the first production sale,
+which `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` had named as a
+precondition. Their call, and stated as theirs in the document.
+
+**Most of the code half was already done, and I checked rather than assumed.**
+`workspace_monthly` $19, `all_three_monthly` $39 and `team_monthly` $79 are in
+`lib/sonara-stripe-plans.cjs` with `supersededBy` wired and `offeredPlanKeys`
+handling the changeover as a set. `lib/sonara-paid-access.cjs` maps all three to
+every workspace they cover, including `choosesOneWorkspace` so $19 does not
+quietly buy all three. `lib/sonara-plan-limits.cjs` gives each its location
+allowance. None of that needed touching.
+
+**One thing did.** The pricing document says exactly what Team sells: "The staff
+portal, per-person schedules, time entries and assigned tasks already exist and
+**are given away**." They were. All six `/staff` pages were registered with
+`requireCustomer`, so any signed-in account — free included — opened every one
+of them. Team's only difference from All three at $39 was a sentence.
+
+Nothing failed, because nothing asked. The pricing tests check the page shows
+the amount the config holds; the entitlement tests check a plan key opens a
+workspace. Neither asks whether a plan's *description* is true. A plan that
+charges for something free is this codebase's recurring defect wearing a price
+tag.
+
+`FEATURE_ENTITLEMENT_KEYS` in `lib/sonara-paid-access.cjs` is the fix, kept
+apart from `PAID_ENTITLEMENT_KEYS` because that map's keys are product keys and
+two tests walk them as products. The staff pages go through
+`requirePaidOrOwnerAccess("staff_portal")`, which already separates the three
+answers this needs kept apart: paid, not paid, and **a billing read that did not
+answer**. The third returns 503 with "this is on our side", never a paywall — an
+employee shown "upgrade required" because Supabase was slow is being told their
+employer has not paid.
+
+`tests/the-staff-portal-is-what-team-sells.test.js` covers all three, and the
+gate was probed by removing it and watching the free-account case fail with
+`/staff is still free (200)`.
+
+Two documents were wrong and are corrected: the pricing document pointed at
+`scripts/verify-stripe-config.mjs`, which does not exist (`verify-stripe-env.mjs`
+does), and its "given away" sentence now carries what changed.
+
+**What is left is Stripe**, and it is `docs/owner/OWNER-STEPS.md` item 5 — three
+Price objects, three variables, and the check that compares them against what the
+page promises. Until they exist the new plans render "Checkout is not configured
+for this plan yet" and the old ladder stays up, which is `offeredPlanKeys` doing
+exactly what it was built to do.
 
 ### 2026-08-19 — The second application is gone
 

@@ -896,8 +896,28 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return respond(200, { ok: true, approved: true, sourceId });
   });
 
+  // The staff portal is what the Team plan sells.
+  //
+  // docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md says so plainly: "The staff
+  // portal, per-person schedules, time entries and assigned tasks already exist
+  // and are given away." Every page below opened for any signed-in customer,
+  // including free accounts, so Team at $79 charged for something nobody had to
+  // pay for. A plan whose only difference is a sentence on the pricing page is
+  // not a plan.
+  //
+  // requirePaidOrOwnerAccess rather than a hand-rolled check, because it already
+  // separates the three answers this needs kept apart: paid, not paid, and a
+  // billing read that did not answer. The third returns 503 with "this is on our
+  // side", never a paywall -- an employee shown "upgrade required" because
+  // Supabase was slow is being told their employer has not paid.
+  //
+  // Owners and admins pass through, as everywhere else.
+  const staffPortalAccess = typeof deps.requirePaidOrOwnerAccess === "function"
+    ? deps.requirePaidOrOwnerAccess("staff_portal")
+    : requireCustomer;
+
   STAFF_PAGES.forEach(([path, title, body]) => {
-    app.get(path, requireCustomer, async (req, res) => {
+    app.get(path, staffPortalAccess, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
       const me = await resolveEmployee(config, org, req);
