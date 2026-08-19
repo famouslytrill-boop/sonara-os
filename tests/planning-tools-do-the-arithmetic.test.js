@@ -57,7 +57,12 @@ describe("the planning tools do the arithmetic", () => {
     // lib/sonara-operations-science.cjs -- round order, demand forecast and the
     // duplicate customer check -- because routes, sales history and a customer
     // list are what a business has and a creator or a marketer does not.
-    assert.equal(PLANNER_TOOLS.length, 13, "a planning tool was added or removed; update this count on purpose");
+    // Growth Studio gained the goal and prediction tracker, which scores a
+    // customer's past calls against what actually happened. The idea came from
+    // NotFair (reviewed in data/open-source-tools.ts); the half that acts on its
+    // own was deliberately not taken, because AGENTS.md puts customer campaigns
+    // behind owner approval.
+    assert.equal(PLANNER_TOOLS.length, 14, "a planning tool was added or removed; update this count on purpose");
   });
 
   it("gives every tool a route, a module key and required fields", () => {

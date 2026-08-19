@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-155 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 155.
+160 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 160.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -67,7 +67,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-39 repositories.
+40 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -92,6 +92,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
+| [Open Generative AI (open-gen-ai)](https://github.com/open-gen-ai/open-gen-ai) | MIT | Research only | image generation |
 | [OpenCut](https://github.com/OpenCut-app/OpenCut) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | video editing |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
@@ -115,7 +116,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-31 repositories.
+32 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -137,6 +138,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
+| [NotFair](https://github.com/kortix-ai/notfair) | MIT | Read only | marketing automation |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
@@ -155,7 +157,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-71 repositories.
+74 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -170,6 +172,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
 | [Better Auth](https://github.com/better-auth/better-auth) | MIT | Research only | authentication library |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
+| [camofox-browser](https://github.com/redf0x1/camofox-browser) | MIT | Blocked | browser automation |
 | [Casdoor](https://github.com/casdoor/casdoor) | Apache-2.0 | Research only | identity provider |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | component library |
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
@@ -177,6 +180,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Clone Wars](https://github.com/GorvGoyl/Clone-Wars) | CC0-1.0 | Read only | index of open-source clones |
 | [Cloudflare Agents](https://github.com/cloudflare/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
+| [Context Mode](https://github.com/mksglu/context-mode) | Elastic License 2.0 (ELv2) | Blocked | MCP tooling |
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [DeepSeek V3](https://github.com/deepseek-ai/DeepSeek-V3) | Repository code is MIT; model weights use the upstream DeepSeek  | Licence unresolved | open-weight model |
@@ -225,6 +229,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Unsloth](https://github.com/unslothai/unsloth) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Read only | model training |
 | [Valkey](https://github.com/valkey-io/valkey) | BSD-3-Clause | Research only | cache |
 | [Vercel Labs Skills (find-skills)](https://github.com/vercel-labs/skills) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Licence unresolved | agent skills |
+| [Vibe Trading](https://github.com/virattt/vibe-trading) | Apache-2.0 (per the submitted screenshot; the screenshot showed  | Blocked | trading strategy generation |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [watermarks-remover (remove-ai-marks)](https://github.com/guillaumemeyer/watermarks-remover) | MIT | Blocked | AI provenance removal |
 | [wshobson/agents](https://github.com/wshobson/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent skills |

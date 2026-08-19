@@ -2,6 +2,95 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Nine submitted repositories, one of them integrable
+
+A batch of nine arrived as screenshots of a social post. All nine are now on the
+register. **One produced a shipped feature; the other eight are recorded with the
+reason they cannot be, and four of those reasons are not about licences.**
+
+Four were already registered and the register was already right about them —
+Ollama (MIT, adapter built), Fincept Terminal (AGPL-3.0, blocked), Cloudflare
+Agentic Inbox (Apache-2.0, research only) and AutoHedge (MIT, blocked until
+review). That is the register doing the job it exists for.
+
+**Two blocked on licence, and one of those is not what the post said it was.**
+`Context Mode` was presented as an open-source repository; its `LICENSE` reads
+**Elastic License 2.0**, which permits use, forking and modification and
+explicitly forbids providing the software to third parties as a hosted or managed
+service. SONARA One is a hosted service. Fincept Terminal is AGPL-3.0, which
+triggers on network use, and was already blocked.
+
+**One blocked on conduct, and the licence is irrelevant to it.** `camofox-browser`
+is MIT and is a Firefox fork with C++-level fingerprint spoofing wrapped in a REST
+API; its own description is that it lets agents browse sites that block automated
+bots. This repository shipped the opposite thing earlier in this branch:
+`sourcePermission()` refuses to fetch any host an organization has not recorded as
+approved, and returns three outcomes so a failed check is never read as
+permission. **Bot detection is how a site says no.** No licence makes adopting a
+tool for defeating it a different decision.
+
+**One blocked on a claim that does not survive its own README.** `open-gen-ai` was
+described as free, subscription-free and running entirely on your machine. Its
+banner reads *Powered by MuAPI* and it offers 400+ models across 14 studios, which
+is a hosted API. Both statements cannot be true, and CLAUDE.md's rule decides it:
+a free tier is a price, not a licence.
+
+**Two blocked because this product does not do that.** AutoHedge and Vibe Trading
+generate and execute trading strategies with real money. The catalogue here was
+cut by eleven entries for describing work that did not exist; adding automated
+financial advice would be the same mistake with worse consequences.
+
+**A note on the source, which is worth recording.** The post's description of
+Ollama — "write HTML, generate video, transform it into polished MP4s" — is not
+what Ollama does; Ollama runs local models. And the screenshot under the heading
+"Vibe Trading" showed the Agentic Inbox README. Two of nine entries were
+mismatched with their subject, which is the reason every licence here was read
+from the project's own `LICENSE` file rather than from the badges in the images.
+
+---
+
+**The one that produced something: NotFair (MIT).** Its README describes turning
+an ambition stated in plain language into a metric with a measured baseline, then
+running a loop that scores its past moves against what it predicted. **The scoring
+half is arithmetic and was the thing this product was missing. The acting half is
+what AGENTS.md refuses** — customer campaigns need owner approval, and "around
+the clock, whether you're watching or not" is precisely what that rule exists to
+stop. No NotFair code was read or copied; `lib/sonara-goal-science.cjs` is
+original, and it measures and reports while a person decides.
+
+**Why a scoring rule rather than a hit rate.** Counting how often somebody was
+right rewards never committing: say 50% to everything and you are never very
+wrong. A **proper** scoring rule is one where the best score comes from stating
+what you actually believe. The Brier score is one, and the test asserts the
+property rather than the implementation — over events that happen 70% of the
+time, saying 70% must beat saying anything else. When that check was falsified by
+swapping squared error for absolute error, it caught that stating 80% then scored
+better than telling the truth, which is exactly the failure mode.
+
+Three decisions worth not rediscovering:
+
+- **An unrecorded outcome is held out and named, never scored as a miss.** Absent
+  is not false, and counting an unsettled call as wrong punishes somebody for
+  predictions nobody knows the answer to yet. A trailing comma in
+  `Still open, 50,` is what that looks like when typed, so empty trailing fields
+  are kept rather than filtered — dropping them turned an unsettled call into an
+  unreadable one.
+- **A goal that goes down is progress.** "Cut cost per lead from 50 to 30" moves
+  downward, and an unsigned distance would report it as going backwards.
+- **The log score is clamped and says so.** A confident miss scores infinitely
+  badly, which is correct and useless on a page; the clamp is in the output
+  rather than hidden, because a number whose derivation is invisible cannot be
+  checked.
+
+The page tells somebody what their score is *against* — the forecaster who knows
+only the overall hit rate — because a score with nothing beside it is a number
+people either ignore or over-read. And it separates reliability from resolution,
+so a customer who says the same number to everything is told that, which a
+hit-rate table cannot see.
+
+Verified: `pnpm run lint` clean, 2254 tests passing, `pnpm run verify:launch`
+exit 0, 160 registered repositories, 14 planning tools.
+
 ### 2026-08-19 — A creator profile anybody can open, and a follow graph behind it
 
 `creator_artist_profiles` has carried a column called `public_description` since
