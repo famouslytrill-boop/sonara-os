@@ -69,27 +69,55 @@ amount of reading can establish.
 
 ## 2 — Turn on Supabase leaked-password protection
 
-**Why nobody else can.** It is a dashboard toggle on the live project. The
-Supabase MCP connection this repository uses is read-only by contract, asserted
-in `scripts/verify-supabase-contract.mjs`.
+**This is now one command instead of a dashboard hunt.**
 
-**Do this.**
+```
+pnpm run enable:leaked-password              # report what it is set to
+pnpm run enable:leaked-password -- --enable  # turn it on
+```
 
-1. Supabase dashboard → **Authentication → Providers → Password**.
-2. Enable **leaked password protection**.
-3. Set the environment variable `SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true`
-   in Vercel, for Production.
+It needs `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` — the same two the
+deploy workflow already has. It changes exactly one field,
+`password_hibp_enabled`, and it **reports and changes nothing unless you pass
+`--enable`**, so running it by accident does nothing.
 
-**Step 3 is the part that is easy to skip and matters most.** Until that
-variable is set, the deploy prints a warning and passes either way — so a green
-deploy currently tells you nothing about whether the toggle is on. Setting it
-turns the warning into a gate.
+Three things it does that a dashboard click does not:
 
-**What is already covered without it.** The application refuses breached
-passwords itself at signup and password reset
-(`lib/sonara-leaked-password.cjs`), so the paths in this repository are done.
-The toggle covers every path Supabase Auth serves, including ones this
-application does not own.
+- It refuses to touch any project other than `yqncsonkxgwhcxedgevk`. This
+  organization contains a second project named like production, and a setting
+  flipped on the wrong one is worse than one nobody flipped, because it reads as
+  done.
+- It **reads the setting back from the server afterwards.** A 200 on the write
+  means the request was accepted, not that the setting now reads true. If
+  Supabase accepts the change and the value stays false, this fails rather than
+  congratulating you.
+- If the `password_hibp_enabled` field is missing from the response it fails
+  rather than reporting "disabled" — absent is not false, and a changed API
+  shape would otherwise send you to turn on something that may already be on.
+
+### Then set the ratchet, which is the half people skip
+
+Set `SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true` in Vercel, for Production.
+
+Until it is set, `scripts/verify-production-project-identity.mjs` only warns, so
+the setting could be switched back off and every release would stay green.
+
+**That gate had a hole until 19 August 2026, and it is worth knowing about
+because it is the kind you would never see.** It turned "protection is disabled"
+into a deploy failure once the ratchet was set — correctly — but left "the auth
+configuration could not be read" and "the field was missing from the response" as
+passing notes, *even with the ratchet set*. So once you set the variable
+believing the deploy now enforced this, a rotated token or a Supabase API change
+would silently downgrade it to unenforced and every deploy would still pass.
+
+An unread answer is not a confirmation. Both now fail when the ratchet is set.
+
+### What is already covered without any of this
+
+The application refuses breached passwords itself at signup and password reset
+(`lib/sonara-leaked-password.cjs`), so the paths this repository owns are done.
+The Supabase setting covers every path Supabase Auth serves, including ones this
+application does not own — which is why it is worth having as well, not instead.
 
 ---
 
@@ -146,57 +174,76 @@ this repository cannot answer from outside.
 
 ---
 
-## 4 — Try one `EXECUTE` revoke, on a preview branch only
+## 4 — The revoke, and why it is far less dangerous than it looked
 
-**Why nobody else can.** It needs a database you can afford to break.
+**Rewritten 19 August 2026 after measuring the thing this step was afraid of.**
 
-The advisor's remediation is to revoke `EXECUTE` from `authenticated` on twelve
-`SECURITY DEFINER` functions. **Do not do that.** Seven of them are load-bearing:
-`is_org_member` alone is called by **202 policies across 64 tables**, and a
-policy evaluates as the calling role, so removing the grant can turn a working
-policy into a denial — customers locked out of their own records, silently.
+The advisor asks for `EXECUTE` to be revoked from `authenticated` on twelve
+`SECURITY DEFINER` functions. This step used to say: do not, because a policy
+evaluates as the calling role, so removing the grant can turn a working policy
+into a denial — customers locked out of their own records, silently, with
+`is_org_member` alone backing 202 policies across 64 tables.
 
-Exactly one is safe on this repository's own evidence. `sonara_has_org_role` is
-called by **no policy** and appears to be a superseded twin of `has_org_role`.
+**That mechanism is not currently reachable in this product.**
 
-**Do this, on a preview branch and not on production.**
+Every table read in the running application goes through `supabaseHeaders()` in
+`server.js`, which sends the service-role key as both `apikey` and
+`Authorization`. **The service role bypasses row level security entirely.** 75
+call sites across 14 files, and no exceptions: no read is made as
+`authenticated`, so no policy is evaluated on any live path, so no policy's call
+to a `SECURITY DEFINER` function is on any live path either.
+
+`lib/sonara-supabase-clients.cjs` is the machinery for changing that — CRIT-3
+item (2), forwarding the caller's JWT so RLS becomes a real second line of
+defence. It is built, and it is required by exactly one file: its own test.
+
+So the honest position today is that revoking that grant on any of the twelve
+cannot lock a customer out of anything, because nothing they do is authorized by
+a policy in the first place.
+
+### This is true today and is designed to stop being true
+
+CRIT-3 (2) is work somebody intends to do. The day a user-scoped read is wired
+in, every sentence above becomes wrong, and the lockout this step originally
+warned about becomes exactly as real as it sounded.
+
+`tests/the-revoke-reasoning-is-still-true.test.js` fails the moment that
+happens, and its failure message says to re-read this section before revoking
+anything. That is the only reason it is safe to write the paragraph above down:
+otherwise it is a reassurance with an expiry date and no label.
+
+### So what should you actually do
+
+**Still the preview branch, and still `sonara_has_org_role` first.** Not because
+a lockout is likely — it is not, today — but because the reason it is unlikely
+rests on a measurement of this repository, and this repository cannot see the
+whole database. Item 3 is the proof: four authorization functions existed in the
+live database and in no migration. Policies are created outside migrations too,
+and a policy this repository cannot see is a policy this reasoning did not cover.
 
 ```sql
 -- Preview branch only. Reversible; the grant is restored at the bottom.
 revoke execute on function public.sonara_has_org_role(uuid, text[]) from authenticated;
 
--- Then exercise the app against the branch: sign in, open a workspace, open
--- records, save one. Every one of those paths runs through RLS.
---
--- If anything denies that should not, restore it immediately:
+-- If anything denies that should not:
 -- grant execute on function public.sonara_has_org_role(uuid, text[]) to authenticated;
 ```
 
-**How to tell it worked.** Nothing changes. That is the expected result — the
-function is called by no policy, so revoking it should be invisible. If
-something *does* break, that is the finding: it means a policy calls it from
-outside version control, which is item 3's problem showing up again.
+**How to tell it worked: nothing changes.** That is the expected result twice
+over — the function is called by no policy this repository can see, and no read
+this product makes is evaluated against a policy anyway.
 
-**Then tell me**, and I will write it as a migration. I have not written one
-pre-emptively, because a migration in this repository runs on deploy, and
-shipping this without the branch test would be acting past the evidence.
-
-**The other eleven stay as they are.** Seven because 202 policies is not a
-number to gamble with, and four for a reason that changed on 19 August 2026 and
-is now better than "nobody can read them".
-
-Those four — `is_admin`, `is_current_user_admin`, `has_scope`,
-`has_company_access` — are readable now, and reading them says **no policy in any
-migration calls any of them**, against more than thirty calls to `is_org_member`.
-On the evidence in this repository they are the safest four to revoke after
+**Add the four from item 3 to the same branch test.** `is_admin`,
+`is_current_user_admin`, `has_scope` and `has_company_access` are called by no
+policy in any migration, and two of them read tables that exist nowhere in this
+repository. On the evidence here they are the next safest after
 `sonara_has_org_role`.
 
-The evidence in this repository is exactly what is not sufficient here, though,
-and item 3 is the proof: those four functions existed in the database and in no
-migration, so the schema holds content this repository cannot see, and policies
-are part of that content. Add them to the preview-branch test above rather than
-revoking them on this reasoning — the whole point of that test is that it is run
-somewhere breaking is free.
+**The remaining seven stay.** 202 policies is not a number to gamble with, and
+the fact that those policies are not currently on a live path is a statement
+about today rather than about the schema.
+
+Then tell me, and I will write whatever survived as a migration.
 
 ---
 

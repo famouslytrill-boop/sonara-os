@@ -2,6 +2,66 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — The last two owner steps, researched rather than restated
+
+Asked to find ways to complete the leaked-password toggle and the preview-branch
+revoke test. Neither can be performed from here — no Supabase credentials in this
+container and the connector needs an authorization this session cannot do — so
+the work was to make each of them smaller, safer and verifiable.
+
+**The leaked-password gate was better than expected and had one hole.**
+`scripts/verify-production-project-identity.mjs` already reads the real
+`password_hibp_enabled` field from the Management API rather than trusting the
+ratchet variable, and already fails when the credentials to read it are missing.
+That was checked before assuming otherwise, and the assumption would have been
+wrong.
+
+The hole: the ratchet turned **disabled** into a deploy failure and left **could
+not read the configuration** and **the field was missing** as passing notes —
+*even with the ratchet set*. So the moment the owner set
+`SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true` believing the deploy now
+enforced it, a rotated token or an API change would silently downgrade it to
+unenforced and every release would stay green. An unread answer is not a
+confirmation. Both now fail when the ratchet is set, proved with a six-case truth
+table over {unreadable, missing-field, enabled} × {ratchet set, unset}.
+
+**`scripts/enable-leaked-password-protection.mjs`** turns the dashboard step into
+`pnpm run enable:leaked-password`. It reports by default and writes only with
+`--enable`; it refuses any project other than the pinned ref, because this
+organization holds a second project named like production and a setting flipped
+on the wrong one reads as done; and it **reads the value back from the server
+after writing**, because a 200 on a PATCH says the request was accepted, not that
+the setting is on. Seven branches probed, including the one that matters —
+Supabase accepting the change while the value stays false, which fails rather
+than congratulating anybody.
+
+**The revoke test turned out to be far less dangerous than it looked, and the
+measurement is the point.** Item 4 warned that revoking `EXECUTE` from
+`authenticated` could turn a working policy into a denial and lock customers out,
+with `is_org_member` backing 202 policies across 64 tables.
+
+**That mechanism is not currently reachable.** Every table read in the running
+product goes through `supabaseHeaders()`, which sends the service-role key as
+both `apikey` and `Authorization` — 75 call sites across 14 files, no exceptions.
+The service role bypasses row level security entirely, so no policy is evaluated
+on any live read, so no policy's call to a SECURITY DEFINER function is on a live
+path. `lib/sonara-supabase-clients.cjs`, the CRIT-3 (2) machinery for changing
+that, is required by exactly one file: its own test.
+
+**Which is a reassurance with an expiry date, so it got a label.**
+`tests/the-revoke-reasoning-is-still-true.test.js` fails the moment a user-scoped
+read is wired in — by import, by helper name, or by `supabaseHeaders` ceasing to
+send the service-role key — and its failure message says to re-read item 4 before
+revoking anything. It also asserts the module it watches still exists, because
+otherwise deleting it would make the check pass by having nothing to find. Probed
+two ways.
+
+Item 4 now recommends the same preview-branch test for a better reason: not
+because a lockout is likely, but because the reasoning rests on a measurement of
+*this repository*, and item 3 is the proof that the live database holds content
+this repository cannot see. It also adds the four functions from item 3 to that
+test as the next safest after `sonara_has_org_role`.
+
 ### 2026-08-19 — The four authorization functions, read at last
 
 The owner ran the `pg_get_functiondef` query and supplied all four. Recording

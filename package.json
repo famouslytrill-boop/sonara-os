@@ -50,6 +50,7 @@
     "report:stale-claims": "node scripts/report-stale-claims.mjs",
     "verify:stale-claims": "node scripts/report-stale-claims.mjs --check",
     "verify:research-copy": "node scripts/check-research-lab-public-copy.mjs",
+    "enable:leaked-password": "node scripts/enable-leaked-password-protection.mjs",
     "verify:doc-counts": "node scripts/verify-doc-counts.mjs --check",
     "verify:env": "node scripts/verify-env.mjs",
     "verify:stripe": "node scripts/verify-stripe-env.mjs",
