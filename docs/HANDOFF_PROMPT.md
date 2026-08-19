@@ -123,6 +123,46 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — What the owner actually has to install, checked by running it
+
+Asked for exact installation instructions. Producing them meant running the
+instructions that already existed, and three of them were wrong.
+
+- **`pnpm run db:push` could not run at all.** It called `pnpm exec supabase`,
+  and the Supabase CLI is not a dependency of this repository — the answer was
+  `[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command "supabase" not found`, which
+  reads like a corrupted install rather than a tool nobody has installed. Four
+  documents in `docs/` instruct somebody to run it.
+
+  Adding it as a devDependency was tried and reverted: the npm package pulls a
+  **155 MB** platform binary as an optional dependency, and Vercel runs
+  `pnpm install --frozen-lockfile` on every deploy, so it would sit on the
+  critical path of every production build for a tool a person runs by hand.
+  `scripts/require-supabase-cli.cjs` now checks for it and prints the install
+  commands for macOS, Windows and "no installer" instead.
+
+- **Copying `.env.example` to `.env` does nothing.** There is no `dotenv` here —
+  the only production dependency is `express`, and nothing reads a `.env` file
+  at startup. The README told people to copy it and then `pnpm start`, which
+  gets a running server with none of those variables set and looks exactly like
+  a working setup. Node 22 loads it natively, so `pnpm run dev` is now
+  `node --env-file=.env server.js`. Verified: a `.env` holding `PORT=3112`
+  produced `Listening on 3112`.
+
+- **The port is 5000, not 3000.** `server.js` reads `process.env.PORT || 5000`;
+  the 3000 in the README came from `.env.example`, which — see above — was never
+  being read.
+
+`docs/owner/INSTALL.md` is the guide, and every claim in it was run rather than
+recalled: `pnpm start` serves `/`, `/pricing` and `/business-builder` at 200 and
+`/dashboard` at 503, which is the correct "setup required" state for a blank
+install and not a fault.
+
+The honest headline is that there is **almost nothing to install**. One
+production dependency, no bundler, no compile step — `pnpm run build` parses the
+server and loads it. The work is four accounts and their settings, not a
+toolchain.
+
 ### 2026-08-19 — The crawl permission gate, built
 
 `research_sources.permission_status` has existed since the platform redesign on
