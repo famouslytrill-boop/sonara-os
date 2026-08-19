@@ -121,8 +121,8 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "route any model call through the Provider Gateway if it is ever adopted, never from the application directly",
       "keep provenance, consent and the anti-clone rule in front of any lip-sync or voice capability",
     ],
-    officialUrl: "https://github.com/open-gen-ai/open-gen-ai",
-    repoUrl: "https://github.com/open-gen-ai/open-gen-ai",
+    officialUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
+    repoUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
     notes:
       "The submitted description said it is free, has no subscription and runs entirely on your machine. Its own README banner reads 'Powered by MuAPI' and offers 400+ models across 14 studios, which is a hosted API rather than local inference; those two statements cannot both be true. CLAUDE.md's rule applies directly -- a hosted service with a free tier is a price, not a licence, and a shipped feature resting on one stops working when the tier changes, which is the vendor's decision and not this project's. The MIT licence on the wrapper is real and is not the constraint. Lip sync is separately governed here by the anti-clone, provenance and consent rules in AGENTS.md.",
     safetyBoundaries: [
@@ -138,19 +138,19 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["trading strategy generation", "backtesting", "financial automation"],
     useCase: ["none -- recorded alongside AutoHedge because the refusal is the same refusal"],
     productFit: ["Internal Development"],
-    license: "Apache-2.0 (per the submitted screenshot; the screenshot showed a different project's README and was not confirmed)",
-    licenseRisk: "medium",
+    license: "MIT",
+    licenseRisk: "low",
     reciprocalLicense: false,
     commercialUseStatus: "blocked",
     integrationStatus: "blocked",
     recommendedAction: [
       "do not adopt -- this product does not give financial advice and does not place orders",
-      "confirm the licence from the repository itself before any future review, because the submitted screenshot showed the Agentic Inbox README under this heading",
+      "keep the licence read from the repository rather than from the submitted screenshot, which showed the Agentic Inbox README under this heading",
     ],
-    officialUrl: "https://github.com/virattt/vibe-trading",
-    repoUrl: "https://github.com/virattt/vibe-trading",
+    officialUrl: "https://github.com/HKUDS/Vibe-Trading",
+    repoUrl: "https://github.com/HKUDS/Vibe-Trading",
     notes:
-      "Submitted as '29 AI agents debate and backtest a strategy across stocks, crypto and forex, then export it to TradingView or MetaTrader'. Blocked for the same reason as AutoHedge: generating and exporting trading strategies is financial advice by any ordinary reading, and this product's catalogue was cut by eleven entries for describing work that did not exist. The screenshot under this heading showed the Agentic Inbox README rather than this project's, so even the licence above is unconfirmed -- which is the reason this record exists rather than a decision made from the post.",
+      "LICENSE read 19 August 2026 from HKUDS/Vibe-Trading: MIT. Blocked for the same reason as AutoHedge: generating and exporting trading strategies is financial advice by any ordinary reading, and this product's catalogue was cut by eleven entries for describing work that did not exist. Worth recording how this record was nearly wrong. The screenshot submitted under this heading showed the Agentic Inbox README, so the Apache-2.0 badge visible in it belonged to a different project; the first version of this record carried that licence with a note saying it was unconfirmed. It is MIT. A licence copied from an image of the wrong repository is the reason this register reads LICENSE files.",
     safetyBoundaries: ["no order placed on any venue", "no strategy presented to a customer as advice"],
     blockedUses: ["any trading, backtesting or strategy export surfaced to a customer"],
     humanReviewRequired: true,
@@ -171,8 +171,8 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "do not adopt the autonomy -- AGENTS.md puts customer campaigns behind owner approval, and 'around the clock, whether you are watching or not' is exactly what that rule refuses",
       "keep any adaptation deterministic and local, which is what lib/sonara-goal-science.cjs does",
     ],
-    officialUrl: "https://github.com/kortix-ai/notfair",
-    repoUrl: "https://github.com/kortix-ai/notfair",
+    officialUrl: "https://github.com/nowork-studio/NotFair",
+    repoUrl: "https://github.com/nowork-studio/NotFair",
     notes:
       "MIT, and the only repository in this batch with an idea worth taking. Its own README describes turning an ambition stated in plain language into a server-verified metric with a measured baseline, then running a loop that scores its past moves against what it predicted. The scoring half is deterministic, needs no model, and is the part this product was missing -- lib/sonara-goal-science.cjs implements it with Brier and log scores and a calibration table, and the tool page at /growth-studio/tools/goal-tracker is where a customer uses it. What was deliberately not taken is the loop that acts: NotFair runs agents around the clock that make moves on their own, and AGENTS.md puts customer campaigns behind owner approval and sends unknown sensitive actions to owner review. No NotFair code was read, copied or adapted -- the idea was, and the implementation here is original.",
     safetyBoundaries: [

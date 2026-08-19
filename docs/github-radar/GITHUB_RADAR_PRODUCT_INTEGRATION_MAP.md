@@ -92,7 +92,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
-| [Open Generative AI (open-gen-ai)](https://github.com/open-gen-ai/open-gen-ai) | MIT | Research only | image generation |
+| [Open Generative AI (open-gen-ai)](https://github.com/Anil-matcha/Open-Generative-AI) | MIT | Research only | image generation |
 | [OpenCut](https://github.com/OpenCut-app/OpenCut) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | video editing |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
@@ -138,7 +138,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
-| [NotFair](https://github.com/kortix-ai/notfair) | MIT | Read only | marketing automation |
+| [NotFair](https://github.com/nowork-studio/NotFair) | MIT | Read only | marketing automation |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
@@ -229,7 +229,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Unsloth](https://github.com/unslothai/unsloth) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Read only | model training |
 | [Valkey](https://github.com/valkey-io/valkey) | BSD-3-Clause | Research only | cache |
 | [Vercel Labs Skills (find-skills)](https://github.com/vercel-labs/skills) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Licence unresolved | agent skills |
-| [Vibe Trading](https://github.com/virattt/vibe-trading) | Apache-2.0 (per the submitted screenshot; the screenshot showed  | Blocked | trading strategy generation |
+| [Vibe Trading](https://github.com/HKUDS/Vibe-Trading) | MIT | Blocked | trading strategy generation |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [watermarks-remover (remove-ai-marks)](https://github.com/guillaumemeyer/watermarks-remover) | MIT | Blocked | AI provenance removal |
 | [wshobson/agents](https://github.com/wshobson/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent skills |

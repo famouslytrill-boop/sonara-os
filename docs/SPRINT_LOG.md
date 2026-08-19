@@ -88,6 +88,29 @@ people either ignore or over-read. And it separates reliability from resolution,
 so a customer who says the same number to everything is told that, which a
 hit-rate table cannot see.
 
+**Three of the five new records carried a repository URL I had guessed, and CI
+caught all three.** `verify-external-repositories` runs
+`verify-open-source-registry.mjs --network`, which asks GitHub whether each
+registered target exists; `open-gen-ai/open-gen-ai`, `virattt/vibe-trading` and
+`kortix-ai/notfair` do not. The real ones are `Anil-matcha/Open-Generative-AI`,
+`HKUDS/Vibe-Trading` and `nowork-studio/NotFair`, each confirmed by fetching its
+README before being written down the second time.
+
+That failure also corrected a licence. The Vibe Trading record carried
+Apache-2.0 "per the submitted screenshot", with a note saying it was unconfirmed
+because that screenshot showed the Agentic Inbox README — so the badge belonged
+to a different project. Read from `HKUDS/Vibe-Trading` itself, it is **MIT**. A
+licence copied from an image of the wrong repository is the reason this register
+reads `LICENSE` files, and writing "unconfirmed" beside a wrong value is not the
+same as not writing the wrong value.
+
+The network check cannot be run from here — the agent proxy answers 401 for
+GitHub API calls to repositories not attached to the session, and the script
+correctly refuses to report success on that, saying the run "established nothing
+about whether they exist" rather than passing on zero confirmations. Existence
+was established through `raw.githubusercontent.com` instead, which the proxy does
+allow.
+
 Verified: `pnpm run lint` clean, 2254 tests passing, `pnpm run verify:launch`
 exit 0, 160 registered repositories, 14 planning tools.
 
