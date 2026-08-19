@@ -2600,11 +2600,11 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
-  /api/shared-results/{id}/share:
+  /api/shared-links/{resourceType}/{id}/share:
     post:
       operationId: shareSavedResult
       tags: [Workspace]
-      summary: Publish one saved tool result at an unguessable link anybody can open.
+      summary: Publish one saved result, quote, invoice or appointment at an unguessable link anybody can open.
       description: >-
         Mints a share token for a module output the caller's organization owns and returns its
         public path. Re-sharing an already shared result returns the existing token rather than
@@ -2612,22 +2612,25 @@ paths:
         output only; the input the result was worked out from is never published.
       security: [{ bearerAuth: [] }]
       parameters:
+        - { in: path, name: resourceType, required: true, schema: { type: string, enum: [module_output, quote, customer_invoice, business_booking] } }
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
         "200": { $ref: "#/components/responses/Success" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
         "503": { $ref: "#/components/responses/SetupRequired" }
-  /api/shared-results/{id}/revoke:
+  /api/shared-links/{resourceType}/{id}/revoke:
     post:
       operationId: revokeSharedResult
       tags: [Workspace]
-      summary: Stop sharing a published result, so its link stops opening.
+      summary: Stop sharing a published record, so its link stops opening.
       description: >-
         Clears the share token. The record that the result was once published is kept, so the
         customer can be told it was public until they took it back.
       security: [{ bearerAuth: [] }]
       parameters:
+        - { in: path, name: resourceType, required: true, schema: { type: string, enum: [module_output, quote, customer_invoice, business_booking] } }
         - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
       responses:
         "200": { $ref: "#/components/responses/Success" }
@@ -2714,6 +2717,16 @@ components:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     MethodNotAllowed:
       description: The registered compatibility method is intentionally unavailable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: No record of that kind exists, or none that this caller's organization owns. The two are answered alike on purpose, so a caller cannot learn which by guessing identifiers.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Conflict:
+      description: The request is understood but the workspace is not in a state that can serve it -- usually an organization that has not finished setup.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }

@@ -1,31 +1,34 @@
 "use strict";
 
-// A saved result with a link somebody outside the workspace can open.
+// Anything a customer chooses to show somebody outside their workspace.
 //
-// Three routes, and the split between them is the whole design:
+// Four routes, and the split between them is the design:
 //
-//   GET  /shared               a public explainer, for whoever trims the URL
-//   GET  /shared/:token        the result itself, no account, no cookie
-//   POST /api/shared-results/:id/share  and .../revoke -- customer only
+//   GET  /shared                                  a public explainer
+//   GET  /shared/:token                           the thing itself, no account
+//   POST /api/shared-links/:resourceType/:id/share
+//   POST /api/shared-links/:resourceType/:id/revoke
 //
-// The read side is deliberately the dumbest thing that can work: select by
-// token, from one table, returning a fixed column list that contains no
-// identifier of any kind. It does not resolve a session, so there is no session
-// to confuse; it does not take an organization, so there is no organization to
-// be told the wrong one. The write side is where the customer's identity is
-// established, and it establishes it the same way every other workspace write
-// does.
+// The read side resolves in one direction only, and that order is what makes it
+// safe. A token finds exactly one `shared_links` row. That row names the
+// resource AND the organization that owns it. The resource is then fetched
+// filtered on both, and the business name comes from that same organization.
+//
+// So the public page never chooses an organization -- it is told one by the row
+// the customer created when they pressed Share. A page that took the
+// organization from the request would be a page that could be told the wrong
+// one, and the service-role key bypasses row level security, so that filter is
+// the only tenant boundary there is.
 
 const {
-  SHARED_SELECT_COLUMNS,
+  SHARED_LINKS_TABLE,
   isShareToken,
+  isUuid,
   mintShareToken,
   sharePath,
-  sharedResultView
+  shareableFor,
+  sharedView
 } = require("../lib/sonara-shared-results.cjs");
-
-const TABLE = "module_outputs";
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml", "responsePage",
@@ -49,121 +52,169 @@ function registerSharedResultRoutes(app, deps = {}) {
     return { ok: true, status: response.status, rows: await response.json().catch(() => []) };
   }
 
-  // The explainer. Somebody who receives a link and deletes the last segment
-  // lands here, and the honest thing to tell them is what the page they were
-  // sent actually was -- one result, published on purpose, by a person.
-  app.get("/shared", (req, res) => res.status(200).type("html").send(layout({
-    title: "Shared results",
-    eyebrow: "SONARA One",
-    heading: "Somebody shared a result with you",
-    body: "A shared result is one answer from one of our free tools, published by the person who worked it out. There is nothing else behind this address.",
-    surface: "marketing",
+  const enc = encodeURIComponent;
+
+  function publicPage({ heading, body, sections = [], actions }) {
+    return layout({
+      title: heading,
+      eyebrow: "SONARA One",
+      heading,
+      body,
+      surface: "marketing",
+      sections,
+      actions: actions || [linkAction("/free-tools", "Use the free tools"), linkAction("/", "SONARA One")]
+    });
+  }
+
+  // The same page for "no such token" and "revoked", on purpose. Telling them
+  // apart would tell somebody guessing tokens when they had guessed one that
+  // used to exist, and would tell a recipient that the person who shared it has
+  // taken it back -- which is that person's news to give, not ours.
+  function notFoundPage() {
+    return publicPage({
+      heading: "That link does not open anything",
+      body: "It may have been unpublished by the person who shared it, or it may never have been a link we made.",
+      sections: [brandCard("You can still work one out", "The tools that produce these results are free and need no account.")]
+    });
+  }
+
+  // A read that failed is not a thing that does not exist. Saying "not found" to
+  // somebody holding a working link would have them tell the sender it was
+  // broken.
+  function unavailablePage() {
+    return publicPage({
+      heading: "We could not open that",
+      body: "This is on our side, and the link has not been removed. Try it again shortly.",
+      sections: []
+    });
+  }
+
+  app.get("/shared", (req, res) => res.status(200).type("html").send(publicPage({
+    heading: "Somebody shared something with you",
+    body: "A shared link opens one thing -- a saved result, a quote, an invoice or an appointment -- published by the person it belongs to. There is nothing else behind this address.",
     sections: [
-      brandCard("What you are looking at", "The person who made it chose to publish it and can unpublish it at any time. It shows the answer only -- not the figures it was worked out from, and nothing about their business."),
-      brandCard("You can work out your own", "The same tools are free and need no account. Type your own numbers in and you get your own answer.")
+      brandCard("What you are looking at", "The person who made it chose to publish it and can unpublish it at any time. It shows that one thing only, and never anybody's contact details."),
+      brandCard("A shared page never asks you for anything", "There is no form on it. If a page claiming to be one of ours asks you for a card number or a password, it is not ours."),
+      brandCard("You can work out your own", "The tools behind the saved results are free and need no account.")
     ],
     actions: [linkAction("/free-tools", "Use the free tools"), linkAction("/", "SONARA One")]
   })));
 
   app.get("/shared/:token", async (req, res) => {
     const token = String(req.params.token || "");
-    // Checked before it reaches a query, not after. An unchecked token would be
-    // interpolated into a PostgREST filter, and the empty string there matches
-    // rows whose token is empty rather than none.
+    // Checked before it reaches a query. An unchecked token is interpolated into
+    // a PostgREST filter, and the empty string there matches rows whose token is
+    // empty rather than none.
     if (!isShareToken(token)) return res.status(404).type("html").send(notFoundPage());
 
     const config = getSupabaseServerConfig();
-    if (!config.ok) return res.status(503).type("html").send(layout({
-      title: "Shared result",
-      eyebrow: "SONARA One",
-      heading: "We could not open that result",
-      body: "This is on our side. The link is fine -- try it again shortly.",
-      surface: "marketing",
-      sections: [],
-      actions: [linkAction("/free-tools", "Use the free tools")]
-    }));
+    if (!config.ok) return res.status(503).type("html").send(unavailablePage());
 
     const found = await rest(
       config,
-      `${TABLE}?select=${SHARED_SELECT_COLUMNS.join(",")}&share_token=eq.${encodeURIComponent(token)}&limit=1`,
+      `${SHARED_LINKS_TABLE}?select=resource_type,resource_id,organization_id&token=eq.${enc(token)}&revoked_at=is.null&limit=1`,
       { headers: supabaseHeaders(config) }
     );
-    // A read that failed is not a result that does not exist, and saying "not
-    // found" to somebody holding a working link would have them tell the person
-    // who sent it that it was broken. Different answers for different facts.
-    if (!found.ok) return res.status(503).type("html").send(layout({
-      title: "Shared result",
-      eyebrow: "SONARA One",
-      heading: "We could not open that result",
-      body: "This is on our side, and the link has not been removed. Try it again shortly.",
-      surface: "marketing",
-      sections: [],
-      actions: [linkAction("/free-tools", "Use the free tools")]
-    }));
+    if (!found.ok) return res.status(503).type("html").send(unavailablePage());
+    const link = found.rows[0];
+    if (!link) return res.status(404).type("html").send(notFoundPage());
 
-    const view = sharedResultView(found.rows[0]);
+    const shareable = shareableFor(link.resource_type);
+    // A resource_type the database holds and this code does not understand. The
+    // check constraint should make it impossible; answering "not found" rather
+    // than throwing is what keeps it impossible-and-harmless instead of
+    // impossible-until-it-happens.
+    if (!shareable || !isUuid(link.resource_id)) return res.status(404).type("html").send(notFoundPage());
+
+    const scope = `id=eq.${enc(link.resource_id)}&organization_id=eq.${enc(link.organization_id)}`;
+    const [resource, organization, lines] = await Promise.all([
+      rest(config, `${shareable.table}?select=${shareable.columns.join(",")}&${scope}&limit=1`, { headers: supabaseHeaders(config) }),
+      rest(config, `organizations?select=name&id=eq.${enc(link.organization_id)}&limit=1`, { headers: supabaseHeaders(config) }),
+      shareable.lines
+        ? rest(
+          config,
+          `${shareable.lines.table}?select=${shareable.lines.columns.join(",")}&${shareable.lines.foreignKey}=eq.${enc(link.resource_id)}`
+            + `&organization_id=eq.${enc(link.organization_id)}&order=created_at.asc`,
+          { headers: supabaseHeaders(config) }
+        )
+        : Promise.resolve({ ok: true, rows: [] })
+    ]);
+
+    if (!resource.ok || !lines.ok) return res.status(503).type("html").send(unavailablePage());
+    // The link says it exists and the row is gone: deleted since it was shared.
+    // Not an outage, and not something to apologise for on our side.
+    if (!resource.rows.length) return res.status(404).type("html").send(notFoundPage());
+
+    const view = sharedView({
+      resourceType: link.resource_type,
+      row: resource.rows[0],
+      lines: lines.rows,
+      // A failed organization read loses the business name and nothing else. The
+      // page is still worth showing, and "" is what sharedView treats as absent.
+      organizationName: organization.ok ? organization.rows[0]?.name : ""
+    });
     if (!view) return res.status(404).type("html").send(notFoundPage());
 
     const detail = view.lines.length
       ? `<article class="card sonara-depth"><h2>${escapeHtml(view.title)}</h2><dl class="sonara-shared-result">${view.lines
         .map((line) => `<dt>${escapeHtml(line.label)}</dt><dd>${escapeHtml(line.value)}</dd>`)
         .join("")}</dl></article>`
-      : brandCard(view.title, "This result was published with no summary to show.");
+      : brandCard(view.title, "This was published with no detail to show.");
+
+    const items = view.items?.length
+      ? `<article class="card sonara-depth"><h2>What is on it</h2><table class="sonara-shared-items">
+          <thead><tr><th scope="col">Description</th><th scope="col">Quantity</th><th scope="col">Each</th><th scope="col">Total</th></tr></thead>
+          <tbody>${view.items.map((item) => `<tr><td>${escapeHtml(item.description)}</td><td>${escapeHtml(item.quantity === null ? "-" : String(item.quantity))}</td><td>${escapeHtml(item.unitPrice || "-")}</td><td>${escapeHtml(item.total || "-")}</td></tr>`).join("")}</tbody>
+        </table></article>`
+      : "";
 
     return res.status(200).type("html").send(layout({
-      title: `${view.title} — shared result`,
-      eyebrow: "Shared result",
+      title: `${view.title} — shared`,
+      eyebrow: view.from ? `Shared by ${view.from}` : "Shared",
       heading: view.title,
-      body: view.madeOn
-        ? `Worked out with the free ${view.product} tools on ${view.madeOn}, and published by the person who made it.`
-        : `Worked out with the free ${view.product} tools, and published by the person who made it.`,
+      body: view.subtitle || `A ${view.noun} published by the person it belongs to.`,
       surface: "marketing",
-      sections: [
-        detail,
-        brandCard("Work out your own", `The ${view.product} tools are free and need no account. Put your own numbers in and you get your own answer.`)
-      ],
-      actions: [linkAction("/free-tools", "Use the free tools"), linkAction("/shared", "What is a shared result?")]
+      sections: [detail, items, brandCard("About this page", view.footnote)].filter(Boolean),
+      actions: [linkAction("/shared", "What is a shared link?"), linkAction("/free-tools", "Use the free tools")]
     }));
   });
 
-  function notFoundPage() {
-    // The same page for "no such token" and "revoked", on purpose. Telling the
-    // difference would tell somebody guessing tokens when they had guessed one
-    // that used to exist, and would tell a recipient that the person who shared
-    // it has taken it back -- which is that person's news to give, not ours.
-    return layout({
-      title: "Shared result",
-      eyebrow: "SONARA One",
-      heading: "That link does not open anything",
-      body: "It may have been unpublished by the person who shared it, or it may never have been a link we made.",
-      surface: "marketing",
-      sections: [
-        brandCard("You can still work one out", "The tools that produce these results are free and need no account.")
-      ],
-      actions: [linkAction("/free-tools", "Use the free tools"), linkAction("/", "SONARA One")]
-    });
-  }
-
-  // Turning it on, and taking it back.
+  // ---------------------------------------------------------------------------
+  // Turning it on, and taking it back
+  // ---------------------------------------------------------------------------
   //
-  // Both writes filter on organization_id as well as id. The service-role key
-  // bypasses RLS, so that filter is the entire tenant boundary -- an id alone
-  // would let any signed-in customer publish any other customer's result by
-  // guessing a uuid.
-  async function ownedRow(req) {
+  // Both writes establish the organization from the signed-in customer's own
+  // membership and then require the resource to be in it. An id alone would let
+  // any signed-in customer publish any other customer's invoice by guessing a
+  // uuid, and uuids in a URL are exactly what somebody guesses at.
+
+  async function owned(req) {
+    const shareable = shareableFor(req.params.resourceType);
+    if (!shareable) return { ok: false, status: 404, code: "unknown_kind" };
     const id = String(req.params.id || "");
-    if (!UUID_PATTERN.test(id)) return { ok: false, status: 404, code: "unknown_result" };
+    if (!isUuid(id)) return { ok: false, status: 404, code: "unknown_record" };
     const config = getSupabaseServerConfig();
     if (!config.ok) return { ok: false, status: 503, code: "workspace_unavailable" };
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser).catch(() => ({ ok: false }));
     if (!organization.ok || !organization.organizationId) return { ok: false, status: 409, code: "workspace_setup_required" };
-    return { ok: true, id, config, organizationId: organization.organizationId };
+
+    // Confirmed present in the caller's organization before any link is made.
+    // Making the link first and checking after would leave a token for a record
+    // the caller does not own if the check then failed.
+    const exists = await rest(
+      config,
+      `${shareable.table}?select=id&id=eq.${enc(id)}&organization_id=eq.${enc(organization.organizationId)}&limit=1`,
+      { headers: supabaseHeaders(config) }
+    );
+    if (!exists.ok) return { ok: false, status: 503, code: "workspace_unreadable" };
+    if (!exists.rows.length) return { ok: false, status: 404, code: "unknown_record" };
+    return { ok: true, id, config, shareable, resourceType: String(req.params.resourceType), organizationId: organization.organizationId };
   }
 
   function backHref(req) {
     const from = String(req.body?.back || "");
-    // Only a path on this site, and only one that looks like a records page.
-    // An open redirect is how a share button becomes a phishing link.
+    // Only a path on this site. An open redirect is how a Share button becomes a
+    // phishing link.
     return /^\/[a-z0-9/-]*$/i.test(from) && from.length <= 120 ? from : "/dashboard";
   }
 
@@ -173,65 +224,68 @@ function registerSharedResultRoutes(app, deps = {}) {
     return res.status(status).type("html").send(responsePage(
       "That did not change",
       body.message || "Nothing was published or unpublished. Try again shortly.",
-      [linkAction(href, "Back to your results"), linkAction("/support", "Get help")]
+      [linkAction(href, "Back"), linkAction("/support", "Get help")]
     ));
   }
 
-  app.post("/api/shared-results/:id/share", requireCustomer, async (req, res) => {
-    const owned = await ownedRow(req);
-    if (!owned.ok) return respond(req, res, owned.status, { ok: false, code: owned.code }, backHref(req));
+  app.post("/api/shared-links/:resourceType/:id/share", requireCustomer, async (req, res) => {
+    const context = await owned(req);
+    if (!context.ok) return respond(req, res, context.status, { ok: false, code: context.code }, backHref(req));
 
-    // Re-sharing a result that is already shared keeps its existing link. A new
-    // token every time would silently break every copy of the old one, and
-    // nothing on the page warned that pressing the button twice did that.
-    const existing = await rest(
-      owned.config,
-      `${TABLE}?select=share_token&id=eq.${encodeURIComponent(owned.id)}&organization_id=eq.${encodeURIComponent(owned.organizationId)}&limit=1`,
-      { headers: supabaseHeaders(owned.config) }
+    // Re-sharing keeps the existing link. A new token every time would silently
+    // break every copy of the old one, and nothing on the page warns that
+    // pressing the button twice does that.
+    const live = await rest(
+      context.config,
+      `${SHARED_LINKS_TABLE}?select=token&resource_type=eq.${enc(context.resourceType)}&resource_id=eq.${enc(context.id)}`
+        + `&organization_id=eq.${enc(context.organizationId)}&revoked_at=is.null&limit=1`,
+      { headers: supabaseHeaders(context.config) }
     );
-    if (!existing.ok) return respond(req, res, 503, { ok: false, code: "workspace_unreadable" }, backHref(req));
-    if (!existing.rows.length) return respond(req, res, 404, { ok: false, code: "unknown_result" }, backHref(req));
-
-    const already = existing.rows[0]?.share_token;
+    if (!live.ok) return respond(req, res, 503, { ok: false, code: "workspace_unreadable" }, backHref(req));
+    const already = live.rows[0]?.token;
     if (isShareToken(already)) {
       return respond(req, res, 200, { ok: true, code: "already_shared", token: already, path: sharePath(already) }, backHref(req));
     }
 
     const token = mintShareToken();
-    const updated = await rest(
-      owned.config,
-      `${TABLE}?id=eq.${encodeURIComponent(owned.id)}&organization_id=eq.${encodeURIComponent(owned.organizationId)}`,
-      {
-        method: "PATCH",
-        headers: supabaseHeaders(owned.config, { prefer: "return=representation" }),
-        body: JSON.stringify({ share_token: token, shared_at: new Date().toISOString() })
-      }
-    );
-    if (!updated.ok || !updated.rows.length) {
+    const created = await rest(context.config, SHARED_LINKS_TABLE, {
+      method: "POST",
+      headers: supabaseHeaders(context.config, { prefer: "return=representation" }),
+      body: JSON.stringify({
+        organization_id: context.organizationId,
+        resource_type: context.resourceType,
+        resource_id: context.id,
+        token,
+        created_by: req.sonaraUser?.id || null
+      })
+    });
+    if (!created.ok || !created.rows.length) {
       return respond(req, res, 503, { ok: false, code: "share_not_saved" }, backHref(req));
     }
     return respond(req, res, 200, { ok: true, code: "shared", token, path: sharePath(token) }, backHref(req));
   });
 
-  app.post("/api/shared-results/:id/revoke", requireCustomer, async (req, res) => {
-    const owned = await ownedRow(req);
-    if (!owned.ok) return respond(req, res, owned.status, { ok: false, code: owned.code }, backHref(req));
+  app.post("/api/shared-links/:resourceType/:id/revoke", requireCustomer, async (req, res) => {
+    const context = await owned(req);
+    if (!context.ok) return respond(req, res, context.status, { ok: false, code: context.code }, backHref(req));
 
-    // shared_at is left alone. It records that this result was published once,
-    // which is true after revoking and is what lets the page tell a customer
-    // "this was public until you took it back" rather than nothing at all.
+    // The row is kept and stamped rather than deleted. A customer who unshares
+    // something and later wonders whether it was ever public is owed an answer,
+    // and a deleted row cannot give one.
     const updated = await rest(
-      owned.config,
-      `${TABLE}?id=eq.${encodeURIComponent(owned.id)}&organization_id=eq.${encodeURIComponent(owned.organizationId)}`,
+      context.config,
+      `${SHARED_LINKS_TABLE}?resource_type=eq.${enc(context.resourceType)}&resource_id=eq.${enc(context.id)}`
+        + `&organization_id=eq.${enc(context.organizationId)}&revoked_at=is.null`,
       {
         method: "PATCH",
-        headers: supabaseHeaders(owned.config, { prefer: "return=representation" }),
-        body: JSON.stringify({ share_token: null })
+        headers: supabaseHeaders(context.config, { prefer: "return=representation" }),
+        body: JSON.stringify({ revoked_at: new Date().toISOString() })
       }
     );
     if (!updated.ok) return respond(req, res, 503, { ok: false, code: "revoke_not_saved" }, backHref(req));
-    if (!updated.rows.length) return respond(req, res, 404, { ok: false, code: "unknown_result" }, backHref(req));
-    return respond(req, res, 200, { ok: true, code: "revoked" }, backHref(req));
+    // No live row is not a failure. Pressing Stop sharing on something already
+    // private is a customer getting what they asked for.
+    return respond(req, res, 200, { ok: true, code: updated.rows.length ? "revoked" : "already_private" }, backHref(req));
   });
 }
 

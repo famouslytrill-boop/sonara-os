@@ -76,6 +76,19 @@ $$;
 
 do $$
 begin
+  if to_regclass('public.shared_links') is null then
+    raise notice 'skipping shared_links: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.shared_links enable row level security';
+  execute 'drop policy if exists "shared_links_select_member" on public.shared_links';
+  execute 'create policy "shared_links_select_member" on public.shared_links for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
   if to_regclass('public.accounting_exports') is null then
     raise notice 'skipping accounting_exports: table not present';
     return;

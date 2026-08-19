@@ -2031,7 +2031,7 @@ async function workspaceRecordCards(req, page, config) {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
     if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
-    return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace", backHref: page.path });
+    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path });
   }
 
   const match = page.form ? resourceForForm(page.form) : null;
@@ -3052,7 +3052,7 @@ async function readModuleRecords(req, productKey) {
     saved: result.ok,
     code: result.ok ? "records_available" : organization.ok || organization.code !== "workspace_not_ready" ? "records_unavailable" : "setup_required",
     productKey,
-    records: result.records
+    records: result.records, shared: result.shared
   };
 }
 

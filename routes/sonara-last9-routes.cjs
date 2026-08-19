@@ -498,6 +498,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let childRows = children.map(() => ({ ok: false, rows: [] }));
       let extra = null;
       let references = {};
+      let shareLink = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -534,6 +535,24 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // of why a child reference field always rendered empty.
           references = await loadReferences(config, org.organizationId, page);
 
+          // Whether this record is already published, if this kind can be.
+          //
+          // Three states, and the page renders all three: shared (show the link
+          // and the way to stop), not shared (offer to), and **could not tell**.
+          // A read that failed is not a record that is private, and offering to
+          // publish something that is already public -- or hiding the way to
+          // unpublish it -- are both worse than saying the check did not run.
+          if (page.shareableAs) {
+            const links = await supabaseList(
+              config,
+              "shared_links",
+              `?select=token&organization_id=eq.${encodeURIComponent(org.organizationId)}`
+                + `&resource_type=eq.${encodeURIComponent(page.shareableAs)}&resource_id=eq.${encodeURIComponent(recordId)}`
+                + "&revoked_at=is.null&limit=1"
+            );
+            shareLink = links.ok ? { ok: true, token: links.rows[0]?.token || null } : { ok: false, token: null };
+          }
+
           if (typeof page.derivedReads === "function") {
             const scopedList = (table, query = "") =>
               supabaseList(config, table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}${query}&limit=500`);
@@ -546,6 +565,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
             summaryCard(page, parent, ui),
+            ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -1543,6 +1563,41 @@ function safeCell(column, row) {
   } catch {
     return "Not set";
   }
+}
+
+// Sending this record to somebody who is not in the business.
+//
+// A form rather than a button with script behind it, matching every other write
+// on these pages -- this application is server-rendered and works without
+// JavaScript, and publishing a document is not the screen to make an exception
+// on.
+//
+// The link is printed as text as well as linked, because the whole point of it
+// is that somebody copies it into an email.
+function shareCard(page, recordId, shareLink, ui) {
+  const noun = page.shareNoun || "record";
+  const base = `/api/shared-links/${encodeURIComponent(page.shareableAs)}/${encodeURIComponent(recordId)}`;
+  const back = `<input type="hidden" name="back" value="${ui.escape(`${page.path}/${recordId}`)}">`;
+
+  if (!shareLink?.ok) {
+    return ui.card(
+      "Sending this to somebody",
+      `We could not check whether this ${noun} has been shared. Nothing has changed either way -- open this page again shortly.`
+    );
+  }
+  if (shareLink.token) {
+    const href = `/shared/${encodeURIComponent(shareLink.token)}`;
+    return `<article class="card"><h2>Sending this to somebody</h2>
+      <p>Anyone with this link can read this ${ui.escape(noun)}: <a href="${ui.escape(href)}">${ui.escape(href)}</a></p>
+      <p class="fine">${ui.escape(page.shareShows || "It shows this record only. It never shows anybody's contact details, your notes, or anything else in your business.")}</p>
+      <form method="post" action="${ui.escape(`${base}/revoke`)}">${back}<button type="submit">Stop sharing this</button></form>
+    </article>`;
+  }
+  return `<article class="card"><h2>Sending this to somebody</h2>
+    <p>Give this ${ui.escape(noun)} a link anyone can open, without them needing an account. You can stop sharing it at any time.</p>
+    <p class="fine">${ui.escape(page.shareShows || "It shows this record only. It never shows anybody's contact details, your notes, or anything else in your business.")}</p>
+    <form method="post" action="${ui.escape(`${base}/share`)}">${back}<button type="submit">Create a link</button></form>
+  </article>`;
 }
 
 // The parent record, said back to the person who opened it. Uses the same

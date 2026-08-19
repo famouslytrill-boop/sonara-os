@@ -73,6 +73,11 @@ const ORGANIZATION_READ_TABLES = [
   "billing_entitlements",
   "billing_subscriptions",
   "business_memberships",
+  // Added when shared_links became the one record of what a customer has
+  // published. A member should be able to see their own organization's links,
+  // and the public /shared/:token read does not go through this policy -- it
+  // runs with the service-role key and filters on the token alone.
+  "shared_links",
   // Added when /business-builder/owner/accounting-exports/:id/download began
   // reading the export row to build the file. Ordinary workspace data: which
   // period a business asked for, and whether it worked.

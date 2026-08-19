@@ -2,6 +2,79 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — A quote, an invoice and an appointment can be sent to somebody
+
+Extending the share mechanism to the things a business actually sends. Four kinds
+now have a link: a saved tool result, a quote, an invoice and an appointment.
+
+**The first thing this did was replace a decision made earlier the same day.**
+`share_token` and `shared_at` went on `module_outputs` in migration
+20260819060000. That was right for one shareable type and wrong for four — four
+places to revoke from, four indexes, and a `/shared/:token` route that has to
+guess which table a token belongs to. `shared_links` is one table for all of
+them, and migration 20260819070000 drops the columns it replaces. The data
+migration that carries tokens across is written even though no row anywhere has
+one, because a migration that only works on an empty table fails the first time
+it meets a full one.
+
+**The resolution order is the security property.** These tables are read with the
+service-role key, which bypasses row level security, so the `organization_id`
+filter is the entire tenant boundary — and a public page has no organization to
+filter by. So: a token finds exactly one `shared_links` row; that row names both
+the resource *and* the organization; the resource is then fetched filtered on
+both. The public page never chooses an organization. It is told one by the row
+the customer created when they pressed Share. This is stronger than the version
+it replaces, where the resource read was filtered on the token's table alone.
+
+**What never travels, written down per kind and asserted against the select.**
+`SHAREABLE` names the columns each public page may ask for and `forbidden` names
+the ones it may not, and a test asserts the intersection is empty *and* that the
+route selects through the reviewed list rather than a select spelled inline.
+Two rules run through all four:
+
+- **No contact details, ever** — not the customer's email, phone or name. A link
+  gets forwarded, and whoever forwards it is not deciding to publish somebody
+  else's phone number. The person who booked already knows their own name.
+- **No internal note.** `notes` on an invoice is where a business writes things
+  *about* a customer, not *for* them.
+
+**Three states on the record's own page, not two.** The share card renders
+shared, not shared, and **could not tell**. A failed read of `shared_links` is
+not a record that is private: offering to publish something already public, or
+hiding the way to unpublish it, are both worse than saying the check did not run.
+The same three states are on the saved-results list.
+
+**A pre-existing defect found on the way past.** `openapi/sonara.yaml` referenced
+`#/components/responses/NotFound` in thirteen places and defined no such
+component. The contract verifier checked which routes were documented and whether
+`operationId`s were unique, and had never asked whether the document validates —
+so a spec no generator could read had been passing that gate for as long as the
+gate has existed. Both missing components are defined, and the verifier now
+resolves every `$ref`.
+
+**Two of my own checks were caught being vacuous, by looking rather than by
+trusting green.** The record-page test first went through `server.js`, got a 303
+from `requireBusinessManager`, and wrapped every assertion in
+`if (status === 200)` — so the block reported green while checking nothing. It is
+now built directly on the router with stubbed guards, the way
+`tests/business-owner-record-pages.test.js` does, and the status is asserted
+rather than guarded. The fixtures also had to become **real v4 UUIDs**: the owner
+record pages validate with a strict RFC pattern, and hex-and-dashes is rejected
+before any read happens.
+
+Both new checks were then falsified deliberately. Adding `customer_phone` to the
+appointment's select fails the column check; deleting the share card from the
+detail page fails the door check.
+
+Three existing gates fired and were right: `shared_links` had no member-readable
+policy (added to the generator, regenerated), the outage crawl caught "Nothing
+here asks you for anything" as a claim about a customer's records (the fix was
+the wording — *A shared page never asks you for anything*), and the supabase
+contract refused an uncontracted runtime reference.
+
+Verified: `pnpm run lint` clean, 2204 tests passing, `pnpm run verify:launch`
+exit 0, 94 migrations, `server.js` still 4032 lines.
+
 ### 2026-08-19 — What this application is actually coupled to
 
 Asked to research free and open-source databases and authentication that could
