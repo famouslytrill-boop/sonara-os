@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — an entire Next.js application that does not build or ship
+
+Asked to build roughly twenty-five product surfaces — projects, memos, logbooks,
+hiring, teams, files, and the rest. Rather than start typing, checked which of
+them already have schema and no way in. Two did: `sonara_projects` and
+`employee_job_posts`. Following `sonara_projects` to whatever reads it found
+`lib/sonara/projects/projectStore.ts`, and then the actual answer.
+
+**The repository contains 1,165 `.ts`/`.tsx` files, including an `app/` directory
+of 231 Next.js pages and 12 API routes. None of it builds and none of it ships.**
+
+| Fact | Where |
+| --- | --- |
+| `next` and `react` are not dependencies | `package.json`; `node_modules/next` does not exist |
+| No TypeScript build exists | `pnpm run build` is `node --check server.js && node -e "require('./server')"` |
+| `app/` is not in the deployment | `vercel.json` bundles `{public/**,routes/**,lib/**}` into `api/index.js` |
+| Nothing would route to it | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
+
+**Nothing in this repository's documentation mentioned it** — not the handoff, not
+`AGENTS.md`, not `SHIP_READINESS.md`. It does now.
+
+**What it was costing.** `scripts/report-orphan-tables.mjs` counted a table as
+queried when any `.ts` file named it, so the release chain reported *"0 tables
+created and never queried"* while **ten were queried only by code that cannot
+run.** A gate asserting a guarantee that had stopped holding — the defect this
+repository keeps finding, this time inside the check meant to catch it. The scan
+now reads only what ships. Confirmed by putting `.ts` back and watching the
+report demand those ten be *removed* as no longer orphaned.
+
+Each of the ten has a recorded decision, and three are warnings rather than
+opportunities: `sonara_user_subscriptions` is a **third** billing model beside the
+live `billing_subscriptions` and `billing_entitlements`; `sonara_projects`
+duplicates `music_projects`, which already has a working page; `system_audit_events`
+would be a **fifth** audit log. One is a real gap — `sonara_sound_assets` models
+licence, redistribution and attribution for third-party audio, which
+`data/open-source-tools.ts` does for code and nothing does for sound.
+
+**Whether that application is revived, deleted or left inert is the owner's
+decision**, and `docs/SHIP_READINESS.md` sets out the three costs without
+recommending one. Deleting ~1,165 files is destructive and `AGENTS.md` puts that
+behind owner approval; reviving it forks the product into two front-ends over one
+database, and the Express side is the one with the tests, the tenant guards and
+the release chain.
+
+**A container reset landed mid-task**, on HEAD `f3e51f2` with the documented
+stale artifacts. Recovered by the recorded procedure — stash, **fetch first**
+because the reset rewinds the `origin/` ref too, ff-only merge, drop. The tell was
+the suite reporting 1,728 tests where it had reported 2,037: a shrinking pass
+count with no failures is a tree that changed underneath, not a suite that got
+better. Every edit was then re-applied against the real files rather than copied,
+and the anchors differed — `ORPHAN_DISPOSITIONS` was empty on the real HEAD and
+populated on the reset one.
+
+Verified: `verify:launch` green, 2037 tests passing, 10 orphans all accounted for.
+
 ### 2026-08-19 — MoneyPrinterTurbo, and the gap it pointed at
 
 Submitted on its own. **108,500 stars and 16,474 forks — by a wide margin the

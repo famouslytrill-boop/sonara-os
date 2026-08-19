@@ -50,7 +50,26 @@ const INVENTORIES = [
 ];
 
 const SOURCE_DIRS = ["lib", "routes", "api", "scripts", "data", "public", "openapi"];
-const SOURCE_FILES = /\.(cjs|js|mjs|ts|tsx|json)$/;
+// **TypeScript is not runtime here, and counting it made this report wrong.**
+//
+// This pattern was /\.(cjs|js|mjs|ts|tsx|json)$/, so a table named in a .ts file
+// counted as a table the application queries. It does not, and cannot: `next`
+// and `react` are not dependencies of this project, `pnpm run build` is
+// `node --check server.js`, and vercel.json bundles `{public/**,routes/**,lib/**}`
+// into one Express function with every route rewritten to it. There is no
+// TypeScript compilation anywhere in the deploy.
+//
+// The repository nonetheless contains 1,165 .ts/.tsx files including an `app/`
+// directory with 231 Next.js pages. None of it builds and none of it ships. Ten
+// tables were counted as queried on the strength of it, so this report said
+// "0 tables created and never queried" while ten were exactly that from the
+// running application's point of view -- a gate asserting a guarantee that had
+// stopped holding, which is the defect this repository keeps finding.
+//
+// Excluding .ts/.tsx makes those ten visible as orphans, each with a disposition
+// in lib/sonara-orphan-tables.cjs recording why. Nothing else changes: the .json
+// inventories and the .cjs/.js/.mjs runtime are unaffected.
+const SOURCE_FILES = /\.(cjs|js|mjs|json)$/;
 
 // Tables that exist at the end of a replay: created, minus dropped.
 //

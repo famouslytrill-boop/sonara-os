@@ -333,6 +333,65 @@ every gate would still have passed.
 
 ---
 
+## An entire Next.js application that does not build or ship
+
+Found 19 August 2026, and recorded here because **nothing in this repository's
+documentation mentioned it** — not the handoff, not `AGENTS.md`, not this file.
+
+The repository contains **1,165 `.ts`/`.tsx` files**, including an `app/`
+directory with **231 Next.js pages and 12 API routes**. None of it runs, and it
+cannot:
+
+| Fact | Where to check it |
+| --- | --- |
+| `next` and `react` are not dependencies | `package.json` — neither appears, and `node_modules/next` does not exist |
+| There is no TypeScript build | `pnpm run build` is `node --check server.js && node -e "require('./server')"` |
+| `app/` is not deployed | `vercel.json` bundles `{public/**,routes/**,lib/**}` into `api/index.js` |
+| Nothing would route to it anyway | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
+
+The shipped product is the Express CommonJS application: `server.js`, `routes/`,
+`lib/`, **277 registered GET routes**, deployed as one serverless function.
+
+**What it cost, before it was found.** `scripts/report-orphan-tables.mjs` counted
+a table as "queried" when any `.ts` file named it. So the release chain reported
+*"0 tables created and never queried"* while **ten tables were queried only by
+code that cannot run** — a gate asserting a guarantee that had stopped holding.
+The scan now reads only what ships (`.cjs`, `.js`, `.mjs`, `.json`), those ten
+are visible as orphans, and each has a recorded decision in
+`lib/sonara-orphan-tables.cjs`.
+
+Reading those ten is worth ten minutes, because three of them are warnings rather
+than opportunities:
+
+- `sonara_user_subscriptions` is a **third** billing model, alongside the live
+  `billing_subscriptions` and `billing_entitlements`. Wiring it would give paid
+  access two answers.
+- `sonara_projects` duplicates `music_projects`, which already has a working page.
+- `system_audit_events` would be a **fifth** audit log.
+
+And one is a genuine gap the shipped product has no answer for:
+`sonara_sound_assets` models licence, redistribution and attribution for
+third-party audio. `data/open-source-tools.ts` does that job for code; nothing
+does it for sound.
+
+### The decision, which is the owner's
+
+Three options with very different costs, and **this is not an engineering
+preference**:
+
+1. **Leave it as an unbuilt reference.** Costs nothing today. The cost is that
+   every future reader has to rediscover that `app/` is inert — which is what
+   this section now prevents.
+2. **Delete it.** ~1,165 files. Irreversible in practice, and `AGENTS.md` puts
+   destructive changes behind owner approval. It would also throw away the
+   licensing model above.
+3. **Revive it.** Add `next` and `react`, add a real build, change the deploy.
+   That forks the product into two front-ends over one database, and the Express
+   side is the one with the tests, the tenant guards and the release chain.
+
+Nothing here recommends one. What is fixed is that the release chain no longer
+reports these tables as used.
+
 ## Known and deliberate
 
 - **Fourteen entries in `data/open-source-tools.ts` still carry a generic
