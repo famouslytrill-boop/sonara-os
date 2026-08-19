@@ -2,6 +2,92 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Three answers the database was already holding
+
+Asked to build the capability that is within reach — where the missing piece is a
+page rather than an architecture. Three of those, checked against the schema
+before anything was written:
+
+- **`location_zones` really does store coordinates.** `latitude numeric(10,7)`
+  and `longitude numeric(10,7)`, both nullable, supplied by the customer.
+- **Sales history really is per item per day.** `pos_menu_mix_items.quantity_sold`
+  joins to `pos_sales_summaries.business_date`.
+- **`customer_records` really has name, email and phone.**
+
+So `lib/sonara-operations-science.cjs`, on the same terms as the inventory
+module: no model call, no provider, no network, no cost per use. That is not
+thrift for its own sake — a route plan costing a fifth of a cent per press is one
+a business stops pressing, and a number that changes between two presses is one
+nobody acts on.
+
+**Round order.** Nearest-neighbour, then 2-opt over haversine distances. Three
+decisions worth not rediscovering:
+
+- **The first stop never moves.** It is where the van already is, and a plan that
+  opens by driving somewhere else is not a plan.
+- **0,0 is refused rather than routed to.** It is open water in the Gulf of
+  Guinea, and it is exactly where an empty form field lands when read as a
+  number. Bad coordinates are *named* in the output, not counted — "three stops
+  were skipped" makes somebody re-check all of them.
+- **The improvement epsilon is load-bearing.** Floating-point noise can make a
+  reversal look like a gain of 1e-13 forever; without `- 1e-9` the loop runs to
+  its cap on every request while improving nothing.
+
+**Demand forecast.** Holt's linear method — simple smoothing forecasts a flat
+line, which for anything trending is wrong in a direction that compounds. Both
+smoothing constants come from a grid search minimising squared one-step error,
+which makes the fit a property of the data rather than of somebody's default, and
+makes it reproducible, which a gradient method from a random start would not be.
+
+**The page prints how wrong the forecast usually is, against the forecast that
+says "the same as last time".** A method that cannot beat that is not worth the
+page it is on, and when it cannot, the output says *plan around the average*
+rather than drawing a confident line through noise. Most forecasting tools omit
+this; it is the single most useful sentence on the page.
+
+**Duplicate customers.** Normalised comparison over name, email and phone.
+Two decisions that cut opposite ways, on purpose:
+
+- **`a.b@` and `ab@` are not treated as one person.** Gmail ignores dots; most
+  providers do not. Merging two real customers is the expensive direction.
+- **A phone keeps its last ten digits only**, because a country code on one row
+  and not the other is the commonest reason a real match is missed.
+
+**Nothing merges anything.** Merging customer records is destructive and
+irreversible, which AGENTS.md puts behind owner approval. This finds and reports;
+a person decides. A test asserts the module contains no `fetch(` and no
+`require(` at all.
+
+**The match threshold was measured, not picked.** Ten representative pairs, half
+the same person misspelled and half different people who look alike, are written
+into the source with their scores. 0.81 is the only value admitting every
+misspelling (Nair/Nayar at 0.818, Zhang/Chang at 0.889, Catherine/Katherine at
+0.923) while excluding every different person (Dave/Dan Brown at 0.800, Mike/Mia
+Ross at 0.778). It still misses "Sam" against "Samuel" at 0.769 — edit distance
+cannot see that one is a nickname for the other — and that miss is the
+conservative direction, which is the right one for a list somebody reads before
+deciding what to merge.
+
+**Two of the 33 new assertions exist to stop the others going vacuous.** 2-opt is
+asserted to *improve* at least ten of 120 random rounds, so an implementation
+whose 2-opt did nothing fails rather than passing every other check; and the grid
+search is compared against every point on its own grid, so a search returning its
+first candidate fails. Beyond those: haversine against London–Paris (343.5 km)
+and a degree of latitude (111.195 km); the round is asserted to be a permutation
+of its input; and for seven stops the result is compared against **every one of
+the 720 possible orders**, worst case 6% above optimal.
+
+Three real defects were found by these checks while writing them, all in the
+tool pages rather than the algorithms: a customer list exported with the name in
+two columns became a surname (`parts.find` took the first field, not all the
+non-contact ones); "100% alike, a suggestion to look at" was being said about two
+identical word sets in different orders, which now reports as *the same name the
+other way round*; and the summary line claimed "the name matches exactly" for a
+bucket that had come to hold two different kinds of match.
+
+Verified: `pnpm run lint` clean, 2187 tests passing, `pnpm run verify:launch`
+exit 0, 284 registered GET routes, 13 planning tools.
+
 ### 2026-08-19 — A result worth sharing now has a page
 
 Sprint 03 of the ship plan. The previous sprint opened the tools to strangers;

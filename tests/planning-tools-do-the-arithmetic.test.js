@@ -51,10 +51,13 @@ describe("the planning tools do the arithmetic", () => {
     }
 
     // And the total is pinned, so adding or losing one is a decision somebody
-    // makes here rather than a number that drifts. Business Builder carries a
-    // fourth -- the stock reorder planner -- because it is the only line with
-    // inventory to reorder.
-    assert.equal(PLANNER_TOOLS.length, 10, "a planning tool was added or removed; update this count on purpose");
+    // makes here rather than a number that drifts. Business Builder carries the
+    // extras: the stock reorder planner, because it is the only line with
+    // inventory to reorder, and the three built on
+    // lib/sonara-operations-science.cjs -- round order, demand forecast and the
+    // duplicate customer check -- because routes, sales history and a customer
+    // list are what a business has and a creator or a marketer does not.
+    assert.equal(PLANNER_TOOLS.length, 13, "a planning tool was added or removed; update this count on purpose");
   });
 
   it("gives every tool a route, a module key and required fields", () => {
