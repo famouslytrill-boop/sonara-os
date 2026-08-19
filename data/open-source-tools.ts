@@ -3746,6 +3746,43 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "MoneyPrinterTurbo",
+    slug: "moneyprinter-turbo",
+    category: ["short-form video", "generation pipeline", "submitted 2026-08-19"],
+    useCase: ["one-click short video from a topic or keyword: script, narration, footage, subtitles, render"],
+    productFit: ["Creator Studio", "Render & Speed Tools"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive and non-reciprocal -- for the code. What the pipeline fetches while it runs is a separate stack of licences: the stock footage it assembles, the voice that narrates it, and the model that writes the script each carry their own terms, and none of them is MIT because this repository is.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence is the easy part and is fine; three other things are not, and each is a different kind of decision",
+      "ARCHITECTURE: Python, ffmpeg and minutes of CPU with hundreds of megabytes of scratch space per video. This runtime is Express CommonJS on Vercel serverless with no build step and request-scoped functions, so it cannot run here in any form -- it is a worker the owner runs, like every other rendering candidate in this register",
+      "DOWNSTREAM LICENCES: the MIT covers the orchestration. Whatever stock source it is configured with has its own terms, and identifiable people and trademarks in stock footage carry release questions that no licence file answers",
+      "PRODUCT POLICY: this produces content published under a customer's name, at volume, aimed at TikTok, Reels and YouTube Shorts -- platforms with their own rules about inauthentic and automated content. Whether SONARA should mass-produce that for customers is a decision nobody has made, and it is not an engineering one",
+      "the name never appears in customer-facing copy. tests/guides.test.js asserts no page promises revenue, ranking or a guaranteed outcome, and a feature called MoneyPrinter attached to a creator tool is that promise made in a word",
+    ],
+    officialUrl: "https://github.com/harry0703/MoneyPrinterTurbo",
+    repoUrl: "https://github.com/harry0703/MoneyPrinterTurbo",
+    notes:
+      "108,500 stars and 16,474 forks -- **by a wide margin the most-starred repository ever submitted to this register**, more than three times the next -- Python, created March 2024 and pushed the day before it was submitted, so it is very much alive. Its own description: generate HD short videos from a topic or keyword with an automated AI workflow. Topics name the shape: ffmpeg, text-to-speech, subtitles, short-video, tiktok, youtube-shorts, instagram-reels.\n\nWhat could be verified from here and what could not, because the difference matters: the licence, the star and fork counts, the language, the activity and the topics are read from the GitHub API. The repository's own files were NOT read -- repository access in this environment is scoped to sonara-os, and the network egress proxy blocks direct fetches -- so the pipeline's exact stock source and provider list are taken from its description rather than from its code, and anything resting on them needs checking against the repository itself.\n\n**The genuinely useful finding is structural, and it is about SONARA rather than about this repository.** creator_generation_jobs.capability is a single `text not null check (capability in (...))` column: one capability per job. Text to speech is a job. Text to video is a job. A short video assembled from a script, a narration, footage and burnt-in subtitles is a *chain* of them, with each step's output feeding the next, and this product has no way to express that. Every generation surface here is one-shot. That is a real architectural gap, it was found by reading what a submitted repository does rather than by reading this codebase, and it would have to be closed before any pipeline of this kind could be driven from Creator Studio -- whether this one or one written here.\n\nRecorded at research_only rather than as an adapter candidate for that reason and the product-policy one above, not for the licence.",
+    safetyBoundaries: [
+      "provenance travels with the output: creator_generation_assets.provenance already records what produced an asset, and an assembled video is a composite whose sources have to be recorded rather than lost in the render",
+      "narration by a synthetic voice that is nobody's needs no consent from anybody, which is why text_to_speech is not in VOICE_CAPABILITIES. Anything resembling a real person's voice does, and routes/creator-generation-routes.cjs refuses a voice job whose recorded permission does not cover the capability being asked for",
+      "no page attaches an earnings claim to generated output, whatever the tool that made it is called",
+      "a customer's own account is the one at risk on the publishing platforms, so nothing auto-publishes on their behalf without an explicit action by them",
+      "AGENTS.md keeps customer campaigns behind owner approval, and bulk publishing is that in a different medium",
+    ],
+    blockedUses: [
+      "presenting generated video as footage somebody actually shot",
+      "publishing at volume to a customer's platform accounts without their explicit per-publication action",
+      "any wording that implies revenue, views or ranking will follow",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

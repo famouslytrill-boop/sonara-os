@@ -2,6 +2,58 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — MoneyPrinterTurbo, and the gap it pointed at
+
+Submitted on its own. **108,500 stars and 16,474 forks — by a wide margin the
+most-starred repository ever put into this register**, more than three times the
+next. MIT, verified from the GitHub API's detected `license.spdx_id`. Python,
+pushed the day before it was submitted.
+
+It generates a short video from a topic: script, narration, stock footage,
+subtitles, render, aimed at TikTok, Reels and Shorts.
+
+**The licence is the easy part and it is fine.** Three other things are not, and
+they are three different kinds of decision, which is why the record separates
+them rather than reaching one verdict:
+
+- **Architecture.** Python, ffmpeg, minutes of CPU and hundreds of megabytes of
+  scratch per video. This runtime is request-scoped serverless with no build
+  step. It is a worker the owner runs, like every other rendering candidate here.
+- **Downstream licences.** MIT covers the orchestration. Whatever stock source it
+  is configured with has its own terms, and identifiable people or trademarks in
+  stock footage carry release questions no licence file answers. Same shape the
+  register already recorded for AudioCraft, where the code is MIT and the weights
+  are not.
+- **Product policy.** It produces content published under a customer's name, at
+  volume, to platforms with their own rules about inauthentic and automated
+  content. Whether SONARA should do that for customers is a decision nobody has
+  made, and it is not an engineering one.
+
+One concrete constraint rather than a general worry: **the name never reaches
+customer-facing copy.** `tests/guides.test.js` already asserts no page promises
+revenue, ranking or a guaranteed outcome, and a creator feature called
+MoneyPrinter is that promise made in a single word.
+
+**The useful finding is structural, and it is about this codebase.**
+`creator_generation_jobs.capability` is a single
+`text not null check (capability in (...))` column — **one capability per job.**
+Text to speech is a job. Text to video is a job. A short video assembled from a
+script, a narration, footage and burnt-in subtitles is a *chain* of them, each
+step feeding the next, and nothing here can express that. Every generation
+surface is one-shot. That gap would have to be closed before any pipeline of this
+kind could be driven from Creator Studio — this one or one written here — and it
+was found by reading what a submitted repository does rather than by reading this
+codebase.
+
+**What was verified and what was not**, because the difference is the point of
+this register: licence, stars, forks, language, activity and topics come from the
+GitHub API. The repository's own files were **not** read — repository access here
+is scoped to `sonara-os` and the egress proxy blocks direct fetches — so the exact
+stock source and provider list come from its description, and anything resting on
+them needs checking against the repository itself.
+
+Verified: `verify:launch` green, 139 registry records, 140 unique GitHub targets.
+
 ### 2026-08-19 — a cross-tenant write, found by auditing four endpoints
 
 **`/api/business/time-entries/stop` resolved no organization at all.** It took an
