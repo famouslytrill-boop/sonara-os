@@ -223,17 +223,31 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     // 503 with ok: false when nothing was saved, matching the two sibling write
     // endpoints. This answered 200 with ok: true for a write that stored
     // nothing, so one product gave two answers to one kind of failure.
-    if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json({ ...result, ok: result.saved === true });
+    // 503 says "our side broke", and for a visitor with no account nothing broke
+    // -- the tool ran and answered. The 503 below is still right for a write
+    // that was attempted and failed; this separates the two rather than
+    // reporting a working tool as an outage.
+    const nothingWentWrong = result.saved || String(result.code) === "not_signed_in";
+    if (wantsJson(req)) return res.status(nothingWentWrong ? 200 : 503).json({ ...result, ok: result.saved === true });
 
     // Whether "setup" is the reason. It is when the workspace is genuinely
     // unconfigured, and it is not when a read or a write failed underneath a
     // workspace that is already finished -- workspace_unreadable and
     // records_unavailable both arrive here, and both used to send the customer
     // to a setup page with nothing on it to do.
-    const setupIsTheReason = ["setup_required", "customer_organization", "supabase"].includes(String(result.service || result.code));
+    const notSignedIn = String(result.code) === "not_signed_in";
+    const setupIsTheReason = !notSignedIn
+      && ["setup_required", "customer_organization", "supabase"].includes(String(result.service || result.code));
     const sections = [toolOutputCard(result.output)];
     if (result.saved) {
       sections.push(brandCard("Record saved", `Saved for your organization. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+    } else if (notSignedIn) {
+      // Said rather than left to be noticed. A result page that looks the same
+      // whether or not it was kept is how somebody closes the tab and loses it.
+      sections.push(brandCard(
+        "This answer is not saved",
+        "The figures above are yours to copy or print. Create a free account and the next one is saved to your workspace, so you can come back to it and see it change."
+      ));
     } else if (setupIsTheReason) {
       // No reference number. referenceId is null for unsaved work -- it used to
       // be a randomUUID() identifying no row -- and this printed it through
@@ -242,7 +256,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     } else {
       sections.push(brandCard("Your result could not be saved", "Your output was generated and is shown above. We could not save it to your workspace just now, and that is on our side rather than anything you need to set up. Run it again shortly if you want it kept."));
     }
-    return res.status(result.saved ? 200 : 503).type("html").send(
+    return res.status(nothingWentWrong ? 200 : 503).type("html").send(
       layout({
         title: tool.title,
         eyebrow: "Free tool result",
@@ -757,21 +771,57 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   // Free tool pages and POST actions
   // ---------------------------------------------------------------------------
 
+  // The free tools compute for anybody, and save for a customer.
+  //
+  // Until 19 August 2026 both halves were behind a login. The effect was a
+  // funnel that advertised and then refused: /business-builder/tools is a public
+  // page listing ten tools by name and description, and every one of them
+  // answered a visitor who clicked it with a redirect to /login.
+  //
+  // These are the most differentiated thing in the product and the cheapest to
+  // give away -- pure arithmetic, no model call, no provider, no per-use cost,
+  // and nothing read from the database to produce the answer. Gating the
+  // *computation* does not drive a signup, it drives a bounce; gating the
+  // *saving* is what drives a signup, and that is unchanged.
+  //
+  // **Nothing moved from paid to free.** The free plan already included these
+  // tools; they moved from free-after-signup to free-before-signup, which is a
+  // funnel change rather than a pricing change.
   for (const tool of TOOLS) {
-    app.get(tool.path, requireWorkspaceAccess(tool.productKey), (req, res) => {
+    app.get(tool.path, async (req, res) => {
+      // Resolved, not required. The gate that used to sit here did two jobs and
+      // only one of them was gating -- it also worked out who was asking, which
+      // is what decides the framing below and, on POST, whether there is anyone
+      // to save the result for.
+      const session = typeof resolveCustomerSession === "function"
+        ? await resolveCustomerSession(req, res).catch(() => ({ ok: false }))
+        : { ok: false };
+      if (session.ok && session.user) req.sonaraUser = session.user;
+      const signedIn = Boolean(req.sonaraAccess || req.sonaraUser);
       res.status(200).type("html").send(
         layout({
           title: tool.title,
           eyebrow: "Free tool",
           heading: tool.title,
-          body: `${tool.description} Free tools are available to logged-in users. Saving records depends on account database setup.`,
-          sections: [accessCard(req.sonaraAccess), toolFormCard(tool)],
-          actions: [
-            linkAction(`/${tool.slug}/tools`, "All tools"),
-            linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
-            linkAction("/dashboard", "Dashboard"),
-            logoutAction()
-          ]
+          body: `${tool.description} It runs on what you type and nothing else -- no account needed to get the answer.`,
+          sections: [
+            signedIn
+              ? accessCard(req.sonaraAccess)
+              : brandCard("No account needed", "Fill this in and you get the answer. Creating a free account is what saves it, so you can come back to it and track it."),
+            toolFormCard(tool)
+          ],
+          actions: signedIn
+            ? [
+                linkAction(`/${tool.slug}/tools`, "All tools"),
+                linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
+                linkAction("/dashboard", "Dashboard"),
+                logoutAction()
+              ]
+            : [
+                linkAction(`/${tool.slug}/tools`, "All tools"),
+                linkAction("/signup", "Create a free account"),
+                linkAction("/pricing", "Pricing")
+              ]
         })
       );
     });
@@ -786,11 +836,24 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           return res.status(400).type("html").send(responsePage("Check your inputs", extra.message, [linkAction(tool.path, "Return to tool")]));
         }
       }
-      return requireWorkspaceAccess(tool.productKey)(req, res, async () => {
-        const output = tool.build(req.body);
-        const result = await saveModuleOutput(req, tool.productKey, tool.module, req.body, output);
-        return sendToolResult(req, res, result, tool);
-      });
+      // Computed first, saved second, and the answer is shown either way.
+      // saveModuleOutput already reports { saved: false } with a reason rather
+      // than throwing, and reports "not_signed_in" separately from
+      // "setup_required" -- a stranger is not an unfinished workspace, and
+      // telling them to finish setting up an account they do not have would be
+      // the wrong instruction.
+      // Resolve who is asking before saving. Dropping the gate dropped this too,
+      // and a signed-in customer's result silently stopped being saved --
+      // caught by an existing test asserting that it does. The gate was doing
+      // two jobs; only one of them is being removed.
+      const session = typeof resolveCustomerSession === "function"
+        ? await resolveCustomerSession(req, res).catch(() => ({ ok: false }))
+        : { ok: false };
+      if (session.ok && session.user) req.sonaraUser = session.user;
+
+      const output = tool.build(req.body);
+      const result = await saveModuleOutput(req, tool.productKey, tool.module, req.body, output);
+      return sendToolResult(req, res, result, tool);
     });
   }
 

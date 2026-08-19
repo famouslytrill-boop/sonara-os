@@ -124,6 +124,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — The page that advertised the tools and then refused them
+
+Sprint 02 of the ship plan: make the front door earn its scroll. Two things were
+found by opening the files rather than by reading the plan, and both were worse
+than the plan said.
+
+**The home page linked to zero tools.** Thirty-five deterministic calculators —
+break-even, reorder point, split sheet, referral payback — and the page a first
+visitor lands on mentioned none of them. The strongest thing on this site was
+reachable only by someone who already knew it was there.
+
+**Every tool page redirected an anonymous visitor to `/login`, while the public
+directory listing them was open.** So `/business-builder/tools` rendered
+"Break-even calculator" to a stranger, named it, described it, linked it — and
+the link sent them to a sign-in form. It advertised, then refused. Nothing about
+those tools needs an account: **not one of them reads the database to produce its
+answer.** They are arithmetic over what the visitor typed. The account was
+gating a computation that costs nothing and reveals nothing.
+
+What changed, and the distinction the whole sprint rests on: **computing is open,
+saving is not.** A stranger gets the answer. Saving it to a workspace still needs
+an account, which is the half that was ever worth gating — and the page now says
+so, in the place where the answer appears, rather than at a login wall before it.
+
+Four things had to be got right for that not to be a hole:
+
+- **The GET is ungated but still resolves the session**, because dropping the
+  guard also dropped the thing that identified a signed-in customer. An earlier
+  pass removed both and signed-in customers' results silently stopped saving —
+  caught by an existing test, not by reading the diff. The session is resolved
+  and used; only the *refusal* was removed.
+- **`saveModuleOutput` now distinguishes a stranger from an unfinished
+  workspace.** Both used to answer `setup_required`, so a visitor with no account
+  was told to finish setting up an account they did not have. A visitor with no
+  user id gets `not_signed_in`; absent is not unfinished.
+- **A working tool is no longer reported as an outage.** `sendToolResult`
+  answered 503 for anything unsaved. For a stranger nothing failed — the tool ran
+  and answered — so 503 was a false alarm on the healthy path. It is still 503
+  when a write was attempted and failed, which is the case it was written for.
+- **The route manifest agrees by rule, not by list.** `PRODUCT_TOOL_ROUTE` is a
+  regex over `/{studio}/tools/{slug}`, so the thirty-sixth tool is open the day
+  it is added. Naming them individually would mean the next one quietly declared
+  itself customer-only in the manifest while answering strangers with a page —
+  exactly the disagreement
+  `tests/the-route-manifest-agrees-with-the-server.test.js` exists to catch. The
+  38 matched routes keep their `productOwner` and lose only `requiredRole`: who
+  owns a page and who may open it are different questions.
+
+The test that asserted the old behaviour was inverted rather than deleted — "tool
+pages require login for anonymous browsers" is now "computes for a stranger
+without showing them anything from the database", and it asserts the second half
+too, so opening the page cannot start leaking a workspace without failing. A
+second test asserts the unsaved-result message appears **and** that it does not
+say "Not saved yet", the setup-required wording, because the two messages read
+alike and only one of them is true for a visitor.
+
+Verified: `pnpm run lint` clean, 2129 tests passing, `pnpm run verify:launch`
+exit 0, `server.js` at 4032 lines — the home page section is spliced into the
+existing escaped string, so the front door grew by nine links and zero lines
+against the ratchet.
+
 ### 2026-08-19 — Answering a question the formula library had been assuming
 
 Asked to research and build advanced deterministic algorithms. The useful place

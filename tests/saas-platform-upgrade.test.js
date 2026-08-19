@@ -425,16 +425,72 @@ describe("software-in-a-service platform upgrade", () => {
   });
 
   describe("free tools", () => {
-    it("tool pages require login for anonymous browsers", async function() {
+    // This asserted that a tool page redirected an anonymous browser to /login,
+    // and that stopped being true on 19 August 2026.
+    //
+    // The funnel it described was: /business-builder/tools is a public page
+    // listing every tool by name and description, and clicking one bounced you
+    // to a login wall. It advertised and then refused, at the strongest and
+    // cheapest thing in the product -- arithmetic that costs nothing per use and
+    // reads nothing from the database to produce an answer.
+    //
+    // Gating the computation drove bounces; gating the *saving* is what drives
+    // signups, and that is unchanged. Nothing moved from paid to free -- the free
+    // plan already included these tools.
+    //
+    // So the assertion is inverted, and strengthened where it matters: the thing
+    // worth checking now is not that a stranger is refused, but that a stranger
+    // is served **an answer and nothing else**.
+    it("computes for a stranger without showing them anything from the database", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       clearSupabaseEnv();
       try {
         for (const route of ["/business-builder/tools/pricing", "/creator-studio/tools/brief", "/growth-studio/tools/kpi"]) {
           const res = await request(app).get(route).set("Accept", "text/html");
-          assert.equal(res.status, 303, `${route} should redirect anonymous browsers`);
-          assert.equal(res.headers.location, "/login");
+          assert.equal(res.status, 200, `${route} should open for anybody`);
+          // A tool renders a form and its own words. If a customer's record ever
+          // reached one of these pages it would be reaching somebody with no
+          // account at all, so this asserts the absence rather than trusting it.
+          assert.match(res.text, /<form/i, `${route} rendered no form`);
+          assert.doesNotMatch(res.text, /Reference ID/i, `${route} showed a saved record to a stranger`);
         }
       } finally {
+        restoreEnv(snapshot);
+      }
+    });
+
+    it("tells a stranger their answer was not saved, and why an account would save it", async function() {
+      const snapshot = snapshotEnv(SUPABASE_KEYS);
+      setSupabaseEnv();
+      const originalFetch = global.fetch;
+      // Configured database, nobody signed in -- the state a visitor arrives in.
+      global.fetch = async (url) => {
+        const signedOut = String(url).includes("/auth/v1/user");
+        return {
+          ok: !signedOut,
+          status: signedOut ? 401 : 200,
+          headers: { get: () => null },
+          json: async () => (signedOut ? { error: "no session" } : [])
+        };
+      };
+      try {
+        const res = await request(app)
+          .post("/business-builder/tools/break-even")
+          .set("Accept", "text/html")
+          .type("form")
+          .send({ fixedCostsMonthly: "3000", pricePerSale: "50", variableCostPerSale: "20", cashOnHand: "9000" });
+
+        // 200, not 503. The tool ran and answered; nothing on our side broke,
+        // and reporting a working tool as an outage would be a lie about the
+        // product to the person least likely to come back.
+        assert.equal(res.status, 200, "a working tool answered a stranger with a server error");
+        assert.match(res.text, /100 sales a month/, "the answer itself is missing");
+        assert.match(res.text, /not saved/i, "it did not say the answer was unsaved");
+        // "Setup required" is the wrong instruction for somebody with no account
+        // to set up. A stranger is not an unfinished workspace.
+        assert.doesNotMatch(res.text, /Not saved yet/, "it told a stranger their workspace setup was unfinished");
+      } finally {
+        global.fetch = originalFetch;
         restoreEnv(snapshot);
       }
     });
