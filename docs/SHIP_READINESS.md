@@ -115,6 +115,16 @@ green deploy currently tells you nothing about whether the toggle is on.
 
 ### 3. Twelve authorization functions are callable by any signed-in user
 
+> **Updated 19 August 2026.** The four that existed in the live database and in
+> no migration were supplied by the owner and are now recorded verbatim in
+> `supabase/migrations/20260819050000_record_undeclared_authorization_functions.sql`.
+> They are readable, they are correctly hardened with `search_path`, two of them
+> are byte-identical to each other, two depend on tables that exist nowhere in
+> this repository, and no policy in any migration calls any of them. The grant
+> itself is unchanged and still the owner's decision — see
+> `docs/owner/OWNER-STEPS.md` items 3 and 4.
+
+
 Replaces the legal review that sat here. That was not a shipping step — it is a
 decision about engaging counsel, and parking it on this list meant the list had
 a permanent item nobody could close. The legal position is unchanged and stated
@@ -159,7 +169,7 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 91 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 92 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:

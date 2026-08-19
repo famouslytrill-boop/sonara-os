@@ -144,7 +144,7 @@ supabase migration list
 pnpm run db:push
 ```
 
-Review `migration list` before pushing. This repository holds 91 migrations and
+Review `migration list` before pushing. This repository holds 92 migrations and
 a push applies whatever is not yet applied.
 
 ---

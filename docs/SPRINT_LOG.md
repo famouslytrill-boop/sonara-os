@@ -2,6 +2,63 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — The four authorization functions, read at last
+
+The owner ran the `pg_get_functiondef` query and supplied all four. Recording
+them was the easy half; reading them was the half worth doing.
+
+**They come from a different schema generation.** `has_scope` joins
+`public.organization_members` on `org_id`. This project's table is
+`organization_memberships` and its column is `organization_id` — a different name
+*and* a different column, not a typo. It also reads `app_scopes`, and
+`has_company_access` reads `organization_app_access`. **None of those three
+tables exists in any migration here, or anywhere else in this repository** —
+checked with a word-boundary search after a substring search returned 81 false
+positives, every one of them `organization_memberships` or a URL containing it.
+
+They also name six roles — owner, admin, manager, editor, billing_admin,
+security_admin — which `organization_memberships` does not carry.
+
+**`is_admin()` and `is_current_user_admin()` are byte-identical.** Same body,
+same volatility, same search_path, two names.
+
+**All four are hardened correctly.** Every one sets `search_path TO 'public'`,
+which is exactly what a SECURITY DEFINER function should do. The advisor's
+warning reads as though they are careless; they are not, and that is worth
+recording as a thing that is right.
+
+**No policy in any migration calls any of the four**, against more than thirty
+calls to `is_org_member` across five migrations. That is the most useful fact for
+OWNER-STEPS item 4 — and it does not settle it, for the reason that produced this
+item in the first place: these four existed in the database and in no migration,
+so the schema holds content this repository cannot see, and policies are part of
+that content.
+
+**The migration creates nothing, replaces nothing and drops nothing**, and that
+is the decision rather than the shortcut. A `LANGUAGE sql` body is validated when
+the function is created, so a `create or replace` of either function whose tables
+are missing **fails on deploy, on the authorization path**. And nothing here can
+execute Postgres, so a definition written here would be one nobody had run. What
+it does carry is the four definitions verbatim, plus a `do` block that raises
+notices saying which functions and which of the three tables the database it runs
+against actually has — the one question this repository cannot answer from
+outside it.
+
+**One report had already gone stale by the time this landed.**
+`report-security-definer-exposure.mjs` printed "These exist in the live database
+and not in version control, so they cannot be reviewed by reading this
+repository." True when written, false the moment the definitions were recorded.
+It now separates **recorded** from **defined** — the count of 8 of 12 is
+unchanged and still correct, because it counts what this repository defines, and
+this migration defines nothing on purpose. Collapsing the two states would have
+made the sentence wrong in the other direction.
+
+That reader deliberately reads the raw migration rather than the comment-stripped
+SQL every other check in that file uses, because the definitions are commented
+out on purpose; reading the stripped version would find nothing and report all
+four as unreadable. Probed both ways — removing one definition names it as
+unreadable, deleting the file names all four.
+
 ### 2026-08-19 — The Stripe prices existed twice, and one subscription in the account's history
 
 Asked to check and complete the two owner-only items. One of them turned out to

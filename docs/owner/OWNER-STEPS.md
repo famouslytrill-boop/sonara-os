@@ -1,6 +1,6 @@
 # The steps only you can take
 
-Five of them. Each is written to be run, not interpreted — the SQL, the exact
+Three of them, and two records of what is already closed. Each is written to be run, not interpreted — the SQL, the exact
 dashboard path, and how to tell whether it worked.
 
 Nothing in this list can be done from inside the repository, which is why it is
@@ -93,40 +93,56 @@ application does not own.
 
 ---
 
-## 3 — Put four authorization functions into version control
+## 3 — Closed 19 August 2026
 
-**Why nobody else can.** They exist in the live database and in no migration,
-so this repository cannot read them. This is the most serious item on the list,
-and it is not the one the security advisor flagged.
+**You ran the query and supplied all four.** They are recorded verbatim in
+`supabase/migrations/20260819050000_record_undeclared_authorization_functions.sql`,
+which is now the only place in this repository they can be read.
 
     is_admin()            is_current_user_admin()
     has_scope(...)        has_company_access(...)
 
-These are authorization primitives. An authorization primitive nobody can read
-is one nobody can review, and no care about its `EXECUTE` grant compensates for
-not knowing what it does.
+**That migration creates nothing, replaces nothing and drops nothing**, and that
+is deliberate. Reading them turned up why:
 
-**Do this.** Run the query below in the Supabase SQL editor and send me the
-output. I will turn it into a migration so the definitions live in version
-control from then on.
+**Two of them depend on tables this project does not have.** `has_scope` reads
+`app_scopes` and `organization_members`; `has_company_access` reads
+`organization_app_access`. None of those three exists in any migration here, or
+anywhere else in this repository. `organization_members` is not a typo for
+`organization_memberships` either — it joins on `org_id`, and this project's
+column is `organization_id`. They describe a permission model this product does
+not have, with a six-role vocabulary — owner, admin, manager, editor,
+billing_admin, security_admin — that `organization_memberships` does not carry.
 
-```sql
-select
-  p.proname as name,
-  pg_get_function_identity_arguments(p.oid) as arguments,
-  pg_get_functiondef(p.oid) as definition
-from pg_proc p
-join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'public'
-  and p.proname in ('is_admin', 'is_current_user_admin', 'has_scope', 'has_company_access')
-order by p.proname;
-```
+A `LANGUAGE sql` body is validated when the function is created, so a
+`create or replace` of either one against a database lacking those tables fails
+— on deploy, on the authorization path. That is the first reason nothing is
+created. The second is that nothing in this repository can execute Postgres, so
+a definition written here would be one nobody had run.
 
-**It is also proof of something broader.** Functions and policies are being
-created outside migrations. That is the limit on every report in this
-repository that reads migrations to reason about the live database — including
-the security-definer exposure report. Worth knowing regardless of what these
-four turn out to do.
+**`is_admin()` and `is_current_user_admin()` are byte-identical.** Same body,
+same volatility, same search_path, two names. One is redundant. Which one to
+keep is your call; nothing here depends on either.
+
+**All four are hardened correctly.** Every one sets `search_path TO 'public'`,
+which is what stops a caller redirecting an unqualified name inside the body to
+a table they control. The advisor's warning reads as though these are careless,
+and they are not.
+
+**No policy in any migration calls any of the four.** `is_org_member` is called
+in more than thirty places across five migrations; these four in none. That
+matters for item 4 below.
+
+It does not settle item 4, and the reason is the same limitation that created
+this item: **these four existed in the database and in no migration, which is
+proof the schema holds content this repository cannot see.** So "no migration
+calls them" is not "nothing calls them".
+
+The migration ends with a `do` block that raises notices — which of the four
+functions and which of their three tables the database it runs against actually
+has. It changes nothing and is safe to run twice. **Running it is how you find
+out whether those tables exist**, which is the one question left here and the one
+this repository cannot answer from outside.
 
 ---
 
@@ -166,7 +182,21 @@ pre-emptively, because a migration in this repository runs on deploy, and
 shipping this without the branch test would be acting past the evidence.
 
 **The other eleven stay as they are.** Seven because 202 policies is not a
-number to gamble with, and four because they are the ones nobody can read yet.
+number to gamble with, and four for a reason that changed on 19 August 2026 and
+is now better than "nobody can read them".
+
+Those four — `is_admin`, `is_current_user_admin`, `has_scope`,
+`has_company_access` — are readable now, and reading them says **no policy in any
+migration calls any of them**, against more than thirty calls to `is_org_member`.
+On the evidence in this repository they are the safest four to revoke after
+`sonara_has_org_role`.
+
+The evidence in this repository is exactly what is not sufficient here, though,
+and item 3 is the proof: those four functions existed in the database and in no
+migration, so the schema holds content this repository cannot see, and policies
+are part of that content. Add them to the preview-branch test above rather than
+revoking them on this reasoning — the whole point of that test is that it is run
+somewhere breaking is free.
 
 ---
 
