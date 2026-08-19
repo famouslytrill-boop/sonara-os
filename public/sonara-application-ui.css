@@ -1340,3 +1340,36 @@ body > header .sonara-brand-copy strong {
     display: none !important;
   }
 }
+
+/* A shared result is a list of label/value pairs and nothing else, so it is a
+   description list rather than a stack of paragraphs -- a screen reader is told
+   which value belongs to which label, which a <p><strong> pattern cannot say.
+
+   Two columns where there is room and one where there is not, because the value
+   is the part somebody came to read and a 90-character label column on a phone
+   would leave it three words wide. */
+.sonara-shared-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px 24px;
+  margin: 18px 0 0;
+}
+.sonara-shared-result dt {
+  color: var(--nx-muted);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sonara-shared-result dd {
+  margin: 0 0 14px;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 620px) {
+  .sonara-shared-result {
+    grid-template-columns: minmax(9rem, 15rem) minmax(0, 1fr);
+    align-items: baseline;
+  }
+  .sonara-shared-result dt { padding-top: 2px; }
+  .sonara-shared-result dd { margin-bottom: 10px; }
+}

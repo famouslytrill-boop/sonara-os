@@ -2031,7 +2031,7 @@ async function workspaceRecordCards(req, page, config) {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
     if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
-    return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace" });
+    return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace", backHref: page.path });
   }
 
   const match = page.form ? resourceForForm(page.form) : null;

@@ -12,6 +12,7 @@ const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
+const registerSharedResultRoutes = require("./sonara-shared-result-routes.cjs");
 
 const PRODUCTS = [
   { slug: "business-builder", productKey: "business_builder", name: "Business Builder" },
@@ -193,6 +194,20 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     });
   }
 
+
+  // The public face of a saved result.
+  //
+  // Registered from here rather than from server.js because this module is what
+  // makes the results: the tools above compute them, saveModuleOutput stores
+  // them, and a shared link is one of those rows with an address. It also needs
+  // exactly ten helpers, and this module was already handed all ten -- adding a
+  // second call site in server.js would have meant threading the same ten
+  // through a second time to reach the same table.
+  registerSharedResultRoutes(app, {
+    layout, brandCard, linkAction, escapeHtml, responsePage,
+    requireCustomer, wantsJson, getSupabaseServerConfig, supabaseHeaders,
+    getCustomerPrimaryOrganization
+  });
 
   function productByKey(productKey) {
     return PRODUCTS.find((product) => product.productKey === productKey);

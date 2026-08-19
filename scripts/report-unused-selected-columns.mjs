@@ -78,6 +78,10 @@ const ACCOUNTED = Object.freeze({
     columns: ["category"],
     reason: "Notification category is carried into the response rather than rendered. Selected so the shape does not change if a page starts showing it."
   },
+  "lib/sonara-module-records.cjs": {
+    columns: ["share_token", "shared_at"],
+    reason: "safeReadOrganizationScopedRecords fetches the customer's saved results; renderShareControl in lib/sonara-module-crud.cjs reads both -- the token to render the link and the Stop sharing form, shared_at to say a result was shared before and is private again. This file only fetches. Both files opened to confirm it."
+  },
   "lib/sonara-paid-entitlement.cjs": {
     columns: ["metadata"],
     reason: "Read by billingRowOpensProduct in lib/sonara-paid-access.cjs, which uses metadata.workspace to decide whether a one-workspace plan opens THIS product. Both files opened to confirm it."

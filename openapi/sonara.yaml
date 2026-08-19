@@ -2600,6 +2600,40 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/shared-results/{id}/share:
+    post:
+      operationId: shareSavedResult
+      tags: [Workspace]
+      summary: Publish one saved tool result at an unguessable link anybody can open.
+      description: >-
+        Mints a share token for a module output the caller's organization owns and returns its
+        public path. Re-sharing an already shared result returns the existing token rather than
+        minting a new one, so links already handed out keep working. The published page shows the
+        output only; the input the result was worked out from is never published.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/shared-results/{id}/revoke:
+    post:
+      operationId: revokeSharedResult
+      tags: [Workspace]
+      summary: Stop sharing a published result, so its link stops opening.
+      description: >-
+        Clears the share token. The record that the result was once published is kept, so the
+        customer can be told it was public until they took it back.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/admin/prompt-library/readiness:
     get:
       operationId: getAdminPromptLibraryReadiness

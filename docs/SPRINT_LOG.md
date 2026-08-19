@@ -2,6 +2,80 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — A result worth sharing now has a page
+
+Sprint 03 of the ship plan. The previous sprint opened the tools to strangers;
+this one lets an answer leave the workspace.
+
+**There was no way for a customer to show anybody a result.** Every saved tool
+output lives in `module_outputs`, which is organization-scoped, so a break-even a
+customer worked out here reached their business partner as a screenshot or not at
+all. That is the whole distribution loop this product had: none. Nothing on any
+page linked outward, and nothing anyone made here could be forwarded.
+
+`/shared/:token` is the smallest honest one. One saved result, one unguessable
+link, published on purpose and revocable.
+
+**The risk in this feature is one risk, and it is worth naming plainly.**
+`module_outputs` is read with the service-role key, which bypasses RLS — so the
+`organization_id` filter in the query is the entire tenant boundary, and a public
+page has no organization to filter by. Every decision below follows from that:
+
+- **The read is the dumbest thing that can work.** Select by token, from one
+  table, one row. It resolves no session, so there is no session to confuse. It
+  takes no organization, so there is no organization to be told the wrong one.
+- **The column list is written down and reviewed, not spelled inline.**
+  `SHARED_SELECT_COLUMNS` names five columns; `FORBIDDEN_SHARED_COLUMNS` names
+  the five that must never join them, and a test asserts the intersection is
+  empty *and* that the route actually selects through the reviewed list — a
+  select spelled at the call site would drift and nothing would say so.
+- **The input never travels.** A customer sharing "you cover costs at 420 sales a
+  month" is not necessarily sharing the rent figure behind it, and the two are
+  different decisions. `input_payload` is not in the select and not in the view.
+- **The token is 192 bits.** The link is the only credential — there is nothing
+  behind it to check, because the point is that somebody with no account can open
+  it — so it has to be unguessable rather than merely unlikely.
+- **A malformed token is refused before it reaches a query.** The pattern fixes
+  the length rather than bounding it, because a pattern that accepted any length
+  would accept the empty string, and `share_token=eq.` matches rows whose token
+  is empty rather than none. The same shape of mistake as an organization filter
+  with nothing after the `eq.`, which this codebase has made before.
+
+Three distinctions the pages make that a simpler version would not:
+
+- **A read that failed is not a result that does not exist.** 503 for the first,
+  404 for the second. Telling somebody holding a working link "not found" has
+  them tell the person who sent it that it is broken.
+- **A revoked link and a made-up one get byte-identical pages.** Distinguishing
+  them would tell somebody guessing that they had guessed a token which used to
+  exist, and would tell a recipient that the sharer took it back — which is that
+  person's news to give. Asserted as `madeUp.text === wrongShape.text`, so the
+  property cannot rot into two similar-looking pages.
+- **Sharing twice keeps the first link.** A fresh token per press would silently
+  break every copy already handed out, and no button anywhere warned of that.
+
+`shared_at` survives revocation on purpose. It is what lets the records page say
+"this was shared before and is private again" rather than showing a button that
+looks untouched — the customer's own history of a decision they made.
+
+**Registered from `routes/sonara-service-lifecycle-routes.cjs`, not `server.js`.**
+That module makes these results — the tools compute them and `saveModuleOutput`
+stores them — and it was already handed all ten helpers the shared routes need. A
+second call site in `server.js` would have meant threading the same ten through
+twice to reach the same table, and would have pushed the file past its ceiling for
+no structural gain. `server.js` is unchanged at 4032 lines.
+
+Two existing gates caught this change and were right both times: `/shared` was
+registered and linked from nothing a crawl could see (it is linked from the token
+pages, which carry a token and so are not registered — recorded in `NOT_LINKED`
+with that reason), and it was on neither the cinematic nor the calm list. It is
+cinematic: whoever lands on it arrived from a link a stranger sent them and has
+never heard of this company, so orienting them is the page's entire job. The
+OpenAPI gate caught the two new write endpoints as undocumented.
+
+Verified: `pnpm run lint` clean, 2154 tests passing, `pnpm run verify:launch`
+exit 0, 93 migrations, 265 documented operations across 189 paths.
+
 ### 2026-08-19 — The page that advertised the tools and then refused them
 
 Sprint 02 of the ship plan: make the front door earn its scroll. Two things were

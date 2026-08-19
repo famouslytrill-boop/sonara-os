@@ -88,5 +88,6 @@
   "20260819020000_research_source_permission_values.sql": "339e7844327be7d31222d7f92be74fafeb19c69f03e9ba993a81160e2fd844b3",
   "20260729233000_member_read_policies_staff_tables.sql": "b7ecf1aaf89f35da2fdfc6cef48a2821c74be6bd53eb604817b30a27ae697a29",
   "20260819040000_sub_app_records.sql": "51cce9203c2d25678ed38fe403b82ee227bf250469c225ef74fb1be026acf74b",
-  "20260819050000_record_undeclared_authorization_functions.sql": "5bee23bd49fdb19af4a9730b6a680b243af90622943bba02ee1014a9bd6ccd64"
+  "20260819050000_record_undeclared_authorization_functions.sql": "5bee23bd49fdb19af4a9730b6a680b243af90622943bba02ee1014a9bd6ccd64",
+  "20260819060000_shared_module_outputs.sql": "5dd26cc7136550a77f84a3775fc4f546b11d458c76bbc545436bbdd67b178952"
 }

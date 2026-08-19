@@ -169,7 +169,7 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 92 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 93 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:

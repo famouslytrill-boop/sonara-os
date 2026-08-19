@@ -30,7 +30,11 @@ const CINEMATIC = new Set([
   "/", "/about", "/start", "/products", "/service-catalog", "/free-tools", "/pricing",
   "/how-it-works", "/tutorials", "/tutorials/getting-started", "/tutorials/business-builder",
   "/tutorials/creator-studio", "/tutorials/growth-studio", "/contact", "/security",
-  "/business-builder", "/creator-studio", "/growth-studio", "/help", "/prompt-library"
+  "/business-builder", "/creator-studio", "/growth-studio", "/help", "/prompt-library",
+  // The explainer behind a shared result, and the most literal front door here:
+  // whoever lands on it arrived from a link a stranger sent them and has never
+  // heard of this company. Orienting them is the page's entire job.
+  "/shared"
 ]);
 
 // Public pages that stay calm, each with the reason. Being public is not the
