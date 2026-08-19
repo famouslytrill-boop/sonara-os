@@ -28,7 +28,7 @@ Use Vercel project settings for real values. Do not commit secrets.
 - `SECURITY_EMAIL`
 - `PRIVACY_EMAIL`
 - `LEGAL_EMAIL`
-- `SONARA_ADMIN_EMAILS`
+- `FOUNDER_EMAILS` or `ADMIN_EMAILS`
 - `SONARA_CRON_SECRET` if used
 - `OPENAI_API_KEY` if used
 

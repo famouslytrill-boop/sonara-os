@@ -42,12 +42,30 @@ const PLATFORM_PROVIDED = new Set([
 
 // A feature is unavailable without these and every path falls back to a stated
 // setup-required. None may become a launch dependency.
+//
+// Six names left this list on 19 August 2026, when the Next.js application under
+// app/ was deleted. They were read by nothing that runs -- lib/env/server.ts,
+// lib/auth/workspace.ts, lib/sonara/ai/providerConfig.ts and
+// lib/sonara/memory/vectorProvider.ts named them, and none of those files was
+// ever deployed. This check reported them as classified-and-unread the moment
+// the dead tree went, which is the half of it that exists for exactly this.
+//
+// SONARA_ADMIN_EMAILS was the one that mattered: five documents told the owner
+// to set it for admin access and nothing on the running server has ever read
+// it. FOUNDER_EMAILS, ADMIN_EMAILS and ADMIN_EMAIL are the live ones.
+//
+// NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY left with the nine orphaned validator
+// scripts deleted in the same commit. Checkout here is server-side: server.js
+// creates the Stripe session and redirects, so no publishable key ever reaches
+// a browser. docs/SONARA_DEPLOYMENT_TRUTH.md lists it as needed "when
+// browser-side Stripe.js is introduced", which is the honest place for it --
+// a classification here would mean this check vouches for a variable nothing
+// reads.
 const OPTIONAL_CAPABILITY = new Set([
-  "ADMIN_EMAIL", "ADMIN_EMAILS", "SONARA_ADMIN_EMAILS", "FOUNDER_EMAILS",
-  "APP_URL", "BASE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_API_URL", "PUBLIC_SITE_URL",
-  "NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "ADMIN_EMAIL", "ADMIN_EMAILS", "FOUNDER_EMAILS",
+  "APP_URL", "BASE_URL", "NEXT_PUBLIC_APP_URL", "PUBLIC_SITE_URL",
   "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL",
-  "SONARA_CRON_SECRET", "SONARA_AI_PROVIDER", "SONARA_EMBEDDING_PROVIDER", "SONARA_VECTOR_MEMORY_PROVIDER",
+  "SONARA_CRON_SECRET",
   "CREATOR_MEDIA_WORKER_URL", "CREATOR_MEDIA_WORKER_TOKEN",
   "OPENAI_API_KEY", "GEMINI_API_KEY", "ELEVENLABS_API_KEY",
   "SUNO_API_KEY", "SUNO_API_BASE_URL", "SUNO_GENERATE_PATH", "SUNO_STATUS_PATH_TEMPLATE",

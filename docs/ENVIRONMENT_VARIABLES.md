@@ -34,7 +34,7 @@ Configure these only in server-side hosting environment variables:
 - `OPENAI_API_KEY`
 - `HF_TOKEN`
 - `SONARA_CRON_SECRET`
-- `SONARA_ADMIN_EMAILS`
+- `FOUNDER_EMAILS`, `ADMIN_EMAILS`, `ADMIN_EMAIL`
 - `OPENCLAW_GATEWAY_TOKEN`
 - `N8N_API_KEY`
 - `LANGFLOW_API_KEY`
@@ -47,7 +47,9 @@ Configure these only in server-side hosting environment variables:
 - `LANGFLOW_SECRET_KEY`
 - `OPEN_WEBUI_SECRET_KEY`
 
-`SONARA_ADMIN_EMAILS` is a comma-separated list used server-side to grant first-owner/admin bootstrap during authenticated workspace setup. Do not hardcode owner emails in client code.
+`FOUNDER_EMAILS` and `ADMIN_EMAILS` are comma-separated lists used server-side to grant first-owner/admin bootstrap during authenticated workspace setup; `ADMIN_EMAIL` takes one address. Do not hardcode owner emails in client code.
+
+`SONARA_ADMIN_EMAILS` appeared here until 19 August 2026 and was read by nothing that runs — it was declared only in the deleted Next.js application. Setting it granted no access.
 
 ## Optional Provider Variables
 

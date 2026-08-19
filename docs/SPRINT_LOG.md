@@ -2,6 +2,74 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — The second application is gone
+
+The owner's decision, asked and answered: delete it.
+
+**672 files.** `app/` (231 Next.js pages, 12 API routes, 256 files in all), 181
+components, 216 `.ts` modules under `lib/`, plus `config/`, `types/`, `utils/`,
+`proxy.ts`, `tsconfig.json`, `next.config.mjs`, `postcss.config.mjs` and
+`next-env.d.ts`. None of it could run: `next`, `react` and `typescript` were not
+dependencies, `pnpm run build` is `node --check server.js`, and `vercel.json`
+bundles only `{public/**,routes/**,lib/**}` into one Express function with every
+route rewritten to it.
+
+`data/*.ts` stays — those are registers the shipped code parses as text, and
+`data/open-source-tools.ts` alone is read in twelve places.
+
+**The release chain never noticed.** All 24 commands passed with `app/` deleted
+and nothing repaired. What broke was everything else, and each break was a check
+telling the truth for the first time:
+
+- **`verify:env` reported six variables classified and read by nothing.** They
+  had been declared in `lib/env/server.ts`, `lib/auth/workspace.ts` and two other
+  dead modules. One of them matters: **`SONARA_ADMIN_EMAILS`**, which five
+  documents instructed the owner to set for admin access, and which no running
+  file has ever read. Setting it granted nothing and nothing said so.
+  `FOUNDER_EMAILS`, `ADMIN_EMAILS` and `ADMIN_EMAIL` are the live names; the five
+  documents and `.env.example` now say so.
+- **`verify:orphan-tables` gained ten tables**: the `entity_*` family from
+  migration 008. They were never queried by anything that ran either — they were
+  queried by `lib/entities/*.ts`, so the check counted them as used until those
+  files went. `entities` has slug, name and `is_public` and **no
+  `organization_id`**: a second tenancy model beside organizations, which is why
+  none of them can be "just wired up". Each now carries a recorded decision.
+- **Nine validator scripts existed whose entire subject was the dead
+  application** — `verify-brand`, `verify-local-launch`,
+  `validate-sonara-full-infrastructure`, `entity-heartbeat-check` and five more.
+  They asserted that files existed in an application that could not build.
+  **Nothing in `package.json` or CI referenced any of them**, so they had never
+  run at all. Deleted, along with `scripts/verify.sh`, which built a `frontend/`
+  directory this repository does not have.
+
+Two checks were rewritten rather than deleted, because their questions were
+still live and had been asked of the wrong surface:
+
+- `tests/brand-registry.test.mjs` asserted that every brand entity had a name, a
+  tagline and three hex colours — in `lib/brand/brand-system.ts`, which never
+  deployed. It now asks the same of `lib/sonara-brand-registry.cjs`, and asks
+  more: that every logo path resolves to a file in `public/`, and that each
+  product's accent token names a `.sonara-product--<token>` rule that actually
+  exists in the shipped CSS. Renaming one without the other silently loses a
+  product's colour, and both halves stay individually valid.
+- `check-github-radar-public-copy.mjs` guarded against public copy claiming a
+  reviewed repository ships with this product. It walked
+  `app/research-lab/github-radar/**/*.tsx` and passed every time. The live
+  research-lab is Express, at `/research-lab` and four child routes, and nothing
+  had ever read it. `scripts/check-research-lab-public-copy.mjs` reads the six
+  files that render it and **is in the chain**, which the old one never was.
+
+Probing that replacement found a defect in it: the first probe passed because a
+qualifier at one end of a long server-rendered line excused an overclaim at the
+other. The qualifier now has to sit within 140 characters of the claim. Both
+probes fail correctly.
+
+**Still here, and a separate question:** `backend/` — a 370-line Python FastAPI
+application, not deployed, referenced only by a guard that checks its
+`requirements.txt` has no remote dependency. Nobody has ruled on it.
+
+Suite 2,063 passing, chain green at 25 commands.
+
 ### 2026-08-19 — What the owner actually has to install, checked by running it
 
 Asked for exact installation instructions. Producing them meant running the
