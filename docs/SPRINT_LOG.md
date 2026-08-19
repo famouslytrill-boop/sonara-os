@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Two colours nobody could read, and a check that computes taste's one measurable half
+
+Sprint 04 of the ship plan was "one design system, colour graded". Most of what
+that phrase covers is taste, and taste is not checkable. **Contrast is the half
+that is** — WCAG 2.1 defines relative luminance and a contrast ratio exactly — so
+that is the half that became a release gate.
+
+**The audit found two real defects in the shipped stylesheet**, both on text a
+customer reads:
+
+| Token | Used for | Was | Needed |
+| --- | --- | --- | --- |
+| `--nx-faint` `#7a8495` | small print on cards | **3.78:1** | 4.5:1 |
+| `--nx-blue` `#4f6fff` | links on cards | **4.16:1** | 4.5:1 |
+
+`--nx-faint` is the `.fine` class — the share links, the record counts, the "this
+answer is not saved" notice. The least legible colour in the palette was carrying
+the text most likely to be missed.
+
+**Both were fixed by lowering lightness alone.** Hue moved by under one degree
+and saturation did not move at all: `#7a8495` → `#6d7789` (lightness 53.1% →
+48.1%) and `#4f6fff` → `#4667ff` (65.5% → 63.7%). That is what grading should
+mean — the palette still looks like itself and the words became legible. The
+alternative fix, desaturating toward grey, always passes a contrast check and
+costs the design everything, so **there is a test that fails when an accent drops
+below its minimum saturation.** Probed by setting `--nx-violet` to a 6%-saturated
+grey: it fails with "contrast was bought by draining the colour".
+
+`scripts/verify-colour-contrast.mjs` is command 26 in the release chain. Three
+things about how it is written are the reasons to trust it:
+
+- **Each token's required ratio follows from its declared job**, written down
+  beside it. Body text takes 4.5:1; a focus ring takes the 3:1 WCAG sets for a
+  control. A decorative hairline is not checked at all, and saying so is what
+  stops somebody lowering a threshold to make a failure go away.
+- **It refuses to pass on a partial read.** If the token blocks cannot be found
+  it says so rather than checking the light theme and reporting success; the
+  count of measured pairs is asserted against the count expected.
+- **The arithmetic is checked against values anybody can verify** — black on
+  white is exactly 21:1, a colour against itself is exactly 1:1, and `#767676` on
+  white is the 4.54:1 that WCAG's own boundary grey produces.
+
+**A defect in my own first draft, worth recording.** The first version split the
+stylesheet at the first mention of a dark theme and read a `prefers-contrast`
+block as the dark palette — producing a full table of ratios that was
+confidently wrong. Blocks are now matched by exact selector. And the first
+falsification probe silently failed to modify the file because of escaping,
+reporting "no failure" for a check it had never actually broken; the probe now
+asserts the file changed before drawing any conclusion. **A probe that cannot
+fail is the same defect as a check that cannot fail.**
+
+That escaping problem had a second half: the selector was being escaped twice and
+matched anyway, which is worse than not matching, because a regex that works by
+accident stops working the moment somebody tidies it. Both the script and the
+test now take a plain selector and escape it exactly once.
+
+Verified: `pnpm run lint` clean, 2269 tests passing, `pnpm run verify:launch`
+exit 0 across 26 commands, 26 colour pairs measured in both themes.
+
 ### 2026-08-19 — Six website prompts, and the sentence the source versions were missing
 
 A batch of eight website-building prompts arrived as screenshots — build a
