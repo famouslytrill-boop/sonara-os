@@ -2,6 +2,89 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Answering a question the formula library had been assuming
+
+Asked to research and build advanced deterministic algorithms. The useful place
+to look turned out to be the 47 formulas already here, and what they take as
+given.
+
+**Every one of them is a single expression over inputs it is handed**, and two
+hand off the only hard part:
+
+    reorder_point = (average_daily_usage * lead_time_days) + safety_stock
+    route_cost     = (distance_miles * cost_per_mile) + driver_labor + tolls
+
+`safety_stock` is an **input**. So is `distance_miles`. Multiplying once you know
+your safety stock is arithmetic; working out the safety stock is the question,
+and nothing computed it — the number came from somebody's judgement and the
+formula dressed it as a calculation. (A third, `stockout_risk_score`, is
+`max(0, reorder_point - current_stock)`, which is a shortfall in units rather
+than a risk, and is named as though it were a score.)
+
+`lib/sonara-inventory-science.cjs` answers it. No model call, no provider, no
+network, no cost per use — the terms every tool here ships on.
+
+**The numerics were verified before they were written down.** A service level
+becomes a multiplier through the inverse normal CDF, which has no closed form.
+This uses Acklam's rational approximation — public mathematics, published
+coefficients, not anybody's source. Checked against ten tabulated quantiles
+(worst absolute error 3.4e-9) *and* round-tripped through an independently
+written erf-based CDF, so it is not only being compared against numbers I typed
+in. Both are asserted in tests rather than claimed in a comment.
+
+Four decisions worth not rediscovering, each of which is a way to get this
+quietly wrong:
+
+- **A day with no row is a day of zero demand.** This is why the function takes a
+  day span as well as a list of quantities. Averaging only the days an item sold
+  answers "how much do we sell on days we sell any", which for a slow-moving item
+  is several times larger — the fixture in the tests is 2.27/day over 30 days
+  versus 4.86 over the 14 selling days. Stocking to the second is how a business
+  ends up with a year of something it sells twice a month. Absent is not zero,
+  again.
+- **Sample standard deviation, dividing by n−1.** Dividing by n understates the
+  spread, which understates safety stock, which is the direction that runs a
+  business out of stock rather than the one that costs it shelf space.
+- **Safety stock grows with the square root of the lead time.** Waiting four
+  times as long needs twice the buffer, not four times — variances add, standard
+  deviations do not. This is the part people get wrong by hand, so the tool says
+  it on the page.
+- **Fourteen days minimum, refused below that.** A number on a page is acted on
+  whatever sits beside it, so a standard deviation over a week of a seasonal
+  business is refused rather than computed and captioned "unreliable".
+
+The economic order quantity validates itself twice: `sqrt(2·1200·5000/300)` is
+exactly 200, and **at the optimum the annual ordering cost equals the annual
+holding cost** — a property of the optimum rather than of the implementation,
+asserted across 18 input combinations. A third test asserts the curve is flat
+near the bottom (20% off costs under 3% more), which is why the page tells people
+to round to a case or a pallet rather than chase the figure.
+
+**It has a caller.** `/business-builder/tools/reorder-point`, a tenth planning
+tool, because a capability with no caller is the shape this repository has spent
+the month closing. It reads pasted daily quantities — commas, spaces or new
+lines, since this gets copied out of a spreadsheet column — and the order
+quantity half is optional, so somebody who only wants to know *when* to order is
+not stopped by two cost questions.
+
+Three probes: dividing by n, using L instead of √L, and dropping the zero-fill.
+Each fails the tests.
+
+`tests/nine-planning-tools-do-the-arithmetic.test.js` asserted exactly three
+tools per product line and carried the count in its filename. Both went stale
+with the tenth. The number came out of the name, and what is asserted now is the
+shape that matters: a floor of three per line, and a pinned total so a tool
+cannot be added or lost without a decision being made in that file.
+
+**Not built, and worth saying why.** Stop sequencing is the obvious companion —
+`route_cost` assumes `distance_miles` the same way `reorder_point` assumed safety
+stock, and nearest-neighbour plus 2-opt over haversine distances would answer it
+deterministically. `location_zones` already carries latitude and longitude the
+customer supplies, so no geocoding service is needed. It is a separate piece of
+work rather than a line in this one.
+
+Suite 2,128 passing.
+
 ### 2026-08-19 — The last two owner steps, researched rather than restated
 
 Asked to find ways to complete the leaked-password toggle and the preview-branch

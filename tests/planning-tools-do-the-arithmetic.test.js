@@ -1,8 +1,14 @@
 "use strict";
 
-// Nine planning tools, three for each product line. The arithmetic *is* the
-// product: a break-even figure that is wrong is worse than no break-even
-// figure, because somebody will act on it.
+// The planning tools. The arithmetic *is* the product: a break-even figure that
+// is wrong is worse than no break-even figure, because somebody will act on it.
+//
+// This file was called "nine planning tools" and asserted three per product
+// line. Both went stale the day a tenth was added, and the count in the name was
+// the part that could not be fixed by editing an assertion -- so the number came
+// out of the name. What is asserted now is the shape that matters: every line
+// has at least three, and the total is pinned so a tool cannot be added or lost
+// without somebody noticing here.
 //
 // So this file checks the numbers rather than the wording, and it checks the
 // two things that are easy to get wrong and expensive to get wrong:
@@ -31,13 +37,24 @@ const {
 
 const text = (output) => Object.values(output).join(" | ");
 
-describe("nine planning tools do the arithmetic", () => {
-  it("registers three tools for each product line", () => {
+describe("the planning tools do the arithmetic", () => {
+  it("gives every product line at least three tools, and pins the total", () => {
     const counts = PLANNER_TOOLS.reduce((tally, tool) => {
       tally[tool.productKey] = (tally[tool.productKey] || 0) + 1;
       return tally;
     }, {});
-    assert.deepEqual(counts, { business_builder: 3, creator_studio: 3, growth_studio: 3 });
+
+    // Every line keeps a floor, so a product cannot quietly end up with one
+    // tool and a tools page that looks abandoned.
+    for (const line of ["business_builder", "creator_studio", "growth_studio"]) {
+      assert.ok(counts[line] >= 3, `${line} has ${counts[line] || 0} planning tools, which is fewer than three`);
+    }
+
+    // And the total is pinned, so adding or losing one is a decision somebody
+    // makes here rather than a number that drifts. Business Builder carries a
+    // fourth -- the stock reorder planner -- because it is the only line with
+    // inventory to reorder.
+    assert.equal(PLANNER_TOOLS.length, 10, "a planning tool was added or removed; update this count on purpose");
   });
 
   it("gives every tool a route, a module key and required fields", () => {
