@@ -27,8 +27,8 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 91 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 33 public routes, 18 customer routes, 29 admin routes.
-- 189 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 34 public routes, 17 customer routes, 29 admin routes.
+- 190 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -123,6 +123,85 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — The module boundary, and the sixteen routes it was wrong about
+
+Making the three studios separable starts with knowing what belongs to each,
+and that turned out to be already written down: `lib/sonara-route-registry.cjs`
+declares 248 routes with a `visibility`, a `requiredRole`, a `requiredPlan` and
+a `productOwner`. It is the module manifest. **Nothing checked it against the
+server.**
+
+`scripts/verify-route-registry.cjs` asserts every declared route is registered
+and that public routes are declared public. Neither it nor any test ever asked
+whether a route declared `requiredRole: "customer"` actually refuses somebody
+who is not one.
+
+**Sixteen of 246 declared GET routes served 200 to an anonymous visitor while
+declaring they needed a signed-in customer.** Measured against a *configured*
+server on purpose — without Supabase, pages that would redirect render "setup
+required" and answer 200 instead, so a probe on a bare machine measures the
+machine rather than the product.
+
+Nothing leaked. Thirteen are studio funnel pages with no database read, one is
+the support form, and the two account pages render a form whose write answers
+401 and stores nothing. So the server was right about fourteen and the manifest
+was wrong about them; on the other two the server was wrong.
+
+- **Thirteen studio entry pages** — each studio's start guide, tool directory,
+  catalogue, content page and support form. `visibility: "product"` mechanically
+  set `requiredRole: "customer"`, and for the funnel that was simply untrue.
+  They are now `PRODUCT_ENTRY_ROUTES`, and they **stay in `PRODUCT_ROUTES`**:
+  who owns a page and who may open it are different questions, and moving them
+  to `PUBLIC_ROUTES` would have made `/business-builder/tools` a platform page.
+  Which studio owns which page is the one thing anybody separating them has to
+  know first.
+- **`/support`** moved to the public list. The handler is built to work signed
+  out and its own comment says so — the requests card is omitted rather than the
+  page refused. A support form somebody locked out cannot reach is a support
+  form for people who do not need it.
+- **`/account` and `/account/setup`** now send a stranger to sign in. They render
+  account navigation and a form that would refuse them, which is the
+  customer-facing shape of a signal that reports success without being true.
+
+**`/account/setup` was the one worth finding.** `server.js` registers it with
+`requireCustomer`. An `app.use` interceptor in
+`routes/sonara-business-control-plane-routes.cjs` matched the same path, ran
+first, and answered a different page with no guard at all — so the route was
+gated in the file somebody would read and ungated in the file that ran. The
+guard it now uses is the one the `/business-builder/dashboard` interceptor
+twenty lines below already used, in the same shape.
+
+`tests/the-route-manifest-agrees-with-the-server.test.js` is the check, and it
+asks both directions plus the boundary itself: no page open that says it is
+closed, no page closed that says it is open, every route owned by one of the
+three studios or the platform, every owner owning something, and every studio's
+pages under that studio's path. Probed by re-opening `/account/setup` and by
+dropping a page from the entry list; both fail correctly.
+
+**Three existing checks had been reading pages as the wrong visitor**, and two
+of them only surfaced because this work changed what a stranger sees:
+
+- `tests/page-reachability.test.js` fetched `/account` signed out to read its
+  links. Once `/account` started redirecting it reported five account subpages
+  as unreachable. They were not — the check had been reading a page as somebody
+  who should never have been shown it. It signs in now.
+- `tests/marketing-surface-rule.test.js` checked that work screens carry no
+  marketing animation by fetching customer routes signed out and skipping
+  anything that redirected. Its own `rendered > 0` guard fired the moment the
+  last three open ones closed: **nothing rendered, so the check was proving
+  nothing**, and had been close to proving nothing for a long time.
+- `tests/server.test.js` listed both account pages among the public routes and
+  asserted 200. The assertion worth keeping — that the setup form is real — now
+  signs in rather than being deleted with the anonymous access it rested on.
+
+**Recovered from a container reset mid-task.** The clone had been rolled back
+behind six pushed commits, with two stale artifacts in the working tree that
+belonged to neither this work nor origin. Fetched first, confirmed origin had
+every commit, discarded the stale files, fast-forwarded, and re-applied the
+edits against the real files rather than copying the backups over them.
+
+Suite 2,100 passing.
 
 ### 2026-08-19 — Sub-apps: records this product does not have a page for
 

@@ -1047,7 +1047,7 @@ app.post("/auth/logout", (req, res) => {
 });
 
 const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/setup", "Account setup"]];
-app.get("/account", (req, res) => {
+app.get("/account", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account",
@@ -1064,7 +1064,7 @@ app.get("/account", (req, res) => {
   );
 });
 
-app.get("/account/setup", (req, res) => {
+app.get("/account/setup", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account setup",

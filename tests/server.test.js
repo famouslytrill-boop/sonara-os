@@ -50,8 +50,6 @@ describe("public site", () => {
     "/help",
     "/docs",
     "/signup",
-    "/account",
-    "/account/setup",
     "/logout"
   ]) {
     it(`GET ${route} returns 200`, async function() {
@@ -95,12 +93,64 @@ describe("public site", () => {
     assert.doesNotMatch(res.text, /Setup checklist/);
   });
 
+  // /account and /account/setup were in the list above until 19 August 2026, and
+  // both answered a signed-out visitor with a page. Nothing leaked -- the write
+  // behind the setup form answers 401 and stores nothing -- but the page invited
+  // a stranger to name a workspace and would then have refused them.
+  //
+  // /account/setup was the more interesting of the two: server.js registers it
+  // with requireCustomer, and an `app.use` interceptor in
+  // routes/sonara-business-control-plane-routes.cjs answered first with a
+  // different page and no guard. The route was gated in the file somebody would
+  // read and ungated in the file that ran.
+  for (const route of ["/account", "/account/setup"]) {
+    it(`GET ${route} sends a stranger to sign in`, async function() {
+      const res = await request(app).get(route).set("Accept", "text/html").redirects(0);
+      assert.equal(res.status, 303, `${route} answered ${res.status} to a signed-out visitor`);
+      assert.equal(res.headers.location, "/login");
+    });
+  }
+
   it("account setup includes a real organization setup action", async function() {
-    const res = await request(app).get("/account/setup").set("Accept", "text/html");
-    assert.equal(res.status, 200);
-    assert.match(res.text, /Create or attach organization/);
-    assert.match(res.text, /action="\/account\/setup\/organization"/);
-    assert.match(res.text, /profiles, organizations, and organization_memberships/);
+    // Asked as the customer who actually sees it. The page is worth checking --
+    // it is the first thing after signup and its form has to be real -- but it
+    // is not a page a stranger should be able to open, so the assertion signs in
+    // rather than being deleted along with the anonymous access it relied on.
+    const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
+    const originalFetch = global.fetch;
+    const originalEnv = {
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      anon: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      service: process.env.SUPABASE_SERVICE_ROLE_KEY
+    };
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-anon-account-setup";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-account-setup";
+    global.fetch = async (url) => {
+      const target = String(url);
+      const body = target.includes("/auth/v1/user")
+        ? { id: "61616161-6161-4161-8161-616161616161", email: "new@example.com" }
+        : [];
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => body };
+    };
+    try {
+      const res = await request(app)
+        .get("/account/setup")
+        .set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub`)
+        .set("Accept", "text/html");
+      assert.equal(res.status, 200);
+      assert.match(res.text, /Create or attach organization/);
+      assert.match(res.text, /action="\/account\/setup\/organization"/);
+      assert.match(res.text, /profiles, organizations, and organization_memberships/);
+    } finally {
+      global.fetch = originalFetch;
+      if (originalEnv.url === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      else process.env.NEXT_PUBLIC_SUPABASE_URL = originalEnv.url;
+      if (originalEnv.anon === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      else process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = originalEnv.anon;
+      if (originalEnv.service === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+      else process.env.SUPABASE_SERVICE_ROLE_KEY = originalEnv.service;
+    }
   });
 
   it("business builder landing does not duplicate Launch Setup Checklist CTAs", async function() {

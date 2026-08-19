@@ -22,9 +22,16 @@ const app = require("../server");
 // Destinations. Each is a page a customer would choose to visit, paired with a
 // page that must offer the way in.
 //
-// The "from" page is fetched signed-out, so it must be one that renders for
-// anybody -- which is why the owner pages are not used as sources here even
-// though they carry the link too.
+// The "from" page used to be fetched signed-out, and the note here said it had
+// to be one that renders for anybody. That stopped being true on 19 August 2026:
+// /account had been answering strangers with a page, and once it started
+// sending them to sign in like every other customer route, this file could no
+// longer see the links on it and reported that five subpages had become
+// unreachable. They had not -- the check had simply been reading a page as
+// somebody who should never have been shown it.
+//
+// So every fetch below signs in. A customer is who these links are for, and
+// asking as anybody else was measuring a visitor the product does not serve.
 const DESTINATIONS = [
   {
     path: "/search",
@@ -48,8 +55,22 @@ const DESTINATIONS = [
   { path: "/account/integrations", from: "/account", why: "disconnecting something has to be as reachable as connecting it" }
 ];
 
+const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
+
+const SUPABASE_ENV = Object.freeze({
+  NEXT_PUBLIC_SUPABASE_URL: "https://project.supabase.co",
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-anon-reachability",
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.stub-service-reachability"
+});
+const ORIGINAL_ENV = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key, process.env[key]]));
+const CUSTOMER = { id: "71717171-7171-4171-8171-717171717171", email: "customer@example.com" };
+
+function signedIn(path) {
+  return request(app).get(path).set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub`);
+}
+
 async function linksOn(path) {
-  const response = await request(app).get(path);
+  const response = await signedIn(path);
   if (response.status !== 200) return { status: response.status, hrefs: [] };
   const html = String(response.text || "");
   const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] || html;
@@ -60,6 +81,28 @@ async function linksOn(path) {
 }
 
 describe("pages a customer would look for", () => {
+  let realFetch;
+
+  before(() => {
+    Object.assign(process.env, SUPABASE_ENV);
+    realFetch = global.fetch;
+    // Signed in, with every other read answering. The session lookup is the
+    // only thing this stub has an opinion about.
+    global.fetch = async (url) => {
+      const target = String(url);
+      const body = target.includes("/auth/v1/user") ? CUSTOMER : [];
+      return { ok: true, status: 200, headers: { get: () => null }, json: async () => body };
+    };
+  });
+
+  after(() => {
+    global.fetch = realFetch;
+    for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  });
+
   it("has destinations to check", () => {
     // Without this the loop below passes over an empty list, which is the
     // failure mode half the checks in this repository were written to prevent.
@@ -82,7 +125,7 @@ describe("pages a customer would look for", () => {
       // decided again: a redirect is correct for a signed-in page fetched
       // logged out, and 503 is correct when the page needs Supabase and this
       // environment has none. Only a 404 or a 500 means the link is dead.
-      const response = await request(app).get(destination.path);
+      const response = await signedIn(destination.path);
       assert.ok(
         [200, 302, 303, 503].includes(response.status),
         `${destination.path} returned ${response.status}; the link would be dead`
