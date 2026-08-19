@@ -304,8 +304,23 @@ other. The qualifier now has to sit within 140 characters of the claim. Both
 probes fail correctly.
 
 **Still here, and a separate question:** `backend/` — a 370-line Python FastAPI
-application, not deployed, referenced only by a guard that checks its
-`requirements.txt` has no remote dependency. Nobody has ruled on it.
+application. Checked properly after CI went green rather than assumed: the
+`backend-dependencies` job installs its requirements, runs `pip check`, audits
+them with `pip-audit`, compiles both modules and imports the app asserting
+`/health` and `/brands` are routed. **So unlike the Next.js tree, it builds**,
+and it is not dead code. What it does not do is deploy — `vercel.json` bundles
+only `{public/**,routes/**,lib/**}` into one Node function, so nothing in
+production serves it. Whether it should exist is still an open question, and the
+answer is not "delete it like the other one".
+
+**And the job named `frontend-dependencies` has no frontend.** It runs against
+the repository root and does real work — the pnpm audit, the open-source
+registry check, the parse check, the build — so the signal is sound and only the
+name misleads. It is left alone on purpose: a job's name is the check name
+GitHub reports, so renaming it retires that check and creates a new one, and if
+the old name is a required status check on `main` every pull request would then
+wait forever for a check that no longer runs. Both jobs now carry a comment
+saying what they actually cover.
 
 Suite 2,063 passing, chain green at 25 commands.
 

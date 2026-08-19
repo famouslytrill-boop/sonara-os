@@ -5,6 +5,20 @@ on:
   pull_request:
 
 jobs:
+  # Named "frontend-dependencies" and there is no frontend.
+  #
+  # It runs against the repository root -- `working-directory: .` -- and does
+  # real work: the pnpm audit, the open-source registry check, the parse check
+  # and the build. The name is a leftover from when scripts/verify.sh built a
+  # `frontend/` directory, which this repository does not have and which that
+  # script was deleted with on 19 August 2026.
+  #
+  # The name is left alone deliberately. A job's `name` is the check name
+  # GitHub reports, so renaming it would retire "frontend-dependencies" and
+  # create a new check -- and if the old one is a required status check on the
+  # default branch, every pull request would then wait forever for a check that
+  # no longer runs. Renaming it is a one-line change to make **after** somebody
+  # has looked at the branch protection rules, not before.
   frontend-dependencies:
     runs-on: ubuntu-latest
     defaults:
@@ -59,6 +73,14 @@ jobs:
       - name: Build root app
         run: pnpm run build
 
+  # backend/ is a real second application, and this is the only thing that says
+  # so. It is a 370-line Python FastAPI service that CI installs, compiles,
+  # imports and asserts two routes on -- so unlike the Next.js tree deleted on
+  # 19 August 2026, it builds. What it does not do is deploy: vercel.json
+  # bundles only {public/**,routes/**,lib/**} into one Node function, so nothing
+  # in production serves it. Whether it should exist is an open question in
+  # docs/SPRINT_LOG.md; it is not dead code and should not be deleted as though
+  # it were.
   backend-dependencies:
     runs-on: ubuntu-latest
     defaults:
