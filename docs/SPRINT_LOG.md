@@ -2,6 +2,66 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Five repositories from a set of screenshots, and one that matters
+
+Submitted as phone screenshots of social posts rather than as links, which
+changes the first job: working out what was actually being shown, then checking
+it rather than reading it off the picture.
+
+**Every licence and star count below came from the GitHub API**, and that is not
+a formality. The GitHub Projects posts quoted figures within a few hundred of
+the API — those were fine. A separate image, a README titled "30 Things to
+Install into Claude", quoted 270.7k for one repository, 203k for another and a
+claimed 2,758,126 total across thirty; those do not survive the same check.
+Nothing from that image was recorded. **A star count in this register comes from
+the API, never from a screenshot**, and this is the first time that rule caught
+something.
+
+- **ToolJet** — AGPL-3.0, 40,501 stars. **Blocked, and it is the one that
+  matters.** The sub-app builder shipped earlier the same day: a customer defines
+  record types with their own fields and gets pages to fill them in. ToolJet is
+  the mature forty-thousand-star version of that idea, which makes it the one
+  repository here somebody could reasonably read as a shortcut. The Affero clause
+  triggers on network use, so incorporating any of it would oblige publishing
+  this product's source. The architectural reason stands at any licence: it is
+  React plus NestJS plus Postgres plus Redis in containers, against one Express
+  file with one production dependency. **Read the model, never the code** — how it
+  stores a customer-defined schema and validates rows against it is exactly what
+  `lib/sonara-sub-apps.cjs` solves, and reading a design is not deriving from it.
+  The record also says plainly that SONARA's sub-app builder is *not* a
+  competitor and should not be described as one.
+- **OpenCut** — MIT, 85,165 stars. Research only, and the licence is not what
+  decides it. **Creator Studio stores no media today** — its pages hold rows
+  describing work, not the work. An editor is the second half of a pipeline whose
+  first half does not exist, and that first half is uploads, storage and
+  transcoding: the first per-gigabyte recurring cost this product would carry.
+- **Logto** — MPL-2.0, 14,383 stars. Reference only. Supabase Auth already does
+  this, and swapping a working authentication system is not filling a gap. Kept
+  because MPL-2.0 is reciprocal *per file* rather than per project — a real
+  distinction from AGPL — and because it is the shape of an answer to
+  OWNER-STEPS item 3, where four authorization functions live in the database and
+  in no migration. Recorded as reference_only rather than blocked deliberately:
+  the refusal is about fit, not permission, and those are different answers.
+- **Public APIs** — MIT, 465,603 stars, by a wide margin the most-starred
+  repository on this register and the least consequential. It is a markdown list.
+  Its MIT licence covers the list and says nothing about any API in it, and **a
+  free tier is a price, not a licence** — a directory of free APIs is the most
+  efficient way to build a feature that stops working on somebody else's
+  decision.
+- **Unsloth** — Apache-2.0, 73,775 stars. Reference only. Clean licence, no fit:
+  it needs a GPU, a serverless function cannot reach one, and a GPU is rented by
+  the hour whether anyone generates anything or not. That is the opposite shape
+  to every tool this product ships, which are arithmetic over the customer's own
+  rows and cost nothing per use.
+
+Two of the five first declared `productFit: ["Shared Platform"]`, and
+`generate-product-integration-map.mjs` refused them: "Shared Platform" is a
+surface the map derives, not a label a record may claim. Corrected to
+`Admin Command Center` and `Private Model Mode`. The check was right and the
+records were wrong.
+
+Register now holds 145 records against 145 unique GitHub targets.
+
 ### 2026-08-19 — The module boundary, and the sixteen routes it was wrong about
 
 Making the three studios separable starts with knowing what belongs to each,

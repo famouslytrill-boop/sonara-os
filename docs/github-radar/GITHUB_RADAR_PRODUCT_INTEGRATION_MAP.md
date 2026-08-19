@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-140 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 140.
+145 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 145.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,7 +10,7 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-47 repositories.
+48 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -55,6 +55,7 @@ Create, launch, run and manage a business.
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
 | [TastyIgniter](https://github.com/tastyigniter/TastyIgniter) | MIT | Adapt after review | online ordering |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
+| [ToolJet](https://github.com/ToolJet/ToolJet) | AGPL-3.0, read from the GitHub API's detected license.spdx_id on | Blocked | internal tool builder |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [ury (ERPNext restaurant management)](https://github.com/ury-erp/ury) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | restaurant management |
@@ -66,7 +67,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-38 repositories.
+39 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -91,6 +92,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
 | [Ollama](https://github.com/ollama/ollama) | MIT; model licenses are reviewed separately. | adapter_built | local model runtime |
+| [OpenCut](https://github.com/OpenCut-app/OpenCut) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | video editing |
 | [OpenMontage](https://github.com/calesthio/OpenMontage) | AGPL-3.0 | Read only | video assembly |
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
@@ -153,7 +155,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-58 repositories.
+61 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -190,6 +192,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [LangChain](https://github.com/langchain-ai/langchain) | MIT; integration packages and providers require separate review. | Read only | agent framework |
 | [Langflow](https://github.com/langflow-ai/langflow) | MIT | adapter_built | visual agent builder |
 | [LightRAG](https://github.com/HKUDS/LightRAG) | MIT | Read only | retrieval augmented generation |
+| [Logto](https://github.com/logto-io/logto) | MPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | authentication |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [NVlabs Eagle / Embodied](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | multimodal AI research |
 | [NVlabs LongLive / LongLive 2.0](https://github.com/NVlabs) | Model/code licenses require review before commercial use. | Research only | long-video generation infrastructure |
@@ -203,6 +206,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
+| [Public APIs](https://github.com/public-apis/public-apis) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Read only | directory |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
@@ -210,6 +214,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
+| [Unsloth](https://github.com/unslothai/unsloth) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Read only | model training |
 | [Vercel Labs Skills (find-skills)](https://github.com/vercel-labs/skills) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Licence unresolved | agent skills |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [watermarks-remover (remove-ai-marks)](https://github.com/guillaumemeyer/watermarks-remover) | MIT | Blocked | AI provenance removal |
