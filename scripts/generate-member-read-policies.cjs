@@ -78,6 +78,11 @@ const ORGANIZATION_READ_TABLES = [
   // and the public /shared/:token read does not go through this policy -- it
   // runs with the service-role key and filters on the token alone.
   "shared_links",
+  // Added when the reply thread on a service request got a page. A member of
+  // the organization that raised the request may read the messages on it; the
+  // public share path does not go through this policy, because a service
+  // request is not shareable.
+  "service_comments",
   // Added when /business-builder/owner/accounting-exports/:id/download began
   // reading the export row to build the file. Ordinary workspace data: which
   // period a business asked for, and whether it worked.

@@ -62,7 +62,11 @@ describe("the planning tools do the arithmetic", () => {
     // NotFair (reviewed in data/open-source-tools.ts); the half that acts on its
     // own was deliberately not taken, because AGENTS.md puts customer campaigns
     // behind owner approval.
-    assert.equal(PLANNER_TOOLS.length, 14, "a planning tool was added or removed; update this count on purpose");
+    // Creator Studio gained "Where This File Fits", which works out what one
+    // image or video can be used for and what each crop costs. It is the half of
+    // sprint 09 that needs no provider: generating media costs money per use and
+    // deciding whether a 16:9 file survives a 9:16 crop is geometry.
+    assert.equal(PLANNER_TOOLS.length, 15, "a planning tool was added or removed; update this count on purpose");
   });
 
   it("gives every tool a route, a module key and required fields", () => {

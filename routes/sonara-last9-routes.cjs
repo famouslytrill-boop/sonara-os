@@ -162,6 +162,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   const requireBusinessManager = deps.requireBusinessManager || requireCustomer;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
 
+  registerVerticalTemplates(app, deps, ui);
+
   // A booking, as a file the business's own calendar will open.
   //
   // business_bookings had starts_at and ends_at and nothing turned either into
@@ -1690,6 +1692,80 @@ function lineFormCard(spec, recordId, ui, references = {}) {
   const fields = spec.form.fields.map((field) => formField(field, references, ui)).join("");
   const parent = `<input type="hidden" name="${ui.escape(spec.parentColumn)}" value="${ui.escape(recordId)}">`;
   return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;
+}
+
+// Starting points by trade.
+//
+// business_vertical_templates has had columns since the platform redesign and no
+// rows and no reader -- lib/sonara-subsystem-registry.cjs records it as
+// "reference and reporting rather than a workspace" with the note that it "would
+// fit the Business Builder setup flow if that gets built". Migration
+// 20260819090000 gives it eight rows and this gives it a page.
+//
+// **Nothing here switches anything on.** A template says "a business like yours
+// usually needs these" and links to the pages; the owner decides. Turning
+// features on from a dropdown labelled with somebody's trade is how a customer
+// ends up with pages they did not ask for and cannot find the way out of.
+function registerVerticalTemplates(app, deps, ui) {
+  const { plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
+  const { getSupabaseServerConfig } = deps;
+  const requireCustomer = deps.requireCustomer || ((req, res, next) => next());
+
+  app.get("/business-builder/templates", requireCustomer, async (req, res) => {
+    const actions = [ui.link("/business-builder/dashboard", "Business Builder home"), ui.link("/business-builder/start", "Getting started")];
+    const config = getSupabaseServerConfig();
+    const page = (body, sections) => ui.layout({
+      title: "Starting points",
+      eyebrow: "Business Builder",
+      heading: "Starting points by trade",
+      body,
+      sections,
+      actions
+    });
+
+    if (!config.ok) {
+      return res.status(200).type("html").send(page(
+        "Your account database is not connected yet, so the starting points cannot load.",
+        []
+      ));
+    }
+
+    const listed = await supabaseList(config, "business_vertical_templates", "?select=label,plain_language_description,recommended_pages,recommended_apps&status=eq.active&order=label.asc&limit=50");
+    // A read that failed renders as a read that failed. "There are no starting
+    // points" is a claim about what this product offers, and during an outage it
+    // would be false.
+    if (!listed.ok) {
+      return res.status(200).type("html").send(page(
+        "We could not load the starting points just now. Nothing has changed -- try again shortly.",
+        []
+      ));
+    }
+    if (!listed.rows.length) {
+      return res.status(200).type("html").send(page(
+        "Starting points are being prepared and none are available in this workspace yet.",
+        []
+      ));
+    }
+
+    const cards = listed.rows.map((row) => {
+      const pages = Array.isArray(row.recommended_pages) ? row.recommended_pages : [];
+      const apps = Array.isArray(row.recommended_apps) ? row.recommended_apps : [];
+      const links = pages
+        .filter((path) => typeof path === "string" && path.startsWith("/"))
+        .map((path) => ui.link(path, plainRouteTitle(path) || path))
+        .join("");
+      return `<article class="card"><h2>${ui.escape(row.label || "Starting point")}</h2>
+        <p>${ui.escape(row.plain_language_description || "")}</p>
+        ${apps.length ? `<p class="fine">${ui.escape(`Usually needs: ${apps.join(", ")}.`)}</p>` : ""}
+        ${links ? `<div class="card-actions">${links}</div>` : ""}
+      </article>`;
+    });
+
+    return res.status(200).type("html").send(page(
+      "Pick the one closest to what you do. Each is a list of the pages a business like yours usually needs -- nothing is switched on, and you can ignore any of it.",
+      cards
+    ));
+  });
 }
 
 function isUuid(value) {

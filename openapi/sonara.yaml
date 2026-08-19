@@ -2675,6 +2675,35 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/service-requests/{requestId}/comments:
+    post:
+      operationId: addServiceRequestComment
+      tags: [Workspace]
+      summary: Add a message to a service request the caller's organization raised.
+      description: >-
+        Writes to service_comments, which had no runtime reader or writer before this: a customer
+        could raise a request and nobody could reply to it. The request is confirmed to belong to
+        the caller's organization before anything is written, so a guessed reference cannot attach
+        a message to another business's request.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: requestId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/shared-links/{resourceType}/{id}/share:
     post:
       operationId: shareSavedResult

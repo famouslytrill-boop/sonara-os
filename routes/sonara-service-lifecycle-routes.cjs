@@ -1113,10 +1113,17 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       } else if (!rows.rows.length) {
         sections.push(brandCard("No requests yet", "Submit your first service request below or browse the service catalog."));
       } else {
-        sections.push(...rows.rows.map((row) => brandCard(
+        // Linked, not just listed. Every request was rendered as a card with a
+        // reference id on it and no way to open it, so a customer could see
+        // that they had asked for something and never see the answer -- and
+        // service_comments, which holds the replies, was read by nothing at
+        // runtime at all.
+        sections.push(...rows.rows.map((row) => actionCard(
           `${row.service_name || "Service request"} - ${displayStatus(row.status || "submitted")}`,
-          `Product: ${displayStatus(row.product_key || "general")}. Submitted: ${row.created_at || "not returned"}. Reference ID: ${row.id}.`
+          `${displayStatus(row.product_key || "general")}. Submitted ${row.created_at || "at a date we could not read"}.`,
+          [linkAction(`/requests/${encodeURIComponent(row.id)}`, "Open this request")]
         )));
+        sections.push(await replyTimeCard(organization.organizationId, rows.rows));
       }
     }
     sections.push(serviceRequestForm());
@@ -1131,6 +1138,192 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         actions: [linkAction("/service-catalog", "Service catalog"), linkAction("/deliverables", "Deliverables"), linkAction("/dashboard", "Dashboard"), logoutAction()]
       })
     );
+  });
+
+  // How long this business is taking to answer, from its own records.
+  //
+  // /growth-studio/tools/response-time asks a customer to type their average in.
+  // This is the same figure measured instead -- service_requests carries when a
+  // request arrived and service_comments carries the replies, so it is a
+  // subtraction rather than a memory.
+  async function replyTimeCard(organizationId, requests) {
+    const science = require("../lib/sonara-service-response.cjs");
+    const ids = requests.map((row) => row.id).filter(Boolean);
+    if (!ids.length) return "";
+    const list = ids.map((id) => `"${id}"`).join(",");
+    const comments = await safeListTable(
+      "service_comments",
+      `?select=service_request_id,created_at&organization_id=eq.${encodeURIComponent(organizationId)}`
+        + `&service_request_id=in.(${encodeURIComponent(list)})&order=created_at.asc&limit=500`
+    );
+    // A read that failed is not a business that never replies. Saying nothing is
+    // better than reporting a perfect score because the replies would not load.
+    if (!comments.ok) {
+      return brandCard("How quickly you reply", "We could not read the replies just now, so there is no figure to show. Nothing has changed.");
+    }
+    const measured = science.firstReplyTimes(requests, comments.rows, {});
+    if (!measured.ok) return "";
+    const lines = [];
+    if (measured.answered) {
+      lines.push(`Half of your answered requests got a first reply within ${science.humanDuration(measured.medianMinutes)}.`);
+      if (measured.withinADay !== null) {
+        lines.push(`${Math.round(measured.withinADay * 100)}% were answered within a day, ${Math.round(measured.withinAnHour * 100)}% within an hour.`);
+      }
+    } else {
+      lines.push("Nothing has been replied to yet, so there is no reply time to measure.");
+    }
+    if (measured.longestWaiting) {
+      lines.push(`Still waiting the longest: ${measured.longestWaiting.name}, ${science.humanDuration(measured.longestWaiting.waitingMinutes)} so far.`);
+    }
+    lines.push(measured.basis);
+    return brandCard("How quickly you reply", lines.join(" "));
+  }
+
+  // One request, and the conversation on it.
+  app.get("/requests/:requestId", requireCustomer, async (req, res) => {
+    const requestId = String(req.params.requestId || "");
+    const back = [linkAction("/requests", "All your requests"), linkAction("/dashboard", "Dashboard")];
+    const notFound = () => layout({
+      title: "Service request",
+      eyebrow: "Software-in-a-Service",
+      heading: "We could not find that request",
+      body: "It may belong to a different workspace, or the reference may be wrong.",
+      sections: [],
+      actions: back
+    });
+    if (!isUuid(requestId)) return res.status(404).type("html").send(notFound());
+
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) {
+      return res.status(200).type("html").send(layout({
+        title: "Service request",
+        eyebrow: "Software-in-a-Service",
+        heading: "Service request",
+        body: "Create or attach an organization to open a request.",
+        sections: [actionCard("Workspace setup required", "Your requests live in a workspace.", [linkAction("/account/setup", "Account setup")])],
+        actions: back
+      }));
+    }
+
+    // Scoped by organization as well as by id. The service key bypasses row
+    // level security, so without the organization filter a guessed reference
+    // from another business would open.
+    const found = await safeListTable(
+      "service_requests",
+      `?select=id,service_name,product_key,status,summary,details,created_at&id=eq.${encodeURIComponent(requestId)}`
+        + `&organization_id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`
+    );
+    // A read that failed and a request that is not there are different things,
+    // and answering "not found" to both tells a customer their record is gone
+    // during an outage.
+    if (!found.ok) {
+      return res.status(503).type("html").send(layout({
+        title: "Service request",
+        eyebrow: "Software-in-a-Service",
+        heading: "We could not open that request",
+        body: "This is on our side, and nothing has changed. Try again shortly.",
+        sections: [],
+        actions: back
+      }));
+    }
+    const request = found.rows[0];
+    if (!request) return res.status(404).type("html").send(notFound());
+
+    const thread = await safeListTable(
+      "service_comments",
+      `?select=id,body,created_at,user_id&service_request_id=eq.${encodeURIComponent(requestId)}`
+        + `&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.asc&limit=200`
+    );
+
+    const sections = [
+      brandCard(
+        request.service_name || "Service request",
+        `${displayStatus(request.status || "submitted")}. ${displayStatus(request.product_key || "general")}. `
+          + `Submitted ${request.created_at || "at a date we could not read"}. Reference ${request.id}.`
+      )
+    ];
+    if (request.summary) sections.push(brandCard("What you asked for", request.summary));
+    if (request.details) sections.push(brandCard("The detail you gave", request.details));
+
+    if (!thread.ok) {
+      // Never "no replies yet" for a read that failed. That sentence is a claim
+      // about the customer's records and it would be false.
+      sections.push(brandCard("Messages", "We could not load the messages on this request just now. Nothing has been lost -- try again shortly."));
+    } else if (!thread.rows.length) {
+      sections.push(brandCard("Messages", "There are no messages on this request yet. Anything you add below is kept with it."));
+    } else {
+      sections.push(...thread.rows.map((row) => brandCard(
+        row.user_id && row.user_id === req.sonaraUser?.id ? `You, ${row.created_at || "at an unknown time"}` : `Reply, ${row.created_at || "at an unknown time"}`,
+        String(row.body || "")
+      )));
+    }
+    sections.push(`<article class="card"><h2>Add a message</h2>
+      <p>Anything you add here stays with this request, so whoever picks it up can see it.</p>
+      <form method="post" action="${escapeHtml(`/api/service-requests/${encodeURIComponent(requestId)}/comments`)}">
+        <label>Message<textarea name="body" rows="4" maxlength="4000" required></textarea></label>
+        <button type="submit">Add this message</button>
+      </form>
+    </article>`);
+
+    return res.status(200).type("html").send(layout({
+      title: request.service_name || "Service request",
+      eyebrow: "Software-in-a-Service",
+      heading: request.service_name || "Service request",
+      body: "Everything said about this request, in one place.",
+      sections,
+      actions: back
+    }));
+  });
+
+  const MAX_COMMENT_LENGTH = 4000;
+
+  app.post("/api/service-requests/:requestId/comments", requireCustomer, async (req, res) => {
+    const requestId = String(req.params.requestId || "");
+    const back = isUuid(requestId) ? `/requests/${encodeURIComponent(requestId)}` : "/requests";
+    const respond = (status, payload) => {
+      if (wantsJson(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, back);
+      return res.status(status).type("html").send(responsePage(
+        "That message was not added",
+        payload.message || "Nothing was saved. Try again shortly.",
+        [linkAction(back, "Back to the request"), linkAction("/support", "Get help")]
+      ));
+    };
+
+    if (!isUuid(requestId)) return respond(404, { ok: false, code: "unknown_request" });
+    const body = String(req.body?.body || "").trim();
+    if (!body) return respond(400, { ok: false, code: "message_required", message: "Write something before adding it." });
+    if (body.length > MAX_COMMENT_LENGTH) {
+      return respond(400, { ok: false, code: "message_too_long", message: `A message can be at most ${MAX_COMMENT_LENGTH} characters.` });
+    }
+
+    const config = getSupabaseServerConfig();
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required" });
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) return respond(409, { ok: false, code: "workspace_setup_required" });
+
+    // The request is confirmed to be in the caller's organization before a
+    // comment is written against it. Writing first and checking after would
+    // leave a message attached to somebody else's request if the check failed.
+    const owns = await safeListTable(
+      "service_requests",
+      `?select=id&id=eq.${encodeURIComponent(requestId)}&organization_id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`
+    );
+    if (!owns.ok) return respond(503, { ok: false, code: "workspace_unreadable" });
+    if (!owns.rows.length) return respond(404, { ok: false, code: "unknown_request" });
+
+    const written = await fetch(`${config.url}/rest/v1/service_comments`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "return=representation" }),
+      body: JSON.stringify({
+        organization_id: organization.organizationId,
+        service_request_id: requestId,
+        user_id: req.sonaraUser?.id || null,
+        body
+      })
+    }).catch(() => undefined);
+    if (!written?.ok) return respond(503, { ok: false, code: "not_recorded", message: "Your message was not saved. Nothing has been recorded, so add it again rather than assuming it arrived." });
+    return respond(200, { ok: true, code: "added" });
   });
 
   async function deliverableSections(organization, productKey) {

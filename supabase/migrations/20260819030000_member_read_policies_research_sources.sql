@@ -89,6 +89,19 @@ $$;
 
 do $$
 begin
+  if to_regclass('public.service_comments') is null then
+    raise notice 'skipping service_comments: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.service_comments enable row level security';
+  execute 'drop policy if exists "service_comments_select_member" on public.service_comments';
+  execute 'create policy "service_comments_select_member" on public.service_comments for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
   if to_regclass('public.accounting_exports') is null then
     raise notice 'skipping accounting_exports: table not present';
     return;

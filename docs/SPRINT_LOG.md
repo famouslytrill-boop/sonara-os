@@ -2,6 +2,106 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Three sprints, and two tables that had columns and no readers
+
+Sprints 06, 08 and 09 of the ship plan. Two of the three closed a hole of the
+same shape: a table created long ago, carrying exactly the right columns, that
+nothing at runtime had ever read or written.
+
+## Sprint 06 — customer service as a module
+
+**`service_comments` had no runtime reader or writer at all**, and there was no
+service request detail page either. A customer could raise a request, see it
+listed with a reference id, and never open it. Whoever picked it up had nowhere
+to reply, and the customer had nowhere to add the thing they forgot to say.
+
+Now `/requests/:requestId` opens one request with its thread, and
+`POST /api/service-requests/:requestId/comments` adds to it. The request is
+confirmed to be in the caller's organization **before** a comment is written
+against it — writing first and checking after leaves a message attached to
+somebody else's request when the check fails.
+
+**And the reply time is now measured rather than remembered.**
+`/growth-studio/tools/response-time` tells a customer what a slow first reply
+costs and asks them to type their own average in — a number nobody has, and the
+one people are most generous to themselves about. `service_requests.created_at`
+and the earliest comment on it make that a subtraction.
+`lib/sonara-service-response.cjs` does it, and refuses two things:
+
+- **A request nobody has answered is not a fast reply.** Averaging over only the
+  answered ones is how a business measures itself as excellent while its worst
+  cases sit untouched. Unanswered ones are counted separately and the oldest is
+  *named*, because "one is waiting" makes somebody open all of them.
+- **The median leads and the mean sits beside it.** One request left for a
+  fortnight moves a mean of ten far enough to misdescribe a normal week; a test
+  builds exactly that fixture and asserts the median does not move.
+
+A reply stamped before the request it answers is a clock problem, not a negative
+wait — dropped, counted, and never folded in as an impossibly fast answer.
+
+## Sprint 08 — templates and presets
+
+**`business_vertical_templates` had columns since the platform redesign, no rows
+and no reader.** `lib/sonara-subsystem-registry.cjs` recorded it as "reference
+and reporting rather than a workspace" with the note that it "would fit the
+Business Builder setup flow if that gets built". This is that flow: eight trades
+seeded, and `/business-builder/templates` renders them.
+
+**Every path in every row is checked against the route registry.** A template
+pointing at `/business-builder/scheduling` — which sounds real and is not — would
+be a starting point that starts with a 404, and the customer would reasonably
+conclude the product is broken rather than that the template is wrong. All 26
+seeded paths resolve, and the test fails if one stops.
+
+**Nothing here switches anything on**, and the page says so. Turning features on
+from a dropdown labelled with somebody's trade is how a customer ends up with
+pages they did not ask for and cannot find the way out of. A test asserts the
+handler contains no write at all.
+
+The registry entry was also **wrong about `service_comments`**, which it filed
+under "reference data". A reply on a service request is not reference data. Both
+corrected in the same change.
+
+## Sprint 09 — media, and what was deliberately left out
+
+This was held back because everything media-shaped here costs money per use:
+generation runs through a provider and a provider sends a bill. **Nothing in this
+sprint adds a provider, and that is the honest half of the answer** — the
+generative side still waits on pricing, which is the owner's decision and not
+this branch's.
+
+What shipped is the half that is free. Deciding whether a 1920×1080 file survives
+a 9:16 crop is geometry. `/creator-studio/tools/media-placements` takes a size
+and a duration and says where the file fits as it is, where it works with a crop
+and what that costs, and where it costs more than it is worth.
+
+Both answers are reported, not one: **cover** throws part of the picture away,
+**contain** keeps all of it and adds bars, and which is acceptable depends on
+what is in the frame — which this cannot see, and says so.
+
+The loudness table carries the sentence most often got wrong: mastering louder
+than a platform's target does not make it louder, because the platform turns it
+back down, and the dynamic range is spent for nothing. Broadcast at −23 LUFS is
+asserted to stay well below every streaming target, because a stream master
+handed to broadcast is a different job.
+
+**The numbers are dated and the page renders the date.** Platform requirements
+change without notice, and a specification table is exactly the kind of thing
+that is quietly wrong for a year.
+
+---
+
+Three gates fired and were right: `service_comments` needed a member read policy
+now that a page reads it, the planner tool count needed re-pinning, and the new
+comments endpoint was undocumented in the OpenAPI contract.
+
+One check from each sprint was falsified before being trusted: counting
+unanswered requests as instant replies fails; pointing a template at a page that
+does not exist fails; a positive LUFS target fails.
+
+Verified: `pnpm run lint` clean, 2299 tests passing, `pnpm run verify:launch`
+exit 0 across 26 commands, 15 planning tools, 288 registered routes.
+
 ### 2026-08-19 — Two colours nobody could read, and a check that computes taste's one measurable half
 
 Sprint 04 of the ship plan was "one design system, colour graded". Most of what
