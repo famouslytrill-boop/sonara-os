@@ -2,6 +2,67 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — Six website prompts, and the sentence the source versions were missing
+
+A batch of eight website-building prompts arrived as screenshots — build a
+premium website, nail the first impression, write a better homepage, a portfolio,
+a service page, an About page, fix mobile, write the entire site. Six of them are
+now in the builtin prompt library, which had nine and has fifteen.
+
+**The wording is original, and it had to be.** `template()` in
+`lib/sonara-prompt-library.cjs` stamps every builtin with
+`sourceType: "sonara_original"` and `license: "SONARA original; repository MIT
+license"`. Pasting somebody else's text under that stamp would make the record's
+own provenance false — which is a worse defect than the copying, because it is
+the field a future reviewer trusts.
+
+**What the submitted versions did not have is the reason these are worth
+shipping.** "Make it feel modern, high-end, and built to convert" is an open
+invitation to write testimonials, client counts, awards, years-in-business and
+guarantees that do not exist. A small business that publishes those has a problem
+that is not a marketing problem. Every one of the six ends by naming what must
+not be invented — and *naming* it, because "be accurate" is advice and "do not
+invent testimonials, client counts, awards, years in business, guarantees, or
+credentials" is a rule.
+
+Three things the prompts do that the source list did not:
+
+- **The service page has a "what is not included" section.** It is the section
+  that prevents the argument later and it is the one most service pages leave
+  out.
+- **The About page states when a business is new** rather than hiding it. New is
+  a fact, and hiding it reads worse than saying it.
+- **The portfolio prompt asks which pieces to leave out**, and flags any piece
+  whose right to publish is unclear. A portfolio is judged by its weakest piece,
+  and the reason to cut one is that it attracts work the creator does not want.
+
+**The mobile prompt holds this product to its own standard.** AGENTS.md says
+mobile layouts must avoid overflow and use large enough tap targets, so the
+prompt checks for both and names 44×44 as the minimum. A prompt this product
+ships that reviewed mobile pages to a looser standard than the one it holds
+itself to would be advising customers down.
+
+**The tests caught two real things.** The clause check found that the About page
+was the only one of the six not saying "do not invent" explicitly — it said "use
+nothing that is not in the inputs above", which is arguably stronger and did not
+name the specific things, and the About page is exactly where invented
+credentials do the most damage. And a new general check across all fifteen
+builtins asserts each declares exactly the variables it uses: a prompt asking for
+a variable it never uses wastes somebody's time, and one using a variable it
+never declares renders with `{{a_gap}}` still in it.
+
+Falsified before being trusted: replacing the hero prompt's closing rule with the
+submitted post's own wording — "make it feel modern, high-end, and built to
+convert" — fails the check, which is precisely the substitution it exists to
+catch.
+
+The existing summary test pinned three prompts per product area. It now pins
+eight, four and three, counted rather than loosened to "at least three", so
+adding one stays a decision somebody makes on purpose.
+
+Verified: `pnpm run lint` clean, 2263 tests passing, `pnpm run verify:launch`
+exit 0, 15 builtin prompts, all six visible on `/prompt-library`.
+
 ### 2026-08-19 — Nine submitted repositories, one of them integrable
 
 A batch of nine arrived as screenshots of a social post. All nine are now on the
