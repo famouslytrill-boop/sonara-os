@@ -170,64 +170,87 @@ number to gamble with, and four because they are the ones nobody can read yet.
 
 ---
 
-## 5 — Create three Stripe prices for the new plans
+## 5 — Set three variables in Vercel
 
-**Added 19 August 2026, when you chose to apply the pricing restructure now.**
+**Checked against the live account on 19 August 2026, and most of this step was
+already done.** The prices exist. What is left is three environment variables.
 
-**Why nobody else can.** Creating a Price object charges through your live
-Stripe account. The Supabase and Stripe credentials in this repository are not
-able to, and should not be.
+### What is already in Stripe
 
-**The code half is done.** `lib/sonara-stripe-plans.cjs` holds the three plans at
-the amounts `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` sets,
-`lib/sonara-paid-access.cjs` maps each to every workspace it covers,
-`lib/sonara-plan-limits.cjs` gives each its location allowance, and the staff
-portal is now gated on Team. Nothing is waiting on me.
+Read from `acct_1TRSqj0dKtlEU3lA` in live mode. All three amounts match
+`lib/sonara-stripe-plans.cjs` exactly, and each product's description on Stripe
+matches the description in that file **verbatim**:
 
-**Do this.** In Stripe, create three recurring monthly prices. Put each on its
-own Product so the customer's invoice names the plan they bought.
-
-| Plan | Amount | Interval | Variable to set in Vercel |
+| Plan | Amount | Price id | Variable to set |
 | --- | --- | --- | --- |
-| One workspace | **$19.00** | monthly | `STRIPE_PRICE_WORKSPACE_MONTHLY` |
-| All three | **$39.00** | monthly | `STRIPE_PRICE_ALL_THREE_MONTHLY` |
-| Team | **$79.00** | monthly | `STRIPE_PRICE_TEAM_MONTHLY` |
+| One workspace | $19.00/mo | `price_1U47yP0dKtlEU3lAvkakKNgm` | `STRIPE_PRICE_WORKSPACE_MONTHLY` |
+| All three | $39.00/mo | `price_1U47yd0dKtlEU3lAeTBQ8o3D` | `STRIPE_PRICE_ALL_THREE_MONTHLY` |
+| Team | $79.00/mo | `price_1U47yp0dKtlEU3lAhPqsCS7r` | `STRIPE_PRICE_TEAM_MONTHLY` |
 
-Set each variable to the price id, which begins `price_`. Set them for
-Production.
+Price ids are not secrets — they travel to the browser during checkout — so they
+are written down here rather than described.
 
-**How to tell it worked.**
+They were created on 13 August 2026, carry lookup keys
+(`sonara_workspace_monthly`, `sonara_all_three_monthly`, `sonara_team_monthly`)
+and nicknames, and sit on products named `SONARA One — One workspace`, `— All
+three` and `— Team`.
+
+### Do this
+
+In Vercel, for **Production**, set each variable above to its price id. That is
+the whole step.
+
+### How to tell it worked
 
 ```
 pnpm run verify:stripe
 ```
 
-With `STRIPE_SECRET_KEY` set it fetches each price from Stripe and compares the
-amount against what the pricing page promises, and fails if they differ. Without
-the key it checks the offline half and says plainly that live prices were not
-compared — so read the last line, not just the exit code.
+With `STRIPE_SECRET_KEY` present it fetches each price from Stripe and compares
+the amount against what the pricing page promises. Read the last line rather
+than the exit code: without the key it checks the offline half and says plainly
+that live prices were not compared.
 
-**What happens on the pricing page as you go.** The old ladder does not vanish
-the moment the new plans exist. `offeredPlanKeys` in
-`lib/sonara-stripe-plans.cjs` keeps both ladders off or on as sets: a superseded
-plan drops off only once its replacement can actually be bought, and a
-replacement stays hidden while any plan it replaces is still buyable. So the
-page never shows two plans at $19 meaning different things, and never shows a
-page with nothing purchasable on it. Setting all three variables at once is the
+Once all three are set, the pricing page switches ladders on its own. Free /
+Starter $7 / Core $19 / Pro $39 drops off and Free / One workspace $19 / All
+three $39 / Team $79 replaces it, because `offeredPlanKeys` in
+`lib/sonara-stripe-plans.cjs` moves both ladders as sets — a superseded plan
+leaves only once its replacement can be bought, and a replacement stays hidden
+while any plan it replaces is still buyable. Setting all three at once is the
 clean switchover.
 
-**Two decisions that are yours and are not in the code.**
+### A duplicate set was found and archived
 
-- **Anybody on Core $19** moves to One workspace at the same $19 — but the
-  location allowance goes from three to one. `lib/sonara-plan-limits.cjs` says
-  so in a comment and does not migrate anybody. Nobody should be moved across
-  automatically on the strength of the price matching.
-- **Anybody on Starter $7** is grandfathered or moved with notice. Stripe prices
-  are immutable, so an existing subscriber keeps paying what they agreed to
-  until you change their subscription yourself.
+There were **two** of each plan. A second set — bare products named `One
+workspace`, `All three` and `Team`, with no descriptions and no lookup keys —
+was created on 19 August 2026 at the same three amounts.
 
-Neither applies to anyone today, because nobody has bought a plan in production —
-which is item 1, and still the thing worth doing first.
+Two live prices at the same amount, differing only in which one carries the
+customer-facing description, is a trap: point a variable at the wrong one and
+the invoice a customer receives names a product with no description. Neither set
+had a single subscriber, so the duplicate products were archived:
+`prod_V6FejKrPFMI61v`, `prod_V6FgqpmKZeEth5`, `prod_V6FgGMeVSnnwR2`.
+
+**This is reversible.** Setting a product back to `active: true` in the
+dashboard restores it. Nothing was deleted, and Stripe does not permit deleting
+a price in any case.
+
+One consequence worth knowing, because this repository already guards against
+it: archiving a product does **not** clear its prices' `active` flag. Those
+three prices still read active on their own and cannot be sold, because their
+product is archived. `lib/sonara-billing.cjs` carries that exact guard for the
+three retired SONARA OS plans, and it now applies to three more.
+
+### What this confirmed about step 1
+
+The account has had **one subscription in its entire history** — $9.99/mo,
+started 4 May 2026, cancelled the same day, on a price that is now archived.
+
+That is independent confirmation of item 1: **nobody has completed a paid signup
+in production.** It is not an inference from the deploy output; it is the
+subscription list.
+
+---
 
 ---
 

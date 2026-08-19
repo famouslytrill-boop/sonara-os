@@ -2,6 +2,59 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — The Stripe prices existed twice, and one subscription in the account's history
+
+Asked to check and complete the two owner-only items. One of them turned out to
+be reachable from here and mostly already done; the other is not reachable at
+all, and saying which is which is the point of this entry.
+
+**Stripe was reachable** — the connector holds live credentials for
+`acct_1TRSqj0dKtlEU3lA`, the same account `docs/owner/OWNER-STEPS.md` records as
+checked read-only on 12 August. So the step could be verified rather than
+described.
+
+**The three prices already existed.** Created 13 August 2026, at $19, $39 and
+$79 monthly, with lookup keys, nicknames, and product descriptions that match
+`lib/sonara-stripe-plans.cjs` **verbatim**. Checking first is the only reason
+that was found; creating them as the step instructed would have made a third
+set.
+
+**There were already two sets.** A second — bare products named `One workspace`,
+`All three` and `Team`, no descriptions, no lookup keys, auto-assigned default
+prices — was created on 19 August at the same three amounts. Two live prices at
+one amount, differing only in which carries the customer-facing description, is
+a trap: point a variable at the wrong one and the invoice names a product with
+no description on it.
+
+Neither set had a subscriber, so the duplicates were archived —
+`prod_V6FejKrPFMI61v`, `prod_V6FgqpmKZeEth5`, `prod_V6FgGMeVSnnwR2`. Reversible,
+nothing deleted, and Stripe does not permit deleting a price anyway.
+
+Stripe refused the first attempt with "this price cannot be archived because it
+is the default price of its product", which is why the products were archived
+rather than the prices. That leaves three prices reading `active: true` on
+archived products — **the exact shape `lib/sonara-billing.cjs` already guards
+for the three retired SONARA OS plans.** The guard was written because Stripe
+does not clear a price's active flag when its product is archived, and it now
+covers three more.
+
+**One subscription exists in the account's entire history.** $9.99/mo, started
+4 May 2026, cancelled the same day, on a price that is now archived. That is
+independent confirmation of OWNER-STEPS item 1 — nobody has completed a paid
+signup in production — and it comes from the subscription list rather than from
+the deploy output saying `positiveSubscribedUserTest: "pending"`.
+
+Item 5 is rewritten. It is no longer "create three prices"; it is "set three
+variables", with the price ids written down, because price ids are not secrets —
+they travel to the browser during checkout.
+
+**The four authorization functions were not reachable and remain open.** The
+Supabase connector needs an authorization this session cannot perform, and this
+container holds no `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` or
+`SUPABASE_ACCESS_TOKEN` — checked rather than assumed. There is no route from
+here to `pg_get_functiondef`, and PostgREST does not expose `pg_proc`. That step
+is unchanged and still needs the owner to run the query.
+
 ### 2026-08-19 — Five repositories from a set of screenshots, and one that matters
 
 Submitted as phone screenshots of social posts rather than as links, which
