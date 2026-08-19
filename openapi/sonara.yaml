@@ -2600,6 +2600,81 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator-profiles/{id}/publish:
+    post:
+      operationId: publishCreatorProfile
+      tags: [Creator Studio]
+      summary: Give a creator profile a public address anyone can open.
+      description: >-
+        Sets a globally unique handle on a profile the caller's organization owns, making it
+        readable at /creator/{handle}. The published page shows the artist name, the public
+        description and a follower count; the backstory, voice identity, genre blend and the
+        writing, visual and prompt rules are never published.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle]
+              properties:
+                handle: { type: string, minLength: 3, maxLength: 32, pattern: "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/unpublish:
+    post:
+      operationId: unpublishCreatorProfile
+      tags: [Creator Studio]
+      summary: Release a creator profile's public address, so it stops opening.
+      description: >-
+        Clears the handle. When the profile was public is kept, so the owner can be told it was
+        published once rather than shown a form that looks untouched.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/follow:
+    post:
+      operationId: followCreatorProfile
+      tags: [Creator Studio]
+      summary: Follow a published creator profile.
+      description: >-
+        Records one follow per person per profile. Only a published profile can be followed.
+        Following sends nothing to anybody -- no email, no push, no message -- and nothing reads
+        this record to do so.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/unfollow:
+    post:
+      operationId: unfollowCreatorProfile
+      tags: [Creator Studio]
+      summary: Stop following a creator profile.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/shared-links/{resourceType}/{id}/share:
     post:
       operationId: shareSavedResult

@@ -342,9 +342,25 @@ describe("the server.js split stays safe", () => {
     // Then straight back down past where it started, to 4033: the tenant
     // boundary moved to lib/sonara-customer-organization.cjs the same day, and
     // came down 40 lines with it.
+    //
+    // Raised to 4036 on 19 August 2026, by 3, and this is the second exception.
+    // The lines are a require, a blank line matching every registration around it,
+    // and a one-line registration for
+    // routes/sonara-creator-profile-routes.cjs, which serves /creator/:handle --
+    // a new top-level public surface rather than a page inside an existing one.
+    //
+    // Two other registrations that week avoided this by being registered from
+    // the route module that already held every helper they needed, and that was
+    // right in both cases because the registering module owned the thing being
+    // served: the shared-result routes publish results the service-lifecycle
+    // module computes and saves. No module owns a creator's public profile in
+    // that sense, and threading eleven helpers through an unrelated module to
+    // save a line here would put the registration somewhere nobody would look
+    // for it. The behaviour is all in the route module, which is where the
+    // ceiling wants it; only the two bracketing lines are here.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4033,
+      lines <= 4036,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

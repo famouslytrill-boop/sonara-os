@@ -28,6 +28,7 @@ const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-rout
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
+const registerCreatorProfileRoutes = require("./routes/sonara-creator-profile-routes.cjs");
 const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
@@ -621,6 +622,8 @@ registerLastNineHoursRoutes(app, {
   getSupabaseServerConfig
 });
 
+registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
+
 registerBusinessAssistantRoutes(app, {
   layout,
   brandCard,
@@ -1046,7 +1049,7 @@ app.post("/auth/logout", (req, res) => {
   return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
-const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/setup", "Account setup"]];
+const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/following", "People you follow"], ["/account/setup", "Account setup"]];
 app.get("/account", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({

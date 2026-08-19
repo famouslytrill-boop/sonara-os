@@ -30,7 +30,23 @@ const root = path.resolve(__dirname, "..");
 // tenant-owned is written -- it posts to Supabase auth and is rate limited.
 const NO_ORGANIZATION = Object.freeze({
   "POST /auth/forgot-password":
-    "Pre-authentication. The caller is not signed in, so no organization exists yet, and it writes to Supabase auth rather than to any tenant table."
+    "Pre-authentication. The caller is not signed in, so no organization exists yet, and it writes to Supabase auth rather than to any tenant table.",
+  // A follow is an edge between a person and somebody else's published profile,
+  // and it crosses the tenant boundary by design -- that is the whole point of a
+  // follow graph. There is no organization it belongs to: the follower's is
+  // irrelevant and the artist's is already reachable through artist_profile_id.
+  // creator_follows has no organization_id column for the same reason, and the
+  // migration that creates it says so at length.
+  //
+  // What replaces the organization filter is asserted in
+  // tests/a-public-profile-publishes-three-things.test.js rather than assumed
+  // here: a follow is refused unless the profile is published, and an unfollow
+  // filters on follower_user_id as well as the profile, so one signed-in person
+  // cannot delete another's follow by guessing a uuid.
+  "POST /api/creator-profiles/:id/follow":
+    "A follow crosses organizations by design. Scoped by the signed-in follower and by the profile being published, both of which are asserted in tests/a-public-profile-publishes-three-things.test.js.",
+  "POST /api/creator-profiles/:id/unfollow":
+    "Deletes the caller's own follow. Filtered on follower_user_id as well as artist_profile_id, so it can only ever remove a row the caller created."
 });
 
 function sourceFiles() {

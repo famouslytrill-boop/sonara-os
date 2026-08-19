@@ -2,6 +2,97 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — A creator profile anybody can open, and a follow graph behind it
+
+`creator_artist_profiles` has carried a column called `public_description` since
+the artist system landed, and nothing had ever put one on a page a stranger could
+reach. The word "public" in that column name was aspirational. It is a page now:
+`/creator/:handle`.
+
+**Three fields are published and six are withheld, and the naming is not the
+reason.** That table also holds `private_backstory`, `voice_identity`,
+`genre_blend`, `writing_rules`, `visual_rules` and `prompt_rules`. Two of those
+matter more than the rest: publishing `voice_identity` or `prompt_rules` hands
+somebody the instructions for reproducing an artist's voice, which is the
+anti-clone rule in AGENTS.md rather than a preference. `PUBLIC_PROFILE_COLUMNS`
+and `NEVER_PUBLISHED_COLUMNS` are both written down, and a test asserts the
+select is the first list and contains none of the second.
+
+**A handle is an address, so it is refused as often as it is accepted.**
+Reserved for two separate reasons, and both are recorded: *routing*, because the
+cheapest future change is serving profiles from the root and a handle called
+`login` would make that impossible rather than awkward; and *impersonation*,
+because `support`, `official`, `verified` and `payments` are what somebody
+registers in order to be believed. A test derives every top-level segment from
+the route registry and asserts none of them is takeable. The refusal says "not
+available" rather than "reserved", because the second tells somebody guessing at
+the list that they guessed right.
+
+**The handle list is a literal, not derived from the registry.** Deriving it
+would mean a handle that is legal today becomes illegal the day somebody adds a
+page — silently invalidating a URL a creator has already printed on something.
+
+**`creator_follows` has no `organization_id`, and that is the one thing to read
+before changing it.** Every other tenant-scoped table has one because the
+service-role key bypasses row level security. A follow is different in kind: it
+is an edge between a person and somebody else's published profile and crosses the
+tenant boundary by design. The two reads it exists for are each scoped by
+something the caller owns or is — `artist_profile_id` for "who follows this
+artist", `follower_user_id` for "who do I follow". Adding an organization would
+either be wrong or a lie about what the row means. Both write handlers are
+recorded in `tests/every-write-names-a-business.test.js` with that reasoning,
+and what replaces the filter is asserted rather than promised: a follow is
+refused unless the profile is published, and an unfollow filters on the follower
+as well as the profile, so nobody can delete somebody else's follow by guessing a
+uuid.
+
+**Following notifies nobody.** AGENTS.md puts alerts off by default, and for a
+brand-new table the cheapest way to hold that is that nothing reads it for that
+purpose at all — asserted against the route source and the migration, because a
+promise in a comment is what stops being true first.
+
+**Two real bugs in my own code, both found by writing the check rather than the
+feature:**
+
+- `followerSummary(null)` returned "Nobody is following this yet". `Number(null)`
+  is `0` and `Number.isFinite(0)` is true, so "we could not count" became "nobody
+  follows this" — the exact trap this repository warns about, in code written the
+  same hour as the warning was read. Absent is now checked before the conversion.
+- The follow route decided "is this published" with a `not.is.null` PostgREST
+  filter. It reads the column back and decides in code instead: one fewer piece
+  of query syntax between the rule and somebody checking it, and this is the rule
+  that stops a guessed uuid creating a follow of a profile nobody can open.
+
+**And a blind spot in a release gate, found by probing it.** The Supabase
+contract scan finds runtime table references with four patterns, and all four
+require the name to appear as a literal at the point of use — `/rest/v1/quotes`,
+`rest("quotes")`. A module that does the ordinary thing instead:
+
+    const FOLLOW_TABLE = "creator_follows";
+    await rest(config, `${FOLLOW_TABLE}?select=...`);
+
+is invisible to every one of them. A deliberately undeclared table name passed
+the whole gate. **Two route modules were in that state** — the one added here and
+the shared-links one from earlier today, which passed only because an unrelated
+file happened to contain the same name as a literal. A fifth pattern matches a
+constant whose name is `TABLE` or ends `_TABLE`; the underscore is load-bearing,
+because without it `COSTABLE_RATE_TYPE` reports `hourly` as an uncontracted
+table. Probed after the fix: the undeclared name now fails.
+
+Three new checks were falsified before being trusted — publishing
+`voice_identity` fails the column check, dropping the follower filter from
+unfollow fails the scoping check, and allowing an unpublished profile to be
+followed fails the publication check.
+
+`server.js` grew by 3 to 4036, the second time this ceiling has been raised. The
+reason is in `tests/server-split.test.js`: two earlier registrations avoided it
+by being registered from the route module that already held their helpers, and
+that was right because that module owned the thing being served. No module owns a
+creator's public profile in that sense.
+
+Verified: `pnpm run lint` clean, 2231 tests passing, `pnpm run verify:launch`
+exit 0, 95 migrations.
+
 ### 2026-08-19 — A quote, an invoice and an appointment can be sent to somebody
 
 Extending the share mechanism to the things a business actually sends. Four kinds

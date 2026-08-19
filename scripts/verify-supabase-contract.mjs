@@ -21,7 +21,8 @@ const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
 const creatorArtistSystemMigrationNames = [
-  "016_creator_artist_system_schema.sql"
+  "016_creator_artist_system_schema.sql",
+  "20260819080000_public_creator_profiles_and_follows.sql"
 ];
 // The operations group spans five migrations rather than one, because it grew
 // as the workspaces did. Named individually rather than checked against every
@@ -128,6 +129,11 @@ const CREATOR_GENERATION_TABLES = Object.freeze([
 // routes/ only. Widening that scan to lib/ is what surfaced them.
 const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
   "creator_artist_profiles",
+  // Who asked to hear about which published creator profile. The only table in
+  // this list with no organization_id, and deliberately so -- a follow is an
+  // edge between a person and somebody else's published profile, and it crosses
+  // the tenant boundary by design. Migration 20260819080000 says so at length.
+  "creator_follows",
   "creator_sonic_profiles",
   "creator_album_cycles",
   "creator_tracks",
@@ -431,7 +437,25 @@ for (const pattern of [
   /\/rest\/v1\/([a-z0-9_]+)/gi,
   /safeListTable\(\s*["']([a-z0-9_]+)["']/gi,
   /\btable\s*:\s*["']([a-z0-9_]+)["']/gi,
-  /\brest\(\s*["']([a-z0-9_]+)["']/gi
+  /\brest\(\s*["']([a-z0-9_]+)["']/gi,
+  // A table named through a constant.
+  //
+  // Added 19 August 2026, after a deliberately undeclared table name passed
+  // every check above. The four patterns before this one all require the table
+  // to appear as a literal at the point of use -- `/rest/v1/quotes`,
+  // `rest("quotes")`. A module that does the ordinary thing instead:
+  //
+  //     const FOLLOW_TABLE = "creator_follows";
+  //     await rest(config, `${FOLLOW_TABLE}?select=...`);
+  //
+  // is invisible to all four, so its tables were never checked against the
+  // contract at all. Two route modules were in that state when this was found,
+  // and one of them passed only because an unrelated file happened to contain
+  // the same name as a literal.
+  // The underscore before TABLE is load-bearing: without it this also matches
+  // COSTABLE_RATE_TYPE in lib/sonara-labour-cost.cjs and reports "hourly" as a
+  // table nobody has contracted.
+  /\bconst\s+(?:[A-Z][A-Z0-9_]*_)?TABLE\s*=\s*["']([a-z0-9_]+)["']/g
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }

@@ -499,6 +499,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let extra = null;
       let references = {};
       let shareLink = null;
+      let publishState = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -542,6 +543,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // A read that failed is not a record that is private, and offering to
           // publish something that is already public -- or hiding the way to
           // unpublish it -- are both worse than saying the check did not run.
+          // The public address of a creator profile, for the page that owns it.
+          // Read from the record itself rather than a second table, because the
+          // handle IS the publication -- absent means private.
+          if (page.publishHandle) {
+            publishState = { ok: true, handle: parent?.public_handle || null, publishedBefore: Boolean(parent?.published_at) };
+          }
+
           if (page.shareableAs) {
             const links = await supabaseList(
               config,
@@ -566,6 +574,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         : [
             summaryCard(page, parent, ui),
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
+            ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -1597,6 +1606,43 @@ function shareCard(page, recordId, shareLink, ui) {
     <p>Give this ${ui.escape(noun)} a link anyone can open, without them needing an account. You can stop sharing it at any time.</p>
     <p class="fine">${ui.escape(page.shareShows || "It shows this record only. It never shows anybody's contact details, your notes, or anything else in your business.")}</p>
     <form method="post" action="${ui.escape(`${base}/share`)}">${back}<button type="submit">Create a link</button></form>
+  </article>`;
+}
+
+// Giving a creator profile a public address, and taking it back.
+//
+// A text field rather than a generated slug, because this is the thing a creator
+// prints on a poster and says out loud. The field is pre-filled with the handle
+// they already have, so re-submitting the form unchanged is a no-op rather than
+// a way to lose the address by accident.
+//
+// published_at outlives the handle deliberately: a profile that was public and
+// is not any more gets told so, rather than shown a form that looks untouched.
+function publishCard(page, recordId, publishState, ui) {
+  const base = `/api/creator-profiles/${encodeURIComponent(recordId)}`;
+  const back = `<input type="hidden" name="back" value="${ui.escape(`${page.path}/${recordId}`)}">`;
+  if (!publishState?.ok) {
+    return ui.card("A public page for this profile", "We could not tell whether this profile has a public address. Nothing has changed -- open this page again shortly.");
+  }
+  if (publishState.handle) {
+    const href = `/creator/${encodeURIComponent(publishState.handle)}`;
+    return `<article class="card"><h2>A public page for this profile</h2>
+      <p>Anyone can open this profile at <a href="${ui.escape(href)}">${ui.escape(href)}</a>, and follow it.</p>
+      <p class="fine">It shows the artist name, the public description and how many people follow. It never shows the backstory, the voice identity, the genre blend, or any of the writing, visual or prompt rules.</p>
+      <form method="post" action="${ui.escape(`${base}/unpublish`)}">${back}<button type="submit">Make this private again</button></form>
+    </article>`;
+  }
+  const wasPublic = publishState.publishedBefore
+    ? "<p class=\"fine\">This profile has been public before and is private now.</p>"
+    : "";
+  return `<article class="card"><h2>A public page for this profile</h2>
+    <p>Give this profile an address anyone can open, without them needing an account.</p>
+    <p class="fine">It shows the artist name, the public description and how many people follow. It never shows the backstory, the voice identity, the genre blend, or any of the writing, visual or prompt rules.</p>
+    ${wasPublic}
+    <form method="post" action="${ui.escape(`${base}/publish`)}">${back}
+      <label>Address<input type="text" name="handle" minlength="3" maxlength="32" pattern="[a-z0-9][a-z0-9-]{1,30}[a-z0-9]" placeholder="your-name" required></label>
+      <button type="submit">Publish this profile</button>
+    </form>
   </article>`;
 }
 
