@@ -3783,6 +3783,42 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "Scrapling",
+    slug: "scrapling",
+    category: ["web scraping", "adaptive selectors", "submitted 2026-08-19"],
+    useCase: ["fetching and parsing pages", "selectors that survive a site being redesigned"],
+    productFit: ["Growth Studio", "Research Lab"],
+    license:
+      "BSD-3-Clause, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive and non-reciprocal. Two obligations rather than one: the copyright notice travels with any redistributed code, and the third clause forbids using the author's name to endorse anything derived from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "**it is two libraries in one repository, and they need opposite answers.** Reading it as a single yes or no is how the second half gets adopted along with the first",
+      "ADAPTIVE SELECTORS -- genuinely additive over what is already built. lib/sonara-crawl4ai-adapter.cjs fetches a page and returns readable text; it has no notion of finding the same element again after a site is redesigned. That is a real capability and this is a real implementation of it",
+      "STEALTH -- out of bounds for this product, and the reason is concrete rather than squeamish. SONARA's own egress does the fetching, so bypassing a site's bot detection is this product overriding a site operator's stated wishes, on a customer's behalf, at a volume the customer chooses. Crawl4AI's adapter already reasons about the same exposure from the other direction: a URL somebody supplies plus a server that fetches it is a request forwarder with this application's network position behind it",
+      "and there is nothing here for the good half to attach to yet. `grep` finds no stored selector anywhere in routes/ or lib/, and nothing re-fetches a page on a schedule -- so an adapter today would be a capability with no caller",
+      "the MCP server it ships is the owner's own tooling if they want it, not something SONARA distributes -- the same line drawn for figranium-mcp",
+    ],
+    officialUrl: "https://scrapling.readthedocs.io/en/latest/",
+    repoUrl: "https://github.com/D4Vinci/Scrapling",
+    notes:
+      "75,014 stars and 7,499 forks -- the second most-starred repository ever submitted to this register, after MoneyPrinterTurbo -- Python, created October 2024, pushed hours before it was submitted. Playwright underneath, so it needs a machine with a browser and cannot run in a request-scoped serverless function; it is a service the owner runs, exactly like Crawl4AI already is.\n\n**Checking what this product already does turned up something worth recording on its own.** `research_sources` carries `permission_status text not null default 'needs_review'` -- a column whose whole purpose is to record whether a source may be crawled. Nothing reads it. Nothing writes it either: `grep` finds the table named only in the generated tenant-scope inventory and in a subsystem listing, and the live fetch endpoint takes a URL straight from the request body and hands it to Crawl4AI. So the schema anticipated a permission gate that was never built.\n\nThat is the order-of-operations point, and it is the one that decides this record. **Adding a tool whose selling point is not being detected, to a system that does not yet check whether it was allowed, is the wrong way round.** The permission gate is the cheaper piece of work and the one that would make either scraper defensible.\n\nSame comparison as Figranium, and a different result. Figranium was GPL-3.0 and did what the Apache-2.0 Crawl4AI adapter already does, so it was a worse-licensed duplicate and the answer was no. This is permissively licensed and does something Crawl4AI does not. The answer is still not yet -- but for a reason about this product rather than about the repository.",
+    safetyBoundaries: [
+      "no scraping capability is added that a customer could point at an address inside anyone's network: the existing adapter refuses loopback, link-local, cloud-metadata and private ranges, and any new fetcher inherits that rule rather than restating it",
+      "robots.txt and a site's terms are the site operator's answer, and this product does not ship a way to override them on a customer's behalf",
+      "a page fetched on a customer's behalf is their evidence, recorded under their organization, and never pooled across tenants",
+      "BSD-3-Clause attribution travels with any code adapted, and the author's name is never used to endorse a SONARA feature",
+    ],
+    blockedUses: [
+      "using its stealth or anti-bot-detection features from SONARA infrastructure",
+      "crawling any source whose permission_status has not been established, once that gate exists",
+      "collecting personal data from third-party sites on a customer's behalf",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

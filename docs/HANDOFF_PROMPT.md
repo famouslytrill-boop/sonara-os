@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-139 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+140 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -122,6 +122,47 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — Scrapling, and the permission gate that was never built
+
+BSD-3-Clause, verified from the GitHub API's detected `license.spdx_id`. 75,014
+stars and 7,499 forks — **the second most-starred repository ever submitted
+here**, after MoneyPrinterTurbo. Python on Playwright, pushed hours before it was
+submitted.
+
+**It is two libraries in one repository and they need opposite answers**, which
+is the whole point of the record. Reading it as a single yes or no is how the
+second half arrives with the first.
+
+- **Adaptive selectors** are genuinely additive. `lib/sonara-crawl4ai-adapter.cjs`
+  fetches a page and returns readable text; it has no notion of finding the same
+  element again after a site is redesigned.
+- **Stealth** is out of bounds, for a concrete reason rather than a squeamish
+  one: SONARA's own egress does the fetching, so bypassing a site's bot detection
+  is this product overriding a site operator's stated wishes, on a customer's
+  behalf, at a volume the customer chooses.
+
+Different result from Figranium, and worth the contrast. Figranium was GPL-3.0
+and did what the Apache-2.0 Crawl4AI adapter already does — a worse-licensed
+duplicate, so the answer was no. This is permissively licensed and does something
+Crawl4AI does not. The answer is still **not yet**, but for a reason about this
+product rather than about the repository.
+
+**Checking what the product already does turned up the reason.**
+`research_sources` carries `permission_status text not null default 'needs_review'`
+— a column whose entire purpose is recording whether a source may be crawled.
+**Nothing reads it. Nothing writes it either**: the table is named only in the
+generated tenant-scope inventory and one subsystem listing, and the live fetch
+endpoint takes a URL straight from the request body and hands it to Crawl4AI.
+The schema anticipated a permission gate that was never built.
+
+That is the order-of-operations point and it decides the record. **Adding a tool
+whose selling point is not being detected, to a system that does not yet check
+whether it was allowed, is the wrong way round.** The gate is the cheaper work
+and the piece that would make either scraper defensible — and it is the obvious
+next thing here, deliberately not bundled into a repository review.
+
+Verified: `verify:launch` green, 140 registry records, 141 unique GitHub targets.
 
 ### 2026-08-19 — an entire Next.js application that does not build or ship
 
