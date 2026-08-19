@@ -2,6 +2,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-19 — What this application is actually coupled to
+
+Asked to research free and open-source databases and authentication that could
+connect here. The research turned up two licence corrections and one fact about
+this repository that changes how a migration should be priced.
+
+**The coupling is the opposite shape of the assumption.** Measured on
+19 August 2026:
+
+| Surface | Files | What is used |
+| --- | --- | --- |
+| Supabase Auth | **2** | four endpoints: `/auth/v1/user`, `/token`, `/signup`, `/recover` |
+| PostgREST | **27** | 145 tables, 3 stored procedures |
+| Supabase Storage | **2** | signed object URLs |
+
+Four HTTP endpoints, nearly all inside one 426-line file, is a week of work
+rather than a quarter. And:
+
+**This application does not depend on Supabase. It depends on PostgREST.**
+Every read and write is an HTTPS request to `/rest/v1/<table>` with a
+service-role key. PostgREST is a separate project under the PostgreSQL licence
+that Supabase runs — not Supabase's invention and not Supabase's to withdraw. So
+the cheap database move is *keep PostgREST, change what is underneath*, and every
+other database is a rewrite of 27 files however good it is. Nothing in the
+repository had said this.
+
+**Two licences were not what this author believed, and both were read rather than
+recalled:**
+
+- **Zitadel is AGPLv3, not Apache-2.0.** AGPL triggers on network use and this is
+  a hosted product. There is a real distinction between modifying Zitadel and
+  being an HTTP client of an unmodified instance, and the usual reading is that
+  the second creates no obligation here — but that is a legal question and it is
+  recorded as an open question, not an answer.
+- **Directus is `MSCL-1.0-GPL`** — the Monospace Sustainable Core License 1.0,
+  copyright 2026, a licence written this year whose abbreviation carries GPL. Not
+  BSL, which is what memory said, and not OSI open source.
+
+**authentik is not one licence either.** Its `LICENSE` splits four ways: `website/`
+CC BY-SA 4.0, `authentik/enterprise/` under its own licence, client JavaScript MIT
+Expat, everything else MIT. "MIT" is true of the core and false of the whole.
+
+**Better Auth is ruled out on architecture, not licence.** MIT, and the natural
+choice on almost any other JavaScript project. This one has `express` as its
+single production dependency and a build script that is `node --check server.js`;
+a TypeScript library means a compile step, which is a bigger change than swapping
+identity provider.
+
+Recommendation: **do nothing yet.** The incumbent is Apache-2.0 and self-hostable,
+the exit is PostgREST rather than Supabase, and no constraint is binding. When a
+cache is needed, Valkey rather than Redis — same capability, BSD-3-Clause, no
+licence conversation. Redis has been tri-licensed since 8.0 and AGPLv3 is one of
+the three, so "Redis is not open source any more" is out of date; it is still the
+reciprocal choice.
+
+**The document's central measurement is now a build property**, because a
+measurement in a document is a measurement waiting to rot. `tests/the-auth-surface-stays-small.test.js`
+holds four things: the identity calls stay in a handful of files, no endpoint
+appears that the migration note was not priced against, the data surface stays
+larger than the auth surface (the asymmetry the whole argument rests on), and
+`package.json` keeps exactly one production dependency — which is the fact that
+rules out library-based auth. The ceilings are ceilings rather than equalities, so
+a legitimate change does not force somebody to bump a number without reading it.
+
+**The check was proven to fail before it was trusted green.** Appending
+`auth/v1/magiclink` to an unrelated module made the endpoint assertion fail;
+removing it made it pass again.
+
+Ten repositories added to `data/open-source-tools.ts` — the register claims to
+hold every reviewed repository, and these were reviewed. 155 records, 154 unique
+targets.
+
+Verified: `pnpm run lint` clean, 2192 tests passing, `pnpm run verify:launch`
+exit 0.
+
 ### 2026-08-19 — Three answers the database was already holding
 
 Asked to build the capability that is within reach — where the missing piece is a
