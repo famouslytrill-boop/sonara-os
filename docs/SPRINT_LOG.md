@@ -46,9 +46,21 @@ forcing self-attribution would have broken a working feature.
 legitimate clock-out during an outage or writes across a tenant boundary on no
 evidence.
 
-Verified: `verify:launch` green, 2035 tests passing. Both defects were confirmed
-by putting them back: removing the ownership check fails two tests, allowing a
-negative break fails one.
+**The question is asked on every build now.** `tests/every-write-names-a-business.test.js`
+lists every writing handler across `server.js` and `routes/` and requires each to
+establish an organization, with one recorded exemption: `/auth/forgot-password`,
+which happens before anybody is signed in and writes to Supabase auth rather than
+a tenant table. The exemption is two-sided — it also fails if that handler starts
+resolving an organization or stops existing, because a reason that outlives what
+it excuses is what the next person reads instead of checking.
+
+What it can and cannot see is worth stating: it catches the **absence** of a
+scope, which is the shape that shipped. A handler that resolves an organization
+and then forgets to filter by it still passes.
+
+Verified: `verify:launch` green, 2037 tests passing. Every defect was confirmed
+by putting it back — removing the ownership check fails two tests, allowing a
+negative break fails one, and restoring the original unscoped handler fails six.
 
 ### 2026-08-18 — a claim I published, made true
 
