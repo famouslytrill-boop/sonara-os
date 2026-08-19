@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4033 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 88 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 90 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 186 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 187 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -122,6 +122,67 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — The crawl permission gate, built
+
+`research_sources.permission_status` has existed since the platform redesign on
+28 May 2026, `not null default 'needs_review'`, with `crawl_status` beside it.
+Neither column had a check constraint, so both accepted any string. **Nothing in
+the application had ever read either one** — the table appeared in the generated
+tenant-scope inventory and one subsystem listing, and nowhere else. A permission
+gate was designed into the schema and nobody built it.
+
+`POST /api/market-intelligence/fetch-source` meanwhile took any HTTPS URL from a
+request body and had this server fetch it. Crawl4AI refuses loopback, link-local,
+cloud-metadata and private addresses before the request leaves, so it was not a
+request forwarder — but nothing anywhere asked whether the business had
+established it may look at the site at all.
+
+**No page called that endpoint**, which is exactly why closing it now cost
+nothing. There was no feature resting on the gap.
+
+What was built:
+
+- **The rule.** `sourcePermission()` in `routes/market-intelligence-routes.cjs`,
+  exported so a test can ask it directly. Three outcomes, never two: `approved`,
+  `not_approved`, and `unreadable`. A read that failed is not a source nobody
+  approved — both refuse, but one tells the customer to go and approve something
+  they may already have approved, and the other says the check did not run.
+  A full page of approved rows returns `unreadable` too, because a match could
+  have been on the next one and "not approved" there would be a guess.
+- **Host, not URL.** An approved row covers the whole site; asking somebody to
+  record every path means nobody uses it. Exact host though: `blog.example.com`
+  is not `example.com`, because `github.io`, `vercel.app` and `pages.dev` hand
+  subdomains out per user, and walking up the domain would approve strangers.
+- **The values.** `20260819020000_research_source_permission_values.sql` adds
+  check constraints on both columns, after normalising UPDATEs. Three values for
+  permission, because two would lose the distinction that matters: a source
+  nobody has ruled on is work somebody has to do, not a decision they made.
+- **The page.** `/business-builder/owner/research-sources` lists what has been
+  recorded and takes a new one.
+- **The way to change your mind.** Record pages create rows and never edit them,
+  so without `POST /api/business/research-sources/:sourceId/approve` a source
+  recorded honestly as `needs_review` would sit there for good and the gate would
+  refuse it for good. It is a row action on the page, scoped by organization as
+  well as by id — the service key bypasses row level security, and this row
+  decides what this server will go and fetch.
+
+Twenty-three tests in
+`tests/only-a-source-you-approved-is-fetched.test.js`. Both new contract
+assertions were probed by breaking the migration and watching them fail, and the
+endpoint test was probed by disabling the gate and watching it fail. Suite 2,063
+passing; `verify:launch` green.
+
+Four repository-wide checks caught the new page on the way in, which is the
+system working: `member-read-policies` wanted a policy a signed-in member can
+read through (the table's own policy predates `to authenticated`), `search`
+wanted the table accounted for either way, `verify-supabase-contract` wanted the
+table named in a reviewed group, and `verify-openapi-contract` wanted the three
+routes documented.
+
+**Still not automated, deliberately.** Nothing crawls on a schedule, so
+`crawl_status` records an intention rather than driving one, and the column
+comment says so. The gate is consulted per request by the endpoint that fetches.
 
 ### 2026-08-19 — Scrapling, and the permission gate that was never built
 

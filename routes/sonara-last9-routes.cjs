@@ -104,7 +104,11 @@ const RESOURCE_MAP = {
   // the moment it is created would be the page claiming something it cannot
   // support. The versions under it are reached through the product, the same
   // way invoice lines are reached through the invoice.
-  "/api/business/merchant-products": { table: "merchant_products", required: ["name"], person: "created_by", defaults: { status: "draft" } }
+  "/api/business/merchant-products": { table: "merchant_products", required: ["name"], person: "created_by", defaults: { status: "draft" } },
+  // Sources a business may research. permission_status defaults to needs_review
+  // rather than approved, because a row created without an answer has not been
+  // ruled on -- and the fetch endpoint treats "not ruled on" as "do not fetch".
+  "/api/business/research-sources": { table: "research_sources", required: ["source_url", "source_type"], person: "created_by", defaults: { permission_status: "needs_review", crawl_status: "disabled" } }
 };
 
 const PUBLIC_GETS = new Map([
@@ -845,6 +849,51 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     });
 
     return respond(200, { ok: true, invoiceId });
+  });
+
+  // Approving a source this business may research.
+  //
+  // The counterpart to the gate in routes/market-intelligence-routes.cjs: that
+  // file refuses to fetch a host no approved row covers, and this is how a row
+  // becomes approved after it was created.
+  //
+  // The owner acting, not an agent. lib/sonara-agent-authority.cjs governs what
+  // runs without a person, and a person pressing a button they can see is the
+  // person. This records a judgement only they can make -- whether a site is
+  // theirs, is public, or its owner has agreed -- which is exactly the judgement
+  // this product is not in a position to make for them.
+  app.post("/api/business/research-sources/:sourceId/approve", requireBusinessManager, async (req, res) => {
+    const sourceId = String(req.params.sourceId || "");
+    const back = "/business-builder/owner/research-sources";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?approved=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_approved")}`);
+    };
+
+    if (!isUuid(sourceId)) return respond(400, { ok: false, code: "source_required" });
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    // Scoped by organization as well as by id. The service key bypasses row
+    // level security, so without this a guessed id would approve a source
+    // belonging to another business -- and an approved row is what decides
+    // which sites this server will go and fetch.
+    const found = await supabaseList(config, "research_sources", `?select=id,source_url,permission_status&id=eq.${encodeURIComponent(sourceId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    if (!found.ok) return respond(503, { ok: false, code: "cannot_check_source" });
+    const source = found.rows[0];
+    // A failed read and an id that is not yours are different answers, and they
+    // are separated above rather than both arriving here as "not found".
+    if (!source) return respond(404, { ok: false, code: "source_not_yours" });
+    if (!source.source_url) return respond(409, { ok: false, code: "source_has_no_address" });
+
+    const saved = await supabasePatch(config, "research_sources", sourceId, {
+      permission_status: "approved",
+      updated_at: new Date().toISOString()
+    });
+    if (!saved.ok) return respond(502, { ok: false, code: "not_approved" });
+    return respond(200, { ok: true, approved: true, sourceId });
   });
 
   STAFF_PAGES.forEach(([path, title, body]) => {

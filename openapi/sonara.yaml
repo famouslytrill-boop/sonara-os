@@ -1130,6 +1130,35 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/research-sources:
+    get:
+      operationId: listBusinessResearchSources
+      tags: [Operations]
+      summary: List the sites the business may research.
+      description: Each row records a site and whether the business has established it may look at it. needs_review means nobody has ruled on it, which is not the same as declined.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessResearchSource
+      tags: [Operations]
+      summary: Record a site the business researches.
+      description: Created as needs_review with repeat crawling off unless stated otherwise. Market intelligence will only fetch a page from a source recorded here and marked approved.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/research-sources/{sourceId}/approve:
+    post:
+      operationId: approveBusinessResearchSource
+      tags: [Operations]
+      summary: Mark a recorded source as one the business may research.
+      description: The source must belong to the caller's organization and must have an address. Approving is a judgement the account holder makes -- that the site is theirs, is public, or its owner has agreed -- and it is what lets the market intelligence fetcher request that host.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/purchase-order-lines:
     post:
       operationId: createBusinessPurchaseOrderLine

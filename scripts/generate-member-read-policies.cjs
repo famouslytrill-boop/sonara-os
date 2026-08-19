@@ -99,6 +99,13 @@ const ORGANIZATION_READ_TABLES = [
   "service_request_events",
   "service_requests",
   "sonara_formula_results",
+  // Added when the crawl permission gate began reading it. Ordinary workspace
+  // data -- which sites a business has established it may research -- and the
+  // page that shows it, /business-builder/owner/research-sources, is a manager
+  // surface like every other record page. The table has carried a read policy
+  // since the platform redesign, but that one predates `to authenticated` and
+  // is invisible to the check that asks this question.
+  "research_sources",
   // ---- measured anonymously; kept because additive, see above ----
   "audio_assets",
   "automation_rules",
@@ -231,14 +238,16 @@ const blocks = [
 const APPLIED_MIGRATIONS = Object.freeze([
   "20260728120000_member_read_policies.sql",
   "20260729040000_member_read_policies_core_tables.sql",
-  "20260729220000_member_read_policies_consent_and_zones.sql"
+  "20260729220000_member_read_policies_consent_and_zones.sql",
+  "20260729233000_member_read_policies_staff_tables.sql"
 ]);
 
 // 20260728120000 -- first thirty-three
 // 20260729040000 -- core tables, applied
 // 20260729220000 -- consent records and location zones, applied
-// 20260729233000 -- staff schedules, tasks and announcements
-const migrationName = "20260729233000_member_read_policies_staff_tables.sql";
+// 20260729233000 -- staff schedules, tasks and announcements, applied
+// 20260819030000 -- research sources, for the crawl permission gate
+const migrationName = "20260819030000_member_read_policies_research_sources.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 

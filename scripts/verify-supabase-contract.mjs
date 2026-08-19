@@ -46,6 +46,10 @@ const businessOperationsMigrationNames = [
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql"
 ];
+const researchIntakeMigrationNames = [
+  "20260528071500_sonara_platform_redesign_schema.sql",
+  "20260819020000_research_source_permission_values.sql"
+];
 // Three tables the migrations had always created and nothing had ever queried.
 // They are reviewed rather than canonical for the same reason as the rest of
 // this list: the workspaces at /business-builder/owner/purchase-orders,
@@ -159,6 +163,19 @@ const MARKET_INTELLIGENCE_TABLES = Object.freeze([
   "market_intelligence_reviews",
   "market_intelligence_events"
 ]);
+// Which sites a business has established it may research.
+//
+// Created by the platform redesign migration on 28 May 2026, which predates the
+// runtime contract migration that pins the canonical 145 -- it was left out of
+// that list because at the time nothing read it. It became visible to the scan
+// below when the crawl permission gate in routes/market-intelligence-routes.cjs
+// started asking it whether a host may be fetched, which is the first code in
+// this product ever to read the table. Reviewed here rather than added to the
+// canonical list, because that count is pinned by the contract migration and
+// this table is not in it.
+const RESEARCH_INTAKE_TABLES = Object.freeze([
+  "research_sources"
+]);
 const PROMPT_LIBRARY_TABLES = Object.freeze([
   "sonara_prompt_templates",
   "sonara_prompt_versions",
@@ -175,6 +192,7 @@ const contractMigrationPath = path.join(migrationsDirectory, contractMigrationNa
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
 const marketIntelligenceMigrationPath = path.join(migrationsDirectory, marketIntelligenceMigrationName);
+const researchIntakeMigrationPaths = researchIntakeMigrationNames.map((name) => path.join(migrationsDirectory, name));
 const promptLibraryMigrationPath = path.join(migrationsDirectory, promptLibraryMigrationName);
 const promptLibrarySecurityMigrationPath = path.join(migrationsDirectory, promptLibrarySecurityMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
@@ -225,6 +243,9 @@ const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval qu
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
+// Two migrations: the one that created the table, and the one that gave
+// permission_status and crawl_status the values they are allowed to hold.
+const researchIntakeSql = researchIntakeMigrationPaths.map((file) => read(file)).join("\n").toLowerCase();
 const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\n").toLowerCase().replace(/\s+/g, " ").trim();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
@@ -330,6 +351,19 @@ for (const required of [
   if (!productLifecycleSql.includes(required)) fail(`Product lifecycle extension is missing: ${required}`);
 }
 
+verifyExtension(RESEARCH_INTAKE_TABLES, researchIntakeSql, "Research intake");
+// The gate reads permission_status and the database must hold it to three
+// values. A check constraint added in a later migration is what makes the
+// column a decision rather than free text, and asserting it here means removing
+// it fails the build rather than quietly re-opening the column.
+for (const required of [
+  "permission_status text not null default 'needs_review'",
+  "check (permission_status in ('needs_review', 'approved', 'declined'))",
+  "check (crawl_status in ('disabled', 'enabled'))"
+]) {
+  if (!researchIntakeSql.includes(required)) fail(`Research intake extension is missing: ${required}`);
+}
+
 verifyExtension(MARKET_INTELLIGENCE_TABLES, marketIntelligenceSql, "Market intelligence");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
@@ -395,7 +429,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -519,7 +553,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime
