@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 88 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 33 public routes, 18 customer routes, 29 admin routes.
-- 184 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 185 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -122,6 +122,54 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-19 — a cross-tenant write, found by auditing four endpoints
+
+**`/api/business/time-entries/stop` resolved no organization at all.** It took an
+id from the request body and patched `employee_time_entries` with the service
+key, which bypasses row level security. So **any signed-in customer could close
+any time entry in any business**, stamping `clock_out_at`, `status`, and a break
+length of their choosing.
+
+`break_minutes` is the part that reaches a number somebody is paid on:
+`workedHours()` subtracts it, and it feeds the labour cost on the daily sales
+page. It also accepted negatives, and a negative break adds hours.
+
+Found by listing every hand-written `app.post` in the file and asking one
+question of each — does it resolve an organization? Three of four did. This one
+did not, and **2,025 tests passed over it.** The comment above the child-line
+handler had said why it mattered for years: "without this check a line could be
+written into another organization's order by posting its id."
+
+Fixed: organization resolved, the entry checked against it before the patch, a
+failed read kept apart from an entry that belongs to somebody else, and
+`break_minutes` clamped at zero. The guard moved to `requireBusinessManager` to
+match `/business-builder/owner/time`, the only page that offers it.
+
+**A second, smaller defect on the same endpoint.** The row action there is an
+HTML form, so clocking somebody out answered a button press with raw JSON in the
+browser. It returns to the page now.
+
+**The same class on two more endpoints, one line each.** `/api/location/events`
+and `/api/business/time-entries/start` both took `employee_id` from the request
+body and wrote it unchecked. The staff portal lists by `employee_id`, so an
+unchecked one puts hours or a location record onto a colleague's page — or onto
+another business's employee entirely. Both now check that a supplied employee,
+area or location belongs to the caller's organization.
+
+The employee is deliberately **not** forced to be the caller: the form on
+`/business-builder/owner/time` asks "Who is starting", so a manager clocking
+somebody else in is the intended use. Checked before changing it, because
+forcing self-attribution would have broken a working feature.
+
+`belongsToOrganization` returns three answers rather than two — yes, no, and
+"the read did not happen" — because collapsing the third either refuses a
+legitimate clock-out during an outage or writes across a tenant boundary on no
+evidence.
+
+Verified: `verify:launch` green, 2035 tests passing. Both defects were confirmed
+by putting them back: removing the ownership check fails two tests, allowing a
+negative break fails one.
 
 ### 2026-08-18 — a claim I published, made true
 

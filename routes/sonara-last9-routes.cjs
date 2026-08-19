@@ -960,6 +960,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // Same check as the clock-out below. A manager legitimately clocks somebody
+    // else in -- the form on /business-builder/owner/time asks "Who is
+    // starting" -- so the employee is not forced to be the caller. It does have
+    // to be one of this business's people.
+    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_id", "business_locations"]]) {
+      const supplied = String(req.body[field] || "");
+      if (!supplied) continue;
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
+    }
     const payload = {
       organization_id: org.organizationId,
       employee_id: req.body.employee_id || null,
@@ -972,13 +983,53 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.status(200).json(await supabaseInsert(config, "employee_time_entries", payload));
   });
 
-  app.post("/api/business/time-entries/stop", requireCustomer, async (req, res) => {
+  // Clocking somebody out.
+  //
+  // This resolved no organization at all. It took an id from the body and
+  // patched employee_time_entries with the service key, which bypasses row
+  // level security -- so **any signed-in customer could close any time entry in
+  // any business**, stamping clock_out_at, status and a break length of their
+  // choosing. Every other write in this file checks ownership first, and the
+  // comment above the line handler says why in as many words: without it, a row
+  // can be written into another organization's record by posting its id.
+  //
+  // break_minutes is the part that reaches a number somebody is paid on.
+  // workedHours() subtracts it, so a negative break adds hours, and it feeds
+  // the labour cost on the daily sales page.
+  //
+  // The guard moves to requireBusinessManager to match the only page that
+  // offers this: /business-builder/owner/time renders it as a row action, and
+  // that page is manager-gated. Nothing else calls it.
+  app.post("/api/business/time-entries/stop", requireBusinessManager, async (req, res) => {
+    // A row action is an HTML form, so this answered a button press with raw
+    // JSON in the browser. Same respond shape as the line handlers.
+    const back = "/business-builder/owner/time";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, back);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+    };
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const id = sanitizeText(req.body.id);
-    if (!id) return res.status(400).json({ ok: false, code: "validation_failed", message: "Missing time entry id." });
-    const payload = { clock_out_at: new Date().toISOString(), status: "submitted", break_minutes: Number(req.body.break_minutes || 0) || 0 };
-    return res.status(200).json(await supabasePatch(config, "employee_time_entries", id, payload));
+    // A uuid rather than any non-empty string: this goes into a PostgREST
+    // filter, and the id column is a uuid.
+    if (!isUuid(id)) return respond(400, { ok: false, code: "validation_failed", message: "Missing time entry id." });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    const owned = await supabaseList(config, "employee_time_entries", `?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    // A read that failed is not an entry that belongs to somebody else.
+    if (!owned.ok) return respond(502, { ok: false, code: "entry_unreadable" });
+    if (!owned.rows.length) return respond(403, { ok: false, code: "entry_not_yours" });
+
+    const payload = {
+      clock_out_at: new Date().toISOString(),
+      status: "submitted",
+      break_minutes: Math.max(0, Number(req.body.break_minutes || 0) || 0)
+    };
+    const saved = await supabasePatch(config, "employee_time_entries", id, payload);
+    return respond(saved?.ok === false ? 502 : 200, saved);
   });
 
   app.post("/api/location/events", requireCustomer, async (req, res) => {
@@ -986,6 +1037,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // An employee and an area supplied by the caller both become part of this
+    // row, and the staff portal lists check-ins by employee_id -- so an
+    // unchecked one writes a location record onto a colleague's page, or
+    // attaches it to another business's area. Absent is fine; wrong is not.
+    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_zone_id", "location_zones"]]) {
+      const supplied = String(req.body[field] || "");
+      if (!supplied) continue;
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
+    }
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
@@ -1645,6 +1707,23 @@ async function listRecordPage(config, table, organizationId, order = "created_at
   // A failed count is left null rather than guessed at, and the caption says
   // only what the read itself established.
   return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
+}
+
+// Does this id name a row inside this organization?
+//
+// Three answers, not two, and callers have to keep them apart: yes, no, and
+// "the read did not happen". Treating the third as "no" refuses a legitimate
+// request during an outage; treating it as "yes" is a cross-tenant write.
+//
+// Used wherever a request supplies an id that becomes part of a row -- an
+// employee to attribute hours to, an area to attach a check-in to. The service
+// key bypasses row level security, so a supplied id is checked or it is trusted,
+// and there is nothing in between.
+async function belongsToOrganization(config, table, id, organizationId) {
+  if (!isUuid(String(id || ""))) return { ok: true, belongs: false };
+  const found = await supabaseList(config, table, `?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`);
+  if (!found.ok) return { ok: false, belongs: false };
+  return { ok: true, belongs: found.rows.length > 0 };
 }
 
 async function supabaseList(config, table, query) {
