@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 98 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
-- 205 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 206 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,71 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-20 — The balance, and why there is still no pay button
+
+"Pay this invoice" was the next item. It is **not built**, for two reasons that
+belong on the record rather than in a backlog note, and the half that is honest
+today is built instead.
+
+## Why there is no pay button
+
+**There is no Stripe Connect in this application.** No connected-account model,
+no `on_behalf_of`, no `transfer_data`, no table holding a business's Stripe
+account — the only integration is SONARA's own subscription billing. A pay
+button would therefore take a small business's customer's money **into SONARA's
+account**, with no mechanism to pay it out. That is money custody, not a missing
+endpoint, and it needs a Connect platform account the owner has to enable before
+a line of it can be written.
+
+**The shared invoice already tells its reader not to.** Its footnote — written
+when `/shared/:token` shipped — says to pay the way they agreed with the
+business and never from a link, because a forwarded invoice with a pay button is
+the shape of a payment-redirection fraud. That advice only protects anybody if
+it is *always* true. A product where some invoice links have a pay button has
+taught its customers that a pay button on an invoice link is normal.
+
+A test now asserts the shared invoice grows no checkout form, so this stays a
+decision rather than an omission somebody quietly reverses.
+
+## What was actually wrong, and is now fixed
+
+**The shared invoice showed the total and never the balance.** A business that
+took a deposit showed its customer the whole figure again. The customer either
+pays twice or — far more likely — stops trusting the paperwork.
+
+`lib/sonara-invoice-settlement.cjs` works out what is still owed. It exists
+separately from `lib/sonara-chase-drafts.cjs`, which already subtracts payments,
+because that module deliberately does two things a statement must not:
+
+- `Math.max(0, total - paid)` — an overpayment reads as settled. Right when
+  deciding whether to chase; wrong on a statement, where money taken twice is a
+  refund somebody owes and "paid in full" is how it stays unnoticed.
+- `paidByInvoice.get(id) || 0` — a payments table nobody could read looks
+  identical to an invoice nobody has paid.
+
+Both are correct there and neither is correct here, which is why this is a new
+module and not a shared helper with a flag.
+
+`paymentsRead` is a **required argument**, not something inferred from an empty
+list, because "no payments" and "no answer" arrive looking identical and only
+the caller knows which happened. A payment row with no amount is counted as
+unreadable rather than as zero — it makes every figure a lower bound on what has
+been paid, so the page still shows a balance but stops calling it certain, and
+"Paid in full" gets qualified.
+
+## The probe that did not fire
+
+Three probes were run against the settlement and two failed the tests as they
+should. The third — hardcoding `paymentsRead: true` in the route — **passed
+everything**, because every fixture in the shared-link test has a readable
+payments table. The module was right and nothing checked that the route told it
+so.
+
+That gap is now a test that fails the payments read specifically and asserts the
+page says "we could not check" rather than showing the full total again. Re-run
+against the same probe, it fails by name.
+
 
 ### 2026-08-20 — A firm of two stops selling one of every hour
 

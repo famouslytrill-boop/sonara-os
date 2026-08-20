@@ -90,6 +90,12 @@ function seed() {
         notes: INTERNAL_NOTE, created_by: USER, customer_id: "9999"
       }
     ],
+    customer_invoice_payments: [
+      // A deposit. The page used to show this customer the whole GBP 1,440
+      // again, which is either paid twice or, far more likely, paperwork
+      // nobody trusts.
+      { id: "pay-1", organization_id: ORG, invoice_id: INVOICE_ID, amount_cents: 44000, received_on: "2026-08-05" }
+    ],
     customer_invoice_lines: [
       { id: "line-1", organization_id: ORG, invoice_id: INVOICE_ID, description: "Design work", quantity: 12, unit_price_cents: 10000, line_total_cents: 120000, created_at: "2026-08-01" }
     ],
@@ -245,6 +251,48 @@ describe("a shared link is a link, not a leak", () => {
       assert.ok(response.text.includes("Design work"), "the invoice lines are missing");
       assert.ok(!response.text.includes("144000"), "raw cents were printed at somebody reading their own bill");
       assert.ok(!response.text.includes(INTERNAL_NOTE), "the internal note reached the page");
+    });
+
+    it("shows what is still owed, not only what was charged", async () => {
+      const response = await request(app).get(`/shared/${INVOICE_TOKEN}`).set("accept", "text/html").redirects(0);
+      assert.equal(response.status, 200);
+      // GBP 1,440 charged, GBP 440 received. Showing the total alone is how a
+      // customer pays a deposit twice.
+      assert.ok(response.text.includes("Still owed"), "the page shows a total and never a balance");
+      assert.ok(response.text.includes("£1,000.00"), "the balance is missing or not rendered as money");
+      assert.ok(response.text.includes("£440.00"), "what has already been received is not shown");
+      assert.ok(response.text.includes("£1,440.00"), "the original total must stay, so a customer can check it against their own records");
+    });
+
+    it("still tells the reader not to pay from the link", async () => {
+      // The balance makes this page more useful and not more payable. There is
+      // no pay button, because this application cannot route the money to the
+      // business rather than to itself -- and the advice only protects anybody
+      // if it is always true.
+      const response = await request(app).get(`/shared/${INVOICE_TOKEN}`).set("accept", "text/html").redirects(0);
+      assert.match(response.text, /never from a link/i);
+      assert.doesNotMatch(response.text, /<form[^>]*checkout|Pay now|Pay this invoice/i, "a shared invoice grew a pay button");
+    });
+
+    it("says it could not check rather than showing the whole total again", async () => {
+      // The module refuses to state a balance it could not work out. This is
+      // the assertion that the ROUTE tells it so: hardcoding paymentsRead:true
+      // passes every other test in this file, because every other fixture has
+      // a readable payments table.
+      const installed = global.fetch;
+      global.fetch = async (input, init) => {
+        if (String(input).includes("customer_invoice_payments")) throw new Error("payments are unreachable");
+        return installed(input, init);
+      };
+      try {
+        const response = await request(app).get(`/shared/${INVOICE_TOKEN}`).set("accept", "text/html").redirects(0);
+        assert.equal(response.status, 200, "the invoice is still worth showing; it is the balance that is unknown");
+        assert.ok(response.text.includes("could not check"), "an unreadable payments table rendered as a balance");
+        assert.ok(!response.text.includes("£1,000.00"), "a balance was shown that nothing could have worked out");
+        assert.ok(response.text.includes("£1,440.00"), "the total is known and should still be shown");
+      } finally {
+        global.fetch = installed;
+      }
     });
 
     it("opens an appointment without publishing anybody's contact details", async () => {

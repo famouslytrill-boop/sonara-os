@@ -20,6 +20,7 @@
 // one, and the service-role key bypasses row level security, so that filter is
 // the only tenant boundary there is.
 
+const { settle } = require("../lib/sonara-invoice-settlement.cjs");
 const {
   SHARED_LINKS_TABLE,
   isShareToken,
@@ -141,6 +142,31 @@ function registerSharedResultRoutes(app, deps = {}) {
     ]);
 
     if (!resource.ok || !lines.ok) return res.status(503).type("html").send(unavailablePage());
+
+    // What is still owed, for the one kind where a total is not the answer.
+    //
+    // The page has always shown an invoice's total, so a business that took a
+    // deposit showed its customer the whole figure again -- and the customer
+    // either pays twice or, far more likely, stops trusting the paperwork.
+    //
+    // `paymentsRead` carries a failed read through rather than an empty list.
+    // "We could not check" and "nothing has been paid" arrive here looking
+    // identical, and only this line knows which happened; rendering the second
+    // when the first is true tells somebody to pay an invoice they have settled.
+    let settlement = null;
+    if (link.resource_type === "customer_invoice") {
+      const paid = await rest(
+        config,
+        `customer_invoice_payments?select=amount_cents&invoice_id=eq.${enc(link.resource_id)}`
+          + `&organization_id=eq.${enc(link.organization_id)}`,
+        { headers: supabaseHeaders(config) }
+      );
+      settlement = settle({
+        invoice: resource.rows[0],
+        payments: paid.rows,
+        paymentsRead: paid.ok
+      });
+    }
     // The link says it exists and the row is gone: deleted since it was shared.
     // Not an outage, and not something to apologise for on our side.
     if (!resource.rows.length) return res.status(404).type("html").send(notFoundPage());
@@ -151,7 +177,8 @@ function registerSharedResultRoutes(app, deps = {}) {
       lines: lines.rows,
       // A failed organization read loses the business name and nothing else. The
       // page is still worth showing, and "" is what sharedView treats as absent.
-      organizationName: organization.ok ? organization.rows[0]?.name : ""
+      organizationName: organization.ok ? organization.rows[0]?.name : "",
+      settlement
     });
     if (!view) return res.status(404).type("html").send(notFoundPage());
 
