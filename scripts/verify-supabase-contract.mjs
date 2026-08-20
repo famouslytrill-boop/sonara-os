@@ -43,7 +43,8 @@ const businessOperationsMigrationNames = [
   "20260811220000_customer_invoices_accounts_receivable.sql",
   "20260811234500_customer_invoice_lines.sql",
   "20260818100000_merchant_product_catalogue.sql",
-  "20260819070000_shared_links.sql"
+  "20260819070000_shared_links.sql",
+  "20260820060000_public_booking_pages.sql"
 ];
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql"
@@ -79,6 +80,12 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // owns it -- and it is what /shared/:token resolves a token through before it
   // reads anything else.
   "shared_links",
+  // The address a business publishes for taking appointments, and the hours and
+  // window a stranger's booking is worked out from. One row per organization,
+  // never public until its owner ticks the box, and read by /book/:slug -- which
+  // resolves the organization through it before it reads anything else, the
+  // same way /shared/:token resolves through shared_links.
+  "public_booking_pages",
   // Seven more the runtime reads and this contract had never named. They were
   // invisible because the scan below read server.js and routes/ and not lib/,
   // where the record pages, the record checks and the labour costing live.

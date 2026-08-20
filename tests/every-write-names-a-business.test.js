@@ -71,8 +71,17 @@ function writingHandlers() {
       found.push({
         key: `${match[1].toUpperCase()} ${match[2]}`,
         file: path.relative(root, file),
-        // Any of the three ways this codebase establishes whose data it is.
+        // Any of the four ways this codebase establishes whose data it is.
+        //
+        // The fourth is a public route: it has no session to resolve an
+        // organization from, so it takes the tenant off a row it fetched under
+        // its own filter -- `organization_id: page.organization_id`, where
+        // `page` was found by the slug in the URL. The negative lookahead is the
+        // load-bearing part: `organization_id: req.body.organization_id` is the
+        // exact bug this whole check exists to catch, and it would otherwise
+        // match this pattern and be waved through as scoped.
         knowsTheBusiness: /resolveOrganization|getCustomerPrimaryOrganization|organizationId/.test(body)
+          || /organization_id:\s*(?!req\b)[A-Za-z_$][\w$]*\.organization_id/.test(body)
       });
     }
   }

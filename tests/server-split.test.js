@@ -358,9 +358,24 @@ describe("the server.js split stays safe", () => {
     // save a line here would put the registration somewhere nobody would look
     // for it. The behaviour is all in the route module, which is where the
     // ceiling wants it; only the two bracketing lines are here.
+    //
+    // Raised to 4039 on 20 August 2026, by 3, and this is the third exception,
+    // for exactly the same reason as the second. The lines are a require, a
+    // blank line matching every registration around it, and a one-line
+    // registration for routes/sonara-public-booking-routes.cjs, which serves
+    // /book/:slug -- a new top-level public surface, reachable without an
+    // account, rather than a page inside an existing one.
+    //
+    // The alternative was registering it from a module that already holds the
+    // nine helpers it needs. None owns a public booking page in the sense the
+    // shared-result routes own a published result: the closest is the owner
+    // record pages, which serve bookings inside a workspace and know nothing
+    // about publishing one. Threading nine helpers through them to save a line
+    // here would put a public route somewhere nobody would look for it. All the
+    // behaviour is in the route module; only the two bracketing lines are here.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4036,
+      lines <= 4039,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

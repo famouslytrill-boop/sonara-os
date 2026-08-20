@@ -2,6 +2,110 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-20 — A booking page a stranger can open
+
+The largest customer-facing gap on the list. Everything a booking needs already
+existed: `business_service_catalog` carries `duration_minutes` and
+`price_cents`, `business_bookings` carries `starts_at`, `ends_at`, a status
+vocabulary constrained at the table, and the customer's contact fields. What was
+missing was the front door — no route, no address, and nowhere to record when a
+business is open.
+
+`/book/:slug` is that door. `/business-builder/owner/booking-page` is where an
+owner opens it.
+
+## The resolution order is the safety
+
+The service-role key bypasses row level security, so the `organization_id`
+filter is the entire tenant boundary — and a public page has no session to
+derive one from. The slug finds one **enabled** `public_booking_pages` row; that
+row names the organization; the services offered, the bookings that block a
+time, and the booking finally written are all filtered on it. The visitor never
+chooses an organization. They are told one by the row its owner published. This
+is the same shape as `/shared/:token`, deliberately.
+
+A test posts `organization_id: <another org>` in the form and asserts the row
+written still carries the page's. Falsified by making the route read
+`req.body.organization_id` first: the test fails by name.
+
+## Three things it will not do
+
+**Show a stranger the diary.** Only free times render. The booking read selects
+`starts_at,ends_at,status` and nothing else, and the test asserts that at the
+query level rather than by grepping the rendered page — "the name was not
+rendered" can be true because the render dropped it; "the name was never
+fetched" is the property. Falsified by adding `customer_name` to the select.
+
+**Sell a slot twice.** The list a visitor is looking at was computed at page
+load. `isBookable` runs again on submit against a fresh read and **re-derives
+the whole grid** rather than trusting the submitted time — so a hand-made
+request cannot book 03:00 on a Sunday because nothing is booked then. Falsified
+by making the route trust the submitted value.
+
+**Confirm on a stranger's word.** A booking arrives as `requested`, the table's
+own default. The source test asserts the route never writes `confirmed`.
+
+## The arithmetic, and the bug the test found
+
+`lib/sonara-booking-availability.cjs` is pure — no clock, no network, no
+database, `now` passed in. Opening hours are wall-clock times in the business's
+own zone, and `Intl` does the zone arithmetic, so the file carries no offset
+table to go stale.
+
+Writing the test found a real defect in `instantFor`, which converts a wall
+time to an instant by iterating. The convergence check compared the round trip
+against the *guess* rather than against the *wanted* wall time, so it never
+reached zero and walked the answer an hour further away on each round. Every
+time the page offered would have been wrong by the zone's offset. It passed
+`node --check` and would have passed any test that only asked whether a list
+came back.
+
+The daylight-saving edges are handled by checking rather than assuming: the
+result is read back and compared, and a wall time that does not exist on that
+date returns null and is skipped. The test drives 29 March 2026, when the UK
+loses 01:00–01:59, and asserts 01:00 and 01:30 are not offered while 00:30 and
+02:00 still are.
+
+Two more places where absent is not zero. A booking with no `ends_at` gets a
+real length rather than a length of zero — zero blocks nothing and the time is
+sold twice. A malformed opening time closes the day rather than opening it at
+midnight.
+
+An unrecognised booking status **holds** the time. Cancelled, no-show and
+archived free it; anything else is not known to be free, and offering a slot
+that is actually taken is the failure that reaches two people at once.
+
+## What changed outside the feature
+
+`tests/every-write-names-a-business.test.js` scanned for `organizationId`,
+`resolveOrganization` or `getCustomerPrimaryOrganization` in a writing handler.
+A public route has none of those — it takes the tenant off a row it fetched
+under its own filter. The scanner now recognises that fourth form, with a
+negative lookahead that still rejects `organization_id: req.body.organization_id`,
+which is the exact bug the whole check exists to catch. Falsified: the probe
+that reintroduces it fails.
+
+The server.js line ceiling went to 4039 — a require, a blank line, and a
+one-line registration, the third such exception and for the same reason as the
+second. `/book/:slug` is a new top-level public surface, and no existing module
+owns a public booking page in the sense the shared-result routes own a published
+result.
+
+`brandCard` escapes its body, which is right for a sentence and wrong for a
+form. Cards carrying markup are built locally in the route module, in the shape
+the other route modules already use, rather than by loosening `brandCard` for
+everybody.
+
+## What it does not do
+
+No payment. No confirmation email or SMS — under the AGENTS.md rule those are
+off unless the customer switches them on, and nothing switches them on yet, so
+the business finds the request on `/business-builder/owner/bookings`. No
+per-staff availability: `employee_schedules` exists and the page books against
+the business as a whole, so a business with two plumbers can be double-booked by
+two visitors. That is stated on no screen yet and is the next thing to close.
+
+
 ### 2026-08-20 — Agents that run for free, and a menu where four of five did nothing
 
 The request was to run agents inside the application at no cost. Most of the
