@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-20 — Bringing a spreadsheet in
+
+A small business arrives with its customers in a spreadsheet. Without an
+import, starting here means retyping them — which is the most common way a trial
+ends, not because the product was wrong but because the first hour was data
+entry.
+
+`/business-builder/owner/customers/import` takes a paste.
+
+## Why a paste and not a file upload
+
+This application has one production dependency, express, and Express 4 has no
+multipart parser. Adding one for a text box is a real dependency bought cheaply.
+A paste is also what copying out of Excel or Google Sheets actually produces, so
+`sniffDelimiter` reads tabs as readily as commas — somebody who selects cells and
+presses copy gets TSV and never has to know.
+
+The delimiter is decided on the **header line**, not the whole document: a body
+row with a comma inside a quoted address outnumbers the tabs, which is exactly
+how a TSV paste gets read as a one-column CSV.
+
+## The failure this is built against
+
+Not a crash. An import that reports "done" having created 94 of 100 customers,
+because six rows were dropped by a parser that could not see them. Nobody finds
+out until one of the six is not called back, and by then the sheet is gone.
+
+So `readSheet` returns every row as either a record to create or a rejection
+carrying **its line number in the sheet** and the reason, and a test asserts the
+two lists sum to the row count. The parser handles what real spreadsheets emit:
+a comma inside quotes, a newline inside quotes, a doubled quote, CRLF, an empty
+trailing field, and the byte-order mark Excel writes — without which `Name` is
+`﻿Name`, matches no header, and a sheet with perfectly good columns reports
+that none were recognised.
+
+A heading it does not know is **reported, not guessed at**. Matching to the
+nearest thing is how a phone number ends up in an email field. Two columns
+claiming the same field are reported too, because taking the first silently
+drops the second column's values.
+
+An empty cell is left out of the record rather than written — it must not become
+`""` in a column that means something by being null, and must never become the
+string `"null"`, which is what a template literal does to it.
+
+## Preview and confirm read the same text
+
+One endpoint, and `confirm=yes` is the difference. The confirm step **re-reads
+the pasted text through the same reader** rather than trusting a list carried
+back from the page, so a hidden field cannot smuggle in a row the preview never
+showed. A test posts one to prove it.
+
+Everything is an insert. Nothing on file is updated, and the page says so:
+matching a pasted row to an existing customer and overwriting them is a
+different feature with a different failure — it is how a corrected phone number
+gets replaced by a stale one from an old export.
+
+Rows that look like somebody already on file are flagged using the measured
+threshold in `lib/sonara-operations-science.cjs`. **Flagged, not blocked** — two
+real people do share a name. And when that check cannot run, the page says it
+could not check rather than showing an import with no warnings on it; "no
+duplicates found" and "we did not look" are otherwise the same screen, and one
+of them is a promise.
+
+The whole paste is written in one request, so a failure imports nobody — and the
+page says pasting again is safe, which is the thing somebody actually needs to
+know at that moment. The count reported is the count the database returned, not
+the count sent; a probe that changed that fails by name.
+
+
 ### 2026-08-20 — The balance, and why there is still no pay button
 
 "Pay this invoice" was the next item. It is **not built**, for two reasons that

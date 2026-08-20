@@ -26,6 +26,7 @@ const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
 const registerPublicBookingRoutes = require("./routes/sonara-public-booking-routes.cjs");
+const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
@@ -650,6 +651,8 @@ registerAgentActivityRoutes(app, {
 });
 
 registerPublicBookingRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+
+registerImportRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that

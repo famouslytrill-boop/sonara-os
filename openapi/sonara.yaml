@@ -1608,6 +1608,22 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/customers/import:
+    post:
+      operationId: importCustomers
+      tags: [Business Builder]
+      summary: Read a pasted spreadsheet of customers - preview what would happen, or add them.
+      description: >-
+        One endpoint for both steps of the same flow; `confirm=yes` is the
+        difference. Without it nothing is written and the response is a preview
+        naming every row that would be added and every row that cannot be, with
+        its line number in the sheet. With it the pasted text is read again
+        through the same reader rather than a list carried back from the page,
+        so no field on the form can add a row the preview did not show. Every
+        row is an insert; nothing already on file is updated.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { description: The preview, or the result of the import, as a page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "502": { description: Nothing was written. The whole paste goes in one request, so pasting again is safe. }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/booking-page:
     post:
       operationId: saveBookingPage

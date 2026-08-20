@@ -373,9 +373,18 @@ describe("the server.js split stays safe", () => {
     // about publishing one. Threading nine helpers through them to save a line
     // here would put a public route somewhere nobody would look for it. All the
     // behaviour is in the route module; only the two bracketing lines are here.
+    //
+    // Raised to 4042 on 20 August 2026, by 3, and this is the fourth exception.
+    // A require, a blank line, and a one-line registration for
+    // routes/sonara-import-routes.cjs. The same reasoning as the second and
+    // third: it serves /business-builder/owner/customers/import, and while that
+    // path sits under the owner record pages, lib/sonara-owner-record-pages.cjs
+    // is a declarative table of record types with no notion of a two-step form
+    // that previews before it writes. Threading it through there would mean
+    // teaching that table about a flow only one page has.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4039,
+      lines <= 4042,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
