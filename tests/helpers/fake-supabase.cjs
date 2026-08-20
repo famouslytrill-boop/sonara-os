@@ -16,18 +16,49 @@
 
 const PASSTHROUGH = Symbol("not a supabase request");
 
+const OPERATORS = "eq|in|is|neq|gt|gte|lt|lte";
+
+// One `column.operator.value`, as it appears inside an or= group.
+function parseCondition(text) {
+  const match = String(text).match(new RegExp(`^([A-Za-z_][\\w]*)\\.(${OPERATORS})\\.(.*)$`, "s"));
+  if (!match) return null;
+  return { column: match[1], operator: match[2], value: match[3] };
+}
+
 function parseFilters(searchParams) {
   const filters = [];
   for (const [key, value] of searchParams.entries()) {
     if (["select", "order", "limit", "offset", "on_conflict"].includes(key)) continue;
-    const match = String(value).match(/^(eq|in|is|neq|gt|gte|lt|lte)\.(.*)$/s);
-    if (!match) continue;
+
+    // or=(a.gte.X,b.is.null). Needed for an interval overlap, which cannot be
+    // written as a conjunction when one end of the interval is nullable.
+    if (key === "or") {
+      const inner = String(value).replace(/^\(|\)$/g, "");
+      const conditions = inner.split(",").map(parseCondition);
+      if (conditions.some((condition) => !condition)) {
+        throw new Error(`fake-supabase cannot parse or=${value}. Model it rather than letting the query match every row.`);
+      }
+      filters.push({ any: conditions });
+      continue;
+    }
+
+    const match = String(value).match(new RegExp(`^(${OPERATORS})\\.(.*)$`, "s"));
+    // Loud rather than skipped.
+    //
+    // This used to `continue`, so a filter the fake does not model disappeared
+    // and the query returned every row -- which reads in a test as a tenant
+    // filter that works. A harness that silently widens a query is the same
+    // defect as a check that passes on an empty list.
+    if (!match) {
+      throw new Error(`fake-supabase cannot parse the filter ${key}=${value}. Model it rather than letting the query match every row.`);
+    }
     filters.push({ column: key, operator: match[1], value: match[2] });
   }
   return filters;
 }
 
 function matches(row, filter) {
+  if (filter.any) return filter.any.some((condition) => matches(row, condition));
   const actual = row[filter.column];
   switch (filter.operator) {
     case "eq":
@@ -49,7 +80,11 @@ function matches(row, filter) {
     case "lte":
       return actual <= filter.value;
     default:
-      return true;
+      // Unreachable: parseFilters refuses an operator this does not know. Kept
+      // as a throw rather than a permissive `return true`, because the
+      // permissive version is how an unmodelled operator becomes "matches
+      // everything" and a tenant filter quietly stops filtering.
+      throw new Error(`fake-supabase has no operator ${filter.operator}`);
   }
 }
 

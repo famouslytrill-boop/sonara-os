@@ -39,6 +39,11 @@ const SERVICE = "c3c3c3c3-0000-4000-8000-00000000003c";
 const OTHER_SERVICE = "d4d4d4d4-0000-4000-8000-00000000004d";
 const NO_DURATION_SERVICE = "e5e5e5e5-0000-4000-8000-00000000005e";
 
+const STAFFED_ORG = "f6f6f6f6-0000-4000-8000-00000000006f";
+const STAFFED_SERVICE = "a7a7a7a7-0000-4000-8000-00000000007a";
+const ALEX = "b8b8b8b8-0000-4000-8000-00000000008b";
+const SAM = "c9c9c9c9-0000-4000-8000-00000000009c";
+
 const OTHER_CUSTOMER = "Nadia Okonkwo";
 const OTHER_PHONE = "555-PRIVATE-9999";
 const OTHER_NOTE = "ALWAYS-LATE-DO-NOT-CONFIRM";
@@ -74,12 +79,26 @@ function seed() {
         id: "pbp-2", organization_id: OTHER_ORG, slug: "somebody-else", enabled: false,
         time_zone: "Europe/London", opening_hours: OPEN_WEEKDAYS,
         slot_minutes: 30, lead_time_hours: 0, horizon_days: 14
+      },
+      // A firm of two, booking a person rather than the business.
+      {
+        id: "pbp-3", organization_id: STAFFED_ORG, slug: "two-plumbers", enabled: true,
+        headline: "Book Two Plumbers", intro: "Pick a time.",
+        time_zone: "Europe/London", opening_hours: OPEN_WEEKDAYS,
+        slot_minutes: 30, lead_time_hours: 0, horizon_days: 14, assign_staff: true
       }
+    ],
+    employee_schedules: [
+      // Both rostered across the whole window, so a slot's availability turns
+      // on who is booked rather than on who happens to be working that day.
+      { id: "sh-1", organization_id: STAFFED_ORG, employee_id: ALEX, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "scheduled" },
+      { id: "sh-2", organization_id: STAFFED_ORG, employee_id: SAM, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "confirmed" }
     ],
     business_service_catalog: [
       { id: SERVICE, organization_id: ORG, name: "Boiler service", description: "A yearly check.", duration_minutes: 60, price_cents: 9000, currency: "gbp", status: "active" },
       { id: NO_DURATION_SERVICE, organization_id: ORG, name: "Something with no length", description: "", duration_minutes: null, price_cents: 5000, currency: "gbp", status: "active" },
-      { id: OTHER_SERVICE, organization_id: OTHER_ORG, name: "Another firm's job", description: "", duration_minutes: 30, price_cents: 1000, currency: "gbp", status: "active" }
+      { id: OTHER_SERVICE, organization_id: OTHER_ORG, name: "Another firm's job", description: "", duration_minutes: 30, price_cents: 1000, currency: "gbp", status: "active" },
+      { id: STAFFED_SERVICE, organization_id: STAFFED_ORG, name: "Leak repair", description: "", duration_minutes: 60, price_cents: 12000, currency: "gbp", status: "active" }
     ],
     business_bookings: [
       {
@@ -188,6 +207,28 @@ describe("a public booking page books one business", () => {
       }
     });
 
+    it("windows the booking read on overlap, not on when a job started", async () => {
+      await request(app).get(`/book/bright-plumbing?service=${SERVICE}`).set("accept", "text/html").redirects(0);
+      // The first version of this read asked for bookings whose `starts_at`
+      // fell inside the window, which misses the one that matters most: a job
+      // that began before the window and is still running inside it. That
+      // booking blocks a time and was invisible, so the page offered it -- a
+      // double-booking hole created by the query rather than by the arithmetic.
+      //
+      // Asserted on the query rather than with a fixture, because a fixture
+      // covering the whole window would block every slot and take the rest of
+      // this file's assertions with it. The behaviour it protects is tested
+      // against the module in tests/booking-availability.test.js.
+      const reads = fake.queries.filter((entry) => entry.method === "GET" && entry.table === "business_bookings");
+      assert.ok(reads.length > 0, "no booking read was recorded, so this check is looking at nothing");
+      for (const read of reads) {
+        assert.ok(!/starts_at=gte\./.test(read.search),
+          `the window bounds starts_at, so a job running since before it is invisible: ${read.search}`);
+        assert.ok(/ends_at\.is\.null/.test(read.search),
+          `a booking with no end must survive the window, because the module gives it a real length: ${read.search}`);
+      }
+    });
+
     it("filters every read it makes by the organisation the slug named", async () => {
       const reads = fake.queries.filter((entry) => entry.method === "GET"
         && (entry.table === "business_bookings" || entry.table === "business_service_catalog"));
@@ -286,6 +327,89 @@ describe("a public booking page books one business", () => {
     });
   });
 
+  describe("a firm with staff", () => {
+    async function firstTime(slug, service) {
+      const page = await request(app).get(`/book/${slug}?service=${service}`).set("accept", "text/html").redirects(0);
+      const match = /name="starts_at" value="([^"]+)"/.exec(page.text);
+      assert.ok(match, "the page offered no time, so nothing below can be tested");
+      return match[1];
+    }
+
+    it("names the person the appointment goes to", async () => {
+      const startsAt = await firstTime("two-plumbers", STAFFED_SERVICE);
+      const before = fake.queries.length;
+      const response = await request(app)
+        .post("/book/two-plumbers")
+        .type("form")
+        .send({ service_id: STAFFED_SERVICE, starts_at: startsAt, customer_name: "Sam Visitor", customer_email: "sam@example.com" })
+        .redirects(0);
+      assert.equal(response.status, 200);
+      const writes = fake.queries.slice(before).filter((entry) => entry.method === "POST" && entry.table === "business_bookings");
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0].body.organization_id, STAFFED_ORG);
+      assert.ok([ALEX, SAM].includes(writes[0].body.assigned_employee_id), "a staffed page booked nobody in particular");
+    });
+
+    it("never lets the visitor choose which of them it is", async () => {
+      const startsAt = await firstTime("two-plumbers", STAFFED_SERVICE);
+      const before = fake.queries.length;
+      await request(app)
+        .post("/book/two-plumbers")
+        .type("form")
+        .send({
+          service_id: STAFFED_SERVICE, starts_at: startsAt,
+          customer_name: "Sam Visitor", customer_email: "sam@example.com",
+          // Not a field the form has. If it were honoured, a stranger could
+          // book somebody who is not working.
+          assigned_employee_id: "deadbeef-0000-4000-8000-00000000dead"
+        })
+        .redirects(0);
+      const writes = fake.queries.slice(before).filter((entry) => entry.method === "POST" && entry.table === "business_bookings");
+      assert.equal(writes.length, 1);
+      assert.ok([ALEX, SAM].includes(writes[0].body.assigned_employee_id), "a form field chose who does the work");
+    });
+
+    it("never puts the rota on the page", async () => {
+      const response = await request(app).get(`/book/two-plumbers?service=${STAFFED_SERVICE}`).set("accept", "text/html").redirects(0);
+      assert.equal(response.status, 200);
+      assert.match(response.text, /name="starts_at"/, "no times were offered, so this assertion is vacuous");
+      for (const id of [ALEX, SAM]) {
+        assert.ok(!response.text.includes(id), "a visitor can read which of the two is free, which is a staff rota");
+      }
+    });
+
+    it("reads the rota scoped to the business the slug named", async () => {
+      await request(app).get(`/book/two-plumbers?service=${STAFFED_SERVICE}`).set("accept", "text/html").redirects(0);
+      const reads = fake.queries.filter((entry) => entry.method === "GET" && entry.table === "employee_schedules");
+      assert.ok(reads.length > 0, "the rota was never read, so a staffed page is not actually staffed");
+      for (const read of reads) {
+        assert.ok(read.search.includes(`organization_id=eq.${STAFFED_ORG}`), `a rota read carried no tenant filter: ${read.search}`);
+      }
+    });
+
+    it("does not read a rota for a page that books the business as a whole", async () => {
+      fake.reset();
+      await request(app).get(`/book/bright-plumbing?service=${SERVICE}`).set("accept", "text/html").redirects(0);
+      const reads = fake.queries.filter((entry) => entry.table === "employee_schedules");
+      assert.equal(reads.length, 0, "an unstaffed page costs every visitor an extra query for a rota it does not use");
+      const bookingReads = fake.queries.filter((entry) => entry.table === "business_bookings");
+      assert.ok(bookingReads.length > 0, "and it did read bookings, so this is not passing because nothing ran");
+    });
+
+    it("assigns nobody on a page that books the business as a whole", async () => {
+      const startsAt = await firstTime("bright-plumbing", SERVICE);
+      const before = fake.queries.length;
+      await request(app)
+        .post("/book/bright-plumbing")
+        .type("form")
+        .send({ service_id: SERVICE, starts_at: startsAt, customer_name: "Sam Visitor", customer_email: "sam@example.com" })
+        .redirects(0);
+      const writes = fake.queries.slice(before).filter((entry) => entry.method === "POST" && entry.table === "business_bookings");
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0].body.assigned_employee_id, null, "a sole trader's booking was assigned to somebody");
+    });
+  });
+
   describe("the source itself", () => {
     const source = require("node:fs").readFileSync(require.resolve("../routes/sonara-public-booking-routes.cjs"), "utf8");
 
@@ -300,6 +424,10 @@ describe("a public booking page books one business", () => {
 
     it("never writes a confirmed booking", () => {
       assert.doesNotMatch(source, /status:\s*"confirmed"/, "this page confirms an appointment on a stranger's word");
+    });
+
+    it("never takes the assignee from the request", () => {
+      assert.doesNotMatch(source, /assigned_employee_id:\s*req\./, "a visitor can name the person who does the work");
     });
   });
 });

@@ -15,6 +15,9 @@
 const assert = require("node:assert/strict");
 const {
   WEEKDAY_NAMES,
+  shiftSpans,
+  freeStaffFor,
+  blockingSpans: blockingSpansForStaff,
   knownZone,
   localParts,
   instantFor,
@@ -318,6 +321,201 @@ describe("the times a stranger may book", () => {
       const check = isBookable({ page: page({ time_zone: "Middle/Earth" }), durationMinutes: 30, bookings: [], startsAt: "2026-06-01T09:00:00Z", now: MONDAY });
       assert.equal(check.ok, false);
       assert.match(check.reason, /time zone/i);
+    });
+  });
+
+  // A business with staff has more than one of each slot.
+  //
+  // The page shipped without this, and the bug ran in both directions at once:
+  // a firm with two plumbers was selling one of every hour, and the second
+  // plumber's whole diary was unsellable because one appointment closed the
+  // hour for the business. Both directions are tested, because only one of them
+  // ever gets reported -- the customer who could not book never writes in.
+  describe("booking a person rather than a business", () => {
+    const ALEX = "11111111-0000-4000-8000-00000000aaaa";
+    const SAM = "22222222-0000-4000-8000-00000000bbbb";
+
+    // Both on the Monday, 09:00-17:00 London, which is 08:00-16:00 UTC.
+    function bothOnShift() {
+      return [
+        { employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status: "scheduled" },
+        { employee_id: SAM, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status: "confirmed" }
+      ];
+    }
+
+    function staffedPage(overrides = {}) {
+      return page({ assign_staff: true, ...overrides });
+    }
+
+    describe("reading the rota", () => {
+      it("counts a shift somebody is actually working", () => {
+        assert.equal(shiftSpans(bothOnShift()).length, 2);
+      });
+
+      it("does not count a cancelled or missed shift as somebody at work", () => {
+        for (const status of ["cancelled", "missed", "CANCELLED"]) {
+          const spans = shiftSpans([{ employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status }]);
+          assert.equal(spans.length, 0, `${status} rostered somebody who is not there`);
+        }
+      });
+
+      it("does not count a status it does not recognise", () => {
+        // The opposite of how an unrecognised booking status is treated, and
+        // deliberately: both choices fail towards offering fewer slots.
+        const spans = shiftSpans([{ employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status: "maybe_swapping" }]);
+        assert.equal(spans.length, 0);
+      });
+
+      it("refuses a shift with no end rather than rostering somebody for ever", () => {
+        const spans = shiftSpans([{ employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: null, status: "scheduled" }]);
+        assert.equal(spans.length, 0, "an open-ended shift would put one person in every slot the page can offer");
+      });
+
+      it("refuses a shift belonging to nobody", () => {
+        assert.equal(shiftSpans([{ employee_id: null, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status: "scheduled" }]).length, 0);
+      });
+    });
+
+    describe("who could take an appointment", () => {
+      const start = Date.parse("2026-06-01T09:00:00.000Z");
+      const end = Date.parse("2026-06-01T10:00:00.000Z");
+
+      it("names everybody rostered and free", () => {
+        const free = freeStaffFor(start, end, { shifts: shiftSpans(bothOnShift()), bookings: [] });
+        assert.deepEqual(free.sort(), [ALEX, SAM].sort());
+      });
+
+      it("drops the one who is already booked, and keeps the other", () => {
+        const bookings = blockingSpansForStaff([
+          { starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "confirmed", assigned_employee_id: ALEX }
+        ]);
+        const free = freeStaffFor(start, end, { shifts: shiftSpans(bothOnShift()), bookings });
+        assert.deepEqual(free, [SAM], "one person's appointment closed the other person's hour");
+      });
+
+      it("drops somebody whose shift only partly covers the appointment", () => {
+        // Leaves at 09:30. A one-hour job starting at 09:00 ends after they go.
+        const shifts = shiftSpans([{ employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T09:30:00.000Z", status: "scheduled" }]);
+        assert.deepEqual(freeStaffFor(start, end, { shifts, bookings: [] }), [], "an appointment was offered that ends after the person doing it goes home");
+      });
+
+      it("stops everybody on a booking nobody is named on", () => {
+        // The state a business is in the moment it switches staffing on: every
+        // existing appointment predates the idea of an assignee.
+        const bookings = blockingSpansForStaff([
+          { starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "confirmed", assigned_employee_id: null }
+        ]);
+        assert.deepEqual(freeStaffFor(start, end, { shifts: shiftSpans(bothOnShift()), bookings }), [], "an unassigned appointment was double-booked onto two people");
+      });
+    });
+
+    describe("the list it produces", () => {
+      it("still offers the hour when one of two people is busy", () => {
+        const bookings = [{ starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "confirmed", assigned_employee_id: ALEX }];
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings, staffShifts: bothOnShift(), now: MONDAY });
+        const offered = result.days.find((day) => day.date === "2026-06-01").times.map((time) => time.localTime);
+        assert.ok(offered.includes("10:00"), "the second plumber's diary was unsellable");
+        assert.equal(result.staffed, true);
+        assert.equal(result.rosteredPeople, 2);
+      });
+
+      it("closes the hour when both people are busy", () => {
+        const bookings = [
+          { starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "confirmed", assigned_employee_id: ALEX },
+          { starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "requested", assigned_employee_id: SAM }
+        ];
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings, staffShifts: bothOnShift(), now: MONDAY });
+        const offered = result.days.find((day) => day.date === "2026-06-01").times.map((time) => time.localTime);
+        assert.equal(offered.includes("10:00"), false, "a third appointment was sold to a firm of two");
+        assert.ok(offered.length > 0, "and the rest of the day is still offered, or this passes by being empty");
+      });
+
+      it("offers only the hours somebody is rostered for", () => {
+        // Alex works 09:00-12:00 London on the Monday and nobody else works.
+        const shifts = [{ employee_id: ALEX, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T11:00:00.000Z", status: "scheduled" }];
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, now: MONDAY });
+        const monday = result.days.find((day) => day.date === "2026-06-01");
+        // The grid is 30 minutes, so a one-hour job starts every half hour --
+        // and 11:30 is absent because it would end at 12:30, after Alex goes.
+        assert.deepEqual(monday.times.map((time) => time.localTime), ["09:00", "09:30", "10:00", "10:30", "11:00"]);
+        // And the days nobody works are not offered at all, which the
+        // unstaffed page would have offered in full.
+        assert.equal(result.days.length, 1, "days with nobody rostered were offered");
+      });
+
+      it("says nobody is on the rota rather than saying the week is full", () => {
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: [], now: MONDAY });
+        assert.equal(result.ok, true, "an empty rota is a working page with a gap in its data, not a broken one");
+        assert.equal(result.slots, 0);
+        assert.match(result.reason, /rota/i);
+        assert.equal(result.rosteredPeople, 0);
+      });
+
+      it("leaves an unstaffed page exactly as it was", () => {
+        // The default, and the property that makes the migration safe: a page
+        // that has not asked for staffing must not change behaviour because a
+        // rota exists, or because one does not.
+        const bookings = [{ starts_at: "2026-06-01T09:00:00.000Z", ends_at: "2026-06-01T10:00:00.000Z", status: "confirmed", assigned_employee_id: ALEX }];
+        const withRota = availableSlots({ page: page(), durationMinutes: 60, bookings, staffShifts: bothOnShift(), now: MONDAY });
+        const without = availableSlots({ page: page(), durationMinutes: 60, bookings, staffShifts: [], now: MONDAY });
+        assert.deepEqual(
+          withRota.days.map((day) => day.times.map((time) => time.localTime)),
+          without.days.map((day) => day.times.map((time) => time.localTime)),
+          "a rota changed an unstaffed page's availability"
+        );
+        assert.equal(withRota.staffed, false);
+        const offered = withRota.days.find((day) => day.date === "2026-06-01").times.map((time) => time.localTime);
+        assert.equal(offered.includes("10:00"), false, "an unstaffed page stopped treating the business as one diary");
+      });
+
+      it("never puts the rota on the page", () => {
+        // freeStaff exists so the submit can name somebody. A visitor who could
+        // see which of two plumbers is free on a Tuesday is reading a staff
+        // rota, so the route must not render it -- asserted at the route in
+        // tests/a-public-booking-page-books-one-business.test.js. Here: that
+        // the field carries ids at all, so that assertion is not vacuous.
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), now: MONDAY });
+        const first = result.days[0].times[0];
+        assert.ok(Array.isArray(first.freeStaff) && first.freeStaff.length > 0);
+      });
+    });
+
+    describe("checking it again on submit", () => {
+      it("names the person the appointment goes to", () => {
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), now: MONDAY });
+        const first = result.days[0].times[0];
+        const check = isBookable({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), startsAt: first.startsAt, now: MONDAY });
+        assert.equal(check.ok, true);
+        assert.ok([ALEX, SAM].includes(check.assignedEmployeeId), "a staffed booking was accepted with nobody assigned to it");
+      });
+
+      it("gives the appointment to the person who is still free", () => {
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), now: MONDAY });
+        const first = result.days[0].times[0];
+        const takenSince = [{ starts_at: first.startsAt, ends_at: first.endsAt, status: "requested", assigned_employee_id: ALEX }];
+        const check = isBookable({ page: staffedPage(), durationMinutes: 60, bookings: takenSince, staffShifts: bothOnShift(), startsAt: first.startsAt, now: MONDAY });
+        assert.equal(check.ok, true, "the second person's slot was refused");
+        assert.equal(check.assignedEmployeeId, SAM);
+      });
+
+      it("refuses once everybody rostered is busy", () => {
+        const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), now: MONDAY });
+        const first = result.days[0].times[0];
+        const takenSince = [
+          { starts_at: first.startsAt, ends_at: first.endsAt, status: "requested", assigned_employee_id: ALEX },
+          { starts_at: first.startsAt, ends_at: first.endsAt, status: "confirmed", assigned_employee_id: SAM }
+        ];
+        const check = isBookable({ page: staffedPage(), durationMinutes: 60, bookings: takenSince, staffShifts: bothOnShift(), startsAt: first.startsAt, now: MONDAY });
+        assert.equal(check.ok, false);
+      });
+
+      it("assigns nobody on an unstaffed page", () => {
+        const result = availableSlots({ page: page(), durationMinutes: 60, bookings: [], now: MONDAY });
+        const first = result.days[0].times[0];
+        const check = isBookable({ page: page(), durationMinutes: 60, bookings: [], startsAt: first.startsAt, now: MONDAY });
+        assert.equal(check.ok, true);
+        assert.equal(check.assignedEmployeeId, null, "a sole trader's booking was assigned to somebody");
+      });
     });
   });
 

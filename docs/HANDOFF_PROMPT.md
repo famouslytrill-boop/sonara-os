@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 4039 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 97 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 98 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
 - 205 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
@@ -124,6 +124,90 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-20 — A firm of two stops selling one of every hour
+
+The booking page shipped this morning books the business, not a person, and the
+previous entry recorded that as the next thing to close. It was wrong in both
+directions at once: a firm with two plumbers was selling **one** of every hour,
+and the second plumber's whole diary was **unsellable**, because one appointment
+closed the hour for the business.
+
+`business_bookings.assigned_employee_id` and `employee_schedules` have both
+existed since migration 013. Nothing had joined them to availability.
+
+## Asked, not inferred
+
+`public_booking_pages.assign_staff` defaults to **false**, which reproduces
+today's behaviour exactly — the migration changes no existing page.
+
+The tempting shortcut is to look for shifts and use them if any exist. That
+fails precisely when it matters: a business that runs on a rota and has not
+entered next month's would see either every slot vanish, or — if the code falls
+back to counting the business as one — silently lose the protection at the
+moment its rota is empty. **A guarantee that switches itself off when the data
+is thin** is the defect class this codebase keeps finding, so this one is a
+column somebody ticks.
+
+A page switched on with nobody rostered says *"nobody is on the rota"* rather
+than showing an empty week, and the owner's settings page says the same thing
+before a customer has to discover it.
+
+## Three rules, each with the failure it prevents
+
+**A shift must cover the whole appointment.** Somebody who leaves at five cannot
+take a ninety-minute job starting at half past four. Adjacent shifts are not
+merged — they may be two different days.
+
+**A booking nobody is named on stops everybody.** This is the state a business
+is in the moment it ticks the box: every existing appointment predates the idea
+of an assignee. Treating those as blocking nobody would double-book every one of
+them.
+
+**An unrecognised shift status is not somebody at work** — the opposite of how
+an unrecognised *booking* status is treated, and deliberately. Both choices fail
+towards offering fewer slots, because the cost of offering one that is not
+really there is two people expecting the same hour.
+
+The visitor never sees which of the two it is, and never chooses: the assignee
+is derived on submit from the rota as it stands then, and a test posts
+`assigned_employee_id` in the form to prove a field cannot pick somebody who is
+not working.
+
+## The bug the fixture found
+
+Writing the route test surfaced a real hole that had nothing to do with staff.
+Both reads windowed on `starts_at` between "yesterday" and "the horizon" — which
+**misses the booking that matters most**: a job that began before the window and
+is still running inside it. That booking blocks a time and was invisible, so the
+page offered it. A double-booking hole created by the query rather than by the
+arithmetic, and `starts_at` is the intuitive filter.
+
+Both reads are now interval overlaps. The booking one is an `or` group rather
+than two ordinary filters, because `ends_at` is nullable and `blockingSpans`
+gives a booking with no end a real length rather than a length of zero —
+`ends_at=gte.X` alone would drop exactly the rows the module took care to handle.
+
+## The harness was widening queries in silence
+
+`tests/helpers/fake-supabase.cjs` skipped any filter it could not parse and
+returned `true` for any operator it did not know. So a query using a filter the
+fake does not model **matched every row**, which reads in a test as a tenant
+filter that works.
+
+It now models `or=(...)` and **throws** on anything it cannot parse. No existing
+test relied on the silent widening — the suite went from 2,382 to 2,409 with
+that change in place and nothing else broke, which is the evidence rather than
+the hope.
+
+## What is still not built
+
+No payment on a booking, and no confirmation email or SMS — under the AGENTS.md
+rule those are off unless a customer switches them on, and nothing switches them
+on yet. A per-location rota is not modelled: `employee_schedules.location_id`
+exists and availability ignores it, so a business running two sites from one
+booking page can roster somebody at the wrong one.
+
 
 ### 2026-08-20 — A booking page a stranger can open
 

@@ -42,6 +42,8 @@
 
 const { availableSlots, isBookable, WEEKDAY_NAMES, normaliseOpeningHours, minutesFromClock, knownZone } = require("../lib/sonara-booking-availability.cjs");
 
+const SCHEDULES_TABLE = "employee_schedules";
+
 const PAGES_TABLE = "public_booking_pages";
 const BOOKINGS_TABLE = "business_bookings";
 const CATALOG_TABLE = "business_service_catalog";
@@ -140,7 +142,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
   // The published page for a slug, or null. Only `enabled` rows resolve, so
   // reserving a slug does not publish it.
   async function findPage(config, slug) {
-    const path = `${PAGES_TABLE}?slug=eq.${enc(slug)}&enabled=is.true&select=id,organization_id,slug,headline,intro,time_zone,opening_hours,slot_minutes,lead_time_hours,horizon_days&limit=1`;
+    const path = `${PAGES_TABLE}?slug=eq.${enc(slug)}&enabled=is.true&select=id,organization_id,slug,headline,intro,time_zone,opening_hours,slot_minutes,lead_time_hours,horizon_days,assign_staff&limit=1`;
     const result = await rest(config, path);
     if (!result.ok) return { ok: false, page: null };
     return { ok: true, page: result.rows[0] || null };
@@ -162,11 +164,63 @@ function registerPublicBookingRoutes(app, deps = {}) {
   // Returns ok:false on a failed read, and every caller refuses rather than
   // continuing. An unreadable booking list treated as "nothing is booked" would
   // offer every slot in the diary to a stranger.
+  //
+  // The window is an overlap test, not a bound on `starts_at`.
+  //
+  // The first version asked for bookings starting inside the window, which
+  // misses the one that matters most: an appointment that began before the
+  // window and is still running inside it. That booking blocks a time and was
+  // invisible, so the page offered it -- a double-booking hole created by the
+  // query rather than by the arithmetic. A `starts_at` bound is the intuitive
+  // filter and the wrong one.
+  //
+  // `ends_at` is nullable, and blockingSpans gives a booking with no end a real
+  // length rather than a length of zero, so the null case has to survive the
+  // query too. That is why this is an `or` group and not two ordinary filters:
+  // `ends_at=gte.X` alone would drop exactly the rows the module took care to
+  // handle.
+  function overlapWindow(horizonDays) {
+    return {
+      from: new Date(Date.now() - 86400000).toISOString(),
+      to: new Date(Date.now() + (Number(horizonDays) || 21) * 86400000 + 86400000).toISOString()
+    };
+  }
+
   async function readBookings(config, organizationId, horizonDays) {
-    const from = new Date(Date.now() - 86400000).toISOString();
-    const to = new Date(Date.now() + (Number(horizonDays) || 21) * 86400000 + 86400000).toISOString();
-    const path = `${BOOKINGS_TABLE}?organization_id=eq.${enc(organizationId)}&starts_at=gte.${enc(from)}&starts_at=lte.${enc(to)}&select=starts_at,ends_at,status&limit=1000`;
+    const { from, to } = overlapWindow(horizonDays);
+    const path = `${BOOKINGS_TABLE}?organization_id=eq.${enc(organizationId)}&starts_at=lte.${enc(to)}`
+      + `&or=(ends_at.gte.${enc(from)},ends_at.is.null)`
+      + `&select=starts_at,ends_at,status,assigned_employee_id&limit=1000`;
     return rest(config, path);
+  }
+
+  // Who is on shift over the window the page can offer.
+  //
+  // Read only when the page assigns staff, so an unstaffed page makes no extra
+  // request per visitor. Returns ok:false on a failed read and the caller
+  // refuses -- an unreadable rota treated as an empty one reads to a visitor as
+  // "nobody works here", and treated as a full one double-books everybody.
+  async function readShifts(config, organizationId, horizonDays) {
+    // Overlap again, and without the null case: shiftSpans refuses a shift with
+    // no end, so a row that cannot satisfy `ends_at=gte` could not have
+    // produced availability anyway.
+    const { from, to } = overlapWindow(horizonDays);
+    const path = `${SCHEDULES_TABLE}?organization_id=eq.${enc(organizationId)}&starts_at=lte.${enc(to)}&ends_at=gte.${enc(from)}`
+      + `&select=employee_id,starts_at,ends_at,status&limit=2000`;
+    return rest(config, path);
+  }
+
+  // The two lists availability needs, and whether either could not be read.
+  //
+  // Kept together because the failure handling is the same for both and
+  // splitting it invited a caller to check one and forget the other.
+  async function readCapacity(config, page) {
+    const bookings = await readBookings(config, page.organization_id, page.horizon_days);
+    if (!bookings.ok) return { ok: false, bookings: [], staffShifts: [] };
+    if (page.assign_staff !== true) return { ok: true, bookings: bookings.rows, staffShifts: [] };
+    const shifts = await readShifts(config, page.organization_id, page.horizon_days);
+    if (!shifts.ok) return { ok: false, bookings: [], staffShifts: [] };
+    return { ok: true, bookings: bookings.rows, staffShifts: shifts.rows };
   }
 
   function serviceCard(service, slug) {
@@ -218,10 +272,15 @@ function registerPublicBookingRoutes(app, deps = {}) {
     const service = UUID_PATTERN.test(wanted) ? services.rows.find((row) => row.id === wanted) : null;
     if (!service) return res.redirect(303, `/book/${slug}`);
 
-    const bookings = await readBookings(config, page.organization_id, page.horizon_days);
-    if (!bookings.ok) return unavailable(res);
+    const capacity = await readCapacity(config, page);
+    if (!capacity.ok) return unavailable(res);
 
-    const slots = availableSlots({ page, durationMinutes: service.duration_minutes, bookings: bookings.rows });
+    const slots = availableSlots({
+      page,
+      durationMinutes: service.duration_minutes,
+      bookings: capacity.bookings,
+      staffShifts: capacity.staffShifts
+    });
     if (!slots.ok || !slots.days.length) {
       return res.status(200).type("html").send(publicPage({
         heading, body: intro,
@@ -302,14 +361,17 @@ function registerPublicBookingRoutes(app, deps = {}) {
     // is a slot held for nobody.
     if (!name || (!isEmailLike(email) && phone.length < 5)) return res.redirect(303, `${back}&problem=details`);
 
-    const bookings = await readBookings(config, page.organization_id, page.horizon_days);
-    if (!bookings.ok) return unavailable(res);
+    const capacity = await readCapacity(config, page);
+    if (!capacity.ok) return unavailable(res);
 
     // Checked again, against a fresh read, and re-derived rather than trusted.
+    // On a staffed page this also decides who it goes to, from the rota as it
+    // stands now rather than as it stood when the page rendered.
     const check = isBookable({
       page,
       durationMinutes: service.duration_minutes,
-      bookings: bookings.rows,
+      bookings: capacity.bookings,
+      staffShifts: capacity.staffShifts,
       startsAt: String(req.body?.starts_at || "")
     });
     if (!check.ok) return res.redirect(303, `${back}&problem=taken`);
@@ -323,6 +385,10 @@ function registerPublicBookingRoutes(app, deps = {}) {
       customer_phone: phone || null,
       starts_at: check.startsAt,
       ends_at: check.endsAt,
+      // Named on a staffed page, null otherwise. Never taken from the request:
+      // the visitor does not choose their plumber here, and a form field that
+      // did would let somebody book a person who is not working.
+      assigned_employee_id: check.assignedEmployeeId || null,
       // The table's own default, and the honest one: the business has not seen
       // this yet. Writing `confirmed` would commit a business to work on the
       // word of a stranger.
@@ -367,7 +433,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
       }));
     }
 
-    const existing = await rest(scope.config, `${PAGES_TABLE}?organization_id=eq.${enc(scope.organizationId)}&select=slug,enabled,headline,intro,time_zone,opening_hours,slot_minutes,lead_time_hours,horizon_days&limit=1`);
+    const existing = await rest(scope.config, `${PAGES_TABLE}?organization_id=eq.${enc(scope.organizationId)}&select=slug,enabled,headline,intro,time_zone,opening_hours,slot_minutes,lead_time_hours,horizon_days,assign_staff&limit=1`);
     const row = existing.ok ? (existing.rows[0] || null) : null;
     const hours = normaliseOpeningHours(row?.opening_hours);
     const raw = Array.isArray(row?.opening_hours) ? row.opening_hours : [];
@@ -396,12 +462,28 @@ function registerPublicBookingRoutes(app, deps = {}) {
       sections.push(brandCard("You do not have a booking page yet", "Choose an address below. Nothing is public until you tick the box."));
     }
 
-    sections.push(brandCard("What a visitor sees", "The services you have marked active that have a length in minutes, and the times you are free. Never who booked the other times, never your notes, and never anybody's contact details."));
+    sections.push(brandCard("What a visitor sees", row?.assign_staff
+      ? "The services you have marked active that have a length in minutes, and the times somebody on your rota is free. Never which of your people it is, never who booked the other times, never your notes, and never anybody's contact details."
+      : "The services you have marked active that have a length in minutes, and the times you are free. Never who booked the other times, never your notes, and never anybody's contact details."));
+
+    // A live staffed page with an empty rota shows a visitor nothing. That is
+    // the right thing for it to do and the wrong thing for an owner to discover
+    // from a customer, so the settings page says it here.
+    if (row?.enabled && row?.assign_staff) {
+      const rota = await rest(scope.config, `${SCHEDULES_TABLE}?organization_id=eq.${enc(scope.organizationId)}&starts_at=gte.${enc(new Date().toISOString())}&select=id&limit=1`);
+      if (!rota.ok) {
+        sections.push(brandCard("We could not check your rota", "This page cannot tell you whether anybody is rostered. It is not saying nobody is."));
+      } else if (!rota.rows.length) {
+        sections.push(brandCard("Nobody is on the rota", "Your page is live and set to book a member of staff, and there are no shifts ahead of today. A visitor is told nobody is on the rota rather than being shown times, so nothing can be booked until you add some."));
+      }
+    }
 
     sections.push(htmlCard("Settings", `
       <form method="post" action="/api/booking-page" class="sonara-settings-form">
         <label>Address<span class="sonara-prefix">/book/</span><input type="text" name="slug" value="${escapeHtml(String(row?.slug || ""))}" maxlength="48" pattern="[a-z0-9][a-z0-9-]{1,46}[a-z0-9]" placeholder="your-business"></label>
         <label><input type="checkbox" name="enabled"${row?.enabled ? " checked" : ""}> Take bookings</label>
+        <label><input type="checkbox" name="assign_staff"${row?.assign_staff ? " checked" : ""}> Book a member of staff, not the business</label>
+        <p class="fine">Leave this off if it is just you. Tick it and a time is offered only when somebody is on the rota for the whole of it and not already booked \u2014 so two people can take two appointments at once, and neither can be given the same one twice. Your rota is the shifts on <a href="/business-builder/owner/schedules">your schedules page</a>.</p>
         <label>Headline<input type="text" name="headline" value="${escapeHtml(String(row?.headline || ""))}" maxlength="120"></label>
         <label>Intro<textarea name="intro" maxlength="400" rows="2">${escapeHtml(String(row?.intro || ""))}</textarea></label>
         <label>Time zone<input type="text" name="time_zone" value="${escapeHtml(String(row?.time_zone || "UTC"))}" maxlength="64" required></label>
@@ -441,6 +523,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
     if (!zone) return res.redirect(303, `${settings}?problem=zone`);
 
     const enabled = String(req.body?.enabled ?? "") === "on";
+    const assignStaff = String(req.body?.assign_staff ?? "") === "on";
     const openingHours = openingHoursFromForm(req.body);
     // Switching a page on with no open day publishes an address that can never
     // produce a time. Refused here rather than rendered as an empty page a
@@ -463,6 +546,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
       intro: String(req.body?.intro || "").trim().slice(0, 400) || null,
       time_zone: zone,
       opening_hours: openingHours,
+      assign_staff: assignStaff,
       slot_minutes: clamp(req.body?.slot_minutes, 5, 240, 30),
       lead_time_hours: clamp(req.body?.lead_time_hours, 0, 720, 12),
       horizon_days: clamp(req.body?.horizon_days, 1, 90, 21),
