@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 96 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
-- 202 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 203 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,121 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-20 — Agents that run for free, and a menu where four of five did nothing
+
+The request was to run agents inside the application at no cost. Most of the
+machinery for that already existed — `lib/sonara-agent-runner.cjs` classifies,
+decides, runs and records; `lib/sonara-agent-schedule.cjs` works out whether a
+schedule is due in the customer's own time zone; `lib/sonara-record-checks.cjs`
+does real work over the owner's own rows with no model call anywhere. What was
+missing was the join between the menu and the work.
+
+## The menu offered five jobs and one of them existed
+
+`/owner/agent-schedule` let a customer put five jobs on a timer. Exactly one —
+`check_data_quality` — had a handler registered. The other four ran on schedule,
+answered `unimplemented`, and wrote that answer into `agent_action_logs`, which
+the customer does not read. So the product looked like it was working for them
+every week and was doing nothing.
+
+All four now have handlers, and every one is arithmetic over records the
+business already owns — no provider, no metered API, nothing that costs a
+customer anything per run:
+
+- `suggest_next_step` runs the record checks and returns the single
+  highest-severity finding, ranked by the check module's own severity order
+  rather than by count. Eleven customers missing a phone number is not more
+  urgent than one invoice that was never sent.
+- `prepare_report` runs `lib/sonara-customer-journey.cjs` on a timer. It adds no
+  arithmetic of its own, deliberately: a second implementation of a funnel is a
+  second set of numbers to disagree with the first.
+- `summarise_records` counts rows per table using PostgREST's exact count with
+  `limit=0`, so it names no column and cannot rot the way a select list can.
+- `draft_reply` runs `lib/sonara-chase-drafts.cjs`. It drafts and does not send,
+  which is the reason drafting is on the self-serve list at all.
+
+**One label changed rather than one handler pretending.** The menu said
+"Summarise what changed"; the honest handler counts what is on file. The label
+now says that. Changing the words to fit the work is the direction that stays
+true; the other one is a label describing work nobody wrote.
+
+`tests/agent-schedule-handlers.test.js` pairs the menu against the handler
+registry and fails in both directions, so a sixth menu entry cannot ship without
+a handler and a handler cannot be quietly dropped. Falsified both ways: renaming
+one registration to `summarise_records_DISABLED` fails the test with the name of
+the orphaned entry.
+
+## Every handler had to be made to admit an outage
+
+The shared read returns `null` on a failed read, never `[]`, and every caller
+tests for it. An unreadable table read as an empty list turns "the database was
+unreachable" into "you have no overdue invoices" — the single most reassuring
+way for any of this to be wrong. Six tests drive each handler with a failing
+`fetch` and assert it counts the failure. Falsified by changing the shared read
+to return `[]` on failure: four tests fail.
+
+`draft_reply` refuses instead of counting, in two places, because it is the one
+job here whose output reaches a customer's customer. An unreadable invoice list
+fails the run; so does an unreadable payments table, because reading that as
+"nothing has been paid" would chase money already received.
+
+`summarise_records` reads its count out of the `Content-Range` header, and a
+response that carries no range is counted as unread rather than as zero rows —
+`Number(undefined)` is `NaN`, and this is the same absent-becomes-zero trap that
+has been found in this codebase before.
+
+## Five new record checks: the ones that read the calendar
+
+The twenty-two existing checks all answered "is this row filled in?" and none
+answered "is this row stuck?". A quote sent in March and never answered is
+complete, valid, worth nothing, and invisible to every check written before now.
+
+Added, all validated against `supabase/migrations/` by the existing `validate()`
+so no column is typed from memory:
+
+- **Invoices written and never sent.** `customer_invoices_overdue` deliberately
+  ignores drafts because a draft cannot be late. That left the worst case
+  uncovered: work done, priced, written up, and never asked for. Not late —
+  never sent, which is worse.
+- **Quotes nobody has answered**, measured from `updated_at` rather than
+  `created_at`, because sending writes the status and `created_at` would call a
+  quote drafted in January and sent yesterday six months stale.
+- **Quotes sent with no price.**
+- **Appointments that happened and were never closed off.** The status
+  vocabulary comes from the `CHECK` constraint on `business_bookings`, so the
+  two open statuses are read off the schema rather than guessed.
+- **Customers with no way to reach them.** `leads_without_contact` covers
+  `growth_leads` and `bookings_without_contact` covers one appointment; nothing
+  looked at the customer list itself, which is the record every quote, invoice
+  and reminder is addressed from.
+
+Each has a fixture that must be caught and one that must be left alone, and each
+`ignores` row is the one that would be caught if that check's own discrimination
+broke — a fresh draft for the ones reading the calendar, a wrong-status row for
+the ones reading the status. A row that is clean in every respect proves only
+that the check is not catching everything. Falsified both ways: a mistyped
+column is caught by `validate()`, and deleting the age comparison fails the
+"leaves the healthy row alone" assertion by name.
+
+`STALE_DAYS` is fourteen and is not presented as a discovered constant. It is a
+fortnight, and the sentences report the real age of the record so an owner can
+disagree with the threshold and still act on the fact.
+
+## What is still not true about agents
+
+**Nothing consumes approvals on a timer.** `lib/sonara-agent-queue.cjs` re-runs
+a gated action when a person approves it on `/owner/agent-activity`, and that is
+the only thing that consumes an approval. A scheduled job cannot propose
+something gated and have it picked up later; the schedule menu is restricted to
+the self-serve list for exactly that reason.
+
+**The handlers return counts, not content.** `lib/sonara-agent-action-log.cjs`
+deliberately stores no payload, so a scheduled run tells an owner *that* drafts
+are waiting and the receivables page shows them. An audit trail that accumulated
+the text of every chaser would be a second copy of the customer list with
+different retention.
+
 
 ### 2026-08-19 — Three sprints, and two tables that had columns and no readers
 

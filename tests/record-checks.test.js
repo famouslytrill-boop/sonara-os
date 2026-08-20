@@ -31,6 +31,10 @@ const past = new Date(Date.now() - 40 * DAY).toISOString().slice(0, 10);
 const future = new Date(Date.now() + 400 * DAY).toISOString().slice(0, 10);
 const pastStamp = new Date(Date.now() - 40 * DAY).toISOString();
 const futureStamp = new Date(Date.now() + 400 * DAY).toISOString();
+// Inside the fortnight the staleness checks use, so a row carrying it is one
+// they must leave alone. Written as "recent" rather than "now" because a row
+// created this instant is the easy case and would not prove much.
+const recentStamp = new Date(Date.now() - 2 * DAY).toISOString();
 
 // One row that must be caught and one that must not, per check. Written from
 // what the check claims to be about rather than from its implementation.
@@ -129,6 +133,34 @@ const CASES = {
   experiments_ended_without_result: {
     catches: { id: "1", name: "Subject line A/B", hypothesis: "shorter wins", result: null, status: "completed" },
     ignores: { id: "2", name: "Subject line A/B", hypothesis: "shorter wins", result: "shorter won by 8%", status: "completed" }
+  },
+
+  // The five staleness checks. Each `ignores` row is chosen to be the one that
+  // would be caught if the check's own discrimination broke -- a fresh draft
+  // for the ones that read the calendar, and a row in the wrong status for the
+  // ones that read the status. A row that is clean in every respect proves only
+  // that the check is not catching everything.
+  customer_invoices_draft_and_aging: {
+    catches: { id: "1", invoice_number: "AR-5", total_cents: 144000, status: "draft", created_at: pastStamp },
+    ignores: { id: "2", invoice_number: "AR-6", total_cents: 144000, status: "draft", created_at: recentStamp }
+  },
+  quotes_sent_without_answer: {
+    catches: { id: "1", title: "Roof repair", amount_cents: 200000, status: "sent", updated_at: pastStamp },
+    ignores: { id: "2", title: "Roof repair", amount_cents: 200000, status: "sent", updated_at: recentStamp }
+  },
+  quotes_sent_without_amount: {
+    catches: { id: "1", title: "Boiler service", amount_cents: null, status: "sent" },
+    // A draft with no price yet is a quote somebody is still writing, which is
+    // the normal state of a draft and must not be reported as a problem.
+    ignores: { id: "2", title: "Boiler service", amount_cents: null, status: "draft" }
+  },
+  bookings_past_and_still_open: {
+    catches: { id: "1", customer_name: "Sam", starts_at: pastStamp, ends_at: pastStamp, status: "confirmed" },
+    ignores: { id: "2", customer_name: "Sam", starts_at: pastStamp, ends_at: pastStamp, status: "completed" }
+  },
+  customers_without_contact: {
+    catches: { id: "1", name: "Jamie", email: "", phone: null, status: "active" },
+    ignores: { id: "2", name: "Jamie", email: "", phone: "555-0100", status: "active" }
   }
 };
 

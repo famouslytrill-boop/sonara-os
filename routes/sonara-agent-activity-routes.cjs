@@ -56,10 +56,21 @@ const SCHEDULE_TABLE = "agent_schedules";
 // turns a safety gate into a nuisance until somebody switches it off. The
 // runner still classifies on every run, so this list cannot widen what actually
 // executes; it only keeps the owner's queue from being filled on a timer.
+//
+// Every entry has a handler in registerApprovedHandlers below, and
+// tests/agent-schedule-handlers.test.js fails if one does not. Four of these
+// five were offered here for weeks with nothing implementing them: a customer
+// could pick "Summarise what changed", save it, and get `unimplemented` every
+// week for ever. A menu of five where four do nothing is the same defect as a
+// check that passes against a stub, wearing a form instead of a test.
+//
+// "Summarise what changed" is now "Count what is on file", because that is what
+// the handler does. Changing the label to fit the work is the honest direction;
+// the other one is a label that describes work nobody wrote.
 const SCHEDULABLE = Object.freeze([
   { action: "check_data_quality", label: "Check my records for problems" },
   { action: "prepare_report", label: "Prepare a report from my figures" },
-  { action: "summarise_records", label: "Summarise what changed" },
+  { action: "summarise_records", label: "Count what is on file" },
   { action: "draft_reply", label: "Draft chasers for overdue invoices" },
   { action: "suggest_next_step", label: "Suggest what to do next" }
 ]);
@@ -143,6 +154,136 @@ function registerApprovedHandlers(runner, { supabaseHeaders }) {
     if (!Array.isArray(rows) || rows.length === 0) throw new Error("That scheduled item is not in your workspace.");
     return { approved: rows.length };
   });
+
+  // One tenant-scoped read. organization_id is in the filter on every one of
+  // them, because the service key bypasses row level security and this filter
+  // is the entire tenant boundary.
+  //
+  // Returns null rather than [] when the read fails, and every caller below
+  // tests for null. An unreadable table that came back as an empty list would
+  // be counted as a business with no invoices, no leads and nothing overdue --
+  // a clean bill of health issued by a broken connection.
+  async function readRows(config, organizationId, table, select, extra = "") {
+    const query = `?select=${select}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=500${extra}`;
+    const response = await fetch(`${config.url}/rest/v1/${table}${query}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!response?.ok) return null;
+    const rows = await response.json().catch(() => null);
+    return Array.isArray(rows) ? rows : null;
+  }
+
+  // Suggest what to do next.
+  //
+  // The same twenty-seven checks the assistant page runs, reduced to the one
+  // that costs the most. "Costs the most" is the check module's own severity
+  // order -- money, then blocked, then tidy -- and not a count, because eleven
+  // customers missing a phone number is not more urgent than one invoice that
+  // was never sent.
+  runner.register("suggest_next_step", async ({ config, organizationId }) => {
+    const { CHECKS, SEVERITY_ORDER, selectFor, runCheck } = require("../lib/sonara-record-checks.cjs");
+    let best = null;
+    let unreadable = 0;
+    for (const check of CHECKS) {
+      const rows = await readRows(config, organizationId, check.table, selectFor(check));
+      if (rows === null) { unreadable += 1; continue; }
+      const result = runCheck(check, rows);
+      if (result.count === 0) continue;
+      const rank = SEVERITY_ORDER.indexOf(result.severity);
+      if (!best || rank < best.rank) best = { rank, id: result.id, label: result.label, count: result.count, fixPath: result.fixPath };
+    }
+    // Nothing found and nothing readable are different answers, and the caller
+    // is told which. Reporting "you are all clear" after failing to read
+    // twenty-seven tables is the exact failure this codebase keeps finding.
+    if (!best) return { suggestion: null, unreadable, checked: CHECKS.length - unreadable };
+    return { suggestion: best.id, label: best.label, count: best.count, fixPath: best.fixPath, unreadable, checked: CHECKS.length - unreadable };
+  });
+
+  // Prepare a report from the figures.
+  //
+  // lib/sonara-customer-journey.cjs already knows how to turn rows into a
+  // funnel and already refuses to invent a drop rate between two stages the
+  // schema does not connect. This runs it on a timer; it adds no arithmetic of
+  // its own, deliberately, because a second implementation of a funnel is a
+  // second set of numbers to disagree with the first.
+  runner.register("prepare_report", async ({ config, organizationId }) => {
+    const journey = require("../lib/sonara-customer-journey.cjs");
+    const results = [];
+    let unreadable = 0;
+    for (const stage of journey.STAGES) {
+      const rows = await readRows(config, organizationId, stage.table, journey.selectFor(stage));
+      if (rows === null) { unreadable += 1; continue; }
+      results.push(journey.countStage(stage, rows));
+    }
+    const funnel = journey.build(results);
+    return {
+      stages: funnel.stages.length,
+      total: funnel.total,
+      worst: funnel.worst ? { stage: funnel.worst.label, dropRate: funnel.worst.dropRate } : null,
+      unreadable
+    };
+  });
+
+  // Count what is on file.
+  //
+  // Row counts, one per table the checks read, taken with PostgREST's exact
+  // count and `limit=0` -- so this names no column at all and cannot rot the
+  // way a select list can. It is the cheapest honest answer to "is my data
+  // actually in there", which is a question an owner asks after an import and
+  // which nothing in the product answered.
+  runner.register("summarise_records", async ({ config, organizationId }) => {
+    const { CHECKS } = require("../lib/sonara-record-checks.cjs");
+    const tables = [...new Set(CHECKS.map((check) => check.table))].sort();
+    const counts = {};
+    let unreadable = 0;
+    for (const table of tables) {
+      const path = `/rest/v1/${table}?select=id&organization_id=eq.${encodeURIComponent(organizationId)}&limit=0`;
+      const response = await fetch(`${config.url}${path}`, {
+        headers: { ...supabaseHeaders(config), Prefer: "count=exact" }
+      }).catch(() => undefined);
+      // The count arrives in Content-Range as `*/n`. A response that carries no
+      // range is not a zero -- it is a count this did not get, and it goes in
+      // the unreadable tally rather than into the report as an empty table.
+      const range = response?.ok ? String(response.headers.get("content-range") || "") : "";
+      const total = Number(range.split("/")[1]);
+      if (!Number.isFinite(total)) { unreadable += 1; continue; }
+      counts[table] = total;
+    }
+    return { tables: Object.keys(counts).length, rows: Object.values(counts).reduce((sum, n) => sum + n, 0), counts, unreadable };
+  });
+
+  // Draft chasers for overdue invoices.
+  //
+  // Drafting is on the self-serve list and sending is not, and the gap between
+  // them is the whole point: lib/sonara-chase-drafts.cjs assembles the letter
+  // from the invoice, the customer and the payments already recorded, and
+  // nothing here sends anything or marks anything as chased.
+  //
+  // The drafts themselves are not returned past a count. The runner's result
+  // reaches the action log, and lib/sonara-agent-action-log.cjs deliberately
+  // stores no payload -- a log that accumulated the text of every chaser would
+  // be a second copy of the customer list with different retention. The count
+  // tells the owner drafts are waiting; the receivables page shows them.
+  runner.register("draft_reply", async ({ config, organizationId }) => {
+    const chase = require("../lib/sonara-chase-drafts.cjs");
+    const invoices = await readRows(config, organizationId, "customer_invoices", "id,invoice_number,customer_id,due_on,total_cents,status");
+    if (invoices === null) throw new Error("The invoice list could not be read, so no chaser was drafted.");
+    const customers = await readRows(config, organizationId, "customers", "id,name,email");
+    if (customers === null) throw new Error("The customer list could not be read, so there is nobody to address a chaser to.");
+    const payments = await readRows(config, organizationId, "customer_invoice_payments", "invoice_id,amount_cents");
+
+    const customersById = new Map(customers.map((row) => [row.id, row]));
+    // A missing payments table is not "nothing has been paid". Without it an
+    // invoice paid in full would be chased, so this refuses rather than guesses.
+    if (payments === null) throw new Error("The payment records could not be read, and chasing an invoice that has already been paid is worse than not chasing at all.");
+    const paidByInvoice = new Map();
+    for (const payment of payments) {
+      const already = paidByInvoice.get(payment.invoice_id) || 0;
+      const amount = Number(payment.amount_cents);
+      paidByInvoice.set(payment.invoice_id, already + (Number.isFinite(amount) ? amount : 0));
+    }
+
+    const { drafts, skipped } = chase.build({ invoices, customersById, paidByInvoice });
+    return { drafts: drafts.length, skipped: skipped.length, invoicesRead: invoices.length };
+  });
 }
 
 const GROUPS = Object.freeze([
@@ -176,7 +317,7 @@ function when(value) {
   return parsed.toISOString().replace("T", " ").slice(0, 16) + " UTC";
 }
 
-module.exports = function registerSonaraAgentActivityRoutes(app, deps = {}) {
+function registerSonaraAgentActivityRoutes(app, deps = {}) {
   const layout = deps.layout;
   const brandCard = deps.brandCard;
   const linkAction = deps.linkAction;
@@ -813,4 +954,12 @@ module.exports = function registerSonaraAgentActivityRoutes(app, deps = {}) {
     if (wantsHtml(req)) return backToActivity(res);
     return res.status(200).json({ ok: true, state: "declined" });
   });
-};
+}
+
+// Exported for tests/agent-schedule-handlers.test.js. The route module is the
+// only place that knows both the menu and the handlers, so it is the only place
+// that can be checked for them agreeing.
+registerSonaraAgentActivityRoutes.SCHEDULABLE = SCHEDULABLE;
+registerSonaraAgentActivityRoutes.registerApprovedHandlers = registerApprovedHandlers;
+
+module.exports = registerSonaraAgentActivityRoutes;
