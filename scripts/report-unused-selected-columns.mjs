@@ -82,6 +82,10 @@ const ACCOUNTED = Object.freeze({
     columns: ["metadata"],
     reason: "Read by billingRowOpensProduct in lib/sonara-paid-access.cjs, which uses metadata.workspace to decide whether a one-workspace plan opens THIS product. Both files opened to confirm it."
   },
+  "routes/sonara-recurring-invoice-routes.cjs": {
+    columns: ["service_id"],
+    reason: "The arrangement's lines are handed whole to buildInvoice in lib/sonara-recurring-invoices.cjs, which copies service_id onto each customer_invoice_lines row so an invoice line still points at the service it bills for. The route deliberately never touches it -- it moves the value, it does not read it. Both files opened to confirm it."
+  },
   "routes/sonara-public-booking-routes.cjs": {
     columns: ["employee_id"],
     reason: "The rota rows are handed whole to shiftSpans and freeStaffFor in lib/sonara-booking-availability.cjs, which key on shift.employee_id to work out who is free and which of them the appointment goes to. The route deliberately never touches it -- rendering a rostered person's id on a page a stranger can open would publish the rota. Both files opened to confirm it."

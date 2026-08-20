@@ -1608,6 +1608,44 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring:
+    post:
+      operationId: createRecurringInvoice
+      tags: [Business Builder]
+      summary: Set up a standing arrangement that bills a customer on a schedule.
+      description: >-
+        A browser form, so every outcome is a 303 back to the arrangements page;
+        a refusal carries a `problem` query parameter naming what was wrong. The
+        tax rate is submitted as a percentage and stored as basis points. An
+        arrangement is refused rather than created when the line it bills for
+        has no description, quantity or price, because an arrangement that bills
+        nothing produces no invoice and looks set up.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the arrangements page, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring/disable:
+    post:
+      operationId: disableRecurringInvoice
+      tags: [Business Builder]
+      summary: Switch off one standing arrangement so it stops producing invoices.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the arrangements page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring/run:
+    post:
+      operationId: runRecurringInvoices
+      tags: [Business Builder]
+      summary: Turn every standing arrangement that is due into a draft invoice.
+      description: >-
+        Each invoice is dated the day it was due rather than today, so a late
+        run bills for the period it was for. A missed period is not made up:
+        three unrun months produce one invoice, not three. Everything produced
+        is a draft; nothing is sent. The redirect carries `done` with the count
+        created, and `problem=partial` when an arrangement that was due could
+        not be turned into an invoice.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect carrying how many drafts were created. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/customers/import:
     post:
       operationId: importCustomers

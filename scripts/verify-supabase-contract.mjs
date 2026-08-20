@@ -44,7 +44,8 @@ const businessOperationsMigrationNames = [
   "20260811234500_customer_invoice_lines.sql",
   "20260818100000_merchant_product_catalogue.sql",
   "20260819070000_shared_links.sql",
-  "20260820060000_public_booking_pages.sql"
+  "20260820060000_public_booking_pages.sql",
+  "20260820080000_recurring_invoices.sql"
 ];
 const growthStudioMigrationNames = [
   "20260723120000_growth_studio_control_plane.sql"
@@ -86,6 +87,12 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // resolves the organization through it before it reads anything else, the
   // same way /shared/:token resolves through shared_links.
   "public_booking_pages",
+  // A standing arrangement and the things it bills for. Two tables rather than
+  // one because an amount on the parent would have to be kept in step with
+  // lines that can be edited; lib/sonara-recurring-invoices.cjs totals from the
+  // lines, so a disagreement between them is impossible rather than unlikely.
+  "recurring_invoices",
+  "recurring_invoice_lines",
   // Seven more the runtime reads and this contract had never named. They were
   // invisible because the scan below read server.js and routes/ and not lib/,
   // where the record pages, the record checks and the labour costing live.

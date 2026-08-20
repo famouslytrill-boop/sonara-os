@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 4042 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 4045 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 98 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 99 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
-- 208 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 210 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,82 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-20 — Standing arrangements, and the bill that walks out of February
+
+A business on retainers types the same invoice every month. It is both the most
+boring thing it does and the one most likely to be forgotten in a busy month,
+and a forgotten invoice is a month of work given away.
+
+`/business-builder/owner/recurring` holds the arrangement;
+`lib/sonara-recurring-invoices.cjs` works out when the next one is due and what
+goes on it.
+
+## The trap this exists for
+
+"The 31st of every month" is wrong in two directions at once, and both are
+silent. Advance 31 January by a month and February clamps it to the 28th.
+Advance **that** by a month and you get 28 March, then 28 April — a monthly bill
+that has moved three days earlier and will never come back. The contract says
+the 31st and the paperwork says the 28th, and nobody notices for a year.
+
+So the **anchor** is stored and never the clamped result: every issue date is
+computed from the anchor against the target month. `'last'` is a value in its
+own right rather than a synonym for 31, because a business billing on the last
+day of the month means that in April too.
+
+`lib/sonara-agent-schedule.cjs` dodges all of this by capping `day_of_month` at
+28, which is right for a weekly digest and wrong for money.
+
+## It will not catch up, and it will not send
+
+Three unrun months produce **one** invoice, dated when it was due — not three
+landing at once on a customer who may have settled two of them by hand. There is
+no way for software to know which.
+
+Everything produced is a **draft**. An invoice leaving for a customer is the
+business's decision, and the record checks already report drafts that have been
+sitting, so a draft nobody sends is visible rather than lost.
+
+Issuing is a button rather than a scheduled job. The agent schedule menu is
+restricted to actions that read and report; creating an invoice against a
+customer is a change, and a business should see what is about to be billed
+before it is. The arithmetic is the same either way, so putting it on a timer
+later is a registration and not a rewrite.
+
+## Ordering, and the index behind it
+
+`last_issued_on` is written **after** the invoice exists, never before. The
+other order means a failed insert still moves the arrangement on, and that
+period is never billed by anybody — the quiet failure, because nobody complains
+about an invoice they did not receive.
+
+A unique index on `(recurring_invoice_id, issued_on)` is the second line of
+defence. When it fires, the route treats the 409 as *already done* rather than
+as a failure to report: nothing is wrong and nothing was billed twice.
+
+The invoice number is left **null**. There is no numbering scheme here — no
+sequence, no per-organization counter, no agreed format — and a made-up number
+disagrees with whatever the business already uses on paper. A duplicate invoice
+number is an accounting problem rather than a cosmetic one.
+
+## Two things this session got wrong
+
+**A container reset lost the whole first attempt.** The container came back on
+an older snapshot with a different HEAD and two modified files nobody in this
+session had touched. The remote had all five earlier commits; the local
+remote-tracking ref was simply stale until fetched. The stale artifacts were
+backed up and discarded rather than committed, and the recurring-invoice work
+was rebuilt. The lesson is the one already in the check-in notes: **fetch before
+believing the local ref**, and commit sooner.
+
+**A test asked the wrong question of the schema.** It used `describedColumns` to
+check that `customer_invoices.recurring_invoice_id` exists. That function
+deliberately omits columns added by a later `alter table` — it exists to render
+form fields and will not guess a type it never read — so it reported a column
+that is really there as absent. `hasColumn` is the existence check. The parser
+was right and documented; the test was wrong.
+
 
 ### 2026-08-20 — Bringing a spreadsheet in
 

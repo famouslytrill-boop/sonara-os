@@ -382,9 +382,23 @@ describe("the server.js split stays safe", () => {
     // is a declarative table of record types with no notion of a two-step form
     // that previews before it writes. Threading it through there would mean
     // teaching that table about a flow only one page has.
+    //
+    // Raised to 4045 on 20 August 2026, by 3, and this is the fifth exception.
+    // A require, a blank line, and a one-line registration for
+    // routes/sonara-recurring-invoice-routes.cjs, which serves
+    // /business-builder/owner/recurring. Same shape as the fourth: the owner
+    // record pages are a declarative table of record types, and a standing
+    // arrangement is two tables plus arithmetic that produces rows in a third.
+    //
+    // Five exceptions in four days is worth noticing rather than defending.
+    // Every one has been two bracketing lines for a route module holding all
+    // its own behaviour, which is the shape the ceiling wants; what it has not
+    // done is come back down. The next reduction should be real -- something
+    // moved out of server.js -- rather than another registration paying for
+    // itself with a comment.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4042,
+      lines <= 4045,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

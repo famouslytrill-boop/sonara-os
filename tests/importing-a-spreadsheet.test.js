@@ -21,7 +21,7 @@ const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
 const registerImportRoutes = require("../routes/sonara-import-routes.cjs");
-const { describedColumns } = require("../lib/sonara-migration-columns.cjs");
+const { hasColumn, tableColumns } = require("../lib/sonara-migration-columns.cjs");
 
 const ORG = "a1a1a1a1-0000-4000-8000-00000000001a";
 const USER = "b2b2b2b2-0000-4000-8000-00000000002b";
@@ -72,10 +72,12 @@ describe("bringing a spreadsheet in", () => {
       // Seventeen owner forms once shipped sending a column that did not exist;
       // every save failed in production while the tests passed against a stub.
       // This reads supabase/migrations instead of trusting the list.
-      const available = (describedColumns("customers") || []).map((column) => column.name);
-      assert.ok(available.length > 0, "no columns found for customers, so this check is looking at nothing");
+      // hasColumn rather than describedColumns: the latter omits columns
+      // added by a later `alter table`, so it reports a column that is really
+      // there as absent.
+      assert.ok((tableColumns("customers")?.size || 0) > 0, "no columns found for customers, so this check is looking at nothing");
       for (const field of registerImportRoutes.CUSTOMER_FIELDS) {
-        assert.ok(available.includes(field.column), `customers has no column ${field.column}`);
+        assert.ok(hasColumn("customers", field.column), `customers has no column ${field.column}`);
       }
     });
 
