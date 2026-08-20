@@ -34,10 +34,35 @@ and `supabase/migrations/20260812120000_retire_removed_catalog_products.sql`
 retires their published rows, because `/service-catalog` merges the database
 over the code and would otherwise have gone on serving all eleven.
 
-**The one thing still unproven:** nobody has completed a paid signup in
-production end to end. `positiveSubscribedUserTest` reports `"pending"` on every
-deploy and should keep reporting it until somebody runs one. Every paid product
-depends on that path, and it is the last genuine unknown in it.
+**The one thing still unproven,** stated precisely because the looser version was
+wrong. This document said until 20 August 2026 that "nobody has completed a paid
+signup in production end to end". Read against the live Stripe account, somebody
+did:
+
+| What happened | When | Outcome |
+| --- | --- | --- |
+| `ch_3TTE970dKtlEU3lA1AhwsqRQ`, $9.99, prepaid card | 30 Apr 2026 | **Succeeded**, subscription created, then fully refunded |
+| `sub_1TTE9A0dKtlEU3lAzDzMonyq` on a $9.99 price | 30 Apr 2026 | Cancelled **29 minutes** after it was created |
+| `py_3TjPg00dKtlEU3lA08bSZpcL`, $7.00, via Link | 17 Jun 2026 | **Failed** -- insufficient funds |
+
+So the charge path, the subscription creation and the refund all work, and have
+been observed working. Four things are still true and are what the pending status
+actually means:
+
+- **Both customers are the owner.** One email across both, one postal code. No
+  third party has ever attempted a purchase.
+- **Neither price still exists.** The $9.99 and the $7.00 are both `active: false`
+  and predate the August ladder. **No plan currently on the pricing page --
+  $19, $39 or $79 -- has ever been bought.**
+- **Net revenue is zero, and the balance is negative.** The one successful charge
+  was refunded; the processing fee on it was not. The account balance is
+  **-$0.67**.
+- **The entitlement half was never observed.** A subscription that lives 29
+  minutes and is refunded does not demonstrate that a paid plan opens a workspace
+  and keeps it open across a renewal.
+
+`positiveSubscribedUserTest` should keep reporting `"pending"` until a purchase on
+a current price is made and left running.
 
 ---
 
