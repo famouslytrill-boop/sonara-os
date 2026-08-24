@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-20 — The rota as a week, and the hours a booking page is quietly refusing
+
+`/business-builder/owner/schedules` lists shifts, which answers "what have I
+entered" and not "who is on next Tuesday". That was a convenience gap until the
+public booking page shipped. It became a correctness one the moment staffing
+landed.
+
+**A staffed booking page only offers a slot when somebody is rostered for the
+whole of it.** So a business that ticked "book a member of staff" and then left
+a Tuesday empty has a page quietly showing that Tuesday as unavailable — and it
+does not read as closed to a customer, it reads as **full**. No screen anywhere
+said so.
+
+`/business-builder/owner/schedules/week` is the fix, and the coverage half is
+the point: the hours a business says it is open with nobody rostered, named by
+day, with the sentence saying what the booking page is doing about them.
+
+## Three pieces of arithmetic
+
+**A day is not always 24 hours.** The end of a local day is the next local
+midnight, asked of the zone rather than added.
+
+**A shift can span two local days.** 23:00 to 02:00 appears on both, clipped to
+each, counted once, and rendered as ending at `24:00` rather than `00:00` —
+which otherwise reads as ending before it started.
+
+**Two people at once is one hour of opening covered, and two hours worked.**
+Coverage is a union; hours are a sum.
+
+`gaps` is `null`, never `[]`, when the business has not said when it is open. An
+empty list reads as "fully covered", which would be a claim nothing checked.
+
+## Ten probes, and the two that did not fire
+
+Five against the module and five against the page. Eight failed the tests as
+they should. **Two did not, and both were the test being weaker than it claimed
+rather than the code being wrong** — which is the whole reason to run them.
+
+**Removing the interval merge changed nothing.** `subtractIntervals` is already
+overlap-tolerant, so merging is normalisation at that call site and not
+correctness. The "two people at once" test was really exercising subtraction.
+It now asserts `peopleOnAtOnce`, which the union genuinely decides, and the
+comment says which half proves what.
+
+**Ending a day by adding 86400000 also changed nothing**, because no fixture sat
+near a daylight-saving midnight. There is now a shift on the last hour of the
+25-hour Sunday in October, which the broken version drops out of the week
+entirely. Re-probed: it fails by name.
+
+## A note on the server.js ceiling
+
+Raised to 4048 — the **sixth** exception, each one a require, a blank line and a
+one-line registration. The fifth's note said the next reduction should be real
+rather than another registration paying for itself with a comment. It still
+says that, and this is not it. Six exceptions and no reduction is a ceiling that
+has stopped ratcheting: it now measures how often a new top-level page is added,
+which is not what it was for. **Before a seventh, move something out.**
+
+
 ### 2026-08-20 — Standing arrangements, and the bill that walks out of February
 
 A business on retainers types the same invoice every month. It is both the most
