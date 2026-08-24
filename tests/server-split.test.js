@@ -407,9 +407,24 @@ describe("the server.js split stays safe", () => {
     // has stopped ratcheting. The honest reading is that the ceiling now
     // measures how often a new top-level page is added, which is not what it
     // was for. Before a seventh, move something out.
+    //
+    // Then down to 3935 on 24 August 2026, which is that reduction: the
+    // Business Builder employee invite lifecycle -- create, email, accept --
+    // moved whole to lib/sonara-business-employee-invites.cjs, 112 lines out of
+    // this file for a ten-line factory call, plus the `crypto` require that
+    // had no other user left. It was chosen over larger
+    // candidates because it is the one with a security story to hold: a token
+    // that is hashed and never stored, an email that has to match the invite,
+    // an expiry with its own status code, and a refusal to let an owner set an
+    // employee's password. tests/an-employee-invite-is-a-credential.test.js
+    // holds all four, which nothing did while it lived here.
+    //
+    // The ceiling comes down with it rather than staying where it was, because
+    // a ceiling left above the current count is headroom nobody decided to
+    // grant.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4048,
+      lines <= 3935,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

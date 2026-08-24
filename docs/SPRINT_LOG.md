@@ -2,6 +2,50 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-24 — The ceiling comes down, and the invite flow gets a test
+
+The `server.js` ceiling had taken **six exceptions in a week with no reduction
+between them**, which meant it had stopped measuring what it was for and started
+measuring how often a page gets added. The fifth and sixth both said the next
+move should be a real reduction. This is it.
+
+**The Business Builder employee invite lifecycle** — create, email, accept —
+moved whole to `lib/sonara-business-employee-invites.cjs`. 113 lines out of
+`server.js` for a ten-line factory call, and the ceiling came **down** with it,
+from 4048 to 3935. A ceiling left above the current count is headroom nobody
+decided to grant.
+
+It was chosen over larger candidates because it is the one with a security story
+to hold, and **nothing tested it while it lived in `server.js`**:
+
+- **The owner never sets a password.** Three field names are refused outright
+  rather than ignored, because an owner who can set an employee's password can
+  sign in as them, and every audit trail after that is wrong about who did the
+  work.
+- **The token is never stored.** The table holds a hash; the raw token exists
+  only in the link. The test recomputes the hash from the token in the outgoing
+  email and asserts it matches the stored one — so it catches both a raw token
+  written to the table *and* a hash of something else, which would mean no
+  invite could ever be accepted.
+- **The email has to match the invite.** A token is a bearer credential;
+  without this, anybody who saw the link takes the seat.
+- **An expired invite is refused with its own status code**, so the page can
+  offer a new one rather than claiming the token was wrong.
+
+Six probes against those guarantees, all firing. Two more properties came out of
+writing it: the audit log records the email **domain** and not the address, and
+a failure to create the account stops the membership being written — a workspace
+seat given to an account that does not exist.
+
+One thing the test found that was **not** a defect: an empty role defaults to
+`employee`. That is correct — no role given should grant the least — so it is
+now pinned explicitly rather than lumped in with the refusals. A default of
+`manager` is what a hole there would look like.
+
+`crypto` was left unused in `server.js` once the block moved, which lint caught
+and which is the one dependency that came out with it.
+
+
 ### 2026-08-24 — A person can only be in one place
 
 A business with two sites and one booking page was offering a slot at the shop
