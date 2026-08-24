@@ -6,6 +6,7 @@
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
 const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
+const { applyPreset, describe: describePreset } = require("../lib/sonara-tool-presets.cjs");
 const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
 const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 
@@ -290,17 +291,25 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     );
   }
 
-  function toolFormCard(tool) {
+  // `values` prefills the form from a saved result. Empty by default, so a
+  // tool opened without one renders exactly as it always did.
+  //
+  // A field with no value is left blank rather than defaulted -- see
+  // lib/sonara-tool-presets.cjs for why a silent zero here is worse than an
+  // empty box.
+  function toolFormCard(tool, values = {}) {
+    const has = (name) => Object.prototype.hasOwnProperty.call(values, name);
     const fields = tool.fields
       .map((field) => {
         if (field.type === "select") {
-          const options = field.options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("");
+          const options = field.options.map((option) =>
+            `<option value="${escapeHtml(option.value)}"${has(field.name) && String(values[field.name]) === String(option.value) ? " selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
           return `<label>${escapeHtml(field.label)}<select name="${escapeHtml(field.name)}"${field.required ? " required" : ""}>${options}</select></label>`;
         }
         if (field.type === "textarea") {
-          return `<label>${escapeHtml(field.label)}<textarea name="${escapeHtml(field.name)}" rows="${field.rows || 4}"${field.required ? " required" : ""}></textarea></label>`;
+          return `<label>${escapeHtml(field.label)}<textarea name="${escapeHtml(field.name)}" rows="${field.rows || 4}"${field.required ? " required" : ""}>${has(field.name) ? escapeHtml(String(values[field.name])) : ""}</textarea></label>`;
         }
-        return `<label>${escapeHtml(field.label)}<input name="${escapeHtml(field.name)}" type="${escapeHtml(field.type || "text")}"${field.required ? " required" : ""}></label>`;
+        return `<label>${escapeHtml(field.label)}<input name="${escapeHtml(field.name)}" type="${escapeHtml(field.type || "text")}"${has(field.name) ? ` value="${escapeHtml(String(values[field.name]))}"` : ""}${field.required ? " required" : ""}></label>`;
       })
       .join("");
     return `<article class="card">
@@ -310,6 +319,40 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       <button type="submit">${escapeHtml(tool.submitLabel)}</button>
     </form>
   </article>`;
+  }
+
+  // One saved result's inputs, scoped twice.
+  //
+  // Both filters matter and for different reasons. organization_id is the
+  // tenant boundary -- the service key bypasses row level security, so without
+  // it an id from another business would fetch that business's numbers.
+  // module_key stops a saved break-even filling in the reorder-point form,
+  // which would look like the tool working and produce an answer from figures
+  // that mean something else.
+  async function readSavedInput(req, tool, id) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
+      return { ok: false, payload: null, reason: "That is not a saved result." };
+    }
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : { ok: false };
+    if (!config?.ok) return { ok: false, payload: null, reason: "We could not reach your saved results just now, so nothing has been filled in." };
+
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraUser || null, { autoBootstrap: false }).catch(() => null)
+      : null;
+    if (!org?.ok || !org.organizationId) return { ok: false, payload: null, reason: "We could not work out whose saved results to look in, so nothing has been filled in." };
+
+    const path = `/rest/v1/module_outputs?id=eq.${encodeURIComponent(id)}`
+      + `&organization_id=eq.${encodeURIComponent(org.organizationId)}`
+      + `&module_key=eq.${encodeURIComponent(tool.module)}`
+      + `&select=input_payload&limit=1`;
+    const response = await fetch(`${config.url}${path}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!response?.ok) return { ok: false, payload: null, reason: "We could not read that saved result, so nothing has been filled in." };
+    const rows = await response.json().catch(() => null);
+    // PostgREST answers 200 with an empty array when the filter matched nothing,
+    // which is what another business's id looks like. Not an error, and not a
+    // reason to say anything about whose it might be.
+    if (!Array.isArray(rows) || !rows.length) return { ok: false, payload: null, reason: "That saved result is not one of yours for this tool." };
+    return { ok: true, payload: rows[0]?.input_payload ?? null, reason: null };
   }
 
   function yesNoField(name, label) {
@@ -778,6 +821,12 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   app.locals.sonaraFreeTools = TOOLS.map((tool) => ({
     path: tool.path,
     title: tool.title,
+    // The module key a saved result carries. Exposed so the saved-results list
+    // can link a result back to the tool that made it -- a module_key does not
+    // contain its own URL, and a path constructed from one would 404 the day a
+    // tool moves. Derived from this table, which is the table that registers
+    // the routes.
+    module: tool.module,
     requiredFields: [...(tool.requiredFields || [])],
     fields: (tool.fields || []).map((field) => field.name)
   }));
@@ -813,6 +862,38 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         : { ok: false };
       if (session.ok && session.user) req.sonaraUser = session.user;
       const signedIn = Boolean(req.sonaraAccess || req.sonaraUser);
+
+      // Filling the form in from a result this customer saved earlier.
+      //
+      // module_outputs has always stored input_payload beside output_payload
+      // and nothing ever read it back, so this is a column being used rather
+      // than a feature being stored. The read is scoped to the caller's own
+      // organization AND to this tool's module_key: a saved result from another
+      // business, or from a different tool, finds nothing rather than filling
+      // somebody's numbers into the wrong form.
+      let preset = null;
+      const reuse = String(req.query?.reuse || "");
+      if (reuse && signedIn) {
+        const saved = await readSavedInput(req, tool, reuse);
+        preset = saved.ok
+          ? applyPreset({ fields: tool.fields, payload: saved.payload })
+          // A failed read must not render an empty form as though no preset was
+          // asked for -- somebody would type it all again believing it had not
+          // been saved.
+          : { ok: false, values: {}, filled: [], missing: [], ignored: [], complete: false, reason: saved.reason };
+      }
+
+      const presetCards = [];
+      if (preset) {
+        presetCards.push(brandCard(preset.ok && preset.filled.length ? "Your numbers from last time" : "Not filled in", describePreset(preset)));
+        if (preset.ok && preset.ignored.length) {
+          presetCards.push(brandCard(
+            "Some of what you saved is not on this tool any more",
+            `${preset.ignored.join(", ")}. Nothing was filled in from ${preset.ignored.length === 1 ? "it" : "them"}. This tool has changed since you saved that result.`
+          ));
+        }
+      }
+
       res.status(200).type("html").send(
         layout({
           title: tool.title,
@@ -823,7 +904,8 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
             signedIn
               ? accessCard(req.sonaraAccess)
               : brandCard("No account needed", "Fill this in and you get the answer. Creating a free account is what saves it, so you can come back to it and track it."),
-            toolFormCard(tool)
+            ...presetCards,
+            toolFormCard(tool, preset?.values || {})
           ],
           actions: signedIn
             ? [

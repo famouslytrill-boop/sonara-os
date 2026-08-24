@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 99 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
-- 212 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 214 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,80 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-20 — Saved presets, which turned out to be a column nobody read
+
+The last item on the list. It needed no table.
+
+`module_outputs` has carried **`input_payload` beside `output_payload` since it
+was created**, so every saved result already holds the numbers that produced it.
+Nothing had ever read them back — the saved-results list selects
+`id, module_key, created_at, output_payload` and stops. "Saved tool presets" was
+a column to use, not a feature to store.
+
+A saved result now carries **Use these numbers again**, which reopens its tool at
+`?reuse=<id>` with the form filled in.
+
+## Why a partial fill has to announce itself
+
+A tool's fields change. A payload saved in July can carry a field since renamed
+and miss one added since. Filling in what matches and staying quiet is the
+dangerous version: somebody recognises the form, sees their old numbers, presses
+the button, and gets an answer computed partly from a blank they never noticed.
+A break-even from a silent zero is a *confident* wrong answer.
+
+So `applyPreset` names both sides. `missing` is what the tool needs and the
+payload cannot fill — never defaulted. `ignored` is what the payload carried
+that the tool no longer has, reported rather than dropped, because it is how
+somebody learns the tool changed rather than that they mistyped.
+
+Zero and false survive; null, empty and NaN do not. A structure is refused
+rather than rendered — guessing puts `[object Object]` into a box somebody then
+submits. And a **select is only filled from one of its own options**, because a
+select whose value is not in its list renders as the first option, silently
+turning a stale answer into a different plausible one.
+
+## Two filters, two different jobs
+
+`organization_id` is the tenant boundary — the service key bypasses row level
+security, so without it an id from another business fetches that business's
+figures into this customer's form. `module_key` stops a saved break-even filling
+the reorder-point form, which would look like the tool working while answering
+from numbers that mean something else. Another business's id and one that does
+not exist are answered identically.
+
+## Ten probes, and the two that did not fire — again
+
+Five against the module, all firing. Five against the wiring, of which **two
+passed**, and both were the test asserting an outcome that a *different* layer
+already guaranteed:
+
+- "Refuses a bad reuse value **before it reaches a query**" passed with the
+  shape check removed, because `encodeURIComponent` already stops a crafted
+  value changing the query — an appended `&limit=99` becomes part of one filter
+  value and matches nothing. What the shape check uniquely buys is **not making
+  the round trip**, so the test now asserts no query was issued.
+- "Does not read anything when no preset was asked for" passed with the `reuse
+  &&` guard removed, because the shape check catches the empty string first. The
+  guard actually earns its place in *rendering*: without it a signed-in customer
+  opening a tool normally is told their numbers were not filled in. That is what
+  the new test asserts.
+
+Both re-probed and both now fail by name. This is the third session running
+where probes found a test weaker than its own name — it is the single highest-
+yield habit in this repository.
+
+## Two process notes
+
+**A second container reset** destroyed the in-flight rota work, exactly as the
+first did. Everything since is committed module-first, before the wiring.
+
+**`pnpm run lint | tail -3` reports success when lint fails.** A pipeline exits
+with the status of its *last* command, so the `&&` after it ran on `tail`'s
+success and a commit went out over two lint warnings. Fixed and amended. It is
+the same defect this codebase is built to hunt, in the shell rather than in the
+product: judge by exit code, never by what scrolled past.
+
 
 ### 2026-08-20 — The rota as a week, and the hours a booking page is quietly refusing
 
