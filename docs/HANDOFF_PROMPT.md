@@ -125,6 +125,52 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-24 — A person can only be in one place
+
+A business with two sites and one booking page was offering a slot at the shop
+to somebody rostered at the depot. `location_id` has existed on
+`employee_schedules`, `business_service_catalog` and `business_bookings` since
+migration 013, and availability read **none of them**.
+
+## The rule, and which way it fails
+
+- A service that names **no** location is done by anybody rostered. Unchanged,
+  and that is every single-site business.
+- A service that names a location needs a shift **at that location**.
+- A shift with **no** location does **not** count towards a service that names
+  one.
+
+That last one is the load-bearing choice, and it is deliberate. A business part
+way through naming locations — on services but not yet on shifts — sees *less*
+availability rather than somebody sent to the wrong site. It fails the same
+direction every other decision in that module does, and `shiftsElsewhere` is
+returned so the drop is explicable rather than mysterious.
+
+The two empty states are told apart, because a business can only fix the one it
+is actually in: **"nobody is on the rota"** and **"nobody on the rota is working
+where this service happens"** send somebody to different screens.
+
+## The one place location is deliberately ignored
+
+Whether a person is already booked. A person booked at the depot at ten is not
+available at the shop at ten — they cannot be in two places — so the
+already-booked check stays location-agnostic. Filtering it by site would sell
+the same person to both, which is the exact failure this feature exists to stop.
+There is a test for it, and the probe that adds the filter fails by name.
+
+## Three reads, any one of which makes the rule inert
+
+The rota, the catalogue and the diary all had to start selecting `location_id`.
+An unread location is indistinguishable from no location, which is what the code
+did before — so a test asserts all three queries carry it. The probe that drops
+it from just the rota fails.
+
+The booking now records where it is, taken from the service and never from the
+request; a test asserts the source contains no `location_id: req.`.
+
+Five probes, all firing.
+
+
 ### 2026-08-20 — Saved presets, which turned out to be a column nobody read
 
 The last item on the list. It needed no table.

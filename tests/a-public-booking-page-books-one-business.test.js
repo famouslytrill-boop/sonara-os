@@ -44,6 +44,10 @@ const STAFFED_SERVICE = "a7a7a7a7-0000-4000-8000-00000000007a";
 const ALEX = "b8b8b8b8-0000-4000-8000-00000000008b";
 const SAM = "c9c9c9c9-0000-4000-8000-00000000009c";
 
+const SHOP = "aaaa1111-0000-4000-8000-0000000000a1";
+const DEPOT = "bbbb2222-0000-4000-8000-0000000000b2";
+const SHOP_SERVICE = "cccc3333-0000-4000-8000-0000000000c3";
+
 const OTHER_CUSTOMER = "Nadia Okonkwo";
 const OTHER_PHONE = "555-PRIVATE-9999";
 const OTHER_NOTE = "ALWAYS-LATE-DO-NOT-CONFIRM";
@@ -91,14 +95,16 @@ function seed() {
     employee_schedules: [
       // Both rostered across the whole window, so a slot's availability turns
       // on who is booked rather than on who happens to be working that day.
-      { id: "sh-1", organization_id: STAFFED_ORG, employee_id: ALEX, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "scheduled" },
-      { id: "sh-2", organization_id: STAFFED_ORG, employee_id: SAM, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "confirmed" }
+      { id: "sh-1", organization_id: STAFFED_ORG, employee_id: ALEX, location_id: SHOP, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "scheduled" },
+      { id: "sh-2", organization_id: STAFFED_ORG, employee_id: SAM, location_id: DEPOT, starts_at: "2020-01-01T00:00:00.000Z", ends_at: "2100-01-01T00:00:00.000Z", status: "confirmed" }
     ],
     business_service_catalog: [
       { id: SERVICE, organization_id: ORG, name: "Boiler service", description: "A yearly check.", duration_minutes: 60, price_cents: 9000, currency: "gbp", status: "active" },
       { id: NO_DURATION_SERVICE, organization_id: ORG, name: "Something with no length", description: "", duration_minutes: null, price_cents: 5000, currency: "gbp", status: "active" },
       { id: OTHER_SERVICE, organization_id: OTHER_ORG, name: "Another firm's job", description: "", duration_minutes: 30, price_cents: 1000, currency: "gbp", status: "active" },
-      { id: STAFFED_SERVICE, organization_id: STAFFED_ORG, name: "Leak repair", description: "", duration_minutes: 60, price_cents: 12000, currency: "gbp", status: "active" }
+      { id: STAFFED_SERVICE, organization_id: STAFFED_ORG, name: "Leak repair", description: "", duration_minutes: 60, price_cents: 12000, currency: "gbp", status: "active" },
+      // Done at the shop only. Alex is rostered at the shop, Sam at the depot.
+      { id: SHOP_SERVICE, organization_id: STAFFED_ORG, name: "Counter service", description: "", duration_minutes: 60, price_cents: 4000, currency: "gbp", status: "active", location_id: SHOP }
     ],
     business_bookings: [
       {
@@ -410,6 +416,41 @@ describe("a public booking page books one business", () => {
     });
   });
 
+  describe("two sites and one booking page", () => {
+    it("books the person rostered where the service happens", async () => {
+      const page = await request(app).get(`/book/two-plumbers?service=${SHOP_SERVICE}`).set("accept", "text/html").redirects(0);
+      const match = /name="starts_at" value="([^"]+)"/.exec(page.text);
+      assert.ok(match, "a service at the shop offered no time, though somebody is rostered there");
+
+      const before = fake.queries.length;
+      await request(app).post("/book/two-plumbers").type("form")
+        .send({ service_id: SHOP_SERVICE, starts_at: match[1], customer_name: "Sam Visitor", customer_email: "sam@example.com" })
+        .redirects(0);
+      const writes = fake.queries.slice(before).filter((entry) => entry.method === "POST" && entry.table === "business_bookings");
+      assert.equal(writes.length, 1);
+      assert.equal(writes[0].body.assigned_employee_id, ALEX, "the appointment went to somebody rostered at the other site");
+      assert.equal(writes[0].body.location_id, SHOP, "the booking does not record where it is");
+    });
+
+    it("reads the location on the rota, the catalogue and the diary", async () => {
+      // Any one of the three missing makes the whole rule silently inert: an
+      // unread location is the same as no location, which is what it did before.
+      fake.reset();
+      await request(app).get(`/book/two-plumbers?service=${SHOP_SERVICE}`).set("accept", "text/html").redirects(0);
+      for (const table of ["employee_schedules", "business_service_catalog", "business_bookings"]) {
+        const read = fake.queries.find((entry) => entry.method === "GET" && entry.table === table);
+        assert.ok(read, `${table} was not read at all`);
+        assert.ok(/location_id/.test(read.search), `${table} is read without its location: ${read.search}`);
+      }
+    });
+
+    it("still offers a service that names no place to everybody rostered", async () => {
+      // Every single-site business, and the reason this changes nothing there.
+      const page = await request(app).get(`/book/two-plumbers?service=${STAFFED_SERVICE}`).set("accept", "text/html").redirects(0);
+      assert.match(page.text, /name="starts_at"/, "a service with no location stopped being bookable");
+    });
+  });
+
   describe("the source itself", () => {
     const source = require("node:fs").readFileSync(require.resolve("../routes/sonara-public-booking-routes.cjs"), "utf8");
 
@@ -428,6 +469,10 @@ describe("a public booking page books one business", () => {
 
     it("never takes the assignee from the request", () => {
       assert.doesNotMatch(source, /assigned_employee_id:\s*req\./, "a visitor can name the person who does the work");
+    });
+
+    it("never takes the location from the request", () => {
+      assert.doesNotMatch(source, /location_id:\s*req\./, "a visitor can name which site the appointment is at");
     });
   });
 });

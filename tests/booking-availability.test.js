@@ -16,6 +16,7 @@ const assert = require("node:assert/strict");
 const {
   WEEKDAY_NAMES,
   shiftSpans,
+  shiftServesLocation,
   freeStaffFor,
   blockingSpans: blockingSpansForStaff,
   knownZone,
@@ -477,6 +478,99 @@ describe("the times a stranger may book", () => {
         const result = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: bothOnShift(), now: MONDAY });
         const first = result.days[0].times[0];
         assert.ok(Array.isArray(first.freeStaff) && first.freeStaff.length > 0);
+      });
+    });
+
+    // A person can only be in one place.
+    //
+    // A business with two sites and one booking page was offering a slot at the
+    // shop to somebody rostered at the depot: location_id has existed on both
+    // employee_schedules and business_service_catalog since migration 013, and
+    // availability read neither.
+    describe("two sites", () => {
+      const SHOP = "aaaa1111-0000-4000-8000-0000000000a1";
+      const DEPOT = "bbbb2222-0000-4000-8000-0000000000b2";
+
+      function at(locationId, employeeId = ALEX) {
+        return { employee_id: employeeId, location_id: locationId, starts_at: "2026-06-01T08:00:00.000Z", ends_at: "2026-06-01T16:00:00.000Z", status: "scheduled" };
+      }
+
+      describe("whether a shift can do the work", () => {
+        it("lets any shift do a service that names no place", () => {
+          // Every single-site business, and why this changes nothing for them.
+          for (const locationId of [SHOP, null]) {
+            assert.equal(shiftServesLocation({ locationId }, null), true);
+          }
+        });
+
+        it("needs a shift at the service's own location", () => {
+          assert.equal(shiftServesLocation({ locationId: SHOP }, SHOP), true);
+          assert.equal(shiftServesLocation({ locationId: DEPOT }, SHOP), false);
+        });
+
+        it("does not let a shift with no location cover one that names a place", () => {
+          // The load-bearing choice. A business that has started naming
+          // locations on services and not on shifts sees less availability
+          // rather than somebody sent to the wrong site.
+          assert.equal(shiftServesLocation({ locationId: null }, SHOP), false);
+        });
+      });
+
+      it("offers a service only where somebody is rostered for it", () => {
+        const shifts = [at(SHOP)];
+        const atShop = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: SHOP, now: MONDAY });
+        const atDepot = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: DEPOT, now: MONDAY });
+        assert.ok(atShop.slots > 0, "a service was not offered where somebody is actually rostered");
+        assert.equal(atDepot.slots, 0, "a slot at the depot was offered to somebody rostered at the shop");
+      });
+
+      it("says nobody is working here, rather than nobody is working at all", () => {
+        // Two different gaps, and a business can only fix the one it is in.
+        const shifts = [at(SHOP)];
+        const elsewhere = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: DEPOT, now: MONDAY });
+        assert.match(elsewhere.reason, /working where this service happens/);
+        assert.equal(elsewhere.shiftsElsewhere, 1);
+
+        const nobody = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: [], serviceLocationId: DEPOT, now: MONDAY });
+        assert.match(nobody.reason, /Nobody is on the rota/);
+        assert.equal(nobody.shiftsElsewhere, 0);
+      });
+
+      it("keeps the two sites' diaries separate", () => {
+        const shifts = [at(SHOP, ALEX), at(DEPOT, SAM)];
+        const shop = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: SHOP, now: MONDAY });
+        const depot = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: DEPOT, now: MONDAY });
+        assert.equal(shop.days[0].times[0].freeStaff.length, 1);
+        assert.deepEqual(shop.days[0].times[0].freeStaff, [ALEX]);
+        assert.deepEqual(depot.days[0].times[0].freeStaff, [SAM]);
+      });
+
+      it("will not book somebody at the shop who is already booked at the depot", () => {
+        // A person cannot be in two places. Checking only same-site bookings
+        // would sell both, which is the failure this whole feature is about.
+        const shifts = [at(SHOP, ALEX), at(DEPOT, ALEX)];
+        const first = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: SHOP, now: MONDAY }).days[0].times[0];
+        const bookedAtDepot = [{ starts_at: first.startsAt, ends_at: first.endsAt, status: "confirmed", assigned_employee_id: ALEX, location_id: DEPOT }];
+        const check = isBookable({
+          page: staffedPage(), durationMinutes: 60, bookings: bookedAtDepot,
+          staffShifts: shifts, serviceLocationId: SHOP, startsAt: first.startsAt, now: MONDAY
+        });
+        assert.equal(check.ok, false, "one person was sold to two sites at the same hour");
+      });
+
+      it("changes nothing for a business whose services name no place", () => {
+        const shifts = [at(SHOP, ALEX), at(null, SAM)];
+        const withLocations = availableSlots({ page: staffedPage(), durationMinutes: 60, bookings: [], staffShifts: shifts, serviceLocationId: null, now: MONDAY });
+        assert.equal(withLocations.shiftsElsewhere, 0);
+        assert.deepEqual(withLocations.days[0].times[0].freeStaff.sort(), [ALEX, SAM].sort(),
+          "a service with no location stopped using every rostered person");
+      });
+
+      it("ignores location entirely when the page books the business as a whole", () => {
+        // An unstaffed page has no rota to consult, so a location cannot narrow
+        // anything -- and silently offering nothing would be the worse answer.
+        const unstaffed = availableSlots({ page: page(), durationMinutes: 60, bookings: [], staffShifts: [at(DEPOT)], serviceLocationId: SHOP, now: MONDAY });
+        assert.ok(unstaffed.slots > 0, "a sole trader's page went empty because a service named a location");
       });
     });
 

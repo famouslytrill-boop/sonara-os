@@ -153,7 +153,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
   // showing a service that cannot produce a single time is worse than not
   // showing it.
   async function readServices(config, organizationId) {
-    const path = `${CATALOG_TABLE}?organization_id=eq.${enc(organizationId)}&status=eq.active&select=id,name,description,duration_minutes,price_cents,currency&order=name.asc&limit=100`;
+    const path = `${CATALOG_TABLE}?organization_id=eq.${enc(organizationId)}&status=eq.active&select=id,name,description,duration_minutes,price_cents,currency,location_id&order=name.asc&limit=100`;
     const result = await rest(config, path);
     if (!result.ok) return { ok: false, rows: [] };
     return { ok: true, rows: result.rows.filter((row) => Number.isInteger(Number(row.duration_minutes)) && Number(row.duration_minutes) > 0) };
@@ -190,7 +190,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
     const { from, to } = overlapWindow(horizonDays);
     const path = `${BOOKINGS_TABLE}?organization_id=eq.${enc(organizationId)}&starts_at=lte.${enc(to)}`
       + `&or=(ends_at.gte.${enc(from)},ends_at.is.null)`
-      + `&select=starts_at,ends_at,status,assigned_employee_id&limit=1000`;
+      + `&select=starts_at,ends_at,status,assigned_employee_id,location_id&limit=1000`;
     return rest(config, path);
   }
 
@@ -206,7 +206,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
     // produced availability anyway.
     const { from, to } = overlapWindow(horizonDays);
     const path = `${SCHEDULES_TABLE}?organization_id=eq.${enc(organizationId)}&starts_at=lte.${enc(to)}&ends_at=gte.${enc(from)}`
-      + `&select=employee_id,starts_at,ends_at,status&limit=2000`;
+      + `&select=employee_id,starts_at,ends_at,status,location_id&limit=2000`;
     return rest(config, path);
   }
 
@@ -279,7 +279,10 @@ function registerPublicBookingRoutes(app, deps = {}) {
       page,
       durationMinutes: service.duration_minutes,
       bookings: capacity.bookings,
-      staffShifts: capacity.staffShifts
+      staffShifts: capacity.staffShifts,
+      // Where this service happens. A service that names no location is
+      // unchanged -- which is every single-site business.
+      serviceLocationId: service.location_id || null
     });
     if (!slots.ok || !slots.days.length) {
       return res.status(200).type("html").send(publicPage({
@@ -372,6 +375,7 @@ function registerPublicBookingRoutes(app, deps = {}) {
       durationMinutes: service.duration_minutes,
       bookings: capacity.bookings,
       staffShifts: capacity.staffShifts,
+      serviceLocationId: service.location_id || null,
       startsAt: String(req.body?.starts_at || "")
     });
     if (!check.ok) return res.redirect(303, `${back}&problem=taken`);
@@ -380,6 +384,10 @@ function registerPublicBookingRoutes(app, deps = {}) {
       // From the published page, never from the request.
       organization_id: page.organization_id,
       service_id: service.id,
+      // Where the appointment is, taken from the service rather than the
+      // request. A booking with no location on a business that runs two sites
+      // is one somebody has to ring up about.
+      location_id: service.location_id || null,
       customer_name: name,
       customer_email: isEmailLike(email) ? email : null,
       customer_phone: phone || null,
