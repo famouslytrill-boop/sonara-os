@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3935 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3833 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 99 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 35 public routes, 18 customer routes, 29 admin routes.
-- 215 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 216 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,65 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-24 — The tenant boundary was the least-tested thing here
+
+`createOrAttachOrganization` was the largest function left in `server.js` and
+**nothing tested it**. It is the code that decides which organization a customer
+belongs to — and since every read in this application is scoped by
+`organization_id` against a service-role key that bypasses row level security,
+that decision *is* the tenant boundary. It should have been the best-tested
+thing in the file.
+
+Moved to `lib/sonara-workspace-bootstrap.cjs` with the two product-path helpers
+only it used. `server.js` 3,934 → 3,832; the ceiling follows to 3,833. That is
+the second real reduction, after the first said the next one should be.
+
+## The guarantee, and why it is ordered the way it is
+
+**A customer who has an organization never gets a second one.** Two
+organizations for one customer is not a duplicate row — it is a customer whose
+records are split across two tenants with no way to see both at once, and no
+screen anywhere would say so. Each workspace looks perfectly normal and half the
+work is missing from it.
+
+The existence check runs **before** the insert. A test asserts the ordering
+rather than the outcome, because a check placed after the insert always passes:
+it finds the row it just wrote. The probe that reorders it fails.
+
+**The redirect path cannot be chosen by the request.** `productPath` is
+interpolated into where the browser goes next, so anything not on the list of
+three products becomes the shared dashboard. Tested with `//evil.example.com`
+and `https://evil.example.com`, asserting the route is never protocol-relative
+and never absolute.
+
+**Every failure names the service that failed** — `profiles`, `organizations`,
+`organization_memberships`, or Supabase itself. "Setup required" on its own
+sends an owner to read four migrations instead of one.
+
+## What it cannot guarantee, recorded rather than hidden
+
+The organization and the membership are **two writes with no transaction**
+between them, because PostgREST offers none. A membership failure leaves an
+organization with no owner, and the next attempt does not reuse it — the
+membership is what makes an organization the customer's, so
+`getCustomerPrimaryOrganization` finds nothing and a retry creates a second
+organization, abandoning the first.
+
+That is safe for the customer and leaves a row nobody owns. Fixing it properly
+needs a database function that writes both, which is a migration and a review
+rather than a refactor. It is written at the top of the module, where the person
+who can fix it will be standing.
+
+## One test that was weaker than its name
+
+"Refuses somebody who is not signed in" passed `undefined` through a helper with
+a default parameter, so `undefined` quietly became a signed-in user and that case
+proved nothing. The request is now built without the helper for that test, and a
+case was added for a request with no shape at all.
+
+Six probes against the module, all firing.
+
 
 ### 2026-08-24 — The ceiling comes down, and the invite flow gets a test
 

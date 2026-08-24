@@ -422,9 +422,20 @@ describe("the server.js split stays safe", () => {
     // The ceiling comes down with it rather than staying where it was, because
     // a ceiling left above the current count is headroom nobody decided to
     // grant.
+    //
+    // Then to 3833 on 24 August 2026, the second real reduction:
+    // createOrAttachOrganization -- the largest function left in this file, and
+    // untested -- moved to lib/sonara-workspace-bootstrap.cjs with the two
+    // product-path helpers only it used. It decides which organization a
+    // customer belongs to, and since every read is scoped by organization_id
+    // against a service key that bypasses row level security, that decision is
+    // the tenant boundary. tests/a-customer-gets-one-organization.test.js holds
+    // it now: one organization per customer, the existence check before the
+    // insert rather than after, and a redirect path that cannot be chosen by
+    // the request.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3935,
+      lines <= 3833,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

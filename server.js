@@ -51,6 +51,7 @@ const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
 const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
+const { createWorkspaceBootstrap } = require("./lib/sonara-workspace-bootstrap.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
@@ -255,6 +256,14 @@ const { createBusinessEmployeeInvite, acceptBusinessEmployeeInvite } = createBus
   getSupabaseAdminClient, supabaseHeaders, hashInviteToken,
   getPublicAppUrl, recordAdminAuditEvent, isSupabaseConfigured,
   createEmployeeAuthUser, splitList, getReadiness, getEnv
+});
+
+// Every dependency here is a hoisted function declaration, so this could sit
+// anywhere at module scope; it is next to the invite factory because both are
+// the same shape and reading them together is how the pattern stays obvious.
+const { createOrAttachOrganization } = createWorkspaceBootstrap({
+  getSupabaseAdminClient, upsertSetupProfile, getCustomerPrimaryOrganization,
+  insertSetupOrganization, insertSetupMembership, insertActivityEvent
 });
 // Static assets were served with `Cache-Control: public, max-age=0`, which is
 // express.static's default and means the browser revalidates every stylesheet,
@@ -2315,8 +2324,6 @@ async function getCommandCenterSummary(req) {
 }
 
 
-
-
 function businessEmployeeInviteForm() {
   return `<article class="card">
     <h2>Create employee invite</h2>
@@ -2467,98 +2474,6 @@ function organizationSetupForm() {
   </article>`;
 }
 
-async function createOrAttachOrganization(req) {
-  const user = req.sonaraUser;
-  if (!user?.id) return { status: 401, body: { ok: false, code: "authentication_required", message: "Login is required before organization setup." } };
-
-  const organizationName = String(req.body.organizationName || req.body.organization_name || "").trim();
-  const productPath = normalizeProductSetupPath(req.body.productPath || req.body.product_path);
-  if (organizationName.length < 2 || organizationName.length > 120) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter an organization name between 2 and 120 characters." } };
-  }
-
-  const config = getSupabaseAdminClient();
-  if (!config.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "supabase",
-        message: "Setup required: Supabase service-role server access is not configured. Add server-only Supabase environment variables in Vercel.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const profile = await upsertSetupProfile(config, user);
-  if (!profile.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "profiles",
-        message: "Setup required: the profiles table is unavailable or not migrated.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const existing = await getCustomerPrimaryOrganization(user);
-  if (existing.ok) {
-    return {
-      status: 200,
-      body: {
-        ok: true,
-        code: "organization_exists",
-        organizationId: existing.organizationId,
-        message: "Organization membership already exists. Continue to the selected workspace.",
-        nextPath: setupPathToRoute(productPath)
-      }
-    };
-  }
-
-  const organization = await insertSetupOrganization(config, user, organizationName, productPath);
-  if (!organization.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "organizations",
-        message: "Database connection is configured, but organization creation failed its schema compatibility check. An administrator must review the organizations table contract.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const membership = await insertSetupMembership(config, user.id, organization.id);
-  if (!membership.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "organization_memberships",
-        message: "Setup required: the organization_memberships table is unavailable or missing compatible columns.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  await insertActivityEvent(organization.id, user.id, "account.organization_created", { product_path: productPath });
-  return {
-    status: 200,
-    body: {
-      ok: true,
-      code: "organization_created",
-      organizationId: organization.id,
-      message: "Organization created and owner membership recorded.",
-      nextPath: setupPathToRoute(productPath)
-    }
-  };
-}
 
 async function upsertSetupProfile(config, user) {
   const records = [
@@ -2651,17 +2566,6 @@ async function insertSetupMembership(config, userId, organizationId) {
   return { ok: false };
 }
 
-function normalizeProductSetupPath(value) {
-  const normalized = String(value || "dashboard").trim().toLowerCase();
-  return ["business-builder", "creator-studio", "growth-studio", "dashboard"].includes(normalized) ? normalized : "dashboard";
-}
-
-function setupPathToRoute(value) {
-  if (value === "business-builder") return "/business-builder/dashboard";
-  if (value === "creator-studio") return "/creator-studio/dashboard";
-  if (value === "growth-studio") return "/growth-studio/dashboard";
-  return "/dashboard";
-}
 
 function slugify(value) {
   return String(value || "organization")
@@ -2818,7 +2722,6 @@ function isPlaceholderEmail(value) {
   const email = extractEmailAddress(value).toLowerCase();
   return isPlaceholderValue(email) || ["your-email@example.com", "you@example.com"].includes(email);
 }
-
 
 
 function isSupabaseConfigured() {
@@ -3396,8 +3299,6 @@ async function requireBusinessManager(req, res, next) {
 }
 
 
-
-
 async function verifyAdminRequest(req) {
   const candidates = [
     [getCookie(req, ADMIN_SESSION_COOKIE), "admin_cookie"],
@@ -3811,8 +3712,6 @@ async function getDatabaseContractSnapshot(config) {
 }
 
 
-
-
 async function getStorageBucketReadiness() {
   const config = getSupabaseServerConfig();
   if (!config.ok) {
@@ -3929,6 +3828,5 @@ function supabaseHeaders(config, options = {}) {
   if (options.prefer) headers.Prefer = options.prefer;
   return headers;
 }
-
 
 
