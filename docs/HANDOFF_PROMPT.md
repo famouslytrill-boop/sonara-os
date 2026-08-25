@@ -125,6 +125,83 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — A disposable-domain blocklist, and the rule that stops it blocking a country
+
+`tools/disposable-domains/` is a standalone Python project: a plain text list,
+one domain per line, lowercase, sorted, deduplicated, plus the tooling that
+keeps it that way. 8,354 domains, assembled from the CC0 upstream source
+registered here earlier today. Standard library only — pytest is the sole
+dependency and only for tests, because a maintenance script that stops running
+when a dependency moves is a list that stops being maintained.
+
+```
+make check     validate; non-zero if anything is wrong
+make fix       rewrite into canonical form
+make update    fetch upstream, verify, and only then save
+```
+
+`make` builds the virtual environment on first run, so there is no setup step
+to forget.
+
+## The rule that matters most
+
+**A public suffix must never be in the list.** `co.uk` is not a domain anybody
+registers; it is the boundary under which every British company registers, so
+an entry for it blocks a whole country. There are around ten thousand of these
+and most do not look like suffixes — `github.io`, `s3.amazonaws.com`,
+`blogspot.com`.
+
+`check` refuses any of them and **`fix` will not quietly delete one**. Removing
+an entry somebody deliberately added is a destructive change, so it takes
+`--drop-public-suffixes` and names each removal as it goes.
+
+The corollary is the part that would have been easy to get wrong: when no
+cached copy of Mozilla's list is available, the suffix rules are reported as
+**unchecked** rather than passed. A validator answering "clean" about the one
+rule that matters most, having never looked, is precisely the defect this
+codebase is organised against — and here it would have been that defect wearing
+a security feature.
+
+## Matching walks up the labels
+
+An entry for a provider has to catch every subdomain it hands out, because
+handing out `yourname.theirdomain.com` is exactly how a provider defeats a list
+that compares whole strings. It matches on **label boundaries**, so
+`notmailinator.com` is not caught by `mailinator.com` — a plain `endswith`
+would block somebody else's domain, and a probe confirms the test catches that.
+
+## What `update` refuses
+
+The failure worth designing against is not a network error; those are loud. It
+is a *successful* fetch of something wrong — a truncated body, an HTML error
+page with status 200, an upstream list that has been emptied. Written straight
+over the blocklist, any of those silently turns the protection off and nothing
+says so until the spam arrives.
+
+So a download is parsed, counted, validated and compared before it is kept. It
+is refused below 1,000 domains, refused if it is less than half the current
+size, and rolled back if the written file does not pass `check`.
+
+## An argparse trap worth knowing
+
+The shared flags (`--blocklist`, `--cache`, `--allow-unchecked-suffixes`) are
+stripped out of argv wherever they appear, before the subcommand is parsed. The
+obvious approach — declaring them on the top-level parser and again on each
+subparser via `parents=` — looks like it works and does not: the option is
+parsed twice, and the subcommand's copy lands last with its default, silently
+wiping a value given before the subcommand. That was caught by trying both
+orders rather than one. **A flag that is accepted, ignored and reported as
+absent is worse than one that is rejected.**
+
+44 tests, named after the failures rather than the functions. Four probes, all
+firing by name: nothing ever a public suffix, matching by string suffix instead
+of labels, every download acceptable, and a missing suffix list counting as
+clean.
+
+The shipped list has its own tests, including the single worst thing this file
+could do: `gmail.com`, `outlook.com`, `yahoo.com`, `icloud.com` and
+`protonmail.com` must not be in it.
+
 ### 2026-08-25 — A QR encoder, and the decoder that proves it works
 
 `lib/sonara-qr.cjs` turns a string into black and white modules.

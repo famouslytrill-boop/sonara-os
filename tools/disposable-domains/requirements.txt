@@ -1,0 +1,6 @@
+# Runtime: nothing. The tool uses only the standard library, on purpose --
+# a blocklist maintenance script that cannot run because a dependency moved
+# is a blocklist that stops being maintained.
+#
+# Tests only:
+pytest==8.3.4
