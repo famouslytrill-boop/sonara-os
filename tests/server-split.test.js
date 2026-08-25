@@ -439,9 +439,18 @@ describe("the server.js split stays safe", () => {
     // exception, and unlike the first six it is taken against a baseline 215
     // lines lower than where the run of exceptions started, which is the shape
     // this was meant to have: reduce, then spend a little of it.
+    //
+    // Then 3839 on 25 August 2026, by 3, for
+    // routes/sonara-lead-capture-routes.cjs -- nine routes behind one require
+    // and one registration line: the public /chat/:slug widget and the four
+    // Growth Studio owner pages that stand behind it. Eighth exception, and the
+    // same shape as the seventh: three lines here for around nine hundred that
+    // went straight into a route module rather than into this file. The ratchet
+    // is doing its job when a feature this size costs three lines; it would not
+    // be if the next one cost three hundred.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3836,
+      lines <= 3839,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

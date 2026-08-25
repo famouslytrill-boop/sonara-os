@@ -53,6 +53,7 @@ const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputC
 const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
 const { createWorkspaceBootstrap } = require("./lib/sonara-workspace-bootstrap.cjs");
 const registerLeadforgeRoutes = require("./routes/sonara-leadforge-routes.cjs");
+const registerLeadCaptureRoutes = require("./routes/sonara-lead-capture-routes.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
@@ -681,6 +682,8 @@ registerRecurringInvoiceRoutes(app, { layout, brandCard, linkAction, escapeHtml,
 registerRotaRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 
 registerLeadforgeRoutes(app, { escapeHtml });
+
+registerLeadCaptureRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that

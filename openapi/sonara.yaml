@@ -1675,6 +1675,46 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "303": { description: Browser form redirect back to the booking page settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-profile:
+    post:
+      operationId: saveLeadIdealCustomerProfile
+      tags: [Growth Studio]
+      summary: Save what a good customer looks like - the criteria every lead is scored against, and the questions the chat widget asks.
+      description: >-
+        A browser form, so every outcome is a 303 back to the settings page; a
+        refusal carries a `problem` query parameter naming what was wrong. A
+        blank criterion is not scored on rather than matching everybody, and a
+        smallest larger than a largest is refused because it would match nothing
+        while reading as a working filter.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the ideal customer settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-capture-page:
+    post:
+      operationId: saveLeadCapturePage
+      tags: [Growth Studio]
+      summary: Save this organisation's chat widget - its address, whether it is taking enquiries, and the words it opens and closes with.
+      description: >-
+        A browser form, so every outcome is a 303 back to the settings page.
+        Switching the widget on with no address is refused rather than published
+        as an address nobody can open, and an address already held by another
+        business is reported as taken rather than as a save that failed.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the chat widget settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-routing-rules:
+    post:
+      operationId: saveLeadRoutingRule
+      tags: [Growth Studio]
+      summary: Add or remove a rule deciding who gets a lead. Rules are tried in order and the first match wins.
+      description: >-
+        A browser form, so every outcome is a 303 back to the rules page. A
+        score range never matches a lead that has no score, which is a separate
+        condition; a rule naming somebody outside this organisation is refused.
+        Removing a rule is filtered on the organisation as well as the rule id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the lead routing rules, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/integrations/jobs:
     get:
       operationId: listIntegrationJobs

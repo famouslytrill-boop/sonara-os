@@ -48,7 +48,11 @@ const businessOperationsMigrationNames = [
   "20260820080000_recurring_invoices.sql"
 ];
 const growthStudioMigrationNames = [
-  "20260723120000_growth_studio_control_plane.sql"
+  "20260723120000_growth_studio_control_plane.sql",
+  // Defining a good customer, capturing one, scoring it, and giving it to
+  // somebody. growth_leads itself is canonical and predates all of this; these
+  // four are what turns a stranger into a row in it.
+  "20260825070000_lead_capture_scoring_and_routing.sql"
 ];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
@@ -170,7 +174,15 @@ const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_jobs",
   "growth_metric_snapshots",
   "growth_experiment_variants",
-  "growth_control_events"
+  "growth_control_events",
+  // What a good customer looks like, the front door, one visitor's
+  // conversation, and who gets the lead. Read by
+  // routes/sonara-lead-capture-routes.cjs -- the public /chat/:slug widget and
+  // the Growth Studio owner pages behind it.
+  "lead_icp_profiles",
+  "lead_capture_pages",
+  "lead_conversations",
+  "lead_routing_rules"
 ]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",

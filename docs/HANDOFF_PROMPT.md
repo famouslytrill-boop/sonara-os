@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3836 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3839 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 99 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 100 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 217 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 221 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,129 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-25 — The LeadForge page's promises, built
+
+`/leadforge` described a system that finds, enriches, scores, routes and
+activates leads. This is that system, for real, inside Growth Studio. Four pure
+modules, four tables, nine routes.
+
+## The formula had been handing off the only hard part
+
+`lib/sonara-formula-library.cjs` has carried this since it was written:
+
+```
+lead_score = fit_score + urgency_score + engagement_score - risk_score
+```
+
+**All four are inputs.** Adding four numbers together is not lead scoring;
+working out what they are is, and nothing in this product ever did — so the
+formula has been arithmetic over figures somebody typed, presented as a model.
+It is the same shape as `reorder_point` taking `safety_stock` as an input, which
+`lib/sonara-inventory-science.cjs` exists to answer. This is the answer for
+`lead_score`.
+
+`lib/sonara-lead-scoring.cjs` computes all four from an ideal customer profile
+the business wrote down and the answers a lead gave. No model call, no provider,
+no network, no cost per use.
+
+## The rule that matters more than the arithmetic
+
+**An unanswered question is not a bad answer.** A lead who said "under 500" is a
+poor fit. A lead who was never asked is *unknown*, and if unknown scores zero
+then everybody who leaves early looks like somebody who does not qualify — the
+exact opposite of the truth about a stranger who arrived and started typing.
+
+So `fit` and `urgency` are `null` rather than `0`, and every score carries a
+`confidence` saying how much of the profile it stands on plus a `provisional`
+flag when that is under half. The pipeline shows both. A band with no working
+visible is worse than no band.
+
+**An empty profile does not match everybody.** With no criteria declared, fit is
+`null`, not 100 — a vacuous perfect fit on every visitor would be this
+codebase's signature defect wearing a sales number.
+
+One real bug found by writing the test: the range score tapered over one
+profile-width, so a team of one against a 5–200 range scored 98. One is close to
+five on the scale of 195 and not on the scale of five. It is proportional to the
+boundary now.
+
+## Never lose a lead deciding whose it is
+
+`lib/sonara-lead-routing.cjs`. A scored lead nobody owns is lost quietly — it
+sits in the list looking exactly like a lead somebody is working. Two failures
+it is built against:
+
+**A rule that names somebody who is away.** Stopping means the lead is never
+picked up; falling through silently means the business believes Priya is working
+leads she has never seen. It assigns by round robin anyway and records
+`fallback` naming the rule that could not be honoured. Work moves, record is
+true.
+
+**`null >= 0` is `true`.** A catch-all written as "score 0 or above" would
+swallow every lead the scorer could not score. Score conditions match only a
+lead with a real number; a rule that wants the others says `unscored: true`. A
+genuine zero still matches.
+
+Round robin counts open leads rather than keeping a pointer, because a pointer
+drifts the first time somebody joins or leaves and has no truth to be checked
+against. Capacity is a flag, not a veto: everybody full still gets the lead to
+whoever is least full, with `overCapacity` set — an unassigned lead is worse
+than an overloaded person.
+
+## The widget's questions are the profile's criteria
+
+`lib/sonara-lead-capture-script.cjs` has **no question list**. `questionsFor()`
+reads the profile and produces exactly what the scorer scores, and the test
+asserts the two sets are equal in *both* directions — the reverse being the one
+nobody checks. Probes confirm both: adding a question nothing scores fails, and
+so does dropping one that is scored.
+
+It is a script, not a model. Nothing calls a provider. A model here is a cost
+per conversation and a per-message safety question — somebody's widget saying
+something the business never authorised — and this product has decided neither
+on the customer's behalf. The page says it follows a script.
+
+Contact is asked last, so a visitor who leaves halfway has still told the
+business something, and the transcript is kept either way.
+
+## The front door, and why it is a frame
+
+`/chat/:slug` resolves exactly as `/book/:slug`: the slug finds one *enabled*
+row, that row names the organization, and the profile, rules, people and written
+lead are all filtered on it. The visitor never chooses an organization.
+
+The conversation is one question per POST, server-rendered. It works with
+JavaScript off, in a frame on somebody else's site, on one bar of signal.
+
+The owner is given an `<iframe>` snippet, not a `<script>` tag. A script would
+be this application running on somebody else's domain, with their visitors'
+cookies and their DOM, on every page it is pasted into. A frame shows the same
+conversation in a box that cannot read the host page and that the host page
+cannot read. It is the smaller promise and it is the one this can keep.
+
+A visitor is never shown the score, the band, the profile or who it went to.
+Somebody who could see the score would learn what this business is not
+interested in.
+
+## What was checked
+
+Full chain green, `verify:launch` exit 0. 2,767 tests. Eighteen probes across
+the four pieces, every one firing by name — including a conversation looked up
+by token alone, a switched-off page still resolving, a lead written before the
+conversation finished, and an unscored lead written as zero.
+
+Five gates needed feeding and all five were right: the Supabase contract (four
+new tables), OpenAPI (three POSTs), the tenant-scoped table list, the
+`server.js` ceiling (eighth exception, +3), and four derived document counts.
+
+**One thing the next person should not have to rediscover.** The reachability
+gate looked, at first, as though it could not fail: a route registered and
+linked from nothing still passed it. It is not broken.
+`/growth-studio/dashboard` builds its workspace nav from the route registry, so
+a new `navigationPlacement: "workspace"` route is linked the moment it is
+registered. That was worth an hour to establish rather than assume, and the
+answer is the reassuring one.
 
 ### 2026-08-25 — A LeadForge landing page, and the proof it refuses to invent
 
