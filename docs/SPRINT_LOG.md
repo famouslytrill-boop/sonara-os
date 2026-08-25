@@ -2,6 +2,77 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — The download routes, wired to something that reaches them
+
+The renderer from the previous entry produced a document nobody could ask for.
+This connects it at both ends: `GET /shared/:token/invoice.pdf` for the customer
+who was sent a link, and `GET /business-builder/owner/invoices/:recordId/pdf`
+for the business that raised the invoice. Same renderer for both, so the copy a
+customer files and the copy a business keeps cannot disagree about what the
+invoice says.
+
+## One resolution path, because the order is the security property
+
+`/shared/:token` resolves a public request in a fixed order: the token finds one
+`shared_links` row, that row names both the resource and the organization, and
+the resource is then read filtered on both. The public request never chooses an
+organization — it is told one.
+
+The PDF route needs exactly that, and the obvious way to write it was to write
+it again. Two copies would be two chances for one of them to be subtly less
+careful about the order, and the order is the whole tenant boundary here: the
+service-role key bypasses row level security, so the `organization_id` filter is
+not a refinement of the query, it *is* the check. So the sequence came out of
+the page handler into `resolveShared(token)` first, and both routes call it. The
+extraction was made behaviour-preserving before anything new was added.
+
+Three details that are not obvious from the diff:
+
+- The download is `Cache-Control: private, no-store`. A shared link is revocable,
+  and a document sitting in a shared cache is a revocation that did not happen.
+- A token that opens a *booking* answers the invoice route exactly as a token
+  that opens nothing does. Answering differently would turn the route into a way
+  to ask what kind of thing a token points at.
+- The filename is built from `invoice_number` with everything outside
+  `[A-Za-z0-9._-]` stripped, because that field is typed by a person and it ends
+  up in a `Content-Disposition` header.
+
+On the owner side, a failed read of the invoice lines returns 503 rather than a
+document. `lines.ok ? lines.rows : []` would have produced a PDF saying the
+invoice has nothing on it — and the business forwards that to their customer,
+which makes it worse than no file at all. Payments carry `paymentsRead` through
+to the settlement module for the same reason: a payments table that could not be
+read is "the balance is not known", never "nothing has been paid".
+
+## A route nothing links to is a route nobody finds
+
+The owner-side route existed for a while before anything pointed at it. That is
+its own kind of untrue signal — the capability is present, the tests pass, and
+no customer can reach it. Record pages now take an optional `download` field,
+and only `/business-builder/owner/receivables` declares one.
+
+The guard is `page.download && parent`: the second half matters because a record
+this page could not find already renders "that record is not in your business",
+and offering a download beside that sentence is two answers to one question with
+one of them wrong.
+
+## The probe that did not fire, and what it was hiding
+
+Three falsification probes were run against the new tests. Two fired by name
+immediately. The third — "offers no such file on a record page that has not
+declared one" — did not, and the reason is worth keeping.
+
+It asked for `/business-builder/owner/quotes/:id`. Quotes has no child table, so
+that detail route **is never registered**: the request 404s at the Express layer
+with an empty body, which contains no download link for reasons that have
+nothing whatever to do with the guard being tested. The test passed with the
+guard removed. It was rewritten against purchase orders, which does render a
+detail page and declares no download, and it now asserts a 200 and the record's
+own number before checking that no link is there. Then the probe fired.
+
+Verified: `pnpm run lint` clean, 2,889 tests passing, `pnpm run verify:launch`
+exit 0 across all 26 commands.
+
 ### 2026-08-25 — A PDF, written with nothing installed
 
 The previous piece was about a capability that **cannot** live in a serverless

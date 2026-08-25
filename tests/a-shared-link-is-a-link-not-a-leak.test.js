@@ -39,6 +39,7 @@ const OTHER_RESULT_ID = "dddddddd-0000-4000-8000-00000000000d";
 const INVOICE_ID = "eeeeeeee-0000-4000-8000-00000000000e";
 const BOOKING_ID = "ffffffff-0000-4000-8000-00000000000f";
 const QUOTE_ID = "aaaaaaaa-1111-4000-8000-00000000001a";
+const PO_ID = "aaaaaaaa-2222-4000-8000-00000000002a";
 
 const RESULT_TOKEN = "aBcDeFgHiJkLmNoPqRsTuVwXyZ012345";
 const INVOICE_TOKEN = "bCdEfGhIjKlMnOpQrStUvWxYz0123456";
@@ -361,6 +362,89 @@ describe("a shared link is a link, not a leak", () => {
     });
   });
 
+  describe("the invoice as a file somebody can keep", () => {
+    let app;
+    let fake;
+    let savedFetch;
+    let savedEnv;
+
+    before(() => {
+      savedEnv = {
+        NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY
+      };
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://project.supabase.co";
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-placeholder";
+      process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-placeholder";
+      fake = createFakeSupabase({ users: { "token-a": { id: USER, email: "a@example.com" } }, tables: seed() });
+      savedFetch = global.fetch;
+      global.fetch = fake.install(savedFetch);
+      app = require("../server");
+    });
+
+    after(() => {
+      if (savedFetch) global.fetch = savedFetch;
+      for (const [key, value] of Object.entries(savedEnv || {})) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    });
+
+    it("downloads for somebody with no account at all", async () => {
+      const response = await request(app).get(`/shared/${INVOICE_TOKEN}/invoice.pdf`).redirects(0);
+      assert.equal(response.status, 200, "a public invoice download that needs an account is not one");
+      assert.equal(response.headers["content-type"], "application/pdf");
+      assert.match(response.headers["content-disposition"], /^attachment; filename="invoice-[A-Za-z0-9._-]*\.pdf"$/);
+      assert.equal(response.body.subarray(0, 5).toString("latin1"), "%PDF-");
+    });
+
+    it("is not cached anywhere a later visitor could reach it", async () => {
+      // The link is the only credential and its holder was given it on purpose.
+      const response = await request(app).get(`/shared/${INVOICE_TOKEN}/invoice.pdf`).redirects(0);
+      assert.match(response.headers["cache-control"], /no-store/);
+      assert.ok(!/public/.test(response.headers["cache-control"] || ""));
+    });
+
+    it("reads through the same organization filter the page does", async () => {
+      fake.reset();
+      await request(app).get(`/shared/${INVOICE_TOKEN}/invoice.pdf`).redirects(0);
+      const reads = fake.queries.filter((query) => query.method === "GET" && query.table === "customer_invoices");
+      assert.ok(reads.length >= 1, "no invoice was read, so this check is looking at nothing");
+      for (const read of reads) {
+        assert.ok(
+          String(read.search).includes(`organization_id=eq.${ORG}`),
+          "the invoice was fetched by id alone, without the organization the link row named"
+        );
+      }
+    });
+
+    it("answers a token that opens something else the same way as one that does not exist", async () => {
+      // A quote, an appointment and a saved result have pages rather than
+      // documents. Telling those apart from a bad token tells somebody guessing.
+      const other = await request(app).get(`/shared/${RESULT_TOKEN}/invoice.pdf`).redirects(0);
+      const missing = await request(app).get(`/shared/${"z".repeat(32)}/invoice.pdf`).redirects(0);
+      assert.equal(other.status, 404);
+      assert.equal(missing.status, other.status);
+    });
+
+    it("refuses a token shaped wrongly before it reaches a query", async () => {
+      fake.reset();
+      const response = await request(app).get("/shared/short/invoice.pdf").redirects(0);
+      assert.equal(response.status, 404);
+      const asked = fake.queries.filter((query) => String(query.search).includes("token=eq."));
+      assert.equal(asked.length, 0, "a malformed token was interpolated into a filter");
+    });
+
+    it("offers the download from the page itself, and only for an invoice", async () => {
+      const invoicePage = await request(app).get(`/shared/${INVOICE_TOKEN}`).set("accept", "text/html").redirects(0);
+      assert.ok(invoicePage.text.includes(`/shared/${INVOICE_TOKEN}/invoice.pdf`), "the invoice page does not offer the file");
+
+      const resultPage = await request(app).get(`/shared/${RESULT_TOKEN}`).set("accept", "text/html").redirects(0);
+      assert.ok(!resultPage.text.includes("invoice.pdf"), "a saved result offered an invoice download");
+    });
+  });
+
   describe("turning it on and taking it back", () => {
     let app;
     let fake;
@@ -557,7 +641,7 @@ describe("a shared link is a link, not a leak", () => {
     // the guard rather than the card. The first version went through server.js,
     // got a 303, and wrapped every assertion in `if (status === 200)` -- so the
     // whole block reported green while checking nothing.
-    function buildOwnerApp(sharedLinksAnswer) {
+    function buildOwnerApp(sharedLinksAnswer, { invoiceMissing = false } = {}) {
       const express = require("express");
       const registerRoutes = require("../routes/sonara-last9-routes.cjs");
       const app = express();
@@ -580,8 +664,14 @@ describe("a shared link is a link, not a leak", () => {
         getSupabaseServerConfig: () => ({ ok: true, url: "https://project.supabase.co", serviceRoleKey: "server-only" })
       });
       const rows = {
-        customer_invoices: [{ id: INVOICE_ID, organization_id: ORG, invoice_number: "INV-2026-004", total_cents: 144000, currency: "gbp", status: "sent", issued_on: "2026-08-01" }],
+        customer_invoices: invoiceMissing
+          ? []
+          : [{ id: INVOICE_ID, organization_id: ORG, invoice_number: "INV-2026-004", total_cents: 144000, currency: "gbp", status: "sent", issued_on: "2026-08-01" }],
         customer_invoice_lines: [],
+        // A record on a different page, so the "no download here" test below
+        // renders something rather than passing over a 404.
+        purchase_orders: [{ id: PO_ID, organization_id: ORG, po_number: "PO-2026-001", status: "sent", total_cents: 5000, currency: "gbp" }],
+        purchase_order_lines: [],
         shared_links: [{ resource_id: INVOICE_ID, token: INVOICE_TOKEN }]
       };
       global.fetch = async (url, options = {}) => {
@@ -622,6 +712,61 @@ describe("a shared link is a link, not a leak", () => {
         // And the rest of the page still works. A share card that could not
         // load must not take the invoice down with it.
         assert.match(response.text, /INV-2026-004/, "the invoice itself stopped rendering");
+      } finally {
+        global.fetch = savedFetch;
+      }
+    });
+    it("offers the invoice as a file from the record it belongs to", async () => {
+      const savedFetch = global.fetch;
+      try {
+        const app = buildOwnerApp("answers");
+        const response = await request(app).get(`/business-builder/owner/receivables/${INVOICE_ID}`).set("accept", "text/html");
+        assert.equal(response.status, 200, `the invoice page answered ${response.status}, so nothing below was checked`);
+        assert.ok(
+          response.text.includes(`/business-builder/owner/invoices/${INVOICE_ID}/pdf`),
+          "the record page does not offer the invoice as a file, so the download route is one nobody finds"
+        );
+        assert.match(response.text, /Download this invoice/);
+      } finally {
+        global.fetch = savedFetch;
+      }
+    });
+
+    it("does not offer a file for a record it could not find", async () => {
+      const savedFetch = global.fetch;
+      try {
+        const app = buildOwnerApp("answers", { invoiceMissing: true });
+        const response = await request(app).get(`/business-builder/owner/receivables/${INVOICE_ID}`).set("accept", "text/html");
+        assert.equal(response.status, 404, `a missing invoice answered ${response.status}`);
+        assert.ok(
+          !response.text.includes("/pdf"),
+          "a page that just said the record is not there still offered to download it"
+        );
+      } finally {
+        global.fetch = savedFetch;
+      }
+    });
+
+    // The field is per page, not per application. A page that never declared a
+    // download must not grow one because the renderer stopped checking.
+    //
+    // Purchase orders rather than quotes: quotes has no child table, so it has
+    // no detail route at all, and asking for one answers 404 with an empty body
+    // that contains no "/pdf" for reasons that have nothing to do with this
+    // guard. The first version of this test did exactly that and passed while
+    // the guard was removed. The 200 below is the half that makes it mean
+    // something.
+    it("offers no such file on a record page that has not declared one", async () => {
+      const savedFetch = global.fetch;
+      try {
+        const app = buildOwnerApp("answers");
+        const response = await request(app).get(`/business-builder/owner/purchase-orders/${PO_ID}`).set("accept", "text/html");
+        assert.equal(response.status, 200, `the purchase order page answered ${response.status}, so the check below saw no page`);
+        assert.match(response.text, /PO-2026-001/, "the purchase order did not render, so there was nothing to find a link in");
+        assert.ok(
+          !response.text.includes("/pdf"),
+          "a page that declared no download offered one anyway"
+        );
       } finally {
         global.fetch = savedFetch;
       }

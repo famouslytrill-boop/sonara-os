@@ -21,6 +21,7 @@
 // the only tenant boundary there is.
 
 const { settle } = require("../lib/sonara-invoice-settlement.cjs");
+const { renderInvoicePdf } = require("../lib/sonara-invoice-pdf.cjs");
 const {
   SHARED_LINKS_TABLE,
   isShareToken,
@@ -101,31 +102,45 @@ function registerSharedResultRoutes(app, deps = {}) {
     actions: [linkAction("/free-tools", "Use the free tools"), linkAction("/", "SONARA One")]
   })));
 
-  app.get("/shared/:token", async (req, res) => {
-    const token = String(req.params.token || "");
+  // Resolving a token, in one place.
+  //
+  // This was inline in the page handler until the invoice PDF needed exactly the
+  // same answer. Two copies of this would be two chances for one of them to be
+  // subtly less careful about the order -- and the order IS the security
+  // property: the token finds one link row, that row names the organization, and
+  // every read after it is filtered on both the resource id and that
+  // organization. The service-role key bypasses row level security, so that
+  // filter is the whole tenant boundary.
+  //
+  // Returns { ok: false, status } for a caller to render however it renders, or
+  // the resolved parts. Never throws, and never tells the two failures apart:
+  // 404 covers "no such token", "revoked" and "deleted since it was shared",
+  // because distinguishing them tells somebody guessing tokens when they have
+  // guessed one that used to exist.
+  async function resolveShared(token) {
     // Checked before it reaches a query. An unchecked token is interpolated into
     // a PostgREST filter, and the empty string there matches rows whose token is
     // empty rather than none.
-    if (!isShareToken(token)) return res.status(404).type("html").send(notFoundPage());
+    if (!isShareToken(token)) return { ok: false, status: 404 };
 
     const config = getSupabaseServerConfig();
-    if (!config.ok) return res.status(503).type("html").send(unavailablePage());
+    if (!config.ok) return { ok: false, status: 503 };
 
     const found = await rest(
       config,
       `${SHARED_LINKS_TABLE}?select=resource_type,resource_id,organization_id&token=eq.${enc(token)}&revoked_at=is.null&limit=1`,
       { headers: supabaseHeaders(config) }
     );
-    if (!found.ok) return res.status(503).type("html").send(unavailablePage());
+    if (!found.ok) return { ok: false, status: 503 };
     const link = found.rows[0];
-    if (!link) return res.status(404).type("html").send(notFoundPage());
+    if (!link) return { ok: false, status: 404 };
 
     const shareable = shareableFor(link.resource_type);
     // A resource_type the database holds and this code does not understand. The
     // check constraint should make it impossible; answering "not found" rather
     // than throwing is what keeps it impossible-and-harmless instead of
     // impossible-until-it-happens.
-    if (!shareable || !isUuid(link.resource_id)) return res.status(404).type("html").send(notFoundPage());
+    if (!shareable || !isUuid(link.resource_id)) return { ok: false, status: 404 };
 
     const scope = `id=eq.${enc(link.resource_id)}&organization_id=eq.${enc(link.organization_id)}`;
     const [resource, organization, lines] = await Promise.all([
@@ -141,7 +156,7 @@ function registerSharedResultRoutes(app, deps = {}) {
         : Promise.resolve({ ok: true, rows: [] })
     ]);
 
-    if (!resource.ok || !lines.ok) return res.status(503).type("html").send(unavailablePage());
+    if (!resource.ok || !lines.ok) return { ok: false, status: 503 };
 
     // What is still owed, for the one kind where a total is not the answer.
     //
@@ -169,15 +184,36 @@ function registerSharedResultRoutes(app, deps = {}) {
     }
     // The link says it exists and the row is gone: deleted since it was shared.
     // Not an outage, and not something to apologise for on our side.
-    if (!resource.rows.length) return res.status(404).type("html").send(notFoundPage());
+    if (!resource.rows.length) return { ok: false, status: 404 };
+
+    return {
+      ok: true,
+      link,
+      shareable,
+      row: resource.rows[0],
+      lines: lines.rows,
+      // A failed organization read loses the business name and nothing else.
+      organizationName: organization.ok ? organization.rows[0]?.name : "",
+      settlement
+    };
+  }
+
+  app.get("/shared/:token", async (req, res) => {
+    const resolved = await resolveShared(String(req.params.token || ""));
+    if (!resolved.ok) {
+      return resolved.status === 503
+        ? res.status(503).type("html").send(unavailablePage())
+        : res.status(404).type("html").send(notFoundPage());
+    }
+    const { link, row: resourceRow, lines: lineRows, organizationName, settlement } = resolved;
 
     const view = sharedView({
       resourceType: link.resource_type,
-      row: resource.rows[0],
-      lines: lines.rows,
+      row: resourceRow,
+      lines: lineRows,
       // A failed organization read loses the business name and nothing else. The
       // page is still worth showing, and "" is what sharedView treats as absent.
-      organizationName: organization.ok ? organization.rows[0]?.name : "",
+      organizationName,
       settlement
     });
     if (!view) return res.status(404).type("html").send(notFoundPage());
@@ -202,8 +238,56 @@ function registerSharedResultRoutes(app, deps = {}) {
       body: view.subtitle || `A ${view.noun} published by the person it belongs to.`,
       surface: "marketing",
       sections: [detail, items, brandCard("About this page", view.footnote)].filter(Boolean),
-      actions: [linkAction("/shared", "What is a shared link?"), linkAction("/free-tools", "Use the free tools")]
+      actions: [
+        link.resource_type === "customer_invoice"
+          ? linkAction(`/shared/${encodeURIComponent(req.params.token)}/invoice.pdf`, "Download this invoice")
+          : null,
+        linkAction("/shared", "What is a shared link?"),
+        linkAction("/free-tools", "Use the free tools")
+      ].filter(Boolean)
     }));
+  });
+
+  // The same invoice, as a file somebody can keep.
+  //
+  // A page is fine to look at and impossible to file with an accountant. This
+  // resolves through exactly the same `resolveShared` the page does -- same
+  // token check, same link row, same organization filter -- so there is no
+  // second path to the data and no chance of one drifting from the other.
+  //
+  // Only an invoice. A quote, an appointment and a saved result each have a
+  // page, and inventing a document shape for them here would be three more
+  // layouts nobody asked for; a request for one answers the same 404 as a token
+  // that does not exist, because from outside they are the same fact.
+  app.get("/shared/:token/invoice.pdf", async (req, res) => {
+    const resolved = await resolveShared(String(req.params.token || ""));
+    if (!resolved.ok) {
+      return resolved.status === 503
+        ? res.status(503).type("html").send(unavailablePage())
+        : res.status(404).type("html").send(notFoundPage());
+    }
+    if (resolved.link.resource_type !== "customer_invoice") {
+      return res.status(404).type("html").send(notFoundPage());
+    }
+
+    const pdf = renderInvoicePdf({
+      business: { name: resolved.organizationName || "" },
+      invoice: resolved.row,
+      lines: resolved.lines,
+      settlement: resolved.settlement
+    });
+
+    const number = String(resolved.row.invoice_number || "").replace(/[^A-Za-z0-9._-]/g, "");
+    res.status(200);
+    res.setHeader("Content-Type", "application/pdf");
+    // The filename is built from the invoice number with everything else
+    // stripped: it goes into a header, and a quote or a newline in it is a
+    // header somebody else wrote.
+    res.setHeader("Content-Disposition", `attachment; filename="invoice-${number || "sonara"}.pdf"`);
+    // A shared link is unguessable and its holder was given it deliberately.
+    // Caching it in a shared proxy would hand it to whoever asks next.
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.send(pdf);
   });
 
   // ---------------------------------------------------------------------------

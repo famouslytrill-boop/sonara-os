@@ -13,6 +13,8 @@ const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
 const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
 const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
+const { renderInvoicePdf } = require("../lib/sonara-invoice-pdf.cjs");
+const { settle } = require("../lib/sonara-invoice-settlement.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
@@ -286,6 +288,57 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     res.setHeader("Content-Disposition", `attachment; filename="${card.filename}"`);
     res.setHeader("Cache-Control", "no-store");
     return res.send(card.body);
+  });
+
+  // An invoice as a file the business can send or file.
+  //
+  // The same document the customer gets from a shared link, built by the same
+  // renderer, so the two cannot disagree about what an invoice says. Scoped by
+  // organization as well as by id, like every other per-record download here:
+  // the service key bypasses row level security, so without that filter a
+  // guessed id from another business would download.
+  app.get("/business-builder/owner/invoices/:recordId/pdf", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That invoice reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this invoice cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const scope = `id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}`;
+    const found = await supabaseList(config, "customer_invoices", `?select=*&${scope}&limit=1`);
+    if (!found.ok) return res.status(503).type("text").send("We could not read that invoice just now. Nothing has changed; try again shortly.");
+    const invoice = found.rows[0];
+    if (!invoice) return res.status(404).type("text").send("That invoice is not in your business, or it has been removed.");
+
+    const [lines, paid, organization] = await Promise.all([
+      supabaseList(config, "customer_invoice_lines",
+        `?select=*&invoice_id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc`),
+      supabaseList(config, "customer_invoice_payments",
+        `?select=amount_cents&invoice_id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}`),
+      supabaseList(config, "organizations", `?select=name&id=eq.${encodeURIComponent(org.organizationId)}&limit=1`)
+    ]);
+    // A failed line read is not an invoice with no lines on it. Sending a
+    // document that says "no lines" when there are some is worse than not
+    // sending one, because the business forwards it to their customer.
+    if (!lines.ok) return res.status(503).type("text").send("We could not read the lines on that invoice, so the file would have been wrong. Nothing was produced.");
+
+    // `paymentsRead: paid.ok` carries a failed read through as "not known"
+    // rather than as "nothing paid".
+    const settlement = settle({ invoice, payments: paid.rows, paymentsRead: paid.ok });
+
+    const pdf = renderInvoicePdf({
+      business: { name: organization.ok ? (organization.rows[0]?.name || "") : "" },
+      invoice,
+      lines: lines.rows,
+      settlement
+    });
+
+    const number = String(invoice.invoice_number || "").replace(/[^A-Za-z0-9._-]/g, "");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="invoice-${number || recordId}.pdf"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(pdf);
   });
 
   // An accounting export as a file, because until now it was only ever a row.
@@ -587,7 +640,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         heading: page.title,
         body: children.map((spec) => spec.title).join(" "),
         sections,
-        actions: [ui.link(page.path, `All ${page.title.toLowerCase()}`), ui.link("/business-builder/owner", "Owner Dashboard"), ui.link("/business-builder/dashboard", "Dashboard")]
+        actions: [
+          // Only when the record was actually read. Offering a download for a
+          // record this page could not find hands somebody a link that answers
+          // 404, and the page above it has already said the record is not
+          // there -- two answers to the same question, one of them wrong.
+          ...(page.download && parent ? [ui.link(page.download.href(recordId), page.download.label)] : []),
+          ui.link(page.path, `All ${page.title.toLowerCase()}`),
+          ui.link("/business-builder/owner", "Owner Dashboard"),
+          ui.link("/business-builder/dashboard", "Dashboard")
+        ]
       }));
     });
 
