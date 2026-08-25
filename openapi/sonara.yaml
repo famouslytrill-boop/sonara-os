@@ -1675,6 +1675,19 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "303": { description: Browser form redirect back to the booking page settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/voice-studio/status:
+    get:
+      operationId: getVoiceStudioStatus
+      tags: [Creator Studio]
+      summary: Whether a voice studio the owner runs is configured and reachable, and what it can do.
+      description: >-
+        Reports configuration state, the host (never the URL), and the
+        languages and styles the service says it offers. Carries no audio: the
+        reference clip, the consent recording and the generated audio all stay
+        on the machine running the studio. Answers 200 with a state of
+        `disabled` when nothing is configured, which is not a fault.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/lead-profile:
     post:
       operationId: saveLeadIdealCustomerProfile

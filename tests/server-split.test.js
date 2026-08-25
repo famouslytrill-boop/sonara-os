@@ -448,9 +448,17 @@ describe("the server.js split stays safe", () => {
     // went straight into a route module rather than into this file. The ratchet
     // is doing its job when a feature this size costs three lines; it would not
     // be if the next one cost three hundred.
+    //
+    // Then 3842 on 25 August 2026, by 3, for
+    // routes/sonara-voice-studio-routes.cjs -- one page and one JSON endpoint
+    // reporting whether a voice service the owner runs is reachable. Ninth
+    // exception. Three lines again, which is the shape that matters: the
+    // ceiling is measuring registration cost, and registration cost is staying
+    // flat while features are added. It would be worth acting on if a feature
+    // ever cost thirty.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3839,
+      lines <= 3842,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

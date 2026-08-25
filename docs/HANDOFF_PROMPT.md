@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3839 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3842 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 100 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 224 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 225 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,88 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-25 — Reaching the voice studio, without becoming a place that holds voices
+
+`tools/voice-clone/` was built as something the owner runs on their own
+machine, and the honest answer at the time was "this is not inside SONARA One,
+and it cannot be." This is the other half: what the application can know about
+it, and how.
+
+`lib/sonara-voice-clone-adapter.cjs` joins the six-adapter family behind
+`lib/sonara-service-adapter.cjs`, so it inherits the four rules
+`docs/architecture/EXTERNAL-SERVICES.md` sets out — off by default, never a
+dependency, never renders configuration, validates anything that becomes part
+of a request. `/creator-studio/voice-studio` is the page.
+
+## What crosses the boundary, and what does not
+
+**No audio. Ever.** One GET that returns which engine is loaded, whether it
+produces real speech, and which languages and styles it offers. Three reasons
+and the first two would each be enough on their own:
+
+A reference clip is somebody's voice, and passing it through here would make
+this application a place that holds voices — with everything that implies about
+storage, retention and what a breach would mean — while gaining nobody
+anything, because the file is already on the machine where the model runs.
+
+A serverless function is the wrong pipe. There is no multipart parser here;
+Express 4 has none and this application has one production dependency, which is
+why even the spreadsheet importer takes a paste.
+
+And the consent gate lives at the service. Relaying a clone through here would
+put this application in the position of vouching for a consent it never saw.
+
+A test asserts the adapter's entire export surface, so adding a `clone()` fails
+it and the conversation happens before the audio does. Another greps the module
+for `FormData`, `multipart`, `Blob` and `createReadStream`.
+
+## The token is required, unlike every other adapter in the family
+
+Every other service in this family can be pointed at an unauthenticated
+instance and still work. EXTERNAL-SERVICES.md is blunt about the risk — a
+tunnel makes a service reachable by everyone, not only by this application —
+and an exposed voice cloner is worse than an exposed model endpoint. So
+`SONARA_VOICE_CLONE_TOKEN` is declared as a **required secret**: readiness
+refuses to call itself configured without one, and the service now refuses a
+request that does not present it, compared with `hmac.compare_digest` rather
+than `==`.
+
+## Two probes that did not fire, and what they found
+
+Both were tests weaker than their names, which is the reading this codebase
+tells you to take.
+
+**The narrowing was only ever tested in isolation.** `summarise()` had its own
+test, so a `capabilities()` that stopped calling it would have passed. Spreading
+the raw response body alongside the summary changed nothing. There is now a
+test that drives `capabilities()` and asserts the returned keys are exactly the
+five this application renders.
+
+**"Makes no call when it is off" tested one guard of two.** A disabled adapter
+is caught by the first guard; enabled-but-half-configured — a URL set, no token
+yet — is caught by a second, and removing that second guard failed nothing.
+That state is the one a real deployment passes through, and it has its own test
+now.
+
+## Six existing gates caught this page, all correctly
+
+A customer-facing link to raw JSON, and a label naming a data format at a
+customer. An endpoint reporting `ok:true` while every read failed. A page whose
+prose read as an empty-state claim. And two saying the manifest declared the
+page needed a signed-in customer while it served a stranger.
+
+Five were fixed by doing the right thing rather than exempting anything: the
+JSON link removed, `requireCustomer` added, and two sentences reworded — "no
+token on it" became "without a token on it" and "Nothing is configured" became
+"This has not been switched on".
+
+The sixth is worth recording. `/api/creator/voice-studio` reported success
+while reads were failing, and the gate that caught it excludes endpoints whose
+names end in `readiness`, `status`, `providers` and so on — configuration
+rather than records. Rather than add a bespoke exception, the endpoint was
+renamed `/api/creator/voice-studio/status`, which is what it actually is. The
+existing rule then covers it, and covers the next one automatically.
 
 ### 2026-08-25 — Voice cloning, and the gate that makes it a tool rather than a forgery kit
 

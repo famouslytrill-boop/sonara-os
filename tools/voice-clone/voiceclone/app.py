@@ -22,13 +22,15 @@ recording authorise an unlimited number of different clones later.
 
 from __future__ import annotations
 
+import hmac
+import os
 import shutil
 import tempfile
 import time
 import uuid
 from pathlib import Path
 
-from fastapi import FastAPI, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, Form, Header, HTTPException, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from .consent import Challenge, Consent, evaluate, may_clone
@@ -46,6 +48,30 @@ WORKSPACE = Path(tempfile.gettempdir()) / "voiceclone"
 app = FastAPI(title="Voice clone, with consent")
 
 ENGINE, ENGINE_NOTE = load()
+
+# The shared secret, if this instance is exposed to anything but localhost.
+#
+# docs/architecture/EXTERNAL-SERVICES.md is blunt about why: a tunnel makes a
+# service reachable by everyone, not only by the application that wanted it, and
+# an open voice cloner is worse than an open model endpoint. Unset, the app runs
+# for somebody on their own machine and says so on the page; set, every API call
+# must present it.
+#
+# Compared with hmac.compare_digest rather than ==, because a plain comparison
+# returns as soon as it finds a differing byte and that timing is a side channel
+# somebody can walk a secret out of, one character at a time.
+API_TOKEN = os.environ.get("VOICECLONE_TOKEN", "").strip()
+
+
+def require_token(authorization: str | None = Header(default=None)) -> None:
+    if not API_TOKEN:
+        return
+    presented = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        presented = authorization[7:].strip()
+    if not hmac.compare_digest(presented, API_TOKEN):
+        raise HTTPException(401, "This instance requires a token.")
+
 
 # token -> (Challenge, issued_monotonic). In memory on purpose: this is a tool
 # somebody runs on their own machine for their own recordings, and a database
@@ -85,7 +111,7 @@ def index() -> HTMLResponse:
     return HTMLResponse((STATIC / "index.html").read_text(encoding="utf-8"))
 
 
-@app.get("/api/capabilities")
+@app.get("/api/capabilities", dependencies=[Depends(require_token)])
 def capabilities() -> JSONResponse:
     return JSONResponse(
         {
@@ -94,11 +120,12 @@ def capabilities() -> JSONResponse:
             "produces_real_speech": not isinstance(ENGINE, StubEngine),
             "languages": LANGUAGES,
             "styles": list(ENGINE.styles()),
+            "token_required": bool(API_TOKEN),
         }
     )
 
 
-@app.post("/api/challenge")
+@app.post("/api/challenge", dependencies=[Depends(require_token)])
 def challenge() -> JSONResponse:
     _expire()
     issued = Challenge.issue()
@@ -106,7 +133,7 @@ def challenge() -> JSONResponse:
     return JSONResponse({"token": issued.token, "phrase": issued.phrase, "expires_in": CHALLENGE_TTL_SECONDS})
 
 
-@app.post("/api/clone")
+@app.post("/api/clone", dependencies=[Depends(require_token)])
 async def clone(
     reference: UploadFile,
     consent_clip: UploadFile,

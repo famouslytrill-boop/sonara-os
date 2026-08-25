@@ -261,3 +261,57 @@ class TestWhatItRefusesToPretend:
         # Returning "" here would make the consent gate compare against an empty
         # transcript and refuse for the wrong reason.
         assert StubEngine().transcribe(Path("anything")) is None
+
+
+class TestTheSharedSecret:
+    """An exposed voice cloner is worse than an exposed model endpoint."""
+
+    def _client(self, monkeypatch, token):
+        import importlib
+
+        from voiceclone import app as module
+
+        monkeypatch.setenv("VOICECLONE_TOKEN", token)
+        reloaded = importlib.reload(module)
+        return TestClient(reloaded.app), reloaded
+
+    def test_unset_leaves_the_instance_open_and_says_so(self, monkeypatch):
+        client, module = self._client(monkeypatch, "")
+        assert client.get("/api/capabilities").json()["token_required"] is False
+        importlib_reload_back(monkeypatch)
+
+    def test_set_refuses_a_call_with_no_token(self, monkeypatch):
+        client, _ = self._client(monkeypatch, "s3cret-value")
+        assert client.get("/api/capabilities").status_code == 401
+        assert client.post("/api/challenge").status_code == 401
+        importlib_reload_back(monkeypatch)
+
+    def test_set_refuses_the_wrong_token(self, monkeypatch):
+        client, _ = self._client(monkeypatch, "s3cret-value")
+        response = client.get("/api/capabilities", headers={"Authorization": "Bearer not-it"})
+        assert response.status_code == 401
+        importlib_reload_back(monkeypatch)
+
+    def test_set_accepts_the_right_token_and_reports_being_protected(self, monkeypatch):
+        client, _ = self._client(monkeypatch, "s3cret-value")
+        response = client.get("/api/capabilities", headers={"Authorization": "Bearer s3cret-value"})
+        assert response.status_code == 200
+        assert response.json()["token_required"] is True
+        importlib_reload_back(monkeypatch)
+
+    def test_the_page_itself_stays_open(self, monkeypatch):
+        # The browser fetches the page and then supplies the token. A login wall
+        # is a different feature and is not what this is.
+        client, _ = self._client(monkeypatch, "s3cret-value")
+        assert client.get("/").status_code == 200
+        importlib_reload_back(monkeypatch)
+
+
+def importlib_reload_back(monkeypatch):
+    """Put the module back the way the other tests expect to find it."""
+    import importlib
+
+    from voiceclone import app as module
+
+    monkeypatch.delenv("VOICECLONE_TOKEN", raising=False)
+    importlib.reload(module)
