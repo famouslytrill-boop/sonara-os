@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-160 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 160.
+164 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 164.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,10 +10,11 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-48 repositories.
+50 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
+| [@vanillaes/csv](https://github.com/vanillaes/csv) | MIT | Read only | CSV parsing |
 | [ads-proposals](https://github.com/AmanLegendDev/ads-proposals) | No licence file. Default copyright applies, which means all righ | Blocked | proposal presentation |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
@@ -49,6 +50,7 @@ Create, launch, run and manage a business.
 | [OpenToonz](https://github.com/opentoonz/opentoonz) | BSD-style project license must be verified before recommendation | Read only | 2D animation |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [QloApps](https://github.com/Qloapps/QloApps) | OSL-3.0 | Read only | hotel reservations |
+| [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
 | [RestaurantProject (BryanTheLai)](https://github.com/BryanTheLai/RestaurantProject) | Apache-2.0 | Read only | hospitality reference |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
@@ -116,7 +118,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-32 repositories.
+34 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -129,6 +131,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Crawl4AI](https://github.com/unclecode/crawl4ai) | Apache-2.0. The README asks for badge attribution, which is a re | adapter_built | LLM-friendly web crawling |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
+| [disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) | CC0-1.0 (CC0 1.0 Universal public domain dedication) | Adapt after review | data list |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
 | [erxes](https://github.com/erxes/erxes) | AGPL-3.0 | Read only | CRM and support suite |
 | [Figranium](https://github.com/figranium/figranium) | GPL-3.0, read from the GitHub API's detected license.spdx_id on  | Read only | browser automation |
@@ -143,6 +146,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
+| [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
@@ -157,7 +161,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-74 repositories.
+75 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -219,6 +223,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |
 | [prompts.chat](https://github.com/f/prompts.chat) | MIT for source code and site-authored content; CC0-1.0 for promp | Adapt after review | prompt library |
 | [Public APIs](https://github.com/public-apis/public-apis) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Read only | directory |
+| [Public Suffix List](https://github.com/publicsuffix/list) | MPL-2.0 | Research only | data list |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |

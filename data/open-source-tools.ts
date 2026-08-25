@@ -4333,6 +4333,121 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "QR Code generator (Project Nayuki)",
+    slug: "nayuki-qr-code-generator",
+    category: ["QR code generation", "single-file library", "no dependencies", "vendorable"],
+    useCase: [
+      "put /book/:slug on a poster, a van or a receipt so somebody can book without typing an address",
+      "put /chat/:slug on printed material so the widget is reachable off the website",
+      "put /shared/:token on a paper quote or invoice so the customer can open the live one",
+    ],
+    productFit: ["Business Builder", "Growth Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "vendor the TypeScript/JavaScript implementation as a single file under lib/ rather than adding an npm dependency -- this application has one production dependency and no bundler",
+      "keep the licence header comment in the vendored file: it IS the licence grant, and stripping it is the one thing MIT forbids",
+      "render to SVG, which needs no canvas, no image encoder and no binary -- the output is markup the existing pages already know how to serve",
+    ],
+    officialUrl: "https://www.nayuki.io/page/qr-code-generator-library",
+    repoUrl: "https://github.com/nayuki/QR-Code-generator",
+    notes:
+      "Licence read 25 August 2026 from the source file itself, not from a badge: typescript-javascript/qrcodegen.ts carries the full MIT grant in its header comment, 'Copyright (c) Project Nayuki. (MIT License)'. There is NO LICENSE file at the repository root and no licence field in the GitHub sidebar -- the Readme states MIT and every source file repeats the grant. That matters for how it would be adopted here: the grant travels in the file, so vendoring the file carries its own licence with it, and deleting the header to tidy it up would remove the only thing that makes the copy lawful.\n\nNo dependencies, six language implementations of equal functionality, and the QR specification (ISO/IEC 18004) implemented in full rather than the common subset. It is the reference implementation other libraries are ported from.\n\nThe use is real and already earned. This branch shipped three public addresses -- /book/:slug, /chat/:slug and /shared/:token -- and all three are things a business wants on paper. A QR code is pure computation over a string: no provider, no network, no cost per use, which is the same term every other tool in this product ships on.",
+    safetyBoundaries: [
+      "encode only URLs this application already serves -- a QR code is an unreadable link, and one pointing somewhere else is a phishing vector printed by us",
+      "never encode a token into an image on a page that is itself public: a QR code of a /shared/:token link is exactly as sensitive as the link",
+      "keep the vendored file byte-faithful apart from module wrapping, so it stays comparable against upstream",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "disposable-email-domains",
+    slug: "disposable-email-domains-blocklist",
+    category: ["data list", "email hygiene", "public domain dedication", "lead quality"],
+    useCase: [
+      "raise a risk flag on a captured lead whose email is a throwaway address, using the riskFlags mechanism lib/sonara-lead-scoring.cjs already has",
+    ],
+    productFit: ["Growth Studio"],
+    license: "CC0-1.0 (CC0 1.0 Universal public domain dedication)",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "vendor a dated snapshot of disposable_email_blocklist.conf rather than fetching at runtime -- a serverless function fetching a list from GitHub on every lead is a network call, a failure mode and a dependency on somebody else's uptime",
+      "FLAG, never block. A real customer whose company mail is down will use a throwaway address, and refusing them loses the sale this feature exists to win",
+      "record the snapshot date beside the file and treat the list as decaying from the day it is taken",
+    ],
+    officialUrl: "https://github.com/disposable-email-domains/disposable-email-domains",
+    repoUrl: "https://github.com/disposable-email-domains/disposable-email-domains",
+    notes:
+      "Licence read 25 August 2026 from LICENSE.txt -- note the extension, because raw requests for a file named LICENSE return 404 and it would be easy to record this as unlicensed. First lines: 'CC0 1.0 Universal (CC0 1.0) / Public Domain Dedication / No Copyright'. CC0 is a dedication rather than a permissive licence: there is no attribution condition to satisfy and no notice to keep.\n\nThe fit is specific and small. lib/sonara-lead-scoring.cjs already computes a risk score from flags it can actually observe -- a disqualifier term, a budget under the floor, no way to reply -- and a throwaway address is another observable of exactly that kind. It needs no new mechanism, only another flag.\n\nThe honest cost is staleness. The list changes daily and a vendored snapshot does not, so it will miss new domains from the day it is taken. That is acceptable for a flag and would not be acceptable for a block, which is the second reason the recommendation is to flag.",
+    safetyBoundaries: [
+      "a flagged lead is still written, still scored and still routed -- the flag changes the number, never whether the business hears about the person",
+      "never show the visitor that their address was flagged: it teaches somebody to retry with a different throwaway and tells an honest customer they are suspected",
+      "no runtime fetch of the list from GitHub on a customer request path",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Public Suffix List",
+    slug: "mozilla-public-suffix-list",
+    category: ["data list", "domain parsing", "file-level copyleft"],
+    useCase: [
+      "none today -- reviewed so the reason it is not needed is written down rather than re-argued",
+    ],
+    productFit: ["Internal Development"],
+    license: "MPL-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not adopt yet: nothing in this application needs to know a registrable domain",
+      "revisit only if disposable-address matching starts missing subdomains of throwaway providers, which is the one case a plain domain comparison cannot answer",
+      "if it is ever vendored, keep the MPL notice on the file -- MPL-2.0 is file-level copyleft, so the obligation attaches to that file and to nothing else here",
+    ],
+    officialUrl: "https://publicsuffix.org/",
+    repoUrl: "https://github.com/publicsuffix/list",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: Mozilla Public License Version 2.0. Recorded as NOT reciprocal in this register's sense, and the distinction is the whole reason this record exists. MPL-2.0 is file-level copyleft: modifying and distributing a covered file obliges publishing that file's source. It does not reach the software that reads it, and it has no network clause, so it does not put SONARA One's own source at issue the way AGPL-3.0 would. Somebody scanning for 'copyleft' and stopping there would block this incorrectly, and somebody who assumed all copyleft is AGPL-shaped would block it for the wrong reason.\n\nThere is no live use. The disposable-address check compares the domain after the @ against a list of full domains, which needs no suffix parsing at all. This is recorded because it is the obvious next thing somebody reaches for when that check misses a subdomain, and the answer at that point should be a decision rather than an assumption.",
+    safetyBoundaries: [
+      "never treat the list as a security boundary -- it is a description of how registrars behave, and it is always slightly behind them",
+      "no runtime fetch from publicsuffix.org on a customer request path",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "@vanillaes/csv",
+    slug: "vanillaes-csv-rfc4180-parser",
+    category: ["CSV parsing", "RFC 4180", "no dependencies", "conformance reference"],
+    useCase: [
+      "cross-check lib/sonara-tabular-import.cjs against an independent RFC 4180 implementation, rather than adopting anything",
+    ],
+    productFit: ["Business Builder"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not install it. This application has one production dependency and the parser it would replace already exists and already passes its own tests",
+      "use it as a second opinion if a customer ever reports a paste that imported wrongly -- an independent implementation disagreeing is a faster diagnosis than reading the spec again",
+    ],
+    officialUrl: "https://github.com/vanillaes/csv",
+    repoUrl: "https://github.com/vanillaes/csv",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: 'The MIT License (MIT)', Copyright (c) 2019 Evan Plaice. package.json declares no runtime dependencies and one devDependency, and sets type: module -- it is ESM only, which this application's .cjs runtime layer cannot require directly.\n\nRecorded as reference only after reading our own code rather than assuming a gap. lib/sonara-tabular-import.cjs already handles the five cases a naive split(',') gets wrong and that a library is usually adopted for: a quoted field containing the delimiter, a quoted field containing a newline, a doubled quote meaning a literal quote, CRLF line endings, and a byte-order mark on the first cell -- that last one being how 'Name' silently becomes an unmatched header. There is no defect here for a dependency to fix, and adding one would cost the single-dependency posture for nothing.\n\nWorth keeping the record so that the next person who proposes a CSV library finds out in one search that the question was asked and answered.",
+    safetyBoundaries: [
+      "no npm dependency added for a parser this repository already has",
+      "CSV written by this product stays formula-neutralised regardless of what any reference implementation does -- that is a spreadsheet-safety decision, not a spec question",
+    ],
+    humanReviewRequired: false,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

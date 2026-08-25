@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-160 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+164 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -124,6 +124,88 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-25 — Four repositories reviewed, and two questions closed instead of opened
+
+A sweep of GitHub for things this application could actually use. Four records
+added, register now 164. What is worth keeping is less the four than how three
+of them nearly went in wrong.
+
+## Reading the licence from where it actually lives
+
+**`disposable-email-domains` would have been recorded as unlicensed.** The
+conventional raw paths — `/LICENSE` on `main`, then on `master` — both return
+404. The file is `LICENSE.txt`. Under this project's own rule an absent licence
+is all rights reserved, so trusting the 404 would have blocked a CC0 public
+domain dedication on the strength of a file extension.
+
+**Nayuki's QR generator has no LICENSE file at all**, and no licence field in
+the GitHub sidebar. The MIT grant lives in the header comment of every source
+file. That is not a gap; for this project it is the whole point, because the
+adoption route here is vendoring a single file rather than adding a dependency —
+so the grant travels with the file, and stripping the header to tidy it up is
+the one thing MIT actually forbids.
+
+**The Public Suffix List is MPL-2.0, and MPL is not AGPL.** MPL-2.0 is
+file-level copyleft: the obligation attaches to the covered file, not to
+software that reads it, and there is no network clause. Somebody scanning for
+"copyleft" and stopping would block it incorrectly. It is recorded as *not*
+reciprocal in this register's sense, with the reasoning written down, because
+the next person will have the same doubt.
+
+The search results themselves said "most of these are available under the MIT
+license" about a list of eight repositories. That sentence is exactly what this
+register exists to not act on. Every licence here was read from source.
+
+## Two searches that ended in "we already do this"
+
+**CSV.** The obvious recommendation was an RFC 4180 parser for the paste
+importer. Reading `lib/sonara-tabular-import.cjs` first killed it:
+it already handles the five cases a library is normally adopted for — a quoted
+field containing the delimiter, a quoted field containing a newline, a doubled
+quote, CRLF, and a byte-order mark turning `Name` into an unmatched header.
+`@vanillaes/csv` is recorded as **reference only**, useful as a second opinion
+when a customer reports a paste that imported wrongly, and explicitly not as a
+dependency.
+
+**iCalendar.** Same shape. `lib/sonara-calendar-invite.cjs` already does CRLF
+line endings, folding at 75 **octets** rather than characters, TEXT escaping,
+and UTC-only timestamps. No record added, because there is no question left.
+
+A repository search that ends without an adoption is still a result. Both are
+written down so the next person finds the answer in one search rather than
+re-running the sweep.
+
+## The two with a live use
+
+**QR codes (Nayuki, MIT, no dependencies).** This branch shipped three public
+addresses — `/book/:slug`, `/chat/:slug`, `/shared/:token` — and all three are
+things a business wants on a poster, a van or a receipt. A QR code is pure
+computation over a string: no provider, no network, no cost per use, the same
+terms every other tool here ships on. Vendorable as one file, rendered to SVG,
+which needs no canvas and no image encoder.
+
+**Disposable email domains (CC0).** `lib/sonara-lead-scoring.cjs` already
+computes risk from flags it can observe. A throwaway address is another
+observable of that kind and needs no new mechanism. Recorded as **flag, never
+block**: a real customer whose company mail is down will use a throwaway
+address, and refusing them loses the sale the feature exists to win. The honest
+cost is that a vendored snapshot decays from the day it is taken — acceptable
+for a flag, not for a block, which is the second reason it is a flag.
+
+## What could not be checked
+
+`pnpm run verify:open-source:network` returned **401 for all 161 targets**: this
+session's GitHub token is scoped to `famouslytrill-boop/sonara-os` and cannot
+read public repository metadata. So whether these four repositories still exist
+was NOT confirmed by that gate here — their licences were read directly over
+HTTPS instead, which is the stronger check, but the existence sweep is owed.
+`.github/workflows/external-repository-health.yml` runs it with a token that
+can.
+
+Worth noting the gate behaved correctly under that failure: it reported
+"confirmed none of 161 registered targets, so this run established nothing"
+and exited non-zero, rather than passing on an empty result.
 
 ### 2026-08-25 — The LeadForge page's promises, built
 
