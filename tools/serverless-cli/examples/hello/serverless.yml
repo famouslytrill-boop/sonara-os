@@ -1,0 +1,62 @@
+# A worked example, small enough to read in one go.
+#
+# From this directory:
+#
+#   node ../../bin/sonara-serverless.js dev --path .
+#   curl localhost:3000/orders
+#   curl -X POST localhost:3000/orders -d '{"item":"a desk"}'
+#   curl localhost:3000/orders/abc-123
+#
+# Nothing here needs an AWS account. `dev` runs the handlers on this machine.
+
+name: orders-example
+region: eu-west-1
+memory: 256
+timeout: 5
+
+environment:
+  STAGE: example
+
+resources:
+  orders:
+    type: table
+    key: id
+
+functions:
+  # Reads only. The generated policy grants GetItem, Query and Scan -- and not
+  # PutItem, so a bug in this handler cannot write.
+  listOrders:
+    handler: handlers/orders.list
+    uses:
+      orders: read
+    events:
+      - http: GET /orders
+
+  # Reads and writes. Same table, a different grant, because `uses:` is per
+  # function rather than per application.
+  createOrder:
+    handler: handlers/orders.create
+    uses:
+      orders: readwrite
+    events:
+      - http: POST /orders
+
+  # A path parameter. HTTP APIs support {name}, and `dev` matches it the same
+  # way API Gateway does.
+  getOrder:
+    handler: handlers/orders.getOne
+    uses:
+      orders: read
+    events:
+      - http: GET /orders/{id}
+
+  # No route, so nothing can call it over HTTP. EventBridge invokes it, and the
+  # generated permission is scoped to this rule rather than to any rule in the
+  # account.
+  expireOrders:
+    handler: handlers/orders.expire
+    timeout: 60
+    uses:
+      orders: readwrite
+    events:
+      - schedule: rate(1 day)

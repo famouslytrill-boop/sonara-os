@@ -125,6 +125,135 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 - A serverless CLI, in tools/, with no dependencies
+
+`tools/serverless-cli/` defines Lambda functions and the AWS resources they need
+in one YAML file, runs them locally, and asks CloudFormation what deploying
+would change before it changes. It is a standalone Node tool, sitting beside
+`tools/voice-clone/` and `tools/disposable-domains/` for the same reason those
+do: it cannot live in a Vercel function, and `vercel.json` bundles only
+`{public,routes,lib}`.
+
+**Zero runtime dependencies**, which is a constraint rather than a boast: the
+YAML parser, the ZIP writer, the SigV4 signer and the CloudFormation client are
+all in there, because the alternative was several hundred packages to do four
+things. The whole tool is about two thousand lines.
+
+## What was checked against something this project did not write
+
+Two pieces have no readable output and therefore no natural feedback, so both
+are checked against independent implementations rather than against themselves.
+
+The **signer** is checked against four known-answer vectors from the AWS SDK for
+PHP's own test suite. That caught a real bug: the first version applied S3's
+single path-encoding rule to every service, where AWS double-encodes the path
+everywhere except S3. Both readings produce a syntactically perfect signature,
+and the only symptom of the wrong one is a 403 that looks like five other
+problems.
+
+Getting those vectors was itself a near miss worth recording. A summarised fetch
+of the same file silently dropped one header from the first vector, which made a
+correct signer look broken and sent me looking for a bug that was not there. The
+raw file had to be read to get the real input. Same shape as the Helvetica AFM
+widths a few entries down: a summary that is right about everything it contains
+and quietly incomplete.
+
+The **ZIP writer** is handed to `unzip` -- listing, extracting, and `unzip -t`
+for integrity. A zip verified only by this project's own reader would agree with
+itself about a format it had got wrong.
+
+## The parser refuses rather than guesses
+
+Everything downstream of the YAML file -- what gets deployed, what a plan says
+will change -- depends on what the parser decided the file meant. So it
+implements a documented subset and refuses everything else by name, with a line
+number and what to write instead: `yes`/`no` (a boolean in YAML 1.1, a string in
+1.2), leading-zero numbers (octal or decimal depending on version), tabs,
+duplicate keys, anchors, merge keys, tags, second documents.
+
+Unknown *settings* are refused the same way. A loader that ignores `memorySize:`
+because it expected `memory:` deploys the default and prints nothing, and the
+author reads their own file and sees a setting that never took effect. The
+refusal says `Did you mean "memory"?`.
+
+Writing that refusal found a bug in the parser itself: `a: 1` / `---` / `b: 2`
+read straight past the second document marker and merged both documents into one
+mapping.
+
+## Three things the plan has to keep separate
+
+`plan` asks CloudFormation via a change set rather than diffing locally -- a
+local guess is wrong the moment somebody touches the console, and a plan that is
+occasionally wrong is worse than none because people stop reading it.
+
+It distinguishes **changes**, **no changes**, and **could not tell**. The third
+is the one that matters: "no changes" is a claim about the deployed stack, and
+printing it when the lookup failed sends somebody to deploy blind. `buildPlan`
+has no default status for exactly that reason.
+
+CloudFormation makes this harder than it sounds by reporting "no changes" as a
+*failed* change set. Treat every failure as empty and a broken template looks
+up to date; treat every failure as an error and an unchanged stack looks broken.
+Only the reason text separates them.
+
+## Login is PKCE, with no device-code fallback
+
+The device-code flow -- terminal prints a code, you type it into a web page -- is
+phishable by design: an attacker runs it against their own client, gets a genuine
+AWS code, and sends it to you with a story. The page is real and the code is
+real, and approving it authorises them. AWS made PKCE the default in the AWS CLI
+at v2.22.0 for this reason.
+
+So the authorization code arrives over loopback and redeeming it needs a verifier
+that never leaves the process. There is deliberately no fallback flag: it would
+be a switch that turns the phishable flow back on, and the people most likely to
+find it are the people being talked through a fix by a stranger.
+
+## TypeScript with no build step
+
+Node 22 strips types natively and Lambda's nodejs22.x runtime does the same, so
+a `.ts` handler is deployed as-is and runs as-is -- no bundler, no watcher,
+nothing to keep in sync. That is the entire reason this tool can offer a
+TypeScript path without acquiring a dependency. `init --typescript` scaffolds an
+ES module project, and the test suite proves it by starting the dev server
+against what was scaffolded and making a request.
+
+The first version of that scaffold wrote ESM handlers into a package declaring
+`"type": "commonjs"`, which Node refused outright. Every file the scaffold writes
+now has to agree about which kind of module the project is, and a test says so.
+
+## A probe that did not fire, and the test it exposed
+
+Six falsification probes were run. Five fired by name. The sixth -- replacing the
+ZIP's fixed timestamp with one from the clock -- did not, and the reason is worth
+keeping: the constant is evaluated once at module load, so both zips built inside
+one test process shared the same wrong value and matched each other.
+
+The test proved the writer was deterministic *within a process*, which is not the
+property that matters. The risk is variation *between builds*, because a zip
+whose bytes change on every build makes CloudFormation report every function as
+changed every time -- and a plan that always says "1 function to update" is a plan
+people stop reading, which turns off the safety feature this tool is mostly for.
+There are now two more tests: one builds the second zip in a separate process,
+and one reads the timestamp fields straight back out of the header. The probe
+fires.
+
+## Not verified
+
+The AWS calls have never been made against a live account -- there is none
+attached to this repository. `deploy`, `info` and the AWS half of `login` and
+`plan` are written and unverified end to end, and the README says that in those
+words rather than implying otherwise. `remove` prints "not implemented" rather
+than doing something approximate, because a half-written delete is the worst
+thing here to be wrong about.
+
+`tools` was added to the lint glob, so this code is held to the same
+`--max-warnings=0` standard as the rest.
+
+Verified: 200 tool tests passing (`make test` in `tools/serverless-cli`), the
+repository's own 2,889 tests passing, `pnpm run lint` clean, `pnpm run typecheck`
+clean, `pnpm run verify:launch` exit 0.
+
 ### 2026-08-25 — The download routes, wired to something that reaches them
 
 The renderer from the previous entry produced a document nobody could ask for.
