@@ -18,7 +18,17 @@ from pathlib import Path
 from .publicsuffix import covering_entry
 from .validate import load
 
-BLOCKLIST = Path(__file__).resolve().parent.parent / "blocklist.txt"
+# One copy, and it lives under lib/ rather than beside this tool.
+#
+# vercel.json bundles only {public/**,routes/**,lib/**} into the deployed
+# function, so a list kept here would be present locally, absent in production,
+# and the runtime check would quietly find nothing to flag -- passing every
+# throwaway address while every test still went green. That is the exact defect
+# this repository is organised against, so the data sits where it deploys and
+# this tool reaches across to it.
+#
+# Used standalone, outside this repository, pass --blocklist.
+BLOCKLIST = Path(__file__).resolve().parents[3] / "lib" / "sonara-disposable-domains.txt"
 
 __all__ = ["is_disposable", "blocked_by", "domains", "BLOCKLIST"]
 

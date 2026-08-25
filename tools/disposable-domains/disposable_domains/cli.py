@@ -21,7 +21,7 @@ from .publicsuffix import download, load_cached
 from .sources import DEFAULT_SOURCES, fetch, safe_to_replace
 from .validate import check, fix, load, write
 
-DEFAULT_BLOCKLIST = Path(__file__).resolve().parent.parent / "blocklist.txt"
+from . import BLOCKLIST as DEFAULT_BLOCKLIST
 
 
 def _suffixes(args) -> object | None:

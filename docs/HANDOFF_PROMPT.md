@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 100 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 223 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 224 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,69 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-25 — The throwaway-address flag, and where a data file has to live
+
+Closing the loop opened when `disposable-email-domains` was registered with a
+live use. `lib/sonara-disposable-email.cjs` reads the list; the lead capture
+route looks the address up and hands the scorer a boolean; `scoreRisk` raises a
+`disposable_email` flag worth 15 points.
+
+**Flag, never block.** A real customer whose company mail is down uses a
+throwaway address, and so does somebody typing on a phone in a car park.
+Refusing them loses exactly the sale the widget exists to win, so the lead is
+still written, still scored and still routed — the only thing that changes is a
+number the business can see.
+
+## The failure that would have been invisible
+
+`vercel.json` bundles only `{public/**,routes/**,lib/**}` into the deployed
+function. The list started life in `tools/disposable-domains/`, where the
+project that maintains it lives — and a list kept there is **present in every
+test run and absent in production**. The lookup would find nothing, flag
+nothing, and every check would stay green while the feature did nothing at all
+for the customers who paid for it.
+
+So the file moved to `lib/sonara-disposable-domains.txt`, and the Python tool
+reaches across to it rather than keeping its own copy — two copies of a
+blocklist is a blocklist that disagrees with itself. A test parses
+`vercel.json`, works out which roots are bundled, and asserts the list's
+directory is one of them. A probe that moves the file back fails that test
+first, which is the point: it is checked rather than remembered.
+
+## The address never reaches the scorer
+
+`scorableAnswers` strips contact details on purpose and a test already asserted
+it. So the lookup happens at the call site, where the address already is, and
+only `disposableEmail: true|false` travels — the same shape as `gaveContact`.
+The lead's stored breakdown records which entry matched, for a page that has to
+explain the flag.
+
+## Three states, not two
+
+`blockedBy` returns the matching entry, `null` for an address that is fine, and
+**`undefined` when the list could not be read at all**. Merging the last two
+would record a check that never ran as a clean result.
+
+Four probes, all firing by name: matching by `endsWith` instead of label
+boundaries, the list moved outside the bundled directories, the flag priced as
+high as being unreachable, and the address handed to the scorer after all.
+
+One thing checked rather than assumed: `notmailinator.com` matches, and that is
+not a bug — it is genuinely in the upstream list as its own provider.
+`xxmailinator.com`, `my-mailinator.com` and `mailinator.com.example.org` are all
+correctly left alone.
+
+## And one thing not built
+
+`handleCheckoutSessionRequest` was the intended target for this session — 49
+lines in `server.js`, on the money path, and named in the branch's own notes as
+untested. It is not untested. `tests/checkout-price-guard.test.js` verifies the
+price charges what the pricing page advertises and that no checkout session is
+created when it does not; `tests/quoted-plan-boundary.test.js` covers quoted
+plans; `tests/server.test.js` covers invalid plans, a missing secret and a
+missing price. The note was stale. Left alone rather than churned, and the note
+is corrected here so the next person does not spend the same half hour.
 
 ### 2026-08-25 — A disposable-domain blocklist, and the rule that stops it blocking a country
 

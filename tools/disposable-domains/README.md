@@ -4,10 +4,17 @@ A plain text list of disposable email domains, and the tooling to keep it
 correct.
 
 ```
-blocklist.txt      one domain per line, lowercase, sorted, deduplicated
+../../lib/sonara-disposable-domains.txt      one domain per line, lowercase, sorted, deduplicated
 ```
 
-That is the deliverable. Everything else here exists to stop that file going
+That is the deliverable.
+
+**Why the list is not in this directory.** In this repository the deployed
+serverless function bundles only `lib/`, `routes/` and `public/`, so a list kept
+beside this tool would be present in every test run and missing in production --
+the lookup would find nothing, flag nothing, and every check would stay green
+while the feature did nothing. One copy, kept where it deploys. Used standalone
+outside this repository, pass `--blocklist` and put it wherever you like. Everything else here exists to stop that file going
 wrong, because a blocklist is exactly the kind of file nobody looks at until it
 has been broken for a month.
 
@@ -16,7 +23,7 @@ has been broken for a month.
 No install, no dependency, no import needed — it is a text file:
 
 ```bash
-grep -Fxq "mailinator.com" blocklist.txt && echo blocked
+grep -Fxq "mailinator.com" ../../lib/sonara-disposable-domains.txt && echo blocked
 ```
 
 From Python, if you want subdomain matching handled for you:
@@ -111,7 +118,7 @@ which is **CC0 1.0** — a public domain dedication, verified from its
 ## Layout
 
 ```
-blocklist.txt                    the list
+../../lib/sonara-disposable-domains.txt   the list (see above for why it lives there)
 disposable_domains/
   __init__.py                    is_disposable / blocked_by -- the whole public interface
   publicsuffix.py                PSL parsing, and the suffix / registrable-domain rules

@@ -211,7 +211,7 @@ class TestSources:
 class TestShippedList:
     """The file people actually get."""
 
-    path = Path(__file__).resolve().parent.parent / "blocklist.txt"
+    path = Path(__file__).resolve().parents[3] / "lib" / "sonara-disposable-domains.txt"
 
     def test_exists_and_is_substantial(self):
         assert self.path.is_file(), "the shipped blocklist is missing"

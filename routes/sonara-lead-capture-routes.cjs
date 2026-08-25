@@ -46,6 +46,7 @@
 
 const crypto = require("node:crypto");
 
+const { blockedBy: disposableBlockedBy } = require("../lib/sonara-disposable-email.cjs");
 const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
 const { toSvg: qrToSvg } = require("../lib/sonara-qr-png.cjs");
 const { scoreLead } = require("../lib/sonara-lead-scoring.cjs");
@@ -522,7 +523,15 @@ function registerLeadCaptureRoutes(app, deps = {}) {
   async function captureLead({ config, page, profile, answers, transcript, conversationId }) {
     const contact = answers[CONTACT_KEY] || {};
     const activity = transcriptActivity(profile, transcript, answers);
-    const scored = scoreLead({ profile, answers: scorableAnswers(answers), activity });
+    // Looked up here, where the address already is, and passed on as a boolean.
+    // The address itself never reaches the scorer -- scorableAnswers strips
+    // contact details on purpose and a test asserts it.
+    const disposable = disposableBlockedBy(contact.email);
+    const scored = scoreLead({
+      profile,
+      answers: scorableAnswers(answers),
+      activity: { ...activity, disposableEmail: typeof disposable === "string" }
+    });
 
     const rules = await rest(
       config,
@@ -592,7 +601,12 @@ function registerLeadCaptureRoutes(app, deps = {}) {
         answered: scored.answered,
         declared: scored.declared,
         perCriterion: scored.perCriterion,
-        componentsUsed: scored.componentsUsed
+        componentsUsed: scored.componentsUsed,
+        // Which list entry matched, for a page that has to explain the flag.
+        // undefined means the list could not be read, which is not the same as
+        // an address that is fine.
+        disposableMatch: typeof disposable === "string" ? disposable : null,
+        disposableChecked: disposable !== undefined
       },
       assigned_to: decision ? decision.assignedTo : null,
       assigned_at: decision && decision.assignedTo ? new Date().toISOString() : null,
