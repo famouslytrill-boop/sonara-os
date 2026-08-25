@@ -2,6 +2,87 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — A LeadForge landing page, and the proof it refuses to invent
+
+`/leadforge` is a dark, high-energy landing page for LeadForge — an AI sales
+operating system pitched at lean revenue teams. Deep navy ground, cyan primary
+action, orange secondary, and the argument that finding, enriching, scoring,
+routing and activating a lead in one system beats five tools that disagree.
+
+Two things about it are worth reading before changing it.
+
+## The proof cannot be invented, structurally
+
+This application's own home page carries the sentence *"SONARA does not publish
+fake testimonials, invented customer counts, fictional awards, guaranteed
+revenue, false scarcity, or unsupported compliance and security claims"*, and
+`tests/brand-routes.test.mjs` asserts it is live. A sales page served from the
+same application with an invented "2,400 teams" on it would make that sentence
+false — the signature defect of this codebase, wearing marketing copy instead of
+a passing test.
+
+So it is not handled by being careful. Every stat, logo and quote in
+`lib/sonara-leadforge-content.cjs` is **either** `sample: true` — and then the
+page says so, in front of the reader — **or** carries a `source`. `validate()`
+refuses both an item with neither and an item with both, since a figure that is
+somehow sourced *and* a placeholder lets whoever reads the code believe
+whichever they prefer.
+
+The route does not get its own say in whether the notice renders:
+`content.hasSamples()` decides. Replace the samples with sourced figures and the
+notice disappears on its own; nobody can remove it while placeholders remain.
+The page is `noindex` while any of it is a sample, and a test asserts that too.
+
+Five probes: an unsourced customer count, a dropped notice, an unlabelled
+testimonial, a claimed SOC 2, and an indexable placeholder page. All five fail
+the tests.
+
+## It is a second brand, so it renders its own document
+
+`layout()` puts SONARA's header, nav and startup loader on a page. A LeadForge
+landing page wearing that would be neither one brand nor the other, so the route
+renders its own `<html>` and loads its own stylesheet. `public/leadforge.css`
+deliberately does not extend the SONARA design system — inheriting a light
+surface and overriding it back to navy is how two design systems end up fighting
+in one file.
+
+Every colour pair was **measured** rather than judged: the tightest is muted
+text on a raised card at 7.35:1, against a 4.5:1 requirement, and the arithmetic
+was sanity-checked against black-on-white at 21:1. One theme on purpose, so
+there is no second palette to keep in step.
+
+## Five existing gates caught it, which is the system working
+
+None of these were anticipated; all five were right.
+
+- **The reserved-handle list.** A new top-level route means `/creator/leadforge`
+  must not be claimable. Added.
+- **Every page is reachable.** A registered page nothing links to is
+  unreachable — recorded in `NOT_LINKED` with the reason, because a second
+  company does not belong in this one's navigation.
+- **The marketing surface rule.** Every public route must be classified. It sits
+  on the calm side, and the reason says why: not because it is a document, but
+  because it renders outside the SONARA shell entirely.
+- **No dead links.** Both calls to action pointed at `/leadforge/demo` and
+  `/leadforge/chat`, which do not exist. They point at `/contact` until they do.
+- **No page lies when the database is down.** The outage crawl flagged the line
+  *"there is no integration between these because there is nothing to
+  integrate"* as a possible empty-state claim about a customer's records. It was
+  a false positive, but the fix was to reword rather than add an exemption —
+  exemptions accumulate and weaken that gate, and the rewrite is better copy.
+
+## What is not built
+
+The design system at `gitreverse.com/designs/leadforge-business` **could not be
+read**: this environment's egress proxy blocks that host. The palette,
+typography and spacing here come from the written brief, so they will not match
+a token-for-token system if one exists. Point somebody at the tokens and this is
+a stylesheet edit, not a rebuild.
+
+There is no `/leadforge/demo` or `/leadforge/chat`. The chat widget is a mockup
+of a conversation, not a widget.
+
+
 ### 2026-08-24 — The tenant boundary was the least-tested thing here
 
 `createOrAttachOrganization` was the largest function left in `server.js` and

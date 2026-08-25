@@ -42,6 +42,12 @@ const CINEMATIC = new Set([
 // someone opens a readiness checklist to see what is not set up yet, and
 // neither is improved by parallax.
 const CALM = new Map([
+  // Not calm because it is a document -- it is a full marketing page. It is on
+  // this side because it renders its own <html> outside the SONARA shell, so
+  // the stage and the depth script are not its to carry. The rule being checked
+  // is "does this page use the SONARA marketing surface", and the honest answer
+  // for a second brand's landing page is no.
+  ["/leadforge", "a second brand's landing page, rendering its own document outside the SONARA shell"],
   ["/legal", "a reference document somebody reads to check a term"],
   ["/terms", "a reference document somebody reads to check a term"],
   ["/privacy", "a reference document somebody reads to check a term"],

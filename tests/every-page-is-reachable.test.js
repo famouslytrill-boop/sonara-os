@@ -52,6 +52,7 @@ const ROOTS = Object.freeze([
 // reachable fails too, because a stale reason is how this list would rot the
 // same way the ones it replaced did.
 const NOT_LINKED = Object.freeze({
+  "/leadforge": "A landing page for a different brand, rendering its own document outside the SONARA shell. It is meta noindex while its proof is placeholder content, and linking it from SONARA navigation would put a second company in this one's menu.",
   "/sitemap.xml": "A machine endpoint. Search engines fetch it; a link to it on a page would be noise.",
   "/robots.txt": "Same as the sitemap: fetched by crawlers, not by people.",
 

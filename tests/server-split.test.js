@@ -433,9 +433,15 @@ describe("the server.js split stays safe", () => {
     // it now: one organization per customer, the existence check before the
     // insert rather than after, and a redirect path that cannot be chosen by
     // the request.
+    //
+    // Then 3836 on 25 August 2026, by 3, for routes/sonara-leadforge-routes.cjs
+    // -- /leadforge, a new top-level public surface. That is the seventh
+    // exception, and unlike the first six it is taken against a baseline 215
+    // lines lower than where the run of exceptions started, which is the shape
+    // this was meant to have: reduce, then spend a little of it.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3833,
+      lines <= 3836,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
