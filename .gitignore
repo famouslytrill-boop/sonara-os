@@ -58,3 +58,7 @@ supabase_schema_backup.sql
 *.tgz
 
 frontend/tsconfig.tsbuildinfo
+
+# Output from examples/qr-hello-world.js when run without an argument.
+examples/hello-world.png
+examples/hello-world.svg

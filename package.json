@@ -22,7 +22,7 @@
     "start": "node server.js",
     "dev": "node --env-file=.env server.js",
     "build": "node --check server.js && node -e \"require('./server')\"",
-    "lint": "eslint --max-warnings=0 server.js api routes lib scripts tests public --ignore-pattern \"archive/**\" --ignore-pattern \"**/node_modules/**\" --ignore-pattern \"**/.next/**\"",
+    "lint": "eslint --max-warnings=0 server.js api routes lib scripts tests public examples --ignore-pattern \"archive/**\" --ignore-pattern \"**/node_modules/**\" --ignore-pattern \"**/.next/**\"",
     "typecheck": "node scripts/typecheck.mjs",
     "scan:client-secrets": "node scripts/client-secret-scan.cjs",
     "smoke:live": "node scripts/smoke-live-routes.mjs",

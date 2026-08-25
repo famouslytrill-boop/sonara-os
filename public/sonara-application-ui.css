@@ -1373,3 +1373,21 @@ body > header .sonara-brand-copy strong {
   .sonara-shared-result dt { padding-top: 2px; }
   .sonara-shared-result dd { margin-bottom: 10px; }
 }
+
+/* A QR code, inline as SVG.
+ *
+ * Capped rather than full width: a code stretched across a desktop card is
+ * harder to scan than a small one, because a phone camera has to see the whole
+ * symbol at once. The white background is on the SVG itself rather than here,
+ * so the code survives being saved out of the page and dropped onto a dark
+ * poster. */
+.sonara-qr {
+  max-width: 240px;
+  margin: 0 0 12px;
+}
+.sonara-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}

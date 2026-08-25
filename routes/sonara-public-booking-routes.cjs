@@ -41,6 +41,8 @@
 // application committing a business to work it has not seen.
 
 const { availableSlots, isBookable, WEEKDAY_NAMES, normaliseOpeningHours, minutesFromClock, knownZone } = require("../lib/sonara-booking-availability.cjs");
+const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
+const { toSvg: qrToSvg } = require("../lib/sonara-qr-png.cjs");
 
 const SCHEDULES_TABLE = "employee_schedules";
 
@@ -464,6 +466,17 @@ function registerPublicBookingRoutes(app, deps = {}) {
       sections.push(brandCard("We could not read your settings", "This is a problem on our side. Nothing below is your saved configuration -- do not save over it until this page loads properly."));
     } else if (row?.slug && row.enabled) {
       sections.push(htmlCard("Your page is live", `<p>Anyone with this address can request an appointment.</p><p><a class="action" href="/book/${escapeHtml(row.slug)}">/book/${escapeHtml(row.slug)}</a></p>`));
+      // The address, scannable, so it can go on a van or a card. Inline SVG:
+      // nothing is fetched, no route serves an image, and a vector prints at any
+      // size. A code that will not fit is left out rather than failing the page.
+      const codeUrl = `https://sonaraindustries.com/book/${row.slug}`;
+      const encodedCode = encodeQr(codeUrl, { ecc: "M" });
+      if (encodedCode.ok) {
+        sections.push(htmlCard("The same address, on paper", [
+          `<div class="sonara-qr">${qrToSvg(encodedCode.modules)}</div>`,
+          `<p class="fine">Point a phone camera at this and it opens your booking page. Right-click to save it \u2014 it is a vector, so it stays sharp from a business card to a van.</p>`
+        ].join("")));
+      }
     } else if (row?.slug) {
       sections.push(htmlCard("Your address is reserved and switched off", `<p>Nobody can open <code>/book/${escapeHtml(row.slug)}</code> until you tick &quot;Take bookings&quot;.</p>`));
     } else {

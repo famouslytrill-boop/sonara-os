@@ -2,6 +2,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — A QR encoder, and the decoder that proves it works
+
+`lib/sonara-qr.cjs` turns a string into black and white modules.
+`lib/sonara-qr-png.cjs` turns those modules into a PNG or an SVG. Both are
+dependency-free; the only thing either imports is `node:zlib`, which ships with
+the runtime.
+
+The three public addresses this branch shipped — `/book/:slug`, `/chat/:slug`
+and `/shared/:token` — are all things a business wants on a van, a card or a
+shop window, and a URL on paper has to be typed unless there is a code beside
+it. The booking-page and chat-widget settings pages now show one.
+
+## The problem with testing an encoder
+
+**A QR code that is subtly wrong looks exactly like one that is right.** Wrong
+mask, mis-drawn alignment pattern, off-by-one in the block interleave — it is
+still black squares in a square, still has three corners, and still fails to
+scan on a printed poster weeks later with nobody there to say why. A snapshot
+test would have locked in whatever came out first.
+
+So `tests/a-qr-code-can-be-read-back.test.js` contains a **decoder written
+independently of the encoder**: it recovers the format information by trying
+every (level, mask) pair against the BCH codeword, undoes the mask, walks the
+zigzag, de-interleaves the blocks and reconstructs the string. Every case
+round-trips — eight strings, all four error-correction levels, all eight masks,
+and lengths from 1 to 1000 characters, so the multi-block interleave with mixed
+short and long blocks is actually exercised.
+
+The decoder deliberately **rebuilds its own map of which modules are function
+patterns** rather than importing the encoder's. Sharing that map would hide
+exactly the class of bug it exists to catch.
+
+An encoder and a decoder written from the same misunderstanding could still
+agree, so the structural facts are asserted separately against the standard:
+module count, finders in three corners and *not* the fourth, timing
+alternation, the always-dark module, the published data capacities for versions
+1 and 2, and format bits checked against two values anybody can look up.
+
+Five probes, all firing by name: L and M format bits swapped, the interleave off
+by one on short blocks, mask 4's axes swapped, byte segments counting characters
+instead of bytes, and the dark module left light.
+
+## What was taken, and what was not
+
+The two capacity tables printed in ISO/IEC 18004 were **read from Project
+Nayuki's reference implementation** (MIT, registered here the same day) rather
+than recalled, along with the closed forms for raw module count and alignment
+spacing. Those are the standard's numbers, not anybody's creative work — but
+reading them from there is why the module credits the project in its own header
+and why the register record now says so plainly. The Reed-Solomon arithmetic,
+masking, penalty scoring and bit placement are written here.
+
+## The multi-language part of the request, and why it is not here
+
+The ask was for a main implementation in Java with matching versions in
+JavaScript, Python, Rust, C++ and C. This repository is CommonJS on a
+serverless runtime with one production dependency and no build step: there is
+nowhere to compile Java, Rust, C++ or C, and `verify:launch` could not run a
+line of any of them. Five implementations nothing executes is five copies of
+untested code wearing the confidence of the one that is tested — the exact
+defect this codebase is organised against.
+
+Project Nayuki's library already provides all six languages under MIT, it is
+the reference this one was checked against, and it is recorded in the register
+with a live use. That is the honest answer to the multi-language half, and it
+is a better one than five unrun files.
+
+## One thing the PNG test got wrong about itself
+
+The pixel-comparison guard asserted `compared > 10000` and failed on its own
+fixture: a version 1 code at scale 3 is 87 pixels square, and 87 squared is
+7,569. The pixels all matched; the threshold was invented. It asserts
+`compared === side * side` now, which is the property that was actually wanted
+and cannot be picked wrong.
+
 ### 2026-08-25 — Four repositories reviewed, and two questions closed instead of opened
 
 A sweep of GitHub for things this application could actually use. Four records

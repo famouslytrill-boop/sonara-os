@@ -46,6 +46,8 @@
 
 const crypto = require("node:crypto");
 
+const { encode: encodeQr } = require("../lib/sonara-qr.cjs");
+const { toSvg: qrToSvg } = require("../lib/sonara-qr-png.cjs");
 const { scoreLead } = require("../lib/sonara-lead-scoring.cjs");
 const { routeLead } = require("../lib/sonara-lead-routing.cjs");
 const {
@@ -161,6 +163,19 @@ function ruleFromRow(row) {
     },
     assignTo: row.assign_to || "round_robin"
   };
+}
+
+// A scannable version of an address, inline, so nothing has to be fetched and
+// no route has to serve an image. SVG rather than PNG because the thing an
+// owner does with this is print it, and a vector scales to a shop window.
+//
+// Returns null rather than throwing if the URL is somehow too long to encode:
+// a settings page that fails to render because a code would not fit is worse
+// than one that shows the address without a code beside it.
+function qrCardBody(url) {
+  const encoded = encodeQr(url, { ecc: "M" });
+  if (!encoded.ok) return null;
+  return `<div class="sonara-qr">${qrToSvg(encoded.modules)}</div>`;
 }
 
 function registerLeadCaptureRoutes(app, deps = {}) {
@@ -768,11 +783,18 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     } else if (row?.slug && row.enabled) {
       const origin = "https://sonaraindustries.com";
       const snippet = `<iframe src="${origin}/chat/${row.slug}" title="Talk to us" width="380" height="560" style="border:0;border-radius:12px"></iframe>`;
+      const qr = qrCardBody(`${origin}/chat/${row.slug}`);
       sections.push(htmlCard("Your widget is live", [
         `<p>Paste this into any page on your own site.</p>`,
         `<pre class="sonara-snippet"><code>${escapeHtml(snippet)}</code></pre>`,
         `<p><a class="action" href="/chat/${escapeHtml(row.slug)}">Open it yourself</a></p>`
       ].join("")));
+      if (qr) {
+        sections.push(htmlCard("The same address, on paper", [
+          qr,
+          `<p class="fine">Point a phone camera at this and it opens your widget. Right-click to save it \u2014 it is a vector, so it stays sharp at any size from a business card to a shop window.</p>`
+        ].join("")));
+      }
       sections.push(brandCard("Why a frame and not a script", "A script would be this application running on your domain, with your visitors' cookies and your page's contents, on every page you paste it into. A frame shows the same conversation in a box that cannot read your page and that your page cannot read. It is the smaller promise, and it is the one we can keep."));
     } else if (row?.slug) {
       sections.push(htmlCard("Your address is reserved and switched off", `<p>Nobody can open <code>/chat/${escapeHtml(row.slug)}</code> until you tick &quot;Take enquiries&quot;.</p>`));
