@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice clone, with consent</title>
+<style>
+  :root { color-scheme: light dark; --ink:#12141a; --paper:#fbfbfd; --line:#d6d9e0; --accent:#2d5bd7; --warn:#8a5300; --warnbg:#fff6e5; --bad:#a11; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#e8eaf0; --paper:#14161c; --line:#2c313c; --accent:#7aa2ff; --warn:#ffcf7a; --warnbg:#2a2113; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:2rem 1rem 4rem; background:var(--paper); color:var(--ink);
+         font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width: 44rem; margin: 0 auto; }
+  h1 { font-size:1.6rem; margin:0 0 .25rem; letter-spacing:-0.01em; }
+  .sub { color:#7a808f; margin:0 0 1.5rem; }
+  fieldset { border:1px solid var(--line); border-radius:10px; padding:1.1rem 1.2rem 1.3rem; margin:0 0 1.1rem; }
+  legend { padding:0 .4rem; font-weight:600; font-size:.95rem; }
+  label { display:block; margin:.8rem 0 .25rem; font-weight:500; font-size:.92rem; }
+  input,select,textarea,button { font:inherit; color:inherit; }
+  input[type=text],input[type=number],select,textarea {
+    width:100%; padding:.55rem .65rem; border:1px solid var(--line); border-radius:7px; background:var(--paper); }
+  textarea { min-height:6.5rem; resize:vertical; }
+  .row { display:grid; gap:.8rem; grid-template-columns:1fr; }
+  @media (min-width:34rem) { .row { grid-template-columns:1fr 1fr 8rem; } }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:.65rem 1.1rem; font-weight:600; cursor:pointer; }
+  button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  button[disabled] { opacity:.5; cursor:not-allowed; }
+  .phrase { margin:.7rem 0 0; padding:.85rem 1rem; border-radius:8px; background:var(--warnbg); color:var(--warn);
+            font-size:1.05rem; font-weight:600; }
+  .note { font-size:.85rem; color:#7a808f; margin:.35rem 0 0; }
+  .banner { border-radius:8px; padding:.85rem 1rem; margin:0 0 1.2rem; background:var(--warnbg); color:var(--warn); font-size:.92rem; }
+  #out { margin-top:1.2rem; }
+  .bad { color:var(--bad); font-weight:600; }
+  audio { width:100%; margin-top:.6rem; }
+  dl { display:grid; grid-template-columns:auto 1fr; gap:.2rem .8rem; font-size:.86rem; margin:.7rem 0 0; }
+  dt { color:#7a808f; } dd { margin:0; word-break:break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Voice clone</h1>
+  <p class="sub">Upload a voice, prove the speaker agreed, and type what they should say.</p>
+
+  <div class="banner" id="engine">Checking what this can do…</div>
+
+  <form id="form">
+    <fieldset>
+      <legend>1. Consent</legend>
+      <p class="note">A tickbox proves nothing. Get a phrase, have the speaker record themselves
+        reading it aloud, and upload that recording. The phrase is different every time, so a clip
+        recorded earlier cannot be used.</p>
+      <button type="button" id="get-phrase" class="secondary">Get a phrase to read</button>
+      <p class="phrase" id="phrase" hidden></p>
+      <label for="speaker">Whose voice is this?</label>
+      <input type="text" id="speaker" name="speaker_name" required placeholder="Their name">
+      <label for="consent">Recording of them reading the phrase</label>
+      <input type="file" id="consent" name="consent_clip" accept="audio/*" required>
+    </fieldset>
+
+    <fieldset>
+      <legend>2. The voice</legend>
+      <label for="reference">A clear clip of them speaking normally</label>
+      <input type="file" id="reference" name="reference" accept="audio/*" required>
+      <p class="note">Ten to thirty seconds is plenty. Quiet room, no music.</p>
+    </fieldset>
+
+    <fieldset>
+      <legend>3. What to say</legend>
+      <label for="text">Text</label>
+      <textarea id="text" name="text" required placeholder="Type what the cloned voice should say."></textarea>
+      <div class="row">
+        <div><label for="language">Language</label><select id="language" name="language"></select></div>
+        <div><label for="style">Emotion</label><select id="style" name="style"></select></div>
+        <div><label for="speed">Speed</label><input type="number" id="speed" name="speed" value="1.0" min="0.5" max="2.0" step="0.1"></div>
+      </div>
+      <p class="note">The voice sample and the text do not have to be in the same language.</p>
+    </fieldset>
+
+    <button type="submit" id="go">Generate</button>
+  </form>
+
+  <div id="out"></div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let challengeToken = null;
+
+async function boot() {
+  const caps = await (await fetch("/api/capabilities")).json();
+  $("engine").textContent = caps.produces_real_speech
+    ? `Engine: ${caps.engine}. ${caps.engine_note}`
+    : `No speech model is loaded, so this will return a tone rather than a cloned voice. ${caps.engine_note}`;
+  for (const [code, name] of Object.entries(caps.languages)) {
+    $("language").add(new Option(name, code));
+  }
+  for (const style of caps.styles) {
+    $("style").add(new Option(style, style));
+  }
+  if (caps.styles.length === 1) {
+    $("style").disabled = true;
+    $("style").insertAdjacentHTML("afterend",
+      '<p class="note">This engine takes its delivery from the base speaker, so it offers one style.</p>');
+  }
+}
+
+$("get-phrase").addEventListener("click", async () => {
+  const data = await (await fetch("/api/challenge", { method: "POST" })).json();
+  challengeToken = data.token;
+  $("phrase").hidden = false;
+  $("phrase").textContent = data.phrase;
+});
+
+$("form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (!challengeToken) {
+    $("out").innerHTML = '<p class="bad">Get a phrase first, and have the speaker read it.</p>';
+    return;
+  }
+  $("go").disabled = true;
+  $("out").textContent = "Working…";
+
+  const body = new FormData();
+  body.append("token", challengeToken);
+  body.append("speaker_name", $("speaker").value);
+  body.append("text", $("text").value);
+  body.append("language", $("language").value);
+  body.append("style", $("style").value);
+  body.append("speed", $("speed").value);
+  body.append("reference", $("reference").files[0]);
+  body.append("consent_clip", $("consent").files[0]);
+
+  try {
+    const response = await fetch("/api/clone", { method: "POST", body });
+    const data = await response.json();
+    // A used challenge is spent whatever the answer, so the next attempt needs
+    // a new phrase and a new recording.
+    challengeToken = null;
+    $("phrase").hidden = true;
+
+    if (!response.ok || !data.ok) {
+      const reason = data.reason || data.detail || "That did not work.";
+      $("out").innerHTML = `<p class="bad">${reason}</p>` +
+        (data.heard ? `<p class="note">Heard: “${data.heard}”</p>` : "");
+      return;
+    }
+    $("out").innerHTML =
+      `<p>${data.is_real_speech ? "Done." : data.detail}</p>` +
+      `<audio controls src="${data.audio_url}"></audio>` +
+      `<dl><dt>Speaker</dt><dd>${data.consent.speaker_name}</dd>` +
+      `<dt>Consent recorded</dt><dd>${data.consent.recorded_at}</dd>` +
+      `<dt>Phrase matched</dt><dd>${Math.round(data.consent.match_ratio * 100)}%</dd>` +
+      `<dt>Reference hash</dt><dd>${data.consent.reference_sha256}</dd></dl>`;
+  } catch (error) {
+    $("out").innerHTML = `<p class="bad">${error}</p>`;
+  } finally {
+    $("go").disabled = false;
+  }
+});
+
+boot();
+</script>
+</body>
+</html>

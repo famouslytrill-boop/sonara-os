@@ -2,6 +2,91 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — Voice cloning, and the gate that makes it a tool rather than a forgery kit
+
+`tools/voice-clone/` — upload a voice, prove the speaker agreed, type text, get
+audio in that voice. Cross-lingual, so an English sample speaks Spanish, French,
+Chinese, Japanese or Korean. Built on OpenVoice (MIT, licence read from source).
+FastAPI, one HTML page, no build step.
+
+## The rule this ran into, and why the answer was to build it differently
+
+`AGENTS.md` says, in one line: *"Enforce provenance, consent, and anti-clone
+safety."* Not "ask about" — enforce. This branch already withholds
+`voice_identity` and `prompt_rules` from public creator profiles for exactly
+that reason. A tool that clones any uploaded clip with a tickbox would have
+contradicted a rule written into the repository it was being added to.
+
+The rule does not forbid voice work. It requires consent to be enforced, so
+that is what was built.
+
+**A tickbox proves nothing.** Anybody cloning a voice they should not have ticks
+it. What distinguishes a consenting speaker from a scraped clip is that a
+consenting speaker is *present when you ask* and can be asked to say something
+nobody could have predicted. So the server invents a challenge phrase — a fixed
+sentence plus four random words and a number — the speaker records themselves
+reading it, and only a transcript matching the phrase **the server issued**
+produces audio.
+
+The phrase never comes from the browser. A client that could supply its own
+could supply one it already had a recording of, and the check would be theatre.
+A test asserts that a phrase in the request body is ignored. Challenges are
+single-use and expire, so one consent recording authorises one clone.
+
+**Three outcomes, not two.** Granted, refused, and *unverified* — the last being
+when the check could not run at all. Unverified never becomes granted: a check
+that could not run and a check that passed are the same shape and opposite
+meanings, and merging them turns this back into a tickbox with extra steps.
+
+Refusals are recorded as fully as grants, because a tool that only writes down
+its successes cannot answer the one question anybody will ever ask it. A refused
+reference clip is deleted. Real output is watermarked with OpenVoice's own
+`wavmark`, which is the provenance half of the same rule.
+
+## Two engines, and one of them says what it is
+
+The stub produces a real playable WAV that is **a tone, not speech**, and says
+so in the API response and on the page. It exists so the consent gate, the
+validation, the interface and the tests all run on a machine with no GPU and
+nothing downloaded. A stub that dressed itself up as a result would let somebody
+demo this to a room without noticing nothing had happened.
+
+**The OpenVoice path has not been run.** It was written against OpenVoice's
+documentation and source layout; the machine it was written on had no GPU and
+could not download the checkpoints. That is stated at the top of the module, in
+the README and here — not left in a commit message for somebody to find after it
+fails.
+
+## Emotion, honestly
+
+OpenVoice **V1** has named emotions in its base speaker. **V2** replaces that
+base speaker with MeloTTS, which is better and multilingual and exposes none of
+them: delivery comes from the base speaker, tone colour from the reference clip.
+So V2's emotion control is weaker than the summary suggests. Rather than offer
+nine styles and render several identically, each engine reports what it actually
+has and the interface asks it — the stub offers six, the V2 adapter reports one.
+If named emotions matter more than V2's quality and languages, V1 is the model
+to wire in and the interface does not change.
+
+## Why it is not inside SONARA One
+
+Vercel serverless, one production dependency, `includeFiles` of
+`{public/**,routes/**,lib/**}`. PyTorch and gigabytes of checkpoints do not go
+there and would not suit that execution model if they did. This is the pattern
+`docs/architecture/EXTERNAL-SERVICES.md` describes: a service the owner runs. If
+it is ever reachable over the network, that document's four rules apply,
+starting with off by default and never a dependency.
+
+23 tests, named after ways somebody would get a clone they should not have.
+Five probes, all firing by name: unverified counted as consent, a challenge
+surviving its use, a refused clip left on disk, the stub claiming to be real
+speech, and the phrase threshold dropped to nothing.
+
+One test was wrong rather than the code: it globbed the whole workspace for
+leftover reference clips and caught ones a *granted* request had legitimately
+kept. It snapshots before and after now, which is the claim that was actually
+meant.
+
 ### 2026-08-25 — The throwaway-address flag, and where a data file has to live
 
 Closing the loop opened when `disposable-email-domains` was registered with a

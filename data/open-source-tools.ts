@@ -4448,6 +4448,42 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: false,
   },
+  {
+    name: "OpenVoice",
+    slug: "myshell-openvoice-voice-cloning",
+    category: ["voice cloning", "text to speech", "cross-lingual", "local model", "consent-gated"],
+    useCase: [
+      "tools/voice-clone/ -- a tool the owner runs on their own machine, behind a consent gate",
+    ],
+    productFit: ["Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "keep it out of SONARA One's runtime: Vercel bundles {public/**,routes/**,lib/**} into a serverless function, and PyTorch plus multi-gigabyte checkpoints do not go there and would not suit that execution model if they did",
+      "never expose voice cloning without the consent gate -- AGENTS.md says enforce provenance, consent and anti-clone safety, and a tickbox enforces nothing",
+      "keep the wavmark watermark on every output; it is the provenance half of the same rule and it is already built into OpenVoice",
+      "if named emotions matter more than V2's audio quality and language coverage, wire V1 instead -- the engine interface in tools/voice-clone does not need changing",
+    ],
+    officialUrl: "https://research.myshell.ai/open-voice",
+    repoUrl: "https://github.com/myshell-ai/OpenVoice",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: MIT, 'Copyright 2024 MyShell.ai'. The README states 'OpenVoice V1 and V2 are MIT Licensed. Free for both commercial and research use.' V2 natively supports English, Spanish, French, Chinese, Japanese and Korean, and does zero-shot cross-lingual cloning -- the reference clip's language need not be the output language.\n\nThe capability is real and the licence is clean. The two constraints are elsewhere.\n\nFIRST, it cannot live in this application. torch and the V2 checkpoints are gigabytes; vercel.json bundles only {public/**,routes/**,lib/**}, and a serverless function is the wrong shape for a model that wants to stay warm. tools/voice-clone/ is therefore a standalone app the owner runs, which is the pattern docs/architecture/EXTERNAL-SERVICES.md describes. The OpenVoice path in it is WRITTEN AND NOT VERIFIED -- the machine it was written on had no GPU and could not download the checkpoints, and that is stated in the module, the README and the sprint log rather than left to be discovered.\n\nSECOND, and the reason this record is worth reading: a voice cloner with no consent gate is a forgery kit. AGENTS.md requires provenance, consent and anti-clone safety to be ENFORCED, and this branch already withholds voice_identity and prompt_rules from public creator profiles for the same reason. So the tool issues a random challenge phrase, the speaker records themselves reading it, and only a transcript that matches the phrase the SERVER issued produces audio. An unverified check is never treated as consent, refusals are recorded as fully as grants, and a refused reference clip is deleted.\n\nEmotion control is weaker than the summary suggests: V1 exposes named emotions through its base speaker, V2 replaces that base speaker with MeloTTS and takes delivery from it, so V2 offers essentially one style. The tool asks each engine what it actually offers rather than listing nine and rendering several identically.",
+    safetyBoundaries: [
+      "no clone without a consent recording matching a phrase this application issued for that request",
+      "unverified is never treated as granted -- a check that could not run and a check that passed are the same shape and opposite meanings",
+      "every output watermarked; every decision, including every refusal, written down with who consented and when",
+      "a reference clip from a refused request is deleted rather than kept",
+      "not reachable from SONARA One's runtime, and if that ever changes the four adapter rules apply starting with off by default",
+    ],
+    blockedUses: [
+      "cloning a voice without that speaker's recorded consent",
+      "any use that presents cloned audio as a genuine recording of the speaker",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
