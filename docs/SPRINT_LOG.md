@@ -2,6 +2,81 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 — A PDF, written with nothing installed
+
+The previous piece was about a capability that **cannot** live in a serverless
+function. This is the opposite: looking for what can.
+
+This application already hands a business its records as a calendar file, a
+contact card, a CSV and a JSON export — every one a text format costing no
+dependency. The obvious missing one turned out to be the one customers most
+often need: an invoice they can file with an accountant or attach to an email.
+A shared invoice was a web page, which is fine to look at and impossible to
+keep.
+
+PDF belongs on that list. It is a text container with an offset table, the
+fourteen standard fonts are guaranteed present in every conformant viewer so
+nothing has to be embedded, and `node:zlib` ships with the runtime. No
+dependency, no binary, no service, a few milliseconds inside a function.
+
+## The font metrics, and the near miss worth recording
+
+Money on an invoice is right-aligned, and right-aligning needs to know how wide
+the text is. So the module carries Adobe's WX values for Helvetica and
+Helvetica-Bold, codes 32 to 126.
+
+**The first attempt read them out of a summary of the AFM file and got 91 of
+the 95.** Every value it did have was correct — space 278, W 944, all ten
+digits 556 — and every spot check passed. The four it had silently dropped
+would have shifted any column containing one of them. A table that is right
+where you look and wrong where you do not is precisely the defect this codebase
+is organised against, so the numbers were parsed out of the bytes in the end
+and the module says so at the top.
+
+What it cannot do is stated in the same place: exact widths cover ASCII;
+anything else is written through WinAnsiEncoding and its width approximated,
+and `measure()` returns `approximated` so it is never folded silently into a
+total. Every money column, being digits, stays exact.
+
+## How it is known to open
+
+A broken PDF does not error — it opens to a blank page, or renders in Chrome
+and not in Preview, and you find out from a customer saying the invoice was
+empty. So the test contains an **independent reader**: it walks the
+cross-reference table, checks every byte offset lands exactly on the object
+header it claims, inflates each stream, and reads the text back out of the
+drawing operators.
+
+Five probes. Four fired: an xref offset off by one byte, right alignment
+ignoring measured width, approximated characters counted as exact, and a
+stream's declared `/Length` off by one.
+
+**The fifth did not, and the test was the thing that was wrong.** Removing
+bracket escaping entirely broke nothing, because the test drew
+`"Repair (see attached)"` — *balanced* brackets, which a tolerant reader
+recovers either way. The case that actually corrupts a document is an
+**unmatched** bracket: one `)` with no `(` ends the literal string early and
+everything after it is read as drawing operators. The test now asserts on the
+encoded bytes and separately round-trips `"50%) off until Friday"`, and the
+probe fires.
+
+## The invoice itself
+
+`lib/sonara-invoice-pdf.cjs` renders exactly the columns
+`lib/sonara-shared-results.cjs` reviewed and allows, and the test reads that
+module's own `forbidden` declaration **with no fallback** — a default would let
+it pass against a copy on the day somebody renamed the export, which is the one
+thing it claims not to do.
+
+It shows the balance rather than the total again when a deposit was taken, says
+the balance is *not known* when payments could not be read rather than printing
+the total as unpaid, prints `-` rather than `0.00` for an absent price, and
+`Not set` for a date nobody chose. It grows no way to pay it: there is no
+Stripe Connect here, the shared page already tells its reader never to pay from
+a link, and a PDF is forwarded more easily than a link — so that sentence has
+to be true in the artifact too, and a test asserts no bank details, no
+checkout, no pay button.
+
 ### 2026-08-25 — Reaching the voice studio, without becoming a place that holds voices
 
 `tools/voice-clone/` was built as something the owner runs on their own
