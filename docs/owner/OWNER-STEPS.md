@@ -370,6 +370,39 @@ Three things worth knowing before you spend anything on it:
 Record the answer in the HyperFormula entry in `data/open-source-tools.ts` and
 this step closes.
 
+## 6 — Make the upload bucket, and make it private
+
+Added 26 August 2026, when `lib/sonara-multipart.cjs` and
+`lib/sonara-file-storage.cjs` gave this application the ability to accept a file
+for the first time. Until this is done, an upload reports setup-required and no
+page notices — which is the correct behaviour and is not the same as working.
+
+### Do this
+
+In the Supabase dashboard, **Storage → New bucket**:
+
+- Name it `sonara-uploads`, or any name you like and set `SONARA_UPLOAD_BUCKET`
+  to match.
+- Leave **Public bucket** switched **off**. This is the whole point of the step.
+
+### Why the private setting is the step rather than a detail
+
+Files are handed out through signed links that expire in five minutes by
+default and an hour at most. **A public bucket makes every one of those links
+pointless**: the object is readable by anyone with the path, forever, including
+after the customer deletes the record that pointed at it.
+
+Nothing in this repository can see that setting. `storageReadiness()` reports it
+as an *assumption* rather than a guarantee, in those words, because the honest
+thing a program can say about a setting it cannot read is that it is assuming
+it. That is why this is on your list and not in a test.
+
+### How to tell it worked
+
+Upload a file, then open the signed link it produces in a private window. It
+should work. Then wait an hour and open the same link again: it should not. If
+it still works, the bucket is public.
+
 ## Before any of the above: what has to be switched on
 
 `docs/owner/WHAT-MUST-BE-ON.md` lists the ten environment variables a paying

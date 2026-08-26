@@ -5,7 +5,7 @@ done" means two different things and only one of them is countable.
 
 ---
 
-## Shipping what exists: 4 steps, all yours
+## Shipping what exists: 5 steps, all yours
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
@@ -13,7 +13,7 @@ across all 26 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
-The four remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
+The five remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
 rather than interpreted:
 
 | # | Step | Why it cannot be done here |
@@ -22,6 +22,7 @@ rather than interpreted:
 | 2 | Turn on Supabase leaked-password protection, and set the env var that makes it a gate | Dashboard toggle; the MCP connection is read-only by contract |
 | 3 | Export four authorization functions into version control | They exist in the live database and in no migration |
 | 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
+| 5 | Make a private `sonara-uploads` bucket in Supabase Storage | A dashboard setting nothing here can read, and a public bucket would make every signed link pointless |
 
 Nothing else is blocking a launch of what is built. `OWNER-STEPS.md` carries one
 further item below those four, deliberately unnumbered because it blocks nothing:
