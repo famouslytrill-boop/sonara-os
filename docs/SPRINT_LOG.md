@@ -2,6 +2,66 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - The upload page, and four resets in one afternoon
+
+The multipart parser and the file store shipped earlier today with **nothing
+calling either**. That is this branch's signature defect wearing its most
+flattering disguise: the capability is present, the tests pass, and no customer
+can reach it. `routes/sonara-asset-file-routes.cjs` is the reachable half.
+
+One page, one file per Creator Studio asset. Deliberately a page rather than a
+change to the generic record renderer, because a file has a state a text field
+does not -- attached, not attached, or *stored somewhere this cannot reach* --
+and only a page can say which.
+
+## The order is the design
+
+Four checks, and the order is what makes them worth having:
+
+1. the row is read filtered on `id` **and** `organization_id`, before anything
+   is parsed -- not fetched and then checked, because a fetch-then-check leaves
+   a window where somebody deletes the check and the query still looks right
+2. the body parses
+3. the bytes are the kind of file they claim to be
+4. and only then does storage take it
+
+The row is patched **last**, so a failed upload never leaves a record pointing
+at a file that is not there. Removal runs the same way round -- delete the
+object first, because a row saying "no file" while the object is still in the
+bucket is worse than one admitting the delete failed. Both orders are asserted
+by index in a single recorder that sees the whole conversation, because "it
+uploaded" is true in both directions and only one survives a failure.
+
+Six probes, all six fired.
+
+## A bug found by reading rather than by testing
+
+`getCustomerPrimaryOrganization` takes the **user** and answers
+`{ ok, organizationId }`, not an id. The first draft passed `req` and used the
+result as a string, which produces a query filtered on
+`organization_id=eq.[object Object]` -- no rows, so the page says "that asset is
+not on your list" **and looks like a working boundary**. No test would have
+called that a failure. It was caught by opening the helper before trusting its
+name.
+
+## What this afternoon actually taught
+
+The container reverted four times, and the fourth took an uncommitted copy of
+this whole sprint with it -- route, tests, registration and ratchet bump -- along
+with `node_modules`. HEAD came back on `main`'s merge commit.
+
+The working practice that came out of it, and the reason two commits here say so
+in their own messages: **commit and push before the falsification pass, not
+after.** Probes are the step most likely to be interrupted, and an interrupted
+probe leaves its own edit applied -- which is separately how a probe can appear
+to fire for the wrong reason. Everything pushed survived every reset; only the
+unpushed work was lost, every time.
+
+The ceiling moved 3844 to 3846. A first draft of the registration cost ten lines
+because the reasoning was written in `server.js`; it belongs in the route module,
+where it already was. Worth recording, because a comment is the easiest thing to
+grow that file with and the hardest to argue against.
+
 ### 2026-08-26 - The wall that had stopped being a trade-off: uploads
 
 "No file upload" was on the list of things this application cannot do, with an
