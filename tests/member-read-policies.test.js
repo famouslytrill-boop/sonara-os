@@ -84,7 +84,13 @@ const SERVICE_ROLE_ONLY = new Map([
   // reason user_roles is above. Owner review before any of them changes.
   ["business_permission_grants", "the privilege table for a business; a member reading who holds what is a decision, not a gap"],
   ["business_control_audit_events", "who did what inside the business; owner surface, not member-readable"],
-  ["business_ownership_transfers", "a transfer in progress; owner-level and sensitive before it completes"]
+  ["business_ownership_transfers", "a transfer in progress; owner-level and sensitive before it completes"],
+  // Which payment processor account a business takes money into. Organization
+  // -scoped, and not ordinary workspace data: a member who can read it learns
+  // where the business's revenue settles, and a member who could write it could
+  // redirect it. Connecting and disconnecting are owner actions, so the read is
+  // owner-level too. Same reason as business_permission_grants above.
+  ["business_payment_accounts", "names where the business's money settles; connect and disconnect are owner actions, so the read is owner-level"]
 ]);
 
 // Not tenant data at all, so member scoping does not apply.

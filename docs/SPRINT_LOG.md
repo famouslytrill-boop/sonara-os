@@ -2,6 +2,78 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - A business can now connect an account and be paid into it
+
+The largest thing this application could not do. A plumber could raise an
+invoice and never collect against it; a creator could list a product and never
+sell it. `lib/sonara-invoice-settlement.cjs` recorded the reason in its own
+comment -- no Stripe Connect, so a pay button "would take a small business's
+customer's money into SONARA's account with no mechanism to pay it out. That is
+money custody, not a missing endpoint."
+
+**Direct charges are the answer to that, rather than a way around it.** A charge
+is created *on* the connected account by sending Stripe's `Stripe-Account`
+header. Funds land in the business's own Stripe balance, their payout schedule
+applies, and the money never enters SONARA's account at any point. There is
+nothing to pay out because nothing was ever held. A test reads the module's own
+source and asserts it contains no `transfer_data`, no `on_behalf_of` and no
+`application_fee` -- the three things that would route a customer's money
+through the platform -- and another asserts it names no card field at all,
+because AGENTS.md forbids storing card data and the way to honour that reliably
+is to never be in the path.
+
+`migration 20260826090000` holds the identifier and the decision; the live state
+is read from Stripe on every decision that gates money. The three cached columns
+exist only to render a list, are nullable so "never asked" is distinct from
+"Stripe said no", and are constrained to move together with `state_checked_at`.
+A stale `charges_enabled: true` is the worst possible cache here: it renders a
+pay button over an account that cannot take money, and the customer finds out at
+the till.
+
+## What is deliberately still missing
+
+**There is no pay button, and `/shared/:token` must never grow one.** That link's
+footnote tells its reader to pay the way they agreed with the business and never
+from a link, because a forwarded invoice carrying a pay button is the shape of a
+payment-redirection fraud. Advice like that protects nobody unless it is always
+true -- a product where *some* shared invoices have a pay button has taught its
+customers that a pay button on a forwarded invoice is normal, which is the lesson
+the fraud depends on. Connecting an account and collecting a payment are separate
+pieces of work and this is the first.
+
+## Three things the repository's own gates caught
+
+Worth listing, because each was invisible in the code I had written:
+
+- **The tenant guard** refused `business_payment_accounts` before a single test
+  of mine ran -- a new table queried by name that no migration had taught it
+  about. Then `member-read-policies` demanded a decision about who may read it.
+  It is owner-level: a member who can read it learns where the revenue settles.
+- **`layout` requires `actions`.** `lib/sonara-page-frame.cjs:234` does
+  `actions.join("")` unconditionally, so omitting the key throws before a byte
+  is written and every request 500s. The call site looked complete; the missing
+  key was a problem two files away. `signed-in-workspace-crawl` caught it.
+- **`linkAction(href, label)` takes two arguments.** The first draft passed
+  `{ method: "post" }` as a third, which is silently ignored, producing GET
+  anchors to POST-only routes -- a page that renders perfectly with every button
+  404ing. Caught by reading the helper's signature, which is now twice on this
+  branch that reading the helper was what found it.
+
+## And one hole in a check, found by walking into it
+
+`scripts/verify-env.mjs` exists so that every variable the code reads has a
+decision attached. It classified `STRIPE_CONNECT_ENABLED` as read by nothing --
+because the variable is reached through `getEnv("NAME")`, and the string-literal
+pass only records names *already classified*. The file's own comment describes
+exactly this hole for `env:` literals and fixes it there; the `getEnv` form was
+still open, so the check reported "all classified" while a brand new variable
+gating whether a business could be paid was invisible to it.
+
+A `getEnv` pass now runs alongside the `env:` one, needing no allow-list for the
+same reason. Stated plainly rather than as a haul: when it was added it surfaced
+exactly one unclassified name, the one just written. The hole was real and
+nothing else had fallen into it.
+
 ### 2026-08-26 - Growth Studio is not competing with Klaviyo, it is driving it
 
 `docs/market/2026-08-26-PER-PRODUCT-COMPETITOR-REASSESSMENT.md` compares each

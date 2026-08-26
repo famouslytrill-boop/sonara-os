@@ -479,9 +479,16 @@ describe("the server.js split stays safe", () => {
     // belongs in the route module where it already was. Worth recording,
     // because a comment is the easiest thing to grow this file with and the
     // hardest to argue against.
+    // Then 3848 on 26 August 2026, by 2, for
+    // routes/sonara-connected-payment-routes.cjs -- connecting a Stripe account
+    // so a business can be paid by its own customers, which is the largest
+    // thing this application could not do. Twelfth exception, and exactly two
+    // lines: one require, one registration. Every sentence of reasoning about
+    // custody, direct charges and why there is no pay button lives in the route
+    // module, which is the shape this ceiling exists to push work into.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3846,
+      lines <= 3848,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
