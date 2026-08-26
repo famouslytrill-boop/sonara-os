@@ -51,11 +51,46 @@ Probes fired, each confirmed red before being reverted:
 - All three files emptied -> the blindness guard fired on byte count rather than
   the check reporting a clean pass over nothing.
 
+## Then the check failed its own rule, an hour later
+
+It read `LICENSE` **by name** and passed. Under `tools/` there were six more --
+agentkit, aws-emulator, disposable-domains, serverless-cli, songsmith,
+voice-clone -- each an MIT grant over code in a private repository, three
+`package.json` files declaring MIT beside them, and four READMEs saying "MIT
+licensed" in prose.
+
+That is shape 1 from the skill, committed inside the check written to prevent
+this class of thing. "The LICENSE is clean" and "no file in this repository
+grants rights over it" are different sentences and only the second is worth
+having. So it now **discovers rather than names**: it walks for licence files,
+manifests and READMEs, skipping `node_modules/` and `archive/`, and prints the
+counts it examined -- 7 licence files, 4 manifests, 11 READMEs -- so the
+population is checkable rather than asserted.
+
+Three things worth knowing about the widened version:
+
+- READMEs are read, because a README saying "MIT licensed" is the copy a person
+  actually reads. The pattern excuses lines about *other people's* repositories,
+  or the open-source register discussing their licences would fail on every run.
+- `PERMISSIVE_BY_DECISION` is the exemption list, empty today, and two-sided: an
+  entry naming a file that no longer exists fails. Releasing a subproject
+  deliberately is an owner decision and now has somewhere to be recorded.
+- Only the root manifest must set `"private"`. Requiring it of all four would be
+  a rule whose reason expired on reading -- none of the `tools/` ones is a
+  package this project publishes.
+
+Probes on the widened check, each confirmed red: a `tools/` LICENSE reverted to
+MIT; a `tools/` manifest declaring MIT; a README appending "MIT licensed."; a
+README saying "This project is open source."; an exemption naming a file that
+does not exist; and `walk(root)` deleted, which tripped the blindness guard at
+zero licence files rather than passing over nothing.
+
 What the next person should not have to rediscover: the scaffold this repository
 started from left legal text in it, and legal text is the one category of file
-that looks finished on the day it is written and is never opened again. If you
-add another (a NOTICE, a TERMS, a privacy page), add it to the SURFACES the
-check reads in the same commit.
+that looks finished on the day it is written and is never opened again. A
+`tools/` subdirectory laid out as a standalone project is the easiest thing here
+to copy out by accident, which is why each now carries a notice saying so rather
+than inheriting silence from the root.
 
 ### 2026-08-26 - The upload page, and four resets in one afternoon
 
