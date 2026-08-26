@@ -54,6 +54,7 @@ const growthStudioMigrationNames = [
   // four are what turns a stranger into a row in it.
   "20260825070000_lead_capture_scoring_and_routing.sql"
 ];
+const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
   "20260819020000_research_source_permission_values.sql"
@@ -164,6 +165,12 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
 // postdates. What it holds is the thing that was missing: a gated action's own
 // inputs, so an approval has something to re-run.
 const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedules"]);
+// Cinematic scroll sites. One table holding one row per site, whose `document`
+// column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
+// rather than folded into the Growth Studio list: the migration is its own
+// file, and a group whose name does not match its feature is a group nobody
+// finds when they go looking for it.
+const SCROLL_SITE_TABLES = Object.freeze(["scroll_sites"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -279,6 +286,7 @@ const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, 
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
+const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
 // Two migrations: the one that created the table, and the one that gave
@@ -353,6 +361,7 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerati
 }
 
 verifyExtension(GROWTH_STUDIO_TABLES, growthStudioSql, "Growth Studio");
+verifyExtension(SCROLL_SITE_TABLES, scrollSiteSql, "Cinematic scroll sites");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -485,7 +494,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -609,7 +618,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

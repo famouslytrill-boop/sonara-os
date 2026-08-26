@@ -1728,6 +1728,21 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "303": { description: Browser form redirect back to the lead routing rules, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/scroll-sites:
+    post:
+      operationId: saveScrollSite
+      tags: [Creator Studio]
+      summary: Create, edit, publish, unpublish or delete a cinematic scroll site.
+      description: >-
+        A browser form, so every outcome is a 303 back to the site being edited,
+        carrying a problem parameter when nothing changed. The saved document is
+        rebuilt through the validator rather than merged into the stored one, so
+        what is written is always something the renderer can draw. Publishing
+        checks the plan allowance and refuses an address already taken; every
+        read and write is filtered on the organisation as well as the site id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the site, with a problem parameter when nothing was changed. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "429": { $ref: "#/components/responses/TooManyRequests" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/integrations/jobs:
     get:
       operationId: listIntegrationJobs
@@ -2936,6 +2951,13 @@ components:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
     SetupRequired:
       description: A required external service or persisted resource is not configured.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    TooManyRequests:
+      description: >-
+        The rate limiter refused this request. It is bounding a script rather
+        than pacing a person, so a customer working normally does not reach it.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }

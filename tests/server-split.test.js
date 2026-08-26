@@ -456,9 +456,24 @@ describe("the server.js split stays safe", () => {
     // ceiling is measuring registration cost, and registration cost is staying
     // flat while features are added. It would be worth acting on if a feature
     // ever cost thirty.
+    //
+    // Then 3844 on 26 August 2026, by 2, for
+    // routes/sonara-scroll-routes.cjs -- the cinematic scroll site builder:
+    // dashboard, template picker, editor, preview, static export and the public
+    // /s/:slug page, plus one write endpoint. Tenth exception, and two lines
+    // rather than three because the registration fits on one.
+    //
+    // Worth saying what these ten exceptions now measure. Every one has been a
+    // require and a registration for a route module holding all its own
+    // behaviour, and the per-feature cost has stayed at two or three lines
+    // while the features have got substantially larger -- this one is around
+    // eleven hundred lines of module and library. That is the ratchet working:
+    // it prices putting behaviour *in this file*, and nothing has been put in
+    // it. The number to act on is a feature that costs thirty lines here, not
+    // the count of exceptions.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3842,
+      lines <= 3844,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

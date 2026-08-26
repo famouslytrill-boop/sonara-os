@@ -2,6 +2,74 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - Scroll sites, wired up: dashboard, editor, publish, download
+
+The second half of the scroll-site builder. `routes/sonara-scroll-routes.cjs`
+is a dashboard, a template picker, an editor, a preview, a static export, one
+write endpoint, and the public page at `/s/:slug`. `scroll_sites` is one table
+holding one row per site with a validated JSON document.
+
+## The resolution order, again
+
+`/s/:slug` resolves exactly as `/shared/:token` and `/book/:slug` do: the slug
+finds one row that is *published*, that row's document is what renders, and
+nothing else is read. Reads go through the service-role key, which bypasses row
+level security, so the filter in the query is the whole tenant boundary. A test
+asserts the query contains `published_at=not.is.null` rather than asserting the
+draft did not appear -- the second can be true because the render dropped it.
+
+The public query selects `title,document,slug` and not `*`, so a column added to
+this table later is not published by default.
+
+Two constraints sit in the migration as well as in the module. A slug must match
+the shape, and `published_at` may not be set without one -- a row that the
+dashboard calls live and nothing can reach is precisely the state this codebase
+keeps finding.
+
+## Three checks caught three real things
+
+**The outage-honesty gate** flagged the template picker for saying "nothing here
+is fixed", which contains the phrase it watches for. It was right to: on a page
+whose reads failed, "nothing here" reads as "you have no records". Reworded
+rather than exempted -- exemptions accumulate and each one blunts the gate.
+
+**The workspace crawl** 500'd on the dashboard. The cause is worth keeping: my
+`rest()` helper read PostgREST with `response.text()` while every other route
+here uses `.json()`, and the test harnesses stub a response with a `json()`
+method and no `text()`. So the route threw on every request under test and
+would have worked in production -- a fault the suite cannot see, which is the
+wrong way round. Switched to `.json()`, and `return=minimal` dropped so there is
+always a body to read.
+
+**The unused-variable warning** on `scrollSiteLimitMessage` was a missing
+feature, not a tidy-up. Every handler redirects back with `?problem=...` and
+nothing rendered those codes: a customer who hit their plan limit got a bare
+query parameter and a page that looked as though the publish had not happened.
+The editor now says what went wrong for each of the eight.
+
+## Plan limits meter what is on the internet
+
+`INCLUDED_SCROLL_SITES` counts *published* sites, not drafts. An unpublished
+site costs nothing to serve, and a limit that stops somebody starting a second
+one gets in the way of the work rather than of the resource. Free gets one
+rather than zero -- a builder nobody can publish from is a demo -- and the limit
+message names the export, because downloading the folder is unlimited on every
+plan and a limit message that only says "pay us" when there is a free answer is
+not one this product should send.
+
+The allowance is checked at the publish handler and not only on the dashboard,
+and it carries the three-state result: a count that could not be read is
+`unknown`, never zero, because zero reads as "you have used none of your
+allowance" and lets somebody past a limit nobody measured.
+
+Three probes, all firing by name: dropping `published_at` from the public query,
+dropping the organization filter from the editor read, and answering a failed
+public read as 404 rather than 503.
+
+Verified: 2,988 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0. The ceiling in `tests/server-split.test.js` moved 3842 -> 3844, the
+tenth exception, two lines for a require and a registration.
+
 ### 2026-08-25 - Cinematic scroll sites: the model, the renderer, the export
 
 The first half of a scroll-site builder: five templates, a validated site

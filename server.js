@@ -54,6 +54,7 @@ const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employe
 const { createWorkspaceBootstrap } = require("./lib/sonara-workspace-bootstrap.cjs");
 const registerLeadforgeRoutes = require("./routes/sonara-leadforge-routes.cjs");
 const registerLeadCaptureRoutes = require("./routes/sonara-lead-capture-routes.cjs");
+const registerScrollRoutes = require("./routes/sonara-scroll-routes.cjs");
 const registerVoiceStudioRoutes = require("./routes/sonara-voice-studio-routes.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
@@ -685,6 +686,7 @@ registerRotaRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusi
 registerLeadforgeRoutes(app, { escapeHtml });
 
 registerLeadCaptureRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+registerScrollRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
 
 registerVoiceStudioRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer });
 
