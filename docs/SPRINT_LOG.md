@@ -2,6 +2,73 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - What has to be paid for, and what turns out not to
+
+Two halves of one question, and the second half is the surprising one.
+
+## Prices, because "costs money" is not a price
+
+`docs/products/` sorted every requested capability by marginal cost and listed
+six as having a bill. That is half an answer: a capability recorded as costing
+money and never priced either never ships or ships at a loss nobody noticed.
+
+`lib/sonara-paid-capabilities.cjs` prices all six against a **dated floor cost**
+in the same unit, so margin is arithmetic rather than belief. The unit matters
+more than the number -- selling video generation by the month is selling an
+unbounded GPU bill for a fixed price, and the unit is what makes it a price
+rather than a hope. `verify:margins` is thirtieth in the chain.
+
+Two decisions worth arguing with. The margin rule is **not below**, not
+**above**, because `payment_terminal` is sold at cost deliberately and writing
+it strictly would make the one honest at-cost line a permanent failure -- and
+the usual fix for a check that fails on correct behaviour is to weaken the
+check. And the floor is *a sourced external list rate*, not a forecast and not
+what we will pay at volume: it is the line below which a price is certainly
+wrong, not the cost of goods sold. Both are said in the file, because both
+would otherwise be re-derived incorrectly.
+
+Probes, all five red: a price under its floor; a capability losing its unit; a
+capability requiring nothing, so nothing could mark it unavailable; a floor that
+is `NaN`; and the catalogue shrinking to five, which tripped the blindness
+guard rather than passing over what was left.
+
+## And most of what was asked for does not cost anything
+
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md`. The brief asked for calls,
+texts, scheduling, GPS, calendar, clock and messaging at zero marginal cost.
+**Five of the seven have no per-use bill at all, and three are already built.**
+
+- **Web Push via VAPID is genuinely free.** The browser vendor's push service is
+  part of the browser -- no account, no per-message charge, no subscriber tier.
+  It reaches exactly the population SMS is usually bought to reach: people who
+  have already used the site. `AGENTS.md` still applies -- off by default.
+- **WebRTC is peer-to-peer for 80-85% of calls**, so audio never touches our
+  server. TURN covers the rest and a 1 Gbps link carries 7,000+ concurrent voice
+  sessions, which is a fixed cost rather than a per-minute one.
+- **Geolocation is free; maps are where the bill hides.** 10M tile requests cost
+  roughly $3,600 on Google Maps and **~$11** on self-hosted PMTiles. Same
+  argument as browser-side inference: prefer the thing whose cost is bandwidth
+  over the thing whose cost is per use.
+- **Calendar, clock and scheduling are shipped already.** The gap is not
+  capability. None of them talks to the others yet -- a booking pushes no
+  notification, a job records no position, a call cannot be placed from a
+  customer record. The zero-margin work is connection, not construction.
+
+Only carrier SMS and carrier voice genuinely cannot be free. They stay priced as
+`telephony` rather than promised.
+
+## Both owner items moved as far as they can from inside the repository
+
+**agentkit stays private**, decided and dated in `PERMISSIVE_BY_DECISION` with
+the reasoning beside it. The list is still empty, and that is the point worth
+recording: empty-because-decided and empty-because-nobody-looked are different
+states, and the second is exactly what produced the GitLab licence finding.
+
+`OWNER-STEPS.md` gains step 7, Stripe Connect, written to be run: what to say on
+the platform application, the one variable, what is being agreed to (standard
+accounts, direct charges, no customer money ever in the owner's custody), how to
+tell it worked, and what it deliberately does not turn on.
+
 ### 2026-08-26 - Running a subset of the chain and calling it the chain
 
 CI went red on three consecutive heads with a real failure, and it was mine:
