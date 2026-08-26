@@ -128,6 +128,42 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - Running a subset of the chain and calling it the chain
+
+CI went red on three consecutive heads with a real failure, and it was mine:
+
+    Supabase contract verification failed: runtime references
+    public.business_payment_accounts, but it is absent from the canonical or
+    reviewed extension contract
+
+`business_payment_accounts` landed with the connected-payments work and was
+never added to `scripts/verify-supabase-contract.mjs`. Six edits fixed it, in the
+pattern the file already uses for every other post-contract table: a named
+migration list, a frozen table list, a read, a `verifyExtension` call, membership
+in `reviewedExtensionTables`, and a count in the summary line.
+
+**The finding is not the missing entry. It is how I missed it.** Before pushing I
+ran fourteen chain commands by name -- lint, env, source-licence, growth-copy,
+config, tenant-tables, member-policies, applied-migrations, handoff, doc-counts,
+orphan-tables, unreferenced-modules, selected-columns -- and reported the work as
+verified. `verify:db` was not among them, and `verify:db` is what runs the
+contract check.
+
+A subset of a chain reported as the chain is precisely the defect this repository
+is organised against, committed while adding three checks to that chain. The
+subset was green, every command in it genuinely passed, and the summary it
+produced was false in the one way that matters: it named a guarantee it had not
+established.
+
+`pnpm run verify:launch` takes a couple of minutes and runs all twenty-nine. Run
+that. Naming commands individually is how you skip the one you did not think of,
+and the one you did not think of is the one that catches you.
+
+Also worth recording for whoever reads CI next: the check named
+**`sonara-industries`** is a different workflow from `sonara-validation.yml`
+("Build, test, and security"). It runs more of the chain, including `verify:db`.
+Watching only the validation workflow means watching the weaker of the two.
+
 ### 2026-08-26 - A probe that does not apply looks exactly like a test that is too weak
 
 Five probes against the new agentkit credit model. Four fired red. The fifth --

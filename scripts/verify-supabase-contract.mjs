@@ -55,6 +55,12 @@ const growthStudioMigrationNames = [
   "20260825070000_lead_capture_scoring_and_routing.sql"
 ];
 const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
+// Connected payment accounts, added 26 August 2026 -- one connected Stripe
+// account per organization, so a business can be paid by its own customers.
+// Reviewed rather than canonical for the same reason as everything else in
+// this list: the canonical 145 are pinned by the runtime contract migration
+// and this table postdates it.
+const connectedPaymentMigrationNames = ["20260826090000_business_payment_accounts.sql"];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
   "20260819020000_research_source_permission_values.sql"
@@ -171,6 +177,7 @@ const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedu
 // file, and a group whose name does not match its feature is a group nobody
 // finds when they go looking for it.
 const SCROLL_SITE_TABLES = Object.freeze(["scroll_sites"]);
+const CONNECTED_PAYMENT_TABLES = Object.freeze(["business_payment_accounts"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -287,6 +294,7 @@ const businessOperationsSql = readExtension(businessOperationsMigrationNames, "B
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
 const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
+const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
 // Two migrations: the one that created the table, and the one that gave
@@ -362,6 +370,7 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerati
 
 verifyExtension(GROWTH_STUDIO_TABLES, growthStudioSql, "Growth Studio");
 verifyExtension(SCROLL_SITE_TABLES, scrollSiteSql, "Cinematic scroll sites");
+verifyExtension(CONNECTED_PAYMENT_TABLES, connectedPaymentSql, "Connected payment accounts");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -494,7 +503,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -618,7 +627,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime
