@@ -79,6 +79,28 @@ const NOT_OURS = new Set(["node_modules", ".git", "archive", ".next", "dist", "b
 // this cannot silently become a list of stale excuses -- which is the failure
 // mode a one-sided exemption list always reaches. Adding an entry is a legal
 // decision and belongs to the owner, not to whoever is editing this file.
+// **Decided 26 August 2026: nothing is released. agentkit stays private.**
+//
+// The list is empty because that is the decision, not because nobody has made
+// one. The difference matters: an empty list with no note beside it is the
+// state that produced the GitLab licence finding, where three files nobody had
+// read sat green for months.
+//
+// The reasoning, so it can be revisited rather than re-derived:
+//
+// The owner's standing instruction is that this source stays private, and
+// agentkit is not incidental to the product. It is the shape the deployed agent
+// system is heading toward -- specialised agents reporting to an overseer,
+// which `lib/sonara-agent-authority.cjs` already gates. Releasing the framework
+// releases the design of the thing being built on top of it.
+//
+// The argument the other way is real and was weighed: an open framework
+// attracts contributors and is a credible hiring and credibility signal, and
+// agentkit is genuinely clean -- no dependencies, 97 tests. If that becomes
+// worth more than the design privacy, this is where the reversal is recorded,
+// and it is a one-line change plus a rewritten `tools/agentkit/LICENSE`.
+//
+// Until then: unreleased, deliberately, on a date.
 const PERMISSIVE_BY_DECISION = new Map([
   // ["tools/example/LICENSE", "released publicly on YYYY-MM-DD, owner decision recorded in docs/SPRINT_LOG.md"]
 ]);

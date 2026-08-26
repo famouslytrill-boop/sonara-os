@@ -1,6 +1,6 @@
 # The steps only you can take
 
-Three of them, and two records of what is already closed. Each is written to be run, not interpreted — the SQL, the exact
+Five of them, and two records of what is already closed. Each is written to be run, not interpreted — the SQL, the exact
 dashboard path, and how to tell whether it worked.
 
 Nothing in this list can be done from inside the repository, which is why it is
@@ -402,6 +402,73 @@ it. That is why this is on your list and not in a test.
 Upload a file, then open the signed link it produces in a private window. It
 should work. Then wait an hour and open the same link again: it should not. If
 it still works, the bucket is public.
+
+## 7 — Enable Stripe Connect, so your customers can be paid
+
+Added 26 August 2026, with `lib/sonara-connected-payments.cjs` and
+`/business-builder/owner/payments`. **This is the single highest-value step on
+this list.** It unblocks the largest gap in two of three products at once: a
+contractor taking payment on a job, and a creator selling a product. Every
+competitor at every price point does this; today this product raises an invoice
+and cannot collect against it.
+
+Nothing in this repository can do it, and the code fails closed until it is
+done — the page reports "not switched on for this platform yet" and says it is
+an owner step rather than the customer's mistake.
+
+### Do this
+
+1. In the Stripe dashboard, open **Connect** and complete the platform
+   application. Stripe asks what your platform does and who your users are.
+   The honest answer is short: *a business management application whose
+   customers take payments from their own customers; charges are created
+   directly on each connected account.*
+2. When Connect is live, set one variable in Vercel Production:
+
+   ```
+   STRIPE_CONNECT_ENABLED=true
+   ```
+
+   No new secret. The credential is the `STRIPE_SECRET_KEY` you already have —
+   this flag only says the platform side is ready, which is the one thing you
+   can state truthfully from what you can see in your own dashboard.
+3. Redeploy.
+
+### What you are agreeing to, stated plainly
+
+**Standard accounts, direct charges.** Each business gets its own Stripe
+account and its own dashboard. A charge is created *on* their account, so the
+money lands in their balance and **never passes through yours**. There is
+nothing for you to pay out, and no customer's money is ever in your custody.
+
+That was a deliberate choice over destination charges, which route funds
+through the platform first and carry a money-transmission posture with
+registration and reconciliation attached. The database constraint refuses any
+mode but `direct`, so changing it is a migration somebody writes and a reviewer
+sees.
+
+**Disputes and refunds belong to the business**, not to you. That is the right
+side of that line for a tool a small operator adopts alongside things they
+already run.
+
+### How to tell it worked
+
+Open `/business-builder/owner/payments` in a workspace you own. Before this step
+it says the platform is not switched on. After it, it offers **Connect a payment
+account** — and pressing that should take you to `connect.stripe.com`.
+
+If it takes you anywhere else, stop and tell me: the module refuses any
+onboarding URL not on that host, so a different destination means something is
+wrong upstream rather than a cosmetic issue.
+
+### What this does *not* turn on
+
+**No pay button appears on a shared invoice**, now or later. `/shared/:token`
+tells its reader to pay the way they agreed with the business and never from a
+link, because a forwarded invoice carrying a pay button is the shape of a
+payment-redirection fraud — and that advice protects your customers only while
+it is always true. Connecting an account and collecting a payment are separate
+pieces of work; this is the first.
 
 ## Before any of the above: what has to be switched on
 
