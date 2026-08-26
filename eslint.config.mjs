@@ -37,6 +37,12 @@ const browserGlobals = {
   Response: "readonly",
   CompressionStream: "readonly",
   MediaRecorder: "readonly",
+  // The notification permission flow in public/sonara-push.js. Named here
+  // rather than switching this file to a wholesale `browser` preset, for the
+  // reason every other entry above is named: a browser script gets no feedback
+  // before a customer loads it, so an undefined global has to be an error here
+  // or it is a runtime failure nobody sees.
+  Notification: "readonly",
   module: "writable",
   self: "readonly"
 };

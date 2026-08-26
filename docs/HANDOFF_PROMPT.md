@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3848 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3850 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 103 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 241 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 242 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -129,7 +129,7 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
-### 2026-08-26 - The browser half, and one transient I could not explain
+### 2026-08-26 - The browser half, and a phantom I chased
 
 `public/sw.js` gained `push` and `notificationclick` handlers. There was a
 sender, an encrypted payload, and nothing in any browser listening for one.
@@ -153,28 +153,44 @@ Three properties held by tests rather than by reading:
   haptics behind explicit user control, and a notification is not the place to
   take that decision.
 
-## The transient, recorded because I could not explain it
+## The transient that was never a failure, and the bug it hid
 
-One `verify:launch` run failed on three errors naming files that **did not exist
-when I looked**: `docs/stale-claim-probe.md` with no review date, and two
-unclassified `SONARA_PROBE_*` environment variables. Those are artifacts the
-repository's own falsification tests plant to prove the checks fire.
+I recorded, twice, an "unexplained transient" in which `verify:launch` failed
+naming `docs/stale-claim-probe.md` and two `SONARA_PROBE_*` variables that were
+not on disk. I even wrote a narrowing about it reproducing only when two chain
+invocations were chained in one shell command.
 
-My first theory was that `"exit": true` in `.mocharc.json` force-exits mocha
-before a cleanup hook completes. **Reading the tests refutes it** -- both
-`dated-claims-say-when-to-recheck` and
-`env-check-can-report-a-name-it-does-not-know` clean up in a `finally`, which
-runs synchronously inside the test.
+**None of it was true, and the way it went wrong is the more useful half.**
 
-Two subsequent full chain runs passed. So: observed once, not reproducible in
-two attempts, mechanism unknown.
+Those three errors are the *intentional output of the repository's own
+falsification tests*. `dated-claims-say-when-to-recheck` and
+`env-check-can-report-a-name-it-does-not-know` plant a bad file, run the checker
+as a child process, and assert it objects. The checker's complaint goes to the
+console, and mocha's reporter interleaves it. In the chain log the errors sit at
+line 1620 and the test summary `3202 passing` sits at line 4301 -- **the errors
+are inside the test run, hundreds of lines before it finishes**.
 
-It is written down rather than fixed because a fix for a mechanism nobody has
-established is a change that cannot be verified, and this file is full of
-reasons that read exactly like verified ones. What the next person needs is the
-symptom and the shape: **if the chain fails naming a probe file that is not on
-disk, it is this, and re-running is legitimate** -- which is the one case where
-"try it again" is diagnosis rather than avoidance.
+I diagnosed from `grep -iE "^ERROR|failed"` over a log instead of from the actual
+exit, and the grep matched output that was working correctly. Then I wrote a
+theory, tested it against the wrong evidence, refined it, and recorded a
+narrowing -- all of it downstream of never having read the end of the file.
+
+**The real failure was two lint errors in code I had just written**:
+`Notification` was not a declared global for `public/`, and a `catch (error)`
+binding went unused. Both would have taken thirty seconds to see in
+`tail -5 /tmp/chain.log`.
+
+Two things worth carrying forward:
+
+- **Read the end of the log, not a grep of it.** A chain that exits non-zero
+  says why on its last lines. A grep for the word ERROR finds every check that
+  is deliberately demonstrating an error, and this repository is full of those
+  by design.
+- **`eslint.config.cjs` is dead.** Flat-config precedence loads
+  `eslint.config.mjs`, so the `.cjs` file is never read. I edited it, saw no
+  change, and only then checked with `eslint --print-config`. It is left in
+  place rather than deleted here because removing it is not this branch's work,
+  but the next person to add a browser global should know which file is live.
 
 ### 2026-08-26 - And somewhere for push to send to
 

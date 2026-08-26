@@ -59,6 +59,7 @@ const registerVoiceStudioRoutes = require("./routes/sonara-voice-studio-routes.c
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
 const registerAssetFileRoutes = require("./routes/sonara-asset-file-routes.cjs");
 const registerConnectedPaymentRoutes = require("./routes/sonara-connected-payment-routes.cjs");
+const registerNotificationRoutes = require("./routes/sonara-notification-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
@@ -1462,6 +1463,7 @@ app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(produ
 registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction });
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
