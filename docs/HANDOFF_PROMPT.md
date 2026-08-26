@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 103 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 240 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 241 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -128,6 +128,53 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - The browser half, and one transient I could not explain
+
+`public/sw.js` gained `push` and `notificationclick` handlers. There was a
+sender, an encrypted payload, and nothing in any browser listening for one.
+
+Everything in the handler is defensive about the payload, for a reason worth
+stating: **a service worker crash is invisible.** No console anybody watches, no
+error page, no user-visible failure -- the notification simply never appears,
+and the sender's own logs say it was delivered. So a malformed payload degrades
+to a plain notification rather than throwing, and a test drives the real handler
+from the real file inside a `vm` sandbox with the service worker globals stubbed.
+
+Three properties held by tests rather than by reading:
+
+- **A click can only go to a same-origin path.** Without that, whoever composes
+  a push payload decides where a click lands, which is an open redirect with a
+  notification in front of it. `https://evil.example`, `//evil.example`,
+  `javascript:` and `../../etc` all fall back to `/dashboard`.
+- **Title and body are bounded**, because their length is chosen by whoever sent
+  them and a title long enough to fill a lock screen is one nobody reads.
+- **Silent, no vibration, no requireInteraction.** AGENTS.md puts sounds and
+  haptics behind explicit user control, and a notification is not the place to
+  take that decision.
+
+## The transient, recorded because I could not explain it
+
+One `verify:launch` run failed on three errors naming files that **did not exist
+when I looked**: `docs/stale-claim-probe.md` with no review date, and two
+unclassified `SONARA_PROBE_*` environment variables. Those are artifacts the
+repository's own falsification tests plant to prove the checks fire.
+
+My first theory was that `"exit": true` in `.mocharc.json` force-exits mocha
+before a cleanup hook completes. **Reading the tests refutes it** -- both
+`dated-claims-say-when-to-recheck` and
+`env-check-can-report-a-name-it-does-not-know` clean up in a `finally`, which
+runs synchronously inside the test.
+
+Two subsequent full chain runs passed. So: observed once, not reproducible in
+two attempts, mechanism unknown.
+
+It is written down rather than fixed because a fix for a mechanism nobody has
+established is a change that cannot be verified, and this file is full of
+reasons that read exactly like verified ones. What the next person needs is the
+symptom and the shape: **if the chain fails naming a probe file that is not on
+disk, it is this, and re-running is legitimate** -- which is the one case where
+"try it again" is diagnosis rather than avoidance.
 
 ### 2026-08-26 - And somewhere for push to send to
 
