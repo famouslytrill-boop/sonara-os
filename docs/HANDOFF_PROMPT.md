@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 101 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 231 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 232 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,90 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - Video to frames, in the browser, tested in a browser
+
+The last piece of the scroll-site builder. Somebody drops a short clip into the
+editor and gets back a finished folder: their site's page, the runtime, and the
+frames it scrubs through as a visitor scrolls.
+
+## All of it runs on the customer's machine, and that is a decision
+
+A few hundred frames is twenty-odd megabytes. This application is serverless
+functions with a payload ceiling in single-digit megabytes and no multipart
+parser -- one production dependency, and it is Express -- so uploading the
+frames is not a thing that can be made to work by trying harder. Extracting
+them server-side is worse: that needs ffmpeg, which is not in a function
+either.
+
+The browser already has a video decoder, a canvas, a JPEG encoder and, since
+`CompressionStream`, a deflate. The file is already on the machine. Nothing is
+gained by moving twenty megabytes to a server and back, so the clip never
+leaves the machine it was chosen on.
+
+What the browser must **not** do is render the page. The words, colours and
+markup have to be the ones this server would publish, so it fetches
+`/creator-studio/scroll/:id/export.json` and adds the frames itself. A second
+renderer written in the client is exactly how a downloaded folder drifts from
+the site somebody signed off.
+
+## Two modules that load in both runtimes
+
+`public/sonara-zip-core.js` is the ZIP container -- local headers, central
+directory, end record, offsets. `lib/sonara-zip.cjs` is now the Node
+*compressor* and nothing else; the browser passes in bytes from
+`CompressionStream` instead. Two copies of a binary layout is two chances to
+get one wrong, and the symptom is an archive that looks fine and will not open.
+
+`public/sonara-frame-plan.js` is the same shape: how many frames, at what
+timestamps, at what size. The server bounds the count with the same `MAX_FRAMES`
+the browser plans against, required across rather than restated -- two numbers
+for one limit is a page claiming more frames than were written, and every extra
+is a 404.
+
+`vercel.json` bundles `public/**` alongside `lib/**`, so requiring across is as
+safe in production as in a test.
+
+## Tested in a real browser, without adding a dependency
+
+The hard parts of the extractor are seeking -- asynchronous, racy, and silently
+returns the previous frame when you get it wrong -- and the archive, which is
+binary. Testing its arithmetic and calling that coverage would be this
+codebase's own defect.
+
+Chromium is already in this environment; Playwright is not, and adding it is a
+large devDependency and a CI install for one file. So
+`tests/helpers/headless.cjs` speaks the DevTools protocol directly over the
+WebSocket Node 22 provides. The test records a clip of a **moving square**,
+extracts frames, and asserts the square is in a different place in each one --
+without something moving, "the frames differ" cannot be asserted at all. The
+archive the browser builds is then handed to `unzip`.
+
+With no browser present the tests **skip**, out loud, rather than passing.
+
+## Three probes, all firing
+
+- The last timestamp moved to exactly `duration`, where most decoders return
+  the previous frame or nothing: 2 failures.
+- Frame naming padded to three digits instead of four, so the page asks for
+  `0007` and the folder holds `007`: 2 failures.
+- The CRC computed over the compressed bytes rather than the original -- the
+  classic way to build an archive every unpacker rejects: 4 failures, all in
+  the tests that hand the file to `unzip`.
+
+Two things worth keeping from writing it. A WebM from `MediaRecorder` reports
+`duration: Infinity` until it has been seeked, so the extractor nudges to the
+end and back -- without it, `planFor` refuses a perfectly good file, and a
+naive reading asks for `Infinity * 24` frames. And revoking the blob URL
+immediately after `click()` cancels the download in some browsers, which looks
+exactly like the build having failed.
+
+`layout()` gained a `scripts` option, filtered to same-origin paths: the CSP is
+`script-src 'self'` with no bundler, and the alternative was every page loading
+every script in case one wanted it.
+
+Verified: 3,004 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0.
 
 ### 2026-08-26 - Scroll sites, wired up: dashboard, editor, publish, download
 

@@ -35,8 +35,12 @@ const path = require("node:path");
 const { buildSite, MAX_SECTIONS, SECTION_KINDS, MOTIONS, FONT_SETS, COLOUR_KEYS } = require("../lib/sonara-scroll-site.cjs");
 const { TEMPLATES, siteFromTemplate } = require("../lib/sonara-scroll-templates.cjs");
 const { renderSite } = require("../lib/sonara-scroll-render.cjs");
-const { buildExport, exportFilename } = require("../lib/sonara-scroll-export.cjs");
+const { buildExport, exportFiles, exportFilename } = require("../lib/sonara-scroll-export.cjs");
 const { scrollSiteAllowance, scrollSiteLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+// The same ceiling the browser plans against. Required across from public/
+// rather than restated here: two numbers for one limit is a page that claims
+// more frames than were written, and every one of the extras is a 404.
+const { MAX_FRAMES } = require("../public/sonara-frame-plan.js");
 
 const TABLE = "scroll_sites";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -381,6 +385,22 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
            </form>`}
     </article>`);
 
+    // Bringing your own video.
+    //
+    // The controls are written disabled and switched on by the script. Without
+    // it -- blocked, failed, an older browser -- they would be a file picker
+    // and a button that look ready and do nothing, and a dead control is worse
+    // than one that says why it cannot work.
+    sections.push(`<article class="card" data-frame-studio data-site-export="/creator-studio/scroll/${escapeHtml(row.id)}/export.json">
+      <h2>Bring your own video</h2>
+      <p>Drop a short clip in and it becomes the frames this page scrubs through as somebody scrolls. A few seconds is plenty.</p>
+      <p class="fine">The clip never leaves this machine. The frames are taken here in your browser, packed with your site, and downloaded — nothing is uploaded.</p>
+      <label>Your clip<input type="file" accept="video/*" disabled></label>
+      <p data-frame-status role="status">Turning this on…</p>
+      <canvas width="320" height="180" aria-label="The frame being taken"></canvas>
+      <p><button type="button" data-frame-build disabled>Take the frames and download the folder</button></p>
+    </article>`);
+
     sections.push(editorForm(row, site));
 
     return res.status(200).type("html").send(layout({
@@ -389,6 +409,7 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
       heading: site.title,
       body: "Change the words, the colours and the order. Look at it before you publish it.",
       sections,
+      scripts: ["/sonara-frame-plan.js", "/sonara-zip-core.js", "/sonara-scroll-frames.js"],
       actions: [
         linkAction(`/creator-studio/scroll/${row.id}/preview`, "See it"),
         linkAction(`/creator-studio/scroll/${row.id}/export.zip`, "Download the folder"),
@@ -440,6 +461,47 @@ module.exports = function registerScrollRoutes(app, deps = {}) {
     res.setHeader("Content-Disposition", `attachment; filename="${exportFilename(loaded.site)}"`);
     res.setHeader("Cache-Control", "private, no-store");
     return res.send(zip);
+  });
+
+  // The export's text files, as JSON, for a browser that is holding frames.
+  //
+  // When somebody brings their own video the frames are extracted and zipped on
+  // their machine -- a few hundred of them is far past what a serverless
+  // function will accept, and there is no multipart parser here anyway. What
+  // the browser cannot do is render the site: the words, the colours and the
+  // markup have to be the ones this server would publish, or the folder
+  // somebody downloads is a page a second renderer invented.
+  //
+  // So the browser asks for exactly these three files and adds the frames
+  // itself. `frames` is what it is *about to write*, and the page is built to
+  // scrub through that many.
+  app.get("/creator-studio/scroll/:id/export.json", requireCustomer, async (req, res) => {
+    const scope = await scopeFor(req);
+    if (!scope.ok) return res.status(503).json({ ok: false, detail: "Sign in and this will work." });
+
+    const loaded = await loadSite(scope, req.params.id);
+    if (!loaded.ok) {
+      return res.status(loaded.code === "unreadable" ? 503 : 404).json({
+        ok: false,
+        detail: loaded.code === "unreadable"
+          ? "We could not read that site just now, so the folder would have been wrong. Nothing was produced."
+          : "That site is not in your workspace."
+      });
+    }
+
+    // Bounded here as well as in the browser. The browser's plan is the one a
+    // person sees; this is the one that decides what the page claims, and a
+    // request asking for sixty thousand frames must not produce a page that
+    // says so.
+    const asked = Number(req.query?.frames);
+    const frameCount = Number.isInteger(asked) && asked >= 2 && asked <= MAX_FRAMES ? asked : 0;
+
+    return res.status(200).json({
+      ok: true,
+      filename: exportFilename(loaded.site),
+      frames: frameCount,
+      files: exportFiles({ site: loaded.site, runtime: RUNTIME, frameCount })
+    });
   });
 
   // ---- create, save, publish, unpublish, delete ---------------------------

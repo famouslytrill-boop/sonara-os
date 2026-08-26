@@ -24,7 +24,21 @@ const browserGlobals = {
   // CSS.supports is how sonara-scroll.js asks whether the browser drives the
   // progress bar itself; Image is how it preloads a frame.
   CSS: "readonly",
-  Image: "readonly"
+  Image: "readonly",
+  // The frame extractor and the zip container. TextEncoder and Blob are how a
+  // frame becomes bytes; CompressionStream is the browser's deflate, which is
+  // the only reason the zip can be built on the customer's own machine;
+  // MediaRecorder and URL round-trip the video. `module` and `self` are there
+  // because sonara-zip-core.js and sonara-frame-plan.js are loaded by both the
+  // browser and lib/ -- one implementation of a binary format rather than two.
+  TextEncoder: "readonly",
+  TextDecoder: "readonly",
+  Blob: "readonly",
+  Response: "readonly",
+  CompressionStream: "readonly",
+  MediaRecorder: "readonly",
+  module: "writable",
+  self: "readonly"
 };
 
 const serviceWorkerGlobals = {
