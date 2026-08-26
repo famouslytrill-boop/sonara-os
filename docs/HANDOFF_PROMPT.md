@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 101 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 232 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 233 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,86 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - The 26 "installable after review", reviewed; one of them installed
+
+`data/open-source-tools.ts` carried 26 repositories at
+`optional_adapter_after_review` -- permission to build an adapter *after
+somebody looks properly*. Nobody had. This is that review, and the finding is
+that **the status was doing two jobs**.
+
+For some of those 26, "install" means writing an adapter against a service the
+owner runs. For most of them it means something else entirely: vendoring built
+JavaScript into `public/`, wrapping a Python library that has no server, or
+reading a document. Those are different amounts of work carrying different
+risks, and one status could not tell them apart -- which is how a register stops
+being read. `docs/github-radar/2026-08-26-ADAPTER-REVIEW.md` sorts all 26 into
+seven groups and says, for each, what installing it would actually mean.
+
+## One was built: whisper.cpp
+
+Transcripts and captions for a creator's own audio, at **no per-minute cost**,
+with the audio never leaving hardware the owner controls. `lib/sonara-whisper-adapter.cjs`,
+now `adapter_built` in the register.
+
+The API was read from whisper.cpp's own server README rather than recalled:
+`POST /inference`, `multipart/form-data`, fields `file`, `temperature`,
+`temperature_inc`, `response_format`.
+
+**It has a real caller, which is why it was worth building.** `creator_assets`
+is a live CRUD resource with an `asset_type` of `audio` and a `url` column, so
+there is something to transcribe. That was checked before the adapter was
+written -- an adapter with nothing able to reach it is a capability that exists
+and is never called, which is this codebase's signature defect.
+
+## The security check now has one implementation, not two
+
+Two adapters make this server fetch a URL somebody typed: Crawl4AI reads a page,
+Whisper downloads an audio asset. That makes it a request forwarder with its own
+network position behind the request unless the target is checked.
+
+The check moved out of `sonara-crawl4ai-adapter.cjs` and into the shared base as
+`reasonNotFetchable`; Crawl4AI re-exports it under its old name so nothing that
+already calls it had to change. A test asserts the two are **the same function
+object**, because two copies of a security check drift and only one of them gets
+the next fix.
+
+## What the adapter refuses to pretend
+
+- **An empty transcript is not a success.** Somebody shown "here is your
+  transcript" and no words cannot tell whether the recording was silent or the
+  service was misconfigured.
+- **`content-length` is a claim, not a measurement.** Checked before the
+  download and again after it, because a server that lies about the header would
+  otherwise walk straight past the limit.
+- **A fetch error message never reaches the caller.** It carries the configured
+  URL, and on a redirect chain that URL may not even be the one the creator
+  typed.
+- **"It worked" and "it worked because ffmpeg was there" are different facts.**
+  `whisper-server` accepts WAV unless started with `--convert`. A non-WAV file
+  that the server rejects comes back as `needs_conversion` naming the flag; a
+  WAV that fails is reported as a real failure, because the guess is only
+  allowed where it is the likely cause.
+
+Six falsification probes, all six firing: removing the target check, accepting
+an empty transcript, dropping the post-download size check, blaming conversion
+for a WAV failure, passing the fetch error message through, and fixing the
+multipart boundary.
+
+## Two things found by writing the tests
+
+**`Buffer.from(x).buffer` is a trap.** Node pools small buffers, so that
+expression is the whole pool; slicing it from 0 hands back somebody else's
+bytes. The first version of the download stub produced a request with no audio
+in it and an adapter that still looked like it worked. It slices from
+`byteOffset` now, and the comment says why.
+
+**A probe loop that times out leaves the probe applied.** One run hit the two
+minute limit mid-probe, so the restore never ran and `String(error.message)` sat
+in the adapter through the next two probes -- which is how a probe can appear to
+fire for the wrong reason. Found by checking `git status` and the file rather
+than trusting the loop, and worth remembering: after any interrupted probe, read
+the file back before believing the result.
 
 ### 2026-08-26 - agentkit: a code-first agent framework, and four ways it could have lied
 
