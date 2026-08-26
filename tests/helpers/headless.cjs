@@ -71,7 +71,7 @@ const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * as `undefined` -- a browser test whose failures arrive as undefined is a
  * browser test that passes when the code throws.
  */
-async function launch({ timeoutMs = 30000 } = {}) {
+async function launch({ timeoutMs = 30000, startupTimeoutMs = 60000 } = {}) {
   const binary = findBrowser();
   if (!binary) throw new Error("no Chromium in this environment");
 
@@ -88,19 +88,67 @@ async function launch({ timeoutMs = 30000 } = {}) {
     "about:blank"
   ], { stdio: "ignore" });
 
+  // The child's exit is recorded rather than watched for, so the diagnostic
+  // below can say "it died" instead of "no page appeared" -- which are
+  // different problems with different fixes, and the second one is what this
+  // used to report for both.
+  let exited = null;
+  child.on("exit", (code, signal) => { exited = { code, signal }; });
+
   const started = Date.now();
-  let target = null;
-  while (!target && Date.now() - started < timeoutMs) {
+
+  // Two steps, because they fail for different reasons and the first one
+  // failing is the more common of the two. `/json/version` answers as soon as
+  // the debugging endpoint is listening, whether or not any tab exists.
+  let browserSocketUrl = null;
+  while (!browserSocketUrl && Date.now() - started < startupTimeoutMs) {
+    try {
+      const answered = await fetch(`http://127.0.0.1:${port}/json/version`);
+      const version = await answered.json();
+      browserSocketUrl = version.webSocketDebuggerUrl || null;
+    } catch { /* not listening yet */ }
+    if (!browserSocketUrl) await wait(200);
+  }
+  if (!browserSocketUrl) {
+    child.kill();
+    throw new Error(exited
+      ? `the browser exited before its debugging port opened (code ${exited.code}, signal ${exited.signal})`
+      : `the browser never opened its debugging port on 127.0.0.1:${port} within ${startupTimeoutMs}ms`);
+  }
+
+  // Now the page. A tab is *usually* already there from the `about:blank`
+  // argument -- and on a loaded CI runner it sometimes is not yet, which is how
+  // this test learned to flake. So: look for one, and if none has appeared,
+  // ask for one rather than waiting longer for something that may never come.
+  async function findPage() {
     try {
       const listed = await fetch(`http://127.0.0.1:${port}/json/list`);
       const targets = await listed.json();
-      target = targets.find((entry) => entry.type === "page" && entry.webSocketDebuggerUrl);
-    } catch { /* not up yet */ }
-    if (!target) await wait(200);
+      return targets.find((entry) => entry.type === "page" && entry.webSocketDebuggerUrl) || null;
+    } catch {
+      return null;
+    }
   }
+
+  let target = await findPage();
   if (!target) {
+    // `PUT /json/new` is the documented way to open one. Chromium requires PUT
+    // rather than GET here, and answers 405 to the wrong verb -- which reads
+    // like the endpoint is missing when it is not.
+    try {
+      const made = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" });
+      if (made.ok) target = await made.json();
+    } catch { /* fall through to polling */ }
+  }
+  while ((!target || !target.webSocketDebuggerUrl) && Date.now() - started < startupTimeoutMs) {
+    await wait(200);
+    target = await findPage();
+  }
+  if (!target || !target.webSocketDebuggerUrl) {
     child.kill();
-    throw new Error("the browser never opened a page target");
+    throw new Error(exited
+      ? `the browser exited before opening a page (code ${exited.code}, signal ${exited.signal})`
+      : `the browser answered on its debugging port but never opened a page target within ${startupTimeoutMs}ms`);
   }
 
   const socket = new WebSocket(target.webSocketDebuggerUrl);
