@@ -205,9 +205,19 @@ time -- anybody who reaches that port can spend the owner's API credit.
 
 ## A test suite nothing runs is a check that cannot fail
 
-So `dependency-scan.yml` gained a four-line `agentkit` job. There is nothing to
-install and nothing to audit, which is most of why it is four lines. Verified
-the command exits 1 on a broken assertion before trusting it green.
+So `dependency-scan.yml` gained an `agentkit` job. There is nothing to install
+and nothing to audit, which is most of why it is short. Verified the command
+exits 1 on a broken assertion before trusting it green.
+
+Then the job itself turned out to be the defect this repository is organised
+against. `python -m unittest discover` **exits 0 when it discovers nothing** --
+a moved directory, a renamed file, a missing `__init__.py` -- printing
+"Ran 0 tests ... OK". A green job would have meant "no tests failed" rather
+than "the tests passed", and the CI log confirming 69 tests ran was the only
+thing distinguishing the two. Measured both ways against an importable but
+empty test package: the discover command exits 0, and the replacement exits 1
+saying discovery has gone blind. The job now runs the suite programmatically
+and asserts the population is plausible before reporting success.
 
 One thing found by writing the tests rather than by reading the code: a bare
 `list` annotation has no `typing.get_origin`, so it fell through to the generic
