@@ -116,4 +116,4 @@ static/index.html       the whole interface, no build step
 tests/                  named after ways somebody would get a clone they should not have
 ```
 
-MIT licensed. See `LICENSE`.
+Proprietary. No licence is granted -- see `LICENSE`.

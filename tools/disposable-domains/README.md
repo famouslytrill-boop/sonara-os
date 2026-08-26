@@ -128,4 +128,4 @@ disposable_domains/
 tests/test_blocklist.py          named after the failures, not the functions
 ```
 
-MIT licensed. See `LICENSE`.
+Proprietary. No licence is granted -- see `LICENSE`.

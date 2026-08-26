@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "A local AWS emulator on one port. No auth, no tokens, no feature gates, no dependencies.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "main": "src/server.js",
   "bin": { "aws-emulator": "src/server.js" },

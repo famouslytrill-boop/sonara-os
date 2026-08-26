@@ -1,33 +1,19 @@
-MIT License
+SONARA Industries — Proprietary Source
 
-Copyright (c) 2026 SONARA Industries
+Copyright (c) 2026 SONARA Industries. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This directory (`tools/disposable-domains`) is part of the SONARA Industries private
+repository. See the LICENSE at the repository root: no licence is granted, and
+possession of a copy conveys no right to use, copy, modify, publish, distribute,
+sublicense, or sell it.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+It is laid out as a standalone project so it can be developed and tested on its
+own, not because it has been released. A directory that looks self-contained is
+the easiest thing in a repository to copy out by accident, which is why this
+notice sits here rather than only at the root.
+
+Third-party dependencies remain governed by their own licences.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
----
-
-blocklist.txt is assembled from disposable-email-domains
-(https://github.com/disposable-email-domains/disposable-email-domains), which
-is released under CC0 1.0 Universal -- a public domain dedication with no
-attribution condition. It is credited here because it is the right thing to do,
-not because the licence requires it.
-
-The public suffix list this tool downloads at runtime is Mozilla's, under
-MPL-2.0. It is never vendored into this repository; it is fetched into .cache/
-and that file stays under its own licence.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.

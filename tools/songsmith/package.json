@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "A self-hosted web app that turns a text idea into a song. Approval-gated accounts, SQLite storage, RunPod for generation, no dependencies.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "main": "src/server.js",
   "engines": {

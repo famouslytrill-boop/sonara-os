@@ -259,4 +259,4 @@ error: the signer applied S3's single path-encoding rule to every service, and
 the CloudFormation XML reader used a non-greedy regex that silently truncated
 any element containing another of the same name.
 
-MIT licensed.
+Proprietary. No licence is granted -- see `LICENSE`.

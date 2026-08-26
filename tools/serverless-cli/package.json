@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Define Lambda functions and the AWS resources they need in one YAML file, then see what will change before it changes.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "commonjs",
   "bin": { "sonara-serverless": "bin/sonara-serverless.js" },
   "engines": { "node": ">=22.6.0" },

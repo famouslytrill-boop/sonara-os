@@ -184,4 +184,4 @@ make run     # localhost:4566, no Docker
 make check   # lint and test
 ```
 
-MIT licensed.
+Proprietary. No licence is granted -- see `LICENSE`.
