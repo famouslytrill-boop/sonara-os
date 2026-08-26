@@ -235,8 +235,13 @@ describe("SONARA Prompt Library", () => {
     assert.equal(summary.source.repository, "f/prompts.chat");
     assert.equal(summary.tableCount, PROMPT_LIBRARY_TABLES.length);
     assert.equal(summary.builtinTemplateCount, BUILTIN_PROMPT_TEMPLATES.length);
-    assert.equal(summary.templatesByProduct.business_builder, 3);
-    assert.equal(summary.templatesByProduct.creator_studio, 3);
+    // Business Builder carries five website prompts on top of its original
+    // three -- structure, hero, service page, About and the mobile review --
+    // and Creator Studio carries the portfolio one. Counted rather than
+    // asserted as "at least three", so adding one is a decision somebody makes
+    // here.
+    assert.equal(summary.templatesByProduct.business_builder, 8);
+    assert.equal(summary.templatesByProduct.creator_studio, 4);
     assert.equal(summary.templatesByProduct.growth_studio, 3);
   });
 });

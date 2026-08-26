@@ -25,7 +25,7 @@ Server-only:
 - `RESEND_FROM_EMAIL`
 - `SUPPORT_TO_EMAIL`
 - `CONTACT_TO_EMAIL`
-- `FOUNDER_EMAILS` or `SONARA_ADMIN_EMAILS`
+- `FOUNDER_EMAILS` or `ADMIN_EMAILS`
 
 Supabase preview/migration automation also needs `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, and `SUPABASE_DB_PASSWORD`. Never put these in `NEXT_PUBLIC_*` variables.
 

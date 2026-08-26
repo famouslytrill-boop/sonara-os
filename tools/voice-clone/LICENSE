@@ -1,0 +1,19 @@
+SONARA Industries — Proprietary Source
+
+Copyright (c) 2026 SONARA Industries. All rights reserved.
+
+This directory (`tools/voice-clone`) is part of the SONARA Industries private
+repository. See the LICENSE at the repository root: no licence is granted, and
+possession of a copy conveys no right to use, copy, modify, publish, distribute,
+sublicense, or sell it.
+
+It is laid out as a standalone project so it can be developed and tested on its
+own, not because it has been released. A directory that looks self-contained is
+the easiest thing in a repository to copy out by accident, which is why this
+notice sits here rather than only at the root.
+
+Third-party dependencies remain governed by their own licences.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.

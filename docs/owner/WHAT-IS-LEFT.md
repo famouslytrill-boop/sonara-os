@@ -5,15 +5,15 @@ done" means two different things and only one of them is countable.
 
 ---
 
-## Shipping what exists: 4 steps, all yours
+## Shipping what exists: 5 steps, all yours
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
-across all 23 commands. The test count is deliberately not written here
+across all 30 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
-The four remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
+The five remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
 rather than interpreted:
 
 | # | Step | Why it cannot be done here |
@@ -22,8 +22,12 @@ rather than interpreted:
 | 2 | Turn on Supabase leaked-password protection, and set the env var that makes it a gate | Dashboard toggle; the MCP connection is read-only by contract |
 | 3 | Export four authorization functions into version control | They exist in the live database and in no migration |
 | 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
+| 5 | Make a private `sonara-uploads` bucket in Supabase Storage | A dashboard setting nothing here can read, and a public bucket would make every signed link pointless |
 
-Nothing else is blocking a launch of what is built.
+Nothing else is blocking a launch of what is built. `OWNER-STEPS.md` carries one
+further item below those four, deliberately unnumbered because it blocks nothing:
+asking HyperFormula's vendor for a price, which is the single open fact left from
+the reciprocal-licence decision of 18 August 2026.
 
 ## Building everything discussed: not a number, and here is why
 
@@ -41,12 +45,12 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 84 reviewed repositories, 9 carry a
+**Some of it cannot be built as stated.** Of 165 reviewed repositories, 22 carry a
 reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
-reaches a hosted product; 2 declare no licence at all — which is not a review
-item, it is an absence of permission — and 1 ships a runtime whose licence
-specifically restricts hosting it as a service. "Install all repositories" has
-no completion state that is also legal.
+reaches a hosted product; 9 declare no licence at all — which is not a review
+item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable
+Use Licence, which permits internal use but restricts offering it as a hosted
+service. "Install all repositories" has no completion state that is also legal.
 
 **Part of it contradicts the rest of it.** "Fully autonomous with very little
 human intervening" and `AGENTS.md`'s seven owner-approval categories are both
@@ -72,9 +76,9 @@ never save and two POST handlers silently sharing one path.
 Counted from the repository on 12 August 2026, not recalled.
 
 - **248** registered GET routes
-- **304** tables created by the migrations, **211** of them organization-scoped
+- **318** tables created by the migrations, **224** of them organization-scoped
 - **23** owner record pages, **22** record checks
-- **23** verification commands in the release chain
+- **30** verification commands in the release chain
 - **82** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision

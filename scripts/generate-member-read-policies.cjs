@@ -73,7 +73,27 @@ const ORGANIZATION_READ_TABLES = [
   "billing_entitlements",
   "billing_subscriptions",
   "business_memberships",
+  // Added when shared_links became the one record of what a customer has
+  // published. A member should be able to see their own organization's links,
+  // and the public /shared/:token read does not go through this policy -- it
+  // runs with the service-role key and filters on the token alone.
+  "shared_links",
+  // Added when the reply thread on a service request got a page. A member of
+  // the organization that raised the request may read the messages on it; the
+  // public share path does not go through this policy, because a service
+  // request is not shareable.
+  "service_comments",
+  // Added when /business-builder/owner/accounting-exports/:id/download began
+  // reading the export row to build the file. Ordinary workspace data: which
+  // period a business asked for, and whether it worked.
+  "accounting_exports",
   "business_service_catalog",
+  // Added when /business-builder/owner/bookings/:id/calendar began reading it
+  // to build an .ics file. Ordinary workspace data -- a business's own
+  // appointments, sibling to customer_records above -- so it takes the same
+  // member-scoped read policy rather than the service-role escape hatch, which
+  // is for privilege and audit tables.
+  "business_bookings",
   "customer_records",
   // Accounts receivable and the quotes that feed it. Read by
   // /business-builder/owner/receivables, /quotes, /money-due and two record
@@ -89,6 +109,13 @@ const ORGANIZATION_READ_TABLES = [
   "service_request_events",
   "service_requests",
   "sonara_formula_results",
+  // Added when the crawl permission gate began reading it. Ordinary workspace
+  // data -- which sites a business has established it may research -- and the
+  // page that shows it, /business-builder/owner/research-sources, is a manager
+  // surface like every other record page. The table has carried a read policy
+  // since the platform redesign, but that one predates `to authenticated` and
+  // is invisible to the check that asks this question.
+  "research_sources",
   // ---- measured anonymously; kept because additive, see above ----
   "audio_assets",
   "automation_rules",
@@ -221,14 +248,16 @@ const blocks = [
 const APPLIED_MIGRATIONS = Object.freeze([
   "20260728120000_member_read_policies.sql",
   "20260729040000_member_read_policies_core_tables.sql",
-  "20260729220000_member_read_policies_consent_and_zones.sql"
+  "20260729220000_member_read_policies_consent_and_zones.sql",
+  "20260729233000_member_read_policies_staff_tables.sql"
 ]);
 
 // 20260728120000 -- first thirty-three
 // 20260729040000 -- core tables, applied
 // 20260729220000 -- consent records and location zones, applied
-// 20260729233000 -- staff schedules, tasks and announcements
-const migrationName = "20260729233000_member_read_policies_staff_tables.sql";
+// 20260729233000 -- staff schedules, tasks and announcements, applied
+// 20260819030000 -- research sources, for the crawl permission gate
+const migrationName = "20260819030000_member_read_policies_research_sources.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 const contents = header + blocks.join("\n");
 

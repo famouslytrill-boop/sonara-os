@@ -52,6 +52,6 @@ Do not hardcode the real Supabase project URL in source code. Keep it in Vercel 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SONARA_ADMIN_EMAILS`
+- `FOUNDER_EMAILS` or `ADMIN_EMAILS`
 
 Do not expose `SUPABASE_SERVICE_ROLE_KEY` in browser/client code.

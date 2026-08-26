@@ -138,7 +138,43 @@ describe("the staff portal shows one person their own work", () => {
   it("says plainly that check-ins are not background tracking", async () => {
     const { app } = buildApp();
     const result = await request(app).get("/staff/location").set("accept", "text/html");
-    assert.match(result.text, /Nothing here tracks you in the background/);
+    assert.match(result.text, /nothing here follows you in the background/i);
+    // And the other half of the sentence. The original copy said only what does
+    // not happen, which is the easy half to write about somebody's location.
+    assert.match(result.text, /how precisely your position was stored/i);
+  });
+
+  // privacy_mode was in the query and rendered nowhere. The column allows
+  // precise, approximate, masked and manual, it is `not null default 'precise'`,
+  // and nothing has ever set it to anything else -- so the most precise setting
+  // was chosen by the database and shown to nobody, on the page a person opens
+  // to see what was recorded about them.
+  it("tells a person how precisely each of their check-ins was recorded", async () => {
+    const { app } = buildApp({
+      rows: {
+        location_events: [
+          { event_type: "job_site_arrival", created_at: "2026-08-18T09:00:00Z", privacy_mode: "precise" },
+          { event_type: "delivery_stop", created_at: "2026-08-18T11:00:00Z", privacy_mode: "approximate" }
+        ]
+      }
+    });
+    const result = await request(app).get("/staff/location").set("accept", "text/html");
+    assert.equal(result.status, 200);
+    assert.match(result.text, /Exact position/, "a precise check-in did not say so");
+    assert.match(result.text, /Approximate area/, "an approximate check-in did not say so");
+    // The stored value is the schema talking to the person whose location it is.
+    assert.doesNotMatch(result.text, /precise\.|approximate\./, "the raw column value was printed");
+  });
+
+  // Absent is not precise. A row whose column did not come back must not be
+  // described as the most invasive setting on the strength of nothing.
+  it("does not call an unrecorded precision the most precise one", async () => {
+    const { app } = buildApp({
+      rows: { location_events: [{ event_type: "check_in", created_at: "2026-08-18T09:00:00Z" }] }
+    });
+    const result = await request(app).get("/staff/location").set("accept", "text/html");
+    assert.match(result.text, /Not recorded/);
+    assert.doesNotMatch(result.text, /Exact position/, "a missing value was reported as exact");
   });
 
   it("renders rather than failing when the workplace cannot be resolved", async () => {

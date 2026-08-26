@@ -68,6 +68,39 @@ const testFiles = fs.readdirSync(path.join(root, "tests")).filter((name) => /\.(
 // re-derivable from the register and is deliberately left to a human.
 const registerSource = fs.readFileSync(path.join(root, "data", "open-source-tools.ts"), "utf8");
 const repositoryCount = (registerSource.match(/slug:\s*"/g) || []).length;
+// How many registered repositories declare no licence at all.
+//
+// The note above says licence *interpretation* is left to a human, and it still
+// is -- whether a reciprocal licence reaches a hosted product is a judgement.
+// This is not that. A record whose own licence text says nothing was declared is
+// a fact about the register, and the figure drifted anyway: docs/owner/WHAT-IS-LEFT.md
+// said two while the register held four, which is the sort of number that gets
+// quoted at somebody deciding what may be adopted.
+const undeclaredLicenceCount = (registerSource.match(/license:\s*\n?\s*"(?:None declared|No licence file|No licence declared)/g) || []).length;
+// How many registered repositories carry a reciprocal licence.
+//
+// Read from the register's own reciprocalLicense field, not from its licence
+// prose. The prose cannot be searched for this: one record's licence text reads
+// "it appeared in neither the permissive filter (MIT, Apache-2.0, BSD-3-Clause)
+// nor the reciprocal filter (AGPL-3.0, GPL-3.0, ...)", so a substring match on
+// AGPL counts the one repository that record explicitly rules out and reports
+// one too many. That is the failure this file exists to prevent, not commit.
+//
+// docs/owner/WHAT-IS-LEFT.md quotes this figure at somebody deciding what may
+// be adopted, and it drifted from 10 to 11 with nothing watching it.
+const reciprocalFlags = registerSource.match(/^\s*reciprocalLicense: (true|false),$/gm) || [];
+const reciprocalLicenceCount = reciprocalFlags.filter((line) => line.includes("true")).length;
+// Every record must answer. An optional field lets somebody add an AGPL
+// repository, omit the flag, and leave the count sitting where it was --
+// a check satisfied by an absence, which is the empty-list failure in a
+// different coat.
+if (reciprocalFlags.length !== repositoryCount) {
+  console.error(
+    `ERROR: ${repositoryCount} records on the open-source register but ${reciprocalFlags.length} state reciprocalLicense; ` +
+      "every record must declare whether its licence is reciprocal, or the count below is measuring a smaller population than it claims."
+  );
+  process.exit(1);
+}
 const migrationCount = fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length;
 // Read as a module rather than parsed: the generated file holds Sets, and
 // counting quoted strings in it would count the header comment too.
@@ -77,6 +110,8 @@ const createdTableCount = scopedTableCount + tenantModule.GLOBAL_TABLES.size;
 
 for (const [label, value, floor] of [
   ["repositories on the open-source register", repositoryCount, 40],
+  ["registered repositories declaring no licence", undeclaredLicenceCount, 1],
+  ["registered repositories carrying a reciprocal licence", reciprocalLicenceCount, 1],
   ["migrations", migrationCount, 50],
   ["tables created by the migrations", createdTableCount, 100],
   ["organization-scoped tables", scopedTableCount, 80]
@@ -113,6 +148,12 @@ function walk(directory) {
 
 const problems = [];
 let claimsChecked = 0;
+// A pattern that matches nothing passes, which is the failure this whole file
+// exists to catch one level up. The register count is stated in a live document
+// today; if a rewording makes it stop matching, that is a hole opening, not a
+// document improving, and it should stop the release rather than go unnoticed.
+const REGISTER_CLAIM = "repositories on the open-source register";
+let registerClaimsSeen = 0;
 
 for (const file of walk("docs")) {
   const raw = fs.readFileSync(path.join(root, file), "utf8");
@@ -137,7 +178,30 @@ for (const file of walk("docs")) {
   // documents actually use, so a sentence about somebody else's 66 repositories
   // is not read as a claim about ours.
   for (const [pattern, actual, what] of [
-    [/\b(\d[\d,]{0,4})\s+(?:reviewed\s+)?repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    // "reviewed" is required, not optional. It was optional, and the pattern
+    // then read "13 repositories above 300 stars pushed in the last year" -- a
+    // count of GitHub search results in a sweep document -- as a claim about
+    // this register, and failed the release on a sentence that was correct.
+    //
+    // A check that fires on true statements does not get fixed; the prose gets
+    // reworded around it, and then the check is training people to avoid it
+    // rather than measuring anything. The narrower pattern would be a quiet
+    // weakening on its own, so REGISTER_CLAIMS below refuses to pass if it stops
+    // matching anything at all.
+    [/\b(\d[\d,]{0,4})\s+reviewed\s+repositories\b/gi, repositoryCount, "repositories on the open-source register"],
+    [/\b(\d[\d,]{0,4})\s+declare no licence\b/gi, undeclaredLicenceCount, "registered repositories declaring no licence"],
+    [/\b(\d[\d,]{0,4})\s+carry\s+a\s+reciprocal\s+licence\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
+    // The same figure, written the other way round. docs/architecture/EXTERNAL-SERVICES.md
+    // said "The eight reciprocal repositories are a separate decision" and went
+    // stale from 8 to 17 with nothing watching it, because the pattern above
+    // requires the words "carry a reciprocal licence" and this phrasing has
+    // neither. One number, two sentences, one guard: the second sentence needs
+    // its own pattern or it is unguarded prose.
+    //
+    // It also has to be written as a DIGIT. "eight" is invisible to every
+    // pattern here, so a derived count spelled as a word cannot be checked at
+    // all -- which is worth knowing before writing one.
+    [/\b(\d[\d,]{0,4})\s+reciprocal\s+repositories\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
     [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]
@@ -146,6 +210,7 @@ for (const file of walk("docs")) {
       const claimed = Number(String(match[1]).replace(/,/g, ""));
       if (!Number.isFinite(claimed)) continue;
       claimsChecked += 1;
+      if (what === REGISTER_CLAIM) registerClaimsSeen += 1;
       if (claimed !== actual) problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
     }
   }
@@ -161,6 +226,15 @@ for (const file of walk("docs")) {
         "say what the suite covers, or let docs/HANDOFF_PROMPT.md carry the number, which is generated."
     );
   }
+}
+
+if (!registerClaimsSeen) {
+  console.error(
+    `ERROR: no document states the reviewed-repository count, so the pattern for it checked nothing. ` +
+      "Either a live document lost the claim, or the pattern stopped matching how it is written -- " +
+      "both are the check going quiet rather than the documents getting better."
+  );
+  process.exit(1);
 }
 
 if (problems.length) {

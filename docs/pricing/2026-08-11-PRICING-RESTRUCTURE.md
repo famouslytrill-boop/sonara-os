@@ -99,6 +99,14 @@ assigned tasks already exist and are given away. A business with employees is a
 different customer from a sole operator, and $79 still undercuts Housecall Pro
 plus Podia plus Brevo by a wide margin.
 
+> **Applied 19 August 2026, on the owner's instruction.** "Given away" was true
+> when this was written and is not true any more: all six `/staff` pages are
+> gated on `team_monthly` through `requirePaidOrOwnerAccess("staff_portal")`,
+> and `tests/the-staff-portal-is-what-team-sells.test.js` proves a free account
+> is refused, a Team account is not, and a billing read that fails answers 503
+> rather than accusing a paying employer of not paying. Without that gate Team
+> charged $79 for what every free account already had, which is not a plan.
+
 ### What this does to the argument
 
 The pricing page can say one thing and have it be true:
@@ -108,11 +116,22 @@ The pricing page can say one thing and have it be true:
 
 ## What has to be true before any of this is applied
 
+> **Status, 19 August 2026.** The owner chose to apply the restructure now,
+> ahead of the positive subscribed-user test below. The code half is done: the
+> three plans exist in `lib/sonara-stripe-plans.cjs` with the amounts this
+> document sets, `lib/sonara-paid-access.cjs` maps all three to every workspace
+> they cover, `lib/sonara-plan-limits.cjs` sets their location allowances, and
+> the staff portal is gated on Team. **What is left is Stripe**, and it is
+> `docs/owner/OWNER-STEPS.md` — three Price objects and three variables. Until
+> those exist the new plans render "Checkout is not configured for this plan
+> yet" and the old ladder stays on the page, which is `offeredPlanKeys` doing
+> exactly what it was built to do.
+
 **The positive subscribed-user test.** `SHIP_READINESS.md` item 1: nobody has
 completed a paid signup in production end to end. Changing prices before that is
 changing a number on a path nobody has walked.
 
-**Stripe prices created and verified.** `scripts/verify-stripe-config.mjs`
+**Stripe prices created and verified.** `scripts/verify-stripe-env.mjs`
 compares `STRIPE_PLANS` amounts against live Stripe prices and currently skips
 when `STRIPE_SECRET_KEY` is absent. New price objects have to exist in Stripe
 first, and the amounts have to match, or checkout sends a customer to a price

@@ -12,11 +12,11 @@
   --nx-ink:#11162a;
   --nx-text:#1d2437;
   --nx-muted:#5c6678;
-  --nx-faint:#7a8495;
+  --nx-faint:#6d7789;
   --nx-line:#dce3ed;
   --nx-line-strong:#c7d0de;
   --nx-violet:#7454f5;
-  --nx-blue:#4f6fff;
+  --nx-blue:#4667ff;
   --nx-pink:#ef4d8d;
   --nx-orange:#f47b3a;
   --nx-cyan:#14b8d4;
@@ -1339,4 +1339,55 @@ body > header .sonara-brand-copy strong {
   .sonara-route-progress {
     display: none !important;
   }
+}
+
+/* A shared result is a list of label/value pairs and nothing else, so it is a
+   description list rather than a stack of paragraphs -- a screen reader is told
+   which value belongs to which label, which a <p><strong> pattern cannot say.
+
+   Two columns where there is room and one where there is not, because the value
+   is the part somebody came to read and a 90-character label column on a phone
+   would leave it three words wide. */
+.sonara-shared-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px 24px;
+  margin: 18px 0 0;
+}
+.sonara-shared-result dt {
+  color: var(--nx-muted);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sonara-shared-result dd {
+  margin: 0 0 14px;
+  font-size: 1.0625rem;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 620px) {
+  .sonara-shared-result {
+    grid-template-columns: minmax(9rem, 15rem) minmax(0, 1fr);
+    align-items: baseline;
+  }
+  .sonara-shared-result dt { padding-top: 2px; }
+  .sonara-shared-result dd { margin-bottom: 10px; }
+}
+
+/* A QR code, inline as SVG.
+ *
+ * Capped rather than full width: a code stretched across a desktop card is
+ * harder to scan than a small one, because a phone camera has to see the whole
+ * symbol at once. The white background is on the SVG itself rather than here,
+ * so the code survives being saved out of the page and dropped onto a dark
+ * poster. */
+.sonara-qr {
+  max-width: 240px;
+  margin: 0 0 12px;
+}
+.sonara-qr svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
 }

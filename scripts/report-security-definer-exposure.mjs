@@ -27,7 +27,7 @@
 //      safe on the evidence in this repository.
 //
 //   3. Functions the advisor named that no migration defines. Those exist in
-//      the live database and not in version control, so nobody can review them
+//      the live database, and until 19 August 2026 nobody could review them
 //      by reading this repository -- which is a worse problem than the grant.
 
 import fs from "node:fs";
@@ -40,6 +40,39 @@ const checkOnly = process.argv.includes("--check");
 
 // The twelve from the advisor, as reported. Written down here so this script
 // can say which of them the repository cannot account for.
+// Where the four undeclared definitions are written down. Recorded verbatim,
+// deliberately not created -- see the header of that file for why.
+const RECORDED_DEFINITIONS_FILE = "supabase/migrations/20260819050000_record_undeclared_authorization_functions.sql";
+
+// The advisor names functions bare; the recorded file writes them with their
+// argument lists. One shape for comparing them.
+function functionName(value) {
+  return String(value).split("(")[0].replace(/^public\./, "").trim();
+}
+
+// Which function definitions that file actually carries.
+//
+// It looks for `CREATE OR REPLACE FUNCTION public.<name>` inside the recorded
+// block, which is commented out on purpose -- so this deliberately reads the
+// raw file rather than the comment-stripped SQL every other check here uses.
+// Reading the stripped version would find nothing and report all four as
+// unreadable, which is the failure this whole report exists to avoid.
+function readRecordedDefinitions() {
+  const found = new Set();
+  let text;
+  try {
+    text = fs.readFileSync(path.join(root, RECORDED_DEFINITIONS_FILE), "utf8");
+  } catch {
+    // The file is gone. Say nothing here and let the caller report every
+    // function as unreadable, which is then true.
+    return found;
+  }
+  for (const match of text.matchAll(/CREATE OR REPLACE FUNCTION\s+public\.([a-z0-9_]+)/gi)) {
+    found.add(match[1].toLowerCase());
+  }
+  return found;
+}
+
 const ADVISOR_REPORTED = [
   "is_admin",
   "is_current_user_admin",
@@ -210,9 +243,31 @@ lines.push(`Named by the Supabase advisor but defined by no migration (${undefin
 for (const name of undefinedInRepo) lines.push(`  ${name}`);
 if (undefinedInRepo.length) {
   lines.push("");
-  lines.push("  These exist in the live database and not in version control, so they cannot be");
-  lines.push("  reviewed by reading this repository. That is a bigger problem than the grant:");
-  lines.push("  an authorization primitive nobody can read is one nobody can check.");
+  // What this said until 19 August 2026 -- "they cannot be reviewed by reading
+  // this repository" -- stopped being true the moment the owner supplied the
+  // definitions and 20260819050000_record_undeclared_authorization_functions.sql
+  // recorded them. The count above is still right, because it counts what this
+  // repository *defines*, and that migration deliberately defines nothing: two
+  // of the four read tables that exist nowhere here, and a LANGUAGE sql body is
+  // validated at creation, so creating them would fail on deploy.
+  //
+  // Recorded and defined are different states and this report now says which.
+  // Collapsing them would have made the sentence wrong in the other direction.
+  const recorded = readRecordedDefinitions();
+  const stillUnreadable = undefinedInRepo.filter((name) => !recorded.has(functionName(name)));
+  if (stillUnreadable.length === 0) {
+    lines.push("  None of these is defined by a migration, so none is created or replaced on deploy.");
+    lines.push("  All four are nonetheless readable here: their definitions are recorded verbatim in");
+    lines.push(`  ${RECORDED_DEFINITIONS_FILE},`);
+    lines.push("  supplied by the owner on 19 August 2026. Recorded is not defined -- two of them read");
+    lines.push("  tables that exist in no migration, and creating those would fail on deploy.");
+  } else {
+    lines.push("  These exist in the live database and their definitions are recorded nowhere in it,");
+    lines.push("  so they cannot be reviewed by reading this repository. That is a bigger problem");
+    lines.push("  than the grant: an authorization primitive nobody can read is one nobody can check.");
+    lines.push("");
+    for (const name of stillUnreadable) lines.push(`    unreadable: ${name}`);
+  }
 }
 lines.push("");
 

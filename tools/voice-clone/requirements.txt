@@ -1,0 +1,10 @@
+# The app itself. Small on purpose: everything here runs on any machine, with
+# no GPU and nothing to download, so the interface and the consent gate can be
+# used and tested before anybody commits to a multi-gigabyte model.
+fastapi==0.141.1
+uvicorn[standard]==0.51.0
+python-multipart==0.0.20
+
+# Tests only.
+pytest==8.3.4
+httpx==0.28.1

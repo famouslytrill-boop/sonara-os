@@ -231,11 +231,147 @@ describe("Creator Studio record pages show real records", () => {
     assert.match(result.text, /Vibration patterns/);
   });
 
-  it("says nothing plays or vibrates on its own", async () => {
+  it("does not tell a customer their cue will play, because it will not", async () => {
     // AGENTS.md: sounds, haptics and motion are off or explicitly
-    // user-controlled by default, and the page has to say so.
+    // user-controlled by default, and the page has to say so. It did, and it
+    // also said "a cue only runs when something you do asks for it" -- which
+    // says a cue runs. Nothing reads sound_cues or haptic_patterns anywhere in
+    // the runtime; the sound and vibration the app makes come from a hardcoded
+    // map of five kinds in public/sensory-device-client.js.
     const result = await request(buildApp()).get("/creator-studio/device-cues").set("accept", "text/html");
-    assert.match(result.text, /Nothing plays, vibrates or moves on its own/);
+    assert.match(result.text, /does not make it play/);
+    assert.match(result.text, /stay off until you turn them on/);
+    assert.doesNotMatch(result.text, /a cue only runs when/, "the page is back to promising playback");
+  });
+
+  // The form under an `also` block is new machinery, and the failure it can
+  // have is the one that shipped on every record form once already: a payload
+  // naming a column that is not there is rejected by PostgREST, and every stub
+  // in the suite accepts it, so the button works and nothing saves.
+  it("asks an also-block form only for columns that exist", () => {
+    const { CREATOR_RECORD_PAGES, ALL_OWNER_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+    const { tableColumns } = require("../lib/sonara-migration-columns.cjs");
+    const blocks = [...CREATOR_RECORD_PAGES, ...ALL_OWNER_PAGES].flatMap((page) => (page.also || []).map((side) => ({ page, side })));
+    assert.ok(blocks.length >= 1, "no also blocks found; this check has gone blind");
+    const withForms = blocks.filter(({ side }) => side.form);
+    assert.ok(withForms.length >= 1, "no also block declares a form; this check would pass on nothing");
+
+    const wrong = [];
+    for (const { side } of withForms) {
+      const columns = tableColumns(side.table);
+      if (!columns) {
+        wrong.push(`${side.table} is not in the migrations`);
+        continue;
+      }
+      // Without an endpoint the form renders no action a customer can press.
+      if (!side.form.action && !side.api) wrong.push(`${side.table} has a form and no endpoint`);
+      if (!columns.has("organization_id")) wrong.push(`${side.table} has no organization_id, so it cannot be tenant scoped`);
+      for (const field of side.form.fields) {
+        if (!columns.has(field.name)) wrong.push(`${side.table} has no column ${field.name}`);
+      }
+    }
+    assert.deepEqual(wrong, [], wrong.join("\n  "));
+  });
+
+  // Four booleans shown as one column of what is on. The trap is the one this
+  // repository keeps finding in a different shape: absent is not false. A row
+  // whose columns did not come back would otherwise render "Nothing", telling a
+  // customer their profile uses no sound on the strength of columns nobody read.
+  it("does not report a missing toggle as a toggle that is off", () => {
+    const { CREATOR_RECORD_PAGES } = require("../lib/sonara-owner-record-pages.cjs");
+    const cues = CREATOR_RECORD_PAGES.find((entry) => entry.path === "/creator-studio/device-cues");
+    const profiles = (cues.also || []).find((side) => side.table === "sensory_feedback_profiles");
+    assert.ok(profiles, "no feedback profiles block; this check has gone blind");
+    const uses = profiles.columns.find((column) => column.label === "Uses");
+    assert.ok(uses, "no Uses column");
+
+    assert.equal(uses.value({}), "Not set", "a row with none of the columns read as all four off");
+    assert.equal(uses.value({ sound_enabled: null, vibration_enabled: null, motion_enabled: null, location_enabled: null }), "Not set");
+    assert.equal(uses.value({ sound_enabled: false, vibration_enabled: false, motion_enabled: false, location_enabled: false }), "Nothing", "all four off is an answer and must say so");
+    assert.equal(uses.value({ sound_enabled: true, vibration_enabled: false, motion_enabled: false, location_enabled: false }), "sound");
+    assert.equal(uses.value({ sound_enabled: true, vibration_enabled: true, motion_enabled: false, location_enabled: false }), "sound, vibration");
+  });
+
+  // A boolean rendered as "true"/"false" is the schema talking to the customer.
+  it("offers the toggles as yes and no, not as true and false", async () => {
+    const result = await request(buildApp()).get("/creator-studio/device-cues").set("accept", "text/html");
+    assert.match(result.text, /name="sound_enabled"/, "the profile form did not render");
+    const control = result.text.slice(result.text.indexOf('name="sound_enabled"'));
+    const select = control.slice(0, control.indexOf("</select>"));
+    assert.match(select, /<option value="false">No</);
+    assert.match(select, /<option value="true">Yes</);
+  });
+
+  // The inverse of the selected-but-unused defect, and the one that shipped
+  // silently rather than loudly.
+  //
+  // A record page hand-writes two things that have to agree: `select`, the
+  // columns it asks Supabase for, and `columns`, the accessors that read them.
+  // A column read but not asked for is `undefined` on every row, so the page
+  // renders its fallback -- "Not set", "None", "Not recorded" -- for every
+  // record forever. It looks like a working page over a column nobody filled
+  // in, which is indistinguishable from the truth by eye.
+  //
+  // Four record pages were hand-written in one day when this was added, each
+  // with its own select string, and nothing compared the two.
+  it("asks for every column its pages actually render", () => {
+    const pages = require("../lib/sonara-owner-record-pages.cjs");
+    const findings = [];
+    let reads = 0;
+
+    const examine = (label, select, columns) => {
+      // A page selecting "*" gets everything and cannot have this fault.
+      if (!select || select === "*" || !Array.isArray(columns)) return;
+      const asked = new Set(String(select).split(",").map((entry) => entry.trim()));
+      for (const column of columns) {
+        if (typeof column.value !== "function") continue;
+        for (const match of column.value.toString().matchAll(/\brow\.([a-z0-9_]+)/g)) {
+          reads += 1;
+          if (!asked.has(match[1])) findings.push(`${label}: column "${column.label}" reads row.${match[1]}, which its select does not ask for`);
+        }
+      }
+    };
+
+    for (const value of Object.values(pages)) {
+      if (!Array.isArray(value)) continue;
+      for (const page of value) {
+        if (!page || !page.path) continue;
+        examine(page.path, page.select, page.columns);
+        for (const child of pages.childrenOf(page)) examine(`${page.path} → ${child.table}`, child.select, child.columns);
+        for (const side of page.also || []) examine(`${page.path} → ${side.table}`, side.select, side.columns);
+      }
+    }
+
+    assert.ok(reads >= 200, `only ${reads} column reads examined; this check has gone blind`);
+    assert.deepEqual(findings, [], `these columns render their fallback on every row:\n  ${findings.join("\n  ")}`);
+  });
+
+  // The other half, and the half that would rot silently: the copy above is
+  // only honest while nothing reads these tables. If somebody builds the
+  // consumer, this fails and says which file to look at -- rather than leaving
+  // a page telling customers their cues do nothing after they started working.
+  it("still has no consumer for the tables that copy is about", () => {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const root = path.join(__dirname, "..");
+    const files = [path.join(root, "server.js")];
+    for (const directory of ["routes", "lib", "public"]) {
+      for (const name of fs.readdirSync(path.join(root, directory))) {
+        if (/\.(cjs|js|mjs)$/.test(name)) files.push(path.join(root, directory, name));
+      }
+    }
+    assert.ok(files.length > 50, `only ${files.length} runtime files read; this check has gone blind`);
+
+    // The record page writes and lists them, which is the surface the copy is
+    // about. Anything else naming them is a consumer.
+    const surface = new Set(["sonara-owner-record-pages.cjs", "sonara-last9-routes.cjs", "sonara-tenant-scoped-tables.cjs", "sonara-database-contract.cjs"]);
+    const consumers = [];
+    for (const file of files) {
+      if (surface.has(path.basename(file))) continue;
+      const source = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/gm, "$1 ");
+      if (/\b(sound_cues|haptic_patterns)\b/.test(source)) consumers.push(path.relative(root, file));
+    }
+    assert.deepEqual(consumers, [], "something reads these now, so /creator-studio/device-cues must stop saying nothing does");
   });
 });
 

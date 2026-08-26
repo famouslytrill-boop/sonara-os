@@ -10,8 +10,14 @@ const {
   pageForApi
 } = require("../lib/sonara-owner-record-pages.cjs");
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
+const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
+const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
+const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
+const { renderInvoicePdf } = require("../lib/sonara-invoice-pdf.cjs");
+const { settle } = require("../lib/sonara-invoice-settlement.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
+const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
 
 // `person` names the column that records who created the row, and it is here
@@ -59,8 +65,24 @@ const RESOURCE_MAP = {
   "/api/creator/album-cycles": { table: "creator_album_cycles", required: ["artist_profile_id", "title", "slug"], defaults: { project_type: "album", release_status: "planning" } },
   "/api/creator/prompt-blueprints": { table: "creator_prompt_blueprints", required: ["artist_profile_id", "name", "blueprint_key", "prompt_template"], defaults: { status: "active" } },
   "/api/creator/video-treatments": { table: "creator_video_treatments", required: ["artist_profile_id", "title"], defaults: { status: "draft", platform_target: "social" } },
-  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "queued" } },
-  "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active" } },
+  // "queued" was the default and nothing consumes this table: grep finds the
+  // insert above, the tenant-scoped list, and no runner. "Queued" states that
+  // something is waiting to be processed, so every row written here claimed a
+  // worker that does not exist -- the same shape as accounting_exports, which
+  // said "whether each one finished" about a file nothing produced.
+  //
+  // manual_required is already in the schema's check constraint and is true: a
+  // person has to do this. One word, no migration, and the row stops promising.
+  "/api/integrations/jobs": { table: "integration_jobs", required: ["provider_key", "job_type"], person: "created_by", defaults: { status: "manual_required" } },
+  // The four toggles are defaulted off here, and the reason is a rule rather
+  // than a preference. AGENTS.md: "Sounds, voice announcements, haptics, SMS,
+  // push, and email alerts must be off or explicitly user-controlled by
+  // default." Migration 015 gives sound_enabled and vibration_enabled a column
+  // default of true, so a row created without an answer was born with both on
+  // -- harmless only because nothing reads this table, which is not a reason to
+  // leave it. The form asks all four explicitly; these cover a request that
+  // does not.
+  "/api/sensory/profiles": { table: "sensory_feedback_profiles", required: ["name", "profile_key"], defaults: { status: "active", sound_enabled: false, vibration_enabled: false, motion_enabled: false, location_enabled: false } },
   "/api/sensory/sound-cues": { table: "sound_cues", required: ["cue_key", "name", "event_name"], defaults: { status: "active", sound_type: "tone" } },
   "/api/sensory/haptic-patterns": { table: "haptic_patterns", required: ["pattern_key", "name", "event_name"], defaults: { status: "active" } },
   "/api/location/zones": { table: "location_zones", required: ["name"], defaults: { status: "active", zone_type: "business" } },
@@ -78,7 +100,17 @@ const RESOURCE_MAP = {
   "/api/business/customers": { table: "customers", required: ["name"], person: "created_by", defaults: { status: "active" } },
   "/api/business/quotes": { table: "quotes", required: ["title"], person: "created_by", defaults: { status: "draft" } },
   "/api/business/receivables": { table: "customer_invoices", required: ["customer_id"], person: "created_by", defaults: { status: "draft", currency: "usd" } },
-  "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } }
+  "/api/business/accounting-exports": { table: "accounting_exports", required: [], person: "created_by", defaults: { status: "queued", export_type: "bills" } },
+  // The product catalogue. Status defaults to draft rather than active on
+  // purpose: a product with no versions has no price, so listing it as on sale
+  // the moment it is created would be the page claiming something it cannot
+  // support. The versions under it are reached through the product, the same
+  // way invoice lines are reached through the invoice.
+  "/api/business/merchant-products": { table: "merchant_products", required: ["name"], person: "created_by", defaults: { status: "draft" } },
+  // Sources a business may research. permission_status defaults to needs_review
+  // rather than approved, because a row created without an answer has not been
+  // ruled on -- and the fetch endpoint treats "not ruled on" as "do not fetch".
+  "/api/business/research-sources": { table: "research_sources", required: ["source_url", "source_type"], person: "created_by", defaults: { permission_status: "needs_review", crawl_status: "disabled" } }
 };
 
 const PUBLIC_GETS = new Map([
@@ -113,11 +145,312 @@ const STAFF_PAGES = [
   ["/staff/location", "My Location", "Check-ins you have recorded for job sites, routes and deliveries."]
 ];
 
+// Customer-designed record types, registered from here rather than from
+// server.js.
+//
+// They are the same product area -- everything below serves
+// /business-builder/owner/* and this module already receives every dependency
+// they need -- and server.js is under a line ratchet in
+// tests/server-split.test.js whose whole point is that behaviour leaves it
+// rather than arriving. Four more lines there to reach a module that belongs
+// beside these ones would have been four lines in the wrong direction.
+const registerSubAppRoutes = require("./sonara-sub-app-routes.cjs");
+
 module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
+  registerSubAppRoutes(app, deps);
+
   const ui = buildUi(deps);
   const requireCustomer = deps.requireCustomer || passthrough;
   const requireBusinessManager = deps.requireBusinessManager || requireCustomer;
   const requireWorkspaceAccess = typeof deps.requireWorkspaceAccess === "function" ? deps.requireWorkspaceAccess : () => requireCustomer;
+
+  registerVerticalTemplates(app, deps, ui);
+
+  // A booking, as a file the business's own calendar will open.
+  //
+  // business_bookings had starts_at and ends_at and nothing turned either into
+  // a calendar entry, so a business could take a booking and still have to
+  // retype it into whatever they actually use. That is the one thing a booking
+  // is for, and every product this one competes with does it.
+  //
+  // Deliberately a download rather than an invitation email. Sending mail is a
+  // customer campaign under AGENTS.md and needs owner approval; handing
+  // somebody a file they asked for is neither.
+  app.get("/business-builder/owner/bookings/:recordId/calendar", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+
+    // Each refusal says which one it is. A download that silently produces an
+    // empty file is the failure this whole module was written against.
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That booking reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this booking cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    // Scoped by organization as well as by id: the service key bypasses row
+    // level security, so without the organization filter a guessed id from
+    // another business would download.
+    const found = await supabaseList(
+      config,
+      "business_bookings",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    // A read that failed and a booking that is not there are different things,
+    // and answering 404 to both would tell a business their booking is gone
+    // during an outage.
+    if (!found.ok) return res.status(503).type("text").send("We could not read that booking just now. Nothing has changed; try again shortly.");
+    const booking = found.rows[0];
+    if (!booking) return res.status(404).type("text").send("That booking is not in your business, or it has been removed.");
+
+    // No business name is passed, and that is deliberate rather than an
+    // omission: resolveOrganization returns { ok, organizationId, userId } and
+    // nothing else, so `org.organizationName` would be undefined and the
+    // summary would silently lose it. Reading a field that does not exist is
+    // how a line of code comes to look wired up while doing nothing.
+    const invite = buildCalendarInvite(booking, { now: new Date() });
+    // 422 rather than 500: the row is readable and the request is well formed,
+    // and what is wrong is the booking itself. The message names the field.
+    if (!invite.ok) return res.status(422).type("text").send(invite.message);
+
+    res.setHeader("Content-Type", invite.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${invite.filename}"`);
+    // A calendar file is a snapshot of a row that can change.
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(invite.body);
+  });
+
+  // Customers as contact cards.
+  //
+  // The third record type to get a file somebody else's software opens, after
+  // bookings became calendar entries and accounting exports became CSV. A grep
+  // for VCARD across server.js, lib/ and routes/ found nothing before this, so
+  // "Customer & Enquiry Tracker" -- a paid product -- could hold a customer's
+  // number and offer no way to get it into the phone you would ring them from.
+  //
+  // The whole list first, so the static path is matched before the :recordId
+  // route below could take "contacts" for an identifier. Declared in this order
+  // deliberately rather than by luck.
+  app.get("/business-builder/owner/customers/contacts", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so there are no customers to read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "customers",
+      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=name.asc&limit=2000`
+    );
+    // `found.ok ? found.rows : []` would hand back an empty address book during
+    // an outage, which reads as a business with no customers.
+    if (!found.ok) return res.status(503).type("text").send("We could not read your customers just now. Nothing has changed; try again shortly.");
+
+    const book = buildContactBook(found.rows, { now: new Date() });
+    if (!book.ok) return res.status(503).type("text").send(book.message);
+
+    res.setHeader("Content-Type", book.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${book.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Sonara-Contacts-Included", String(book.included));
+    // Said out loud. A customer with no email and no phone cannot become a
+    // contact, and an address book quietly missing nine people is one the
+    // business has no way to notice is short.
+    if (book.skipped.length) res.setHeader("X-Sonara-Contacts-Skipped", String(book.skipped.length));
+    return res.send(book.body);
+  });
+
+  app.get("/business-builder/owner/customers/:recordId/contact", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That customer reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this customer cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    // Scoped by organization as well as by id: the service key bypasses row
+    // level security, so without the organization filter a guessed id from
+    // another business would download.
+    const found = await supabaseList(
+      config,
+      "customers",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return res.status(503).type("text").send("We could not read that customer just now. Nothing has changed; try again shortly.");
+    const customer = found.rows[0];
+    if (!customer) return res.status(404).type("text").send("That customer is not in your business, or they have been removed.");
+
+    const card = buildContactCard(customer, {});
+    // 422 rather than 500: the row is readable and the request is well formed,
+    // and what is missing is a way to reach the person. The message names it.
+    if (!card.ok) return res.status(422).type("text").send(card.message);
+
+    res.setHeader("Content-Type", card.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${card.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(card.body);
+  });
+
+  // An invoice as a file the business can send or file.
+  //
+  // The same document the customer gets from a shared link, built by the same
+  // renderer, so the two cannot disagree about what an invoice says. Scoped by
+  // organization as well as by id, like every other per-record download here:
+  // the service key bypasses row level security, so without that filter a
+  // guessed id from another business would download.
+  app.get("/business-builder/owner/invoices/:recordId/pdf", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That invoice reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this invoice cannot be read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const scope = `id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}`;
+    const found = await supabaseList(config, "customer_invoices", `?select=*&${scope}&limit=1`);
+    if (!found.ok) return res.status(503).type("text").send("We could not read that invoice just now. Nothing has changed; try again shortly.");
+    const invoice = found.rows[0];
+    if (!invoice) return res.status(404).type("text").send("That invoice is not in your business, or it has been removed.");
+
+    const [lines, paid, organization] = await Promise.all([
+      supabaseList(config, "customer_invoice_lines",
+        `?select=*&invoice_id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=created_at.asc`),
+      supabaseList(config, "customer_invoice_payments",
+        `?select=amount_cents&invoice_id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}`),
+      supabaseList(config, "organizations", `?select=name&id=eq.${encodeURIComponent(org.organizationId)}&limit=1`)
+    ]);
+    // A failed line read is not an invoice with no lines on it. Sending a
+    // document that says "no lines" when there are some is worse than not
+    // sending one, because the business forwards it to their customer.
+    if (!lines.ok) return res.status(503).type("text").send("We could not read the lines on that invoice, so the file would have been wrong. Nothing was produced.");
+
+    // `paymentsRead: paid.ok` carries a failed read through as "not known"
+    // rather than as "nothing paid".
+    const settlement = settle({ invoice, payments: paid.rows, paymentsRead: paid.ok });
+
+    const pdf = renderInvoicePdf({
+      business: { name: organization.ok ? (organization.rows[0]?.name || "") : "" },
+      invoice,
+      lines: lines.rows,
+      settlement
+    });
+
+    const number = String(invoice.invoice_number || "").replace(/[^A-Za-z0-9._-]/g, "");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="invoice-${number || recordId}.pdf"`);
+    res.setHeader("Cache-Control", "no-store");
+    return res.send(pdf);
+  });
+
+  // An accounting export as a file, because until now it was only ever a row.
+  //
+  // accounting_exports carries export_type, a period, a status and a file_url.
+  // Nothing wrote file_url, nothing moved status past "queued", and there was no
+  // CSV anywhere in this repository -- so /business-builder/owner/accounting-exports
+  // listed "Queued" under a column headed "whether each one finished", and the
+  // answer could never change. A page reporting the state of a job nothing runs.
+  //
+  // The file is built when it is asked for rather than queued and stored. There
+  // is no worker here, and a status that only a worker could advance is how the
+  // lie got written in the first place.
+  //
+  // Only the three types whose meaning is unambiguous are served. payroll_summary
+  // and journal_entries are refused by name: both require accounting judgement
+  // this code has not been given -- what belongs in a journal line, and how gross
+  // pay reconciles to cost -- and inventing them would put wrong figures in front
+  // of an accountant, which is worse than putting none.
+  const EXPORT_SOURCES = Object.freeze({
+    bills: { table: "vendor_invoices", dateColumn: "created_at", columns: ["id", "created_at", "vendor_name", "invoice_number", "invoice_date", "due_date", "amount", "currency", "status", "notes"] },
+    sales: { table: "pos_sales_summaries", dateColumn: "created_at", columns: ["id", "created_at", "business_date", "gross_sales", "net_sales", "tax_total", "discount_total", "transaction_count", "currency"] },
+    inventory: { table: "inventory_items", dateColumn: "created_at", columns: ["id", "created_at", "item_name", "sku", "unit", "quantity_on_hand", "unit_cost", "reorder_point", "location_id"] }
+  });
+
+  app.get("/business-builder/owner/accounting-exports/:recordId/download", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    const recordId = String(req.params.recordId || "");
+    if (!isUuid(recordId)) return res.status(404).type("text").send("That export reference is not one of ours.");
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so this export cannot be built.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "accounting_exports",
+      `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+    );
+    if (!found.ok) return res.status(503).type("text").send("We could not read that export just now. Nothing has changed; try again shortly.");
+    const record = found.rows[0];
+    if (!record) return res.status(404).type("text").send("That export is not in your business, or it has been removed.");
+
+    const source = EXPORT_SOURCES[String(record.export_type || "")];
+    if (!source) {
+      // Named, not generic. "Not supported" tells somebody nothing about
+      // whether to wait for it.
+      return res.status(422).type("text").send(
+        `A file for "${String(record.export_type || "unknown")}" exports is not built. Payroll summaries and journal entries need accounting decisions this system has not been given, and producing them from guesses would put wrong figures in front of your accountant. Bills, sales and inventory exports do download.`
+      );
+    }
+
+    // The period bounds the rows. A missing bound means that side is open, which
+    // is a real request and not an error.
+    const filters = [`organization_id=eq.${encodeURIComponent(org.organizationId)}`];
+    if (record.period_start) filters.push(`${source.dateColumn}=gte.${encodeURIComponent(record.period_start)}`);
+    if (record.period_end) filters.push(`${source.dateColumn}=lte.${encodeURIComponent(`${record.period_end}T23:59:59.999Z`)}`);
+    const rows = await supabaseList(config, source.table, `?select=*&${filters.join("&")}&order=${source.dateColumn}.asc&limit=10000`);
+    // `rows.ok ? rows.rows : []` here would hand an accountant an empty file for
+    // a period that has records in it.
+    if (!rows.ok) return res.status(503).type("text").send("We could not read the records for that period. Nothing has changed, and no file was made; try again shortly.");
+
+    const csv = buildRecordCsv(rows.rows, source.columns);
+    if (!csv.ok) return res.status(503).type("text").send(csv.message);
+
+    const period = `${record.period_start || "start"}-to-${record.period_end || "now"}`.replace(/[^a-zA-Z0-9-]/g, "");
+    res.setHeader("Content-Type", csv.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${String(record.export_type)}-${period}.csv"`);
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Sonara-Export-Rows", String(csv.rowCount));
+    // Said out loud. A value that would otherwise be executed as a formula by a
+    // spreadsheet is prefixed with an apostrophe, and that changes it, so the
+    // customer is told how many rather than left to find out.
+    if (csv.neutralised) res.setHeader("X-Sonara-Export-Values-Altered", String(csv.neutralised));
+    return res.send(csv.body);
+  });
+
+  // The diary, not one appointment.
+  //
+  // Registered before the :recordId route above would ever be reached for this
+  // path -- Express matches in registration order and "calendar" is not a uuid,
+  // so isUuid would have refused it -- but ordering by accident is not ordering,
+  // and this is declared first on purpose.
+  app.get("/business-builder/owner/bookings/calendar", requireBusinessManager, async (req, res) => {
+    const config = getConfig(deps);
+    const org = await resolveOrganization(req, deps);
+    if (!config.ok) return res.status(503).type("text").send("Your account database is not connected yet, so there are no bookings to read.");
+    if (!org.ok) return res.status(503).type("text").send("We could not tell which business you are signed in to. Sign in again and this will work.");
+
+    const found = await supabaseList(
+      config,
+      "business_bookings",
+      `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}&order=starts_at.asc&limit=500`
+    );
+    // `found.ok ? found.rows : []` here would hand back an empty but perfectly
+    // valid calendar during an outage, and the business would read it as having
+    // no bookings.
+    if (!found.ok) return res.status(503).type("text").send("We could not read your bookings just now. Nothing has changed; try again shortly.");
+
+    const feed = buildCalendarFeed(found.rows, { now: new Date() });
+    if (!feed.ok) return res.status(503).type("text").send(feed.message);
+
+    res.setHeader("Content-Type", feed.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${feed.filename}"`);
+    res.setHeader("Cache-Control", "no-store");
+    // Said out loud rather than dropped. A diary missing three appointments
+    // because they have no end time is incomplete, and a header is the only
+    // place to say so on a file download.
+    if (feed.skipped.length) {
+      res.setHeader("X-Sonara-Bookings-Skipped", String(feed.skipped.length));
+    }
+    return res.send(feed.body);
+  });
 
   OWNER_PAGES.forEach(([path, title, body]) => {
     app.get(path, requireBusinessManager, async (req, res) => {
@@ -220,6 +553,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let childRows = children.map(() => ({ ok: false, rows: [] }));
       let extra = null;
       let references = {};
+      let shareLink = null;
+      let publishState = null;
       let unavailable = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
@@ -256,6 +591,31 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // of why a child reference field always rendered empty.
           references = await loadReferences(config, org.organizationId, page);
 
+          // Whether this record is already published, if this kind can be.
+          //
+          // Three states, and the page renders all three: shared (show the link
+          // and the way to stop), not shared (offer to), and **could not tell**.
+          // A read that failed is not a record that is private, and offering to
+          // publish something that is already public -- or hiding the way to
+          // unpublish it -- are both worse than saying the check did not run.
+          // The public address of a creator profile, for the page that owns it.
+          // Read from the record itself rather than a second table, because the
+          // handle IS the publication -- absent means private.
+          if (page.publishHandle) {
+            publishState = { ok: true, handle: parent?.public_handle || null, publishedBefore: Boolean(parent?.published_at) };
+          }
+
+          if (page.shareableAs) {
+            const links = await supabaseList(
+              config,
+              "shared_links",
+              `?select=token&organization_id=eq.${encodeURIComponent(org.organizationId)}`
+                + `&resource_type=eq.${encodeURIComponent(page.shareableAs)}&resource_id=eq.${encodeURIComponent(recordId)}`
+                + "&revoked_at=is.null&limit=1"
+            );
+            shareLink = links.ok ? { ok: true, token: links.rows[0]?.token || null } : { ok: false, token: null };
+          }
+
           if (typeof page.derivedReads === "function") {
             const scopedList = (table, query = "") =>
               supabaseList(config, table, `?select=*&organization_id=eq.${encodeURIComponent(org.organizationId)}${query}&limit=500`);
@@ -268,6 +628,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
             summaryCard(page, parent, ui),
+            ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
+            ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
@@ -278,7 +640,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         heading: page.title,
         body: children.map((spec) => spec.title).join(" "),
         sections,
-        actions: [ui.link(page.path, `All ${page.title.toLowerCase()}`), ui.link("/business-builder/owner", "Owner Dashboard"), ui.link("/business-builder/dashboard", "Dashboard")]
+        actions: [
+          // Only when the record was actually read. Offering a download for a
+          // record this page could not find hands somebody a link that answers
+          // 404, and the page above it has already said the record is not
+          // there -- two answers to the same question, one of them wrong.
+          ...(page.download && parent ? [ui.link(page.download.href(recordId), page.download.label)] : []),
+          ui.link(page.path, `All ${page.title.toLowerCase()}`),
+          ui.link("/business-builder/owner", "Owner Dashboard"),
+          ui.link("/business-builder/dashboard", "Dashboard")
+        ]
       }));
     });
 
@@ -305,6 +676,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const requiredFields = spec.form.fields.filter((field) => field.required).map((field) => field.name);
       const missing = requiredFields.filter((name) => !String(req.body[name] ?? "").trim());
       if (missing.length) return respond(400, { ok: false, code: "missing_required", missing });
+
+      // "Either pick one, or type it out."
+      //
+      // An invoice line may name a catalogue version instead of carrying a
+      // description and a total. Those two fields cannot simply be `required`,
+      // because the browser would block the submission before the server could
+      // fill anything -- so the rule lives here, where it can be one or the
+      // other. Without a reference, every field in the list is required again.
+      const reference = spec.requireEither ? String(req.body[spec.requireEither.reference] || "") : "";
+      if (spec.requireEither && !isUuid(reference)) {
+        const untyped = spec.requireEither.fields.filter((name) => !String(req.body[name] ?? "").trim());
+        if (untyped.length) return respond(400, { ok: false, code: "missing_required", missing: untyped });
+      }
+
       const config = getConfig(deps);
       if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
       const org = await resolveOrganization(req, deps);
@@ -330,6 +715,44 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // and recomputing it would overwrite a discount. Nobody discounts a
       // recipe.
       const derived = typeof spec.derive === "function" ? spec.derive(submitted) : {};
+
+      // What a chosen catalogue version fills in.
+      //
+      // Scoped by organization as well as by id, for the same reason the parent
+      // check above is: the service key bypasses row level security, so a
+      // guessed id from another business would otherwise price this line from
+      // their catalogue.
+      //
+      // Only blanks are filled. dropBlanks has already removed anything the
+      // person left empty, so `submitted[key] === undefined` is exactly "they
+      // did not type this" -- and a typed value is a decision that stands.
+      if (spec.fillFrom && isUuid(String(req.body[spec.fillFrom.field] || ""))) {
+        const referenceId = String(req.body[spec.fillFrom.field]);
+        const found = await supabaseList(
+          config,
+          spec.fillFrom.table,
+          `?select=${encodeURIComponent(spec.fillFrom.select)}&id=eq.${encodeURIComponent(referenceId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+        );
+        // A read that failed is not a reference that does not exist. The first
+        // saves a line with no description against a not-null column; the
+        // second is somebody else's row. Both refuse, and say which.
+        if (!found.ok) return respond(502, { ok: false, code: "catalogue_unreadable" });
+        if (!found.rows[0]) return respond(403, { ok: false, code: "reference_not_yours" });
+        const values = spec.fillFrom.values(found.rows[0], submitted) || {};
+        for (const [key, value] of Object.entries(values)) {
+          if (submitted[key] === undefined && value !== null && value !== undefined) submitted[key] = value;
+        }
+      }
+
+      // Re-checked after filling, against the full list rather than the reduced
+      // one. A reference that produced no description would otherwise insert a
+      // null into a not-null column and fail as a database error the customer
+      // cannot act on.
+      if (spec.requireEither) {
+        const stillMissing = spec.requireEither.fields.filter((name) => submitted[name] === undefined || submitted[name] === null);
+        if (stillMissing.length) return respond(400, { ok: false, code: "missing_required", missing: stillMissing });
+      }
+
       const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
       return respond(saved?.ok === false ? 502 : 200, saved);
@@ -534,8 +957,73 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return respond(200, { ok: true, invoiceId });
   });
 
+  // Approving a source this business may research.
+  //
+  // The counterpart to the gate in routes/market-intelligence-routes.cjs: that
+  // file refuses to fetch a host no approved row covers, and this is how a row
+  // becomes approved after it was created.
+  //
+  // The owner acting, not an agent. lib/sonara-agent-authority.cjs governs what
+  // runs without a person, and a person pressing a button they can see is the
+  // person. This records a judgement only they can make -- whether a site is
+  // theirs, is public, or its owner has agreed -- which is exactly the judgement
+  // this product is not in a position to make for them.
+  app.post("/api/business/research-sources/:sourceId/approve", requireBusinessManager, async (req, res) => {
+    const sourceId = String(req.params.sourceId || "");
+    const back = "/business-builder/owner/research-sources";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      return res.redirect(303, payload.ok ? `${back}?approved=1` : `${back}?problem=${encodeURIComponent(payload.code || "not_approved")}`);
+    };
+
+    if (!isUuid(sourceId)) return respond(400, { ok: false, code: "source_required" });
+    const config = getConfig(deps);
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    // Scoped by organization as well as by id. The service key bypasses row
+    // level security, so without this a guessed id would approve a source
+    // belonging to another business -- and an approved row is what decides
+    // which sites this server will go and fetch.
+    const found = await supabaseList(config, "research_sources", `?select=id,source_url,permission_status&id=eq.${encodeURIComponent(sourceId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    if (!found.ok) return respond(503, { ok: false, code: "cannot_check_source" });
+    const source = found.rows[0];
+    // A failed read and an id that is not yours are different answers, and they
+    // are separated above rather than both arriving here as "not found".
+    if (!source) return respond(404, { ok: false, code: "source_not_yours" });
+    if (!source.source_url) return respond(409, { ok: false, code: "source_has_no_address" });
+
+    const saved = await supabasePatch(config, "research_sources", sourceId, {
+      permission_status: "approved",
+      updated_at: new Date().toISOString()
+    });
+    if (!saved.ok) return respond(502, { ok: false, code: "not_approved" });
+    return respond(200, { ok: true, approved: true, sourceId });
+  });
+
+  // The staff portal is what the Team plan sells.
+  //
+  // docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md says so plainly: "The staff
+  // portal, per-person schedules, time entries and assigned tasks already exist
+  // and are given away." Every page below opened for any signed-in customer,
+  // including free accounts, so Team at $79 charged for something nobody had to
+  // pay for. A plan whose only difference is a sentence on the pricing page is
+  // not a plan.
+  //
+  // requirePaidOrOwnerAccess rather than a hand-rolled check, because it already
+  // separates the three answers this needs kept apart: paid, not paid, and a
+  // billing read that did not answer. The third returns 503 with "this is on our
+  // side", never a paywall -- an employee shown "upgrade required" because
+  // Supabase was slow is being told their employer has not paid.
+  //
+  // Owners and admins pass through, as everywhere else.
+  const staffPortalAccess = typeof deps.requirePaidOrOwnerAccess === "function"
+    ? deps.requirePaidOrOwnerAccess("staff_portal")
+    : requireCustomer;
+
   STAFF_PAGES.forEach(([path, title, body]) => {
-    app.get(path, requireCustomer, async (req, res) => {
+    app.get(path, staffPortalAccess, async (req, res) => {
       const config = getConfig(deps);
       const org = await resolveOrganization(req, deps);
       const me = await resolveEmployee(config, org, req);
@@ -582,7 +1070,21 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
           recordsCard(page, rows, ui, loaded),
-          ...extra.map(({ side, rows: sideRows, loaded: sideLoaded }) => recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded)),
+          // An `also` block renders its list and, when it declares one, its own
+          // form directly under it.
+          //
+          // None of them carried a form, and vibration patterns were the cost:
+          // the block listed them, the page's one form made sound cues, and the
+          // only way to create a pattern was a direct POST. A list with no way
+          // to add to it beside a list with one is not a design, and the empty
+          // text had already been rewritten once to stop implying otherwise.
+          //
+          // formCard reads `form.action || api`, so a block needs both a form
+          // and an api. A block with neither renders exactly as before.
+          ...extra.flatMap(({ side, rows: sideRows, loaded: sideLoaded }) => [
+            recordsCard({ ...side, columns: side.columns }, sideRows, ui, sideLoaded),
+            ...(side.form && (side.form.action || side.api) ? [formCard(side, references, ui)] : [])
+          ]),
           ...(page.form ? [formCard(page, references, ui)] : [])
         ];
       return res.status(200).type("html").send(ui.layout({
@@ -633,6 +1135,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // Same check as the clock-out below. A manager legitimately clocks somebody
+    // else in -- the form on /business-builder/owner/time asks "Who is
+    // starting" -- so the employee is not forced to be the caller. It does have
+    // to be one of this business's people.
+    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_id", "business_locations"]]) {
+      const supplied = String(req.body[field] || "");
+      if (!supplied) continue;
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
+    }
     const payload = {
       organization_id: org.organizationId,
       employee_id: req.body.employee_id || null,
@@ -645,13 +1158,53 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     return res.status(200).json(await supabaseInsert(config, "employee_time_entries", payload));
   });
 
-  app.post("/api/business/time-entries/stop", requireCustomer, async (req, res) => {
+  // Clocking somebody out.
+  //
+  // This resolved no organization at all. It took an id from the body and
+  // patched employee_time_entries with the service key, which bypasses row
+  // level security -- so **any signed-in customer could close any time entry in
+  // any business**, stamping clock_out_at, status and a break length of their
+  // choosing. Every other write in this file checks ownership first, and the
+  // comment above the line handler says why in as many words: without it, a row
+  // can be written into another organization's record by posting its id.
+  //
+  // break_minutes is the part that reaches a number somebody is paid on.
+  // workedHours() subtracts it, so a negative break adds hours, and it feeds
+  // the labour cost on the daily sales page.
+  //
+  // The guard moves to requireBusinessManager to match the only page that
+  // offers this: /business-builder/owner/time renders it as a row action, and
+  // that page is manager-gated. Nothing else calls it.
+  app.post("/api/business/time-entries/stop", requireBusinessManager, async (req, res) => {
+    // A row action is an HTML form, so this answered a button press with raw
+    // JSON in the browser. Same respond shape as the line handlers.
+    const back = "/business-builder/owner/time";
+    const respond = (status, payload) => {
+      if (!acceptsHtml(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, back);
+      return res.redirect(303, `${back}?problem=${encodeURIComponent(payload.code || "not_saved")}`);
+    };
     const config = getConfig(deps);
-    if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required", service: "supabase" });
     const id = sanitizeText(req.body.id);
-    if (!id) return res.status(400).json({ ok: false, code: "validation_failed", message: "Missing time entry id." });
-    const payload = { clock_out_at: new Date().toISOString(), status: "submitted", break_minutes: Number(req.body.break_minutes || 0) || 0 };
-    return res.status(200).json(await supabasePatch(config, "employee_time_entries", id, payload));
+    // A uuid rather than any non-empty string: this goes into a PostgREST
+    // filter, and the id column is a uuid.
+    if (!isUuid(id)) return respond(400, { ok: false, code: "validation_failed", message: "Missing time entry id." });
+    const org = await resolveOrganization(req, deps);
+    if (!org.ok) return respond(403, org);
+
+    const owned = await supabaseList(config, "employee_time_entries", `?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+    // A read that failed is not an entry that belongs to somebody else.
+    if (!owned.ok) return respond(502, { ok: false, code: "entry_unreadable" });
+    if (!owned.rows.length) return respond(403, { ok: false, code: "entry_not_yours" });
+
+    const payload = {
+      clock_out_at: new Date().toISOString(),
+      status: "submitted",
+      break_minutes: Math.max(0, Number(req.body.break_minutes || 0) || 0)
+    };
+    const saved = await supabasePatch(config, "employee_time_entries", id, payload);
+    return respond(saved?.ok === false ? 502 : 200, saved);
   });
 
   app.post("/api/location/events", requireCustomer, async (req, res) => {
@@ -659,6 +1212,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
     const org = await resolveOrganization(req, deps);
     if (!org.ok) return res.status(403).json(org);
+    // An employee and an area supplied by the caller both become part of this
+    // row, and the staff portal lists check-ins by employee_id -- so an
+    // unchecked one writes a location record onto a colleague's page, or
+    // attaches it to another business's area. Absent is fine; wrong is not.
+    for (const [field, table] of [["employee_id", "business_employee_profiles"], ["location_zone_id", "location_zones"]]) {
+      const supplied = String(req.body[field] || "");
+      if (!supplied) continue;
+      const check = await belongsToOrganization(config, table, supplied, org.organizationId);
+      if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
+      if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
+    }
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
@@ -864,10 +1428,27 @@ async function staffSections(config, org, me, path, ui) {
   if (path === "/staff/location") {
     const listed = await supabaseList(config, "location_events", `?select=event_type,created_at,privacy_mode&organization_id=eq.${encodeURIComponent(org.organizationId)}&employee_id=eq.${employeeId}&order=created_at.desc&limit=50`);
     if (!listed.ok) return [ui.card("Not available right now", "We could not load your check-ins just now.")];
+    // Each check-in says how precisely it recorded where the person was.
+    //
+    // privacy_mode was in this query and rendered nowhere, so somebody reading
+    // their own location history was not told which of precise, approximate,
+    // masked or manual applied to them -- while the column is `not null default
+    // 'precise'` and nothing has ever set it to anything else. The most precise
+    // setting, chosen by the database, shown to nobody.
+    //
+    // The card also says what IS kept rather than only what does not happen.
+    // "Nothing tracks you in the background" was true and one-sided; a person
+    // looking at their own location record wants the other half of the sentence.
     return [
-      ui.card("Nothing runs on its own", "Check-ins happen when you choose to record one and your device allows it. Nothing here tracks you in the background."),
+      ui.card(
+        "What is recorded, and what is not",
+        "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
+      ),
       ...(listed.rows.length
-        ? listed.rows.map((row) => ui.card(String(row.event_type || "check-in").replaceAll("_", " "), `${when(row.created_at)}.`))
+        ? listed.rows.map((row) => ui.card(
+          String(row.event_type || "check-in").replaceAll("_", " "),
+          `${when(row.created_at)}. ${plainLanguage.locationPrecisionLabel(row.privacy_mode)}.`
+        ))
         : [ui.card("No check-ins", STAFF_EMPTY)])
     ];
   }
@@ -918,14 +1499,26 @@ function acceptsHtml(req) {
 async function loadReferences(config, organizationId, page) {
   const fields = [
     ...(page.form?.fields || []),
-    ...childrenOf(page).flatMap((spec) => spec.form?.fields || [])
+    ...childrenOf(page).flatMap((spec) => spec.form?.fields || []),
+    // `also` blocks carry forms now. None of their fields is a reference today,
+    // and that is exactly when a picker breaks quietly: the first one added
+    // would render "Nothing to choose yet" to a customer with records, which is
+    // the failure recorded above for the child forms and again for the artist
+    // pages. Both were found after they shipped.
+    ...(page.also || []).flatMap((side) => side.form?.fields || [])
   ].filter((field) => field.type === "reference");
 
   const loaded = {};
   await Promise.all([...new Set(fields.map((field) => field.from))].map(async (from) => {
     const source = REFERENCE_SOURCES[from];
     if (!source) return;
-    const result = await supabaseList(config, source.table, `?select=*&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
+    // "*" for eight of the nine sources. merchant_product_variants embeds its
+    // parent's name, because a version row on its own says "Large" and that
+    // labels nothing. A source that asks for an embed and does not get one
+    // comes back not-ok, and formField renders "We could not load these just
+    // now" rather than a picker full of adjectives.
+    const select = encodeURIComponent(source.select || "*");
+    const result = await supabaseList(config, source.table, `?select=${select}&organization_id=eq.${encodeURIComponent(organizationId)}&order=created_at.desc&limit=200`);
     loaded[from] = result.ok
       ? { ok: true, options: result.rows.map((row) => ({ id: row.id, label: String(source.label(row) || row.id) })) }
       : { ok: false, options: [] };
@@ -1045,6 +1638,78 @@ function safeCell(column, row) {
   }
 }
 
+// Sending this record to somebody who is not in the business.
+//
+// A form rather than a button with script behind it, matching every other write
+// on these pages -- this application is server-rendered and works without
+// JavaScript, and publishing a document is not the screen to make an exception
+// on.
+//
+// The link is printed as text as well as linked, because the whole point of it
+// is that somebody copies it into an email.
+function shareCard(page, recordId, shareLink, ui) {
+  const noun = page.shareNoun || "record";
+  const base = `/api/shared-links/${encodeURIComponent(page.shareableAs)}/${encodeURIComponent(recordId)}`;
+  const back = `<input type="hidden" name="back" value="${ui.escape(`${page.path}/${recordId}`)}">`;
+
+  if (!shareLink?.ok) {
+    return ui.card(
+      "Sending this to somebody",
+      `We could not check whether this ${noun} has been shared. Nothing has changed either way -- open this page again shortly.`
+    );
+  }
+  if (shareLink.token) {
+    const href = `/shared/${encodeURIComponent(shareLink.token)}`;
+    return `<article class="card"><h2>Sending this to somebody</h2>
+      <p>Anyone with this link can read this ${ui.escape(noun)}: <a href="${ui.escape(href)}">${ui.escape(href)}</a></p>
+      <p class="fine">${ui.escape(page.shareShows || "It shows this record only. It never shows anybody's contact details, your notes, or anything else in your business.")}</p>
+      <form method="post" action="${ui.escape(`${base}/revoke`)}">${back}<button type="submit">Stop sharing this</button></form>
+    </article>`;
+  }
+  return `<article class="card"><h2>Sending this to somebody</h2>
+    <p>Give this ${ui.escape(noun)} a link anyone can open, without them needing an account. You can stop sharing it at any time.</p>
+    <p class="fine">${ui.escape(page.shareShows || "It shows this record only. It never shows anybody's contact details, your notes, or anything else in your business.")}</p>
+    <form method="post" action="${ui.escape(`${base}/share`)}">${back}<button type="submit">Create a link</button></form>
+  </article>`;
+}
+
+// Giving a creator profile a public address, and taking it back.
+//
+// A text field rather than a generated slug, because this is the thing a creator
+// prints on a poster and says out loud. The field is pre-filled with the handle
+// they already have, so re-submitting the form unchanged is a no-op rather than
+// a way to lose the address by accident.
+//
+// published_at outlives the handle deliberately: a profile that was public and
+// is not any more gets told so, rather than shown a form that looks untouched.
+function publishCard(page, recordId, publishState, ui) {
+  const base = `/api/creator-profiles/${encodeURIComponent(recordId)}`;
+  const back = `<input type="hidden" name="back" value="${ui.escape(`${page.path}/${recordId}`)}">`;
+  if (!publishState?.ok) {
+    return ui.card("A public page for this profile", "We could not tell whether this profile has a public address. Nothing has changed -- open this page again shortly.");
+  }
+  if (publishState.handle) {
+    const href = `/creator/${encodeURIComponent(publishState.handle)}`;
+    return `<article class="card"><h2>A public page for this profile</h2>
+      <p>Anyone can open this profile at <a href="${ui.escape(href)}">${ui.escape(href)}</a>, and follow it.</p>
+      <p class="fine">It shows the artist name, the public description and how many people follow. It never shows the backstory, the voice identity, the genre blend, or any of the writing, visual or prompt rules.</p>
+      <form method="post" action="${ui.escape(`${base}/unpublish`)}">${back}<button type="submit">Make this private again</button></form>
+    </article>`;
+  }
+  const wasPublic = publishState.publishedBefore
+    ? "<p class=\"fine\">This profile has been public before and is private now.</p>"
+    : "";
+  return `<article class="card"><h2>A public page for this profile</h2>
+    <p>Give this profile an address anyone can open, without them needing an account.</p>
+    <p class="fine">It shows the artist name, the public description and how many people follow. It never shows the backstory, the voice identity, the genre blend, or any of the writing, visual or prompt rules.</p>
+    ${wasPublic}
+    <form method="post" action="${ui.escape(`${base}/publish`)}">${back}
+      <label>Address<input type="text" name="handle" minlength="3" maxlength="32" pattern="[a-z0-9][a-z0-9-]{1,30}[a-z0-9]" placeholder="your-name" required></label>
+      <button type="submit">Publish this profile</button>
+    </form>
+  </article>`;
+}
+
 // The parent record, said back to the person who opened it. Uses the same
 // column definitions as the list, so the detail page cannot describe a record
 // differently from the row that led to it.
@@ -1091,6 +1756,80 @@ function lineFormCard(spec, recordId, ui, references = {}) {
   return `<article class="card"><h2>${ui.escape(spec.form.legend)}</h2><form method="post" action="${ui.escape(spec.api)}">${parent}${fields}<button type="submit">Save</button></form></article>`;
 }
 
+// Starting points by trade.
+//
+// business_vertical_templates has had columns since the platform redesign and no
+// rows and no reader -- lib/sonara-subsystem-registry.cjs records it as
+// "reference and reporting rather than a workspace" with the note that it "would
+// fit the Business Builder setup flow if that gets built". Migration
+// 20260819090000 gives it eight rows and this gives it a page.
+//
+// **Nothing here switches anything on.** A template says "a business like yours
+// usually needs these" and links to the pages; the owner decides. Turning
+// features on from a dropdown labelled with somebody's trade is how a customer
+// ends up with pages they did not ask for and cannot find the way out of.
+function registerVerticalTemplates(app, deps, ui) {
+  const { plainRouteTitle } = require("../lib/sonara-route-registry.cjs");
+  const { getSupabaseServerConfig } = deps;
+  const requireCustomer = deps.requireCustomer || ((req, res, next) => next());
+
+  app.get("/business-builder/templates", requireCustomer, async (req, res) => {
+    const actions = [ui.link("/business-builder/dashboard", "Business Builder home"), ui.link("/business-builder/start", "Getting started")];
+    const config = getSupabaseServerConfig();
+    const page = (body, sections) => ui.layout({
+      title: "Starting points",
+      eyebrow: "Business Builder",
+      heading: "Starting points by trade",
+      body,
+      sections,
+      actions
+    });
+
+    if (!config.ok) {
+      return res.status(200).type("html").send(page(
+        "Your account database is not connected yet, so the starting points cannot load.",
+        []
+      ));
+    }
+
+    const listed = await supabaseList(config, "business_vertical_templates", "?select=label,plain_language_description,recommended_pages,recommended_apps&status=eq.active&order=label.asc&limit=50");
+    // A read that failed renders as a read that failed. "There are no starting
+    // points" is a claim about what this product offers, and during an outage it
+    // would be false.
+    if (!listed.ok) {
+      return res.status(200).type("html").send(page(
+        "We could not load the starting points just now. Nothing has changed -- try again shortly.",
+        []
+      ));
+    }
+    if (!listed.rows.length) {
+      return res.status(200).type("html").send(page(
+        "Starting points are being prepared and none are available in this workspace yet.",
+        []
+      ));
+    }
+
+    const cards = listed.rows.map((row) => {
+      const pages = Array.isArray(row.recommended_pages) ? row.recommended_pages : [];
+      const apps = Array.isArray(row.recommended_apps) ? row.recommended_apps : [];
+      const links = pages
+        .filter((path) => typeof path === "string" && path.startsWith("/"))
+        .map((path) => ui.link(path, plainRouteTitle(path) || path))
+        .join("");
+      return `<article class="card"><h2>${ui.escape(row.label || "Starting point")}</h2>
+        <p>${ui.escape(row.plain_language_description || "")}</p>
+        ${apps.length ? `<p class="fine">${ui.escape(`Usually needs: ${apps.join(", ")}.`)}</p>` : ""}
+        ${links ? `<div class="card-actions">${links}</div>` : ""}
+      </article>`;
+    });
+
+    return res.status(200).type("html").send(page(
+      "Pick the one closest to what you do. Each is a list of the pages a business like yours usually needs -- nothing is switched on, and you can ignore any of it.",
+      cards
+    ));
+  });
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
@@ -1124,7 +1863,16 @@ function formField(field, references, ui) {
     return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
   }
   if (field.type === "select") {
-    const options = (field.options || []).map((option) => `<option value="${ui.escape(option)}">${ui.escape(String(option).replaceAll("_", " "))}</option>`).join("");
+    // A string option is its own label, which is right for a status column
+    // whose values are already words. It is wrong for a boolean: "true" and
+    // "false" are not what somebody choosing whether a sound plays should be
+    // reading. An option may be { value, label } for that case, and every
+    // string list already written is unchanged.
+    const options = (field.options || []).map((option) => {
+      const value = option && typeof option === "object" ? option.value : option;
+      const shown = option && typeof option === "object" ? option.label : String(option).replaceAll("_", " ");
+      return `<option value="${ui.escape(value)}">${ui.escape(shown)}</option>`;
+    }).join("");
     return `<label>${label}<select name="${name}"${required}>${options}</select></label>${hint}`;
   }
   if (field.type === "textarea") {
@@ -1280,6 +2028,23 @@ async function listRecordPage(config, table, organizationId, order = "created_at
   // A failed count is left null rather than guessed at, and the caption says
   // only what the read itself established.
   return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
+}
+
+// Does this id name a row inside this organization?
+//
+// Three answers, not two, and callers have to keep them apart: yes, no, and
+// "the read did not happen". Treating the third as "no" refuses a legitimate
+// request during an outage; treating it as "yes" is a cross-tenant write.
+//
+// Used wherever a request supplies an id that becomes part of a row -- an
+// employee to attribute hours to, an area to attach a check-in to. The service
+// key bypasses row level security, so a supplied id is checked or it is trusted,
+// and there is nothing in between.
+async function belongsToOrganization(config, table, id, organizationId) {
+  if (!isUuid(String(id || ""))) return { ok: true, belongs: false };
+  const found = await supabaseList(config, table, `?select=id&id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1`);
+  if (!found.ok) return { ok: false, belongs: false };
+  return { ok: true, belongs: found.rows.length > 0 };
 }
 
 async function supabaseList(config, table, query) {

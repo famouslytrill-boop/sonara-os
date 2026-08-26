@@ -76,6 +76,19 @@ $$;
 
 do $$
 begin
+  if to_regclass('public.accounting_exports') is null then
+    raise notice 'skipping accounting_exports: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.accounting_exports enable row level security';
+  execute 'drop policy if exists "accounting_exports_select_member" on public.accounting_exports';
+  execute 'create policy "accounting_exports_select_member" on public.accounting_exports for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
   if to_regclass('public.business_service_catalog') is null then
     raise notice 'skipping business_service_catalog: table not present';
     return;
@@ -84,6 +97,19 @@ begin
   execute 'alter table public.business_service_catalog enable row level security';
   execute 'drop policy if exists "business_service_catalog_select_member" on public.business_service_catalog';
   execute 'create policy "business_service_catalog_select_member" on public.business_service_catalog for select to authenticated using (public.is_org_member(organization_id))';
+end
+$$;
+
+do $$
+begin
+  if to_regclass('public.business_bookings') is null then
+    raise notice 'skipping business_bookings: table not present';
+    return;
+  end if;
+
+  execute 'alter table public.business_bookings enable row level security';
+  execute 'drop policy if exists "business_bookings_select_member" on public.business_bookings';
+  execute 'create policy "business_bookings_select_member" on public.business_bookings for select to authenticated using (public.is_org_member(organization_id))';
 end
 $$;
 

@@ -12,7 +12,10 @@ const {
   generationStatus,
   generationStatusLabel,
   generationCapabilityLabel,
-  generationFailureText
+  generationFailureText,
+  voiceSubjectLabel,
+  voiceScopeLabel,
+  voiceEvidenceLabel
 } = require("../lib/sonara-plain-language.cjs");
 
 const JOB_TABLE = "creator_generation_jobs";
@@ -21,6 +24,74 @@ const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
 const VOICE_CAPABILITIES = new Set(["speech_to_speech", "voice_clone", "singing_voice", "music_voice_profile", "talking_avatar"]);
+
+// Which permission covers which capability.
+//
+// `consent_scope` was selected on every voice job and never compared to
+// anything. So a permission granted for text-to-speech authorised a voice
+// clone: the column was read, which is what made it look checked, and the one
+// field that says *what the person agreed to* decided nothing. AGENTS.md is
+// explicit -- "Enforce provenance, consent, and anti-clone safety" -- and a
+// consent record whose scope is ignored is a record of the wrong agreement.
+//
+// `all_voice_generation` covers everything, because that is what it says.
+// text_to_speech is a scope somebody can grant and is not a gated capability:
+// synthesising a voice that is nobody's needs no permission from anyone, so it
+// never reaches this map.
+//
+// music_voice_profile and talking_avatar have no scope of their own in
+// migration 20260723080000's check constraint, so only the blanket permission
+// covers them. That is deliberate and stated rather than quietly widened: the
+// alternative is deciding on somebody's behalf that "singing voice" included
+// their face.
+const CONSENT_SCOPE_FOR_CAPABILITY = Object.freeze({
+  speech_to_speech: ["speech_to_speech"],
+  voice_clone: ["voice_clone"],
+  singing_voice: ["singing_voice"],
+  music_voice_profile: [],
+  talking_avatar: []
+});
+const BLANKET_CONSENT_SCOPE = "all_voice_generation";
+
+// What the create form offers, in the order it offers it.
+//
+// This list is the intent -- which capabilities belong on this form -- and it
+// is filtered by what a provider can actually do before anything is rendered.
+// The hand-written option list it replaces offered `voice_clone` and
+// `singing_voice`, and **no provider in
+// lib/creator-generation-provider-registry.cjs declares either**. So the two
+// most sensitive things on the menu were the two that could not run: a customer
+// picked "Voice copy", was told voice work needs a permission on file, went and
+// recorded one naming a real person, came back, pressed the button and got
+// capability_not_supported.
+//
+// Both come back on their own the moment a provider declares them, which is the
+// property a hand-written list cannot have.
+//
+// `reference_analysis` is deliberately absent, and that is an open question
+// rather than an oversight -- see the note on the reference-analysis redirect.
+const FORM_CAPABILITY_ORDER = Object.freeze([
+  "text_to_speech",
+  "sound_effects",
+  "text_to_music",
+  "music_plan",
+  "text_to_video",
+  "image_to_video",
+  "video_extend",
+  "speech_to_speech",
+  "voice_clone",
+  "singing_voice",
+  "music_voice_profile",
+  "talking_avatar"
+]);
+
+function offeredCapabilities(env = process.env) {
+  const supported = new Set();
+  for (const provider of getCreatorGenerationCatalog(env)) {
+    for (const capability of provider.capabilities || []) supported.add(capability);
+  }
+  return FORM_CAPABILITY_ORDER.filter((capability) => supported.has(capability));
+}
 const MAX_PROMPT_LENGTH = 5000;
 const IMITATION_PATTERNS = [
   /\bin the style of\b/i,
@@ -262,7 +333,18 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       structural_features: {},
       originality_constraints: { ...constraints, create_original_output_only: true, identity_imitation_prohibited: true },
       prohibited_identity_targets: parseArray(req.body.prohibited_identity_targets || req.body.prohibitedIdentityTargets, []),
-      status: "queued"
+      // "queued" was the default and nothing consumes this table: grep finds
+      // the constant, this insert, and no runner, no status transition, and no
+      // reader. Every row written here claimed work was waiting to be picked
+      // up, and none ever was -- the same shape as accounting_exports, which
+      // reported "whether each one finished" about a file nothing produced, and
+      // integration_jobs, whose rows claimed a worker that does not exist.
+      //
+      // review_required is in the schema's check constraint and is true twice
+      // over. Nothing automated will touch it, and analysing reference material
+      // is exactly the kind of thing AGENTS.md puts in front of a person:
+      // provenance, consent and anti-clone safety are judgements, not jobs.
+      status: "review_required"
     });
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, analysis: created.rows[0], code: created.code });
   });
@@ -660,6 +742,29 @@ async function evaluatePolicy({ config, context, capability, prompt, rightsAttes
     const consent = await rest(config, CONSENT_TABLE, `select=id,consent_attested,consent_scope,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&id=eq.${encodeURIComponent(voiceConsentId)}&limit=1`);
     const row = consent.rows[0];
     if (!consent.ok || !row || !row.consent_attested || row.revoked_at || (row.expires_at && Date.parse(row.expires_at) <= Date.now())) return { ok: false, httpStatus: 400, code: "active_voice_consent_required", reasons };
+    // The permission is live. Whether it is a permission for *this* is the
+    // question the scope column exists to answer.
+    //
+    // A capability with no entry here is refused rather than allowed through on
+    // the blanket scope alone -- adding one to VOICE_CAPABILITIES without
+    // deciding what covers it must fail closed, and
+    // tests/creator-generation-platform.test.js refuses the missing entry so it
+    // fails at the build instead.
+    const accepted = CONSENT_SCOPE_FOR_CAPABILITY[capability];
+    if (!accepted) return { ok: false, httpStatus: 400, code: "active_voice_consent_required", reasons };
+    const scope = String(row.consent_scope || "");
+    if (scope !== BLANKET_CONSENT_SCOPE && !accepted.includes(scope)) {
+      // Named separately from "no permission on file", because the two need
+      // different things from the person reading it. One is "go and record a
+      // permission"; this one is "the permission you picked is for something
+      // else", and telling them the first would have them create a duplicate.
+      return {
+        ok: false,
+        httpStatus: 400,
+        code: "voice_consent_scope_mismatch",
+        reasons: [`The permission you chose covers ${scope.replaceAll("_", " ")}, and this needs ${(accepted.length ? accepted : [BLANKET_CONSENT_SCOPE]).map((entry) => entry.replaceAll("_", " ")).join(" or ")}.`]
+      };
+    }
   }
   return { ok: true, status: "approved", reasons };
 }
@@ -785,7 +890,13 @@ function generationForm(providers, escape, consents = []) {
       `<label><input type="checkbox" name="consent_attested" value="true"> The permission above covers this request.</label>`
     : `<p>Voice work needs a permission on file first. <a href="/creator-studio/voice-permissions">Record one</a> and it will appear here.</p>`;
 
-  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability"><option value="text_to_speech">Text to speech</option><option value="sound_effects">Sound effects</option><option value="text_to_music">Music</option><option value="music_plan">Music plan</option><option value="text_to_video">Text to video</option><option value="image_to_video">Image to video</option><option value="video_extend">Extend video</option><option value="speech_to_speech">Voice conversion (needs permission)</option><option value="voice_clone">Voice copy (needs permission)</option><option value="singing_voice">Singing voice (needs permission)</option><option value="music_voice_profile">Voice profile (needs permission)</option><option value="talking_avatar">Talking presenter (needs permission)</option></select></label>${voiceBlock}<label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
+  // Labelled from the same map the job pages read, so a capability is called
+  // the same thing on the form that created it and on the record it produced.
+  const capabilityOptions = offeredCapabilities()
+    .map((capability) => `<option value="${escape(capability)}">${escape(generationCapabilityLabel(capability))}${VOICE_CAPABILITIES.has(capability) ? " (needs permission)" : ""}</option>`)
+    .join("");
+
+  return `<article class="card"><h2>Create generation job</h2><form method="post" action="/api/creator/generation/jobs"><label>Title<input name="title" maxlength="200"></label><label>Capability<select name="capability">${capabilityOptions}</select></label>${voiceBlock}<label>Provider<select name="provider_key"><option value="auto">Automatic configured provider</option>${options}</select></label><label>Prompt<textarea name="prompt" rows="7" maxlength="5000" required></textarea></label><label>Negative prompt<textarea name="negative_prompt" rows="3" maxlength="2000"></textarea></label><label>Provider parameters (JSON)<textarea name="parameters" rows="4" placeholder='{"duration_seconds":8}'></textarea></label><label><input type="checkbox" name="rights_attested" value="true" required> I own or am authorized to use every prompt, reference, likeness, voice, and source asset.</label><button type="submit">Create and dispatch job</button></form></article>`;
 }
 
 function jobPath(jobId) { return `/creator-studio/generation/jobs/${encodeURIComponent(jobId)}`; }
@@ -1018,14 +1129,16 @@ function voicePermissionForm(escape) {
     `<button type="submit">Record permission</button></form></article>`;
 }
 
-function voiceSubjectLabel(value) {
-  return { self: "My own voice", authorized_person: "A person who gave permission", licensed_voice: "A licensed voice", synthetic_voice: "A synthetic voice" }[String(value || "")] || "Not recorded";
-}
 
-function voiceScopeLabel(value) {
-  return { all_voice_generation: "All voice work", text_to_speech: "Spoken audio", speech_to_speech: "Voice conversion", voice_clone: "Voice copying", singing_voice: "Singing" }[String(value || "")] || "Not recorded";
-}
 
-function voiceEvidenceLabel(value) {
-  return { signed_release: "Signed release", license_record: "Licence record", provider_voice_id: "Provider voice id", self_attestation: "Own attestation", other: "Other" }[String(value || "")] || "Not recorded";
-}
+
+// Exported for the tests, on the precedent set by RESOURCE_MAP in
+// routes/sonara-last9-routes.cjs. The pair is what makes the scope check
+// checkable: a capability added to VOICE_CAPABILITIES with no entry in the map
+// is refused at runtime and fails the build, rather than quietly relying on
+// somebody holding a blanket permission.
+module.exports.VOICE_CAPABILITIES = VOICE_CAPABILITIES;
+module.exports.CONSENT_SCOPE_FOR_CAPABILITY = CONSENT_SCOPE_FOR_CAPABILITY;
+module.exports.BLANKET_CONSENT_SCOPE = BLANKET_CONSENT_SCOPE;
+module.exports.FORM_CAPABILITY_ORDER = FORM_CAPABILITY_ORDER;
+module.exports.offeredCapabilities = offeredCapabilities;

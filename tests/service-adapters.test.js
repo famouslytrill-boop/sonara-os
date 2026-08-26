@@ -8,6 +8,7 @@ const crawl = require("../lib/sonara-crawl4ai-adapter.cjs");
 const ollama = require("../lib/sonara-ollama-adapter.cjs");
 const dify = require("../lib/sonara-dify-adapter.cjs");
 const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
+const whisper = require("../lib/sonara-whisper-adapter.cjs");
 
 const saved = {};
 function setEnv(values) {
@@ -24,7 +25,8 @@ const ADAPTERS = [
   { name: "Open WebUI", keys: openWebUi.ENV_KEYS, readiness: (o) => openWebUi.getOpenWebUiReadiness(o), extras: { model: "llama3", key: "secret-key-value" } },
   { name: "Crawl4AI", keys: crawl.ENV_KEYS, readiness: (o) => crawl.getCrawl4aiReadiness(o), extras: {} },
   { name: "Dify", keys: dify.ENV_KEYS, readiness: (o) => dify.getDifyReadiness(o), extras: { key: "secret-key-value" }, secrets: ["key"] },
-  { name: "RAGFlow", keys: ragflow.ENV_KEYS, readiness: (o) => ragflow.getRagflowReadiness(o), extras: { dataset: "ds-1", key: "secret-key-value" }, secrets: ["key"] }
+  { name: "RAGFlow", keys: ragflow.ENV_KEYS, readiness: (o) => ragflow.getRagflowReadiness(o), extras: { dataset: "ds-1", key: "secret-key-value" }, secrets: ["key"] },
+  { name: "Whisper", keys: whisper.ENV_KEYS, readiness: (o) => whisper.getWhisperReadiness(o), extras: {} }
 ];
 
 describe("every external service adapter", () => {
@@ -36,8 +38,8 @@ describe("every external service adapter", () => {
     for (const key of Object.keys(saved)) delete saved[key];
   });
 
-  it("covers all four, so a new one cannot skip these rules", () => {
-    assert.equal(ADAPTERS.length, 6, "an adapter was added without being added here");
+  it("covers every adapter, so a new one cannot skip these rules", () => {
+    assert.equal(ADAPTERS.length, 7, "an adapter was added without being added here");
   });
 
   for (const adapter of ADAPTERS) {

@@ -48,8 +48,68 @@ function occurrences(source, value) {
 }
 
 describe("Supabase active contract reconciliation", () => {
+  // The guard that would have caught four live tables sitting on the retired
+  // list, where they had stopped being true and nothing was rechecking.
+  //
+  // Being listed as retired has a cost that reads as harmless: verify-production-supabase.mjs
+  // drops the name from `expectedTables` and verifies it with `required: false`,
+  // so production is not required to have it -- and the run emits a warning
+  // saying the table "should be reviewed for archival". employee_announcements,
+  // employee_tasks, quotes and reviews were all on it while /staff/announcements,
+  // /staff/tasks, /business-builder/owner/quotes and the customer-journey funnel
+  // read them.
+  it("lists no table that live runtime code still queries", () => {
+    // The four shapes scripts/verify-supabase-contract.mjs treats as a runtime
+    // table reference, plus the two helper signatures used across routes/.
+    // Comments are stripped first, because a table named in a comment is a table
+    // discussed and not one queried -- the same rule report-orphan-tables.mjs uses.
+    const INVENTORIES = new Set([
+      "sonara-database-contract.cjs",
+      "sonara-tenant-scoped-tables.cjs",
+      "sonara-member-read-policies.cjs",
+      "sonara-orphan-tables.cjs",
+      "sonara-database-retirement-contract.cjs"
+    ]);
+    const strip = (text) => text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+
+    let source = strip(fs.readFileSync(path.join(root, "server.js"), "utf8"));
+    for (const directory of ["routes", "lib"]) {
+      for (const name of fs.readdirSync(path.join(root, directory))) {
+        if (!name.endsWith(".cjs") || INVENTORIES.has(name)) continue;
+        source += "\n" + strip(fs.readFileSync(path.join(root, directory, name), "utf8"));
+      }
+    }
+
+    const referenced = new Set();
+    for (const pattern of [
+      /\/rest\/v1\/([a-z0-9_]+)/gi,
+      /safeListTable\(\s*["']([a-z0-9_]+)["']/gi,
+      /\btable\s*:\s*["']([a-z0-9_]+)["']/gi,
+      /\brest\(\s*["']([a-z0-9_]+)["']/gi,
+      /supabaseList\(\s*\w+\s*,\s*["']([a-z0-9_]+)["']/gi,
+      /supabase(?:Insert|Patch|Count)\(\s*\w+\s*,\s*["']([a-z0-9_]+)["']/gi
+    ]) {
+      for (const match of source.matchAll(pattern)) referenced.add(match[1]);
+    }
+
+    // Without this the check passes by measuring nothing the day a helper is
+    // renamed and every pattern stops matching.
+    assert.ok(referenced.size >= 50, `only ${referenced.size} runtime table references found; this check has gone blind`);
+    assert.ok(RETIRED_DATABASE_TABLES.length >= 10, "the retirement list has emptied; this check is asserting about nothing");
+
+    const stillQueried = RETIRED_DATABASE_TABLES.filter((table) => referenced.has(table));
+    assert.deepEqual(
+      stillQueried,
+      [],
+      `these are listed as retired, so production is not required to have them and the verifier advises archiving them -- while live code queries them:\n  ${stillQueried.join("\n  ")}`
+    );
+  });
+
   it("keeps historical migration versions while excluding only reviewed retired identifiers from required presence", () => {
-    assert.equal(RETIRED_DATABASE_TABLES.length, 27);
+    // 27 until 18 August 2026, when employee_announcements, employee_tasks,
+    // quotes and reviews came off it -- all four were queried by live code while
+    // listed as retired, which made production not required to have them.
+    assert.equal(RETIRED_DATABASE_TABLES.length, 23);
     assert.equal(new Set(RETIRED_DATABASE_TABLES).size, RETIRED_DATABASE_TABLES.length);
     for (const table of RETIRED_DATABASE_TABLES) assert.ok(!DATABASE_TABLES.includes(table), `${table} is still canonical`);
     assert.match(verifier, /RETIRED_DATABASE_TABLES/);

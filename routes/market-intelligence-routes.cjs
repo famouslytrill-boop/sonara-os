@@ -149,6 +149,17 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     const target = safeHttpsUrl(req.body.source_url || req.body.sourceUrl);
     if (!target) return res.status(400).json({ ok: false, code: "https_source_url_required" });
 
+    // The permission gate, consulted before anything is fetched.
+    //
+    // research_sources has carried `permission_status` since the platform
+    // redesign and nothing read it. A column named for a decision, defaulting to
+    // 'needs_review', with no code anywhere consulting it, is a gate somebody
+    // designed and nobody built -- and this endpoint was the thing it was for.
+    const permission = await sourcePermission(getConfig(deps), context, target);
+    if (permission.decision !== "approved") {
+      return res.status(200).json({ ok: true, fetched: false, code: permission.code, detail: permission.detail });
+    }
+
     const readiness = crawl4ai.getCrawl4aiReadiness();
     if (readiness.status !== "configured") {
       // Not an error. The page works without this and always did.
@@ -351,14 +362,44 @@ module.exports = function registerMarketIntelligenceRoutes(app, deps = {}) {
     return res.status(created.ok ? 201 : 502).json({ ok: created.ok, review: created.rows[0], code: created.code });
   });
 
-  registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui);
-  registerWorkspacePage(app, "/business-builder/market-intelligence", requireWorkspaceAccess("business_builder"), "Business Builder", "business_builder", ui);
-  registerWorkspacePage(app, "/creator-studio/market-intelligence", requireWorkspaceAccess("creator_studio"), "Creator Studio", "creator_studio", ui);
-  registerWorkspacePage(app, "/growth-studio/market-intelligence", requireWorkspaceAccess("growth_studio"), "Growth Studio", "growth_studio", ui);
+  registerWorkspacePage(app, "/market-intelligence", requireCustomer, "SONARA Industries", null, ui, deps);
+  registerWorkspacePage(app, "/business-builder/market-intelligence", requireWorkspaceAccess("business_builder"), "Business Builder", "business_builder", ui, deps);
+  registerWorkspacePage(app, "/creator-studio/market-intelligence", requireWorkspaceAccess("creator_studio"), "Creator Studio", "creator_studio", ui, deps);
+  registerWorkspacePage(app, "/growth-studio/market-intelligence", requireWorkspaceAccess("growth_studio"), "Growth Studio", "growth_studio", ui, deps);
 };
 
-function registerWorkspacePage(app, path, access, label, studioKey, ui) {
-  app.get(path, access, (req, res) => {
+// What the customer has actually recorded, alongside the guidance.
+//
+// This page said "The workspace starts empty until organization-scoped evidence
+// is recorded", which tells somebody that recording evidence changes what they
+// see. It did not: the handler was synchronous, read nothing, and rendered the
+// same static framework cards whether the organization had one competitor
+// recorded or four hundred. Four endpoints accept POSTs -- segments,
+// competitors, signals, opportunities -- and no page displayed any of them, so a
+// record written through the API was invisible from that moment on.
+//
+// Counts rather than rows: this is a summary page beside guidance, and the API
+// already lists the rows themselves. What matters is that the number is real.
+const RECORDED_EVIDENCE = Object.freeze([
+  ["segments", "Customer segments"],
+  ["competitors", "Competitors"],
+  ["signals", "Market signals"],
+  ["opportunities", "Opportunities"]
+]);
+
+async function recordedEvidence(config, organizationId) {
+  return Promise.all(RECORDED_EVIDENCE.map(async ([key, label]) => {
+    const table = TABLES[key];
+    const listed = await rest(config, table, `select=id&organization_id=eq.${encodeURIComponent(organizationId)}&limit=1000`).catch(() => undefined);
+    // `listed.ok ? rows.length : 0` would report a failed read as "none
+    // recorded", on a page whose whole subject is not turning estimates into
+    // facts. null travels instead, and the card says which it is.
+    return { label, count: listed?.ok && Array.isArray(listed.rows) ? listed.rows.length : null };
+  }));
+}
+
+function registerWorkspacePage(app, path, access, label, studioKey, ui, deps = {}) {
+  app.get(path, access, async (req, res) => {
     const framework = getMarketIntelligenceFramework();
     const market = studioKey ? framework.markets[studioKey] : null;
     const sections = market
@@ -372,8 +413,38 @@ function registerWorkspacePage(app, path, access, label, studioKey, ui) {
           ui.card("Portfolio thesis", framework.portfolioThesis.join(" ")),
           ui.card("Pricing position", framework.pricingPosition.conclusion),
           ui.card("Evidence-led decisions", "Score demand, willingness to pay, strategic fit, underserved need, differentiation, channel access, delivery complexity, and compliance risk before work advances."),
-          ui.card("No invented market data", "The workspace starts empty until organization-scoped evidence is recorded. Static research guidance is labeled by source and date.")
+          ui.card("No invented market data", "Everything below the guidance is your own recorded evidence, and nothing else. Static research guidance is labeled by source and date.")
         ];
+
+    // The customer's own evidence, appended to whichever set of guidance cards
+    // was chosen above.
+    const config = getConfig(deps);
+    const context = await resolveContext(req, deps).catch(() => ({ ok: false }));
+    if (!config.ok || !context.ok) {
+      sections.push(ui.card(
+        "Your recorded evidence",
+        "We could not read your workspace just now, so this does not say how much evidence you have recorded. Nothing has changed."
+      ));
+    } else {
+      const counted = await recordedEvidence(config, context.organizationId);
+      const unreadable = counted.filter((entry) => entry.count === null).map((entry) => entry.label);
+      const readable = counted.filter((entry) => entry.count !== null);
+      sections.push(ui.card(
+        "Your recorded evidence",
+        readable.length
+          ? readable.map((entry) => `${entry.label}: ${entry.count}`).join(". ") + "."
+          : "Nothing could be read just now."
+      ));
+      // Named rather than folded into a zero. A record type that could not be
+      // read is not a record type with nothing in it.
+      if (unreadable.length) {
+        sections.push(ui.card(
+          "Not counted just now",
+          `${unreadable.join(", ")} could not be read, so they are left out of the figures above rather than counted as none.`
+        ));
+      }
+    }
+
     return res.status(200).type("html").send(ui.layout({
       title: `${label} Market Intelligence`,
       eyebrow: "Evidence-led market strategy",
@@ -443,6 +514,91 @@ async function recordEvent(config, context, eventType, details) {
   return insert(config, TABLES.events, { organization_id: context.organizationId, user_id: context.userId, event_type: eventType, details: parseObject(details, {}) });
 }
 
+// Whether this business has established it may research the host of a URL.
+//
+// Three outcomes, and collapsing any two of them would be the defect this
+// codebase keeps producing -- a signal that reports success without being true:
+//
+//   approved     A research_sources row for this organization names this host
+//                and its permission_status is 'approved'.
+//   not_approved The read succeeded and no such row exists. Something the
+//                customer fixes on a page, by recording the source and marking
+//                it approved.
+//   unreadable   Nobody knows. Supabase is not configured, the read failed, or
+//                the answer could have been past the row limit. It refuses like
+//                the other two -- fetching on an unknown answer is the same as
+//                having no gate -- but it says the check failed rather than
+//                telling somebody to approve a source they already approved.
+//
+// Host, not URL. An approved row covers the whole site, because a customer who
+// has established they may look at a competitor's pricing page has established
+// the same about its features page, and asking them to record every path would
+// mean nobody uses this. Exact host though: blog.example.com is not
+// example.com, and github.io and vercel.app hand subdomains out per user, so
+// treating a parent domain as covering its children would approve strangers.
+const APPROVED_SOURCE_LIMIT = 1000;
+
+async function sourcePermission(config, context, target) {
+  const host = hostOf(target);
+  if (!host) return { decision: "unreadable", code: "source_host_unreadable", detail: "We could not read a site address out of that URL, so nothing was fetched." };
+  if (!config?.ok) {
+    return {
+      decision: "unreadable",
+      code: "source_permission_unreadable",
+      detail: `Your account database is not connected, so we could not check whether ${host} is a source you have approved. Nothing was fetched. Paste the text yourself instead.`
+    };
+  }
+
+  // Narrowed to approved rows in the query and asserted again below. The filter
+  // is how few rows travel; the comparison is the rule, and it lives here where
+  // a test can hand this function a 'needs_review' row and watch it refuse.
+  const listed = await rest(config, "research_sources", `select=source_url,permission_status&organization_id=eq.${encodeURIComponent(context.organizationId)}&permission_status=eq.approved&limit=${APPROVED_SOURCE_LIMIT}`);
+  if (!listed.ok) {
+    return {
+      decision: "unreadable",
+      code: "source_permission_unreadable",
+      detail: `We could not check whether ${host} is a source you have approved, so nothing was fetched. This does not mean you have not approved it. Try again, or paste the text yourself instead.`
+    };
+  }
+
+  if (listed.rows.some((row) => String(row?.permission_status || "") === "approved" && hostOf(row?.source_url) === host)) {
+    return { decision: "approved", code: "source_approved", detail: `${host} is a source you have approved.` };
+  }
+
+  // A full page of approved rows means the match could have been on the next
+  // one. "Not approved" would be a guess, and the whole point of this function
+  // is that it does not guess.
+  if (listed.rows.length >= APPROVED_SOURCE_LIMIT) {
+    return {
+      decision: "unreadable",
+      code: "source_permission_list_truncated",
+      detail: `You have more approved sources than we read in one go, so we could not tell whether ${host} is among them. Nothing was fetched.`
+    };
+  }
+
+  return {
+    decision: "not_approved",
+    code: "source_not_approved",
+    detail: `You have not approved ${host} as a source you may research, so nothing was fetched. Record it under "Sources you may research" and mark it approved once you have established you may look at it. Until then, paste the text yourself instead.`
+  };
+}
+
+// Accepts http as well as https, because a stored row identifies a site rather
+// than naming the request this server will make -- the URL being fetched is
+// already https, checked by safeHttpsUrl before this is called.
+function hostOf(value) {
+  const text = clean(value, 2000);
+  if (!text) return null;
+  try {
+    const url = new URL(text);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    const host = url.hostname.toLowerCase().replace(/\.$/, "");
+    return host || null;
+  } catch {
+    return null;
+  }
+}
+
 function scoreFields(input = {}) {
   return {
     demandEvidence: boundedInteger(read(input, "demandEvidence", "demand_evidence"), 0, 25),
@@ -488,3 +644,11 @@ function boundedInteger(value, min, max) { const numeric = Number(value); if (!N
 function read(input, camel, snake) { if (input[camel] !== undefined) return input[camel]; if (snake && input[snake] !== undefined) return input[snake]; return 0; }
 function compact(value) { return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)); }
 function clamp(value, min, max, fallback) { const numeric = Number(value); return Number.isFinite(numeric) ? Math.max(min, Math.min(max, Math.round(numeric))) : fallback; }
+
+// Exported so the permission rule can be tested directly rather than only
+// through the endpoint. Testing it only through the endpoint would mean the
+// only reachable branch in a test run without Supabase is "not configured",
+// and the distinction between needs_review, declined and a failed read -- the
+// entire reason this function exists -- would go unchecked.
+module.exports.sourcePermission = sourcePermission;
+module.exports.hostOf = hostOf;

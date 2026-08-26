@@ -381,28 +381,15 @@ function registerRouteRegistryRoutes(app, deps) {
   // them that could drift.
   app.get("/business-builder/vehicles", requireWorkspaceAccess("business_builder"), (req, res) => res.redirect(302, "/business-builder/owner/vehicles"));
 
-  app.get("/business-builder/routes", requireWorkspaceAccess("business_builder"), async (req, res) => {
-    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
-    const listed = organization.ok
-      ? await safeListTable("location_zones", `?select=id,name,zone_type,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
-      : { ok: false, rows: [] };
-    const sections = listed.ok && listed.rows.length
-      ? listed.rows.map((row) => brandCard(row.name || "Unnamed area", `${String(row.zone_type || "area").replaceAll("_", " ")} · ${String(row.status || "active").replaceAll("_", " ")}`))
-      // The heading used to say "No areas yet" whichever branch ran, so a
-      // failed read announced an empty list above a body explaining that it
-      // could not be read. A customer skims headings.
-      : [listed.ok
-        ? brandCard("No areas yet", "Add the areas you cover and they will appear here. Routes are planned from your locations and the areas you work in.")
-        : brandCard("Areas not available just now", "We could not load your areas just now. Try again shortly.")];
-    return sendPage(res, {
-      title: "Routes",
-      eyebrow: "Workspace module",
-      heading: "Routes and areas you cover",
-      body: "The places you deliver to or work in. Nothing is dispatched automatically.",
-      sections,
-      actions: [linkAction("/business-builder/owner/locations", "Locations"), linkAction("/business-builder/owner/vehicles", "Vehicles"), linkAction("/business-builder/dashboard", "Dashboard")]
-    });
-  });
+  // Was a hand-rolled list of location_zones whose empty state read "Add the
+  // areas you cover and they will appear here" -- above no form, on a page that
+  // had never had one. A page inviting an action it does not offer is the same
+  // defect as a page claiming a capability it does not have.
+  //
+  // It goes to the owner record page, which lists the same rows and can add
+  // one, on the precedent set for vehicles directly above: one page per kind of
+  // record rather than a second view of it that can drift.
+  app.get("/business-builder/routes", requireWorkspaceAccess("business_builder"), (req, res) => res.redirect(302, "/business-builder/owner/areas"));
 
   app.get("/creator-studio/rights", requireWorkspaceAccess("creator_studio"), async (req, res) => {
     const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
@@ -411,12 +398,21 @@ function registerRouteRegistryRoutes(app, deps) {
       ? await safeListTable("creator_voice_consents", `?select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=100`)
       : { ok: false, rows: [] };
     const sections = listed.ok && listed.rows.length
-      ? listed.rows.map((row) => brandCard(row.subject_name || "Consent record", [
-        `${consentState(row)}.`,
-        `Covers ${String(row.consent_scope || "voice work").replaceAll("_", " ")}.`,
-        row.evidence_type ? `Evidence: ${String(row.evidence_type).replaceAll("_", " ")}.` : "",
-        row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
-      ].filter(Boolean).join(" ")))
+      ? listed.rows.map((row) => brandCard(
+        // subject_name is nullable and subject_type is not null, so the heading
+        // fell back to "Consent record" -- discarding the fact that is always
+        // there in favour of the one that might not be.
+        row.subject_name || plainLanguage.voiceSubjectLabel(row.subject_type),
+        [
+          `${consentState(row)}.`,
+          // Was consent_scope with its underscores swapped for spaces, so the
+          // same permission read "Voice copying" on /creator-studio/voice-permissions
+          // and "voice clone" here. One vocabulary now, in
+          // lib/sonara-plain-language.cjs.
+          `Covers ${plainLanguage.voiceScopeLabel(row.consent_scope).toLowerCase()}.`,
+          row.evidence_type ? `Evidence: ${plainLanguage.voiceEvidenceLabel(row.evidence_type).toLowerCase()}.` : "",
+          row.expires_at ? `Runs out ${String(row.expires_at).slice(0, 10)}.` : ""
+        ].filter(Boolean).join(" ")))
       // Same heading fault, and on the surface where it matters most: a
       // creator reading "No consent records yet" after a failed read might
       // reasonably conclude a permission they recorded had been lost.

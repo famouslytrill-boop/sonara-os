@@ -90,16 +90,16 @@ function stubFetch() {
       const scoped = target.includes(`organization_id=eq.${ORGANIZATION_ID}`);
       // Both filters honoured, the way PostgREST would. Only our record, only
       // for our organization.
-      if (isLookupFor(OURS, target)) return json(scoped ? [{ id: OURS, po_number: "PO-1001", invoice_number: "INV-1", status: "sent", total_cents: 4500, currency: "usd" }] : []);
+      if (isLookupFor(OURS, target)) return json(scoped ? [{ id: OURS, po_number: "PO-1001", invoice_number: "INV-1", name: "Widget", status: "sent", total_cents: 4500, currency: "usd" }] : []);
       if (/[?&]id=eq\./.test(target)) return json([]);
-      return json([{ id: OURS, po_number: "PO-1001", invoice_number: "INV-1", status: "sent", total_cents: 4500, currency: "usd" }]);
+      return json([{ id: OURS, po_number: "PO-1001", invoice_number: "INV-1", name: "Widget", status: "sent", total_cents: 4500, currency: "usd" }]);
     }
 
     const lineTables = WITH_LINES.map((page) => page.lines.table);
     if (lineTables.includes(table)) {
       return json([
-        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500, rate_type: "hourly", amount_cents: 2500, effective_from: "2026-08-01" },
-        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", amount_cents: 2000, effective_from: "2026-08-02" }
+        { id: "line-1", item_name: "Flour", quantity: 10, quantity_ordered: 10, counted_quantity: 10, unit: "kg", unit_cost_cents: 250, total_cost_cents: 2500, extended_value_cents: 2500, estimated_cost_cents: 2500, received_on: "2026-08-01", amount_cents: 2500, method: "Bank transfer", reference: "REF-1", description: "Call-out fee", unit_price_cents: 250, line_total_cents: 2500, ingredient_name: "Flour", calculated_cost_cents: 2500, waste_percent: 5, quantity_sold: 3, net_sales_cents: 2500, rate_type: "hourly", amount_cents: 2500, effective_from: "2026-08-01", variant_name: "Large", price_cents: 2500, currency: "usd" },
+        { id: "line-2", item_name: "Yeast", quantity: 2, quantity_ordered: 2, counted_quantity: 2, unit: "kg", unit_cost_cents: 1000, total_cost_cents: 2000, extended_value_cents: 2000, estimated_cost_cents: 2000, received_on: "2026-08-02", amount_cents: 2000, method: "Bank transfer", reference: "REF-2", description: "Call-out fee", unit_price_cents: 1000, line_total_cents: 2000, ingredient_name: "Yeast", calculated_cost_cents: 2000, waste_percent: 0, quantity_sold: 2, net_sales_cents: 2000, rate_type: "hourly", amount_cents: 2000, effective_from: "2026-08-02", variant_name: "Small", price_cents: 2000, currency: "usd" }
       ]);
     }
     // The tables behind the pickers. Without these the reference check below
@@ -124,7 +124,17 @@ function requiredBody(page, parentId, extra = {}) {
   // asks for an amount and never for an item name, so a shared body tested the
   // reject path on that page and nothing else.
   const body = { [page.lines.parentColumn]: parentId };
-  for (const field of page.lines.form.fields.filter((entry) => entry.required)) {
+  // A child may require "either a reference, or these fields" rather than
+  // marking them required outright -- an invoice line can name a catalogue
+  // version instead of carrying a description and a total. Reading only
+  // `required` posted neither and every submission was rejected, which looked
+  // like the endpoint was broken rather than like the harness was.
+  //
+  // The typed branch is exercised here; the reference branch has its own tests.
+  const alsoRequired = page.lines.requireEither
+    ? page.lines.form.fields.filter((entry) => page.lines.requireEither.fields.includes(entry.name))
+    : [];
+  for (const field of [...page.lines.form.fields.filter((entry) => entry.required), ...alsoRequired]) {
     // A date column given the word "Something" is rejected by Postgres, so a
     // harness that posts it is testing a path no real submission takes. The
     // stub accepts anything, which is exactly why this went unnoticed until a
@@ -159,6 +169,7 @@ const LINE_EVIDENCE = Object.freeze({
   vendor_invoice_lines: "Flour",
   customer_invoice_lines: "Call-out fee",
   customer_invoice_payments: "Bank transfer",
+  merchant_product_variants: "Large",
   recipe_ingredients: "Flour",
   pos_menu_mix_items: "Flour",
   employee_wage_rates: "hourly"
@@ -185,8 +196,8 @@ describe("line items on the records that have them", () => {
     inserts = [];
   });
 
-  it("covers the four records that have lines", () => {
-    assert.equal(WITH_LINES.length, 9, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
+  it("covers every record that has lines", () => {
+    assert.equal(WITH_LINES.length, 10, `${WITH_LINES.length} record/child pairs found; this check has gone blind`);
     const missing = WITH_LINES.filter((page) => !LINE_EVIDENCE[page.lines.table]).map((page) => page.lines.table);
     assert.deepEqual(missing, [], `no rendering evidence declared for: ${missing.join(", ")}`);
   });
@@ -330,7 +341,17 @@ describe("line items on the records that have them", () => {
       }
       if (!columns.has(page.lines.parentColumn)) wrong.push(`${page.lines.table} has no column ${page.lines.parentColumn}`);
       if (!columns.has("organization_id")) wrong.push(`${page.lines.table} has no organization_id, so it cannot be tenant scoped`);
-      if (!columns.has(page.lines.totalFrom)) wrong.push(`${page.lines.table} has no column ${page.lines.totalFrom} to total from`);
+      // `totalFrom` is optional, and the absence is a decision rather than an
+      // omission. Product versions declare none: adding up the prices of a
+      // small, a medium and a large produces a number nobody is ever charged,
+      // and printing it under the table would be exactly the kind of confident
+      // figure this file exists to stop. What is not allowed is naming a
+      // column that is not there, which totals silently to nothing.
+      if (page.lines.totalFrom === undefined) {
+        assert.ok(!("totalFrom" in page.lines), `${page.lines.table} sets totalFrom to undefined; leave it out or name a column`);
+      } else if (!columns.has(page.lines.totalFrom)) {
+        wrong.push(`${page.lines.table} has no column ${page.lines.totalFrom} to total from`);
+      }
       for (const field of page.lines.form.fields) {
         if (!columns.has(field.name)) wrong.push(`${page.lines.table} has no column ${field.name}`);
       }

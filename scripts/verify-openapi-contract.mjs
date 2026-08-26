@@ -58,5 +58,36 @@ assert.equal(operationIds.length, documented.size, "Every documented operation m
 assert.equal(duplicateOperationIds.length, 0, `Duplicate operationId values:\n${[...new Set(duplicateOperationIds)].join("\n")}`);
 assert.doesNotMatch(source, /\b(TODO|TBD|placeholder)\b/i, "OpenAPI contract cannot contain placeholder language.");
 
+// Every $ref resolves to something this file defines.
+//
+// Added 19 August 2026 after finding thirteen references to
+// #/components/responses/NotFound in a spec that defined no such component. The
+// checks above cover which routes are documented and whether operationIds are
+// unique; none of them had ever asked whether the document validates. A spec
+// with a dangling reference is a spec no generator can read, and it had been
+// passing this gate for as long as the gate has existed.
+const referenced = [...new Set([...source.matchAll(/#\/components\/([a-zA-Z]+)\/([A-Za-z0-9_]+)/g)].map((match) => `${match[1]}/${match[2]}`))];
+assert.ok(referenced.length > 5, `only ${referenced.length} component references were found; this check has gone blind`);
+
+const defined = new Set();
+let currentSection;
+for (const line of source.split(/\r?\n/)) {
+  const section = line.match(/^  ([a-zA-Z]+):\s*$/);
+  if (section) {
+    currentSection = section[1];
+    continue;
+  }
+  const component = line.match(/^    ([A-Za-z0-9_]+):\s*$/);
+  if (component && currentSection) defined.add(`${currentSection}/${component[1]}`);
+}
+assert.ok(defined.size > 5, `only ${defined.size} components were parsed as defined; this check has gone blind`);
+
+const dangling = referenced.filter((reference) => !defined.has(reference)).sort();
+assert.deepEqual(
+  dangling,
+  [],
+  `OpenAPI references components it does not define:\n${dangling.map((entry) => `  #/components/${entry}`).join("\n")}`
+);
+
 const pathCount = new Set([...documented].map((route) => route.slice(route.indexOf(" ") + 1))).size;
 console.log(`OpenAPI contract verified: ${documented.size} operations across ${pathCount} paths match the Express runtime.`);

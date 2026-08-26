@@ -25,6 +25,27 @@ export type OpenSourceToolRecord = {
   productFit: string[];
   license: string;
   licenseRisk: OpenSourceLicenseRisk;
+  // Does this licence oblige releasing SONARA's own source if it is adopted?
+  //
+  // Required, not optional, and stated rather than inferred. Both of those are
+  // deliberate. docs/owner/WHAT-IS-LEFT.md quotes this count at somebody
+  // deciding what may be adopted, and it drifted from 10 to 11 with nothing
+  // watching it, so the figure needs to be derivable from the register.
+  //
+  // Deriving it by searching the licence text does not work, and the case that
+  // proved it is worth keeping even though that record has since been rewritten.
+  // twenty's licence field read "it appeared in neither the permissive filter
+  // (MIT, Apache-2.0, BSD-3-Clause) nor the reciprocal filter (AGPL-3.0,
+  // GPL-3.0, ...)" -- prose naming four reciprocal licences in the course of
+  // saying the repository is in none of them. A substring match counted it and
+  // reported 12, which is the exact defect CLAUDE.md describes: a signal that
+  // reports success without being true. Any licence field can acquire prose
+  // like that again, which is why the flag is a field rather than a search.
+  //
+  // Required rather than optional because the failure that matters is somebody
+  // adding an AGPL repository and the count silently staying where it was. A
+  // missing field is a type error; a wrong field is a decision somebody made.
+  reciprocalLicense: boolean;
   commercialUseStatus: OpenSourceCommercialUseStatus;
   integrationStatus: OpenSourceIntegrationStatus;
   recommendedAction: string[];
@@ -38,6 +59,361 @@ export type OpenSourceToolRecord = {
 
 export const openSourceTools: OpenSourceToolRecord[] = [
   {
+    name: "Context Mode",
+    slug: "context-mode-mcp-window-optimizer",
+    category: ["MCP tooling", "context window optimization", "AI coding agent tooling", "source-available licence"],
+    useCase: ["nothing shipped -- a developer-side tool at most, and blocked from the product by its licence"],
+    productFit: ["Internal Development"],
+    license: "Elastic License 2.0 (ELv2)",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_pending_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not incorporate into SONARA One, which is a hosted service and is exactly what ELv2 forbids offering",
+      "treat any use as a local developer tool on somebody's own machine, never as part of what customers are served",
+      "never describe this as open source -- ELv2 is source-available and is not OSI approved",
+    ],
+    officialUrl: "https://github.com/mksglu/context-mode",
+    repoUrl: "https://github.com/mksglu/context-mode",
+    notes:
+      "LICENSE read 19 August 2026: Elastic License 2.0. The submitted screenshot showed a badge reading 'License ELv2' and described the project as an open-source repository; ELv2 is source-available and permits use, forking and modification but explicitly forbids providing the software to third parties as a hosted or managed service. SONARA One is a hosted service. The underlying observation -- that every MCP tool call dumps raw data into a context window, and a Playwright snapshot costs 56 KB -- is a real one and costs nothing to know. The code cannot be used here.",
+    safetyBoundaries: ["no ELv2 code in anything customers are served", "no claim that this is open source"],
+    blockedUses: ["incorporating any Context Mode source into this repository", "offering it or a derivative as part of a hosted product"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "camofox-browser",
+    slug: "camofox-anti-detection-browser",
+    category: ["browser automation", "fingerprint spoofing", "anti-detection", "blocked on conduct"],
+    useCase: ["none -- recorded so the refusal is written down rather than re-argued"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt, and do not adopt any of its siblings -- camofox-mcp, camoufox-cli, or the Camoufox engine underneath them",
+      "keep routes/market-intelligence-routes.cjs fetching only sources a customer has recorded permission for",
+    ],
+    officialUrl: "https://github.com/redf0x1/camofox-browser",
+    repoUrl: "https://github.com/redf0x1/camofox-browser",
+    notes:
+      "Blocked on what it is for, not on its licence, which is permissive. It is a Firefox fork with C++-level fingerprint spoofing wrapped in a REST API, and its own description is that it lets agents browse sites that block automated bots -- a sibling states the purpose as bypassing Cloudflare, bot detection and anti-scraping. This repository shipped the opposite thing on 19 August 2026: sourcePermission() in routes/market-intelligence-routes.cjs refuses to fetch any host an organization has not recorded as approved, and returns three outcomes so that a failed check is never read as permission. Bot detection is how a site says no. Adopting a tool whose purpose is defeating that would negate a gate this product built deliberately, and no licence makes that a different decision.",
+    safetyBoundaries: ["no fingerprint spoofing in any code path", "no fetch of a host outside the approved-source list"],
+    blockedUses: ["any use in the product", "any use in internal tooling that fetches third-party sites"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Open Generative AI (open-gen-ai)",
+    slug: "open-gen-ai-media-platform",
+    category: ["image generation", "video generation", "lip sync", "hosted API dependency"],
+    useCase: ["none shipped -- the self-hosted claim does not survive reading the README"],
+    productFit: ["Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not ship a feature on this without first establishing what MuAPI costs and who pays it",
+      "route any model call through the Provider Gateway if it is ever adopted, never from the application directly",
+      "keep provenance, consent and the anti-clone rule in front of any lip-sync or voice capability",
+    ],
+    officialUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
+    repoUrl: "https://github.com/Anil-matcha/Open-Generative-AI",
+    notes:
+      "The submitted description said it is free, has no subscription and runs entirely on your machine. Its own README banner reads 'Powered by MuAPI' and offers 400+ models across 14 studios, which is a hosted API rather than local inference; those two statements cannot both be true. CLAUDE.md's rule applies directly -- a hosted service with a free tier is a price, not a licence, and a shipped feature resting on one stops working when the tier changes, which is the vendor's decision and not this project's. The MIT licence on the wrapper is real and is not the constraint. Lip sync is separately governed here by the anti-clone, provenance and consent rules in AGENTS.md.",
+    safetyBoundaries: [
+      "no paid model API introduced as a dependency of a shipped feature",
+      "no voice or likeness generated without recorded consent",
+      "no model call outside the Provider Gateway",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Vibe Trading",
+    slug: "vibe-trading-strategy-agents",
+    category: ["trading strategy generation", "backtesting", "financial automation"],
+    useCase: ["none -- recorded alongside AutoHedge because the refusal is the same refusal"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt -- this product does not give financial advice and does not place orders",
+      "keep the licence read from the repository rather than from the submitted screenshot, which showed the Agentic Inbox README under this heading",
+    ],
+    officialUrl: "https://github.com/HKUDS/Vibe-Trading",
+    repoUrl: "https://github.com/HKUDS/Vibe-Trading",
+    notes:
+      "LICENSE read 19 August 2026 from HKUDS/Vibe-Trading: MIT. Blocked for the same reason as AutoHedge: generating and exporting trading strategies is financial advice by any ordinary reading, and this product's catalogue was cut by eleven entries for describing work that did not exist. Worth recording how this record was nearly wrong. The screenshot submitted under this heading showed the Agentic Inbox README, so the Apache-2.0 badge visible in it belonged to a different project; the first version of this record carried that licence with a note saying it was unconfirmed. It is MIT. A licence copied from an image of the wrong repository is the reason this register reads LICENSE files.",
+    safetyBoundaries: ["no order placed on any venue", "no strategy presented to a customer as advice"],
+    blockedUses: ["any trading, backtesting or strategy export surfaced to a customer"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "NotFair",
+    slug: "notfair-goal-marketing-agents",
+    category: ["marketing automation", "goal tracking", "prediction scoring", "autonomous agents"],
+    useCase: ["the measurement idea, adapted -- not the autonomy, and not the code"],
+    productFit: ["Growth Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "adapt the measurement idea only: a goal becomes a metric with a measured baseline, and past predictions are scored against what actually happened",
+      "do not adopt the autonomy -- AGENTS.md puts customer campaigns behind owner approval, and 'around the clock, whether you are watching or not' is exactly what that rule refuses",
+      "keep any adaptation deterministic and local, which is what lib/sonara-goal-science.cjs does",
+    ],
+    officialUrl: "https://github.com/nowork-studio/NotFair",
+    repoUrl: "https://github.com/nowork-studio/NotFair",
+    notes:
+      "MIT, and the only repository in this batch with an idea worth taking. Its own README describes turning an ambition stated in plain language into a server-verified metric with a measured baseline, then running a loop that scores its past moves against what it predicted. The scoring half is deterministic, needs no model, and is the part this product was missing -- lib/sonara-goal-science.cjs implements it with Brier and log scores and a calibration table, and the tool page at /growth-studio/tools/goal-tracker is where a customer uses it. What was deliberately not taken is the loop that acts: NotFair runs agents around the clock that make moves on their own, and AGENTS.md puts customer campaigns behind owner approval and sends unknown sensitive actions to owner review. No NotFair code was read, copied or adapted -- the idea was, and the implementation here is original.",
+    safetyBoundaries: [
+      "no campaign, message or spend changed by anything automatic",
+      "measurement and scoring only; a person decides what to do about the score",
+    ],
+    blockedUses: ["any unattended action against a customer audience"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "PostgREST",
+    slug: "postgrest-rest-over-postgres",
+    category: ["database access layer", "REST API over PostgreSQL", "migration exit path"],
+    useCase: ["understanding what this application actually depends on", "running the same query surface against a Postgres nobody else hosts"],
+    productFit: ["Internal Development", "Admin Command Center"],
+    license: "PostgreSQL",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "treat PostgREST rather than Supabase as the thing 27 files are coupled to",
+      "keep every read a plain PostgREST request, because that is what keeps the exit open",
+      "price any database move as keeping PostgREST and changing what is under it",
+    ],
+    officialUrl: "https://postgrest.org",
+    repoUrl: "https://github.com/PostgREST/postgrest",
+    notes:
+      "Read 19 August 2026. Every read and write in this application is an HTTPS request to /rest/v1/<table> with a service-role key -- 27 files, 145 tables, 3 stored procedures. PostgREST is a separate open-source project under the PostgreSQL licence that Supabase runs; it is not Supabase's invention and not Supabase's to withdraw. That is the single most useful fact about this stack's portability and it is recorded here because nothing else in the repository said it. tests/the-auth-surface-stays-small.test.js holds the property.",
+    safetyBoundaries: [
+      "service-role key stays server-only",
+      "every query keeps its organization_id filter, which is the only tenant boundary when the service-role key bypasses RLS",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Keycloak",
+    slug: "keycloak-identity-provider",
+    category: ["identity provider", "authentication", "single sign-on", "migration candidate"],
+    useCase: ["replacing Supabase Auth behind the four endpoints this application calls"],
+    productFit: ["Internal Development", "Admin Command Center"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "keep as the first candidate if authentication ever has to move",
+      "run it as a service this application calls over HTTPS, never as a library",
+      "do not adopt without a reachability plan -- a serverless function cannot reach a laptop",
+    ],
+    officialUrl: "https://www.keycloak.org",
+    repoUrl: "https://github.com/keycloak/keycloak",
+    notes:
+      "LICENSE.txt read 19 August 2026: Apache License. CNCF project. Recorded because docs/architecture/DATABASES-AND-AUTHENTICATION.md prices an auth migration at four endpoints in two files, and this is the safest licence among the candidates. Nothing has been cloned, imported or run.",
+    safetyBoundaries: [
+      "Apache-2.0 attribution and NOTICE preserved for anything derived",
+      "no customer credential handled outside the identity provider",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Ory Kratos",
+    slug: "ory-kratos-identity",
+    category: ["identity provider", "authentication", "API-first", "migration candidate"],
+    useCase: ["replacing Supabase Auth in a server-rendered application with no front-end framework"],
+    productFit: ["Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "prefer over a UI-bundled provider, because this application renders its own pages and would discard a bundled UI",
+      "run as a service, never as a library",
+    ],
+    officialUrl: "https://www.ory.sh/kratos",
+    repoUrl: "https://github.com/ory/kratos",
+    notes:
+      "LICENSE read 19 August 2026: Apache License. API-first with no UI of its own, which suits an application that server-renders every page. Nothing has been cloned, imported or run.",
+    safetyBoundaries: ["Apache-2.0 attribution preserved", "no customer credential handled outside the identity provider"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Casdoor",
+    slug: "casdoor-identity",
+    category: ["identity provider", "authentication", "single sign-on", "migration candidate"],
+    useCase: ["replacing Supabase Auth with a single binary that includes its own admin UI"],
+    productFit: ["Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "research_only",
+    recommendedAction: ["keep as a lighter alternative to Keycloak", "run as a service, never as a library"],
+    officialUrl: "https://casdoor.org",
+    repoUrl: "https://github.com/casdoor/casdoor",
+    notes:
+      "LICENSE read 19 August 2026: Apache License. Single Go binary with a UI included. Nothing has been cloned, imported or run.",
+    safetyBoundaries: ["Apache-2.0 attribution preserved", "no customer credential handled outside the identity provider"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Zitadel",
+    slug: "zitadel-identity",
+    category: ["identity provider", "authentication", "reciprocal licence"],
+    useCase: ["identity research only, pending a legal reading of the network-use obligation"],
+    productFit: ["Internal Development"],
+    license: "AGPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_pending_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not build on it until counsel has read the AGPL question recorded in docs/architecture/DATABASES-AND-AUTHENTICATION.md",
+      "never modify it and expose the result over a network without offering its source",
+      "prefer Keycloak, Ory Kratos or Casdoor, all Apache-2.0, unless something only Zitadel does is needed",
+    ],
+    officialUrl: "https://zitadel.com",
+    repoUrl: "https://github.com/zitadel/zitadel",
+    notes:
+      "LICENSE read 19 August 2026: GNU AFFERO GENERAL PUBLIC LICENSE. Recorded as a correction: this reviewer would have said Apache-2.0 from memory and would have been wrong, which is the reason this register reads licences rather than recalling them. AGPL triggers on network use and this is a hosted product. There is a real distinction between modifying Zitadel and merely being an HTTP client of an unmodified instance, and the usual reading is that the second does not make this application a derivative work -- but that is a legal question, and it is recorded as an open question rather than as an answer.",
+    safetyBoundaries: [
+      "no Zitadel source modified without the AGPL source obligation being met",
+      "no adoption before counsel review",
+    ],
+    blockedUses: ["incorporating any Zitadel source into this repository", "shipping a modified Zitadel without offering its source"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "authentik",
+    slug: "authentik-identity",
+    category: ["identity provider", "authentication", "split licence"],
+    useCase: ["identity research, with the licence split understood before any use"],
+    productFit: ["Internal Development"],
+    license: "MIT core, with CC BY-SA 4.0 docs and a separate enterprise licence",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "never describe this as MIT without the split, because MIT is true of the core and false of the whole",
+      "keep clear of anything under authentik/enterprise/, which is under its own licence",
+    ],
+    officialUrl: "https://goauthentik.io",
+    repoUrl: "https://github.com/goauthentik/authentik",
+    notes:
+      "LICENSE read 19 August 2026. The file splits the repository four ways: website/ is CC BY-SA 4.0, authentik/enterprise/ is under the licence defined in its own directory, client-side JavaScript is MIT Expat, and everything else is MIT. A register entry saying only MIT would be the kind of claim that reads like a verified fact and is not.",
+    safetyBoundaries: ["nothing under authentik/enterprise/ used or referenced", "MIT attribution preserved for anything derived from the core"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Logto",
+    slug: "logto-identity",
+    category: ["identity provider", "authentication", "reciprocal licence"],
+    useCase: ["identity research, unmodified use only"],
+    productFit: ["Internal Development"],
+    license: "MPL-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "use unmodified if used at all -- MPL's obligation attaches to the file, so patching one file obliges offering that file's source",
+      "record any patch, however small, before it is made",
+    ],
+    officialUrl: "https://logto.io",
+    repoUrl: "https://github.com/logto-io/logto",
+    notes:
+      "LICENSE read 19 August 2026: Mozilla Public License. Submitted by the owner in a screenshot batch. MPL-2.0 is reciprocal per file rather than per product -- a much narrower obligation than AGPL and a wider one than MIT, and the difference matters at the moment somebody patches a file to fix something small.",
+    safetyBoundaries: ["no Logto file modified without meeting the MPL file-level source obligation"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Better Auth",
+    slug: "better-auth-library",
+    category: ["authentication library", "TypeScript", "ruled out on architecture"],
+    useCase: ["none here -- recorded so the reason is written down rather than rediscovered"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not adopt while this repository has one production dependency and no build step",
+      "revisit only if a compile step is added for some other reason",
+    ],
+    officialUrl: "https://www.better-auth.com",
+    repoUrl: "https://github.com/better-auth/better-auth",
+    notes:
+      "LICENSE.md read 19 August 2026: MIT License. Ruled out on architecture rather than licence. It is TypeScript for the Node ecosystem and would be the natural choice on almost any other JavaScript project; this one has express as its single production dependency, no bundler, and a build script that is `node --check server.js`. Adding a TypeScript library means adding a compile step, which is a larger change to how this repository works than swapping an identity provider. tests/the-auth-surface-stays-small.test.js fails if that single dependency stops being single, which is what would make this record worth revisiting.",
+    safetyBoundaries: ["no build step introduced for authentication alone"],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Valkey",
+    slug: "valkey-cache",
+    category: ["cache", "key-value store", "Redis fork", "migration candidate"],
+    useCase: ["a cache or rate-limit store, if one is ever needed, without a licence conversation"],
+    productFit: ["Internal Development", "Admin Command Center"],
+    license: "BSD-3-Clause",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "prefer over Redis on licence rather than on merit, if a cache is ever needed",
+      "nothing here needs a cache today; rate limiting already runs through a Postgres function",
+    ],
+    officialUrl: "https://valkey.io",
+    repoUrl: "https://github.com/valkey-io/valkey",
+    notes:
+      "COPYING read 19 August 2026: BSD 3-Clause. Linux Foundation project, forked from Redis in April 2024 with AWS, Google and Oracle behind it. Redis itself has been tri-licensed since 8.0 (May 2025) and AGPLv3 is one of the three, so 'Redis is not open source any more' is out of date -- but AGPL is still the reciprocal choice and Valkey is the same capability with none of the question.",
+    safetyBoundaries: ["no customer data cached outside the tenant boundary", "BSD attribution preserved for anything derived"],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Directus",
+    slug: "directus-headless-cms",
+    category: ["headless CMS", "data platform", "source-available licence"],
+    useCase: ["none -- recorded as a licence correction"],
+    productFit: ["Internal Development"],
+    license: "MSCL-1.0-GPL (Monospace Sustainable Core License 1.0)",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_pending_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not build on it without the full licence text read by somebody qualified",
+      "never summarise this licence from a table, including the one in docs/architecture/DATABASES-AND-AUTHENTICATION.md",
+    ],
+    officialUrl: "https://directus.io",
+    repoUrl: "https://github.com/directus/directus",
+    notes:
+      "The `license` file read 19 August 2026 is the Monospace Sustainable Core License, Version 1.0, abbreviated MSCL-1.0-GPL, copyright 2026 Monospace Inc. Recorded as a correction: this reviewer would have said Business Source License from memory. It is a licence written this year whose abbreviation carries GPL, and it is not OSI open source. Nothing should be built on it from a summary.",
+    safetyBoundaries: ["no Directus source incorporated", "no adoption before counsel review"],
+    blockedUses: ["incorporating any Directus source into this repository"],
+    humanReviewRequired: true,
+  },
+  {
     name: "Awesome LLM Apps",
     slug: "awesome-llm-apps-agent-collection",
     category: ["AI agent examples", "RAG application examples", "agent framework tutorials", "adaptation source"],
@@ -45,6 +421,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -78,6 +455,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT for source code and site-authored content; CC0-1.0 for prompt content and data.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["use original SONARA implementation", "keep one SONARA login and Supabase tenant model", "preserve provenance and license per imported record", "keep remote MCP and prompt fetching disabled by default"],
@@ -105,6 +483,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Research Lab", "Creator Studio analytics", "Graph Builder"],
     license: "Public repository license requires review before production use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -139,6 +518,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Growth Studio", "Smart Search", "Files & Records", "Business Memory Graph"],
     license: "Apache-2.0. The README asks for badge attribution, which is a request rather than a licence term; the Apache NOTICE obligation is the binding one. Any model or provider called through it carries its own separate terms.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -174,6 +554,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     license: "Model/code licenses require review before commercial use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -198,6 +579,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab", "Performance Planner", "Render & Speed Tools"],
     license: "Model/code licenses require review before commercial use.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -224,6 +606,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Asset Vault", "Creator Tool Library", "Project Launch Checklist"],
     license: "BSD-style project license must be verified before recommendations are finalized.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -249,6 +632,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Research Lab"],
     license: "Terms and API permissions require review.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -269,6 +653,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Performance Planner", "Secure Compute Layer", "Developer Formula Studio"],
     license: "Reference material licenses vary and require source-level review.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -289,6 +674,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Business Builder"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -315,6 +701,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -352,6 +739,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     license:
       "Remotion: source-available under the Remotion License — free for individuals and small companies, paid company licence required for for-profit organisations above a size threshold. MapLibre GL JS: BSD-3-Clause.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -375,6 +763,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Creator Studio", "Files & Records"],
     license: "External provider terms and model licenses require review.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: ["external/reference only unless licensed", "do not build surveillance workflows"],
@@ -393,6 +782,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Support Center", "Admin Command Center", "Customer Success"],
     license: "License, hosting, and security review required before self-hosting or adapter work.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["external/reference", "possible self-hosted integration after review", "do not copy branding"],
@@ -410,6 +800,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Files & Records", "Asset Vault"],
     license: "Review repository license before any implementation.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["external/reference only", "no hidden file transfer", "no unauthorized device access"],
@@ -427,6 +818,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Developer Formula Studio"],
     license: "Repository licenses require review before copying examples.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["education/reference only", "do not copy code without license review"],
@@ -444,6 +836,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["None"],
     license: "Piracy/copyright infringement risk.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: ["do not integrate", "do not promote", "do not link as a product feature", "do not build similar piracy functionality"],
@@ -462,6 +855,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Founder Operations", "Research Lab"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["private gateway only", "readiness probe first", "review every enabled tool"],
@@ -480,6 +874,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Founder Operations"],
     license: "Sustainable Use License with separate enterprise terms.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
     recommendedAction: [
@@ -499,6 +894,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab", "Founder Operations"],
     license: "MIT; model licenses are reviewed separately.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -522,6 +918,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Founder Operations"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -541,6 +938,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Creator Studio", "Growth Studio"],
     license: "Dify Open Source License, Apache-2.0 based with additional conditions.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -561,6 +959,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Worker Orchestration"],
     license: "MIT; integration packages and providers require separate review.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["worker-only reference", "allowlist tools", "avoid duplicate web-process orchestration"],
@@ -579,6 +978,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Founder Operations", "Research Lab"],
     license: "Open WebUI License, BSD-3-Clause based with branding conditions.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -598,6 +998,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Private Model Mode"],
     license: "Repository code is MIT; model weights use the upstream DeepSeek model license.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "needs_license_review",
     recommendedAction: ["do not bundle weights", "record exact served model", "review compute, data, and model terms"],
@@ -616,6 +1017,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Internal Development"],
     license: "Apache-2.0",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["developer workstation only", "repository-scoped permissions", "review every patch"],
@@ -634,6 +1036,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Files & Records", "Business Memory", "Research Lab"],
     license: "Apache-2.0 noted upstream; bundled service and dependency licenses require review.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "adapter_built",
     recommendedAction: [
@@ -654,6 +1057,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Internal Development"],
     license: "Anthropic product terms; not treated as a redistributable open-source runtime.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: ["developer workstation only", "managed permissions", "review every patch"],
@@ -678,6 +1082,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "Admin Command Center", "AI Safety Review", "System Design Intelligence"],
     license: "AGPL-3.0 upstream with a stated commercial-license option; legal review required before any code use.",
     licenseRisk: "critical",
+    reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -720,6 +1125,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center", "Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: ["background worker only", "start with read-only pilot", "audit and approve every consequential action"],
@@ -742,6 +1148,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -769,6 +1176,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "No licence file. Default copyright applies, which means all rights reserved.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -806,6 +1214,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -833,6 +1242,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -860,6 +1270,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT for the wrapper code; the upstream service it calls is governed by its own terms, which this wrapper does not grant.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -890,6 +1301,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "Apache-2.0 for the starter kit itself; the n8n runtime it provisions ships under the fair-code Sustainable Use License, which is not an OSI-approved open-source licence and restricts hosting it as a service.",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -916,6 +1328,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -941,6 +1354,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -967,6 +1381,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "Not verified. The repository page did not surface a licence and LICENSE returned 404 at the paths checked.",
     licenseRisk: "unknown",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "needs_license_review",
     recommendedAction: [
@@ -991,6 +1406,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1018,6 +1434,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1043,6 +1460,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["use for discovery", "review anything found through it on its own terms before use"],
@@ -1061,6 +1479,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Admin Command Center"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1088,6 +1507,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["read alongside TastyIgniter", "prefer the larger project's domain model where they disagree"],
@@ -1104,11 +1524,18 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["hospitality reference", "front-end study"],
     useCase: ["none approved until the licence is confirmed"],
     productFit: [],
-    license: "Not verified. The README describes free personal and educational use, which is not a licence grant, and LICENSE returned 404 at the paths checked.",
-    licenseRisk: "unknown",
+    license:
+      "No licence declared. Settled on 18 August 2026: GitHub's repository object for it carries no license key at all, which is what GitHub returns when it finds no licence file -- not an unread field, an absent one. The README describes free personal and educational use, and that is a description of the author's intent rather than a grant. With no licence, default copyright applies and no permission to copy, modify or distribute is given.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
-    integrationStatus: "needs_license_review",
-    recommendedAction: ["do not adopt until a licence file is confirmed", "TastyIgniter covers the same ground under a verified MIT licence"],
+    integrationStatus: "blocked",
+    recommendedAction: ["do not adopt: there is no licence to adopt under, and this is now established rather than pending", "TastyIgniter covers the same ground under a verified MIT licence"],
+    blockedUses: [
+      "copying any of its code, markup or styling into this product",
+      "shipping a feature derived from it",
+      "treating the README's mention of free personal and educational use as permission",
+    ],
     officialUrl: "https://github.com/Shahzaib-Awann/Foodya-Restaurant",
     repoUrl: "https://github.com/Shahzaib-Awann/Foodya-Restaurant",
     notes:
@@ -1124,6 +1551,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
     license: "MIT-0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1150,6 +1578,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1178,6 +1607,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Research Lab"],
     license: "AGPL-3.0, read from the repository sidebar and restated in its README.",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1205,6 +1635,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder", "Growth Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1228,14 +1659,18 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     category: ["formula engine", "calculation reference"],
     useCase: ["dependency-graph recalculation", "formula parsing and error propagation"],
     productFit: ["Business Builder"],
-    license: "GPL-3.0, or a paid proprietary licence from the vendor.",
+    license:
+      "GPL-3.0, or a paid proprietary licence from the vendor. The only repository in this register where money removes a reciprocal obligation outright, which makes the price a fact worth having rather than an aside.",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
       "read the dependency-graph recalculation approach",
       "do not add the package; GPL-3.0 is the only free option and it is reciprocal",
-      "if a formula engine is genuinely needed, price the proprietary licence as an owner decision",
+      "TWO non-reciprocal routes exist, established 18 August 2026 when the reciprocal question was worked through: buy the vendor licence, or run HyperFormula as a separate service this application calls over HTTP -- GPL is not AGPL, so the service boundary is the settled reading rather than an argument",
+      "both are blocked on the same missing fact: nobody has asked the vendor for a price. That is now an owner step",
+      "and neither is worth doing before a surface exists. Nothing in this product lets a customer write their own formula today, so an adapter would be a capability with no caller",
     ],
     officialUrl: "https://hyperformula.handsontable.com",
     repoUrl: "https://github.com/handsontable/hyperformula",
@@ -1255,6 +1690,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1281,6 +1717,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1306,6 +1743,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Business Builder"],
     license: "OSL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1331,6 +1769,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1359,6 +1798,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: ["read the feed and engagement modelling", "do not adopt the frontend stack"],
@@ -1377,6 +1817,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "None declared. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1402,6 +1843,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "None declared. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1427,6 +1869,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Admin Command Center"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1448,6 +1891,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0, verified from the repository's own licence badge. The post that recommended it said MIT; the repository says otherwise, and the repository is what binds.",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
@@ -1474,6 +1918,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab"],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1500,6 +1945,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio", "Growth Studio", "Admin Command Center"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1525,6 +1971,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1546,6 +1993,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Growth Studio", "Research Lab"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1571,6 +2019,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Creator Studio"],
     license: "AGPL-3.0",
     licenseRisk: "high",
+    reciprocalLicense: true,
     commercialUseStatus: "needs_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -1596,6 +2045,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Proprietary per-seat subscriptions. These are hosted services, not source anybody can read, adopt or self-host. No open-source licence applies to any of them.",
     licenseRisk: "high",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     // Blocked, and the word is exact: blocked as a product dependency. Nobody
     // is stopping the owner from buying a subscription and using one to do
@@ -1630,6 +2080,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "A curated bookmark page, not software. The hundreds of services it links to each carry their own terms, and several of them are not licences at all.",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1661,6 +2112,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1682,6 +2134,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1704,6 +2157,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "No licence declared",
     licenseRisk: "critical",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1726,6 +2180,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1749,6 +2204,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1770,6 +2226,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1792,6 +2249,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1814,6 +2272,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "AGPL-3.0",
     licenseRisk: "critical",
+    reciprocalLicense: true,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1836,6 +2295,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1858,6 +2318,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1878,6 +2339,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1900,6 +2362,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1922,6 +2385,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1943,6 +2407,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "blocked_until_review",
     integrationStatus: "blocked",
     recommendedAction: [
@@ -1964,6 +2429,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -1990,6 +2456,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: [],
     license: "Apache-2.0",
     licenseRisk: "medium",
+    reciprocalLicense: false,
     commercialUseStatus: "needs_review",
     integrationStatus: "research_only",
     recommendedAction: [
@@ -2019,6 +2486,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "AI Governance"],
     license: "CC0-1.0",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -2051,6 +2519,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     productFit: ["Research Lab", "AI Governance"],
     license: "MIT",
     licenseRisk: "low",
+    reciprocalLicense: false,
     commercialUseStatus: "allowed_after_review",
     integrationStatus: "reference_only",
     recommendedAction: [
@@ -2072,6 +2541,1947 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "wiring a listed endpoint straight into a customer-facing feature",
       "adopting its ANTHROPIC_BASE_URL redirection pattern for any tooling used on this codebase",
       "repeating its rate-limit figures in customer-facing copy without checking the provider",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "watermarks-remover (remove-ai-marks)",
+    slug: "watermarks-remover-remove-ai-marks",
+    category: ["AI provenance removal", "anti-detection tooling", "reviewed and refused"],
+    useCase: ["reviewed on request; no use in this product"],
+    productFit: ["AI Governance"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not install its agent skill into any assistant used on this codebase",
+      "do not expose watermark or provenance removal to customers in any workspace",
+      "if a creator needs location data stripped from their own photos before publishing, build that narrow thing directly -- it is EXIF privacy hygiene and does not require a provenance-defeating dependency",
+    ],
+    officialUrl: "https://github.com/guillaumemeyer/watermarks-remover",
+    repoUrl: "https://github.com/guillaumemeyer/watermarks-remover",
+    notes:
+      "The name suggests removing a photographer's visible watermark. It does something else. Read from the repository: it strips multi-vendor AI provenance marks -- C2PA Content Credentials, SynthID-class statistical text watermarks, invisible Unicode markers, and EXIF/XMP metadata -- across PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML and Markdown. Its own skill manifest describes the purpose as \"anti-detect clean AI output\" and \"multi-vendor anti-detection hygiene\", and it ships a reference document on defeating one specific vendor's marks. Licence is MIT, so there is no licence obstacle at all -- and that is exactly why this record matters, because the obstacle is entirely our own. AGENTS.md says, in as many words: enforce provenance, consent, and anti-clone safety. C2PA and SynthID are the provenance layer. A product that sells provenance enforcement and also ships a provenance stripper is not offering two features, it is contradicting itself, and the contradiction would be discovered by whichever customer relied on the first one. The repository's own framing is privacy and hygiene on content you own, and one slice of that is genuine: removing GPS coordinates from your own photograph before publishing is real privacy hygiene that creators need. That slice does not require this. It is a metadata field, it can be built directly against the files a customer already uploads, and building it that way keeps it separable from provenance removal rather than bundled with it.",
+    safetyBoundaries: [
+      "no assistant working on this repository has this skill installed",
+      "no product surface offers removal of C2PA, SynthID or any provenance mark",
+      "any future EXIF-privacy feature strips location and device fields only, and leaves content credentials intact",
+    ],
+    blockedUses: [
+      "installing skills/remove-ai-marks into any agent used on this codebase",
+      "any customer-facing feature that removes AI provenance or content credentials",
+      "presenting provenance removal as privacy, which is the framing that makes the two hard to tell apart",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Awesome DeepSeek Agent",
+    slug: "awesome-deepseek-agent-integration-guides",
+    category: ["model integration guides", "documentation index", "reviewed on request"],
+    useCase: ["reading how third-party tools are pointed at a DeepSeek endpoint"],
+    productFit: ["Private Model Mode", "Internal Development"],
+    license:
+      "None declared. Checked three ways on 17 August 2026 rather than assumed: the repository page shows no LICENSE file, the GitHub repository API returns no licence field, and https://api.github.com/repos/deepseek-ai/awesome-deepseek-agent/license answers 404, which is what GitHub returns when it detects no licence. With no licence, default copyright applies and no permission to copy, modify or distribute is granted.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing from it -- no text, no table, no configuration snippet",
+      "do not treat it as a reason to add a DeepSeek code path; the model name is already an environment variable",
+      "if a DeepSeek endpoint needs configuring, read the vendor's own documentation, which carries terms somebody actually granted",
+    ],
+    officialUrl: "https://github.com/deepseek-ai/awesome-deepseek-agent",
+    repoUrl: "https://github.com/deepseek-ai/awesome-deepseek-agent",
+    notes:
+      "A curated set of guides for pointing 24 third-party tools -- Cline, Cherry Studio, AstrBot, a TUI, and others -- at a DeepSeek endpoint. Read from the repository rather than from the pitch that arrived with it: it contains documentation only, no runnable code, no installer and no agent skill, so there is nothing here that can be installed anywhere. Two details in the pitch did not survive checking. It said twenty applications; the repository's own contents table lists 24. And the one-million-token context window is stated in the repository for one specific tool's DeepSeek-TUI entry, not as a general property of a model -- a figure worth being exact about, because it is the kind of number that gets repeated into marketing copy and then has to be defended. The repository references DeepSeek-V4-Pro and DeepSeek-V4-Flash by name; their pricing, terms and availability were NOT verified here, and cost is a constraint of the same weight as licence. The more useful finding is that this changes nothing about what this codebase can do, and for a reason that is good news: lib/sonara-open-webui-adapter.cjs sends `model: readiness.model`, read from SONARA_OPEN_WEBUI_MODEL. The model is already a configuration value, not a code path. DeepSeek can be served behind the owner's own Open WebUI or gateway today without a line changing here, which is exactly the arrangement docs/architecture/EXTERNAL-SERVICES.md describes and the reason the register already carries DeepSeek V3 as an optional gateway model family rather than as a dependency. Recorded as blocked rather than reference_only, and that was a correction: it was first filed as reference_only on the reading that reading a public page needs no licence, which is true and is not what this register governs. tests/open-source-licence-terms.test.js refused it, on the rule that a record whose licence text says nothing was declared must be blocked. The rule is right to be absolute. The moment an undeclared licence can sit at reference_only, the line between may-read and may-take rests on whoever opens the entry next, and that is the erosion these guards exist to stop -- so the record moved, not the check.",
+    safetyBoundaries: [
+      "no text, table or guide from this repository is copied into this codebase or its documentation",
+      "any DeepSeek use goes through the Provider Gateway or an approved server-side adapter, never a configuration copied from a guide into client code",
+      "no customer data reaches a hosted model endpoint outside that path",
+    ],
+    blockedUses: [
+      "copying its prose into SONARA documentation",
+      "vendoring or redistributing any part of it",
+      "quoting its context-window or model claims in customer-facing copy without checking them at the source",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Vercel Labs Skills (find-skills)",
+    slug: "vercel-labs-skills-find-skills",
+    category: ["agent skills", "developer tooling", "reviewed on request"],
+    useCase: ["searching the published Claude Code skill ecosystem for an existing skill"],
+    productFit: ["Internal Development"],
+    license:
+      "MIT. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. The source has not been read; this settles the licence and nothing else.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the LICENSE file before running the installer, not after",
+      "if it is installed, install it for a developer session only -- never as a dependency of the running product",
+      "treat any skill it recommends as a separate review; a finder that suggests installs is a supply chain, not a search box",
+    ],
+    officialUrl: "https://github.com/vercel-labs/skills",
+    repoUrl: "https://github.com/vercel-labs/skills",
+    notes:
+      "A skill that searches published Claude Code skills and returns an install command ready to run. Submitted on 18 August 2026 from a social post showing `npx skills add https://github.com/vercel-labs/skills --skill find-skills`. Two things about it are worth separating. The tool itself is developer tooling: it would run in somebody's terminal, not in this product, and nothing a customer touches would depend on it. That is the low-risk half. The other half is what it is for -- it recommends *other* people's skills and hands over the command to install them, which means the thing being reviewed is not one repository but a channel for arbitrary ones. `npx` fetches and executes on the spot. This register exists because a repository's licence and behaviour have to be read before use, and a tool whose output is 'here is the install command' is a tool that routes around that habit by design. Recorded as needs_license_review rather than blocked, because there is nothing wrong with it that reading the licence and keeping installs off the product would not resolve.",
+    safetyBoundaries: [
+      "never a runtime dependency of the deployed application",
+      "no skill it recommends is installed without its own register entry",
+      "no installer is run against this repository from an automated session",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "IONOS \"Smarter business with AI\" prompting guide (PDF)",
+    slug: "ionos-smarter-business-with-ai-guide",
+    category: ["competitor marketing material", "market reference", "reviewed on request"],
+    useCase: ["reading what a hosting competitor tells small businesses about AI"],
+    productFit: ["Internal Development"],
+    license:
+      "All rights reserved. The document carries \"COPYRIGHT (c) 2025 IONOS INC.\" on its cover and grants nothing. A free download is a price of zero, not a licence.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "read it as competitor intelligence; reading a published document needs no permission",
+      "copy no sentence, heading, table or template from it into this product or its documentation",
+      "where a technique in it is genuinely useful, build our own and describe it in our own words -- the techniques are industry-standard and belong to nobody, the wording is theirs",
+    ],
+    officialUrl: "https://www.ionos.com",
+    repoUrl: "https://www.ionos.com",
+    notes:
+      "A fourteen-page lead-magnet guide from IONOS, a hosting and small-business services company, teaching entrepreneurs to prompt: role prompting, style targeting, prompt chaining, few-shot, progressive layering, then templates for website copy, email marketing, blog writing, business planning and social media, and three walkthroughs. Submitted on 18 August 2026 with a request to add it to this product. It cannot be added. The cover reads COPYRIGHT (c) 2025 IONOS INC. and the document grants no licence, so copying its text into SONARA would be the same failure this register exists to prevent, with prose instead of code -- and the fact that it is free to download is a price, not a permission. Two things can be taken from it legitimately. The first is the intelligence: a hosting competitor is spending marketing budget teaching small businesses to prompt, which tells us where that market thinks the value is, and it is a useful data point for docs/market/. The second is that the named techniques are not IONOS's inventions -- role prompting and few-shot prompting are industry-standard and predate this document by years, so building our own equivalents and describing them in our own words is unobstructed. What is theirs is the expression, and none of it has been used.",
+    safetyBoundaries: [
+      "no sentence, heading, table or template from this PDF appears in this codebase or its documentation",
+      "any statistic quoted from it is traced to its original source before being repeated, never cited as IONOS's",
+      "competitor marketing is never the basis of a claim we make about our own product",
+    ],
+    blockedUses: [
+      "copying or paraphrasing its text into product copy, help pages or documentation",
+      "redistributing the PDF",
+      "treating a free download as a licence",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "sherpa-onnx (k2-fsa)",
+    slug: "k2-fsa-sherpa-onnx",
+    category: ["speech to text", "text to speech", "offline inference", "category sweep 2026-08-18"],
+    useCase: ["transcription, synthesis and speaker separation with no network call"],
+    productFit: ["Creator Studio", "Private Model Mode"],
+    license:
+      "Apache-2.0, read from the GitHub API licence field on 18 August 2026. The source has not been read; this record is a licence and fit assessment, not a code review.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read the source and the model licences separately before any adapter is written -- the code is Apache-2.0 and the models it downloads may not be",
+      "run it as an owner-operated service reached through an adapter, the way Open WebUI already is, rather than bundling it",
+      "keep customer audio on the owner's machine; the whole reason to prefer this is that nothing has to leave",
+    ],
+    officialUrl: "https://github.com/k2-fsa/sherpa-onnx",
+    repoUrl: "https://github.com/k2-fsa/sherpa-onnx",
+    notes:
+      "Speech-to-text, text-to-speech, speaker diarization, speech enhancement, source separation and voice activity detection, running offline with onnxruntime across embedded devices, mobile, and servers, in twelve programming languages. 14.2k stars, pushed within the last year. Found in the 18 August 2026 category sweep and the strongest candidate it produced, for a reason that is commercial as much as technical: it makes no network call, so it has no per-customer cost and no customer audio leaves the machine it runs on. That is the same argument that made the deterministic calculator tools worth building. It is also the one headline speech project in the shortlist that is not built around voice cloning, which puts it on a different footing from VoxCPM, CosyVoice, GPT-SoVITS and dia under the AGENTS.md anti-clone rule. Nothing is installed and no adapter exists yet.",
+    safetyBoundaries: [
+      "no customer audio is sent to a third party by any adapter built against this",
+      "model licences are checked separately from the Apache-2.0 code licence before use",
+      "no voice is synthesised in the likeness of a real person without a recorded consent row",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia",
+    slug: "voice-cloning-cluster-2026-08",
+    category: ["voice cloning", "speech synthesis", "category sweep 2026-08-18"],
+    useCase: ["none approved as a general feature"],
+    productFit: ["Creator Studio", "AI Governance"],
+    license:
+      "MIT on the repository code. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. The model weights are licensed separately and have not been checked. The licence is not what constrains this one -- the status below is a consent question, not a licence question.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_security_review",
+    recommendedAction: [
+      "treat the four as one decision, because they pose one question",
+      "never expose voice cloning as a general feature; the only legitimate path is behind the existing consent gate",
+      "a recorded consent row for the specific voice is a precondition, not a setting",
+      "check the model weight licences separately from the code licence before any of them is run",
+    ],
+    officialUrl: "https://github.com/RVC-Boss/GPT-SoVITS",
+    repoUrl: "https://github.com/RVC-Boss/GPT-SoVITS",
+    notes:
+      "Four of the five headline text-to-speech projects found in the 18 August 2026 sweep are voice cloning: GPT-SoVITS (61k stars, clones from one minute of audio), VoxCPM (35.8k), CosyVoice (22.8k) and dia (19.4k). All permissively licensed, all pushed within the last year, and all recorded together because they pose a single question rather than four. AGENTS.md says: enforce provenance, consent, and anti-clone safety. This codebase already implements that with creator_voice_consents and song_fingerprints. None of these is unusable -- they are unusable as a general feature. Cloning a voice whose owner has recorded permission is the legitimate case and the only one, and the difference between the two is a database row, not a disclaimer. Recorded as needs_security_review rather than blocked because the gate that would make them safe already exists and is enforced; what has not happened is anybody reading the source or the model licences.",
+    safetyBoundaries: [
+      "no voice is cloned without a recorded consent row naming that voice",
+      "no cloned voice output is published without provenance retained",
+      "model weight licences are read before any weights are downloaded",
+    ],
+    blockedUses: [
+      "exposing voice cloning to customers as an unmodified general feature",
+      "cloning any voice for which consent has not been recorded",
+      "treating a permissive code licence as permission for the model weights",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "ury (ERPNext restaurant management)",
+    slug: "ury-erp-restaurant",
+    category: ["restaurant management", "point of sale", "category sweep 2026-08-18"],
+    useCase: ["none approved for incorporation; possible owner-operated deployment"],
+    productFit: ["Business Builder"],
+    license:
+      "AGPL-3.0. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. Reciprocal, and this is a hosted product, so incorporating it would oblige releasing this product's source under the same terms.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not incorporate any part of it into this codebase",
+      "if the owner wants it, run it as a separate deployment they operate, reached through an adapter -- the licence obligation then sits with that deployment rather than with this product",
+      "read the exact licence file before any deployment decision; the API family is not the same as the text",
+    ],
+    officialUrl: "https://github.com/ury-erp/ury",
+    repoUrl: "https://github.com/ury-erp/ury",
+    notes:
+      "A free and open-source restaurant management system built on ERPNext: table ordering, restaurant POS, the lot. 336 stars, pushed within the last year, and the only purpose-built restaurant system in the 18 August 2026 point-of-sale sweep -- which would make it the obvious candidate if the licence allowed it. It does not. It sits in the reciprocal family, and CLAUDE.md is explicit that a reciprocal licence triggers on network use, so incorporating it into this hosted product would oblige releasing this product's source under the same terms. Worth recording rather than skipping, because the finding generalises: of eighteen point-of-sale projects above 200 stars pushed in the last year, eight are reciprocal and every large one is, including erpnext at 38.2k stars. The route that stays open is an owner-operated deployment reached through an adapter, which is what docs/architecture/EXTERNAL-SERVICES.md already describes.",
+    safetyBoundaries: [
+      "no code, schema or template from it is copied into this codebase",
+      "any deployment is the owner's, on their infrastructure, with the licence obligation theirs",
+      "no customer data is sent to it except through a reviewed adapter",
+    ],
+    blockedUses: [
+      "incorporating any part of it into this hosted product",
+      "treating an owner-operated deployment as permission to vendor the code",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Transformers.js",
+    slug: "transformers-js-browser-inference",
+    category: ["browser-side AI", "on-device inference", "AI research 2026-08-18"],
+    useCase: ["small task models running in the customer's own browser: summarising a note they wrote, classifying an enquiry, embedding a record for search"],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio"],
+    license:
+      "Apache-2.0, from GitHub's detected licence field on 18 August 2026 (license.key \"apache-2.0\", spdx_id \"Apache-2.0\"). The library is permissive; every model it runs is published separately under its own terms and none has been checked.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "treat this as a Content-Security-Policy decision before it is a feature decision -- three headers in server.js would have to change, and each is named in the notes",
+      "if adopted, serve the model weights from this origin rather than widening connect-src to a model host, and accept the bandwidth that implies",
+      "check each model's own licence: the library's Apache-2.0 does not travel to the weights, and the weights do the work",
+      "no customer record leaves the device, which is the entire reason this is interesting -- that property has to survive the implementation",
+    ],
+    officialUrl: "https://huggingface.co/docs/transformers.js",
+    repoUrl: "https://github.com/huggingface/transformers.js",
+    notes:
+      "16,261 stars, Apache-2.0, pushed within the last week. Machine learning that runs in the browser with no server, which is the only shape of AI this product could offer at no cost to the customer and with no customer data leaving their device -- both rules here rather than preferences. Recorded at needs_security_review rather than as an adapter because the blockers are in this application's own headers and they are specific. Three of them, read out of server.js on 18 August 2026 rather than assumed. `connect-src 'self' https://*.supabase.co https://api.stripe.com` would refuse a model download from huggingface.co, so either that list grows -- a third-party host gains permission to receive requests from every customer's browser -- or the weights are served from this origin and this product pays the bandwidth. `Cross-Origin-Embedder-Policy` is not set anywhere in the codebase; COOP is, COEP is not, so the page is not cross-origin isolated, SharedArrayBuffer is unavailable, and multithreaded WASM inference cannot run. Adding require-corp is not a one-line change, because it breaks every cross-origin resource that does not opt in. And `script-src 'self'` with no bundler means a vendored prebuilt bundle whose updates this project then owns. None of that is a reason to refuse it. It is the reason this is an owner decision about security posture rather than a library somebody installs, and AGENTS.md already requires the reason for weakening a security check to be written into SECURITY_NOTES.md.",
+    safetyBoundaries: [
+      "no customer record leaves the device: an implementation that sends text to a model host has stopped being this capability",
+      "no header in server.js relaxed without the exact reason recorded in SECURITY_NOTES.md",
+      "model output is a draft a person confirms, never a published claim about a customer or their records",
+      "off by default, and a browser without WebGPU or WASM is told the feature is unavailable rather than shown a control that does nothing",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "WebLLM",
+    slug: "web-llm-browser-inference",
+    category: ["browser-side AI", "on-device inference", "AI research 2026-08-18"],
+    useCase: ["a full language model running on the customer's own GPU, for drafting and rewriting text they already own"],
+    productFit: ["Creator Studio", "Growth Studio"],
+    license:
+      "Apache-2.0, from GitHub's detected licence field on 18 August 2026 (license.key \"apache-2.0\", spdx_id \"Apache-2.0\"). The engine is permissive; the models it loads are published separately under their own terms.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_security_review",
+    recommendedAction: [
+      "read it after Transformers.js rather than before: the same three header decisions apply and the download is far larger",
+      "weigh the download honestly -- hundreds of megabytes at best, usually several gigabytes, once per device, on the customer's connection",
+      "check each model's licence separately; the engine's Apache-2.0 does not cover the weights",
+    ],
+    officialUrl: "https://webllm.mlc.ai",
+    repoUrl: "https://github.com/mlc-ai/web-llm",
+    notes:
+      "18,569 stars, Apache-2.0, pushed within the last month, and the most capable version of the same idea: a full language model on WebGPU with nothing sent to a server. It carries every constraint recorded against Transformers.js and one more that decides it on its own. Transformers.js can run a task model of a few tens of megabytes; a WebLLM chat model is hundreds of megabytes at best and usually several gigabytes, downloaded once per device onto the customer's own connection. This product's customers are small businesses and creators, many on phones and metered connections, and free that costs somebody two gigabytes of data is not free. Registered so the option is on the record with its real price attached, rather than proposed later as an obvious idea nobody had written down.",
+    safetyBoundaries: [
+      "no customer record leaves the device",
+      "the download size is stated before anything begins, and it is the customer's choice",
+      "model output is a draft a person confirms, never a published claim",
+      "off by default; a device that cannot run it is told so plainly",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Lunar (headless e-commerce for Laravel)",
+    slug: "lunar-headless-ecommerce",
+    category: ["e-commerce", "product catalogue", "submitted 2026-08-18"],
+    useCase: ["reference for the parts of selling this product has no model for: variants, price tiers, carts, tax rules, shipping and discounts"],
+    productFit: ["Business Builder"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Clean and permissive. It is not what decides this one.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the catalogue and pricing model rather than adopting the package: variants, price breaks, tax rules and discount stacking are the hard part and are readable without taking code",
+      "if it is ever run, it is a separate Laravel application the owner hosts and this product reaches through an adapter under docs/architecture/EXTERNAL-SERVICES.md -- it is a Composer package and cannot be a dependency of an Express CommonJS server with no build step",
+      "keep its payment adapters out of scope: money in this product goes through the existing provider path, with no card data or CVV stored and success shown only after provider confirmation",
+      "any refund path it offers is one of the seven owner-approval categories in AGENTS.md and does not become automatic by being imported",
+    ],
+    officialUrl: "https://lunarphp.com",
+    repoUrl: "https://github.com/lunarphp/lunar",
+    notes:
+      "3,650 stars, 495 forks, MIT, pushed the day it was submitted, and the first e-commerce record in this register -- a real gap, the same way speech recognition was. Submitted with the instruction to add it to the application, so the useful thing to say is what adding it would actually mean. It is a Composer package for Laravel and this application is Express CommonJS on Vercel serverless with no build step, so it cannot be a dependency here in any sense; adopting it means the owner runs a second application with its own database, which is an infrastructure and cost decision rather than a licensing one. What it is genuinely good for is the model. Checking what Business Builder already has turned up something worth recording on its own: the table called `products` is not a merchant catalogue at all -- its `product_key` is constrained to business_builder, creator_studio, growth_studio and sonara_one, so it records which SONARA product an organization has enabled. The merchant-facing tables are business_service_catalog, menu_items and inventory_items, and quotes and customer_invoices sit on top of them. So a business here can price a service and invoice for it, and has no product catalogue with variants, no cart, no checkout, no tax rules and no shipping. Lunar has all of those, worked out and tested, and reading how it models them costs nothing.",
+    safetyBoundaries: [
+      "no payment code adopted: card data and CVV are never stored, and payment success is shown only after provider confirmation",
+      "refunds stay behind owner approval, whatever an imported library would allow",
+      "customer and order records stay organization-scoped under the same tenant boundary as every other record here",
+      "reading the domain model needs no service running and no code taken",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "The Code — Developer Resources (newsletter landing page)",
+    slug: "the-code-newsletter-resource-index",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["none: there is nothing here to adopt"],
+    productFit: [],
+    license:
+      "All rights reserved. The page carries \"© 2026 The Code Newsletter\" in its own footer and grants nothing. Free to view is a price of zero, not a licence -- the same reading applied to the IONOS guide, and for the same reason.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing from it: the whole document is fourteen titles and fourteen one-line descriptions, and all of it is somebody's copyrighted wording",
+      "treat the fourteen destinations as fourteen separate questions if any is ever wanted; each is a hosted microsite with its own terms, not a repository",
+      "the observation about what it covers is a fact and may be used; the sentences it is written in may not",
+    ],
+    officialUrl: "https://learn-code-tiles.lovable.app/",
+    repoUrl: "https://learn-code-tiles.lovable.app/",
+    notes:
+      "Submitted 18 August 2026 as a saved MHTML page. Assessed rather than assumed: the archive is 125 KB, and the entire visible text is 1,746 characters -- a heading, fourteen resource titles with a category and a one-line description each, and a copyright line. There is no code, no data, no specification and no attachment. It is a newsletter's landing page, and every tile is an outbound link to a separate hosted site (eleven on lovable.app, one netlify, one vercel, one more). None of the fourteen is a repository, so none is a thing this register can assess for licence; they are hosted products with their own terms, which is the same category as the proprietary services already recorded here and as ripienaar/free-for-dev's linked destinations. What can honestly be taken from it is a count, not a sentence: eight of the fourteen resources are about Claude Code, the Claude Agent SDK, or building AI agents. That is a dated, checkable observation about where a developer newsletter believes its audience's attention is, and it is recorded in docs/market/ where market observations belong.",
+    safetyBoundaries: [
+      "no wording, structure or curation copied from the page into this product or its documentation",
+      "each linked destination is a separate licence and terms question if it is ever wanted, and none has been asked",
+    ],
+    blockedUses: [
+      "reproducing its titles, categories or descriptions",
+      "republishing its list, in whole or in part, as a resource page in this product",
+      "treating a free-to-view page carrying an explicit copyright notice as permission",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "StreamCap (multi-platform live stream recorder)",
+    slug: "streamcap-stream-recorder",
+    category: ["live streaming", "stream capture", "category sweep 2026-08-18"],
+    useCase: ["none approved: what it does is the thing this product's rules exist to prevent"],
+    productFit: [],
+    license:
+      "Apache-2.0, from GitHub's detected licence field on 18 August 2026 (license.key \"apache-2.0\", spdx_id \"Apache-2.0\"). Permissive, and not the reason this record is blocked.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt: the block is on conduct, not licence, so a permissive licence does not resolve it",
+      "if a customer ever needs to record a broadcast, it is their own broadcast, and that is a different capability built on their own stream rather than on somebody else's platform",
+    ],
+    officialUrl: "https://github.com/ihmily/StreamCap",
+    repoUrl: "https://github.com/ihmily/StreamCap",
+    notes:
+      "4,113 stars, Apache-2.0, pushed within the last year, and blocked for the same reason as watermarks-remover: the licence permits it and this product's own rules do not. It monitors and automatically records live streams from TikTok, Twitch, YouTube, Bilibili, Douyin, Douyu and Huya. Every one of those recordings is somebody else's broadcast, captured without their involvement and generally against the platform's terms. AGENTS.md requires this product to enforce provenance, consent and anti-clone safety; shipping a tool whose whole function is to take a creator's live work off a platform and keep a copy is not a borderline reading of that rule, it is the case the rule describes. Worth keeping visible because of how it was found: it is the second-largest result in a legitimate search, under a legitimate topic, with a clean permissive licence, and nothing about its metadata flags it. Only reading the description does. That is the same failure mode as topic:paywall returning four paywall removers -- a search term that is right for the capability and wrong for the intent.",
+    safetyBoundaries: [
+      "no capability that records a third party's broadcast, whatever its licence permits",
+      "recording is offered, if ever, only for a customer's own stream with their own credentials",
+    ],
+    blockedUses: [
+      "recording or archiving any stream the customer does not own",
+      "monitoring another creator's channel for when they go live",
+      "adapting its platform extractors into this product under any licence",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "WebAV (browser video editing SDK on WebCodecs)",
+    slug: "webav-browser-video-sdk",
+    category: ["video editing", "browser-side media", "category sweep 2026-08-18"],
+    useCase: ["trimming, compositing and exporting video in the customer's own browser, with no server touching the file"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\").",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "settle the vendoring question first, exactly as for Excalidraw: no build step here, and script-src 'self' means serving a prebuilt bundle from this origin and owning its updates",
+      "check WebCodecs support and device capability before promising the feature, and design what a browser without it is told -- an editor that silently does nothing is worse than one that is honestly unavailable",
+      "note it was last pushed January 2026, which is inside the year but by seven months",
+    ],
+    officialUrl: "https://webav-tech.github.io/WebAV",
+    repoUrl: "https://github.com/WebAV-Tech/WebAV",
+    notes:
+      "2,085 stars, TypeScript, MIT, built on WebCodecs. Registered less for what it does than for where it runs. Every permissive repository added to this register during this sweep -- whisper.cpp, whisperX, vosk, Spleeter, seek-tune, Ghost -- is blocked by the same thing: it needs a server the owner runs, which is infrastructure, cost, and customer media leaving the customer's machine. A WebCodecs library has none of that shape. The work happens in the browser the customer already has, so there is no per-customer cost, no queue, and no upload of a file that was never meant to leave their device. That is a materially better fit for a product whose rules say a feature must cost the customer nothing and keep their work theirs. The constraint does not vanish, it changes: WebCodecs is not available everywhere, video work is heavy on a phone, and this still needs a vendored bundle under script-src 'self'. Those are different questions from the ones the server-side candidates raise, and they are answerable without the owner running anything.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "a browser without WebCodecs is told the feature is unavailable rather than shown an editor that does nothing",
+      "the customer's video stays on the customer's device: nothing here creates an upload that did not already exist",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "FreeCut (browser video editor)",
+    slug: "freecut-browser-video-editor",
+    category: ["video editing", "browser-side media", "category sweep 2026-08-18"],
+    useCase: ["reference for what a multi-track timeline, keyframes and export look like when the whole editor runs client-side"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Its own dependencies, including mediabunny, carry their own terms and have not been checked.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read it as the worked example of the shape WebAV provides the parts for, rather than adopting a whole editor",
+      "check its dependency licences before taking code; the repository's MIT does not travel to what it installs",
+      "weigh its age honestly: created November 2025, so its 2,046 stars were earned in about nine months and it has not been maintained through a long tail of browser changes yet",
+    ],
+    officialUrl: "http://freecut.net",
+    repoUrl: "https://github.com/walterlow/freecut",
+    notes:
+      "2,046 stars, React and TypeScript on WebCodecs and WebGPU, MIT, pushed within the last year. A complete multi-track video editor running entirely in the browser -- keyframe animation, real-time preview, exports. Recorded beside WebAV because the two answer different questions: WebAV is an SDK somebody builds an editor with, and this is what an editor built that way looks like when it is finished. For a product that does not want to write a timeline from scratch, the second is the more useful thing to read. React puts it in the same position as Excalidraw with respect to this runtime, and the same vendoring decision applies. Its youth is the honest caution: a browser-side editor's real cost is keeping up with codec and browser changes, and this project has not yet had to.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "dependency licences are checked before any code is taken, because MIT on the repository is not MIT on what it installs",
+      "the customer's video stays on the customer's device",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "seek-tune (Shazam-style audio fingerprinting)",
+    slug: "seek-tune-audio-fingerprinting",
+    category: ["audio fingerprinting", "anti-clone safety", "category sweep 2026-08-18"],
+    useCase: ["recognising that two recordings are the same recording, which is the matching half of the anti-clone rule AGENTS.md states"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\").",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "do not wire this to song_fingerprints on the strength of the name -- read that table's columns first, and see the note below",
+      "the safety flow comes before the matching: lib/sonara-subsystem-registry.cjs already records that nothing should act on a match until one is designed, and a matcher without it is worse than no matcher",
+      "reach it as a service the owner runs; it is Go with a database behind it, not a library this runtime imports",
+    ],
+    officialUrl: "https://github.com/cgzirim/seek-tune",
+    repoUrl: "https://github.com/cgzirim/seek-tune",
+    notes:
+      "5,595 stars, Go, MIT, last pushed November 2025 -- inside the last year but by nine months, which is worth knowing before depending on it. It implements Shazam's recognition algorithm: spectrogram peaks, hashed constellation pairs, matched against a database. The reason this record exists is a trap it would be easy to walk into. This repository already has a table called song_fingerprints, described in the subsystem registry as backing anti-clone matching, and the obvious move is to point an acoustic fingerprinter at it. The columns say otherwise. song_fingerprints holds song_title, creator_name, identity, mood, audience_signal and sonic_palette, and its fingerprint_id is a plain text field somebody supplies. There is no audio, no hash, no value derived from a recording -- it is a description of a work's creative identity, and the word fingerprint in its name means something entirely different from the word fingerprint in this repository's. Nothing in the runtime reads or writes it either: grep finds the migration, the tenant-scoped list and the registry note, and no writer. So adopting acoustic fingerprinting is new storage and a new safety flow, not a column added to an existing table. The registry's own status line is the honest one and still holds: nothing matches or blocks today, and the flow has to be designed before anything acts on a match.",
+    safetyBoundaries: [
+      "no automated action on a match: a match is evidence for a person to look at, never a takedown, a block or a published accusation",
+      "a false positive accuses a creator of copying, so the flow that consumes a match is the safety-critical part, not the matcher",
+      "recordings uploaded for matching are the uploader's own work and are subject to the same consent, retention and export rules as every other record here",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Spleeter",
+    slug: "spleeter-source-separation",
+    category: ["audio processing", "stem separation", "category sweep 2026-08-18"],
+    useCase: ["splitting a recording into vocals, drums, bass and other, so a creator can reuse or remix their own material"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). The pretrained models it ships are published by Deezer under their own terms and are not covered by this record.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "check the pretrained models' terms separately: the code is MIT and the models are the part that does the work, which is the same split as WhisperX",
+      "reach it as a service the owner runs; it is Python and TensorFlow, which is not what a serverless function loads",
+      "separation is only offered on material the uploader owns -- pulling stems out of somebody else's record is exactly what the anti-clone rule exists to prevent",
+    ],
+    officialUrl: "https://research.deezer.com/projects/spleeter.html",
+    repoUrl: "https://github.com/deezer/spleeter",
+    notes:
+      "28,379 stars, MIT, pushed within the last year, from Deezer's research group. Separates a mix into vocals, drums, bass and other. The obvious Creator Studio use is a creator reworking their own material -- pulling an a cappella out of a track they own, or a backing track for live use -- and the obvious misuse is doing it to somebody else's record, which is why the boundary below is stated rather than assumed. Two constraints beyond the licence, both familiar from the speech-recognition records: TensorFlow and Python put it outside this runtime, and its MIT licence covers the code rather than the pretrained models, which are separately published and are the part that actually separates anything.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "separation offered only on material the uploader owns, under the same provenance rules as every other upload",
+      "never a dependency: a creator's records stay readable whether or not any audio service is reachable",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Ghost",
+    slug: "ghost-publishing-memberships",
+    category: ["publishing", "memberships", "paid subscriptions", "category sweep 2026-08-18"],
+    useCase: ["the reference for how paid memberships, tiers, gated posts and newsletters fit together for somebody selling their own writing"],
+    productFit: ["Creator Studio", "Growth Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Detected at the root of a large monorepo, so a specific package still needs checking before code is taken from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read it for the membership model first -- tiers, gated posts, what a member sees before and after paying -- which is the part this product does not have and needs no licence resolved to study",
+      "if adopted, it is a service the owner runs and this application reaches through an adapter, under the four rules in docs/architecture/EXTERNAL-SERVICES.md; it is a full application, not a library to import",
+      "any money it handles goes through the same provider path as every other payment here: no card data, no CVV, success only after provider confirmation",
+    ],
+    officialUrl: "https://ghost.org",
+    repoUrl: "https://github.com/TryGhost/Ghost",
+    notes:
+      "54,789 stars, Node.js, MIT, pushed within the last year, and it answers a question an earlier pass of this sweep failed to answer. Searching topic:paywall for a way to help creators put work behind a paywall returned four tools for *defeating* paywalls and nothing that builds one. The thing that builds one was under topic:publishing all along, described as \"publishing, memberships, subscriptions and newsletters\". The search term was the whole of the failure, which is worth remembering next time a category looks empty. It is also the strongest counterexample to this sweep's NOASSERTION observation: Ghost(Pro) is not a side business, it is how the project is funded, and the software is still MIT. Being Node.js puts it in the same language as this application, which is less useful than it sounds -- Ghost is a full application with its own database and admin client, so adopting it means running it, not importing it. The value available without adopting anything is the membership model itself.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "never a dependency: a creator's own records stay readable from this product whether or not any publishing service is reachable",
+      "readiness reports a host, never a URL, and the admin API key gets the same treatment as every other credential here",
+      "member lists are personal data under the same consent and retention rules as customer records",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Excalidraw",
+    slug: "excalidraw-drawing-canvas",
+    category: ["drawing", "whiteboard", "diagrams", "category sweep 2026-08-18"],
+    useCase: ["a drawing and diagram canvas a creator could sketch in, and a business could lay out a floor plan or seating chart in"],
+    productFit: ["Creator Studio", "Business Builder"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Detected at the repository root, and this is a monorepo, so a specific package still has to be checked before code is taken from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "decide the vendoring question before the feature question: this runtime has no bundler, so using it means serving a prebuilt bundle from this origin and owning that bundle's updates",
+      "check the specific package's licence, not the root, before taking code rather than using the published build",
+      "anything a customer draws is their own work and belongs to them, under the same provenance and export rules as every other record here",
+    ],
+    officialUrl: "https://excalidraw.com",
+    repoUrl: "https://github.com/excalidraw/excalidraw",
+    notes:
+      "129,927 stars, pushed within the last year, MIT. Found by filtering on licence before assessing fit, which is the method this sweep arrived at after three category leaders in a row turned out to carry licences GitHub could not classify. It is also the counterexample to that rule, and is recorded partly for that reason: Excalidraw has a hosted commercial product at excalidraw.com behind it and still ships MIT at the root. So \"alternative-to-X projects with a company behind them protect themselves against hosted resale\" is a tendency worth searching by, not a law, and it was stated after three data points and contradicted by the fourth. What stands between this and a shipped feature is not the licence. It is published as a React package, and this application is server-rendered Express with no build step and a Content-Security-Policy of script-src 'self'. Using it means serving a prebuilt bundle from this origin -- which the CSP permits -- and taking on that bundle's size and its updates permanently. That is a supply-chain and page-weight decision for the owner, and it is a real one; it is not a licence problem and should not be recorded as one.",
+    safetyBoundaries: [
+      "no third-party script served from another origin: the CSP is script-src 'self' and stays that way",
+      "a customer's drawings are their own work, exportable and erasable with the rest of their account",
+      "off by default until the vendoring decision is made, rather than half-added",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Hi.Events (event management and ticket selling)",
+    slug: "hi-events-ticketing",
+    category: ["events", "ticketing", "RSVP", "category sweep 2026-08-18"],
+    useCase: ["reference for how ticket types, capacity, check-in and door management fit together for a business running an event"],
+    productFit: ["Growth Studio", "Business Builder"],
+    license:
+      "Not classifiable by GitHub. Detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the licence file and could not match it to a known licence. Nobody here has read it, so this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the licence file before anything else; a hosted product at hi.events sits behind this repository",
+      "read it for the domain model -- ticket types, capacity, QR check-in, door management -- which needs no licence resolved",
+      "any ticket sale is money changing hands, so it goes through the same provider path as every other payment here: no card data, no CVV, success only after provider confirmation",
+    ],
+    officialUrl: "https://hi.events",
+    repoUrl: "https://github.com/HiEventsDev/Hi.Events",
+    notes:
+      "3,981 stars, pushed within the last year. Self-hosted event management and ticket selling, positioned against Eventbrite, Tito and Ticket Tailor, built on Laravel and React. Found under topic:event-management, where four of the eight results above 300 stars are software event *dispatchers* -- saltstack/salt, golevelup/nestjs, laminas-eventmanager, gookit/event -- rather than anything to do with real-world events. This is the third repository in this sweep that leads its category, has a hosted commercial product behind it, and returns NOASSERTION; twenty in CRM and Carbon in manufacturing are the other two. Three for three is no longer a coincidence worth mentioning in passing: the \"open-source alternative to X\" projects are the ones most likely to have written a licence against being resold as a hosted service, which is what this product is. PHP and Laravel also put it off this runtime's stack, so the realistic value here is the domain model rather than the code.",
+    safetyBoundaries: [
+      "no code copied before somebody reads the licence file at source",
+      "ticket payments follow the same rules as every other payment: no raw card data or CVV stored, and success shown only after provider confirmation",
+      "attendee lists are personal data under the same consent and retention rules as customer records",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Carbon (open ERP, MES and QMS for manufacturing)",
+    slug: "carbon-manufacturing-erp-mes",
+    category: ["manufacturing", "ERP", "MES", "category sweep 2026-08-18"],
+    useCase: ["reference for how work orders, routings, quality records and configure-to-order pricing hang together on this product's own stack"],
+    productFit: ["Business Builder"],
+    license:
+      "Not classifiable by GitHub. Detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the licence file and could not match it to a known licence. Nobody here has read it either, so this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the licence file before anything else; the architectural fit is what makes this tempting and is not a reason to skip that",
+      "read it for the manufacturing domain model rather than to adopt: work orders, routings and quality records are the hard part, and they are readable without taking code",
+      "a hosted commercial product at carbon.ms sits behind it, which usually means the repository licence is written to protect that -- expect the file to restrict exactly the use this product would make of it",
+    ],
+    officialUrl: "https://carbon.ms",
+    repoUrl: "https://github.com/crbnos/carbon",
+    notes:
+      "2,366 stars, created June 2024, pushed within the last year. ERP, MES and QMS for complex assembly and contract manufacturing, built on Supabase, PostgreSQL, TypeScript and React Router -- the same database and language this product runs on, which makes it the closest architectural fit found in the manufacturing sweep. That is also why it is worth stating what it has in common with twenty, the closest fit in the CRM sweep: both are Supabase-and-TypeScript, both have a hosted commercial product behind them, and both return NOASSERTION. The pattern is not a coincidence. A project with a company behind it writes a licence protecting itself against being resold as a hosted service, which is precisely the use a hosted product like this one would make of it. The closest architectural fits are systematically the ones with the least usable licences, and searching by stack rather than by licence walks straight into it.",
+    safetyBoundaries: [
+      "no code, schema or migration copied before somebody reads the licence file at source",
+      "reading the domain model is not adoption and does not need the licence resolved; taking anything does",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "whisper.cpp",
+    slug: "whisper-cpp-local-transcription",
+    category: ["speech recognition", "transcription", "category sweep 2026-08-18"],
+    useCase: ["captions and transcripts for Creator Studio uploads, produced on hardware the owner runs rather than a metered API"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). The Whisper model weights it loads are licensed separately by their publisher and are not covered by this record.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "adapter_built",
+    recommendedAction: [
+      "the review happened on 26 August 2026 and the adapter is built: lib/sonara-whisper-adapter.cjs, covered by tests/whisper-transcription.test.js and by the shared rules in tests/service-adapters.test.js",
+      "it is off until SONARA_WHISPER_ENABLED and SONARA_WHISPER_URL are set, and no page notices its absence",
+      "check the model weights' own licence separately before shipping anything that ships them -- the MIT grant above covers whisper.cpp, not the weights it loads",
+      "whisper-server accepts WAV unless started with --convert, which needs ffmpeg on that machine; the adapter reports that on its readiness rather than leaving it to be discovered",
+    ],
+    officialUrl: "https://github.com/ggml-org/whisper.cpp",
+    repoUrl: "https://github.com/ggml-org/whisper.cpp",
+    notes:
+      "52,977 stars, pushed within the last year. A C/C++ port of Whisper that runs on ordinary CPUs, which is the property that matters: transcription at no per-minute cost and with no audio leaving hardware the owner controls. The licence is the easy part of this record. The hard part is that it cannot run here. This application is Express on Vercel serverless with no build step, and a C++ binary plus multi-gigabyte model weights is not something a serverless function loads -- so \"adopt whisper.cpp\" means the owner runs it somewhere and this application reaches it through an adapter, which is a decision about infrastructure and cost rather than about a licence. Recorded because the register held ninety-five repositories and nothing at all under speech recognition, while captions and transcripts are squarely Creator Studio's job and the owner asked for speech recognition by name.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "never a dependency: captions and transcripts are an addition to a creator's own upload, never the thing standing between them and it",
+      "readiness reports a host, never a URL, because a base URL can carry a token in its query string",
+      "a creator's audio is their own work: nothing is transcribed without the upload being theirs, and nothing is retained beyond the transcript they asked for",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "WhisperX",
+    slug: "whisperx-word-timestamps-diarization",
+    category: ["speech recognition", "captions", "category sweep 2026-08-18"],
+    useCase: ["word-level timestamps for caption files, and speaker separation for interviews and podcasts"],
+    productFit: ["Creator Studio"],
+    license:
+      "BSD-2-Clause, from GitHub's detected licence field on 18 August 2026 (license.key \"bsd-2-clause\", spdx_id \"BSD-2-Clause\"). Permissive. The alignment and diarization models it pulls in are published separately and several of them carry their own acceptance terms, which this record does not cover.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "check the diarization models' own terms before shipping: the repository licence is permissive and the models it downloads are the part that is not settled here",
+      "reach it as a service the owner runs; it is Python and expects a GPU, so it is further from this runtime than whisper.cpp, not closer",
+      "speaker separation names who spoke, which is a claim about people -- treat its output as a draft a human confirms, never as a label published automatically",
+    ],
+    officialUrl: "https://github.com/m-bain/whisperX",
+    repoUrl: "https://github.com/m-bain/whisperX",
+    notes:
+      "23,617 stars, pushed within the last year. What distinguishes it from plain Whisper is word-level timestamps and speaker diarization, which is exactly the difference between a transcript and a caption file somebody can publish. Two cautions worth stating rather than discovering. Its permissive licence does not extend to the alignment and diarization models it downloads at runtime, and those are the pieces that do the work -- a record that says BSD-2-Clause and stops would be reporting a settled licence over an unsettled dependency. And diarization output attributes speech to a person; under this product's provenance and consent rules that is a draft for a human to confirm, not a label to publish.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "never a dependency: captions and transcripts are an addition to a creator's own upload, never the thing standing between them and it",
+      "readiness reports a host, never a URL, because a base URL can carry a token in its query string",
+      "a creator's audio is their own work: nothing is transcribed without the upload being theirs, and nothing is retained beyond the transcript they asked for",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Vosk",
+    slug: "vosk-offline-speech-recognition",
+    category: ["speech recognition", "on-device", "category sweep 2026-08-18"],
+    useCase: ["small-footprint transcription where the audio must not leave the machine, including on modest hardware"],
+    productFit: ["Creator Studio", "Business Builder"],
+    license:
+      "Apache-2.0, from GitHub's detected licence field on 18 August 2026 (license.key \"apache-2.0\", spdx_id \"Apache-2.0\"). The NOTICE and attribution obligations apply to anything derived from it. Its language models are published separately and vary in terms.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "prefer it over the Whisper family where the model must be small and the hardware modest, and Whisper where accuracy matters more than footprint",
+      "check the licence of each language model separately -- the API's Apache-2.0 does not travel to them",
+      "reach it as a service the owner runs; the native bindings do not belong in a serverless function",
+    ],
+    officialUrl: "https://github.com/alphacep/vosk-api",
+    repoUrl: "https://github.com/alphacep/vosk-api",
+    notes:
+      "15,064 stars, pushed within the last year, with bindings for Python, Java, C# and Node and models small enough for a Raspberry Pi. Recorded alongside whisper.cpp rather than instead of it because they fail differently: Vosk trades accuracy for footprint and runs where Whisper will not, which is the right trade for a business that wants a phone message transcribed on its own hardware and the wrong one for a creator captioning a film. Its 601 open issues against 15,064 stars are worth noticing before depending on it. As with the other two, the licence is settled and the constraint is architectural -- native bindings and model files are not what a Vercel function loads.",
+    safetyBoundaries: [
+      "off by default: absent configuration the adapter reports setup-required and no page notices",
+      "never a dependency: captions and transcripts are an addition to a creator's own upload, never the thing standing between them and it",
+      "readiness reports a host, never a URL, because a base URL can carry a token in its query string",
+      "a creator's audio is their own work: nothing is transcribed without the upload being theirs, and nothing is retained beyond the transcript they asked for",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Cal (calcom/cal.diy, formerly cal.com)",
+    slug: "cal-scheduling-infrastructure",
+    category: ["appointment booking", "scheduling infrastructure", "category sweep 2026-08-18"],
+    useCase: ["reference for availability rules, timezone handling, booking types and reschedule/cancel flows"],
+    productFit: ["Business Builder"],
+    license:
+      "MIT at the repository root, from GitHub's detected licence field on 18 August 2026 (license.key \"mit\", spdx_id \"MIT\"). Read as exactly that and no further: GitHub detects the *root* LICENSE file, and this is a large monorepo. A root licence is not a statement about every directory under it, and projects in this category commonly keep an enterprise directory under separate commercial terms. Anybody taking code from a specific package has to check that package.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "check the licence of the specific directory anything is taken from, not the root, because the root licence is the only thing established here",
+      "read it for availability and timezone rules rather than adopting it -- booking already exists in this product and the hard part is the rules, not the schema",
+      "treat any hosted cal.com service as a separate commercial question from the repository licence",
+    ],
+    officialUrl: "https://cal.diy",
+    repoUrl: "https://github.com/calcom/cal.diy",
+    notes:
+      "Scheduling infrastructure, 47,768 stars and 14,818 forks, pushed within the last year. Recorded here mainly because of how it was found. The earlier pass of this sweep reported that its licence could not be verified: repo:calcom/cal.com returned 422 and the licence API returned 403, and the honest reading at the time was that the session lacked permission. The repository had been renamed. Same repository id 350360184, same 2021 creation date, now calcom/cal.diy -- so the 422 was accurate and the inference drawn from it was not. A 422 saying \"the resource does not exist or you do not have permission\" was read as the second clause when it was the first. That is worth keeping: a refusal that names two causes is not evidence for whichever one you already suspected. Note also that repo: still returns 422 for names containing a dot, which is why this was found through an org: query instead.",
+    safetyBoundaries: [
+      "no code taken from any subdirectory before that subdirectory's own licence is read",
+      "booking data stays organization-scoped under the same rules as every other record in this product",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "wacrm (self-hostable WhatsApp CRM template)",
+    slug: "wacrm-supabase-crm-template",
+    category: ["CRM", "self-hosted template", "category sweep 2026-08-18"],
+    useCase: ["reference for shared inbox, pipeline and broadcast structure on the stack this product already runs"],
+    productFit: ["Growth Studio", "Business Builder"],
+    license:
+      "MIT. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. A first version of this record said only \"permissive family\", which is why the record is worded this way now.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "read the LICENSE file and the source before taking anything, because a template is copied rather than depended on",
+      "treat it as a reference for structure -- shared inbox, pipeline stages, broadcast records -- not as something to vendor wholesale",
+      "any WhatsApp Business API use it implies is a separate commercial and consent question, and is not covered by this record",
+    ],
+    officialUrl: "https://github.com/ArnasDon/wacrm",
+    repoUrl: "https://github.com/ArnasDon/wacrm",
+    notes:
+      "Self-hostable CRM built on Supabase, Next.js and TypeScript -- the same database this product runs on, which makes it the closest architectural fit found in any category swept so far. Shared inbox, contacts, sales pipelines, broadcasts and no-code automations. 1,961 stars, created April 2026, pushed within the last year. Its own description says \"Fork it, brand it, host it\", and the ratio confirms the shape: 5,221 forks against 1,961 stars, which is a template rather than a library. That distinction is the whole of the recommendation here. A dependency can be added and updated; a template is copied once and then maintained by whoever copied it, so taking it means taking on its code permanently, and the licence file has to be read first rather than inferred from an API field. This record first said the licence was permissive on the strength of that search filter, and shipped in the adoption path on that basis. tests/open-source-licence-terms.test.js rejected it, correctly: a filter reports which bucket a repository sorted into, and a bucket is not a grant. It sits at needs_license_review until the file itself is read, which is the difference between knowing and having been told. The WhatsApp Business API it is built around carries its own commercial terms and its own consent obligations under this product's rules, and nothing in this record speaks to either.",
+    safetyBoundaries: [
+      "no code copied before the LICENSE file is read at source",
+      "no customer messaging feature ships without the consent rules AGENTS.md already requires",
+      "WhatsApp Business API terms are reviewed separately from this repository's licence",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "twenty (open Salesforce alternative)",
+    slug: "twenty-crm-open-salesforce-alternative",
+    category: ["CRM", "licence unread", "category sweep 2026-08-18"],
+    useCase: ["none approved; licence unknown"],
+    productFit: ["Growth Studio"],
+    license:
+      "Not classifiable by GitHub. Its detected licence on 18 August 2026 is key \"other\", spdx_id \"NOASSERTION\" -- GitHub read the repository's licence file and could not match it to a known licence. That is why it appeared in neither the permissive nor the reciprocal filter earlier in this sweep: it is in neither family, rather than having been missed by both. Somebody has to read the file itself, and until they do this record states nothing about what it permits.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read the LICENSE file before anything else; a project this size with a non-standard licence usually has a reason for it",
+      "expect a source-available or dual-licence arrangement rather than a plain open-source one, and check what it says about hosting",
+      "do not treat 55,000 stars as evidence about terms",
+    ],
+    officialUrl: "https://github.com/twentyhq/twenty",
+    repoUrl: "https://github.com/twentyhq/twenty",
+    notes:
+      "At 55,065 stars the largest open CRM found in the 18 August 2026 sweep, describing itself as the open alternative to Salesforce. Recorded because of what the sweep could not establish rather than what it could: run against 37 CRM projects above 1,000 stars, the permissive filter returned 13 and the reciprocal filter returned 12, and this project was in neither. That is not a search failure -- both filters were the same query with one qualifier changed -- so its licence is something other than the six most common identifiers. Projects of this size with non-standard terms are frequently source-available or dual-licensed, and those arrangements usually say something specific about hosting the software as a service, which is exactly what this product would be doing. None of that is asserted here. What is asserted is that the terms are unread, and that a star count is not evidence about them.",
+    safetyBoundaries: [
+      "no code, schema or interface copied while the licence is unread",
+      "no assumption that a popular project is permissively licensed",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "brightbean-studio (self-hosted social scheduling)",
+    slug: "brightbean-studio-social-scheduling",
+    category: ["social media scheduling", "reciprocal licence", "category sweep 2026-08-18"],
+    useCase: ["none approved for incorporation; possible owner-operated deployment"],
+    productFit: ["Growth Studio", "Creator Studio"],
+    license:
+      "AGPL-3.0. Read on 18 August 2026 from GitHub's own detected licence field -- the search API with minimal_output false returns the repository object, whose license.spdx_id is what GitHub detected in the root LICENSE file. That is a different thing from the licence *filter* used earlier in this sweep, which only reports which bucket a repository sorted into. Its own topic list also says agpl, which is what this record first rested on; the detected licence confirms that rather than relying on it. Reciprocal, and this is a hosted product.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not incorporate any part of it into this codebase",
+      "if the owner wants it, run it as a deployment they operate, reached through an adapter, so the obligation sits with that deployment",
+      "read the licence file before any deployment decision; a topic tag is a claim by the author, not the licence itself",
+    ],
+    officialUrl: "https://github.com/brightbeanxyz/brightbean-studio",
+    repoUrl: "https://github.com/brightbeanxyz/brightbean-studio",
+    notes:
+      "A self-hostable social media management platform -- schedule, publish and manage content across ten-plus platforms from one dashboard, described by its authors as a free alternative to Buffer, Sendible and SocialPilot. 2,152 stars, created March 2026, pushed within the last year. Squarely in Growth Studio's territory, which is why it is recorded rather than skipped. Its own topic list begins with agpl, and the rule that has now applied in three of the four categories swept holds again: a reciprocal licence triggers on network use, so incorporating it into this hosted product would oblige releasing this product's source under the same terms. Worth noting the pattern across the sweep so far, because it is the useful part: in point-of-sale, in CRM and here, the strongest project in the category is more often reciprocal than not, and the permissively licensed options are smaller, newer, or templates.",
+    safetyBoundaries: [
+      "no code, schema or template copied into this codebase",
+      "any deployment is the owner's, on their infrastructure, with the licence obligation theirs",
+      "publishing to a customer's social accounts stays inside the owner-approval categories AGENTS.md already names",
+    ],
+    blockedUses: [
+      "incorporating any part of it into this hosted product",
+      "treating an owner-operated deployment as permission to vendor the code",
+    ],
+    humanReviewRequired: true,
+  },
+  // ---------------------------------------------------------------------------
+  // Twenty-eight repositories submitted together on 18 August 2026, with the
+  // instruction to "insure all technology is free and open source".
+  //
+  // They are not. Every licence below was read from the GitHub API's detected
+  // `license.spdx_id` rather than from a README or a memory, and the batch
+  // divides three ways that matter more than the count:
+  //
+  //   THREE DECLARE NO LICENCE AT ALL -- philtabor/MADDPG,
+  //   ripienaar/free-for-dev and SadServers/sadservers. CLAUDE.md states the
+  //   rule and it is worth restating: the absence of a licence is not
+  //   permission. All three are all rights reserved, and the largest of them
+  //   has 132,000 stars, which is exactly why "everyone uses it" is not a
+  //   licence check.
+  //
+  //   SIX ARE RECIPROCAL -- three of the four figranium repositories, plus
+  //   nautilus_trader, flox and Self-Driving-Car-in-Video-Games. These ARE free
+  //   and open source in the strict sense, and adopting one into this hosted
+  //   product obliges releasing this product's source under the same terms.
+  //   figranium-templates is AGPL-3.0, where serving it over a network is
+  //   itself the trigger.
+  //
+  //   THREE ARE "NOASSERTION" -- Unity ml-agents, GenAI_Agents and PostHog.
+  //   GitHub could not classify the licence, which is a prompt to read the file
+  //   rather than a verdict either way.
+  //
+  // The remaining sixteen are MIT, Apache-2.0 or Unlicense.
+  //
+  // TWENTY-SEVEN RECORDS FOR TWENTY-EIGHT SUBMISSIONS. boxyhq/saas-starter-kit
+  // was already in this register, reviewed earlier and carried further than a
+  // fresh review would have taken it -- its status is
+  // optional_adapter_after_review with the team, role and audit-log modelling
+  // already marked as worth adapting. A second record was written and then
+  // deleted: the duplicate-slug check refused it, which is the check doing
+  // exactly its job. Re-reviewing a repository from scratch would have replaced
+  // a considered decision with a shallower one.
+  //
+  // Five also fail the freshness rule set for this register -- reviewed
+  // repositories should have been created or updated within the last year --
+  // and each says so in its own record rather than being quietly dropped.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Figranium",
+    slug: "figranium",
+    category: ["browser automation", "workflow builder", "submitted 2026-08-18"],
+    useCase: ["visual block-based browser workflows executed through an API"],
+    productFit: ["Growth Studio", "Research Lab"],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Free and open source, and reciprocal: incorporating it into this product obliges releasing this product's source under the GPL.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not incorporate: GPL-3.0 reaches this product's own source, and SONARA is a hosted commercial product",
+      "running it as a separate service the owner operates, called over HTTP, is the arrangement that does not trigger the obligation -- and that is an infrastructure and cost decision, not a licensing one",
+      "read the workflow model freely; reading is not adopting",
+      "SUPERSEDED as a candidate, 18 August 2026: lib/sonara-crawl4ai-adapter.cjs already does this under Apache-2.0, is already built, and is already called from routes/market-intelligence-routes.cjs. Adopting Figranium would trade a permissive licence for a reciprocal one and gain nothing",
+    ],
+    officialUrl: "https://figranium.dev",
+    repoUrl: "https://github.com/figranium/figranium",
+    notes:
+      "480 stars, 19 forks, TypeScript, pushed the same day it was submitted, so it is alive. It stacks blocks into browser workflows and runs them through an API, which overlaps with what Crawl4AI already covers in this register as an optional adapter. The licence is the whole story here: Crawl4AI is Apache-2.0 and this is GPL-3.0, and that difference decides which of the two can ever be more than a service on the other end of a request. Playwright-based headless browsing also means a machine with a browser on it, which this runtime -- Express on Vercel serverless, no build step -- does not have.",
+    safetyBoundaries: [
+      "no GPL code enters this repository under any circumstance short of the owner deciding to release SONARA under the GPL",
+      "if ever run as an owner-operated service, it is reached through the Provider Gateway like every other external service, and its credentials stay server-only",
+      "scraping somebody else's site is a legal question about that site, separate from this licence question",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "n8n-nodes-figranium",
+    slug: "n8n-nodes-figranium",
+    category: ["workflow integration", "n8n community node", "submitted 2026-08-18"],
+    useCase: ["calling a locally running Figranium from n8n"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive, and notably NOT the licence of the thing it drives -- figranium itself is GPL-3.0.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "nothing to adopt: it is an n8n node, and this product does not run n8n",
+      "recorded because a permissive wrapper around a reciprocal core is a shape worth being able to recognise -- the MIT here buys nothing, because the node is useless without the GPL service behind it",
+    ],
+    officialUrl: "https://github.com/figranium/n8n-nodes-figranium",
+    repoUrl: "https://github.com/figranium/n8n-nodes-figranium",
+    notes:
+      "2 stars, 0 forks, TypeScript, pushed 13 August 2026. Its own description says it calls Figranium 'via the local API', which is the arrangement that keeps the GPL at arm's length -- and also means the useful half is the GPL half.",
+    safetyBoundaries: [
+      "an MIT wrapper does not relicense what it wraps",
+    ],
+  },
+  {
+    name: "Figranium MCP server",
+    slug: "figranium-mcp",
+    category: ["model context protocol", "agent tooling", "submitted 2026-08-18"],
+    useCase: ["exposing Figranium tools to Claude and other MCP clients"],
+    productFit: [],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not vendor: GPL-3.0, same reasoning as figranium itself",
+      "an MCP server the owner runs on their own machine and connects to their own Claude is their business and not this product's supply chain -- the distinction is whether SONARA ships it",
+    ],
+    officialUrl: "https://github.com/figranium/figranium-mcp",
+    repoUrl: "https://github.com/figranium/figranium-mcp",
+    notes:
+      "1 star, JavaScript, created 4 August 2026 and pushed on the 7th. Submitted alongside a request to add capability 'to Claude', and the honest reading is that this is a tool for the owner's own Claude sessions rather than something SONARA integrates. docs/architecture/EXTERNAL-SERVICES.md already records why: a serverless function cannot see the owner's laptop.",
+    safetyBoundaries: [
+      "nothing GPL is shipped by this product",
+      "an MCP server that drives a browser can reach anything the machine running it can reach, so it stays on a machine whose owner accepts that",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Figranium Templates",
+    slug: "figranium-templates",
+    category: ["automation presets", "marketplace", "submitted 2026-08-18"],
+    useCase: ["shared automation presets importable into Figranium"],
+    productFit: [],
+    license:
+      "AGPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. The strongest reciprocal licence in this batch: network use is itself the trigger, so serving it to users over HTTP obliges offering this product's source.",
+    licenseRisk: "critical",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "blocked rather than reference_only, and the difference is deliberate: AGPL-3.0 catches exactly the arrangement that keeps the plain GPL at arm's length",
+      "running it as a separate owner-operated service does NOT avoid the obligation the way it does for figranium itself, because the AGPL was written for that case",
+    ],
+    blockedUses: [
+      "incorporating any of it into this hosted product, which the AGPL network clause catches even when the code runs on a separate machine",
+    ],
+    officialUrl: "https://templates.figranium.dev",
+    repoUrl: "https://github.com/figranium/figranium-templates",
+    notes:
+      "1 star, TypeScript, pushed 8 August 2026. Worth recording precisely because the four figranium repositories carry three different licences -- GPL-3.0, MIT and AGPL-3.0 -- across one organisation. An organisation is not a licence, and checking one repository tells you nothing about its siblings.",
+    safetyBoundaries: [
+      "nothing AGPL is served by this product, hosted or otherwise",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "NautilusTrader",
+    slug: "nautilus-trader",
+    category: ["algorithmic trading", "event-driven engine", "submitted 2026-08-18"],
+    useCase: ["backtesting and live trading infrastructure"],
+    productFit: [],
+    license:
+      "LGPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal, though weakly: changes to the library must be released under the LGPL, while a program that merely links it need not be.",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "no product fit: SONARA Industries builds, creates and grows businesses. It does not trade, and none of Business Builder, Creator Studio or Growth Studio has a surface where an order would go",
+      "recorded rather than dismissed, because the LGPL distinction is worth having written down somewhere in this register",
+    ],
+    officialUrl: "https://nautilustrader.io",
+    repoUrl: "https://github.com/nautechsystems/nautilus_trader",
+    notes:
+      "26,250 stars, 3,398 forks, Rust with Python bindings, pushed 18 August 2026 -- by far the most active repository in this batch. It is genuinely excellent and genuinely unrelated to this product. Adopting it would mean SONARA acquired a trading capability, which is a regulated activity in every market it would operate in and a decision nobody has made. That is a product boundary rather than a licence problem, and it is the reason this record stops at research_only.",
+    safetyBoundaries: [
+      "no financial-advice or trade-execution surface is added to any SONARA product without an explicit owner decision and a regulatory review",
+      "LGPL modifications, if it were ever used, must be published",
+    ],
+    blockedUses: [
+      "presenting any output as financial advice",
+      "executing trades on a customer's behalf",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Flox",
+    slug: "flox",
+    category: ["developer environments", "package management", "submitted 2026-08-18"],
+    useCase: ["reproducible development environments built on Nix"],
+    productFit: ["Internal Development"],
+    license:
+      "GPL-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "using a GPL tool to build software does not make the software GPL -- the obligation follows the code you ship, not the compiler you ran",
+      "so flox is usable as a development tool by anyone working here, and is not a dependency of this product",
+      "recorded because that distinction is the one people get wrong about GPL tooling in both directions",
+    ],
+    officialUrl: "https://flox.dev",
+    repoUrl: "https://github.com/flox/flox",
+    notes:
+      "4,096 stars, Rust, pushed 18 August 2026. It solves a problem this repository does not currently have: the runtime is Express CommonJS with no build step, and CI installs with `pnpm install --frozen-lockfile`, which is already reproducible enough that a Nix layer would be added complexity rather than removed. Worth revisiting only if the deploy ever grows a real build.",
+    safetyBoundaries: [
+      "no GPL code enters this product's source; using the tool is not incorporating it",
+    ],
+  },
+  {
+    name: "free-for.dev",
+    slug: "free-for-dev",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["finding services with free tiers"],
+    productFit: ["Research Lab"],
+    license:
+      "None declared. The GitHub API returns no `license` object at all for this repository -- not NOASSERTION, absent. Under CLAUDE.md's rule that is all rights reserved: the absence of a licence is not permission, and nobody here can grant what its author has not.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "copy nothing: not the list, not an entry, not the wording of a description",
+      "read it as research and act on the facts it points at -- that a given vendor has a free tier is a fact about the vendor, and checkable at the vendor",
+      "if a service found through it is ever adopted, the record goes in this register on its own terms with its own licence read from source",
+    ],
+    blockedUses: [
+      "reproducing the list, an entry, or the wording of any description",
+      "resting a shipped SONARA feature on a vendor free tier found through it",
+    ],
+    officialUrl: "https://free-for.dev/",
+    repoUrl: "https://github.com/ripienaar/free-for-dev",
+    notes:
+      "132,144 stars and 13,871 forks -- the most-starred repository in this batch by a factor of three, and the one with the least permission attached to it. That combination is the entire reason this record exists. Popularity is not a licence, and a repository everyone has forked is still one nobody may copy from.\n\nIts subject is also a constraint this register already takes seriously: CLAUDE.md says cost is a constraint of the same weight as licence, and that a shipped feature resting on a vendor's free tier stops working when the tier changes, which is the vendor's decision and not this project's. A directory of free tiers is therefore a directory of things to be careful about, not a shopping list.",
+    safetyBoundaries: [
+      "no text from the list is reproduced in this repository or in any SONARA-facing copy",
+      "a free tier is a price, not a licence, and never a basis for a shipped capability",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "SadServers",
+    slug: "sadservers",
+    category: ["training scenarios", "devops practice", "submitted 2026-08-18"],
+    useCase: ["Linux and DevOps troubleshooting exercises"],
+    productFit: [],
+    license:
+      "None declared. The GitHub API returns no `license` object for this repository. All rights reserved.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "take nothing: the scenarios, their Terraform and their wording all belong to their author",
+      "no product fit either -- SONARA does not teach system administration, so there is nothing here that would have been adopted even if the licence allowed it",
+    ],
+    blockedUses: [
+      "copying, adapting or paraphrasing any scenario, its infrastructure code, or its wording",
+    ],
+    officialUrl: "https://sadservers.com",
+    repoUrl: "https://github.com/SadServers/sadservers",
+    notes:
+      "2,966 stars, HCL, pushed 13 August 2026, so it is maintained. Its own description calls it a SaaS, and the repository is the scenario definitions behind a paid product -- which is a coherent reason for an author to publish source without a licence, and a decisive reason for anybody else not to use it.",
+    safetyBoundaries: [
+      "nothing from an unlicensed repository is copied, adapted, or paraphrased into this product",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "MADDPG reference implementation (philtabor)",
+    slug: "philtabor-maddpg",
+    category: ["reinforcement learning", "research code", "submitted 2026-08-18"],
+    useCase: ["multi-agent deep deterministic policy gradients in PyTorch"],
+    productFit: [],
+    license:
+      "None declared. The GitHub API returns no `license` object for this repository. All rights reserved.",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "copy nothing from it",
+      "the ALGORITHM is published research and is not the author's to restrict -- MADDPG comes from a 2017 paper. This particular implementation of it is",
+      "no product fit regardless: nothing in SONARA trains a reinforcement-learning policy, and 'multi-agent' here means cooperating RL policies rather than the approval-gated task agents this product runs",
+    ],
+    blockedUses: [
+      "copying or adapting this implementation, which carries no licence",
+      "training or running a reinforcement-learning policy inside this application",
+    ],
+    officialUrl: "https://github.com/philtabor/Multi-Agent-Deep-Deterministic-Policy-Gradients",
+    repoUrl: "https://github.com/philtabor/Multi-Agent-Deep-Deterministic-Policy-Gradients",
+    notes:
+      "380 stars, 79 forks, Python, and last pushed on 8 April 2021 -- the day after it was created, and more than five years before it was submitted. It fails this register's freshness rule outright.\n\nWorth stating plainly because the word travelled: this was submitted in a batch of repositories named 'agents', and it is a different sense of the word. lib/sonara-agent-authority.cjs governs agents that take actions on a business's behalf behind seven owner-approval categories. MADDPG is about training neural network policies that cooperate in a simulated environment. Nothing in this product would use it, and reading the name as though the two were related is how an unrelated dependency gets adopted.",
+    safetyBoundaries: [
+      "nothing from an unlicensed repository is copied or adapted",
+      "no model training runs inside this application; AGENTS.md routes AI work through the Provider Gateway or an approved server-side adapter",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Unity ML-Agents Toolkit",
+    slug: "unity-ml-agents",
+    category: ["reinforcement learning", "game simulation", "submitted 2026-08-18"],
+    useCase: ["training agents inside Unity environments"],
+    productFit: [],
+    license:
+      "NOASSERTION: GitHub detects a licence file it cannot classify. Unity publishes this toolkit under its own terms, and 'the API could not name it' is a reason to read the file rather than a verdict either way. Unresolved here, and recorded as unresolved.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read Unity's actual licence text before anything else, and do not assume Apache-2.0 from the presence of an Apache header somewhere in the tree",
+      "no product fit in any case: SONARA does not ship a Unity game or a simulation environment",
+    ],
+    officialUrl: "https://unity.com/products/machine-learning-agents",
+    repoUrl: "https://github.com/Unity-Technologies/ml-agents",
+    notes:
+      "19,633 stars, C#, pushed 14 August 2026. Same naming coincidence as MADDPG above: 'agents' here means characters learning behaviours in a game engine. reciprocalLicense is recorded false because nothing found says otherwise, and that is a statement about what has been read rather than a conclusion -- the licence review this record asks for is what would settle it.",
+    safetyBoundaries: [
+      "nothing is adopted from a repository whose licence has not been read in full",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "PostHog",
+    slug: "posthog",
+    category: ["product analytics", "session replay", "feature flags", "submitted 2026-08-18"],
+    useCase: ["product analytics, experiments, error tracking, surveys"],
+    productFit: ["Growth Studio", "Admin Command Center"],
+    license:
+      "NOASSERTION: GitHub cannot classify it because the repository carries more than one licence. PostHog publishes the bulk under MIT and holds parts -- historically the `ee/` directory -- under its own enterprise terms. A per-directory licence is the trap here: 'PostHog is MIT' is true of most of the tree and false of the repository.",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "if any code is ever taken, establish which licence covers that exact path -- the repository-level answer does not exist",
+      "the realistic arrangement is not code at all: PostHog is a service, self-hosted or cloud, reached over HTTP, and that is a hosting and cost decision like every other in this register",
+      "before any of it: AGENTS.md requires consent and provenance, and session replay records what customers do on a page",
+    ],
+    officialUrl: "https://posthog.com",
+    repoUrl: "https://github.com/PostHog/posthog",
+    notes:
+      "37,750 stars, Python and TypeScript, pushed 18 August 2026. The strongest genuine product fit in this batch: Growth Studio already has attribution that says when it is not established, and lib/sonara-growth-tables.cjs already models touchpoints and experiments -- so this is a thing SONARA does, not a new direction.\n\nWhat stops it short of an adapter is not the licence. It is that session replay and event capture put customer behaviour into a third party, and this product's whole position is that provenance and consent are enforced rather than assumed. A `hand_entered` column exists on growth_touchpoints precisely so a typed-in touchpoint cannot be counted as a measured one; wiring in an analytics vendor is the opposite decision and belongs to the owner.",
+    safetyBoundaries: [
+      "no customer personal data leaves this product to any analytics service without recorded consent",
+      "service-role secrets stay server-only; an analytics key is not a reason to loosen that",
+      "session replay is not enabled by default under any circumstance -- AGENTS.md keeps sounds, alerts and anything intrusive off unless a person turns it on, and recording a customer's screen is squarely in that family",
+    ],
+    blockedUses: [
+      "recording customer sessions without disclosure and consent",
+      "sending raw payment or card fields anywhere, which is forbidden outright",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "GenAI Agents (NirDiamant)",
+    slug: "genai-agents-tutorials",
+    category: ["tutorials", "agent patterns", "submitted 2026-08-18"],
+    useCase: ["50+ worked implementations of generative-AI agent techniques"],
+    productFit: ["Research Lab"],
+    license:
+      "NOASSERTION: GitHub detects a licence file it cannot classify. Until it is read, what may be copied from it is unknown.",
+    licenseRisk: "unknown",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "read as research: understanding a pattern and copying an implementation are different acts, and only the second needs a licence",
+      "copy no notebook cell into this repository until the licence is read",
+    ],
+    officialUrl: "https://diamant-ai.com",
+    repoUrl: "https://github.com/NirDiamant/GenAI_Agents",
+    notes:
+      "23,845 stars, Jupyter notebooks, pushed 15 August 2026. Its value here is the same as microsoft/ai-agents-for-beginners below -- patterns rather than parts. Everything it demonstrates is Python against hosted model APIs, and this runtime is Express CommonJS on Vercel with no build step, so nothing in it could be a dependency even with a permissive licence.",
+    safetyBoundaries: [
+      "nothing is copied from a repository whose licence has not been read",
+      "any pattern adopted still runs through the Provider Gateway or an approved server-side adapter, and any action an agent takes still passes lib/sonara-agent-runner.cjs",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "wshobson/agents",
+    slug: "wshobson-claude-agents",
+    category: ["agent skills", "Claude Code plugins", "submitted 2026-08-18"],
+    useCase: ["a marketplace of subagents, skills and plugins for coding harnesses"],
+    productFit: ["Internal Development", "AI Code Assistant"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "the clearest answer in this batch to 'add skills to Claude': these are prompt and configuration files, not runtime code, so nothing about this repository's shape fights this one",
+      "adopt the FORM, not the files -- a skill that describes a generic codebase is worse than no skill here, because this repository's rules are specific and a generic one dilutes them",
+      "any skill added to this repository states the conventions that are actually checked by the release chain, so it cannot drift from the code without the build noticing",
+    ],
+    officialUrl: "https://sethhobson.com",
+    repoUrl: "https://github.com/wshobson/agents",
+    notes:
+      "38,898 stars, 4,143 forks, pushed 18 August 2026, and the second most-starred repository in this batch. Genuinely relevant, and relevant in a narrow way worth being precise about: it is a large collection of subagent definitions and skill markdown for Claude Code, Codex, Cursor and others. None of it executes inside SONARA. It changes how somebody works ON this codebase, not what the product does.\n\nRead against this repository, the useful observation is that the skills worth having here are the ones nobody else can write: pnpm only, no npm and no package-lock.json; the twenty-four-command release chain; that a check must be verified against bad input before it is trusted green; that absent is not false. A general-purpose 'code reviewer' skill would say none of that.",
+    safetyBoundaries: [
+      "a skill is instructions, and instructions from a third-party repository are read before they are trusted -- the same rule this product applies to any external content",
+      "nothing from it is wired into a runtime path; AGENTS.md governs what SONARA's own agents may do, and no external skill file changes that gate",
+    ],
+  },
+  {
+    name: "Open SaaS (wasp-lang)",
+    slug: "open-saas",
+    category: ["SaaS boilerplate", "agent skills", "submitted 2026-08-18"],
+    useCase: ["a free full-stack SaaS starter with auth, payments, jobs and an AGENTS.md"],
+    productFit: ["Internal Development", "Business Builder"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "reference, not adoption: it is a Wasp/React/Prisma application and this is Express CommonJS on Vercel with no build step, so it cannot be a dependency and switching to it would be a rewrite of a working product",
+      "the part worth reading is what it ships alongside the code -- a tailored AGENTS.md, skills, and a Claude Code plugin, which is the same idea this repository already applies in AGENTS.md and CLAUDE.md",
+      "its Stripe and Polar payment flows are worth comparing against lib/sonara-billing.cjs, reading only",
+    ],
+    officialUrl: "https://opensaas.sh",
+    repoUrl: "https://github.com/wasp-lang/open-saas",
+    notes:
+      "15,506 stars, 1,853 forks, pushed 6 August 2026. Of the four SaaS boilerplates in this batch it is the one that has thought about the same problem this repository has: how an AI assistant picks up work on a codebase without being told everything twice. SONARA answers that with AGENTS.md as rules and docs/HANDOFF_PROMPT.md generated from the repository so it cannot drift; Open SaaS answers it with a shipped AGENTS.md and plugin. Both answers are worth having seen.\n\nWhat it does not change: this product already has auth, organizations, plans, Stripe checkout, entitlements and a billing portal, all built and tested. A boilerplate is valuable before that exists.",
+    safetyBoundaries: [
+      "no payment code is copied; card data and CVV are never stored here and payment success is shown only after provider confirmation",
+      "reading a domain model needs no service running and no code taken",
+    ],
+  },
+  {
+    name: "OpenAI Agents SDK (Python)",
+    slug: "openai-agents-python",
+    category: ["agent framework", "orchestration", "submitted 2026-08-18"],
+    useCase: ["multi-agent workflows, handoffs, guardrails, tracing"],
+    productFit: ["AI Governance", "Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "cannot be a dependency: Python, and this runtime is Node with no Python anywhere in the deploy",
+      "its guardrail and handoff model is worth reading against lib/sonara-agent-authority.cjs, which solves the same problem with a deny-by-default classifier and seven owner-approval categories",
+      "note the difference before borrowing anything: its guardrails are advisory to the developer, and SONARA's gate is enforced and tested by scripts/verify-supabase-contract.mjs on every release",
+    ],
+    officialUrl: "https://openai.github.io/openai-agents-python/",
+    repoUrl: "https://github.com/openai/openai-agents-python",
+    notes:
+      "28,752 stars, pushed 18 August 2026. Also carries a vendor-lock consideration that has nothing to do with the licence: it is built around one provider's API, and this product routes AI through a Provider Gateway precisely so no single provider is load-bearing.",
+    safetyBoundaries: [
+      "any orchestration pattern adopted still runs through lib/sonara-agent-runner.cjs -- classify, decide, run, record -- rather than beside it",
+      "no provider key reaches the client; AI calls stay server-side",
+    ],
+  },
+  {
+    name: "LiveKit Agents",
+    slug: "livekit-agents",
+    category: ["realtime voice", "agent framework", "submitted 2026-08-18"],
+    useCase: ["realtime voice and video AI agents over WebRTC"],
+    productFit: ["Creator Studio", "Business Builder"],
+    license:
+      "Apache-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "blocked on architecture and cost rather than licence, which is the commonest verdict in this register",
+      "realtime voice means a persistent WebRTC connection and a media server; Vercel serverless functions are request-scoped and cannot hold one",
+      "cost has the shape this register flags hardest: bandwidth per participant per minute, which grows with the customer's success -- the same warning already recorded against live streaming",
+    ],
+    officialUrl: "https://docs.livekit.io/agents",
+    repoUrl: "https://github.com/livekit/agents",
+    notes:
+      "13,065 stars, 3,574 forks, Python, pushed 18 August 2026. A real product fit exists -- a business taking bookings by phone, a creator running a live session -- and it is the fit that would cost the most to serve. Recorded at research_only for that reason rather than dismissed.\n\nAnything voice here also lands on rules that already exist: AGENTS.md requires provenance, consent and anti-clone safety, and routes/creator-generation-routes.cjs already refuses a voice job whose recorded permission does not cover the capability being asked for. A realtime voice agent speaking as somebody is exactly the case those rules were written for.",
+    safetyBoundaries: [
+      "a synthetic voice resembling a real person requires a live consent record whose scope covers that capability -- already enforced for generation jobs and would apply here",
+      "no call is recorded without disclosure and consent",
+      "sounds and voice announcements stay off unless a person turns them on",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Cloudflare Agents",
+    slug: "cloudflare-agents",
+    category: ["agent framework", "edge runtime", "submitted 2026-08-18"],
+    useCase: ["stateful AI agents on Durable Objects and Workers"],
+    productFit: ["Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "TypeScript and genuinely close to this stack, and still not adoptable: it is built on Durable Objects, which exist on Cloudflare and not on Vercel",
+      "adopting it means moving hosting, which is an infrastructure decision and a migration, not an integration",
+      "its durable-state model is worth reading against agent_schedules and agent_pending_actions, which solve the same 'an agent's work outlives one request' problem with Postgres rows and an hourly scheduler",
+    ],
+    officialUrl: "https://developers.cloudflare.com/agents/",
+    repoUrl: "https://github.com/cloudflare/agents",
+    notes:
+      "5,458 stars, TypeScript, pushed 18 August 2026. Worth recording that the existing approach is not a workaround for lacking Durable Objects: a row in agent_pending_actions carries the action's own inputs and is re-classified when approved, which is auditable in a way an in-memory object is not. Different tools for a problem that looks the same from outside.",
+    safetyBoundaries: [
+      "an agent that can resume work still passes the approval gate on each run; durability must not become a way to carry an old approval forward",
+    ],
+  },
+  {
+    name: "Microsoft 365 Agents SDK",
+    slug: "microsoft-365-agents-sdk",
+    category: ["agent framework", "channel integration", "submitted 2026-08-18"],
+    useCase: ["agents for Teams, M365, Copilot Studio and Webchat"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence is permissive and the dependency is not: it targets Microsoft channels, which means an Azure tenant, app registrations and Microsoft's own terms sitting behind the MIT",
+      "no SONARA product publishes into Teams or Copilot Studio, and adding one is a market decision rather than an engineering one",
+    ],
+    officialUrl: "https://aka.ms/agentsdkdocs",
+    repoUrl: "https://github.com/microsoft/Agents",
+    notes:
+      "1,041 stars, TypeSpec, pushed 18 August 2026 -- much smaller than its namesake microsoft/ai-agents-for-beginners, and a different thing entirely. Recorded mainly so the two Microsoft repositories in this batch are not confused with each other later: one is a course, this is an SDK.",
+    safetyBoundaries: [
+      "an MIT SDK for a proprietary platform does not make the platform's terms permissive",
+    ],
+  },
+  {
+    name: "aiwaves-cn/agents",
+    slug: "aiwaves-agents",
+    category: ["agent framework", "research", "submitted 2026-08-18"],
+    useCase: ["data-centric self-evolving autonomous language agents"],
+    productFit: [],
+    license:
+      "Apache-2.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "fails this register's freshness rule: last pushed 26 September 2024, nearly two years before it was submitted",
+      "the licence is fine and the maintenance is the problem -- an unmaintained dependency in a hosted product is a security question that answers itself over time",
+      "'self-evolving' is also the opposite of what AGENTS.md requires: unknown sensitive actions default to owner review, and an agent that rewrites its own behaviour is one whose classification cannot be checked",
+    ],
+    officialUrl: "https://github.com/aiwaves-cn/agents",
+    repoUrl: "https://github.com/aiwaves-cn/agents",
+    notes:
+      "5,954 stars, Python. Two independent reasons not to adopt, and the second matters more than the first: this product's agent design is deliberately a fixed classifier with a deny-by-default rule, checked on every release. A framework whose selling point is agents that change themselves cannot be reconciled with a gate that has to be provable.",
+    safetyBoundaries: [
+      "no agent in this product modifies its own authority; lib/sonara-agent-authority.cjs is code, reviewed and version-controlled",
+    ],
+  },
+  {
+    name: "Archon",
+    slug: "archon-coding-harness",
+    category: ["AI coding harness", "workflow engine", "submitted 2026-08-18"],
+    useCase: ["making AI coding deterministic and repeatable"],
+    productFit: ["AI Code Assistant", "Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "a development tool rather than a product dependency: it shapes how code gets written here, and ships nothing to a customer",
+      "read its harness model against what this repository already does -- AGENTS.md as rules, docs/HANDOFF_PROMPT.md generated so it cannot drift, and a release chain that fails on a stale count",
+      "it also needs Bun, which is not in this toolchain and would be a second package manager in a repository whose rules say pnpm only",
+    ],
+    officialUrl: "https://archon.diy",
+    repoUrl: "https://github.com/coleam00/Archon",
+    notes:
+      "23,222 stars, 3,461 forks, TypeScript, pushed 18 August 2026. Its stated goal -- deterministic, repeatable AI coding -- is the same goal this repository pursues by different means: generated documentation that cannot disagree with the code, and twenty-four release checks that have to pass. Worth reading for what it does that generated docs do not.",
+    safetyBoundaries: [
+      "a coding harness gets whatever access the person running it has; it is a local tool and not part of the deployed product",
+      "AGENTS.md's build rules still apply to anything it produces: pnpm only, no npm, no package-lock.json",
+    ],
+  },
+  {
+    name: "AI Agents for Beginners (Microsoft)",
+    slug: "ai-agents-for-beginners",
+    category: ["course", "agent patterns", "submitted 2026-08-18"],
+    useCase: ["18 lessons on building AI agents"],
+    productFit: ["AI Code Assistant", "Research Lab"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "course material: read it, take no dependency",
+      "MIT covers the code samples; the prose and images may carry Microsoft's separate documentation terms, so quote sparingly and attribute",
+    ],
+    officialUrl: "https://aka.ms/ai-agents-beginners",
+    repoUrl: "https://github.com/microsoft/ai-agents-for-beginners",
+    notes:
+      "72,558 stars and 24,016 forks -- the most-starred repository in this batch after free-for-dev, and unlike free-for-dev it carries a licence that permits use. Python notebooks against Azure and Semantic Kernel, so nothing here runs in an Express CommonJS deploy.\n\nThe part with real value for this repository is the design vocabulary: tool use, planning, reflection, multi-agent handoff, and how to evaluate whether an agent did the right thing. That last one is the gap SONARA has not closed -- lib/sonara-agent-action-log.cjs records that a run happened, and nothing scores whether it should have.",
+    safetyBoundaries: [
+      "patterns adopted still route through the Provider Gateway and still pass the approval gate",
+    ],
+  },
+  {
+    name: "500 AI Agents Projects",
+    slug: "500-ai-agents-projects",
+    category: ["link directory", "market intelligence", "submitted 2026-08-18"],
+    useCase: ["an indexed collection of AI agent use cases by industry"],
+    productFit: ["Research Lab"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "an index, so its value is the destinations rather than the file -- and each destination is a separate licence question, not covered by this repository's MIT",
+      "worth contrasting with free-for-dev above, which is the same kind of artefact with no licence at all: the difference is not popularity, it is whether the author granted anything",
+    ],
+    officialUrl: "https://ashishpatel26.github.io/500-AI-Agents-Projects/",
+    repoUrl: "https://github.com/ashishpatel26/500-AI-Agents-Projects",
+    notes:
+      "36,663 stars, 6,541 forks, pushed 27 July 2026. Organised by industry -- healthcare, finance, education, retail -- which is the axis Business Builder cares about, so it is a reasonable place to look for what businesses in a sector actually want automated. Treat every entry it points at as unreviewed until it has its own record here.",
+    safetyBoundaries: [
+      "linking to a repository is not reviewing it; nothing is adopted from a destination without its own record in this register",
+    ],
+  },
+  {
+    name: "async-labs/saas",
+    slug: "async-labs-saas",
+    category: ["SaaS boilerplate", "submitted 2026-08-18"],
+    useCase: ["React, Next, Express, MongoDB SaaS boilerplate"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "fails this register's freshness rule: last pushed 21 March 2025, seventeen months before submission",
+      "also the wrong database: MongoDB, where this product is Postgres through Supabase with row level security and an organization_id tenant boundary on 213 tables",
+      "nothing to take",
+    ],
+    officialUrl: "https://saas-app.async-await.com",
+    repoUrl: "https://github.com/async-labs/saas",
+    notes:
+      "4,500 stars, TypeScript. The oldest and least maintained of the four SaaS boilerplates submitted, and the one with the least overlap. Recorded rather than dropped so the same repository is not re-reviewed in six months.",
+    safetyBoundaries: [
+      "no authentication or session code is adopted from an unmaintained boilerplate",
+    ],
+  },
+  {
+    name: "Chakra UI",
+    slug: "chakra-ui",
+    category: ["component library", "design system", "submitted 2026-08-18"],
+    useCase: ["accessible React component system"],
+    productFit: ["Internal Development"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "cannot be a dependency: React with a build step, and this product renders HTML from Express with no bundler at all",
+      "adopting it means introducing a front-end build, which is a larger decision than a component library",
+      "its accessibility work is worth reading as specification -- focus management, ARIA roles, keyboard behaviour -- because those are requirements this product has to meet whatever renders them",
+    ],
+    officialUrl: "https://chakra-ui.com",
+    repoUrl: "https://github.com/chakra-ui/chakra-ui",
+    notes:
+      "40,579 stars, TypeScript, pushed 18 August 2026. Excellent and structurally incompatible, which is the same verdict this register has reached for every front-end framework submitted. The constraint is recorded once in docs/architecture/EXTERNAL-SERVICES.md and holds here: no bundler, no build step, HTML rendered server-side.",
+    safetyBoundaries: [
+      "AGENTS.md's UI rules hold regardless of what renders them: mobile layouts avoid overflow, tap targets stay large enough, and motion respects the reduced-motion setting",
+    ],
+  },
+  {
+    name: "Nuxt SaaS template",
+    slug: "nuxt-ui-saas-template",
+    category: ["SaaS boilerplate", "marketing site", "submitted 2026-08-18"],
+    useCase: ["a Nuxt UI and Nuxt Content SaaS marketing template"],
+    productFit: [],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 18 August 2026. Permissive and non-reciprocal.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "Vue and Nuxt, so the same structural answer as Chakra UI: not adoptable without a build step this product does not have",
+      "smallest repository of the four SaaS templates at 556 stars, and mostly a marketing page rather than an application",
+    ],
+    officialUrl: "https://saas-template.nuxt.dev",
+    repoUrl: "https://github.com/nuxt-ui-templates/saas",
+    notes:
+      "556 stars, Vue, pushed 18 August 2026. Maintained, permissive, and aimed at the one part of this product that already exists and is already tested -- the public marketing pages, which have their own dark-first design and a check that they make no third-party requests.",
+    safetyBoundaries: [
+      "public pages make no third-party requests, which is asserted by tests; a template that loads external fonts or scripts would break that",
+    ],
+  },
+  {
+    name: "game-reversing",
+    slug: "game-reversing",
+    category: ["reverse engineering", "learning materials", "submitted 2026-08-18"],
+    useCase: ["beginner materials on reverse engineering video games"],
+    productFit: [],
+    license:
+      "The Unlicense, read from the GitHub API's detected license.spdx_id on 18 August 2026. A public-domain dedication -- the most permissive result in this batch.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence permits everything and there is nothing here this product would use",
+      "last pushed 5 April 2023, so it fails the freshness rule as well",
+      "worth stating why it is not blocked despite the subject: reverse engineering is a lawful skill, and the material is educational. What would be out of bounds is applying it to circumvent a protection measure or to defeat somebody else's licensing -- and nothing in SONARA has a reason to",
+    ],
+    officialUrl: "https://github.com/kovidomi/game-reversing",
+    repoUrl: "https://github.com/kovidomi/game-reversing",
+    notes:
+      "1,676 stars, 109 forks. Assembly and x86 tutorials. Recorded because it was submitted, and because the licence result is a useful contrast: the most permissive licence in the batch sits on the repository with the least product relevance, while the least permissive sits on the one with 132,000 stars.",
+    safetyBoundaries: [
+      "no technique from it is applied to circumvent a technical protection measure, a licence check, or anti-cheat in any product",
+      "SONARA ships no emulator and no game client",
+    ],
+    blockedUses: [
+      "circumventing DRM, licensing, or anti-tamper protection in any software",
+    ],
+  },
+  {
+    name: "Self-Driving Car in Video Games",
+    slug: "self-driving-car-video-games",
+    category: ["computer vision", "research code", "submitted 2026-08-18"],
+    useCase: ["a neural network that learns to drive in video games"],
+    productFit: [],
+    license:
+      "GPL-3.0, read from the GitHub API's detected license.spdx_id on 18 August 2026. Reciprocal.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "GPL-3.0, so nothing from it enters this product's source",
+      "last pushed 1 January 2024, failing the freshness rule",
+      "no product fit: it drives a car in a game from screen capture, and no SONARA product has a screen to watch or a vehicle to steer",
+    ],
+    officialUrl: "https://github.com/ikergarcia1996/Self-Driving-Car-in-Video-Games",
+    repoUrl: "https://github.com/ikergarcia1996/Self-Driving-Car-in-Video-Games",
+    notes:
+      "775 stars, Python and PyTorch. Third repository in this batch matched on the word 'agent' or on machine learning generally, and third with no path into a business operations product. Recorded so the pattern is visible: a submitted batch organised by keyword will contain things the keyword only appears to connect.",
+    safetyBoundaries: [
+      "no GPL code enters this repository",
+      "no model runs inside this application; AI work goes through the Provider Gateway or an approved server-side adapter",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "MoneyPrinterTurbo",
+    slug: "moneyprinter-turbo",
+    category: ["short-form video", "generation pipeline", "submitted 2026-08-19"],
+    useCase: ["one-click short video from a topic or keyword: script, narration, footage, subtitles, render"],
+    productFit: ["Creator Studio", "Render & Speed Tools"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive and non-reciprocal -- for the code. What the pipeline fetches while it runs is a separate stack of licences: the stock footage it assembles, the voice that narrates it, and the model that writes the script each carry their own terms, and none of them is MIT because this repository is.",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence is the easy part and is fine; three other things are not, and each is a different kind of decision",
+      "ARCHITECTURE: Python, ffmpeg and minutes of CPU with hundreds of megabytes of scratch space per video. This runtime is Express CommonJS on Vercel serverless with no build step and request-scoped functions, so it cannot run here in any form -- it is a worker the owner runs, like every other rendering candidate in this register",
+      "DOWNSTREAM LICENCES: the MIT covers the orchestration. Whatever stock source it is configured with has its own terms, and identifiable people and trademarks in stock footage carry release questions that no licence file answers",
+      "PRODUCT POLICY: this produces content published under a customer's name, at volume, aimed at TikTok, Reels and YouTube Shorts -- platforms with their own rules about inauthentic and automated content. Whether SONARA should mass-produce that for customers is a decision nobody has made, and it is not an engineering one",
+      "the name never appears in customer-facing copy. tests/guides.test.js asserts no page promises revenue, ranking or a guaranteed outcome, and a feature called MoneyPrinter attached to a creator tool is that promise made in a word",
+    ],
+    officialUrl: "https://github.com/harry0703/MoneyPrinterTurbo",
+    repoUrl: "https://github.com/harry0703/MoneyPrinterTurbo",
+    notes:
+      "108,500 stars and 16,474 forks -- **by a wide margin the most-starred repository ever submitted to this register**, more than three times the next -- Python, created March 2024 and pushed the day before it was submitted, so it is very much alive. Its own description: generate HD short videos from a topic or keyword with an automated AI workflow. Topics name the shape: ffmpeg, text-to-speech, subtitles, short-video, tiktok, youtube-shorts, instagram-reels.\n\nWhat could be verified from here and what could not, because the difference matters: the licence, the star and fork counts, the language, the activity and the topics are read from the GitHub API. The repository's own files were NOT read -- repository access in this environment is scoped to sonara-os, and the network egress proxy blocks direct fetches -- so the pipeline's exact stock source and provider list are taken from its description rather than from its code, and anything resting on them needs checking against the repository itself.\n\n**The genuinely useful finding is structural, and it is about SONARA rather than about this repository.** creator_generation_jobs.capability is a single `text not null check (capability in (...))` column: one capability per job. Text to speech is a job. Text to video is a job. A short video assembled from a script, a narration, footage and burnt-in subtitles is a *chain* of them, with each step's output feeding the next, and this product has no way to express that. Every generation surface here is one-shot. That is a real architectural gap, it was found by reading what a submitted repository does rather than by reading this codebase, and it would have to be closed before any pipeline of this kind could be driven from Creator Studio -- whether this one or one written here.\n\nRecorded at research_only rather than as an adapter candidate for that reason and the product-policy one above, not for the licence.",
+    safetyBoundaries: [
+      "provenance travels with the output: creator_generation_assets.provenance already records what produced an asset, and an assembled video is a composite whose sources have to be recorded rather than lost in the render",
+      "narration by a synthetic voice that is nobody's needs no consent from anybody, which is why text_to_speech is not in VOICE_CAPABILITIES. Anything resembling a real person's voice does, and routes/creator-generation-routes.cjs refuses a voice job whose recorded permission does not cover the capability being asked for",
+      "no page attaches an earnings claim to generated output, whatever the tool that made it is called",
+      "a customer's own account is the one at risk on the publishing platforms, so nothing auto-publishes on their behalf without an explicit action by them",
+      "AGENTS.md keeps customer campaigns behind owner approval, and bulk publishing is that in a different medium",
+    ],
+    blockedUses: [
+      "presenting generated video as footage somebody actually shot",
+      "publishing at volume to a customer's platform accounts without their explicit per-publication action",
+      "any wording that implies revenue, views or ranking will follow",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Scrapling",
+    slug: "scrapling",
+    category: ["web scraping", "adaptive selectors", "submitted 2026-08-19"],
+    useCase: ["fetching and parsing pages", "selectors that survive a site being redesigned"],
+    productFit: ["Growth Studio", "Research Lab"],
+    license:
+      "BSD-3-Clause, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive and non-reciprocal. Two obligations rather than one: the copyright notice travels with any redistributed code, and the third clause forbids using the author's name to endorse anything derived from it.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "**it is two libraries in one repository, and they need opposite answers.** Reading it as a single yes or no is how the second half gets adopted along with the first",
+      "ADAPTIVE SELECTORS -- genuinely additive over what is already built. lib/sonara-crawl4ai-adapter.cjs fetches a page and returns readable text; it has no notion of finding the same element again after a site is redesigned. That is a real capability and this is a real implementation of it",
+      "STEALTH -- out of bounds for this product, and the reason is concrete rather than squeamish. SONARA's own egress does the fetching, so bypassing a site's bot detection is this product overriding a site operator's stated wishes, on a customer's behalf, at a volume the customer chooses. Crawl4AI's adapter already reasons about the same exposure from the other direction: a URL somebody supplies plus a server that fetches it is a request forwarder with this application's network position behind it",
+      "and there is nothing here for the good half to attach to yet. `grep` finds no stored selector anywhere in routes/ or lib/, and nothing re-fetches a page on a schedule -- so an adapter today would be a capability with no caller",
+      "the MCP server it ships is the owner's own tooling if they want it, not something SONARA distributes -- the same line drawn for figranium-mcp",
+    ],
+    officialUrl: "https://scrapling.readthedocs.io/en/latest/",
+    repoUrl: "https://github.com/D4Vinci/Scrapling",
+    notes:
+      "75,014 stars and 7,499 forks -- the second most-starred repository ever submitted to this register, after MoneyPrinterTurbo -- Python, created October 2024, pushed hours before it was submitted. Playwright underneath, so it needs a machine with a browser and cannot run in a request-scoped serverless function; it is a service the owner runs, exactly like Crawl4AI already is.\n\n**Checking what this product already does turned up something worth recording on its own.** `research_sources` carries `permission_status text not null default 'needs_review'` -- a column whose whole purpose is to record whether a source may be crawled. Nothing reads it. Nothing writes it either: `grep` finds the table named only in the generated tenant-scope inventory and in a subsystem listing, and the live fetch endpoint takes a URL straight from the request body and hands it to Crawl4AI. So the schema anticipated a permission gate that was never built.\n\nThat is the order-of-operations point, and it is the one that decides this record. **Adding a tool whose selling point is not being detected, to a system that does not yet check whether it was allowed, is the wrong way round.** The permission gate is the cheaper piece of work and the one that would make either scraper defensible.\n\nSame comparison as Figranium, and a different result. Figranium was GPL-3.0 and did what the Apache-2.0 Crawl4AI adapter already does, so it was a worse-licensed duplicate and the answer was no. This is permissively licensed and does something Crawl4AI does not. The answer is still not yet -- but for a reason about this product rather than about the repository.",
+    safetyBoundaries: [
+      "no scraping capability is added that a customer could point at an address inside anyone's network: the existing adapter refuses loopback, link-local, cloud-metadata and private ranges, and any new fetcher inherits that rule rather than restating it",
+      "robots.txt and a site's terms are the site operator's answer, and this product does not ship a way to override them on a customer's behalf",
+      "a page fetched on a customer's behalf is their evidence, recorded under their organization, and never pooled across tenants",
+      "BSD-3-Clause attribution travels with any code adapted, and the author's name is never used to endorse a SONARA feature",
+    ],
+    blockedUses: [
+      "using its stealth or anti-bot-detection features from SONARA infrastructure",
+      "crawling any source whose permission_status has not been established, once that gate exists",
+      "collecting personal data from third-party sites on a customer's behalf",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "ToolJet",
+    slug: "tooljet",
+    category: ["internal tool builder", "low-code", "submitted 2026-08-19"],
+    useCase: ["building an application without writing it", "dashboards and workflows over your own data"],
+    productFit: ["Business Builder"],
+    license:
+      "AGPL-3.0, read from the GitHub API's detected license.spdx_id on 19 August 2026. Reciprocal, and reciprocal in the way that matters most here: the Affero clause triggers on **network use**, so serving this product to a customer over HTTP is distribution. Incorporating any of it would oblige releasing SONARA's source under the same terms.",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "not_allowed",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "**the closest thing on this register to something SONARA already ships.** The sub-app builder went in on 19 August 2026 -- a customer defines record types with their own fields and gets pages to fill them in. ToolJet is the mature, forty-thousand-star version of that idea, and it is the one repository here that could have been read as a shortcut",
+      "it is not a shortcut, and the licence is only the first reason. AGPL-3.0 on a hosted product means publishing this product's source, which is a business decision nobody has made and not one to arrive at by copying a component",
+      "the second reason is architectural and would apply at any licence. ToolJet is a React front end plus a NestJS server plus Postgres plus Redis, deployed as containers. This product is one Express file with a single production dependency and no build step, running as one serverless function. Adopting it is not adding a library, it is replacing the stack",
+      "READ IT FOR THE MODEL, NOT THE CODE. What is worth studying is how it stores a customer-defined schema and validates rows against it -- the exact problem lib/sonara-sub-apps.cjs solves with seven field types. Reading a design and writing your own is not derivation; copying source is",
+      "if a customer genuinely needs this, the honest answer is that they run ToolJet themselves and SONARA does not resell it -- the same line drawn for every reciprocal repository here",
+    ],
+    officialUrl: "https://tooljet.com",
+    repoUrl: "https://github.com/ToolJet/ToolJet",
+    notes:
+      "40,501 stars and 5,363 forks, created March 2021, pushed the day it was submitted. JavaScript and TypeScript.\n\nWorth stating plainly because it is the flattering comparison and flattering comparisons are where care lapses: **SONARA's sub-app builder is not a competitor to this and should not be described as one.** ToolJet builds applications with queries, components and workflows against arbitrary data sources. lib/sonara-sub-apps.cjs lets a business define a record type with up to thirty fields of seven kinds and fill it in. The second is a much smaller thing, deliberately, and its value is that it is already inside the product a customer is paying for rather than a second system to host.\n\nThe seven field types were chosen on the rule that each must render, validate and read back -- and that rule is what keeps the small thing honest rather than a worse version of the large one.",
+    safetyBoundaries: [
+      "no ToolJet source is copied, adapted or vendored into this product at any licence",
+      "a design read from its documentation is described in this repository's own words, never lifted",
+      "if the owner runs ToolJet for themselves, it stays their deployment and this product does not proxy, resell or bundle it",
+    ],
+    blockedUses: [
+      "incorporating any ToolJet code into a hosted SONARA product, which the Affero clause makes source-disclosing",
+      "offering ToolJet functionality to customers as a SONARA feature",
+      "describing the sub-app builder as a ToolJet equivalent in marketing copy",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "OpenCut",
+    slug: "opencut",
+    category: ["video editing", "browser timeline", "submitted 2026-08-19"],
+    useCase: ["trimming and assembling video", "an editor a creator opens in a browser"],
+    productFit: ["Creator Studio"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive, non-reciprocal, one obligation: the copyright notice travels with any redistributed code.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "the licence is the easy part and it is not what decides this. MIT means it could be adapted; whether it should be is a question about cost and about what Creator Studio currently is",
+      "**Creator Studio stores no media today.** Its record pages hold assets, releases, offers and consents -- rows describing work, not the work itself. An editor is not a feature that attaches to that; it is the second half of a media pipeline whose first half does not exist",
+      "the first half is what to price before anything else: uploads, storage, and transcoding are per-gigabyte costs that recur for as long as a customer keeps a file. Every tool this product ships today is arithmetic over the customer's own rows and costs nothing per use, and this would be the first thing that breaks that pattern",
+      "it is Next.js and React, which this repository has neither of -- the one Next.js application here was deleted on 19 August 2026 because it could not build. Adopting this means adopting that stack for one workspace, or running it as a separate service the owner hosts",
+      "the honest near-term version is far smaller: let a creator record where a file lives and what rights attach to it, which is a row, not a timeline",
+    ],
+    officialUrl: "https://opencut.app",
+    repoUrl: "https://github.com/OpenCut-app/OpenCut",
+    notes:
+      "85,165 stars and 8,386 forks, created June 2025, TypeScript. Positions itself as the open-source CapCut alternative.\n\nSubmitted alongside a set of screenshots quoting star counts. This one and the other GitHub Projects figures checked out against the API within a few hundred; a separate image listing thirty Claude Code repositories quoted numbers -- 270.7k, 203k, a claimed 2,758,126 total -- that do not survive the same check. **Star counts in this register come from the API, never from a screenshot**, which is the only reason that difference was visible.",
+    safetyBoundaries: [
+      "no media feature ships until storage and transcoding cost per customer is priced and written down",
+      "a creator's uploaded file is their own, stored under their organization, and never used to train or improve anything",
+      "MIT attribution travels with any code adapted",
+      "provenance and consent rules apply to edited output exactly as they do to generated output",
+    ],
+    blockedUses: [
+      "shipping an editor before the storage and transcoding bill it implies has been costed",
+      "processing a customer's media on infrastructure whose per-use cost is unbounded",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Logto",
+    slug: "logto",
+    category: ["authentication", "identity", "submitted 2026-08-19"],
+    useCase: ["sign-in, SSO and RBAC for a SaaS product", "multi-tenant identity"],
+    productFit: ["Admin Command Center"],
+    license:
+      "MPL-2.0, read from the GitHub API's detected license.spdx_id on 19 August 2026. Reciprocal **per file** rather than per project: changes to Logto's own files must be published, but combining it with separately-licensed code does not oblige releasing that code. Weaker than AGPL and stronger than MIT, and the distinction is the whole reason this is not simply blocked.",
+    licenseRisk: "medium",
+    reciprocalLicense: true,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "**this product already has the thing it does.** Supabase Auth issues the session, lib/sonara-customer-auth.cjs verifies it, and lib/sonara-paid-access.cjs and the route manifest carry the authorization side. Replacing that is not a gap being filled, it is a working system being swapped",
+      "the reason to keep the record anyway is the one open item it speaks to: docs/owner/OWNER-STEPS.md item 3 records four authorization functions that exist in the live database and in no migration. That is a problem about where authorization logic lives, and Logto is the shape of an answer where it lives in one reviewable place",
+      "MPL-2.0's file-level reciprocity is what makes it thinkable at all -- an AGPL identity provider inside a hosted product would be source-disclosing, and this is not",
+      "cost, as always, is the constraint of equal weight: self-hosting it is a server and a database to run and to patch, on the most security-sensitive path in the product. Supabase Auth is already paid for",
+      "no work here until somebody wants to leave Supabase Auth, which nobody does",
+    ],
+    officialUrl: "https://logto.io",
+    repoUrl: "https://github.com/logto-io/logto",
+    notes:
+      "14,383 stars and 1,174 forks, created June 2021, TypeScript, built on OIDC and OAuth 2.1. Advertises multi-tenancy, SSO and RBAC.\n\nRecorded as reference_only rather than blocked because the licence genuinely permits use and the refusal is about fit, not permission. Those are different answers and this register keeps them apart -- a record that says no should say which kind of no it is.",
+    safetyBoundaries: [
+      "no second authentication system runs beside Supabase Auth; two sources of truth about who somebody is, is worse than either",
+      "any Logto file modified would be published under MPL-2.0, and nothing is modified today",
+      "authorization decisions stay readable in version control, which is the reason this record exists at all",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Public APIs",
+    slug: "public-apis",
+    category: ["directory", "reference", "submitted 2026-08-19"],
+    useCase: ["finding a free API for a capability", "checking whether something has a public data source"],
+    productFit: ["Research Lab"],
+    license:
+      "MIT, read from the GitHub API's detected license.spdx_id on 19 August 2026. It covers the list itself, and covers nothing about the APIs the list names -- each of those carries its own terms, and the licence here grants no rights over any of them.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "it is a markdown list, not software. There is nothing to integrate and nothing to run",
+      "**the trap is the word free.** A free tier is a price, not a licence, and it is the vendor's to change. This repository already records that rule for hosted services, and a directory of free APIs is the single most efficient way to build a feature that stops working on somebody else's decision",
+      "useful for exactly one thing: checking whether a capability somebody has asked for has a public data source before anybody builds an adapter for it",
+      "if an API from this list is ever used, it gets its own record here with its own terms read -- the directory's MIT licence says nothing about the service's",
+    ],
+    officialUrl: "https://github.com/public-apis/public-apis",
+    repoUrl: "https://github.com/public-apis/public-apis",
+    notes:
+      "465,603 stars and 51,401 forks, created March 2016 -- by a wide margin the most-starred repository on this register, and the least consequential. That gap is worth leaving in the record: star count measures attention, and this register measures whether something can be used and at what obligation.",
+    safetyBoundaries: [
+      "no API from this directory is called from SONARA until its own terms, pricing and data handling are recorded here separately",
+      "no customer data is sent to a third-party API on the strength of it appearing in a list",
+      "a free tier is never the basis of a shipped feature",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Unsloth",
+    slug: "unsloth",
+    category: ["model training", "local inference", "submitted 2026-08-19"],
+    useCase: ["fine-tuning a language model", "running models on your own hardware"],
+    productFit: ["Private Model Mode"],
+    license:
+      "Apache-2.0, read from the GitHub API's detected license.spdx_id on 19 August 2026. Permissive, non-reciprocal, with an express patent grant -- the same licence as the Crawl4AI adapter already in this register.",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "the licence is clean and the fit is not. This trains and runs models on a GPU; nothing in this product does either",
+      "**a serverless function cannot reach a GPU, or your laptop.** docs/architecture/EXTERNAL-SERVICES.md is the long version and it applies here unchanged: the six service adapters already registered are all things the owner would host, and this is a seventh of the same kind, with the largest machine behind it",
+      "cost is the whole decision. A GPU is rented by the hour whether anyone is generating or not, which is the opposite shape to every tool this product ships -- those are arithmetic over the customer's own rows and cost nothing per use",
+      "the existing answer for model work is the Provider Gateway and the owner-run adapters, and it is the right one: no per-customer cost until somebody chooses to pay it",
+      "worth revisiting only if the owner already runs a GPU for another reason",
+    ],
+    officialUrl: "https://unsloth.ai/docs",
+    repoUrl: "https://github.com/unslothai/unsloth",
+    notes:
+      "73,775 stars and 6,663 forks, created November 2023, Python. Local UI for running and training language and diffusion models.\n\nRecorded because it was submitted, and because the reason it does not fit is a reason worth having written down once rather than rediscovered each time a model tool is proposed: the constraint is not capability or licence, it is that this product has no machine to put it on and no budget model that survives renting one.",
+    safetyBoundaries: [
+      "no model runs on infrastructure SONARA pays for per customer without that cost being priced first",
+      "customer data is never used to fine-tune a model",
+      "AGENTS.md's provider rule stands: model calls go through the Provider Gateway or an approved server-side adapter, never direct from a page",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "QR Code generator (Project Nayuki)",
+    slug: "nayuki-qr-code-generator",
+    category: ["QR code generation", "single-file library", "no dependencies", "vendorable"],
+    useCase: [
+      "put /book/:slug on a poster, a van or a receipt so somebody can book without typing an address",
+      "put /chat/:slug on printed material so the widget is reachable off the website",
+      "put /shared/:token on a paper quote or invoice so the customer can open the live one",
+    ],
+    productFit: ["Business Builder", "Growth Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "SUPERSEDED by lib/sonara-qr.cjs, which is written here rather than vendored -- see the note below for what was and was not taken",
+      "if that module is ever replaced by a vendored copy, keep the licence header comment: it IS the licence grant, and stripping it is the one thing MIT forbids",
+      "render to SVG, which needs no canvas, no image encoder and no binary -- the output is markup the existing pages already know how to serve",
+    ],
+    officialUrl: "https://www.nayuki.io/page/qr-code-generator-library",
+    repoUrl: "https://github.com/nayuki/QR-Code-generator",
+    notes:
+      "Licence read 25 August 2026 from the source file itself, not from a badge: typescript-javascript/qrcodegen.ts carries the full MIT grant in its header comment, 'Copyright (c) Project Nayuki. (MIT License)'. There is NO LICENSE file at the repository root and no licence field in the GitHub sidebar -- the Readme states MIT and every source file repeats the grant. That matters for how it would be adopted here: the grant travels in the file, so vendoring the file carries its own licence with it, and deleting the header to tidy it up would remove the only thing that makes the copy lawful.\n\nNo dependencies, six language implementations of equal functionality, and the QR specification (ISO/IEC 18004) implemented in full rather than the common subset. It is the reference implementation other libraries are ported from.\n\nWhat was actually taken, recorded plainly on 25 August 2026: lib/sonara-qr.cjs is written here, and the two capacity tables printed in ISO/IEC 18004 -- error-correction codewords per block, and the number of blocks -- were read from this repository's Python implementation rather than recalled, along with the closed forms for raw module count and alignment spacing. Those are the standard's numbers rather than anybody's creative work, but reading them from here is why this record credits the project in the module's own header. The Reed-Solomon arithmetic, masking, penalty scoring and bit placement are written in this repository, and tests/a-qr-code-can-be-read-back.test.js verifies them with an independently written decoder rather than against this library.\n\nThe use is real and already earned. This branch shipped three public addresses -- /book/:slug, /chat/:slug and /shared/:token -- and all three are things a business wants on paper. A QR code is pure computation over a string: no provider, no network, no cost per use, which is the same term every other tool in this product ships on.",
+    safetyBoundaries: [
+      "encode only URLs this application already serves -- a QR code is an unreadable link, and one pointing somewhere else is a phishing vector printed by us",
+      "never encode a token into an image on a page that is itself public: a QR code of a /shared/:token link is exactly as sensitive as the link",
+      "keep the vendored file byte-faithful apart from module wrapping, so it stays comparable against upstream",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "disposable-email-domains",
+    slug: "disposable-email-domains-blocklist",
+    category: ["data list", "email hygiene", "public domain dedication", "lead quality"],
+    useCase: [
+      "raise a risk flag on a captured lead whose email is a throwaway address, using the riskFlags mechanism lib/sonara-lead-scoring.cjs already has",
+    ],
+    productFit: ["Growth Studio"],
+    license: "CC0-1.0 (CC0 1.0 Universal public domain dedication)",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "vendor a dated snapshot of disposable_email_blocklist.conf rather than fetching at runtime -- a serverless function fetching a list from GitHub on every lead is a network call, a failure mode and a dependency on somebody else's uptime",
+      "FLAG, never block. A real customer whose company mail is down will use a throwaway address, and refusing them loses the sale this feature exists to win",
+      "record the snapshot date beside the file and treat the list as decaying from the day it is taken",
+    ],
+    officialUrl: "https://github.com/disposable-email-domains/disposable-email-domains",
+    repoUrl: "https://github.com/disposable-email-domains/disposable-email-domains",
+    notes:
+      "Licence read 25 August 2026 from LICENSE.txt -- note the extension, because raw requests for a file named LICENSE return 404 and it would be easy to record this as unlicensed. First lines: 'CC0 1.0 Universal (CC0 1.0) / Public Domain Dedication / No Copyright'. CC0 is a dedication rather than a permissive licence: there is no attribution condition to satisfy and no notice to keep.\n\nThe fit is specific and small. lib/sonara-lead-scoring.cjs already computes a risk score from flags it can actually observe -- a disqualifier term, a budget under the floor, no way to reply -- and a throwaway address is another observable of exactly that kind. It needs no new mechanism, only another flag.\n\nThe honest cost is staleness. The list changes daily and a vendored snapshot does not, so it will miss new domains from the day it is taken. That is acceptable for a flag and would not be acceptable for a block, which is the second reason the recommendation is to flag.",
+    safetyBoundaries: [
+      "a flagged lead is still written, still scored and still routed -- the flag changes the number, never whether the business hears about the person",
+      "never show the visitor that their address was flagged: it teaches somebody to retry with a different throwaway and tells an honest customer they are suspected",
+      "no runtime fetch of the list from GitHub on a customer request path",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Public Suffix List",
+    slug: "mozilla-public-suffix-list",
+    category: ["data list", "domain parsing", "file-level copyleft"],
+    useCase: [
+      "none today -- reviewed so the reason it is not needed is written down rather than re-argued",
+    ],
+    productFit: ["Internal Development"],
+    license: "MPL-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not adopt yet: nothing in this application needs to know a registrable domain",
+      "revisit only if disposable-address matching starts missing subdomains of throwaway providers, which is the one case a plain domain comparison cannot answer",
+      "if it is ever vendored, keep the MPL notice on the file -- MPL-2.0 is file-level copyleft, so the obligation attaches to that file and to nothing else here",
+    ],
+    officialUrl: "https://publicsuffix.org/",
+    repoUrl: "https://github.com/publicsuffix/list",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: Mozilla Public License Version 2.0. Recorded as NOT reciprocal in this register's sense, and the distinction is the whole reason this record exists. MPL-2.0 is file-level copyleft: modifying and distributing a covered file obliges publishing that file's source. It does not reach the software that reads it, and it has no network clause, so it does not put SONARA One's own source at issue the way AGPL-3.0 would. Somebody scanning for 'copyleft' and stopping there would block this incorrectly, and somebody who assumed all copyleft is AGPL-shaped would block it for the wrong reason.\n\nThere is no live use. The disposable-address check compares the domain after the @ against a list of full domains, which needs no suffix parsing at all. This is recorded because it is the obvious next thing somebody reaches for when that check misses a subdomain, and the answer at that point should be a decision rather than an assumption.",
+    safetyBoundaries: [
+      "never treat the list as a security boundary -- it is a description of how registrars behave, and it is always slightly behind them",
+      "no runtime fetch from publicsuffix.org on a customer request path",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "@vanillaes/csv",
+    slug: "vanillaes-csv-rfc4180-parser",
+    category: ["CSV parsing", "RFC 4180", "no dependencies", "conformance reference"],
+    useCase: [
+      "cross-check lib/sonara-tabular-import.cjs against an independent RFC 4180 implementation, rather than adopting anything",
+    ],
+    productFit: ["Business Builder"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not install it. This application has one production dependency and the parser it would replace already exists and already passes its own tests",
+      "use it as a second opinion if a customer ever reports a paste that imported wrongly -- an independent implementation disagreeing is a faster diagnosis than reading the spec again",
+    ],
+    officialUrl: "https://github.com/vanillaes/csv",
+    repoUrl: "https://github.com/vanillaes/csv",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: 'The MIT License (MIT)', Copyright (c) 2019 Evan Plaice. package.json declares no runtime dependencies and one devDependency, and sets type: module -- it is ESM only, which this application's .cjs runtime layer cannot require directly.\n\nRecorded as reference only after reading our own code rather than assuming a gap. lib/sonara-tabular-import.cjs already handles the five cases a naive split(',') gets wrong and that a library is usually adopted for: a quoted field containing the delimiter, a quoted field containing a newline, a doubled quote meaning a literal quote, CRLF line endings, and a byte-order mark on the first cell -- that last one being how 'Name' silently becomes an unmatched header. There is no defect here for a dependency to fix, and adding one would cost the single-dependency posture for nothing.\n\nWorth keeping the record so that the next person who proposes a CSV library finds out in one search that the question was asked and answered.",
+    safetyBoundaries: [
+      "no npm dependency added for a parser this repository already has",
+      "CSV written by this product stays formula-neutralised regardless of what any reference implementation does -- that is a spreadsheet-safety decision, not a spec question",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "OpenVoice",
+    slug: "myshell-openvoice-voice-cloning",
+    category: ["voice cloning", "text to speech", "cross-lingual", "local model", "consent-gated"],
+    useCase: [
+      "tools/voice-clone/ -- a tool the owner runs on their own machine, behind a consent gate",
+    ],
+    productFit: ["Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "keep it out of SONARA One's runtime: Vercel bundles {public/**,routes/**,lib/**} into a serverless function, and PyTorch plus multi-gigabyte checkpoints do not go there and would not suit that execution model if they did",
+      "never expose voice cloning without the consent gate -- AGENTS.md says enforce provenance, consent and anti-clone safety, and a tickbox enforces nothing",
+      "keep the wavmark watermark on every output; it is the provenance half of the same rule and it is already built into OpenVoice",
+      "if named emotions matter more than V2's audio quality and language coverage, wire V1 instead -- the engine interface in tools/voice-clone does not need changing",
+    ],
+    officialUrl: "https://research.myshell.ai/open-voice",
+    repoUrl: "https://github.com/myshell-ai/OpenVoice",
+    notes:
+      "Licence read 25 August 2026 from LICENSE: MIT, 'Copyright 2024 MyShell.ai'. The README states 'OpenVoice V1 and V2 are MIT Licensed. Free for both commercial and research use.' V2 natively supports English, Spanish, French, Chinese, Japanese and Korean, and does zero-shot cross-lingual cloning -- the reference clip's language need not be the output language.\n\nThe capability is real and the licence is clean. The two constraints are elsewhere.\n\nFIRST, it cannot live in this application. torch and the V2 checkpoints are gigabytes; vercel.json bundles only {public/**,routes/**,lib/**}, and a serverless function is the wrong shape for a model that wants to stay warm. tools/voice-clone/ is therefore a standalone app the owner runs, which is the pattern docs/architecture/EXTERNAL-SERVICES.md describes. The OpenVoice path in it is WRITTEN AND NOT VERIFIED -- the machine it was written on had no GPU and could not download the checkpoints, and that is stated in the module, the README and the sprint log rather than left to be discovered.\n\nSECOND, and the reason this record is worth reading: a voice cloner with no consent gate is a forgery kit. AGENTS.md requires provenance, consent and anti-clone safety to be ENFORCED, and this branch already withholds voice_identity and prompt_rules from public creator profiles for the same reason. So the tool issues a random challenge phrase, the speaker records themselves reading it, and only a transcript that matches the phrase the SERVER issued produces audio. An unverified check is never treated as consent, refusals are recorded as fully as grants, and a refused reference clip is deleted.\n\nEmotion control is weaker than the summary suggests: V1 exposes named emotions through its base speaker, V2 replaces that base speaker with MeloTTS and takes delivery from it, so V2 offers essentially one style. The tool asks each engine what it actually offers rather than listing nine and rendering several identically.",
+    safetyBoundaries: [
+      "no clone without a consent recording matching a phrase this application issued for that request",
+      "unverified is never treated as granted -- a check that could not run and a check that passed are the same shape and opposite meanings",
+      "every output watermarked; every decision, including every refusal, written down with who consented and when",
+      "a reference clip from a refused request is deleted rather than kept",
+      "not reachable from SONARA One's runtime, and if that ever changes the four adapter rules apply starting with off by default",
+    ],
+    blockedUses: [
+      "cloning a voice without that speaker's recorded consent",
+      "any use that presents cloned audio as a genuine recording of the speaker",
     ],
     humanReviewRequired: true,
   },

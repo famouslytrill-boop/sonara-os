@@ -21,7 +21,8 @@ const creatorGenerationMigrationNames = [
   "20260723080000_creator_generation_control_plane.sql"
 ];
 const creatorArtistSystemMigrationNames = [
-  "016_creator_artist_system_schema.sql"
+  "016_creator_artist_system_schema.sql",
+  "20260819080000_public_creator_profiles_and_follows.sql"
 ];
 // The operations group spans five migrations rather than one, because it grew
 // as the workspaces did. Named individually rather than checked against every
@@ -40,10 +41,29 @@ const businessOperationsMigrationNames = [
   "013_sonara_business_employee_music_ops_schema.sql",
   "014_sonara_restaurant_margin_ops_schema.sql",
   "20260811220000_customer_invoices_accounts_receivable.sql",
-  "20260811234500_customer_invoice_lines.sql"
+  "20260811234500_customer_invoice_lines.sql",
+  "20260818100000_merchant_product_catalogue.sql",
+  "20260819070000_shared_links.sql",
+  "20260820060000_public_booking_pages.sql",
+  "20260820080000_recurring_invoices.sql"
 ];
 const growthStudioMigrationNames = [
-  "20260723120000_growth_studio_control_plane.sql"
+  "20260723120000_growth_studio_control_plane.sql",
+  // Defining a good customer, capturing one, scoring it, and giving it to
+  // somebody. growth_leads itself is canonical and predates all of this; these
+  // four are what turns a stranger into a row in it.
+  "20260825070000_lead_capture_scoring_and_routing.sql"
+];
+const scrollSiteMigrationNames = ["20260826020000_cinematic_scroll_sites.sql"];
+// Connected payment accounts, added 26 August 2026 -- one connected Stripe
+// account per organization, so a business can be paid by its own customers.
+// Reviewed rather than canonical for the same reason as everything else in
+// this list: the canonical 145 are pinned by the runtime contract migration
+// and this table postdates it.
+const connectedPaymentMigrationNames = ["20260826090000_business_payment_accounts.sql"];
+const researchIntakeMigrationNames = [
+  "20260528071500_sonara_platform_redesign_schema.sql",
+  "20260819020000_research_source_permission_values.sql"
 ];
 // Three tables the migrations had always created and nothing had ever queried.
 // They are reviewed rather than canonical for the same reason as the rest of
@@ -67,6 +87,23 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   // quotes had a table, row level security and no page. It is the record the
   // receivable starts from, and customer_invoices.quote_id points back at it.
   "quotes",
+  // What a customer has chosen to publish, across every shareable kind. It is
+  // not itself a business record -- it names one, plus the organization that
+  // owns it -- and it is what /shared/:token resolves a token through before it
+  // reads anything else.
+  "shared_links",
+  // The address a business publishes for taking appointments, and the hours and
+  // window a stranger's booking is worked out from. One row per organization,
+  // never public until its owner ticks the box, and read by /book/:slug -- which
+  // resolves the organization through it before it reads anything else, the
+  // same way /shared/:token resolves through shared_links.
+  "public_booking_pages",
+  // A standing arrangement and the things it bills for. Two tables rather than
+  // one because an amount on the parent would have to be kept in step with
+  // lines that can be edited; lib/sonara-recurring-invoices.cjs totals from the
+  // lines, so a disagreement between them is impossible rather than unlikely.
+  "recurring_invoices",
+  "recurring_invoice_lines",
   // Seven more the runtime reads and this contract had never named. They were
   // invisible because the scan below read server.js and routes/ and not lib/,
   // where the record pages, the record checks and the labour costing live.
@@ -83,7 +120,13 @@ const BUSINESS_OPERATIONS_TABLES = Object.freeze([
   "vendor_invoice_lines",
   "pos_menu_mix_items",
   "employee_wage_rates",
-  "reviews"
+  "reviews",
+  // Selling something that is not a service. Every table above prices work or
+  // tracks stock; neither models a thing sold in sizes at different prices.
+  // The versions table is the child of the product, on the same footing as the
+  // six line tables above it.
+  "merchant_products",
+  "merchant_product_variants"
 ]);
 const BUSINESS_CONTROL_TABLES = Object.freeze([
   "business_channels",
@@ -111,6 +154,11 @@ const CREATOR_GENERATION_TABLES = Object.freeze([
 // routes/ only. Widening that scan to lib/ is what surfaced them.
 const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
   "creator_artist_profiles",
+  // Who asked to hear about which published creator profile. The only table in
+  // this list with no organization_id, and deliberately so -- a follow is an
+  // edge between a person and somebody else's published profile, and it crosses
+  // the tenant boundary by design. Migration 20260819080000 says so at length.
+  "creator_follows",
   "creator_sonic_profiles",
   "creator_album_cycles",
   "creator_tracks",
@@ -123,6 +171,13 @@ const CREATOR_ARTIST_SYSTEM_TABLES = Object.freeze([
 // postdates. What it holds is the thing that was missing: a gated action's own
 // inputs, so an approval has something to re-run.
 const AGENT_QUEUE_TABLES = Object.freeze(["agent_pending_actions", "agent_schedules"]);
+// Cinematic scroll sites. One table holding one row per site, whose `document`
+// column is a JSON site validated by lib/sonara-scroll-site.cjs. Its own group
+// rather than folded into the Growth Studio list: the migration is its own
+// file, and a group whose name does not match its feature is a group nobody
+// finds when they go looking for it.
+const SCROLL_SITE_TABLES = Object.freeze(["scroll_sites"]);
+const CONNECTED_PAYMENT_TABLES = Object.freeze(["business_payment_accounts"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -133,7 +188,15 @@ const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_jobs",
   "growth_metric_snapshots",
   "growth_experiment_variants",
-  "growth_control_events"
+  "growth_control_events",
+  // What a good customer looks like, the front door, one visitor's
+  // conversation, and who gets the lead. Read by
+  // routes/sonara-lead-capture-routes.cjs -- the public /chat/:slug widget and
+  // the Growth Studio owner pages behind it.
+  "lead_icp_profiles",
+  "lead_capture_pages",
+  "lead_conversations",
+  "lead_routing_rules"
 ]);
 const PRODUCT_LIFECYCLE_TABLES = Object.freeze([
   "product_lifecycle_initiatives",
@@ -152,6 +215,19 @@ const MARKET_INTELLIGENCE_TABLES = Object.freeze([
   "market_intelligence_reviews",
   "market_intelligence_events"
 ]);
+// Which sites a business has established it may research.
+//
+// Created by the platform redesign migration on 28 May 2026, which predates the
+// runtime contract migration that pins the canonical 145 -- it was left out of
+// that list because at the time nothing read it. It became visible to the scan
+// below when the crawl permission gate in routes/market-intelligence-routes.cjs
+// started asking it whether a host may be fetched, which is the first code in
+// this product ever to read the table. Reviewed here rather than added to the
+// canonical list, because that count is pinned by the contract migration and
+// this table is not in it.
+const RESEARCH_INTAKE_TABLES = Object.freeze([
+  "research_sources"
+]);
 const PROMPT_LIBRARY_TABLES = Object.freeze([
   "sonara_prompt_templates",
   "sonara_prompt_versions",
@@ -168,6 +244,7 @@ const contractMigrationPath = path.join(migrationsDirectory, contractMigrationNa
 const referenceContractExtensionPath = path.join(migrationsDirectory, referenceContractExtensionName);
 const productLifecycleMigrationPath = path.join(migrationsDirectory, productLifecycleMigrationName);
 const marketIntelligenceMigrationPath = path.join(migrationsDirectory, marketIntelligenceMigrationName);
+const researchIntakeMigrationPaths = researchIntakeMigrationNames.map((name) => path.join(migrationsDirectory, name));
 const promptLibraryMigrationPath = path.join(migrationsDirectory, promptLibraryMigrationName);
 const promptLibrarySecurityMigrationPath = path.join(migrationsDirectory, promptLibrarySecurityMigrationName);
 const operationalIndexMigrationPath = path.join(migrationsDirectory, operationalIndexMigrationName);
@@ -216,8 +293,13 @@ const creatorArtistSystemSql = readExtension(creatorArtistSystemMigrationNames, 
 const businessOperationsSql = readExtension(businessOperationsMigrationNames, "Business Builder operations");
 const agentQueueSql = readExtension(agentQueueMigrationNames, "agent approval queue");
 const growthStudioSql = readExtension(growthStudioMigrationNames, "Growth Studio control-plane");
+const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll sites");
+const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
+// Two migrations: the one that created the table, and the one that gave
+// permission_status and crawl_status the values they are allowed to hold.
+const researchIntakeSql = researchIntakeMigrationPaths.map((file) => read(file)).join("\n").toLowerCase();
 const promptLibrarySql = [promptLibraryMigrationPath, promptLibrarySecurityMigrationPath].map(read).join("\n").toLowerCase().replace(/\s+/g, " ").trim();
 const config = read(path.join(root, "supabase", "config.toml"));
 const mcpText = read(path.join(root, ".mcp.json"));
@@ -287,6 +369,8 @@ if (/api_key\s+text|secret_key\s+text|access_token\s+text/i.test(creatorGenerati
 }
 
 verifyExtension(GROWTH_STUDIO_TABLES, growthStudioSql, "Growth Studio");
+verifyExtension(SCROLL_SITE_TABLES, scrollSiteSql, "Cinematic scroll sites");
+verifyExtension(CONNECTED_PAYMENT_TABLES, connectedPaymentSql, "Connected payment accounts");
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -321,6 +405,19 @@ for (const required of [
   "revoke insert, update, delete on public.product_lifecycle_events from anon, authenticated"
 ]) {
   if (!productLifecycleSql.includes(required)) fail(`Product lifecycle extension is missing: ${required}`);
+}
+
+verifyExtension(RESEARCH_INTAKE_TABLES, researchIntakeSql, "Research intake");
+// The gate reads permission_status and the database must hold it to three
+// values. A check constraint added in a later migration is what makes the
+// column a decision rather than free text, and asserting it here means removing
+// it fails the build rather than quietly re-opening the column.
+for (const required of [
+  "permission_status text not null default 'needs_review'",
+  "check (permission_status in ('needs_review', 'approved', 'declined'))",
+  "check (crawl_status in ('disabled', 'enabled'))"
+]) {
+  if (!researchIntakeSql.includes(required)) fail(`Research intake extension is missing: ${required}`);
 }
 
 verifyExtension(MARKET_INTELLIGENCE_TABLES, marketIntelligenceSql, "Market intelligence");
@@ -384,11 +481,29 @@ for (const pattern of [
   /\/rest\/v1\/([a-z0-9_]+)/gi,
   /safeListTable\(\s*["']([a-z0-9_]+)["']/gi,
   /\btable\s*:\s*["']([a-z0-9_]+)["']/gi,
-  /\brest\(\s*["']([a-z0-9_]+)["']/gi
+  /\brest\(\s*["']([a-z0-9_]+)["']/gi,
+  // A table named through a constant.
+  //
+  // Added 19 August 2026, after a deliberately undeclared table name passed
+  // every check above. The four patterns before this one all require the table
+  // to appear as a literal at the point of use -- `/rest/v1/quotes`,
+  // `rest("quotes")`. A module that does the ordinary thing instead:
+  //
+  //     const FOLLOW_TABLE = "creator_follows";
+  //     await rest(config, `${FOLLOW_TABLE}?select=...`);
+  //
+  // is invisible to all four, so its tables were never checked against the
+  // contract at all. Two route modules were in that state when this was found,
+  // and one of them passed only because an unrelated file happened to contain
+  // the same name as a literal.
+  // The underscore before TABLE is load-bearing: without it this also matches
+  // COSTABLE_RATE_TYPE in lib/sonara-labour-cost.cjs and reports "hourly" as a
+  // table nobody has contracted.
+  /\bconst\s+(?:[A-Z][A-Z0-9_]*_)?TABLE\s*=\s*["']([a-z0-9_]+)["']/g
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -512,7 +627,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

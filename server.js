@@ -1,6 +1,5 @@
 ﻿const express = require("express");
 const path = require("node:path");
-const crypto = require("node:crypto");
 const { randomUUID } = require("node:crypto");
 const { URL, URLSearchParams } = require("node:url");
 const registerSonaraInfrastructureRoutes = require("./routes/sonara-infrastructure-routes.cjs");
@@ -25,9 +24,14 @@ const registerMarketIntelligenceRoutes = require("./routes/market-intelligence-r
 const registerLastNineHoursRoutes = require("./routes/sonara-last9-routes.cjs");
 const registerBusinessAssistantRoutes = require("./routes/sonara-assistant-routes.cjs");
 const registerAgentActivityRoutes = require("./routes/sonara-agent-activity-routes.cjs");
+const registerPublicBookingRoutes = require("./routes/sonara-public-booking-routes.cjs");
+const registerImportRoutes = require("./routes/sonara-import-routes.cjs");
+const registerRecurringInvoiceRoutes = require("./routes/sonara-recurring-invoice-routes.cjs");
+const registerRotaRoutes = require("./routes/sonara-rota-routes.cjs");
 const { redactSensitiveText, redactError } = require("./lib/sonara-redaction.cjs");
 const { createPaidEntitlementReader } = require("./lib/sonara-paid-entitlement.cjs");
 const registerServiceLifecycleRoutes = require("./routes/sonara-service-lifecycle-routes.cjs");
+const registerCreatorProfileRoutes = require("./routes/sonara-creator-profile-routes.cjs");
 const { ROUTE_REGISTRY, plainRouteTitle } = require("./lib/sonara-route-registry.cjs");
 const registerRouteRegistryRoutes = require("./routes/sonara-route-registry-routes.cjs");
 const registerCustomerReadyExperience = require("./routes/customer-ready-experience.cjs");
@@ -45,8 +49,19 @@ const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
-const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards } = require("./lib/sonara-module-crud.cjs");
+const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
+const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
+const { createWorkspaceBootstrap } = require("./lib/sonara-workspace-bootstrap.cjs");
+const registerLeadforgeRoutes = require("./routes/sonara-leadforge-routes.cjs");
+const registerLeadCaptureRoutes = require("./routes/sonara-lead-capture-routes.cjs");
+const registerScrollRoutes = require("./routes/sonara-scroll-routes.cjs");
+const registerVoiceStudioRoutes = require("./routes/sonara-voice-studio-routes.cjs");
 const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs");
+const registerAssetFileRoutes = require("./routes/sonara-asset-file-routes.cjs");
+const registerConnectedPaymentRoutes = require("./routes/sonara-connected-payment-routes.cjs");
+const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
+const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
+const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
 // The leaf rendering helpers -- cards, links, forms, status wording. Required
 // at the very top because these are consts now rather than hoisted function
 // declarations, and createProductPages below is called at module load with two
@@ -93,9 +108,10 @@ const {
 tenantGuard.install();
 
 const app = express();
+// Before any route: an async handler that throws must answer, not hang. See lib/sonara-async-route-safety.cjs.
+installAsyncRouteSafety(app);
 const ADMIN_SESSION_COOKIE = "sonara_admin_session";
 const ADMIN_SESSION_MAX_AGE_SECONDS = 10 * 60 * 60;
-const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 
 // The page frame moved to lib/sonara-page-frame.cjs -- step 7b, unblocked by
 // retiring the generators that anchored on markup inside `layout`.
@@ -103,6 +119,8 @@ const EMPLOYEE_INVITE_MAX_AGE_DAYS = 7;
 // Bound this early because route registration below runs at module load and
 // receives responsePage among its dependencies. legalPages, readinessStatusClass
 // and safeListTable are hoisted function declarations, so they resolve from here.
+// The tenant boundary. Bound here because moduleCrud below takes it as a dependency.
+const getCustomerPrimaryOrganization = createCustomerPrimaryOrganizationResolver({ getSupabaseServerConfig, supabaseHeaders });
 const moduleCrud = createModuleCrud({
   getSupabaseServerConfig,
   supabaseHeaders,
@@ -234,6 +252,25 @@ const {
   getStripePlanPriceStatus,
   getStripeSecretStatus,
 } = createReadiness({ getEnv, isPlaceholderValue, isEmailLike, isPlaceholderEmail, splitList, STRIPE_PLANS, getLegalPagesStatus: () => legalPagesStatus(legalPages()) });
+
+// Built here rather than higher up because getReadiness, getEnv,
+// hashInviteToken and createEmployeeAuthUser are all const bindings from the
+// destructures above -- unlike the hoisted helpers, they do not exist until
+// this line runs, and the factory checks every dependency is a function when
+// it is called rather than when one is first used.
+const { createBusinessEmployeeInvite, acceptBusinessEmployeeInvite } = createBusinessEmployeeInvites({
+  getSupabaseAdminClient, supabaseHeaders, hashInviteToken,
+  getPublicAppUrl, recordAdminAuditEvent, isSupabaseConfigured,
+  createEmployeeAuthUser, splitList, getReadiness, getEnv
+});
+
+// Every dependency here is a hoisted function declaration, so this could sit
+// anywhere at module scope; it is next to the invite factory because both are
+// the same shape and reading them together is how the pattern stays obvious.
+const { createOrAttachOrganization } = createWorkspaceBootstrap({
+  getSupabaseAdminClient, upsertSetupProfile, getCustomerPrimaryOrganization,
+  insertSetupOrganization, insertSetupMembership, insertActivityEvent
+});
 // Static assets were served with `Cache-Control: public, max-age=0`, which is
 // express.static's default and means the browser revalidates every stylesheet,
 // script, and logo on every single navigation. On a phone that is a round trip
@@ -608,11 +645,13 @@ registerLastNineHoursRoutes(app, {
   escapeHtml,
   requireCustomer,
   requireBusinessManager,
-  requireWorkspaceAccess,
+  requireWorkspaceAccess, requirePaidOrOwnerAccess, // staff portal is what Team sells; see STAFF_PAGES
   getCustomerPrimaryOrganization,
   getCustomerPaidEntitlement, // location limits need the plan; see lib/sonara-plan-limits.cjs
   getSupabaseServerConfig
 });
+
+registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
 
 registerBusinessAssistantRoutes(app, {
   layout,
@@ -637,6 +676,21 @@ registerAgentActivityRoutes(app, {
   getSupabaseServerConfig,
   supabaseHeaders
 });
+
+registerPublicBookingRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+
+registerImportRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+
+registerRecurringInvoiceRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+
+registerRotaRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireBusinessManager, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+
+registerLeadforgeRoutes(app, { escapeHtml });
+
+registerLeadCaptureRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+registerScrollRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, createRateLimiter });
+
+registerVoiceStudioRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer });
 
 registerServiceLifecycleRoutes(app, {
   // Resolves a session without requiring one. /support is a public page that
@@ -716,7 +770,7 @@ app.get("/", (req, res) => {
     variant: "home",
     surface: "marketing",
     body: "Business Builder, Creator Studio, and Growth Studio give founders, creators, and small teams focused tools inside one connected account.",
-    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what works today. See what still needs setting up or checking.</strong></div>\n    <p>What you can open depends on how far along a product is, which accounts you have connected, and your plan. Anything that is not finished stays closed until it genuinely works.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">See what is working</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organised business, with a setup plan, customer enquiries, quotes, billing, bookings, and your records in one place.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You always see where things stand, what to do next, and what has to be true before anything can run.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Anything missing stays visible: records, connected accounts, permissions, and plan.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, and anything you cannot undo wait for your approval.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Your saved records, proof of delivery, billing, and next steps all stay joined up.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest about what is ready</span><h2 id=\"lifecycle-heading\">Being listed here does not mean it is finished.</h2></div><p>We show what is coming as well as what is done, and we label the difference, so nothing on the roadmap gets sold to you as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"available\"><span>Active or beta</span><h3>You can get real work done</h3><p>You can do the main work now, once your account is set up and your plan covers it.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"setup\"><span>Setup required</span><h3>A little setup first</h3><p>Some setup has to be finished first: a connected account, your records, or your customer details.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"restricted\"><span>Coming soon, or in review</span><h3>Not open yet</h3><p>These stay closed until the work is built, tested, security-checked, approved, and covered by your plan.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Professional tools at a price that works</span><h2 id=\"value-heading\">Start free. Pay for what is proven to work, not vague promises.</h2><p>What you pay for and what you can open have to match. Where a connected service costs extra we say so, and we do not advertise an unfinished paid feature as working.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"difference-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">What makes this different</span><h2 id=\"difference-heading\">Three things you can check for yourself.</h2></div><p>Not promises about what the software might do one day. Each of these is how it behaves today, and each one is covered by a test that fails if it stops being true.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">One record, not three</span><h3>Type it once.</h3><p>An enquiry becomes a customer, then a quote, then an invoice, then a payment reminder \u2014 without typing it again. Run three separate tools and each of those steps is a copy between products, and every copy is a chance for the number to differ.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Nothing is invented</span><h3>Every figure is one of yours.</h3><p>What you see on a screen is added up from your own saved records. Payment reminder drafts are assembled the same way, which is why they cannot refer to a reminder you never sent or to terms you never agreed.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">It says when it does not know</span><h3>A gap is shown as a gap.</h3><p>An invoice with no due date is left out of your totals and reported separately, rather than quietly counted as due today. A list that could not be read says so instead of showing zero, and a list showing the first hundred of something says that too.</p></article>\n    </div>\n  </section>\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about what is free, what is paid, what is ready, and what happens to your data.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. We only advertise a paid feature as working once a real payment has actually unlocked it.</p></details>\n      <details><summary>Does everything in the catalog work today?</summary><p>No. Every product says where it stands. Anything marked coming soon, in review, or needs setup stays closed until it genuinely works.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, running a connected service, and anything you cannot undo all wait for your permission and approval.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA gives you the tools, the records, and the steps. It cannot promise you sales, keep you legal, make you secure, or get you ranked.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Your records belong to your organisation and are private by default. Only people you have given a role to can reach them.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid tools only once they are proven to work.</h2><p>Pick the workspace that fits the job, work through the setup honestly, and keep every important action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
+    sections: ["<div class=\"sonara-home sonara-conversion-home\">\n  <section class=\"sonara-launch-boundary\" aria-label=\"Product availability\">\n    <div><span class=\"sonara-kicker\">Transparent availability</span><strong>Use what works today. See what still needs setting up or checking.</strong></div>\n    <p>What you can open depends on how far along a product is, which accounts you have connected, and your plan. Anything that is not finished stays closed until it genuinely works.</p>\n    <div class=\"card-actions\"><a class=\"action\" href=\"/service-catalog\">Review product status</a><a class=\"action\" href=\"/readiness\">See what is working</a></div>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"try-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Free, and no account needed</span><h2 id=\"try-heading\">Get a real answer before you sign up.</h2></div><p>These work out the arithmetic a small business actually gets stuck on. They run on what you type and nothing else \u2014 no account, no card, and the same numbers in always give the same numbers out. Creating a free account is what saves the answer so you can come back to it.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Business Builder</span><h3>How many sales cover your costs?</h3><p>Break-even, contribution per sale, and how many months your cash lasts if the sales do not arrive.</p><div class=\"card-actions\"><a class=\"action\" href=\"/business-builder/tools/break-even\">Work out break-even</a><a class=\"action\" href=\"/business-builder/tools/reorder-point\">When to reorder stock</a></div></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Creator Studio</span><h3>What should you charge, and who owns it?</h3><p>A day rate built from the income you need, and a split sheet whose shares are checked to add up to a hundred.</p><div class=\"card-actions\"><a class=\"action\" href=\"/creator-studio/tools/rate-card\">Build a rate card</a><a class=\"action\" href=\"/creator-studio/tools/split-sheet\">Work out the splits</a></div></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Growth Studio</span><h3>Where should the budget go?</h3><p>A budget split against a target cost per lead, and what a referral reward can be worth before it stops paying for itself.</p><div class=\"card-actions\"><a class=\"action\" href=\"/growth-studio/tools/budget-split\">Split a budget</a><a class=\"action\" href=\"/growth-studio/tools/referral\">Price a referral</a></div></article>\n    </div>\n    <nav class=\"card-actions\" aria-label=\"All free tools\"><a class=\"action\" href=\"/business-builder/tools\">All Business Builder tools</a><a class=\"action\" href=\"/creator-studio/tools\">All Creator Studio tools</a><a class=\"action\" href=\"/growth-studio/tools\">All Growth Studio tools</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"companies-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\" data-i18n=\"productsKicker\">Three connected companies</span><h2 id=\"companies-heading\" data-i18n=\"productsHeading\">Choose the studio that matches the work.</h2></div><p data-i18n=\"productsBody\">Each company does one clear job in its own way, and tells you honestly what is ready, while your login, billing, records, and support stay shared.</p></div>\n    <div class=\"sonara-product-grid\">\n      <article class=\"sonara-product sonara-product--forge sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/business-builder-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">FORGE · LAUNCH · SELL · OPERATE</span></div><h3>Business Builder</h3><p>Turn an offer into an organised business, with a setup plan, customer enquiries, quotes, billing, bookings, and your records in one place.</p><ul class=\"sonara-feature-list\"><li>Build the offer and operating plan</li><li>Move toward the first completed transaction</li><li>Keep setup and compliance boundaries visible</li></ul><a href=\"/business-builder\">Explore Business Builder</a></article>\n      <article class=\"sonara-product sonara-product--canvas sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/creator-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">CANVAS · BRAND · CREATE · RELEASE</span></div><h3>Creator Studio</h3><p>Organize brand assets, content projects, release packages, rights notes, collaborators, commerce, and creator-owned audience records.</p><ul class=\"sonara-feature-list\"><li>Keep assets and projects portable</li><li>Make rights and collaborator notes explicit</li><li>Prepare releases without fake clearance claims</li></ul><a href=\"/creator-studio\">Explore Creator Studio</a></article>\n      <article class=\"sonara-product sonara-product--signal sonara-depth\" data-sonara-enter><div class=\"sonara-product-meta\"><img class=\"sonara-product-mark\" src=\"/brand/growth-studio-mark-v3.svg\" alt=\"\"><span class=\"sonara-product-index\">SIGNAL · CONSENT · MEASURE · GROW</span></div><h3>Growth Studio</h3><p>Connect consented customer records to campaigns, journeys, reviews, referrals, partnerships, attribution evidence, and provider diagnostics.</p><ul class=\"sonara-feature-list\"><li>Use first-party customer evidence</li><li>Keep outreach and publishing approval-gated</li><li>Measure without guaranteed-placement claims</li></ul><a href=\"/growth-studio\">Explore Growth Studio</a></article>\n    </div>\n    <nav class=\"card-actions sonara-existing-user-links\" aria-label=\"Existing customer workspaces\"><a class=\"action\" href=\"/business-builder/dashboard\">Open Business Builder workspace</a><a class=\"action\" href=\"/business-builder/intake\">Open customer intake</a><a class=\"action\" href=\"/creator-studio/dashboard\">Open Creator Studio workspace</a><a class=\"action\" href=\"/creator-studio/assets\">Open creator assets</a><a class=\"action\" href=\"/creator-studio/music-system\">Open music system</a><a class=\"action\" href=\"/growth-studio/dashboard\">Open Growth Studio workspace</a><a class=\"action\" href=\"/growth-studio/campaigns\">Open campaigns</a><a class=\"action\" href=\"/growth-studio/leads\">Open leads</a></nav>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"outcomes-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Customer outcomes</span><h2 id=\"outcomes-heading\">Professional systems built around the result you need next.</h2></div><p>SONARA is designed for founders, creators, and small teams that need a useful path forward without an enterprise budget or an enterprise maze.</p><p class=\"sonara-continuity-note\"><strong>Build, create, and grow—without losing control.</strong> One system. Three focused ways to move. SONARA is Software-in-a-Service built around connected identity, records, billing, evidence, and support.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Business</span><h3>Reach the first real transaction.</h3><p>Clarify the offer, collect the right customer information, prepare payment and booking paths, and preserve operating evidence.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Creator</span><h3>Turn creative work into a release-ready package.</h3><p>Keep assets, rights notes, collaborators, deliverables, offers, and export materials connected without pretending clearance is automatic.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Growth</span><h3>Grow from consented customer evidence.</h3><p>Plan follow-up, campaigns, partnerships, reviews, and measurement while keeping sending, spending, and publishing under human control.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-flow\" aria-labelledby=\"connected-path-heading\">\n    <div><span class=\"sonara-kicker\" data-i18n=\"flowKicker\">One connected operating path</span><h2 id=\"connected-path-heading\" data-i18n=\"flowHeading\">Move from first setup to measurable progress.</h2><p>One account connects the three companies, but each workspace remains focused. You always see where things stand, what to do next, and what has to be true before anything can run.</p><div class=\"card-actions\"><a class=\"action\" href=\"/start\">See how SONARA works</a><a class=\"action\" href=\"/about\">Why SONARA exists</a><a class=\"action\" href=\"/trust\">Review the trust model</a><a class=\"action\" href=\"/requests\">Track requests</a><a class=\"action\" href=\"/deliverables\">Review deliverables</a></div></div>\n    <ol class=\"sonara-path-list\"><li><span>01</span><div><strong>Choose the outcome</strong><small>Enter the company designed for the work in front of you.</small></div></li><li><span>02</span><div><strong>Complete guided setup</strong><small>Anything missing stays visible: records, connected accounts, permissions, and plan.</small></div></li><li><span>03</span><div><strong>Review before execution</strong><small>Payments, publishing, outreach, and anything you cannot undo wait for your approval.</small></div></li><li><span>04</span><div><strong>Measure the real result</strong><small>Your saved records, proof of delivery, billing, and next steps all stay joined up.</small></div></li></ol>\n  </section>\n\n  <section class=\"sonara-section sonara-status-panel\" aria-labelledby=\"lifecycle-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Honest about what is ready</span><h2 id=\"lifecycle-heading\">Being listed here does not mean it is finished.</h2></div><p>We show what is coming as well as what is done, and we label the difference, so nothing on the roadmap gets sold to you as finished.</p></div>\n    <div class=\"sonara-lifecycle-grid\">\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"available\"><span>Active or beta</span><h3>You can get real work done</h3><p>You can do the main work now, once your account is set up and your plan covers it.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"setup\"><span>Setup required</span><h3>A little setup first</h3><p>Some setup has to be finished first: a connected account, your records, or your customer details.</p></article>\n      <article class=\"sonara-lifecycle-card sonara-depth\" data-sonara-enter data-lifecycle=\"restricted\"><span>Coming soon, or in review</span><h3>Not open yet</h3><p>These stay closed until the work is built, tested, security-checked, approved, and covered by your plan.</p></article>\n    </div>\n  </section>\n\n  <section class=\"sonara-section sonara-value-section\" aria-labelledby=\"value-heading\">\n    <div class=\"sonara-value-copy\"><span class=\"sonara-kicker\">Professional tools at a price that works</span><h2 id=\"value-heading\">Start free. Pay for what is proven to work, not vague promises.</h2><p>What you pay for and what you can open have to match. Where a connected service costs extra we say so, and we do not advertise an unfinished paid feature as working.</p><div class=\"card-actions\"><a class=\"action\" href=\"/pricing\">Compare plans</a><a class=\"action\" href=\"/signup\">Create a free account</a></div></div>\n    <aside class=\"sonara-proof-policy\"><strong>Proof policy</strong><p>SONARA does not publish fake testimonials, invented customer counts, fictional awards, guaranteed revenue, false scarcity, or unsupported compliance and security claims.</p><a href=\"/trust\">Read the evidence and approval standards →</a></aside>\n  </section>\n\n  <section class=\"sonara-section\" aria-labelledby=\"difference-heading\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">What makes this different</span><h2 id=\"difference-heading\">Three things you can check for yourself.</h2></div><p>Not promises about what the software might do one day. Each of these is how it behaves today, and each one is covered by a test that fails if it stops being true.</p></div>\n    <div class=\"sonara-outcome-grid\">\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">One record, not three</span><h3>Type it once.</h3><p>An enquiry becomes a customer, then a quote, then an invoice, then a payment reminder \u2014 without typing it again. Run three separate tools and each of those steps is a copy between products, and every copy is a chance for the number to differ.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">Nothing is invented</span><h3>Every figure is one of yours.</h3><p>What you see on a screen is added up from your own saved records. Payment reminder drafts are assembled the same way, which is why they cannot refer to a reminder you never sent or to terms you never agreed.</p></article>\n      <article class=\"sonara-outcome sonara-depth\" data-sonara-enter><span class=\"sonara-outcome-label\">It says when it does not know</span><h3>A gap is shown as a gap.</h3><p>An invoice with no due date is left out of your totals and reported separately, rather than quietly counted as due today. A list that could not be read says so instead of showing zero, and a list showing the first hundred of something says that too.</p></article>\n    </div>\n  </section>\n  <section class=\"sonara-section sonara-faq\" aria-label=\"Common questions\">\n    <div class=\"sonara-section-head\"><div><span class=\"sonara-kicker\">Common questions</span><h2>Know the boundaries before you sign up.</h2></div><p>Straight answers about what is free, what is paid, what is ready, and what happens to your data.</p></div>\n    <div class=\"sonara-faq-list\">\n      <details><summary>What is SONARA Industries?</summary><p>SONARA Industries is the parent company connecting Business Builder, Creator Studio, and Growth Studio through shared identity, billing, records, evidence, and support.</p></details>\n      <details><summary>Can I start without paying?</summary><p>Yes. Free tools and account setup can be used without a card where offered. We only advertise a paid feature as working once a real payment has actually unlocked it.</p></details>\n      <details><summary>Does everything in the catalog work today?</summary><p>No. Every product says where it stands. Anything marked coming soon, in review, or needs setup stays closed until it genuinely works.</p></details>\n      <details><summary>Will SONARA send messages, publish content, or spend money automatically?</summary><p>No. Outreach, publishing, payments, running a connected service, and anything you cannot undo all wait for your permission and approval.</p></details>\n      <details><summary>Does SONARA guarantee revenue, compliance, security, or search placement?</summary><p>No. SONARA gives you the tools, the records, and the steps. It cannot promise you sales, keep you legal, make you secure, or get you ranked.</p></details>\n      <details><summary>How is organization data handled?</summary><p>Your records belong to your organisation and are private by default. Only people you have given a role to can reach them.</p></details>\n    </div>\n  </section>\n\n  <section class=\"sonara-cta\"><div><span class=\"sonara-kicker\" data-i18n=\"ctaKicker\">Start with the next real step</span><h2 data-i18n=\"ctaHeading\">Create a free account. Add paid tools only once they are proven to work.</h2><p>Pick the workspace that fits the job, work through the setup honestly, and keep every important action under your control.</p></div><div class=\"card-actions\"><a class=\"action\" href=\"/signup\">Create free account</a><a class=\"action\" href=\"#companies-heading\">Explore the studios</a><a class=\"action\" href=\"/pricing\">Compare plans</a></div></section>\n</div>"],
     actions: [linkAction("/signup", "Create free account"), linkAction("#companies-heading", "Explore the three studios"), linkAction("/pricing", "Compare plans")]
   }));
 });
@@ -810,9 +864,10 @@ app.post("/contact", async (req, res) => {
   }
 
   const result = await saveSupportRequest(request.value);
-  if (wantsJson) return res.status(200).json(result);
-  return res.status(200).type("html").send(
-    responsePage(result.ok ? "Request received" : "Request queued", result.message, [linkAction("/", "Return home"), linkAction("/contact", "Contact")])
+  // 503 when nothing was stored and nothing was sent, so a caller reading only the status code cannot take a vanished request for a filed one.
+  if (wantsJson) return res.status(result.ok ? 200 : 503).json(result);
+  return res.status(result.ok ? 200 : 503).type("html").send(
+    responsePage(result.heading, result.message, [linkAction("/", "Return home"), linkAction("/contact", "Contact")])
   );
 });
 
@@ -1038,8 +1093,8 @@ app.post("/auth/logout", (req, res) => {
   return res.status(200).json({ ok: true, message: "Session ended." });
 });
 
-const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/setup", "Account setup"]];
-app.get("/account", (req, res) => {
+const ACCOUNT_SECTIONS = [["/account/profile", "Profile"], ["/account/security", "Security"], ["/account/preferences", "Preferences"], ["/account/workspaces", "Workspaces"], ["/account/integrations", "Integrations"], ["/account/data", "Your data"], ["/account/following", "People you follow"], ["/account/setup", "Account setup"]];
+app.get("/account", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account",
@@ -1056,7 +1111,7 @@ app.get("/account", (req, res) => {
   );
 });
 
-app.get("/account/setup", (req, res) => {
+app.get("/account/setup", requireCustomer, (req, res) => {
   return res.status(200).type("html").send(
     layout({
       title: "Account setup",
@@ -1405,6 +1460,8 @@ app.get("/api/growth-studio/readiness", (req, res) => res.status(200).json(produ
 // Listing, correcting and retiring the records a customer creates. These six
 // tools were create-only until now -- see routes/sonara-module-crud-routes.cjs.
 registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, responsePage, linkAction });
+registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
+registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
@@ -1829,6 +1886,11 @@ app.use((error, req, res, next) => {
   });
 });
 
+// Last, so every route and the 413 handler above get their turn first.
+app.use(createAsyncErrorHandler({
+  renderHtml: () => responsePage("Something went wrong", "This page could not be built just now. Try again, and tell us if it keeps happening.", [linkAction("/", "Home"), linkAction("/help", "Help"), linkAction("/contact", "Contact us")])
+}));
+
 module.exports = Object.assign(app, { legalAliasHrefs: legalAliasPages().map((page) => page.href) });
 
 // The plan table is the one piece of config where a mistake charges somebody
@@ -2017,8 +2079,8 @@ async function workspaceRecordCards(req, page, config) {
   if (page.module === "free_records") {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
-    if (!result?.saved) return "";
-    return renderSavedOutputCards({ records: result.records || [], productLabel: config?.name || "workspace" });
+    if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
+    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path, freeTools: req.app?.locals?.sonaraFreeTools });
   }
 
   const match = page.form ? resourceForForm(page.form) : null;
@@ -2026,7 +2088,7 @@ async function workspaceRecordCards(req, page, config) {
   const result = await moduleCrud
     .list({ ...req, query: { ...req.query, limit: 20 } }, match.productKey, match.resource)
     .catch(() => ({ ok: false }));
-  if (!result.ok) return "";
+  if (!result.ok) return renderRecordsUnavailable({ noun: match.spec?.noun, code: result.body?.code || "read_failed" });
   const slug = match.productKey.replace(/_/g, "-");
   return renderRecordCards({
     records: result.body.records || [],
@@ -2055,7 +2117,7 @@ function adminPage(title, body, readiness, metrics = {}) {
     deploymentCard(),
     actionCard("Readiness", "Live setup state for account database, checkout, email delivery, Google sign-in, and founder access.", [linkAction("/admin/env-readiness", "Environment"), linkAction("/api/readiness", "Readiness JSON")]),
     actionCard("Users and roles", metrics.users || (readiness.services.supabase === "configured" ? "Supabase-backed profile records are available server-side." : "Setup required: connect Supabase before customer records can be listed."), [linkAction("/admin/users", "Users"), linkAction("/admin/roles", "Roles")]),
-    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests use safe fallback references."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
+    actionCard("Support queue", metrics.supportRequests || (readiness.services.supabase === "configured" ? "Support queue reads from Supabase when service role access is configured." : "Setup required: contact requests are emailed rather than filed, and are not listed here."), [linkAction("/admin/support", "Support"), linkAction("/contact", "Contact form")]),
     actionCard("Billing and webhooks", metrics.subscriptions || (readiness.services.stripe === "configured" ? "Stripe checkout can create paid sessions for configured plans." : "Setup required: Stripe secret key is missing or invalid."), [linkAction("/admin/billing", "Billing"), linkAction("/admin/webhooks", "Payment updates"), linkAction("/pricing", "Pricing")]),
     actionCard("Product catalog", metrics.catalog || "Business Builder, Creator Studio, and Growth Studio are registered as SONARA product areas.", [linkAction("/admin/catalog", "Catalog"), linkAction("/business-builder", "Business"), linkAction("/creator-studio", "Creator"), linkAction("/growth-studio", "Growth")]),
     actionCard("System and storage", "Health, storage, database, formula library, and ecosystem checks are available without exposing secret values.", [linkAction("/admin/system", "System"), linkAction("/admin/database", "Database"), linkAction("/admin/storage", "Storage"), linkAction("/admin/formulas", "Formulas")]),
@@ -2221,14 +2283,14 @@ async function getCommandCenterSummary(req) {
         linkAction("/support", "Contact support")
       ]);
 
-  let requestsSummary = "Setup needed: your records are not connected yet, so requests are tracked with a safe fallback.";
+  let requestsSummary = "Setup needed: your records are not connected yet, so requests are not listed here.";
   let deliverablesSummary = "Deliverables appear after an operator publishes work for your requests.";
   let billingSummary = readiness.services.checkout === "enabled"
     ? "Checkout is configured. Paid access unlocks only after payment updates record an active or trialing plan."
     : "Setup required: checkout is not fully configured yet. Paid access stays locked until payment updates are recorded.";
   const supportSummary = readiness.services.supabase === "configured"
     ? "Support requests are recorded in the account database with reference IDs."
-    : "Setup required: support requests use the safe fallback queue with reference IDs.";
+    : "Setup needed: your records are not connected, so a support request is emailed to us rather than filed against your account.";
 
   let openRequestCount = null;
   if (hasOrg) {
@@ -2240,13 +2302,13 @@ async function getCommandCenterSummary(req) {
         ? `${open.length} open of ${requests.rows.length} recent service requests.`
         : "No service requests yet. Browse the catalog to submit the first one.";
     } else {
-      requestsSummary = "Setup required: the service_requests table is not available yet.";
+      requestsSummary = "We could not read your service requests just now, so this figure is missing rather than zero.";
     }
     const deliverables = await safeListTable("service_deliverables", `?select=id,status&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=updated_at.desc&limit=20`);
     if (deliverables.ok) {
       deliverablesSummary = deliverables.rows.length ? `${deliverables.rows.length} recent deliverables on record.` : "No deliverables yet. They appear when an operator publishes work.";
     } else {
-      deliverablesSummary = "Setup required: the service_deliverables table is not available yet.";
+      deliverablesSummary = "We could not read your deliverables just now, so this figure is missing rather than zero.";
     }
     const billing = await getBillingPanelSummary(organization.organizationId);
     // The trailing sentence explains how access is granted, which is only worth
@@ -2275,8 +2337,6 @@ async function getCommandCenterSummary(req) {
 
   return { workspaceCard, requestsSummary, deliverablesSummary, billingSummary, supportSummary, blockersCard, nextBestAction, adminCard };
 }
-
-
 
 
 function businessEmployeeInviteForm() {
@@ -2429,98 +2489,6 @@ function organizationSetupForm() {
   </article>`;
 }
 
-async function createOrAttachOrganization(req) {
-  const user = req.sonaraUser;
-  if (!user?.id) return { status: 401, body: { ok: false, code: "authentication_required", message: "Login is required before organization setup." } };
-
-  const organizationName = String(req.body.organizationName || req.body.organization_name || "").trim();
-  const productPath = normalizeProductSetupPath(req.body.productPath || req.body.product_path);
-  if (organizationName.length < 2 || organizationName.length > 120) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter an organization name between 2 and 120 characters." } };
-  }
-
-  const config = getSupabaseAdminClient();
-  if (!config.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "supabase",
-        message: "Setup required: Supabase service-role server access is not configured. Add server-only Supabase environment variables in Vercel.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const profile = await upsertSetupProfile(config, user);
-  if (!profile.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "profiles",
-        message: "Setup required: the profiles table is unavailable or not migrated.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const existing = await getCustomerPrimaryOrganization(user);
-  if (existing.ok) {
-    return {
-      status: 200,
-      body: {
-        ok: true,
-        code: "organization_exists",
-        organizationId: existing.organizationId,
-        message: "Organization membership already exists. Continue to the selected workspace.",
-        nextPath: setupPathToRoute(productPath)
-      }
-    };
-  }
-
-  const organization = await insertSetupOrganization(config, user, organizationName, productPath);
-  if (!organization.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "organizations",
-        message: "Database connection is configured, but organization creation failed its schema compatibility check. An administrator must review the organizations table contract.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  const membership = await insertSetupMembership(config, user.id, organization.id);
-  if (!membership.ok) {
-    return {
-      status: 503,
-      body: {
-        ok: false,
-        code: "setup_required",
-        service: "organization_memberships",
-        message: "Setup required: the organization_memberships table is unavailable or missing compatible columns.",
-        nextPath: "/account/setup"
-      }
-    };
-  }
-
-  await insertActivityEvent(organization.id, user.id, "account.organization_created", { product_path: productPath });
-  return {
-    status: 200,
-    body: {
-      ok: true,
-      code: "organization_created",
-      organizationId: organization.id,
-      message: "Organization created and owner membership recorded.",
-      nextPath: setupPathToRoute(productPath)
-    }
-  };
-}
 
 async function upsertSetupProfile(config, user) {
   const records = [
@@ -2613,17 +2581,6 @@ async function insertSetupMembership(config, userId, organizationId) {
   return { ok: false };
 }
 
-function normalizeProductSetupPath(value) {
-  const normalized = String(value || "dashboard").trim().toLowerCase();
-  return ["business-builder", "creator-studio", "growth-studio", "dashboard"].includes(normalized) ? normalized : "dashboard";
-}
-
-function setupPathToRoute(value) {
-  if (value === "business-builder") return "/business-builder/dashboard";
-  if (value === "creator-studio") return "/creator-studio/dashboard";
-  if (value === "growth-studio") return "/growth-studio/dashboard";
-  return "/dashboard";
-}
 
 function slugify(value) {
   return String(value || "organization")
@@ -2735,9 +2692,7 @@ async function saveSupportRequest(request) {
   const email = await sendSupportNotification({ ...request, referenceId });
   if (supportRequestId) await updateSupportEmailStatus(supportRequestId, email);
 
-  if (stored && email.ok) return { ok: true, referenceId, status: "received", message: `Your request was received. Reference ID: ${referenceId}. Email notification: sent.` };
-  if (stored && !email.ok) return { ok: true, referenceId, status: "email_notification_failed", message: `Your request was received. Reference ID: ${referenceId}. Email notification failed and remains queued.` };
-  return { ok: true, referenceId, status: "setup_required", message: `Setup required: the account database is not configured, so the request used the safe fallback queue. Reference ID: ${referenceId}.` };
+  return supportRequestOutcome({ stored, emailed: email.ok === true, referenceId });
 }
 
 async function sendSupportNotification(request) {
@@ -2750,129 +2705,6 @@ async function sendSupportNotification(request) {
       to: [getEnv(["SUPPORT_TO_EMAIL", "CONTACT_TO_EMAIL"])],
       subject: `SONARA support request ${request.referenceId}: ${request.subject}`,
       text: [`Reference ID: ${request.referenceId}`, `Category: ${request.category}`, `Name: ${request.name}`, `Requester: ${request.email}`, "", redactSensitiveText(request.message)].join("\n")
-    })
-  }).catch(() => undefined);
-  return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
-}
-
-async function createBusinessEmployeeInvite(req) {
-  const body = req.body || {};
-  if (body.password || body.employeePassword || body.temporaryPassword) {
-    return { status: 400, body: { ok: false, code: "password_not_allowed", message: "Owners cannot create or submit employee passwords." } };
-  }
-
-  const workspaceId = String(body.workspaceId || body.workspace_id || req.sonaraBusinessMembership?.workspace_id || "").trim();
-  const organizationId = String(body.organizationId || body.organization_id || req.sonaraBusinessMembership?.organization_id || "").trim();
-  const email = String(body.email || "").trim().toLowerCase();
-  const name = String(body.name || body.invitedName || "").trim();
-  const role = String(body.role || "employee").trim();
-  const permissions = splitList(body.permissions || "");
-
-  if (!workspaceId || !organizationId) return { status: 400, body: { ok: false, code: "validation_failed", message: "Workspace ID and organization ID are required." } };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter a valid employee email." } };
-  if (name.length < 2) return { status: 400, body: { ok: false, code: "validation_failed", message: "Enter the employee name." } };
-  if (!["manager", "employee"].includes(role)) return { status: 400, body: { ok: false, code: "validation_failed", message: "Choose manager or employee." } };
-
-  const config = getSupabaseAdminClient();
-  if (!config.ok) return { status: 503, body: { ok: false, code: "setup_required", service: "supabase" } };
-
-  const rawToken = crypto.randomBytes(32).toString("base64url");
-  const tokenHash = hashInviteToken(rawToken);
-  const expiresAt = new Date(Date.now() + EMPLOYEE_INVITE_MAX_AGE_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const response = await fetch(`${config.url}/rest/v1/business_employee_invites`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "return=representation" }),
-    body: JSON.stringify({
-      organization_id: organizationId,
-      workspace_id: workspaceId,
-      invited_email: email,
-      invited_name: name,
-      role,
-      permissions,
-      status: "pending",
-      token_hash: tokenHash,
-      expires_at: expiresAt,
-      created_by_user_id: req.sonaraUser?.id || null
-    })
-  }).catch(() => undefined);
-
-  if (!response?.ok) return { status: 502, body: { ok: false, code: "invite_not_recorded", message: "Employee invite could not be recorded." } };
-  const rows = await response.json().catch(() => []);
-  const invite = rows[0] || {};
-  const inviteUrl = `${getPublicAppUrl(req)}/business-builder/invite/accept?token=${encodeURIComponent(rawToken)}`;
-  const emailResult = await sendBusinessInviteEmail({ email, name, role, inviteUrl });
-  await recordAdminAuditEvent(req, "business.employee_invite.created", { target_type: "business_employee_invite", target_id: invite.id || "pending", workspace_id: workspaceId, email_domain: email.split("@")[1] || "unknown", email_delivery: emailResult.ok ? "sent" : "setup_required" });
-
-  return {
-    status: 200,
-    body: {
-      ok: true,
-      code: "invite_recorded",
-      inviteId: invite.id,
-      delivery: emailResult.ok ? "email_sent" : "setup_required",
-      message: emailResult.ok
-        ? "Employee invite recorded and email delivery was requested."
-        : "Employee invite recorded. Email delivery setup is required before invite email delivery is available."
-    }
-  };
-}
-
-async function acceptBusinessEmployeeInvite(body) {
-  const token = String(body.token || "").trim();
-  const email = String(body.email || "").trim().toLowerCase();
-  const password = String(body.password || "");
-  if (!token || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 8) {
-    return { status: 400, body: { ok: false, code: "validation_failed", message: "Invite token, valid email, and an 8+ character password are required." } };
-  }
-  if (!isSupabaseConfigured()) return { status: 503, body: { ok: false, code: "setup_required", service: "supabase_auth" } };
-
-  const config = getSupabaseAdminClient();
-  const inviteResponse = await fetch(`${config.url}/rest/v1/business_employee_invites?select=id,organization_id,workspace_id,role,status,expires_at,invited_email&token_hash=eq.${encodeURIComponent(hashInviteToken(token))}&status=eq.pending&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (!inviteResponse?.ok) return { status: 502, body: { ok: false, code: "invite_lookup_failed" } };
-  const invites = await inviteResponse.json().catch(() => []);
-  const invite = invites[0];
-  if (!invite) return { status: 404, body: { ok: false, code: "invite_not_found" } };
-  if (String(invite.invited_email || "").toLowerCase() !== email) return { status: 403, body: { ok: false, code: "invite_email_mismatch" } };
-  if (new Date(invite.expires_at).getTime() <= Date.now()) return { status: 410, body: { ok: false, code: "invite_expired" } };
-
-  const auth = await createEmployeeAuthUser(email, password);
-  if (!auth.ok || !auth.userId) return { status: auth.status || 502, body: { ok: false, code: auth.code || "auth_not_completed" } };
-
-  const membership = await fetch(`${config.url}/rest/v1/business_memberships?on_conflict=workspace_id,user_id`, {
-    method: "POST",
-    headers: supabaseHeaders(config, { prefer: "resolution=merge-duplicates" }),
-    body: JSON.stringify({
-      organization_id: invite.organization_id,
-      workspace_id: invite.workspace_id,
-      user_id: auth.userId,
-      role: invite.role,
-      status: "active"
-    })
-  }).catch(() => undefined);
-  if (!membership?.ok) return { status: 502, body: { ok: false, code: "membership_not_recorded" } };
-
-  await fetch(`${config.url}/rest/v1/business_employee_invites?id=eq.${encodeURIComponent(invite.id)}`, {
-    method: "PATCH",
-    headers: supabaseHeaders(config),
-    body: JSON.stringify({ status: "accepted", accepted_by_user_id: auth.userId, accepted_at: new Date().toISOString() })
-  }).catch(() => undefined);
-
-  return { status: 200, body: { ok: true, code: "invite_accepted", message: "Invite accepted. Use Business Builder login with your email and password." } };
-}
-
-
-async function sendBusinessInviteEmail({ email, name, role, inviteUrl }) {
-  if (getReadiness().services.emailDelivery !== "enabled") return { ok: false, error: "resend_not_configured" };
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getEnv("RESEND_API_KEY")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: getEnv("RESEND_FROM_EMAIL"),
-      to: [email],
-      subject: "Business Builder employee invite",
-      text: [`Hello ${name},`, "", `You were invited as a Business Builder ${role}.`, "Set your own password using this secure invite link:", inviteUrl, "", "If you did not expect this invite, ignore this email."].join("\n")
     })
   }).catch(() => undefined);
   return response?.ok ? { ok: true } : { ok: false, error: `resend_${response?.status || "unavailable"}` };
@@ -2905,7 +2737,6 @@ function isPlaceholderEmail(value) {
   const email = extractEmailAddress(value).toLowerCase();
   return isPlaceholderValue(email) || ["your-email@example.com", "you@example.com"].includes(email);
 }
-
 
 
 function isSupabaseConfigured() {
@@ -2971,11 +2802,11 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
     return {
       ok: true,
       saved: false,
-      code: "setup_required",
+      code: req.sonaraUser?.id ? "setup_required" : "not_signed_in", // a stranger is not an unfinished workspace
       service: organization.code || "customer_organization",
       productKey,
       moduleKey,
-      referenceId: randomUUID(),
+      referenceId: null, // was randomUUID(): a reference number for a row nobody wrote
       output
     };
   }
@@ -2983,11 +2814,11 @@ async function saveModuleOutput(req, productKey, moduleKey, input, output) {
   const domain = await safeInsertDomainModuleRecord(organization.organizationId, req.sonaraUser?.id, productKey, moduleKey, input, output);
   const operating = await safeInsertBusinessBuilderOperatingRecord(organization.organizationId, req.sonaraUser?.id, productKey, moduleKey, input, output);
   const anySaved = saved.ok || domain.ok || operating.ok;
-  const referenceId = saved.rows?.[0]?.id || domain.rows?.[0]?.id || operating.rows?.[0]?.id || randomUUID();
+  const referenceId = saved.rows?.[0]?.id || domain.rows?.[0]?.id || operating.rows?.[0]?.id || null;
   return {
     ok: true,
     saved: anySaved,
-    code: anySaved ? "saved" : "setup_required",
+    code: anySaved ? "saved" : "save_failed", // was "setup_required" for every unsaved outcome, so the result page always blamed setup
     productKey,
     moduleKey,
     referenceId,
@@ -3015,11 +2846,11 @@ function sendValidationFailure(req, res, validation, backHref) {
 
 function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json(result);
-  const reference = result.referenceId || result.intakeRequestId || result.output?.referenceId || "pending";
   const title = result.saved ? successTitle : "Your result is ready";
+  // No reference number on the unsaved path -- it identified nothing, and a number is what makes somebody believe the work is filed.
   const message = result.saved
-    ? `Saved to your workspace. Reference ID: ${reference}.`
-    : `Your result was created, but it could not be saved yet. Try again in a moment. Reference ID: ${reference}.`;
+    ? `Saved to your workspace. Reference ID: ${result.referenceId || result.intakeRequestId || result.output?.referenceId || "pending"}.`
+    : "Your result was created, but it could not be saved yet. Try again in a moment.";
   const page = responsePage(title, message, [
     linkAction(backHref, "Return to tool"),
     linkAction("/dashboard", "My workspace"),
@@ -3039,9 +2870,9 @@ async function readModuleRecords(req, productKey) {
   return {
     ok: result.ok === true,
     saved: result.ok,
-    code: result.ok ? "records_available" : organization.ok ? "records_unavailable" : "setup_required",
+    code: result.ok ? "records_available" : organization.ok || organization.code !== "workspace_not_ready" ? "records_unavailable" : "setup_required",
     productKey,
-    records: result.records
+    records: result.records, shared: result.shared
   };
 }
 
@@ -3404,7 +3235,7 @@ function requirePaidOrOwnerAccess(productKey) {
       };
       if (acceptsHtml(req)) {
         return res.status(entitlement.status || 402).type("html").send(
-          responsePage("Upgrade required", payload.message, [linkAction("/pricing", "View pricing"), linkAction("/dashboard", "Dashboard")])
+          responsePage(entitlement.heading || "Upgrade required", payload.message, entitlement.heading ? [linkAction("/dashboard", "Dashboard")] : [linkAction("/pricing", "View pricing"), linkAction("/dashboard", "Dashboard")])
         );
       }
       return res.status(entitlement.status || 402).json(payload);
@@ -3482,51 +3313,6 @@ async function requireBusinessManager(req, res, next) {
   return next();
 }
 
-async function getCustomerPrimaryOrganization(user, options = {}) {
-  const config = getSupabaseServerConfig();
-  const userId = String(user?.id || "").trim();
-  if (!config.ok) return { ok: false, code: "workspace_unavailable" };
-  if (!userId) return { ok: false, code: "customer_auth_required" };
-
-  const organizationMembership = await fetch(`${config.url}/rest/v1/organization_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (organizationMembership?.ok) {
-    const rows = await organizationMembership.json().catch(() => []);
-    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "organization_memberships" };
-  }
-
-  const businessMembership = await fetch(`${config.url}/rest/v1/business_memberships?select=organization_id&user_id=eq.${encodeURIComponent(userId)}&status=eq.active&order=created_at.asc.nullslast,organization_id.asc&limit=1`, {
-    headers: supabaseHeaders(config)
-  }).catch(() => undefined);
-  if (businessMembership?.ok) {
-    const rows = await businessMembership.json().catch(() => []);
-    if (rows[0]?.organization_id) return { ok: true, organizationId: rows[0].organization_id, source: "business_memberships" };
-  }
-
-  if (options.autoBootstrap !== false) {
-    const response = await fetch(`${config.url}/rest/v1/rpc/sonara_bootstrap_customer_workspace`, {
-      method: "POST",
-      headers: supabaseHeaders(config, { "content-type": "application/json" }),
-      body: JSON.stringify({
-        p_user_id: userId,
-        p_email: user?.email || null,
-        p_organization_name: null,
-        p_product_path: "dashboard"
-      })
-    }).catch(() => undefined);
-    if (response?.ok) {
-      const payload = await response.json().catch(() => ({}));
-      const value = Array.isArray(payload) ? payload[0] : payload;
-      const organizationId = value?.organization_id || value?.organizationId;
-      if (organizationId) return { ok: true, organizationId, source: "automatic_workspace_bootstrap" };
-    }
-  }
-
-  return { ok: false, code: "workspace_not_ready" };
-}
-
-
 
 async function verifyAdminRequest(req) {
   const candidates = [
@@ -3573,9 +3359,9 @@ async function getUserRoles(user) {
   const query = `/rest/v1/user_roles?select=role&user_id=eq.${encodeURIComponent(userId)}`;
   const response = await fetch(`${config.url}${query}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
   if (response?.ok) {
-    const rows = await response.json().catch(() => []);
-    for (const row of rows) {
-      if (["owner", "admin", "customer", "employee"].includes(row.role)) roles.add(row.role);
+    const rows = await response.json().catch(() => null);
+    for (const row of Array.isArray(rows) ? rows : []) { // PostgREST can answer 200 with an error object, and for...of on one throws -- here, on the admin authorization path
+      if (["owner", "admin", "customer", "employee"].includes(row?.role)) roles.add(row.role);
     }
   }
   return { ok: roles.size > 0, roles: Array.from(roles) };
@@ -3941,8 +3727,6 @@ async function getDatabaseContractSnapshot(config) {
 }
 
 
-
-
 async function getStorageBucketReadiness() {
   const config = getSupabaseServerConfig();
   if (!config.ok) {
@@ -4059,6 +3843,5 @@ function supabaseHeaders(config, options = {}) {
   if (options.prefer) headers.Prefer = options.prefer;
   return headers;
 }
-
 
 

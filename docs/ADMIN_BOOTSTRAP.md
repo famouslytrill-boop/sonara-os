@@ -4,14 +4,20 @@ SONARA owner/admin status is granted server-side. Do not hardcode owner emails i
 
 ## Required Env
 
-- `SONARA_ADMIN_EMAILS`: comma-separated owner/admin emails.
+- `FOUNDER_EMAILS` and `ADMIN_EMAILS`: comma-separated owner/admin emails. `ADMIN_EMAIL` takes a single address.
+
+> Corrected 19 August 2026. This file named `SONARA_ADMIN_EMAILS`, which no running
+> file has ever read — it was declared only in the Next.js application under `app/`
+> that could not build, and which was deleted. Setting it granted nothing, and
+> nothing said so. `server.js` and `lib/sonara-readiness.cjs` read the three names
+> above.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Steps
 
-1. Add the first owner email to `SONARA_ADMIN_EMAILS` in Vercel.
+1. Add the first owner email to `FOUNDER_EMAILS` in Vercel.
 2. Redeploy the app.
 3. Open `/signup`.
 4. Create the first account with the matching email.
@@ -27,6 +33,6 @@ SONARA owner/admin status is granted server-side. Do not hardcode owner emails i
 
 ## Safety
 
-- Keep `SONARA_ADMIN_EMAILS` server-only.
+- Keep `FOUNDER_EMAILS` and `ADMIN_EMAILS` server-only.
 - Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the browser.
 - Remove stale owner emails from Vercel when access should be revoked, then manage memberships in Supabase with audited admin workflows.

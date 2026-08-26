@@ -57,7 +57,8 @@ const SUBMISSIONS = Object.freeze({
   // same failure as the original bug, on a page with no history of working.
   "/api/business/purchase-orders": { po_number: "PO-1001", notes: "Weekly order" },
   "/api/business/stock-counts": { count_date: "2026-08-05", notes: "Monthly count" },
-  "/api/business/transfers": { notes: "Move stock to the second shop" }
+  "/api/business/transfers": { notes: "Move stock to the second shop" },
+  "/api/sensory/profiles": { name: "Quiet kitchen", profile_key: "quiet_kitchen" }
 });
 
 let captured = new Map();
@@ -174,6 +175,47 @@ describe("the Business Builder record forms", () => {
       if (payload.organization_id !== ORGANIZATION_ID) unscoped.push(`${path} sent organization_id ${payload.organization_id}`);
     }
     assert.deepEqual(unscoped, [], unscoped.join("\n  "));
+  });
+
+  // AGENTS.md: "Sounds, voice announcements, haptics, SMS, push, and email
+  // alerts must be off or explicitly user-controlled by default."
+  //
+  // Migration 015 gives sensory_feedback_profiles.sound_enabled and
+  // .vibration_enabled a column default of true, so a profile created without
+  // an answer arrived with both on -- the database deciding a question the rule
+  // says the person has to. Nothing reads the table today, which is why it went
+  // unnoticed and is not a reason to leave it: the row is written now and read
+  // whenever somebody builds the consumer.
+  it("creates a feedback profile with sound and vibration off unless asked", async () => {
+    captured = new Map();
+    await request(app)
+      .post("/api/sensory/profiles")
+      .set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub-access-token`)
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ name: "Quiet kitchen", profile_key: "quiet_kitchen" })
+      .redirects(0);
+    const [, payload] = [...captured][0] || [];
+    assert.ok(payload, "nothing was sent to Supabase");
+    for (const key of ["sound_enabled", "vibration_enabled", "motion_enabled", "location_enabled"]) {
+      assert.equal(payload[key], false, `${key} was left to the database, which defaults it on`);
+    }
+  });
+
+  it("still lets somebody turn one on deliberately", async () => {
+    // The other half. A default that cannot be overridden is not a default, and
+    // the rule is "off or explicitly user-controlled" rather than "off".
+    captured = new Map();
+    await request(app)
+      .post("/api/sensory/profiles")
+      .set("Cookie", `${CUSTOMER_SESSION_COOKIE}=stub-access-token`)
+      .set("Accept", "text/html")
+      .type("form")
+      .send({ name: "Noisy kitchen", profile_key: "noisy_kitchen", sound_enabled: "true" })
+      .redirects(0);
+    const [, payload] = [...captured][0] || [];
+    assert.equal(payload.sound_enabled, "true", "an explicit yes was overwritten by the default");
+    assert.equal(payload.vibration_enabled, false, "the ones not asked about should still be off");
   });
 
   it("refuses to take the organization from the form", async () => {

@@ -349,8 +349,28 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
     };
   }
 
+  // Post-signup onboarding, and the page /account/setup actually serves.
+  //
+  // It answered **anybody**, signed in or not. server.js registers
+  // `app.get("/account/setup", requireCustomer, ...)` with a different page,
+  // and this interceptor is registered first, so Express never reached the
+  // guarded one -- the route was gated in the file somebody would read and
+  // ungated in the file that ran.
+  //
+  // Nothing leaked: the form's write, POST /account/setup/organization, answers
+  // 401 and stores nothing. What a stranger got was a form inviting them to
+  // name a workspace, which would then refuse them. The gate below is the same
+  // one the /business-builder/dashboard interceptor twenty lines down already
+  // uses, in the same shape.
   app.use((req, res, next) => {
     if (req.method !== "GET" || req.path !== "/account/setup") return next();
+    return requireCustomer(req, res, (error) => {
+      if (error) return next(error);
+      return renderWorkspaceSetup(res);
+    });
+  });
+
+  function renderWorkspaceSetup(res) {
     return res.status(200).type("html").send(layout({
       title: "Set up your business workspace",
       eyebrow: "Business Builder",
@@ -363,7 +383,7 @@ module.exports = function registerSonaraBusinessControlPlaneRoutes(app, deps = {
       ],
       actions: [linkAction("/login", "Log in"), linkAction("/support", "Get help")]
     }));
-  });
+  }
 
   async function renderBusinessBuilderDashboard(req, res) {
     const ctx = await context(req);

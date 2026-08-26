@@ -45,15 +45,28 @@ describe("database query contract", () => {
   });
 
   it("uses deterministic membership resolution", function() {
-    const source = read(serverPath);
+    // Read from the whole runtime rather than server.js, per this file's own
+    // note above: the tenant resolver moved to
+    // lib/sonara-customer-organization.cjs on 17 August 2026, and which file
+    // holds a query is not part of the contract.
+    //
+    // The contract is: a customer in two organizations resolves to the same one
+    // on every request. That needs an explicit total order and limit=1 --
+    // PostgREST returns rows in whatever order the planner chose otherwise, and
+    // the resulting workspace flip is invisible until somebody's records appear
+    // to vanish.
+    const source = readRuntime();
     assert.match(
       source,
-      /organization_memberships\?select=organization_id&user_id=eq\.\$\{encodeURIComponent\(userId\)\}&status=eq\.active&order=created_at\.asc\.nullslast,organization_id\.asc&limit=1/
+      /select=organization_id&user_id=eq\.\$\{encodeURIComponent\(userId\)\}&status=eq\.active&order=created_at\.asc\.nullslast,organization_id\.asc&limit=1/,
+      "the membership query lost its deterministic order or its limit"
     );
-    assert.match(
-      source,
-      /business_memberships\?select=organization_id&user_id=eq\.\$\{encodeURIComponent\(userId\)\}&status=eq\.active&order=created_at\.asc\.nullslast,organization_id\.asc&limit=1/
-    );
+    // Both tables must go through that one query rather than one of them
+    // carrying a query of its own -- which is what the two separate assertions
+    // here used to check, back when the strings were written out twice.
+    assert.match(source, /\$\{config\.url\}\/rest\/v1\/\$\{table\}\?\$\{query\}/);
+    assert.match(source, /readMemberships\(config, "organization_memberships", userId\)/);
+    assert.match(source, /readMemberships\(config, "business_memberships", userId\)/);
     assert.match(source, /"order=created_at\.asc\.nullslast,workspace_id\.asc"/);
   });
 

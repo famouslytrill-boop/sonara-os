@@ -331,9 +331,164 @@ describe("the server.js split stays safe", () => {
     // describe them. Moving it is how the three plans of the August pricing
     // restructure were absorbed -- the ceiling comes down as they go in, rather
     // than up to make room for them.
+    // Raised once, by 7, on 17 August 2026, and this is the exception the
+    // ceiling exists to make expensive rather than impossible. The seven lines
+    // are a require, a one-line call after `const app = express()`, and a
+    // four-line terminal error handler at the very end -- all three of which
+    // must live in this file because they bracket every route registered in it.
+    // The behaviour is in lib/sonara-async-route-safety.cjs, which is where the
+    // ceiling wants it. Anything that could have gone into that module did.
+    //
+    // Then straight back down past where it started, to 4033: the tenant
+    // boundary moved to lib/sonara-customer-organization.cjs the same day, and
+    // came down 40 lines with it.
+    //
+    // Raised to 4036 on 19 August 2026, by 3, and this is the second exception.
+    // The lines are a require, a blank line matching every registration around it,
+    // and a one-line registration for
+    // routes/sonara-creator-profile-routes.cjs, which serves /creator/:handle --
+    // a new top-level public surface rather than a page inside an existing one.
+    //
+    // Two other registrations that week avoided this by being registered from
+    // the route module that already held every helper they needed, and that was
+    // right in both cases because the registering module owned the thing being
+    // served: the shared-result routes publish results the service-lifecycle
+    // module computes and saves. No module owns a creator's public profile in
+    // that sense, and threading eleven helpers through an unrelated module to
+    // save a line here would put the registration somewhere nobody would look
+    // for it. The behaviour is all in the route module, which is where the
+    // ceiling wants it; only the two bracketing lines are here.
+    //
+    // Raised to 4039 on 20 August 2026, by 3, and this is the third exception,
+    // for exactly the same reason as the second. The lines are a require, a
+    // blank line matching every registration around it, and a one-line
+    // registration for routes/sonara-public-booking-routes.cjs, which serves
+    // /book/:slug -- a new top-level public surface, reachable without an
+    // account, rather than a page inside an existing one.
+    //
+    // The alternative was registering it from a module that already holds the
+    // nine helpers it needs. None owns a public booking page in the sense the
+    // shared-result routes own a published result: the closest is the owner
+    // record pages, which serve bookings inside a workspace and know nothing
+    // about publishing one. Threading nine helpers through them to save a line
+    // here would put a public route somewhere nobody would look for it. All the
+    // behaviour is in the route module; only the two bracketing lines are here.
+    //
+    // Raised to 4042 on 20 August 2026, by 3, and this is the fourth exception.
+    // A require, a blank line, and a one-line registration for
+    // routes/sonara-import-routes.cjs. The same reasoning as the second and
+    // third: it serves /business-builder/owner/customers/import, and while that
+    // path sits under the owner record pages, lib/sonara-owner-record-pages.cjs
+    // is a declarative table of record types with no notion of a two-step form
+    // that previews before it writes. Threading it through there would mean
+    // teaching that table about a flow only one page has.
+    //
+    // Raised to 4045 on 20 August 2026, by 3, and this is the fifth exception.
+    // A require, a blank line, and a one-line registration for
+    // routes/sonara-recurring-invoice-routes.cjs, which serves
+    // /business-builder/owner/recurring. Same shape as the fourth: the owner
+    // record pages are a declarative table of record types, and a standing
+    // arrangement is two tables plus arithmetic that produces rows in a third.
+    //
+    // Five exceptions in four days is worth noticing rather than defending.
+    // Every one has been two bracketing lines for a route module holding all
+    // its own behaviour, which is the shape the ceiling wants; what it has not
+    // done is come back down. The next reduction should be real -- something
+    // moved out of server.js -- rather than another registration paying for
+    // itself with a comment.
+    //
+    // Raised to 4048 on 20 August 2026, by 3, and this is the sixth exception.
+    // A require, a blank line, and a one-line registration for
+    // routes/sonara-rota-routes.cjs.
+    //
+    // The note on the fifth said the next reduction should be real rather than
+    // another registration paying for itself with a comment. That still stands
+    // and this is not it -- six exceptions and no reduction is a ceiling that
+    // has stopped ratcheting. The honest reading is that the ceiling now
+    // measures how often a new top-level page is added, which is not what it
+    // was for. Before a seventh, move something out.
+    //
+    // Then down to 3935 on 24 August 2026, which is that reduction: the
+    // Business Builder employee invite lifecycle -- create, email, accept --
+    // moved whole to lib/sonara-business-employee-invites.cjs, 112 lines out of
+    // this file for a ten-line factory call, plus the `crypto` require that
+    // had no other user left. It was chosen over larger
+    // candidates because it is the one with a security story to hold: a token
+    // that is hashed and never stored, an email that has to match the invite,
+    // an expiry with its own status code, and a refusal to let an owner set an
+    // employee's password. tests/an-employee-invite-is-a-credential.test.js
+    // holds all four, which nothing did while it lived here.
+    //
+    // The ceiling comes down with it rather than staying where it was, because
+    // a ceiling left above the current count is headroom nobody decided to
+    // grant.
+    //
+    // Then to 3833 on 24 August 2026, the second real reduction:
+    // createOrAttachOrganization -- the largest function left in this file, and
+    // untested -- moved to lib/sonara-workspace-bootstrap.cjs with the two
+    // product-path helpers only it used. It decides which organization a
+    // customer belongs to, and since every read is scoped by organization_id
+    // against a service key that bypasses row level security, that decision is
+    // the tenant boundary. tests/a-customer-gets-one-organization.test.js holds
+    // it now: one organization per customer, the existence check before the
+    // insert rather than after, and a redirect path that cannot be chosen by
+    // the request.
+    //
+    // Then 3836 on 25 August 2026, by 3, for routes/sonara-leadforge-routes.cjs
+    // -- /leadforge, a new top-level public surface. That is the seventh
+    // exception, and unlike the first six it is taken against a baseline 215
+    // lines lower than where the run of exceptions started, which is the shape
+    // this was meant to have: reduce, then spend a little of it.
+    //
+    // Then 3839 on 25 August 2026, by 3, for
+    // routes/sonara-lead-capture-routes.cjs -- nine routes behind one require
+    // and one registration line: the public /chat/:slug widget and the four
+    // Growth Studio owner pages that stand behind it. Eighth exception, and the
+    // same shape as the seventh: three lines here for around nine hundred that
+    // went straight into a route module rather than into this file. The ratchet
+    // is doing its job when a feature this size costs three lines; it would not
+    // be if the next one cost three hundred.
+    //
+    // Then 3842 on 25 August 2026, by 3, for
+    // routes/sonara-voice-studio-routes.cjs -- one page and one JSON endpoint
+    // reporting whether a voice service the owner runs is reachable. Ninth
+    // exception. Three lines again, which is the shape that matters: the
+    // ceiling is measuring registration cost, and registration cost is staying
+    // flat while features are added. It would be worth acting on if a feature
+    // ever cost thirty.
+    //
+    // Then 3844 on 26 August 2026, by 2, for
+    // routes/sonara-scroll-routes.cjs -- the cinematic scroll site builder:
+    // dashboard, template picker, editor, preview, static export and the public
+    // /s/:slug page, plus one write endpoint. Tenth exception, and two lines
+    // rather than three because the registration fits on one.
+    //
+    // Worth saying what these ten exceptions now measure. Every one has been a
+    // require and a registration for a route module holding all its own
+    // behaviour, and the per-feature cost has stayed at two or three lines
+    // while the features have got substantially larger -- this one is around
+    // eleven hundred lines of module and library. That is the ratchet working:
+    // it prices putting behaviour *in this file*, and nothing has been put in
+    // it. The number to act on is a feature that costs thirty lines here, not
+    // the count of exceptions.
+    // Then 3846 on 26 August 2026, by 2, for
+    // routes/sonara-asset-file-routes.cjs -- attaching a file to a Creator
+    // Studio asset, which is the first thing this application can accept that
+    // is not a form field. Eleventh exception, and two lines: a first draft
+    // cost ten because the reasoning was written here, and the reasoning
+    // belongs in the route module where it already was. Worth recording,
+    // because a comment is the easiest thing to grow this file with and the
+    // hardest to argue against.
+    // Then 3848 on 26 August 2026, by 2, for
+    // routes/sonara-connected-payment-routes.cjs -- connecting a Stripe account
+    // so a business can be paid by its own customers, which is the largest
+    // thing this application could not do. Twelfth exception, and exactly two
+    // lines: one require, one registration. Every sentence of reasoning about
+    // custody, direct charges and why there is no pay button lives in the route
+    // module, which is the shape this ceiling exists to push work into.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 4066,
+      lines <= 3848,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

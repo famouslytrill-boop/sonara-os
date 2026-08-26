@@ -5,11 +5,15 @@
 // stay consistent with the rest of the app. No secrets are ever rendered.
 
 const { redactError } = require("../lib/sonara-redaction.cjs");
+const { PLANNER_TOOLS } = require("../lib/sonara-planner-tools.cjs");
+const { applyPreset, describe: describePreset } = require("../lib/sonara-tool-presets.cjs");
+const { MARKET_TOOLS } = require("../lib/sonara-market-tools.cjs");
+const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 
-const { randomUUID } = require("node:crypto");
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
+const registerSharedResultRoutes = require("./sonara-shared-result-routes.cjs");
 
 const PRODUCTS = [
   { slug: "business-builder", productKey: "business_builder", name: "Business Builder" },
@@ -192,6 +196,20 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   }
 
 
+  // The public face of a saved result.
+  //
+  // Registered from here rather than from server.js because this module is what
+  // makes the results: the tools above compute them, saveModuleOutput stores
+  // them, and a shared link is one of those rows with an address. It also needs
+  // exactly ten helpers, and this module was already handed all ten -- adding a
+  // second call site in server.js would have meant threading the same ten
+  // through a second time to reach the same table.
+  registerSharedResultRoutes(app, {
+    layout, brandCard, linkAction, escapeHtml, responsePage,
+    requireCustomer, wantsJson, getSupabaseServerConfig, supabaseHeaders,
+    getCustomerPrimaryOrganization
+  });
+
   function productByKey(productKey) {
     return PRODUCTS.find((product) => product.productKey === productKey);
   }
@@ -218,21 +236,50 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
   }
 
   function sendToolResult(req, res, result, tool) {
-    if (wantsJson(req)) return res.status(200).json(result);
+    // 503 with ok: false when nothing was saved, matching the two sibling write
+    // endpoints. This answered 200 with ok: true for a write that stored
+    // nothing, so one product gave two answers to one kind of failure.
+    // 503 says "our side broke", and for a visitor with no account nothing broke
+    // -- the tool ran and answered. The 503 below is still right for a write
+    // that was attempted and failed; this separates the two rather than
+    // reporting a working tool as an outage.
+    const nothingWentWrong = result.saved || String(result.code) === "not_signed_in";
+    if (wantsJson(req)) return res.status(nothingWentWrong ? 200 : 503).json({ ...result, ok: result.saved === true });
+
+    // Whether "setup" is the reason. It is when the workspace is genuinely
+    // unconfigured, and it is not when a read or a write failed underneath a
+    // workspace that is already finished -- workspace_unreadable and
+    // records_unavailable both arrive here, and both used to send the customer
+    // to a setup page with nothing on it to do.
+    const notSignedIn = String(result.code) === "not_signed_in";
+    const setupIsTheReason = !notSignedIn
+      && ["setup_required", "customer_organization", "supabase"].includes(String(result.service || result.code));
     const sections = [toolOutputCard(result.output)];
     if (result.saved) {
       sections.push(brandCard("Record saved", `Saved for your organization. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+    } else if (notSignedIn) {
+      // Said rather than left to be noticed. A result page that looks the same
+      // whether or not it was kept is how somebody closes the tab and loses it.
+      sections.push(brandCard(
+        "This answer is not saved",
+        "The figures above are yours to copy or print. Create a free account and the next one is saved to your workspace, so you can come back to it and see it change."
+      ));
+    } else if (setupIsTheReason) {
+      // No reference number. referenceId is null for unsaved work -- it used to
+      // be a randomUUID() identifying no row -- and this printed it through
+      // String(), so the customer read the literal word "null".
+      sections.push(brandCard("Not saved yet", `Your output was generated and is shown above. ${escapeHtml(plainLanguage.setupRequiredSentence(result.service || result.code))} Saving it needs that finished first.`));
     } else {
-      sections.push(brandCard("Save requires account database setup.", `Your output was generated and is shown above. ${escapeHtml(plainLanguage.setupRequiredSentence(result.service || result.code))} Saving it needs that finished first. Reference ID: ${escapeHtml(String(result.referenceId))}.`));
+      sections.push(brandCard("Your result could not be saved", "Your output was generated and is shown above. We could not save it to your workspace just now, and that is on our side rather than anything you need to set up. Run it again shortly if you want it kept."));
     }
-    return res.status(200).type("html").send(
+    return res.status(nothingWentWrong ? 200 : 503).type("html").send(
       layout({
         title: tool.title,
         eyebrow: "Free tool result",
         heading: `${tool.title} result`,
         body: result.saved
           ? "Your output was generated and saved as an organization record."
-          : "Your output was generated. Save requires account database setup.",
+          : "Your output was generated. It could not be saved to your workspace.",
         sections,
         actions: [
           linkAction(tool.path, "Run again"),
@@ -244,17 +291,25 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     );
   }
 
-  function toolFormCard(tool) {
+  // `values` prefills the form from a saved result. Empty by default, so a
+  // tool opened without one renders exactly as it always did.
+  //
+  // A field with no value is left blank rather than defaulted -- see
+  // lib/sonara-tool-presets.cjs for why a silent zero here is worse than an
+  // empty box.
+  function toolFormCard(tool, values = {}) {
+    const has = (name) => Object.prototype.hasOwnProperty.call(values, name);
     const fields = tool.fields
       .map((field) => {
         if (field.type === "select") {
-          const options = field.options.map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join("");
+          const options = field.options.map((option) =>
+            `<option value="${escapeHtml(option.value)}"${has(field.name) && String(values[field.name]) === String(option.value) ? " selected" : ""}>${escapeHtml(option.label)}</option>`).join("");
           return `<label>${escapeHtml(field.label)}<select name="${escapeHtml(field.name)}"${field.required ? " required" : ""}>${options}</select></label>`;
         }
         if (field.type === "textarea") {
-          return `<label>${escapeHtml(field.label)}<textarea name="${escapeHtml(field.name)}" rows="${field.rows || 4}"${field.required ? " required" : ""}></textarea></label>`;
+          return `<label>${escapeHtml(field.label)}<textarea name="${escapeHtml(field.name)}" rows="${field.rows || 4}"${field.required ? " required" : ""}>${has(field.name) ? escapeHtml(String(values[field.name])) : ""}</textarea></label>`;
         }
-        return `<label>${escapeHtml(field.label)}<input name="${escapeHtml(field.name)}" type="${escapeHtml(field.type || "text")}"${field.required ? " required" : ""}></label>`;
+        return `<label>${escapeHtml(field.label)}<input name="${escapeHtml(field.name)}" type="${escapeHtml(field.type || "text")}"${has(field.name) ? ` value="${escapeHtml(String(values[field.name]))}"` : ""}${field.required ? " required" : ""}></label>`;
       })
       .join("");
     return `<article class="card">
@@ -264,6 +319,40 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       <button type="submit">${escapeHtml(tool.submitLabel)}</button>
     </form>
   </article>`;
+  }
+
+  // One saved result's inputs, scoped twice.
+  //
+  // Both filters matter and for different reasons. organization_id is the
+  // tenant boundary -- the service key bypasses row level security, so without
+  // it an id from another business would fetch that business's numbers.
+  // module_key stops a saved break-even filling in the reorder-point form,
+  // which would look like the tool working and produce an answer from figures
+  // that mean something else.
+  async function readSavedInput(req, tool, id) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(id))) {
+      return { ok: false, payload: null, reason: "That is not a saved result." };
+    }
+    const config = typeof getSupabaseServerConfig === "function" ? getSupabaseServerConfig() : { ok: false };
+    if (!config?.ok) return { ok: false, payload: null, reason: "We could not reach your saved results just now, so nothing has been filled in." };
+
+    const org = typeof getCustomerPrimaryOrganization === "function"
+      ? await getCustomerPrimaryOrganization(req.sonaraUser || null, { autoBootstrap: false }).catch(() => null)
+      : null;
+    if (!org?.ok || !org.organizationId) return { ok: false, payload: null, reason: "We could not work out whose saved results to look in, so nothing has been filled in." };
+
+    const path = `/rest/v1/module_outputs?id=eq.${encodeURIComponent(id)}`
+      + `&organization_id=eq.${encodeURIComponent(org.organizationId)}`
+      + `&module_key=eq.${encodeURIComponent(tool.module)}`
+      + `&select=input_payload&limit=1`;
+    const response = await fetch(`${config.url}${path}`, { headers: supabaseHeaders(config) }).catch(() => undefined);
+    if (!response?.ok) return { ok: false, payload: null, reason: "We could not read that saved result, so nothing has been filled in." };
+    const rows = await response.json().catch(() => null);
+    // PostgREST answers 200 with an empty array when the filter matched nothing,
+    // which is what another business's id looks like. Not an error, and not a
+    // reason to say anything about whose it might be.
+    if (!Array.isArray(rows) || !rows.length) return { ok: false, payload: null, reason: "That saved result is not one of yours for this tool." };
+    return { ok: true, payload: rows[0]?.input_payload ?? null, reason: null };
   }
 
   function yesNoField(name, label) {
@@ -714,28 +803,122 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       fields: GROWTH_READINESS_CHECKS.map((check) => yesNoField(check.name, check.label)),
       requiredFields: GROWTH_READINESS_CHECKS.map((check) => check.name),
       build: (body) => scoreReadiness(body, GROWTH_READINESS_CHECKS)
-    }
+    },
+    // Nine planning tools, three per product line. See lib/sonara-planner-tools.cjs
+    // for why they are calculators rather than generators.
+    ...PLANNER_TOOLS,
+    // Nine more, built against documented market complaints rather than from a
+    // blank page. Sources in docs/market/2026-08-18-PRODUCT-GAP-RESEARCH.md.
+    ...MARKET_TOOLS,
+    STORYBOARD_TOOL
   ];
+
+  // Exposed so a test can post to every free tool rather than to the one
+  // somebody remembered. Each carries its own required fields, which is what
+  // makes a generated submission possible: "Reference ID: null" reached a
+  // customer on one of these result pages and was found by hand, because the
+  // page crawl only ever issued GETs.
+  app.locals.sonaraFreeTools = TOOLS.map((tool) => ({
+    path: tool.path,
+    title: tool.title,
+    // The module key a saved result carries. Exposed so the saved-results list
+    // can link a result back to the tool that made it -- a module_key does not
+    // contain its own URL, and a path constructed from one would 404 the day a
+    // tool moves. Derived from this table, which is the table that registers
+    // the routes.
+    module: tool.module,
+    requiredFields: [...(tool.requiredFields || [])],
+    fields: (tool.fields || []).map((field) => field.name)
+  }));
 
   // ---------------------------------------------------------------------------
   // Free tool pages and POST actions
   // ---------------------------------------------------------------------------
 
+  // The free tools compute for anybody, and save for a customer.
+  //
+  // Until 19 August 2026 both halves were behind a login. The effect was a
+  // funnel that advertised and then refused: /business-builder/tools is a public
+  // page listing ten tools by name and description, and every one of them
+  // answered a visitor who clicked it with a redirect to /login.
+  //
+  // These are the most differentiated thing in the product and the cheapest to
+  // give away -- pure arithmetic, no model call, no provider, no per-use cost,
+  // and nothing read from the database to produce the answer. Gating the
+  // *computation* does not drive a signup, it drives a bounce; gating the
+  // *saving* is what drives a signup, and that is unchanged.
+  //
+  // **Nothing moved from paid to free.** The free plan already included these
+  // tools; they moved from free-after-signup to free-before-signup, which is a
+  // funnel change rather than a pricing change.
   for (const tool of TOOLS) {
-    app.get(tool.path, requireWorkspaceAccess(tool.productKey), (req, res) => {
+    app.get(tool.path, async (req, res) => {
+      // Resolved, not required. The gate that used to sit here did two jobs and
+      // only one of them was gating -- it also worked out who was asking, which
+      // is what decides the framing below and, on POST, whether there is anyone
+      // to save the result for.
+      const session = typeof resolveCustomerSession === "function"
+        ? await resolveCustomerSession(req, res).catch(() => ({ ok: false }))
+        : { ok: false };
+      if (session.ok && session.user) req.sonaraUser = session.user;
+      const signedIn = Boolean(req.sonaraAccess || req.sonaraUser);
+
+      // Filling the form in from a result this customer saved earlier.
+      //
+      // module_outputs has always stored input_payload beside output_payload
+      // and nothing ever read it back, so this is a column being used rather
+      // than a feature being stored. The read is scoped to the caller's own
+      // organization AND to this tool's module_key: a saved result from another
+      // business, or from a different tool, finds nothing rather than filling
+      // somebody's numbers into the wrong form.
+      let preset = null;
+      const reuse = String(req.query?.reuse || "");
+      if (reuse && signedIn) {
+        const saved = await readSavedInput(req, tool, reuse);
+        preset = saved.ok
+          ? applyPreset({ fields: tool.fields, payload: saved.payload })
+          // A failed read must not render an empty form as though no preset was
+          // asked for -- somebody would type it all again believing it had not
+          // been saved.
+          : { ok: false, values: {}, filled: [], missing: [], ignored: [], complete: false, reason: saved.reason };
+      }
+
+      const presetCards = [];
+      if (preset) {
+        presetCards.push(brandCard(preset.ok && preset.filled.length ? "Your numbers from last time" : "Not filled in", describePreset(preset)));
+        if (preset.ok && preset.ignored.length) {
+          presetCards.push(brandCard(
+            "Some of what you saved is not on this tool any more",
+            `${preset.ignored.join(", ")}. Nothing was filled in from ${preset.ignored.length === 1 ? "it" : "them"}. This tool has changed since you saved that result.`
+          ));
+        }
+      }
+
       res.status(200).type("html").send(
         layout({
           title: tool.title,
           eyebrow: "Free tool",
           heading: tool.title,
-          body: `${tool.description} Free tools are available to logged-in users. Saving records depends on account database setup.`,
-          sections: [accessCard(req.sonaraAccess), toolFormCard(tool)],
-          actions: [
-            linkAction(`/${tool.slug}/tools`, "All tools"),
-            linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
-            linkAction("/dashboard", "Dashboard"),
-            logoutAction()
-          ]
+          body: `${tool.description} It runs on what you type and nothing else -- no account needed to get the answer.`,
+          sections: [
+            signedIn
+              ? accessCard(req.sonaraAccess)
+              : brandCard("No account needed", "Fill this in and you get the answer. Creating a free account is what saves it, so you can come back to it and track it."),
+            ...presetCards,
+            toolFormCard(tool, preset?.values || {})
+          ],
+          actions: signedIn
+            ? [
+                linkAction(`/${tool.slug}/tools`, "All tools"),
+                linkAction(`/${tool.slug}/dashboard`, "Product dashboard"),
+                linkAction("/dashboard", "Dashboard"),
+                logoutAction()
+              ]
+            : [
+                linkAction(`/${tool.slug}/tools`, "All tools"),
+                linkAction("/signup", "Create a free account"),
+                linkAction("/pricing", "Pricing")
+              ]
         })
       );
     });
@@ -750,11 +933,24 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           return res.status(400).type("html").send(responsePage("Check your inputs", extra.message, [linkAction(tool.path, "Return to tool")]));
         }
       }
-      return requireWorkspaceAccess(tool.productKey)(req, res, async () => {
-        const output = tool.build(req.body);
-        const result = await saveModuleOutput(req, tool.productKey, tool.module, req.body, output);
-        return sendToolResult(req, res, result, tool);
-      });
+      // Computed first, saved second, and the answer is shown either way.
+      // saveModuleOutput already reports { saved: false } with a reason rather
+      // than throwing, and reports "not_signed_in" separately from
+      // "setup_required" -- a stranger is not an unfinished workspace, and
+      // telling them to finish setting up an account they do not have would be
+      // the wrong instruction.
+      // Resolve who is asking before saving. Dropping the gate dropped this too,
+      // and a signed-in customer's result silently stopped being saved --
+      // caught by an existing test asserting that it does. The gate was doing
+      // two jobs; only one of them is being removed.
+      const session = typeof resolveCustomerSession === "function"
+        ? await resolveCustomerSession(req, res).catch(() => ({ ok: false }))
+        : { ok: false };
+      if (session.ok && session.user) req.sonaraUser = session.user;
+
+      const output = tool.build(req.body);
+      const result = await saveModuleOutput(req, tool.productKey, tool.module, req.body, output);
+      return sendToolResult(req, res, result, tool);
     });
   }
 
@@ -926,10 +1122,12 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
 
     const config = getSupabaseServerConfig();
     if (!config.ok) {
-      const referenceId = randomUUID();
-      const payload = { ok: true, saved: false, code: "setup_required", service: "supabase", referenceId, message: `Setup required: the account database is not configured. Reference ID: ${referenceId}.` };
-      if (wantsJson(req)) return res.status(200).json(payload);
-      return res.status(200).type("html").send(responsePage("Setup required", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
+      // No reference ID. It used to mint one with randomUUID() for a request
+      // that was never written, which is a number identifying nothing -- and it
+      // is the artefact that makes somebody believe they have a case open.
+      const payload = { ok: false, saved: false, code: "setup_required", service: "supabase", referenceId: null, message: "Your request was not recorded, because the account database is not connected. Nothing was saved, so please try again shortly rather than waiting to hear back." };
+      if (wantsJson(req)) return res.status(503).json(payload);
+      return res.status(503).type("html").send(responsePage("Your request was not recorded", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
     }
 
     const record = {
@@ -948,14 +1146,23 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     }).catch(() => undefined);
 
     if (!response?.ok) {
-      const referenceId = randomUUID();
-      const payload = { ok: true, saved: false, code: "setup_required", service: "service_requests", referenceId, message: `Setup required: the service_requests table is not available yet. Reference ID: ${referenceId}.` };
-      if (wantsJson(req)) return res.status(200).json(payload);
-      return res.status(200).type("html").send(responsePage("Setup required", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
+      const payload = { ok: false, saved: false, code: "not_recorded", service: "service_requests", referenceId: null, message: "Your request was not recorded. Nothing was saved, so please try again shortly rather than waiting to hear back." };
+      if (wantsJson(req)) return res.status(503).json(payload);
+      return res.status(503).type("html").send(responsePage("Your request was not recorded", payload.message, [linkAction("/requests", "Requests"), linkAction("/contact", "Contact")]));
     }
 
-    const rows = await response.json().catch(() => []);
-    const requestId = rows[0]?.id || randomUUID();
+    // The write succeeded, so this id exists. It used to fall back to
+    // randomUUID(), which handed out a reference to a row nobody could find on
+    // the one path where the insert worked and the representation did not come
+    // back -- the hardest version of this to notice, because everything else
+    // about the request was fine.
+    const rows = await response.json().catch(() => null);
+    const requestId = Array.isArray(rows) ? rows[0]?.id : undefined;
+    if (!requestId) {
+      const payload = { ok: false, saved: true, code: "reference_unavailable", service: "service_requests", referenceId: null, message: "Your request was saved, but we could not read back its reference number. It is recorded -- check your requests list rather than submitting it again." };
+      if (wantsJson(req)) return res.status(200).json(payload);
+      return res.status(200).type("html").send(responsePage("Saved, without a reference number", payload.message, [linkAction("/requests", "My requests"), linkAction("/dashboard", "Dashboard")]));
+    }
     await fetch(`${config.url}/rest/v1/service_request_events`, {
       method: "POST",
       headers: supabaseHeaders(config),
@@ -984,14 +1191,21 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     } else {
       const rows = await safeListTable("service_requests", `?select=id,service_name,product_key,status,created_at&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.desc&limit=20`);
       if (!rows.ok) {
-        sections.push(brandCard("Setup required", "The service_requests table is not available yet. Submitted requests will use the safe fallback path with a reference ID until the account database is migrated."));
+        sections.push(brandCard("Setup required", "The service_requests table is not available yet, so a request submitted now cannot be recorded and will be refused rather than accepted quietly."));
       } else if (!rows.rows.length) {
         sections.push(brandCard("No requests yet", "Submit your first service request below or browse the service catalog."));
       } else {
-        sections.push(...rows.rows.map((row) => brandCard(
+        // Linked, not just listed. Every request was rendered as a card with a
+        // reference id on it and no way to open it, so a customer could see
+        // that they had asked for something and never see the answer -- and
+        // service_comments, which holds the replies, was read by nothing at
+        // runtime at all.
+        sections.push(...rows.rows.map((row) => actionCard(
           `${row.service_name || "Service request"} - ${displayStatus(row.status || "submitted")}`,
-          `Product: ${displayStatus(row.product_key || "general")}. Submitted: ${row.created_at || "not returned"}. Reference ID: ${row.id}.`
+          `${displayStatus(row.product_key || "general")}. Submitted ${row.created_at || "at a date we could not read"}.`,
+          [linkAction(`/requests/${encodeURIComponent(row.id)}`, "Open this request")]
         )));
+        sections.push(await replyTimeCard(organization.organizationId, rows.rows));
       }
     }
     sections.push(serviceRequestForm());
@@ -1006,6 +1220,192 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
         actions: [linkAction("/service-catalog", "Service catalog"), linkAction("/deliverables", "Deliverables"), linkAction("/dashboard", "Dashboard"), logoutAction()]
       })
     );
+  });
+
+  // How long this business is taking to answer, from its own records.
+  //
+  // /growth-studio/tools/response-time asks a customer to type their average in.
+  // This is the same figure measured instead -- service_requests carries when a
+  // request arrived and service_comments carries the replies, so it is a
+  // subtraction rather than a memory.
+  async function replyTimeCard(organizationId, requests) {
+    const science = require("../lib/sonara-service-response.cjs");
+    const ids = requests.map((row) => row.id).filter(Boolean);
+    if (!ids.length) return "";
+    const list = ids.map((id) => `"${id}"`).join(",");
+    const comments = await safeListTable(
+      "service_comments",
+      `?select=service_request_id,created_at&organization_id=eq.${encodeURIComponent(organizationId)}`
+        + `&service_request_id=in.(${encodeURIComponent(list)})&order=created_at.asc&limit=500`
+    );
+    // A read that failed is not a business that never replies. Saying nothing is
+    // better than reporting a perfect score because the replies would not load.
+    if (!comments.ok) {
+      return brandCard("How quickly you reply", "We could not read the replies just now, so there is no figure to show. Nothing has changed.");
+    }
+    const measured = science.firstReplyTimes(requests, comments.rows, {});
+    if (!measured.ok) return "";
+    const lines = [];
+    if (measured.answered) {
+      lines.push(`Half of your answered requests got a first reply within ${science.humanDuration(measured.medianMinutes)}.`);
+      if (measured.withinADay !== null) {
+        lines.push(`${Math.round(measured.withinADay * 100)}% were answered within a day, ${Math.round(measured.withinAnHour * 100)}% within an hour.`);
+      }
+    } else {
+      lines.push("Nothing has been replied to yet, so there is no reply time to measure.");
+    }
+    if (measured.longestWaiting) {
+      lines.push(`Still waiting the longest: ${measured.longestWaiting.name}, ${science.humanDuration(measured.longestWaiting.waitingMinutes)} so far.`);
+    }
+    lines.push(measured.basis);
+    return brandCard("How quickly you reply", lines.join(" "));
+  }
+
+  // One request, and the conversation on it.
+  app.get("/requests/:requestId", requireCustomer, async (req, res) => {
+    const requestId = String(req.params.requestId || "");
+    const back = [linkAction("/requests", "All your requests"), linkAction("/dashboard", "Dashboard")];
+    const notFound = () => layout({
+      title: "Service request",
+      eyebrow: "Software-in-a-Service",
+      heading: "We could not find that request",
+      body: "It may belong to a different workspace, or the reference may be wrong.",
+      sections: [],
+      actions: back
+    });
+    if (!isUuid(requestId)) return res.status(404).type("html").send(notFound());
+
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) {
+      return res.status(200).type("html").send(layout({
+        title: "Service request",
+        eyebrow: "Software-in-a-Service",
+        heading: "Service request",
+        body: "Create or attach an organization to open a request.",
+        sections: [actionCard("Workspace setup required", "Your requests live in a workspace.", [linkAction("/account/setup", "Account setup")])],
+        actions: back
+      }));
+    }
+
+    // Scoped by organization as well as by id. The service key bypasses row
+    // level security, so without the organization filter a guessed reference
+    // from another business would open.
+    const found = await safeListTable(
+      "service_requests",
+      `?select=id,service_name,product_key,status,summary,details,created_at&id=eq.${encodeURIComponent(requestId)}`
+        + `&organization_id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`
+    );
+    // A read that failed and a request that is not there are different things,
+    // and answering "not found" to both tells a customer their record is gone
+    // during an outage.
+    if (!found.ok) {
+      return res.status(503).type("html").send(layout({
+        title: "Service request",
+        eyebrow: "Software-in-a-Service",
+        heading: "We could not open that request",
+        body: "This is on our side, and nothing has changed. Try again shortly.",
+        sections: [],
+        actions: back
+      }));
+    }
+    const request = found.rows[0];
+    if (!request) return res.status(404).type("html").send(notFound());
+
+    const thread = await safeListTable(
+      "service_comments",
+      `?select=id,body,created_at,user_id&service_request_id=eq.${encodeURIComponent(requestId)}`
+        + `&organization_id=eq.${encodeURIComponent(organization.organizationId)}&order=created_at.asc&limit=200`
+    );
+
+    const sections = [
+      brandCard(
+        request.service_name || "Service request",
+        `${displayStatus(request.status || "submitted")}. ${displayStatus(request.product_key || "general")}. `
+          + `Submitted ${request.created_at || "at a date we could not read"}. Reference ${request.id}.`
+      )
+    ];
+    if (request.summary) sections.push(brandCard("What you asked for", request.summary));
+    if (request.details) sections.push(brandCard("The detail you gave", request.details));
+
+    if (!thread.ok) {
+      // Never "no replies yet" for a read that failed. That sentence is a claim
+      // about the customer's records and it would be false.
+      sections.push(brandCard("Messages", "We could not load the messages on this request just now. Nothing has been lost -- try again shortly."));
+    } else if (!thread.rows.length) {
+      sections.push(brandCard("Messages", "There are no messages on this request yet. Anything you add below is kept with it."));
+    } else {
+      sections.push(...thread.rows.map((row) => brandCard(
+        row.user_id && row.user_id === req.sonaraUser?.id ? `You, ${row.created_at || "at an unknown time"}` : `Reply, ${row.created_at || "at an unknown time"}`,
+        String(row.body || "")
+      )));
+    }
+    sections.push(`<article class="card"><h2>Add a message</h2>
+      <p>Anything you add here stays with this request, so whoever picks it up can see it.</p>
+      <form method="post" action="${escapeHtml(`/api/service-requests/${encodeURIComponent(requestId)}/comments`)}">
+        <label>Message<textarea name="body" rows="4" maxlength="4000" required></textarea></label>
+        <button type="submit">Add this message</button>
+      </form>
+    </article>`);
+
+    return res.status(200).type("html").send(layout({
+      title: request.service_name || "Service request",
+      eyebrow: "Software-in-a-Service",
+      heading: request.service_name || "Service request",
+      body: "Everything said about this request, in one place.",
+      sections,
+      actions: back
+    }));
+  });
+
+  const MAX_COMMENT_LENGTH = 4000;
+
+  app.post("/api/service-requests/:requestId/comments", requireCustomer, async (req, res) => {
+    const requestId = String(req.params.requestId || "");
+    const back = isUuid(requestId) ? `/requests/${encodeURIComponent(requestId)}` : "/requests";
+    const respond = (status, payload) => {
+      if (wantsJson(req)) return res.status(status).json(payload);
+      if (payload.ok) return res.redirect(303, back);
+      return res.status(status).type("html").send(responsePage(
+        "That message was not added",
+        payload.message || "Nothing was saved. Try again shortly.",
+        [linkAction(back, "Back to the request"), linkAction("/support", "Get help")]
+      ));
+    };
+
+    if (!isUuid(requestId)) return respond(404, { ok: false, code: "unknown_request" });
+    const body = String(req.body?.body || "").trim();
+    if (!body) return respond(400, { ok: false, code: "message_required", message: "Write something before adding it." });
+    if (body.length > MAX_COMMENT_LENGTH) {
+      return respond(400, { ok: false, code: "message_too_long", message: `A message can be at most ${MAX_COMMENT_LENGTH} characters.` });
+    }
+
+    const config = getSupabaseServerConfig();
+    if (!config.ok) return respond(503, { ok: false, code: "setup_required" });
+    const organization = await getCustomerPrimaryOrganization(req.sonaraUser);
+    if (!organization.ok) return respond(409, { ok: false, code: "workspace_setup_required" });
+
+    // The request is confirmed to be in the caller's organization before a
+    // comment is written against it. Writing first and checking after would
+    // leave a message attached to somebody else's request if the check failed.
+    const owns = await safeListTable(
+      "service_requests",
+      `?select=id&id=eq.${encodeURIComponent(requestId)}&organization_id=eq.${encodeURIComponent(organization.organizationId)}&limit=1`
+    );
+    if (!owns.ok) return respond(503, { ok: false, code: "workspace_unreadable" });
+    if (!owns.rows.length) return respond(404, { ok: false, code: "unknown_request" });
+
+    const written = await fetch(`${config.url}/rest/v1/service_comments`, {
+      method: "POST",
+      headers: supabaseHeaders(config, { prefer: "return=representation" }),
+      body: JSON.stringify({
+        organization_id: organization.organizationId,
+        service_request_id: requestId,
+        user_id: req.sonaraUser?.id || null,
+        body
+      })
+    }).catch(() => undefined);
+    if (!written?.ok) return respond(503, { ok: false, code: "not_recorded", message: "Your message was not saved. Nothing has been recorded, so add it again rather than assuming it arrived." });
+    return respond(200, { ok: true, code: "added" });
   });
 
   async function deliverableSections(organization, productKey) {
@@ -1142,9 +1542,13 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
       return res.status(400).type("html").send(responsePage("Request not accepted", request.message, [linkAction("/support", "Try again")]));
     }
     const result = await saveSupportRequest(request.value);
-    if (wantsJson(req)) return res.status(200).json(result);
-    return res.status(200).type("html").send(
-      responsePage(result.ok ? "Support request received" : "Support request queued", result.message, [linkAction("/support", "Support"), linkAction("/dashboard", "Dashboard"), linkAction("/", "Home")])
+    // 503 when the request was stored nowhere and sent nowhere. The heading came
+    // from `result.ok ? ... : "Support request queued"`, and there is no queue --
+    // so the one path where nothing happened had the most reassuring page.
+    const status = result.ok ? 200 : 503;
+    if (wantsJson(req)) return res.status(status).json(result);
+    return res.status(status).type("html").send(
+      responsePage(result.heading, result.message, [linkAction("/support", "Support"), linkAction("/dashboard", "Dashboard"), linkAction("/", "Home")])
     );
   });
 

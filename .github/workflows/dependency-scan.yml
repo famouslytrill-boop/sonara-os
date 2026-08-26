@@ -5,6 +5,20 @@ on:
   pull_request:
 
 jobs:
+  # Named "frontend-dependencies" and there is no frontend.
+  #
+  # It runs against the repository root -- `working-directory: .` -- and does
+  # real work: the pnpm audit, the open-source registry check, the parse check
+  # and the build. The name is a leftover from when scripts/verify.sh built a
+  # `frontend/` directory, which this repository does not have and which that
+  # script was deleted with on 19 August 2026.
+  #
+  # The name is left alone deliberately. A job's `name` is the check name
+  # GitHub reports, so renaming it would retire "frontend-dependencies" and
+  # create a new check -- and if the old one is a required status check on the
+  # default branch, every pull request would then wait forever for a check that
+  # no longer runs. Renaming it is a one-line change to make **after** somebody
+  # has looked at the branch protection rules, not before.
   frontend-dependencies:
     runs-on: ubuntu-latest
     defaults:
@@ -59,6 +73,52 @@ jobs:
       - name: Build root app
         run: pnpm run build
 
+  # tools/agentkit/ is a Python package with no dependencies at all, so there is
+  # nothing to install and nothing to audit -- which is why this job is four
+  # lines and does not touch pip beyond the interpreter it is given.
+  #
+  # It exists because a test suite nothing runs is a check that cannot fail, and
+  # this repository's recurring defect is exactly that: a signal reporting
+  # success without being true. The agentkit tests are only worth having if
+  # something outside a developer's own machine runs them.
+  agentkit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/agentkit
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # Not `python -m unittest discover`. That exits 0 when it discovers
+      # nothing -- a moved directory, a renamed file, a missing __init__ -- so
+      # a green job would mean "no tests failed" and not "the tests passed".
+      # This runs the suite and asserts the population is plausible, which is
+      # the difference between a check and a light that is always on.
+      - name: Run the agentkit tests
+        run: |
+          python - <<'RUNNER'
+          import sys, unittest
+
+          suite = unittest.defaultTestLoader.discover(start_dir="tests", top_level_dir=".")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+
+          if result.testsRun < 60:
+              sys.exit(f"only {result.testsRun} tests ran; discovery has gone blind")
+          if not result.wasSuccessful():
+              sys.exit(1)
+          print(f"{result.testsRun} agentkit tests passed.")
+          RUNNER
+
+  # backend/ is a real second application, and this is the only thing that says
+  # so. It is a 370-line Python FastAPI service that CI installs, compiles,
+  # imports and asserts two routes on -- so unlike the Next.js tree deleted on
+  # 19 August 2026, it builds. What it does not do is deploy: vercel.json
+  # bundles only {public/**,routes/**,lib/**} into one Node function, so nothing
+  # in production serves it. Whether it should exist is an open question in
+  # docs/SPRINT_LOG.md; it is not dead code and should not be deleted as though
+  # it were.
   backend-dependencies:
     runs-on: ubuntu-latest
     defaults:
@@ -81,3 +141,55 @@ jobs:
         run: |
           python -m py_compile main.py app/main.py
           python -c 'from app.main import app; paths = {route.path for route in app.routes}; assert "/health" in paths and "/brands" in paths'
+
+  # The three Node subprojects under tools/. Nothing ran them until now, and two
+  # of the three declared a test command that could not run at all.
+  #
+  # `node --test tests/` -- what aws-emulator and serverless-cli both shipped --
+  # does not glob on Node 22. It resolves `tests` as a module, fails with
+  # MODULE_NOT_FOUND, and reports "# tests 1 / # pass 0 / # fail 1". So the
+  # declared command produced a failure that looks like broken tests rather than
+  # a runner that never found them, and the 221 and 43 figures quoted in the
+  # handoff were reproducible only by somebody who happened to type the glob.
+  # Fixed in both package.json files; this job is what stops it recurring.
+  #
+  # The floors matter more than the runs. `node --test` over a glob that matches
+  # nothing exits 0 with "# tests 0", which is the same green as a passing suite
+  # -- the exact defect this repository keeps finding. Each floor is set below
+  # today's count so adding a test does not fail the job, and far above zero so
+  # a moved directory does.
+  tools-node-suites:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: aws-emulator
+            floor: 40
+          - project: serverless-cli
+            floor: 200
+          - project: songsmith
+            floor: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the ${{ matrix.project }} tests
+        working-directory: tools/${{ matrix.project }}
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/*.test.js 2>&1 | tee /tmp/out.log
+          status=${PIPESTATUS[0]}
+          ran=$(grep -oP '^# tests \K[0-9]+' /tmp/out.log | tail -n 1)
+          if [ -z "$ran" ]; then
+            echo "::error::no '# tests' line in the output; the runner did not report a count"
+            exit 1
+          fi
+          if [ "$ran" -lt "${{ matrix.floor }}" ]; then
+            echo "::error::only $ran tests ran in ${{ matrix.project }}, floor is ${{ matrix.floor }}; discovery has gone blind"
+            exit 1
+          fi
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          echo "$ran tests passed in ${{ matrix.project }}."

@@ -111,10 +111,25 @@ if (!failures.length && accessToken && projectId) {
   }).catch(() => undefined);
 
   if (!authResponse || !authResponse.ok) {
-    notes.push(
+    // A read that did not answer is not a setting that is on.
+    //
+    // This was a note in every case, including with the ratchet set -- so once
+    // the owner set SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true believing the
+    // deploy now enforced it, a transient failure or a rotated token quietly
+    // downgraded it back to unenforced and the deploy still passed. The ratchet
+    // turned "disabled" into a failure and left "we could not tell" as a pass,
+    // which is the recurring defect in this repository wearing a padlock.
+    const message =
       `could not read auth configuration (${authResponse ? authResponse.status : "request failed"}); ` +
-        "leaked-password protection not checked"
-    );
+      "leaked-password protection not checked";
+    if (requireLeakedPasswordProtection) {
+      failures.push(
+        `${message}. SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true means this must be confirmed on every ` +
+          "deploy, and an unread answer is not a confirmation."
+      );
+    } else {
+      notes.push(message);
+    }
   } else {
     const authConfig = await authResponse.json().catch(() => undefined);
     const enabled = authConfig?.password_hibp_enabled;
@@ -131,10 +146,21 @@ if (!failures.length && accessToken && projectId) {
     } else {
       // Do not guess. If the field is missing the API shape has changed, and
       // silently passing would be worse than saying so.
-      notes.push(
+      //
+      // And once the ratchet is set, saying so is not enough either: the whole
+      // point of the ratchet is that the setting cannot drift back off without
+      // the deploy noticing, and a field this check can no longer find is
+      // indistinguishable from a setting it can no longer see.
+      const message =
         "auth configuration did not include password_hibp_enabled; the Management API shape may have changed, " +
-          "so leaked-password protection could not be confirmed either way"
-      );
+        "so leaked-password protection could not be confirmed either way";
+      if (requireLeakedPasswordProtection) {
+        failures.push(
+          `${message}. The ratchet is set, so this fails rather than passing on an answer nobody has.`
+        );
+      } else {
+        notes.push(message);
+      }
     }
   }
 }

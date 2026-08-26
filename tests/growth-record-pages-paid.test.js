@@ -47,6 +47,8 @@ const app = require("../server");
 const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_CREATE_SPECS } = require("../lib/sonara-growth-create-specs.cjs");
+const { hasColumn } = require("../lib/sonara-migration-columns.cjs");
+const { STAGES } = require("../lib/sonara-customer-journey.cjs");
 
 const USER = { id: "55555555-5555-4555-8555-555555555555", email: "growth@example.com" };
 const ORGANIZATION_ID = "66666666-6666-4666-8666-666666666666";
@@ -184,21 +186,42 @@ describe("the Growth Studio workspaces that were placeholders", () => {
     assert.doesNotMatch(res.text, /name="consent_basis_attested"[^>]*checked/, "the attestation is pre-ticked, which asserts it on the customer's behalf");
   });
 
-  it("keeps refusing a hand-entry form for touchpoints", async () => {
-    // Deliberate, and worth a test because the page now exists and the
-    // endpoint does too, which makes adding one look like finishing the job.
-    // growth_touchpoints has no column marking a row as hand-entered, so a
-    // typed-in touchpoint is indistinguishable from a tracked one in the trail
-    // every attribution figure is matched against. Conversions got a form
-    // because attribution_confidence lets a hand-entered sale say it is not
-    // established.
-    assert.equal(
-      GROWTH_CREATE_SPECS.some((spec) => spec.tableKey === "touchpoints"), false,
-      "a create form was added for touchpoints; if that is intended, growth_touchpoints needs a column recording that a person entered the row"
-    );
+  it("offers a hand-entry form for touchpoints only alongside the things that make it safe", async () => {
+    // This test refused the form twice, and its own message named the condition:
+    // "if that is intended, growth_touchpoints needs a column recording that a
+    // person entered the row". Migration 20260818090000 adds `hand_entered`, so
+    // the form exists now -- and this checks the three parts together, because
+    // any one of them alone reintroduces the problem the refusals prevented.
+    //
+    // Without the funnel exclusion, a business could raise its own reach and
+    // lower its own apparent drop-off by typing. That is the failure, not the
+    // form.
+    const spec = GROWTH_CREATE_SPECS.find((entry) => entry.tableKey === "touchpoints");
+    assert.ok(spec, "the touchpoints form has gone; if that is deliberate, this test should say why rather than being deleted");
+
+    // 1. The column exists to record it.
+    assert.ok(hasColumn("growth_touchpoints", "hand_entered"), "growth_touchpoints lost the column this form depends on");
+
+    // 2. The funnel does not count typed rows as measured, and reports them.
+    const reached = STAGES.find((stage) => stage.id === "reached");
+    assert.equal(reached.counts({ hand_entered: true }), false, "a typed touchpoint is being counted as measured reach");
+    assert.equal(reached.counts({ hand_entered: null }), true, "a row from before the column is not a typed row");
+    assert.ok(reached.columns.includes("hand_entered"), "the stage cannot filter on a column it does not select");
+
+    // 3. The form does not offer the fields that would dress a typed row as a
+    // tracked one.
+    for (const forbidden of ["provider_key", "anonymous_id", "external_event_id"]) {
+      assert.equal(
+        spec.fields.some(([column]) => column === forbidden), false,
+        `the hand-entry form offers ${forbidden}, which identifies a tracked source`
+      );
+    }
+
     const res = await open("/growth-studio/touchpoints");
     assert.equal(res.status, 200, "the touchpoints page does not render");
-    assert.doesNotMatch(res.text, /action="\/api\/growth\/touchpoints"/, "the touchpoints page posts to the create endpoint");
+    // And the attestation the handler refuses to write without, un-ticked.
+    assert.match(res.text, /name="tracking_basis_attested" type="checkbox"/, "the tracking-basis attestation is not on the form");
+    assert.doesNotMatch(res.text, /name="tracking_basis_attested"[^>]*checked/, "the attestation is pre-ticked, which asserts it on the customer's behalf");
   });
 
   it("shows no column that is not selected, so nothing renders as permanently empty", () => {

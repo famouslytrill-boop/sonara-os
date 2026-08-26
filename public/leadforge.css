@@ -1,0 +1,318 @@
+/* LeadForge landing page.
+ *
+ * Standalone. It does not extend sonara-design-system.css on purpose: this is a
+ * different brand on its own page, and inheriting the SONARA light surface then
+ * overriding it back to navy is how two design systems end up fighting in one
+ * stylesheet.
+ *
+ * Every colour pair here was measured against WCAG 2.1 rather than judged by
+ * eye. The tightest is muted text on a raised card at 7.35:1, well clear of the
+ * 4.5:1 that size of text needs. Lowering any of these means re-measuring, not
+ * guessing -- desaturating toward grey always passes a contrast check and costs
+ * the design everything, which is the trap the SONARA palette work already hit.
+ *
+ * Committed to one theme deliberately. This page is dark because the brief is
+ * dark, so there is no light palette to keep in step and no prefers-color-scheme
+ * block; the background is painted explicitly so it never borrows a host ground.
+ */
+
+:root {
+  /* Ground, deepest to raised. */
+  --lf-void: #060B1C;
+  --lf-navy: #0A1330;
+  --lf-card: #101B3E;
+  --lf-card-2: #14204A;
+  --lf-line: #1E2C5C;
+  --lf-line-soft: #17224C;
+
+  /* Type. */
+  --lf-white: #FFFFFF;
+  --lf-text: #E8EEFF;
+  --lf-muted: #9DABD0;
+
+  /* Actions. Cyan leads, orange is the alternative -- never two primaries. */
+  --lf-cyan: #22D3EE;
+  --lf-cyan-lift: #67E8F9;
+  --lf-cyan-ink: #04121A;
+  --lf-orange: #FB8B3C;
+  --lf-orange-ink: #1A0B02;
+
+  --lf-radius: 14px;
+  --lf-radius-lg: 22px;
+  --lf-shadow: 0 24px 60px -28px rgba(2, 6, 20, 0.9);
+  --lf-shadow-lift: 0 34px 80px -30px rgba(34, 211, 238, 0.28);
+
+  --lf-max: 1180px;
+  --lf-gap: clamp(56px, 7vw, 108px);
+
+  --lf-sans: "Geist", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --lf-mono: "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  /* Painted explicitly. A transparent body borrows whatever is behind it. */
+  background: var(--lf-navy);
+  color: var(--lf-text);
+  font-family: var(--lf-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+img, svg { max-width: 100%; }
+
+a { color: var(--lf-cyan); text-underline-offset: 3px; }
+
+:focus-visible {
+  outline: 3px solid var(--lf-cyan-lift);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.lf-skip {
+  position: absolute; left: -9999px; top: 0;
+  background: var(--lf-cyan); color: var(--lf-cyan-ink);
+  padding: 12px 18px; border-radius: 0 0 10px 0; font-weight: 700; z-index: 60;
+}
+.lf-skip:focus { left: 0; }
+
+.lf-wrap { width: min(100% - 40px, var(--lf-max)); margin-inline: auto; }
+
+section { padding-block: var(--lf-gap); }
+
+/* ---- Type scale -------------------------------------------------------- */
+
+h1, h2, h3 { margin: 0; color: var(--lf-white); font-weight: 700; letter-spacing: -0.022em; text-wrap: balance; }
+h1 { font-size: clamp(2.6rem, 6.2vw, 4.6rem); line-height: 1.03; letter-spacing: -0.034em; }
+h2 { font-size: clamp(1.95rem, 3.6vw, 2.9rem); line-height: 1.12; }
+h3 { font-size: clamp(1.14rem, 1.5vw, 1.33rem); line-height: 1.3; }
+p { margin: 0; }
+
+.lf-eyebrow {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 0.775rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;
+  color: var(--lf-cyan-lift); margin-bottom: 20px;
+}
+.lf-eyebrow::before { content: ""; width: 26px; height: 2px; background: var(--lf-cyan); border-radius: 2px; }
+
+.lf-lede { font-size: clamp(1.06rem, 1.5vw, 1.24rem); color: var(--lf-muted); max-width: 63ch; }
+.lf-fine { font-size: 0.86rem; color: var(--lf-muted); }
+
+.lf-head { max-width: 74ch; margin-bottom: 52px; display: grid; gap: 18px; }
+
+/* ---- Buttons ----------------------------------------------------------- */
+
+.lf-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+
+.lf-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 16px 28px; border-radius: 999px; border: 2px solid transparent;
+  font: inherit; font-weight: 700; font-size: 1.005rem; letter-spacing: -0.01em;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+.lf-btn--primary { background: var(--lf-cyan); color: var(--lf-cyan-ink); box-shadow: var(--lf-shadow-lift); }
+.lf-btn--primary:hover { background: var(--lf-cyan-lift); transform: translateY(-2px); }
+.lf-btn--secondary { background: var(--lf-orange); color: var(--lf-orange-ink); }
+.lf-btn--secondary:hover { transform: translateY(-2px); filter: brightness(1.06); }
+.lf-btn--ghost { background: transparent; color: var(--lf-text); border-color: var(--lf-line); }
+.lf-btn--ghost:hover { border-color: var(--lf-cyan); color: var(--lf-white); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lf-btn, .lf-card { transition: none; }
+  .lf-btn:hover, .lf-card:hover { transform: none; }
+}
+
+/* ---- Notice ------------------------------------------------------------ */
+
+.lf-notice {
+  background: linear-gradient(90deg, rgba(251, 139, 60, 0.16), rgba(251, 139, 60, 0.06));
+  border-bottom: 1px solid rgba(251, 139, 60, 0.4);
+  padding: 13px 0;
+}
+.lf-notice .lf-wrap { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.lf-notice strong { color: var(--lf-orange); font-size: 0.83rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.lf-notice p { font-size: 0.9rem; color: var(--lf-text); margin: 0; }
+
+/* ---- Header ------------------------------------------------------------ */
+
+.lf-header {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(10, 19, 48, 0.86); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--lf-line-soft);
+}
+.lf-header .lf-wrap { display: flex; align-items: center; gap: 26px; padding-block: 15px; }
+.lf-brand { display: flex; align-items: center; gap: 11px; font-weight: 800; font-size: 1.16rem; color: var(--lf-white); text-decoration: none; letter-spacing: -0.02em; }
+.lf-mark { width: 30px; height: 30px; flex: none; }
+.lf-nav { display: flex; gap: 24px; margin-left: auto; }
+.lf-nav a { color: var(--lf-muted); text-decoration: none; font-size: 0.94rem; font-weight: 500; }
+.lf-nav a:hover { color: var(--lf-white); }
+.lf-header .lf-btn { padding: 11px 20px; font-size: 0.92rem; }
+@media (max-width: 900px) { .lf-nav { display: none; } }
+
+/* ---- Hero -------------------------------------------------------------- */
+
+.lf-hero { position: relative; padding-top: clamp(58px, 8vw, 96px); overflow: hidden; }
+.lf-hero::before {
+  content: ""; position: absolute; inset: -30% 20% auto -10%; height: 620px;
+  background: radial-gradient(closest-side, rgba(34, 211, 238, 0.2), transparent 72%);
+  pointer-events: none;
+}
+.lf-hero::after {
+  content: ""; position: absolute; inset: 6% -18% auto auto; width: 560px; height: 560px;
+  background: radial-gradient(closest-side, rgba(251, 139, 60, 0.14), transparent 70%);
+  pointer-events: none;
+}
+.lf-hero .lf-wrap { position: relative; }
+.lf-hero-grid { display: grid; gap: clamp(40px, 5vw, 68px); grid-template-columns: minmax(0, 1.04fr) minmax(0, 1fr); align-items: center; }
+@media (max-width: 1000px) { .lf-hero-grid { grid-template-columns: 1fr; } }
+
+.lf-hero h1 { margin-bottom: 22px; }
+.lf-hero .lf-lede { margin-bottom: 32px; }
+.lf-hero .lf-actions { margin-bottom: 24px; }
+
+.lf-badge {
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 7px 15px 7px 11px; border-radius: 999px;
+  background: rgba(34, 211, 238, 0.1); border: 1px solid rgba(34, 211, 238, 0.34);
+  color: var(--lf-cyan-lift); font-size: 0.83rem; font-weight: 600; margin-bottom: 26px;
+}
+.lf-badge span { width: 7px; height: 7px; border-radius: 50%; background: var(--lf-cyan); }
+
+.lf-hero-trust { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--lf-muted); font-size: 0.88rem; }
+.lf-hero-trust li { list-style: none; display: flex; align-items: center; gap: 7px; }
+.lf-hero-trust { margin: 0; padding: 0; }
+.lf-tick { color: var(--lf-cyan); font-weight: 800; }
+
+/* ---- Cards ------------------------------------------------------------- */
+
+.lf-card {
+  background: var(--lf-card); border: 1px solid var(--lf-line);
+  border-radius: var(--lf-radius-lg); padding: 28px;
+  box-shadow: var(--lf-shadow);
+  transition: transform 200ms ease, border-color 200ms ease;
+}
+.lf-card:hover { transform: translateY(-3px); border-color: rgba(34, 211, 238, 0.42); }
+.lf-card h3 { margin-bottom: 10px; }
+.lf-card p { color: var(--lf-muted); }
+
+.lf-grid { display: grid; gap: 20px; }
+.lf-grid--2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.lf-grid--3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.lf-grid--4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+/* ---- Stats ------------------------------------------------------------- */
+
+.lf-stat { text-align: left; }
+.lf-stat b { display: block; font-size: clamp(2rem, 3.4vw, 2.85rem); font-weight: 800; color: var(--lf-white); letter-spacing: -0.035em; line-height: 1.05; }
+.lf-stat u { display: block; text-decoration: none; color: var(--lf-cyan); font-weight: 700; font-size: 0.94rem; margin-block: 6px 10px; }
+.lf-stat p { font-size: 0.93rem; }
+
+.lf-sample-tag {
+  display: inline-block; margin-top: 12px; padding: 3px 9px; border-radius: 6px;
+  background: rgba(251, 139, 60, 0.14); border: 1px solid rgba(251, 139, 60, 0.42);
+  color: var(--lf-orange); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+}
+
+/* ---- Logo strip -------------------------------------------------------- */
+
+.lf-logos { border-block: 1px solid var(--lf-line-soft); background: var(--lf-void); padding-block: 34px; }
+.lf-logos ul { display: flex; flex-wrap: wrap; gap: 16px 40px; align-items: center; justify-content: center; margin: 18px 0 0; padding: 0; }
+.lf-logos li { list-style: none; display: flex; align-items: center; gap: 9px; color: var(--lf-muted); font-weight: 700; font-size: 1.02rem; letter-spacing: -0.015em; }
+.lf-logos .lf-dot { width: 9px; height: 9px; border-radius: 3px; background: var(--lf-line); flex: none; }
+.lf-logos p { text-align: center; }
+
+/* ---- Workflow ---------------------------------------------------------- */
+
+.lf-flow { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); counter-reset: lf-step; }
+.lf-step { position: relative; background: var(--lf-card); border: 1px solid var(--lf-line); border-radius: var(--lf-radius); padding: 26px 24px 24px; }
+.lf-step__n { font-family: var(--lf-mono); font-size: 0.82rem; font-weight: 700; color: var(--lf-cyan); letter-spacing: 0.1em; }
+.lf-step h3 { margin-block: 12px 9px; }
+.lf-step p { color: var(--lf-muted); font-size: 0.96rem; }
+.lf-step__detail { display: block; margin-top: 14px; padding-top: 13px; border-top: 1px dashed var(--lf-line); color: var(--lf-cyan-lift); font-size: 0.85rem; font-weight: 600; }
+
+/* ---- Feature rows ------------------------------------------------------ */
+
+.lf-feature { display: grid; gap: clamp(32px, 4vw, 60px); grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; }
+.lf-feature + .lf-feature { margin-top: clamp(56px, 6vw, 90px); }
+.lf-feature:nth-child(even) .lf-feature__copy { order: 2; }
+@media (max-width: 940px) { .lf-feature { grid-template-columns: 1fr; } .lf-feature:nth-child(even) .lf-feature__copy { order: 0; } }
+
+.lf-list { margin: 22px 0 0; padding: 0; display: grid; gap: 11px; }
+.lf-list li { list-style: none; display: flex; gap: 11px; color: var(--lf-text); font-size: 0.97rem; }
+.lf-list li::before { content: "✓"; color: var(--lf-cyan); font-weight: 800; flex: none; }
+
+/* ---- Mockups ----------------------------------------------------------- */
+
+.lf-mock {
+  background: linear-gradient(180deg, var(--lf-card-2), var(--lf-card));
+  border: 1px solid var(--lf-line); border-radius: var(--lf-radius-lg);
+  box-shadow: var(--lf-shadow); overflow: hidden;
+}
+.lf-mock__bar { display: flex; align-items: center; gap: 7px; padding: 13px 16px; border-bottom: 1px solid var(--lf-line); background: rgba(6, 11, 28, 0.55); }
+.lf-mock__bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--lf-line); }
+.lf-mock__bar i:first-child { background: var(--lf-orange); }
+.lf-mock__bar i:nth-child(2) { background: #3E4C7E; }
+.lf-mock__bar i:nth-child(3) { background: var(--lf-cyan); }
+.lf-mock__bar span { margin-left: 8px; font-family: var(--lf-mono); font-size: 0.76rem; color: var(--lf-muted); }
+.lf-mock__body { padding: 20px; display: grid; gap: 12px; }
+
+.lf-row { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 13px 15px; border-radius: 11px; background: rgba(6, 11, 28, 0.5); border: 1px solid var(--lf-line-soft); }
+.lf-row__co { display: grid; gap: 3px; min-width: 0; }
+.lf-row__co b { color: var(--lf-white); font-size: 0.95rem; font-weight: 700; }
+.lf-row__co small { color: var(--lf-muted); font-size: 0.79rem; }
+.lf-score { font-family: var(--lf-mono); font-weight: 700; font-size: 0.95rem; padding: 5px 11px; border-radius: 8px; }
+.lf-score--hot { background: rgba(34, 211, 238, 0.16); color: var(--lf-cyan-lift); }
+.lf-score--warm { background: rgba(251, 139, 60, 0.16); color: var(--lf-orange); }
+.lf-score--cool { background: rgba(157, 171, 208, 0.12); color: var(--lf-muted); }
+.lf-owner { font-size: 0.8rem; color: var(--lf-muted); white-space: nowrap; }
+
+.lf-bars { display: grid; gap: 9px; }
+.lf-bar { display: grid; grid-template-columns: 118px 1fr auto; gap: 12px; align-items: center; font-size: 0.83rem; color: var(--lf-muted); }
+.lf-bar__track { height: 7px; border-radius: 4px; background: rgba(6, 11, 28, 0.7); overflow: hidden; }
+.lf-bar__fill { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--lf-cyan), var(--lf-cyan-lift)); }
+.lf-bar--alt .lf-bar__fill { background: linear-gradient(90deg, var(--lf-orange), #FFB067); }
+.lf-bar b { color: var(--lf-white); font-family: var(--lf-mono); font-size: 0.82rem; }
+
+/* ---- Chat mock --------------------------------------------------------- */
+
+.lf-chat { display: grid; gap: 12px; padding: 20px; }
+.lf-msg { max-width: 84%; padding: 12px 15px; border-radius: 14px; font-size: 0.93rem; line-height: 1.5; }
+.lf-msg--them { background: rgba(6, 11, 28, 0.6); border: 1px solid var(--lf-line-soft); border-bottom-left-radius: 5px; color: var(--lf-text); }
+.lf-msg--us { background: var(--lf-cyan); color: var(--lf-cyan-ink); margin-left: auto; border-bottom-right-radius: 5px; font-weight: 600; }
+.lf-msg--sys { max-width: 100%; background: rgba(34, 211, 238, 0.08); border: 1px dashed rgba(34, 211, 238, 0.4); color: var(--lf-cyan-lift); font-family: var(--lf-mono); font-size: 0.8rem; text-align: center; }
+
+/* ---- Testimonial ------------------------------------------------------- */
+
+.lf-quote { background: linear-gradient(150deg, var(--lf-card-2), var(--lf-card)); border: 1px solid var(--lf-line); border-radius: var(--lf-radius-lg); padding: clamp(30px, 4vw, 52px); }
+.lf-quote blockquote { margin: 0; font-size: clamp(1.16rem, 1.9vw, 1.5rem); line-height: 1.5; color: var(--lf-white); font-weight: 500; letter-spacing: -0.015em; }
+.lf-quote figcaption { margin-top: 26px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.lf-avatar { width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(140deg, var(--lf-cyan), var(--lf-orange)); flex: none; }
+.lf-quote cite { font-style: normal; display: grid; gap: 2px; }
+.lf-quote cite b { color: var(--lf-white); font-weight: 700; }
+.lf-quote cite small { color: var(--lf-muted); font-size: 0.87rem; }
+
+/* ---- CTA --------------------------------------------------------------- */
+
+.lf-cta { background: var(--lf-void); border-block: 1px solid var(--lf-line-soft); text-align: center; }
+.lf-cta .lf-head { margin-inline: auto; text-align: center; justify-items: center; }
+.lf-cta .lf-lede { margin-inline: auto; }
+.lf-cta .lf-actions { justify-content: center; }
+
+/* ---- Footer ------------------------------------------------------------ */
+
+.lf-footer { background: var(--lf-void); padding-block: 44px; border-top: 1px solid var(--lf-line-soft); }
+.lf-footer .lf-wrap { display: flex; flex-wrap: wrap; gap: 18px 34px; align-items: center; justify-content: space-between; }
+.lf-footer p { color: var(--lf-muted); font-size: 0.88rem; }
+.lf-footer nav { display: flex; gap: 22px; flex-wrap: wrap; }
+.lf-footer a { color: var(--lf-muted); text-decoration: none; font-size: 0.88rem; }
+.lf-footer a:hover { color: var(--lf-cyan); }
+
+/* Wide content scrolls inside its own box; the page body never scrolls sideways. */
+.lf-scroll-x { overflow-x: auto; }

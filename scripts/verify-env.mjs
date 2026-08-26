@@ -42,12 +42,30 @@ const PLATFORM_PROVIDED = new Set([
 
 // A feature is unavailable without these and every path falls back to a stated
 // setup-required. None may become a launch dependency.
+//
+// Six names left this list on 19 August 2026, when the Next.js application under
+// app/ was deleted. They were read by nothing that runs -- lib/env/server.ts,
+// lib/auth/workspace.ts, lib/sonara/ai/providerConfig.ts and
+// lib/sonara/memory/vectorProvider.ts named them, and none of those files was
+// ever deployed. This check reported them as classified-and-unread the moment
+// the dead tree went, which is the half of it that exists for exactly this.
+//
+// SONARA_ADMIN_EMAILS was the one that mattered: five documents told the owner
+// to set it for admin access and nothing on the running server has ever read
+// it. FOUNDER_EMAILS, ADMIN_EMAILS and ADMIN_EMAIL are the live ones.
+//
+// NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY left with the nine orphaned validator
+// scripts deleted in the same commit. Checkout here is server-side: server.js
+// creates the Stripe session and redirects, so no publishable key ever reaches
+// a browser. docs/SONARA_DEPLOYMENT_TRUTH.md lists it as needed "when
+// browser-side Stripe.js is introduced", which is the honest place for it --
+// a classification here would mean this check vouches for a variable nothing
+// reads.
 const OPTIONAL_CAPABILITY = new Set([
-  "ADMIN_EMAIL", "ADMIN_EMAILS", "SONARA_ADMIN_EMAILS", "FOUNDER_EMAILS",
-  "APP_URL", "BASE_URL", "NEXT_PUBLIC_APP_URL", "NEXT_PUBLIC_API_URL", "PUBLIC_SITE_URL",
-  "NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET", "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+  "ADMIN_EMAIL", "ADMIN_EMAILS", "FOUNDER_EMAILS",
+  "APP_URL", "BASE_URL", "NEXT_PUBLIC_APP_URL", "PUBLIC_SITE_URL",
   "STRIPE_SUCCESS_URL", "STRIPE_CANCEL_URL",
-  "SONARA_CRON_SECRET", "SONARA_AI_PROVIDER", "SONARA_EMBEDDING_PROVIDER", "SONARA_VECTOR_MEMORY_PROVIDER",
+  "SONARA_CRON_SECRET",
   "CREATOR_MEDIA_WORKER_URL", "CREATOR_MEDIA_WORKER_TOKEN",
   "OPENAI_API_KEY", "GEMINI_API_KEY", "ELEVENLABS_API_KEY",
   "SUNO_API_KEY", "SUNO_API_BASE_URL", "SUNO_GENERATE_PATH", "SUNO_STATUS_PATH_TEMPLATE",
@@ -80,6 +98,21 @@ const OPTIONAL_CAPABILITY = new Set([
   // is a product with no scheduled work rather than a broken one. A customer
   // can be served without it.
   "SONARA_SCHEDULE_TICK_SECRET",
+  // Connected payments, so a business can be paid by its own customers.
+  //
+  // Optional, and it must stay optional: Stripe Connect has to be enabled on
+  // the platform account before any of those calls succeed, and that is a
+  // dashboard step nothing here can perform or verify. Without it every
+  // connected-payment path answers setup_required with the step named, which is
+  // a product that cannot yet collect on behalf of a business rather than a
+  // broken one. A customer can be served without it -- they raise invoices and
+  // are paid the way they already are.
+  //
+  // Deliberately a flag rather than a secret. The credential is the existing
+  // STRIPE_SECRET_KEY; this only says whether the platform side is ready, and a
+  // flag is the one thing an owner can set truthfully from what they can see in
+  // their own dashboard.
+  "STRIPE_CONNECT_ENABLED",
   "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
   "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
   "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",
@@ -154,6 +187,23 @@ for (const file of files) {
   // A key literally named `env` is not ambiguous, so this pass needs no
   // allow-list and is free to report a name nobody has classified yet.
   for (const match of source.matchAll(/\benv:\s*["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(match[1]);
+  // `getEnv("NAME")` is the same hole one form later, and it was still open.
+  //
+  // lib/sonara-billing.cjs injects `getEnv` as a dependency, and modules taking
+  // that injection read their variables through it rather than through
+  // `process.env` directly. So a variable reached only that way was matched
+  // only by the allow-listed literal pass above, which skips a name it has
+  // never heard of. Adding lib/sonara-connected-payments.cjs with a brand new
+  // STRIPE_CONNECT_ENABLED left this check reporting "all classified" while a
+  // variable it had never seen gated whether a business could be paid.
+  //
+  // Worth stating plainly rather than implying a haul: when this pass was
+  // added it surfaced exactly one unclassified name, the one just written. The
+  // hole was real and nothing else had fallen into it.
+  //
+  // `getEnv` is as unambiguous as `env:`, so this pass needs no allow-list
+  // either and is free to report a name nobody has classified.
+  for (const match of source.matchAll(/\bgetEnv\(\s*["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(match[1]);
   for (const match of source.matchAll(/\benvAliases:\s*\[([^\]]*)\]/g)) {
     for (const alias of match[1].matchAll(/["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(alias[1]);
   }

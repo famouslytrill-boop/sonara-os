@@ -2,6 +2,7297 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - What has to be paid for, and what turns out not to
+
+Two halves of one question, and the second half is the surprising one.
+
+## Prices, because "costs money" is not a price
+
+`docs/products/` sorted every requested capability by marginal cost and listed
+six as having a bill. That is half an answer: a capability recorded as costing
+money and never priced either never ships or ships at a loss nobody noticed.
+
+`lib/sonara-paid-capabilities.cjs` prices all six against a **dated floor cost**
+in the same unit, so margin is arithmetic rather than belief. The unit matters
+more than the number -- selling video generation by the month is selling an
+unbounded GPU bill for a fixed price, and the unit is what makes it a price
+rather than a hope. `verify:margins` is thirtieth in the chain.
+
+Two decisions worth arguing with. The margin rule is **not below**, not
+**above**, because `payment_terminal` is sold at cost deliberately and writing
+it strictly would make the one honest at-cost line a permanent failure -- and
+the usual fix for a check that fails on correct behaviour is to weaken the
+check. And the floor is *a sourced external list rate*, not a forecast and not
+what we will pay at volume: it is the line below which a price is certainly
+wrong, not the cost of goods sold. Both are said in the file, because both
+would otherwise be re-derived incorrectly.
+
+Probes, all five red: a price under its floor; a capability losing its unit; a
+capability requiring nothing, so nothing could mark it unavailable; a floor that
+is `NaN`; and the catalogue shrinking to five, which tripped the blindness
+guard rather than passing over what was left.
+
+## And most of what was asked for does not cost anything
+
+`docs/architecture/2026-08-26-ZERO-MARGIN-COMMS.md`. The brief asked for calls,
+texts, scheduling, GPS, calendar, clock and messaging at zero marginal cost.
+**Five of the seven have no per-use bill at all, and three are already built.**
+
+- **Web Push via VAPID is genuinely free.** The browser vendor's push service is
+  part of the browser -- no account, no per-message charge, no subscriber tier.
+  It reaches exactly the population SMS is usually bought to reach: people who
+  have already used the site. `AGENTS.md` still applies -- off by default.
+- **WebRTC is peer-to-peer for 80-85% of calls**, so audio never touches our
+  server. TURN covers the rest and a 1 Gbps link carries 7,000+ concurrent voice
+  sessions, which is a fixed cost rather than a per-minute one.
+- **Geolocation is free; maps are where the bill hides.** 10M tile requests cost
+  roughly $3,600 on Google Maps and **~$11** on self-hosted PMTiles. Same
+  argument as browser-side inference: prefer the thing whose cost is bandwidth
+  over the thing whose cost is per use.
+- **Calendar, clock and scheduling are shipped already.** The gap is not
+  capability. None of them talks to the others yet -- a booking pushes no
+  notification, a job records no position, a call cannot be placed from a
+  customer record. The zero-margin work is connection, not construction.
+
+Only carrier SMS and carrier voice genuinely cannot be free. They stay priced as
+`telephony` rather than promised.
+
+## Both owner items moved as far as they can from inside the repository
+
+**agentkit stays private**, decided and dated in `PERMISSIVE_BY_DECISION` with
+the reasoning beside it. The list is still empty, and that is the point worth
+recording: empty-because-decided and empty-because-nobody-looked are different
+states, and the second is exactly what produced the GitLab licence finding.
+
+`OWNER-STEPS.md` gains step 7, Stripe Connect, written to be run: what to say on
+the platform application, the one variable, what is being agreed to (standard
+accounts, direct charges, no customer money ever in the owner's custody), how to
+tell it worked, and what it deliberately does not turn on.
+
+### 2026-08-26 - Running a subset of the chain and calling it the chain
+
+CI went red on three consecutive heads with a real failure, and it was mine:
+
+    Supabase contract verification failed: runtime references
+    public.business_payment_accounts, but it is absent from the canonical or
+    reviewed extension contract
+
+`business_payment_accounts` landed with the connected-payments work and was
+never added to `scripts/verify-supabase-contract.mjs`. Six edits fixed it, in the
+pattern the file already uses for every other post-contract table: a named
+migration list, a frozen table list, a read, a `verifyExtension` call, membership
+in `reviewedExtensionTables`, and a count in the summary line.
+
+**The finding is not the missing entry. It is how I missed it.** Before pushing I
+ran fourteen chain commands by name -- lint, env, source-licence, growth-copy,
+config, tenant-tables, member-policies, applied-migrations, handoff, doc-counts,
+orphan-tables, unreferenced-modules, selected-columns -- and reported the work as
+verified. `verify:db` was not among them, and `verify:db` is what runs the
+contract check.
+
+A subset of a chain reported as the chain is precisely the defect this repository
+is organised against, committed while adding three checks to that chain. The
+subset was green, every command in it genuinely passed, and the summary it
+produced was false in the one way that matters: it named a guarantee it had not
+established.
+
+`pnpm run verify:launch` takes a couple of minutes and runs all twenty-nine. Run
+that. Naming commands individually is how you skip the one you did not think of,
+and the one you did not think of is the one that catches you.
+
+Also worth recording for whoever reads CI next: the check named
+**`sonara-industries`** is a different workflow from `sonara-validation.yml`
+("Build, test, and security"). It runs more of the chain, including `verify:db`.
+Watching only the validation workflow means watching the weaker of the two.
+
+### 2026-08-26 - A probe that does not apply looks exactly like a test that is too weak
+
+Five probes against the new agentkit credit model. Four fired red. The fifth --
+restoring `round()` in place of half-away-from-zero rounding -- **passed**, which
+reads as the fifth shape from `.claude/skills/checks-that-cannot-lie`: a check
+too weak to catch the bug it was written for.
+
+It was not. The probe's `str.replace` used eight spaces of indentation against a
+module-level function indented with four, so it matched nothing and wrote the
+file back unchanged. The suite then passed because the code was never broken.
+
+Re-run with the right indentation and an `assert old in s` guarding the
+substitution, the same probe fails by name immediately.
+
+**So every probe now asserts its own substitution applied.** A probe that
+silently does not apply is worse than no probe: it produces the exact output of
+a passing check over broken code, and the conclusion it invites -- "my test is
+too weak, let me weaken my belief in it" -- is the opposite of the truth. This
+is the second time on this branch that probe mechanics rather than probe results
+were the finding; the first was `git checkout -- .` reverting uncommitted work
+mid-probe, which is why commits now land before the probe pass.
+
+For the record, since the numbers matter: `credits(0.0000005)` is 1 under
+half-away-from-zero and 0 under `round()`, because Python's `round()` is
+banker's rounding and ties to even. The test was right all along.
+
+### 2026-08-26 - A business can now connect an account and be paid into it
+
+The largest thing this application could not do. A plumber could raise an
+invoice and never collect against it; a creator could list a product and never
+sell it. `lib/sonara-invoice-settlement.cjs` recorded the reason in its own
+comment -- no Stripe Connect, so a pay button "would take a small business's
+customer's money into SONARA's account with no mechanism to pay it out. That is
+money custody, not a missing endpoint."
+
+**Direct charges are the answer to that, rather than a way around it.** A charge
+is created *on* the connected account by sending Stripe's `Stripe-Account`
+header. Funds land in the business's own Stripe balance, their payout schedule
+applies, and the money never enters SONARA's account at any point. There is
+nothing to pay out because nothing was ever held. A test reads the module's own
+source and asserts it contains no `transfer_data`, no `on_behalf_of` and no
+`application_fee` -- the three things that would route a customer's money
+through the platform -- and another asserts it names no card field at all,
+because AGENTS.md forbids storing card data and the way to honour that reliably
+is to never be in the path.
+
+`migration 20260826090000` holds the identifier and the decision; the live state
+is read from Stripe on every decision that gates money. The three cached columns
+exist only to render a list, are nullable so "never asked" is distinct from
+"Stripe said no", and are constrained to move together with `state_checked_at`.
+A stale `charges_enabled: true` is the worst possible cache here: it renders a
+pay button over an account that cannot take money, and the customer finds out at
+the till.
+
+## What is deliberately still missing
+
+**There is no pay button, and `/shared/:token` must never grow one.** That link's
+footnote tells its reader to pay the way they agreed with the business and never
+from a link, because a forwarded invoice carrying a pay button is the shape of a
+payment-redirection fraud. Advice like that protects nobody unless it is always
+true -- a product where *some* shared invoices have a pay button has taught its
+customers that a pay button on a forwarded invoice is normal, which is the lesson
+the fraud depends on. Connecting an account and collecting a payment are separate
+pieces of work and this is the first.
+
+## Three things the repository's own gates caught
+
+Worth listing, because each was invisible in the code I had written:
+
+- **The tenant guard** refused `business_payment_accounts` before a single test
+  of mine ran -- a new table queried by name that no migration had taught it
+  about. Then `member-read-policies` demanded a decision about who may read it.
+  It is owner-level: a member who can read it learns where the revenue settles.
+- **`layout` requires `actions`.** `lib/sonara-page-frame.cjs:234` does
+  `actions.join("")` unconditionally, so omitting the key throws before a byte
+  is written and every request 500s. The call site looked complete; the missing
+  key was a problem two files away. `signed-in-workspace-crawl` caught it.
+- **`linkAction(href, label)` takes two arguments.** The first draft passed
+  `{ method: "post" }` as a third, which is silently ignored, producing GET
+  anchors to POST-only routes -- a page that renders perfectly with every button
+  404ing. Caught by reading the helper's signature, which is now twice on this
+  branch that reading the helper was what found it.
+
+## And one hole in a check, found by walking into it
+
+`scripts/verify-env.mjs` exists so that every variable the code reads has a
+decision attached. It classified `STRIPE_CONNECT_ENABLED` as read by nothing --
+because the variable is reached through `getEnv("NAME")`, and the string-literal
+pass only records names *already classified*. The file's own comment describes
+exactly this hole for `env:` literals and fixes it there; the `getEnv` form was
+still open, so the check reported "all classified" while a brand new variable
+gating whether a business could be paid was invisible to it.
+
+A `getEnv` pass now runs alongside the `env:` one, needing no allow-list for the
+same reason. Stated plainly rather than as a haul: when it was added it surfaced
+exactly one unclassified name, the one just written. The hole was real and
+nothing else had fallen into it.
+
+### 2026-08-26 - Growth Studio is not competing with Klaviyo, it is driving it
+
+`docs/market/2026-08-26-PER-PRODUCT-COMPETITOR-REASSESSMENT.md` compares each
+product against the tools that compete with *that* product. Earlier surveys in
+that directory compared the stack — what somebody pays for all three jobs at
+once — and averaging the three hid the finding that matters most.
+
+**Growth Studio cannot send.** No SMTP path, no SMS, no Twilio anywhere;
+`scripts/verify-env.mjs` classifies every variable this application reads and
+the only sending credential is `RESEND_API_KEY`, used by
+`lib/sonara-business-employee-invites.cjs` for staff invitations.
+`lib/growth-studio-provider-registry.cjs` registers HubSpot, Klaviyo, PostHog and
+GA4 as providers, and `routes/growth-studio-control-routes.cjs:912` posts to
+HubSpot's campaigns endpoint. A customer on Growth Studio still pays Klaviyo.
+
+That is either the weakest thing about the product or the strongest, and which
+one it is depends on how it is described rather than on anything in the code.
+Sold as the layer above — enforcing consent, pruning profile counts before
+Klaviyo bills for them — it is honest and differentiated. Sold as a replacement,
+it fails the first time a customer presses send. Nothing needs building to fix
+that; the copy needs correcting.
+
+Two more that were already true in the source and had never been written beside
+a competitor's price:
+
+- **No customer can pay an invoice.** `lib/sonara-invoice-settlement.cjs:29`
+  states there is no Stripe Connect — no connected-account model, no
+  `on_behalf_of`, no `transfer_data`. Jobber and Housecall Pro both take card
+  payments on a job at every tier. This product produces a statement.
+- **Creator Studio cannot sell either**, for the same reason, while Podia takes
+  5% of a transaction and Gumroad 10% + $0.50 of one this cannot process at all.
+
+The technology recommendation is browser-side inference over WebGPU, and the
+argument is economic rather than novel: a per-token bill that grows with use
+cannot sit behind a tool promised as free, and inference in the customer's own
+browser has a marginal cost of zero to the operator. WebLLM and Transformers.js
+are already in `data/open-source-tools.ts` at `needs_security_review`, so that
+review is the next step and not a new decision.
+
+One warning recorded where somebody will meet it at the same time as the tool:
+**GitReverse must never be pointed at this repository.** It converts a GitHub
+repository into a single prompt by swapping the hostname in the URL, and it is a
+third-party service that hands what it ingests to an LLM. It is for reading
+other people's public repositories.
+
+### 2026-08-26 - The repository was giving itself away under someone else's name
+
+Asked to confirm the source stays private, I read the three files that decide it
+and found none of them said so.
+
+`LICENSE` was an MIT licence reading **"Copyright (c) 2017-Present GitLab
+B.V."**. `package.json` declared `"license": "MIT"`. `CONTRIBUTING.md` assigned
+every contribution to GitLab B.V. and sent security reports to
+`contact@gitlab.com`. All three were scaffold leftovers, and
+`grep -rln LICENSE scripts/` returned nothing, so no release check had ever
+opened any of them. They had been green since the first commit by not being
+looked at.
+
+Two distinct problems, and the second one hides behind the first:
+
+1. An MIT grant gives anyone holding a copy the right to redistribute this
+   source. That is the direct contradiction of the owner's standing instruction.
+2. `"private": true` reads like protection and is not. It stops
+   `pnpm publish` and says nothing whatsoever about the rights in `LICENSE` --
+   the same shape as every other defect in this log: a flag that looks like a
+   guarantee and guarantees something narrower.
+
+All three replaced. `LICENSE` reserves all rights to SONARA Industries and
+grants none; `CONTRIBUTING.md` is now a real contributor guide that assigns
+copyright here and repeats the two licence facts that decide most external-code
+questions; `package.json` declares `UNLICENSED`.
+
+## The check, and what was broken to prove it
+
+`scripts/verify-source-licence.mjs`, twenty-seventh in `verify:launch`. It tests
+the **grant**, not the wording, so rewording the notice stays legal and
+reintroducing a permissive grant does not.
+
+Probes fired, each confirmed red before being reverted:
+
+- MIT text restored in `LICENSE` -> caught by two granting patterns at once.
+- `"license": "MIT"` in `package.json` -> named, plus the redistribution note.
+- `"private"` removed -> named the publish risk specifically.
+- `contact@gitlab.com` restored in `CONTRIBUTING.md` -> caught by the
+  non-SONARA address pattern. I had predicted the foreign-holder pattern would
+  fire too and it did not, because the probe appended the address without the
+  company name. Worth recording: the two patterns cover different halves of that
+  file and neither is redundant. The probe also showed the address reported with
+  the sentence's period attached, which is now fixed.
+- `LICENSE` deleted -> "named as a licence surface and not found", which is the
+  point: fail closed, never skip past a missing file.
+- All three files emptied -> the blindness guard fired on byte count rather than
+  the check reporting a clean pass over nothing.
+
+## Then the check failed its own rule, an hour later
+
+It read `LICENSE` **by name** and passed. Under `tools/` there were six more --
+agentkit, aws-emulator, disposable-domains, serverless-cli, songsmith,
+voice-clone -- each an MIT grant over code in a private repository, three
+`package.json` files declaring MIT beside them, and four READMEs saying "MIT
+licensed" in prose.
+
+That is shape 1 from the skill, committed inside the check written to prevent
+this class of thing. "The LICENSE is clean" and "no file in this repository
+grants rights over it" are different sentences and only the second is worth
+having. So it now **discovers rather than names**: it walks for licence files,
+manifests and READMEs, skipping `node_modules/` and `archive/`, and prints the
+counts it examined -- 7 licence files, 4 manifests, 11 READMEs -- so the
+population is checkable rather than asserted.
+
+Three things worth knowing about the widened version:
+
+- READMEs are read, because a README saying "MIT licensed" is the copy a person
+  actually reads. The pattern excuses lines about *other people's* repositories,
+  or the open-source register discussing their licences would fail on every run.
+- `PERMISSIVE_BY_DECISION` is the exemption list, empty today, and two-sided: an
+  entry naming a file that no longer exists fails. Releasing a subproject
+  deliberately is an owner decision and now has somewhere to be recorded.
+- Only the root manifest must set `"private"`. Requiring it of all four would be
+  a rule whose reason expired on reading -- none of the `tools/` ones is a
+  package this project publishes.
+
+Probes on the widened check, each confirmed red: a `tools/` LICENSE reverted to
+MIT; a `tools/` manifest declaring MIT; a README appending "MIT licensed."; a
+README saying "This project is open source."; an exemption naming a file that
+does not exist; and `walk(root)` deleted, which tripped the blindness guard at
+zero licence files rather than passing over nothing.
+
+What the next person should not have to rediscover: the scaffold this repository
+started from left legal text in it, and legal text is the one category of file
+that looks finished on the day it is written and is never opened again. A
+`tools/` subdirectory laid out as a standalone project is the easiest thing here
+to copy out by accident, which is why each now carries a notice saying so rather
+than inheriting silence from the root.
+
+### 2026-08-26 - The upload page, and four resets in one afternoon
+
+The multipart parser and the file store shipped earlier today with **nothing
+calling either**. That is this branch's signature defect wearing its most
+flattering disguise: the capability is present, the tests pass, and no customer
+can reach it. `routes/sonara-asset-file-routes.cjs` is the reachable half.
+
+One page, one file per Creator Studio asset. Deliberately a page rather than a
+change to the generic record renderer, because a file has a state a text field
+does not -- attached, not attached, or *stored somewhere this cannot reach* --
+and only a page can say which.
+
+## The order is the design
+
+Four checks, and the order is what makes them worth having:
+
+1. the row is read filtered on `id` **and** `organization_id`, before anything
+   is parsed -- not fetched and then checked, because a fetch-then-check leaves
+   a window where somebody deletes the check and the query still looks right
+2. the body parses
+3. the bytes are the kind of file they claim to be
+4. and only then does storage take it
+
+The row is patched **last**, so a failed upload never leaves a record pointing
+at a file that is not there. Removal runs the same way round -- delete the
+object first, because a row saying "no file" while the object is still in the
+bucket is worse than one admitting the delete failed. Both orders are asserted
+by index in a single recorder that sees the whole conversation, because "it
+uploaded" is true in both directions and only one survives a failure.
+
+Six probes, all six fired.
+
+## A bug found by reading rather than by testing
+
+`getCustomerPrimaryOrganization` takes the **user** and answers
+`{ ok, organizationId }`, not an id. The first draft passed `req` and used the
+result as a string, which produces a query filtered on
+`organization_id=eq.[object Object]` -- no rows, so the page says "that asset is
+not on your list" **and looks like a working boundary**. No test would have
+called that a failure. It was caught by opening the helper before trusting its
+name.
+
+## What this afternoon actually taught
+
+The container reverted four times, and the fourth took an uncommitted copy of
+this whole sprint with it -- route, tests, registration and ratchet bump -- along
+with `node_modules`. HEAD came back on `main`'s merge commit.
+
+The working practice that came out of it, and the reason two commits here say so
+in their own messages: **commit and push before the falsification pass, not
+after.** Probes are the step most likely to be interrupted, and an interrupted
+probe leaves its own edit applied -- which is separately how a probe can appear
+to fire for the wrong reason. Everything pushed survived every reset; only the
+unpushed work was lost, every time.
+
+The ceiling moved 3844 to 3846. A first draft of the registration cost ten lines
+because the reasoning was written in `server.js`; it belongs in the route module,
+where it already was. Worth recording, because a comment is the easiest thing to
+grow that file with and the hardest to argue against.
+
+### 2026-08-26 - The wall that had stopped being a trade-off: uploads
+
+"No file upload" was on the list of things this application cannot do, with an
+honest reason beside it -- adding a dependency for one text box is a real cost
+bought cheaply. That reason had expired. A job had no photo, a signed document
+had nowhere to go, and the transcription adapter built this morning could only
+reach audio that was *already at a URL*, which is not a thing a customer has.
+
+Two modules, both written here, both with no dependency.
+
+## Reading the file: `lib/sonara-multipart.cjs`
+
+About a hundred and fifty lines, because the format is genuinely simple. The
+parts that are not simple are the two ways a parser like this fails silently.
+
+**It works on Buffers, never strings.** A JPEG turned into a UTF-8 string and
+back is not the same JPEG: invalid sequences become U+FFFD and the file is
+quietly corrupted. The boundary search is `Buffer.indexOf`, the parts are
+`subarray`, and the only thing decoded as text is a header line, which is ASCII
+by specification. A test sends all 256 byte values through and asserts they come
+back; a probe replacing the copy with a string round trip fails it.
+
+**The CRLF before a boundary belongs to the framing, not the content.**
+Dropping the wrong number of bytes there corrupts every file by exactly two,
+which no test of "did the upload succeed" would ever notice. Probed.
+
+**Filenames are rebuilt rather than cleaned.** `../../etc/passwd` becomes
+`passwd`, `..` becomes `file`, and no separator survives.
+
+**The declared content type is a claim.** `sniff()` reads the magic bytes and
+returns `null` when it cannot tell -- not a guess and not the sender's word,
+because "I could not tell" and "this is a JPEG" are different answers and
+folding them together is how a page serves HTML as an image.
+
+**Nothing throws.** A malformed body comes from outside; a parser that throws on
+it hands whoever sent it a way to produce a 500. Eight shapes of rubbish are
+tested, including random bytes and a boundary that never appears.
+
+## Storing it: `lib/sonara-file-storage.cjs`
+
+A private Supabase Storage bucket over its REST API, with the wire shape read
+from `supabase/storage-js` rather than recalled -- including the detail that
+`createSignedUrl` returns a **path**, which has to be joined to the storage URL.
+
+**The tenant boundary is the first path segment.** Every object lives at
+`{organization_id}/{kind}/{uuid}-{filename}`. Every read in this application
+uses the service-role key, which bypasses row level security, so the
+`organization_id` filter *is* the boundary -- and for files that means it has to
+be in the path. Signing and deleting both refuse a path that does not begin with
+the caller's organization *and a separator*, because `1111...` and
+`1111...-extra` must not be confusable. Both refusals are probed.
+
+**Nothing returns a public URL.** These are customers' files. Links are signed,
+bounded between 30 seconds and an hour, so a link pasted into a chat is not a
+lasting way in.
+
+**A 200 with no link is a failure.** Returning `{ ok: true, url: undefined }`
+would put an empty href on a page and call it a working download.
+
+**The store's own error body never reaches the caller** -- it can echo the
+headers, and the headers carry the service-role key. The status goes through
+because it is useful and safe.
+
+## What is deliberately not closed
+
+The competitive assessment listed four places this product is behind. This
+closes one and leaves three, with reasons rather than silence:
+
+- **Offline work screens.** Offline *reads* are tractable; offline *writes* are
+  a queue, and a queued write that silently never syncs is exactly the defect
+  this codebase is organised against. Not worth doing badly.
+- **Taking a payment on a customer's behalf.** Stripe Connect is a
+  money-movement and identity-verification decision with regulatory weight, and
+  `AGENTS.md` puts payout changes behind owner approval. Not a change to make
+  while tidying.
+- **The bucket itself.** `storageReadiness` reports that it *assumes* the bucket
+  exists and is private, because nothing here can see the policy from outside. A
+  public bucket would make every signed link pointless. That is a fifth owner
+  step and it is stated as one rather than assumed away.
+
+### 2026-08-26 - The 26 "installable after review", reviewed; one of them installed
+
+`data/open-source-tools.ts` carried 26 repositories at
+`optional_adapter_after_review` -- permission to build an adapter *after
+somebody looks properly*. Nobody had. This is that review, and the finding is
+that **the status was doing two jobs**.
+
+For some of those 26, "install" means writing an adapter against a service the
+owner runs. For most of them it means something else entirely: vendoring built
+JavaScript into `public/`, wrapping a Python library that has no server, or
+reading a document. Those are different amounts of work carrying different
+risks, and one status could not tell them apart -- which is how a register stops
+being read. `docs/github-radar/2026-08-26-ADAPTER-REVIEW.md` sorts all 26 into
+seven groups and says, for each, what installing it would actually mean.
+
+## One was built: whisper.cpp
+
+Transcripts and captions for a creator's own audio, at **no per-minute cost**,
+with the audio never leaving hardware the owner controls. `lib/sonara-whisper-adapter.cjs`,
+now `adapter_built` in the register.
+
+The API was read from whisper.cpp's own server README rather than recalled:
+`POST /inference`, `multipart/form-data`, fields `file`, `temperature`,
+`temperature_inc`, `response_format`.
+
+**It has a real caller, which is why it was worth building.** `creator_assets`
+is a live CRUD resource with an `asset_type` of `audio` and a `url` column, so
+there is something to transcribe. That was checked before the adapter was
+written -- an adapter with nothing able to reach it is a capability that exists
+and is never called, which is this codebase's signature defect.
+
+## The security check now has one implementation, not two
+
+Two adapters make this server fetch a URL somebody typed: Crawl4AI reads a page,
+Whisper downloads an audio asset. That makes it a request forwarder with its own
+network position behind the request unless the target is checked.
+
+The check moved out of `sonara-crawl4ai-adapter.cjs` and into the shared base as
+`reasonNotFetchable`; Crawl4AI re-exports it under its old name so nothing that
+already calls it had to change. A test asserts the two are **the same function
+object**, because two copies of a security check drift and only one of them gets
+the next fix.
+
+## What the adapter refuses to pretend
+
+- **An empty transcript is not a success.** Somebody shown "here is your
+  transcript" and no words cannot tell whether the recording was silent or the
+  service was misconfigured.
+- **`content-length` is a claim, not a measurement.** Checked before the
+  download and again after it, because a server that lies about the header would
+  otherwise walk straight past the limit.
+- **A fetch error message never reaches the caller.** It carries the configured
+  URL, and on a redirect chain that URL may not even be the one the creator
+  typed.
+- **"It worked" and "it worked because ffmpeg was there" are different facts.**
+  `whisper-server` accepts WAV unless started with `--convert`. A non-WAV file
+  that the server rejects comes back as `needs_conversion` naming the flag; a
+  WAV that fails is reported as a real failure, because the guess is only
+  allowed where it is the likely cause.
+
+Six falsification probes, all six firing: removing the target check, accepting
+an empty transcript, dropping the post-download size check, blaming conversion
+for a WAV failure, passing the fetch error message through, and fixing the
+multipart boundary.
+
+## Two things found by writing the tests
+
+**`Buffer.from(x).buffer` is a trap.** Node pools small buffers, so that
+expression is the whole pool; slicing it from 0 hands back somebody else's
+bytes. The first version of the download stub produced a request with no audio
+in it and an adapter that still looked like it worked. It slices from
+`byteOffset` now, and the comment says why.
+
+**A probe loop that times out leaves the probe applied.** One run hit the two
+minute limit mid-probe, so the restore never ran and `String(error.message)` sat
+in the adapter through the next two probes -- which is how a probe can appear to
+fire for the wrong reason. Found by checking `git status` and the file rather
+than trusting the loop, and worth remembering: after any interrupted probe, read
+the file back before believing the result.
+
+### 2026-08-26 - agentkit: a code-first agent framework, and four ways it could have lied
+
+`tools/agentkit/` is a Python toolkit for building single- and multi-agent
+systems. An agent is a dataclass, its tools are Python functions, its team is a
+list of other agents, and `python -m agentkit.devui my_agents.py` opens a
+browser UI for chatting with it and reading exactly what it did. **69 tests, and
+nothing outside the standard library is imported anywhere in the package** --
+asserted by a test that parses every import rather than by a sentence in the
+README.
+
+The shape follows Google's Agent Development Kit, down to `root_agent` as the
+conventional name so a file written for one loads in the other. None of ADK's
+code is used or vendored; this is an independent implementation against the
+public Gemini REST API.
+
+## The wire shape was read, not remembered
+
+`ai.google.dev` is blocked by this environment's egress proxy, so the request
+and response shapes come from Google's own REST cookbook on GitHub: `contents`
+with roles `user`, `model` and **`function`** -- not `tool`, which is the one
+most easily got wrong from memory and the hardest to notice -- tools as
+`{"functionDeclarations": [...]}`, a call arriving as a `functionCall` part, its
+result going back as a `functionResponse` part whose `response` is an object,
+and parameter types in upper case.
+
+Worth stating rather than glossing over: Google now documents a newer
+`interactions` API and labels `generateContent` legacy. This targets
+`generateContent` because that is the contract whose exact shape could be read
+from here. `base_url` and `api_version` are constructor arguments, so moving is
+an argument change rather than a rewrite.
+
+## The four things an agent framework can quietly get wrong
+
+Each has a test that names it, and each was broken on purpose first.
+
+**A declaration that does not match its function.** Writing the schema by hand
+beside the function gives you two things that drift apart invisibly: the model
+is told the tool takes `query` while the function takes `q`, every call fails,
+and nothing in the declaration looks wrong. So it is derived from the signature
+and then checked against it **in both directions**. The reverse direction -- a
+parameter the function requires and the declaration never mentions -- is the one
+nobody checks and the one that produces a tool the model can never call
+successfully. An unannotated parameter is refused rather than defaulted to a
+string, because a guessed type is the quiet kind of wrong.
+
+**A native tool silently dropped.** `GoogleSearch()` is run by Gemini itself. On
+a provider that cannot run it, the `Runner` refuses to be built -- because an
+agent that quietly loses its search answers from memory and sounds exactly as
+certain. The check walks the whole team, so an agent buried two levels down
+cannot slip through.
+
+**A transfer that did not happen.** A coordinator delegates through a
+`transfer_to_agent` tool built from its actual team, with the names as an `enum`
+so the model chooses from a list rather than typing one from memory. A transfer
+naming an agent that does not exist comes back to the model as an error listing
+every agent that does exist, and lands in the trace marked failed. A coordinator
+carrying on as though it had delegated is a run where the work was never done
+and the transcript reads normally.
+
+**A truncated run presented as an answer.** Hitting `max_steps` produces
+`stop_reason="step_limit"` and `finished == False`. The text is still carried,
+because the last thing the model said is worth seeing -- and rendering it
+without checking `finished` is exactly how a truncated run looks complete. The
+dev UI draws it in the colour it uses for problems.
+
+## The dev UI is mostly the trace
+
+Three panes, and the trace is a third of the screen rather than a panel behind a
+toggle. Reading a final answer tells you almost nothing about a multi-agent run;
+the question is nearly always *why did that agent get the work*, and only the
+trace answers it. Every transfer, every tool call with the arguments the model
+actually sent, every result, and the search queries and sources when the model
+searched.
+
+No inline script, `script-src 'self'`, `frame-ancestors 'none'`. It binds to
+loopback and has **no authentication**, and the startup banner says so every
+time -- anybody who reaches that port can spend the owner's API credit.
+
+## A test suite nothing runs is a check that cannot fail
+
+So `dependency-scan.yml` gained an `agentkit` job. There is nothing to install
+and nothing to audit, which is most of why it is short. Verified the command
+exits 1 on a broken assertion before trusting it green.
+
+Then the job itself turned out to be the defect this repository is organised
+against. `python -m unittest discover` **exits 0 when it discovers nothing** --
+a moved directory, a renamed file, a missing `__init__.py` -- printing
+"Ran 0 tests ... OK". A green job would have meant "no tests failed" rather
+than "the tests passed", and the CI log confirming 69 tests ran was the only
+thing distinguishing the two. Measured both ways against an importable but
+empty test package: the discover command exits 0, and the replacement exits 1
+saying discovery has gone blind. The job now runs the suite programmatically
+and asserts the population is plausible before reporting success.
+
+One thing found by writing the tests rather than by reading the code: a bare
+`list` annotation has no `typing.get_origin`, so it fell through to the generic
+"cannot declare this" message instead of the specific one telling the author to
+write `list[str]`.
+
+### 2026-08-26 - Songsmith: an approval-gated song generator with nothing installed
+
+`tools/songsmith/` is a self-hosted web application for turning a text idea into
+a song. Somebody asks for an account, an admin approves it, they write lyrics
+and a style, and the job goes to a RunPod endpoint. When it comes back they play
+the stereo M4A, rename it, make it again with the same seed, share it with the
+other accounts here, or delete it.
+
+**44 tests, no dependencies.** Storage is `node:sqlite`, hashing is
+`node:crypto`, the server is `node:http`. That is a licence decision as much as
+a weight one: this source is private, a reciprocal licence triggers on network
+use, and the cheapest dependency tree to audit is the empty one.
+
+## `/runsync` is the trap, and it is the obvious call
+
+RunPod's synchronous route holds the connection open and returns the result,
+which is exactly what you want for a job that takes two seconds and exactly
+wrong for one that takes three minutes. If the response has not arrived in its
+window the request returns **without the result while the job keeps running and
+keeps being billed**, and with no id in hand there is nothing to poll and
+nothing to cancel. Its results are also discarded after about a minute against
+about thirty for `/run`.
+
+So: `/run`, then poll `/status/{id}`. The job id is written to the song row
+before anything else happens, because every other order leaves a window in which
+a crash orphans paid work.
+
+## Four places a song generator grows a signal that reports more than happened
+
+One test each, each probe confirmed to fire:
+
+1. **A progress bar that moves because time passed.** `progress` is `null`
+   unless the backend reported a number. A running job with no percentage says
+   "working on it" and renders no `<progress>` element at all. The probe set the
+   no-news case to 50 and the test failed by name.
+2. **`COMPLETED` with no audio in it.** Recorded as failed rather than left
+   `ready` -- a `ready` row with an empty `audio_path` is a play button that does
+   nothing and a state nothing will ever retry.
+3. **An unreachable backend recorded as a failed song.** The network being down
+   is news about the network. The job is left alone until the window in which
+   RunPod would still have the result has passed, and *then* failed with that
+   reason quoted.
+4. **A writing helper that produces a scaffold and calls it a draft.** With no
+   model configured the helper answers with section headings and every line a
+   visible `(a line about ...)` placeholder, and the page says in front of the
+   reader that nothing wrote any words. A model endpoint that breaks falls back
+   to the outline **and says the model answered 502**, because a broken endpoint
+   that looks like a working one nobody likes is the worst of the outcomes.
+
+## The audio is checked before it is stored
+
+`src/audio.js` walks the MP4 box tree far enough to say what came back: the
+`ftyp` brand, the codec, the channel count and the sample rate. A backend that
+answers with a JSON error is caught here and quoted back -- "it failed" tells
+whoever runs this nothing; "out of memory" tells them what to change.
+
+`channels` is a number **or null**, never a guess. Mono is reported and kept
+rather than refused: the song plays, and throwing away three minutes of paid
+work over a channel count would be worse than saying so on the page. The box
+offsets were checked by building a file byte by byte and reading it back, not by
+reasoning about the specification.
+
+## Two probes that did not fire, and what that was worth
+
+**Disabling an account has two independent defences** -- the session rows are
+deleted, and a live session is refused when its user is not active. Removing
+either one left the outcome test green, because the other still held. That test
+could not tell them apart, so each layer now has a test that can fail on its
+own: one asserts the rows are gone, and one changes a status *underneath* a live
+session without going through the delete path and asserts the session stops
+working anyway. Both probes fire now.
+
+**The 413 path was a real bug found by a test that would not pass.** Refusing an
+oversized body destroyed the request socket before the reply was written, so the
+caller saw a connection reset instead of the 413 that would have explained it.
+The request is paused instead.
+
+## What is deliberately not there
+
+- **A cancel that means it.** The backend is told first and the row is written
+  second. The other order gives somebody a song marked cancelled while a worker
+  carries on generating it and the meter carries on running. A backend that
+  cannot be reached leaves the song running and says so, because "cancelled" on
+  the page has to mean the backend agreed.
+- **No public share link.** "Shared" means the other approved accounts on this
+  installation. A song generator that mints public URLs is a publishing product,
+  and that is a different set of consent questions.
+- **An admin cannot read a private song.** "Private by default" would mean very
+  little if the person who approves the accounts could read everybody's.
+- **No JSON API and no client-side router**, which is what lets the CSP forbid
+  inline script outright. The whole application works with JavaScript off; the
+  one script reloads a page while a song is being made, and it does not reload
+  while somebody is typing in the rename box.
+
+## The limitation, stated rather than implied
+
+The Docker daemon is not available in this environment, so `Dockerfile` and
+`docker-compose.yml` are written and read but have never been built here. The
+README says so in its own words. Everything else is covered by the 44 tests.
+
+### 2026-08-26 - A local AWS emulator, and the first time the CLI met a server
+
+`tools/aws-emulator/` is one process on one port answering S3, DynamoDB, SQS,
+Lambda, STS and IAM. No account, no auth token, no licence key, nothing behind a
+paid tier, and no dependencies -- so the container is the Node image plus about
+two thousand lines and starts in well under a second.
+
+## The design decision the whole thing turns on
+
+An emulator's dangerous failure is not crashing. It is **answering**.
+
+A service that returns `200 {}` for an operation it has not implemented lets the
+caller's code carry on with what looks like a valid empty result: no items, no
+messages, no instances. The test passes, the developer ships, and it breaks
+against real AWS for a reason nothing local ever hinted at.
+
+So there is no third state between "implemented and tested" and "refuses".
+Fifteen named services that are not implemented each answer 501 with an error in
+that service's own dialect -- and the dialect matters, because a JSON-protocol
+SDK handed XML reports "unknown error" and loses the message entirely. The same
+rule holds inside a service that *is* implemented: DynamoDB's `TransactWriteItems`
+names the operation and refuses rather than returning something readable as
+success.
+
+`/_emulator/health` lists both sets from the registry rather than from a written
+list, so the README cannot drift from what runs.
+
+## The two limitations, said out loud rather than discovered
+
+It does not authenticate. Signatures are parsed -- that is how a request's
+service is identified -- and never verified. Locally there is nothing to protect,
+and checking would only add failures unrelated to the code under test: a clock an
+hour out, a proxy that reordered a header, each arriving as a 403 that looks like
+an application bug. The README says not to expose the port.
+
+It does not evaluate IAM policies, so **a test that passes here can still be
+denied by AWS**. A partial evaluator would be worse -- some denials right, some
+wrong, indistinguishable without reading its source -- so
+`SimulatePrincipalPolicy` refuses rather than answering "allowed".
+
+## The test that gave both projects something neither had
+
+`tools/serverless-cli/` signs real AWS requests and, until now, **had never
+spoken to a server**; its README says so in those words. Its SigV4 signer was
+checked against AWS's published vectors, which proves the arithmetic and proves
+nothing about whether the requests it assembles are ones a service accepts.
+
+`tests/the-cli-can-drive-it.test.js` points it at the emulator. Two projects
+written independently, one signing and one parsing, agreeing over a socket is a
+far stronger statement than either making sense alone.
+
+It found a real problem on the first run. `createBucket` addresses a bucket the
+way AWS does -- `bucket.s3.region.amazonaws.com` -- and a local endpoint is one
+host with no wildcard DNS in front of it, so the bucket name was simply lost and
+the emulator answered "S3 does not answer PUT at the root". That is the problem
+every emulator user hits. The CLI now honours `AWS_ENDPOINT_URL` (the variable
+the AWS CLI and the v3 SDKs already use) and switches S3 to path style when one
+is set, which is what `forcePathStyle` does in the SDKs.
+
+The other half of that test is the one worth keeping: `describeStack` reads "does
+not exist" as `exists: false` and everything else as a failure, and the emulator
+refuses CloudFormation by name. The test asserts the refusal arrives as an
+**error** rather than as an empty account -- the exact conflation both projects
+were separately written to avoid, checked where they meet.
+
+## Also worth knowing
+
+SQS has a real visibility timeout. A queue emulator that hands the same message
+to two consumers is emulating a list, not a queue -- and a worker written against
+it would look correct and lose work against AWS.
+
+DynamoDB keys on the typed value, not the JSON text: `{"N":"1"}` and
+`{"N":"1.0"}` are one key to DynamoDB and two strings to JSON, and keying on the
+text lets somebody write an item and fail to read it back with a key their code
+considers identical.
+
+Regions are kept apart, as AWS keeps them. One map key, and getting it wrong
+lets a test pass locally and fail in production for a reason the test could never
+show.
+
+Three probes, all firing: unimplemented services answering 200 (3 failures,
+including the cross-project one), SQS handing a message out twice (1), and
+DynamoDB keying on JSON text (1).
+
+## Not verified
+
+The Docker image. There is no Docker daemon in this environment, so
+`docker compose up` has never been run -- the Dockerfile and compose file are
+written and unexercised, and the README says so. Everything they would start runs
+under plain Node and is verified that way.
+
+Verified: 43 emulator tests, 221 CLI tests, 3,004 repository tests,
+`pnpm run lint` clean, `pnpm run verify:launch` exit 0.
+
+### 2026-08-26 - Video to frames, in the browser, tested in a browser
+
+The last piece of the scroll-site builder. Somebody drops a short clip into the
+editor and gets back a finished folder: their site's page, the runtime, and the
+frames it scrubs through as a visitor scrolls.
+
+## All of it runs on the customer's machine, and that is a decision
+
+A few hundred frames is twenty-odd megabytes. This application is serverless
+functions with a payload ceiling in single-digit megabytes and no multipart
+parser -- one production dependency, and it is Express -- so uploading the
+frames is not a thing that can be made to work by trying harder. Extracting
+them server-side is worse: that needs ffmpeg, which is not in a function
+either.
+
+The browser already has a video decoder, a canvas, a JPEG encoder and, since
+`CompressionStream`, a deflate. The file is already on the machine. Nothing is
+gained by moving twenty megabytes to a server and back, so the clip never
+leaves the machine it was chosen on.
+
+What the browser must **not** do is render the page. The words, colours and
+markup have to be the ones this server would publish, so it fetches
+`/creator-studio/scroll/:id/export.json` and adds the frames itself. A second
+renderer written in the client is exactly how a downloaded folder drifts from
+the site somebody signed off.
+
+## Two modules that load in both runtimes
+
+`public/sonara-zip-core.js` is the ZIP container -- local headers, central
+directory, end record, offsets. `lib/sonara-zip.cjs` is now the Node
+*compressor* and nothing else; the browser passes in bytes from
+`CompressionStream` instead. Two copies of a binary layout is two chances to
+get one wrong, and the symptom is an archive that looks fine and will not open.
+
+`public/sonara-frame-plan.js` is the same shape: how many frames, at what
+timestamps, at what size. The server bounds the count with the same `MAX_FRAMES`
+the browser plans against, required across rather than restated -- two numbers
+for one limit is a page claiming more frames than were written, and every extra
+is a 404.
+
+`vercel.json` bundles `public/**` alongside `lib/**`, so requiring across is as
+safe in production as in a test.
+
+## Tested in a real browser, without adding a dependency
+
+The hard parts of the extractor are seeking -- asynchronous, racy, and silently
+returns the previous frame when you get it wrong -- and the archive, which is
+binary. Testing its arithmetic and calling that coverage would be this
+codebase's own defect.
+
+Chromium is already in this environment; Playwright is not, and adding it is a
+large devDependency and a CI install for one file. So
+`tests/helpers/headless.cjs` speaks the DevTools protocol directly over the
+WebSocket Node 22 provides. The test records a clip of a **moving square**,
+extracts frames, and asserts the square is in a different place in each one --
+without something moving, "the frames differ" cannot be asserted at all. The
+archive the browser builds is then handed to `unzip`.
+
+With no browser present the tests **skip**, out loud, rather than passing.
+
+## Three probes, all firing
+
+- The last timestamp moved to exactly `duration`, where most decoders return
+  the previous frame or nothing: 2 failures.
+- Frame naming padded to three digits instead of four, so the page asks for
+  `0007` and the folder holds `007`: 2 failures.
+- The CRC computed over the compressed bytes rather than the original -- the
+  classic way to build an archive every unpacker rejects: 4 failures, all in
+  the tests that hand the file to `unzip`.
+
+Two things worth keeping from writing it. A WebM from `MediaRecorder` reports
+`duration: Infinity` until it has been seeked, so the extractor nudges to the
+end and back -- without it, `planFor` refuses a perfectly good file, and a
+naive reading asks for `Infinity * 24` frames. And revoking the blob URL
+immediately after `click()` cancels the download in some browsers, which looks
+exactly like the build having failed.
+
+`layout()` gained a `scripts` option, filtered to same-origin paths: the CSP is
+`script-src 'self'` with no bundler, and the alternative was every page loading
+every script in case one wanted it.
+
+Verified: 3,004 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0.
+
+### 2026-08-26 - Scroll sites, wired up: dashboard, editor, publish, download
+
+The second half of the scroll-site builder. `routes/sonara-scroll-routes.cjs`
+is a dashboard, a template picker, an editor, a preview, a static export, one
+write endpoint, and the public page at `/s/:slug`. `scroll_sites` is one table
+holding one row per site with a validated JSON document.
+
+## The resolution order, again
+
+`/s/:slug` resolves exactly as `/shared/:token` and `/book/:slug` do: the slug
+finds one row that is *published*, that row's document is what renders, and
+nothing else is read. Reads go through the service-role key, which bypasses row
+level security, so the filter in the query is the whole tenant boundary. A test
+asserts the query contains `published_at=not.is.null` rather than asserting the
+draft did not appear -- the second can be true because the render dropped it.
+
+The public query selects `title,document,slug` and not `*`, so a column added to
+this table later is not published by default.
+
+Two constraints sit in the migration as well as in the module. A slug must match
+the shape, and `published_at` may not be set without one -- a row that the
+dashboard calls live and nothing can reach is precisely the state this codebase
+keeps finding.
+
+## Three checks caught three real things
+
+**The outage-honesty gate** flagged the template picker for saying "nothing here
+is fixed", which contains the phrase it watches for. It was right to: on a page
+whose reads failed, "nothing here" reads as "you have no records". Reworded
+rather than exempted -- exemptions accumulate and each one blunts the gate.
+
+**The workspace crawl** 500'd on the dashboard. The cause is worth keeping: my
+`rest()` helper read PostgREST with `response.text()` while every other route
+here uses `.json()`, and the test harnesses stub a response with a `json()`
+method and no `text()`. So the route threw on every request under test and
+would have worked in production -- a fault the suite cannot see, which is the
+wrong way round. Switched to `.json()`, and `return=minimal` dropped so there is
+always a body to read.
+
+**The unused-variable warning** on `scrollSiteLimitMessage` was a missing
+feature, not a tidy-up. Every handler redirects back with `?problem=...` and
+nothing rendered those codes: a customer who hit their plan limit got a bare
+query parameter and a page that looked as though the publish had not happened.
+The editor now says what went wrong for each of the eight.
+
+## Plan limits meter what is on the internet
+
+`INCLUDED_SCROLL_SITES` counts *published* sites, not drafts. An unpublished
+site costs nothing to serve, and a limit that stops somebody starting a second
+one gets in the way of the work rather than of the resource. Free gets one
+rather than zero -- a builder nobody can publish from is a demo -- and the limit
+message names the export, because downloading the folder is unlimited on every
+plan and a limit message that only says "pay us" when there is a free answer is
+not one this product should send.
+
+The allowance is checked at the publish handler and not only on the dashboard,
+and it carries the three-state result: a count that could not be read is
+`unknown`, never zero, because zero reads as "you have used none of your
+allowance" and lets somebody past a limit nobody measured.
+
+Three probes, all firing by name: dropping `published_at` from the public query,
+dropping the organization filter from the editor read, and answering a failed
+public read as 404 rather than 503.
+
+Verified: 2,988 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0. The ceiling in `tests/server-split.test.js` moved 3842 -> 3844, the
+tenth exception, two lines for a require and a registration.
+
+### 2026-08-25 - Cinematic scroll sites: the model, the renderer, the export
+
+The first half of a scroll-site builder: five templates, a validated site
+document, one renderer, and a static ZIP export. Routes and the editor are the
+next piece; this is the part everything else stands on, and it is built and
+tested first on purpose.
+
+## The decision the research changed
+
+CSS scroll-driven animations (`animation-timeline: view()`) are supported in
+Chrome, Edge and Safari 18, and in Firefox only behind a flag as of Firefox 152
+in June 2026 -- about 84% of browsers. **Not Baseline.**
+
+Written the obvious way -- start at `opacity: 0`, animate in on scroll -- the
+other 16% get a page that scrolls through nothing. And the author would never
+see it, because they are looking at Chrome. That is this codebase's recurring
+defect wearing a visual disguise: it reports success and is not true.
+
+So the animation is not the mechanism. Every section is written **in its
+finished state**, and the motion is declared inside
+`@supports (animation-timeline: view())`. A browser without support ignores the
+block and shows a finished page. A test asserts that nothing outside that guard
+sets `opacity: 0` or `visibility: hidden`, and a probe that moves an `opacity: 0`
+above the guard fails it by name.
+
+## One renderer, three callers
+
+The preview, the published page and the exported `index.html` all come from
+`renderSite`. The export is the strictest caller -- a folder of files on any
+host, no server, no build, no network -- so it is what the renderer is shaped
+around, and `standalone: true` drops the webfont link rather than letting a
+downloaded folder quietly depend on fonts.googleapis.com being up.
+
+## Two modules moved rather than copied
+
+`lib/sonara-zip.cjs` is the zip writer from `tools/serverless-cli/`, promoted.
+The CLI now requires it across the tree. A second zip writer would have been a
+second chance to get a binary format subtly wrong in one of them.
+
+`lib/sonara-contrast.cjs` is the WCAG arithmetic from
+`scripts/verify-colour-contrast.mjs`, promoted for the same reason and one more:
+a customer picks their own colours, and pale grey on white publishes perfectly
+happily. `vercel.json` bundles `lib/` and does not bundle `scripts/`, so a
+module a route needs cannot stay there -- it would work in every test on this
+machine and be absent in production. The release check now uses the shared copy,
+including its known-answer cases (black on white is exactly 21:1).
+
+## The test that found a real bug by unpacking the archive
+
+Four probes. Three fired. **The fourth did not**, and it is the one worth
+recording.
+
+The probe broke the exporter so `index.html` went on pointing at the hosted
+frames instead of the copies inside the folder -- which would produce a download
+that only works while this application is up, the exact opposite of the point.
+The suite stayed green.
+
+The test was called "repoints the frames at the folder's own copies", and what
+it actually did was call `renderSite` itself, with the right pattern hardcoded,
+and assert on *that*. It never opened the zip. So it was checking a page the
+test had built.
+
+Rewritten to unpack the archive with `unzip` and read the real `index.html`, it
+immediately failed -- not on the probe, on the committed code. `safeUrl` rejected
+`frames/%d.jpg` because `%` was missing from its allowed character set, so every
+export shipped `data-pattern=""` and would never have loaded a single frame.
+Nothing threw, the zip was valid, the page looked right.
+
+Both the probe and that bug fail the test now.
+
+## Also worth knowing
+
+Audio is a button and never autoplay -- AGENTS.md requires it, and a page that
+starts making noise at a stranger is what the rule is about. `preload="none"`,
+so a visitor who never presses play never fetches the file.
+
+Templates are checked rather than trusted: every one runs through `buildSite`
+and must come back with **no problems**, so a template whose palette fails
+contrast fails the build instead of being offered as a starting point.
+
+`slugify` returns null rather than generating an address. A generated slug
+publishes a site somewhere its author never chose and cannot guess.
+
+Verified: 2,970 tests passing, `pnpm run lint` clean, `pnpm run typecheck` clean.
+
+### 2026-08-25 - Two pages that reported an outage as news about your business
+
+Hunted with `pnpm run report:selected-columns` and the recurring-defect list.
+Two of the three candidates turned out to be correctly guarded already --
+`evaluatePolicy` checks org, user, attestation, revocation, expiry *and* scope,
+and `sonara-cash-position` counts a failed payments read as unavailable rather
+than as nothing paid. The two below did not.
+
+## "Set the customer on the invoice" -- on an invoice that already had one
+
+`/business-builder/owner/chase-drafts` reads invoices, payments and customers.
+`customers.ok` was computed, pushed into the `unavailable` list, and then
+**thrown away** before `chase.build()` was called. So an unreadable customer
+table produced an empty map, and every overdue invoice came back skipped with:
+
+> It is not attached to a customer, so there is nobody to address. Set the
+> customer on the invoice.
+
+That is a specific claim about a specific invoice, it is false, and it ends with
+an instruction the owner would go and act on -- for every overdue invoice at
+once. The headline above it read "Nothing here can be drafted yet -- see below
+for what each invoice needs first", which sends them straight to it. A generic
+"some records could not be read" card did sit at the top, and it did not stop
+any of the sentences underneath it being wrong.
+
+`build()` now takes `customersRead`, exactly as `settle()` takes `paymentsRead`
+in `lib/sonara-invoice-settlement.cjs` -- carry the outcome, not just the rows.
+The skipped entry also carries `cause`, so the page can group the two without
+matching on prose, and the headline is three-way rather than two.
+
+## "Somebody who is no longer here" -- about somebody who is still here
+
+Found by following the same shape into `/growth-studio/owner/lead-routing`,
+which is code from this branch. A routing rule renders the person it assigns to.
+With the people table unreadable, `named` is null for every rule, so a business
+whose staff are all present was shown:
+
+> Hot leads to Ana -- score 80 or more -> somebody who is no longer here
+
+next to a Remove button. There was already a notice saying the people list could
+not be read, and it referred to "the list below" -- the picker -- not to the
+rules above it. Now three states: named, genuinely gone, and could not look.
+
+## The probe that mattered
+
+Two probes fired immediately at the unit level. **A third did not**, and it is
+the one worth recording: deleting `customersRead: customers.ok` from the caller
+-- which is precisely the original bug -- left the entire suite green. Every test
+was of `build()`, and `build()` was fine. The bug was in the wiring.
+
+So both fixes are now covered by tests that drive the real route with one table
+failing and everything else answering, asserting on what reaches the page. With
+those in place the probe fails by name. `tests/an-outage-is-not-news-about-your-staff.test.js`
+is new; the chase-drafts tests grew a route-level block.
+
+Each page also keeps its honest message: a rule really pointing at somebody who
+left still says so, and an invoice really missing a customer still says that.
+Trading one wrong answer for another would not be a fix.
+
+Verified: 2,908 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0.
+
+### 2026-08-25 - The delete command, and a test that was weaker than its name
+
+`sonara-serverless remove` printed "not implemented" when the tool shipped a few
+hours ago. That was the honest thing to print at the time; it is not a thing to
+leave printed. It now deletes the stack.
+
+## There is no change set for a delete
+
+`plan` can ask CloudFormation what an update would do. Nothing asks it what
+`DeleteStack` would destroy -- there is no preview API for a delete, and no undo
+after it. So `remove` reads the stack's own resource list first and prints what
+it found before calling anything.
+
+Read from CloudFormation rather than derived from the local YAML, deliberately:
+the file on this machine describes what the stack *would* be, and deleting acts
+on what it *is*. Somebody who removed a resource from their file and never
+deployed would otherwise be shown a list missing the very thing about to be
+deleted.
+
+## Kept is not a footnote
+
+`template.js` creates tables and buckets with `DeletionPolicy: Retain`, so they
+survive. That is deliberate -- taking a stack down should not be what loses a
+customer's orders -- but it is only a kindness if somebody knows it happened. A
+retained bucket goes on costing money under a name this tool will not reuse, and
+a person who believes they deleted everything has left both.
+
+So they are named individually, by their real AWS names, because that is the
+list somebody needs to finish the job by hand. And a third category exists
+alongside deleted and kept: **unclassified**. A resource type this tool has no
+rule for would otherwise fall into "deleted" by default and be reported as gone
+when nobody established that. "I cannot tell you whether this survives" is a
+worse-looking report and a truer one.
+
+`tests/removal.test.js` derives the retained set from `template.js` itself and
+asserts the two agree, so a type that gains a retain policy in the template and
+not in `removal.js` fails rather than being reported as deleted while surviving.
+
+Confirmation is typing the stack name rather than pressing return through a
+`y/n`, and a non-interactive shell refuses instead of assuming yes.
+
+## The probe that would not fire, and what it was hiding
+
+Six probes. Four fired immediately. The fifth and sixth were the same edit --
+remove the early return after a failed resource read, so the command carries on
+with an empty list -- and it **did not fail any test**.
+
+The test was called "stops rather than guessing when the resource list cannot be
+read". It passed with the guard removed, because the *confirmation prompt*
+caught the request anyway. It was testing the confirmation. The name said it was
+testing something else, and the something else was unprotected.
+
+Two tests replaced it, and they are the ones that separate the two guards:
+
+- A failed read must not produce a sentence *describing* the stack. With the bug,
+  the command printed "the stack has no resources in it" about a stack it had
+  never seen.
+- With `--yes` there is no confirmation left to fall back on. An empty list read
+  as real sails straight into `DeleteStack` -- which is the actual disaster, and
+  the original test could not see it at all.
+
+Both fail on the probe now. `--yes` is also refused outright when anything in the
+stack is unclassified, since the flag means "I have read this and I agree" and
+there is nothing to have read.
+
+Verified: 221 tool tests passing, `pnpm run lint` clean.
+
+### 2026-08-25 - A serverless CLI, in tools/, with no dependencies
+
+`tools/serverless-cli/` defines Lambda functions and the AWS resources they need
+in one YAML file, runs them locally, and asks CloudFormation what deploying
+would change before it changes. It is a standalone Node tool, sitting beside
+`tools/voice-clone/` and `tools/disposable-domains/` for the same reason those
+do: it cannot live in a Vercel function, and `vercel.json` bundles only
+`{public,routes,lib}`.
+
+**Zero runtime dependencies**, which is a constraint rather than a boast: the
+YAML parser, the ZIP writer, the SigV4 signer and the CloudFormation client are
+all in there, because the alternative was several hundred packages to do four
+things. The whole tool is about two thousand lines.
+
+## What was checked against something this project did not write
+
+Two pieces have no readable output and therefore no natural feedback, so both
+are checked against independent implementations rather than against themselves.
+
+The **signer** is checked against four known-answer vectors from the AWS SDK for
+PHP's own test suite. That caught a real bug: the first version applied S3's
+single path-encoding rule to every service, where AWS double-encodes the path
+everywhere except S3. Both readings produce a syntactically perfect signature,
+and the only symptom of the wrong one is a 403 that looks like five other
+problems.
+
+Getting those vectors was itself a near miss worth recording. A summarised fetch
+of the same file silently dropped one header from the first vector, which made a
+correct signer look broken and sent me looking for a bug that was not there. The
+raw file had to be read to get the real input. Same shape as the Helvetica AFM
+widths a few entries down: a summary that is right about everything it contains
+and quietly incomplete.
+
+The **ZIP writer** is handed to `unzip` -- listing, extracting, and `unzip -t`
+for integrity. A zip verified only by this project's own reader would agree with
+itself about a format it had got wrong.
+
+## The parser refuses rather than guesses
+
+Everything downstream of the YAML file -- what gets deployed, what a plan says
+will change -- depends on what the parser decided the file meant. So it
+implements a documented subset and refuses everything else by name, with a line
+number and what to write instead: `yes`/`no` (a boolean in YAML 1.1, a string in
+1.2), leading-zero numbers (octal or decimal depending on version), tabs,
+duplicate keys, anchors, merge keys, tags, second documents.
+
+Unknown *settings* are refused the same way. A loader that ignores `memorySize:`
+because it expected `memory:` deploys the default and prints nothing, and the
+author reads their own file and sees a setting that never took effect. The
+refusal says `Did you mean "memory"?`.
+
+Writing that refusal found a bug in the parser itself: `a: 1` / `---` / `b: 2`
+read straight past the second document marker and merged both documents into one
+mapping.
+
+## Three things the plan has to keep separate
+
+`plan` asks CloudFormation via a change set rather than diffing locally -- a
+local guess is wrong the moment somebody touches the console, and a plan that is
+occasionally wrong is worse than none because people stop reading it.
+
+It distinguishes **changes**, **no changes**, and **could not tell**. The third
+is the one that matters: "no changes" is a claim about the deployed stack, and
+printing it when the lookup failed sends somebody to deploy blind. `buildPlan`
+has no default status for exactly that reason.
+
+CloudFormation makes this harder than it sounds by reporting "no changes" as a
+*failed* change set. Treat every failure as empty and a broken template looks
+up to date; treat every failure as an error and an unchanged stack looks broken.
+Only the reason text separates them.
+
+## Login is PKCE, with no device-code fallback
+
+The device-code flow -- terminal prints a code, you type it into a web page -- is
+phishable by design: an attacker runs it against their own client, gets a genuine
+AWS code, and sends it to you with a story. The page is real and the code is
+real, and approving it authorises them. AWS made PKCE the default in the AWS CLI
+at v2.22.0 for this reason.
+
+So the authorization code arrives over loopback and redeeming it needs a verifier
+that never leaves the process. There is deliberately no fallback flag: it would
+be a switch that turns the phishable flow back on, and the people most likely to
+find it are the people being talked through a fix by a stranger.
+
+## TypeScript with no build step
+
+Node 22 strips types natively and Lambda's nodejs22.x runtime does the same, so
+a `.ts` handler is deployed as-is and runs as-is -- no bundler, no watcher,
+nothing to keep in sync. That is the entire reason this tool can offer a
+TypeScript path without acquiring a dependency. `init --typescript` scaffolds an
+ES module project, and the test suite proves it by starting the dev server
+against what was scaffolded and making a request.
+
+The first version of that scaffold wrote ESM handlers into a package declaring
+`"type": "commonjs"`, which Node refused outright. Every file the scaffold writes
+now has to agree about which kind of module the project is, and a test says so.
+
+## A probe that did not fire, and the test it exposed
+
+Six falsification probes were run. Five fired by name. The sixth -- replacing the
+ZIP's fixed timestamp with one from the clock -- did not, and the reason is worth
+keeping: the constant is evaluated once at module load, so both zips built inside
+one test process shared the same wrong value and matched each other.
+
+The test proved the writer was deterministic *within a process*, which is not the
+property that matters. The risk is variation *between builds*, because a zip
+whose bytes change on every build makes CloudFormation report every function as
+changed every time -- and a plan that always says "1 function to update" is a plan
+people stop reading, which turns off the safety feature this tool is mostly for.
+There are now two more tests: one builds the second zip in a separate process,
+and one reads the timestamp fields straight back out of the header. The probe
+fires.
+
+## Not verified
+
+The AWS calls have never been made against a live account -- there is none
+attached to this repository. `deploy`, `info` and the AWS half of `login` and
+`plan` are written and unverified end to end, and the README says that in those
+words rather than implying otherwise. `remove` prints "not implemented" rather
+than doing something approximate, because a half-written delete is the worst
+thing here to be wrong about.
+
+`tools` was added to the lint glob, so this code is held to the same
+`--max-warnings=0` standard as the rest.
+
+Verified: 200 tool tests passing (`make test` in `tools/serverless-cli`), the
+repository's own 2,889 tests passing, `pnpm run lint` clean, `pnpm run typecheck`
+clean, `pnpm run verify:launch` exit 0.
+
+### 2026-08-25 — The download routes, wired to something that reaches them
+
+The renderer from the previous entry produced a document nobody could ask for.
+This connects it at both ends: `GET /shared/:token/invoice.pdf` for the customer
+who was sent a link, and `GET /business-builder/owner/invoices/:recordId/pdf`
+for the business that raised the invoice. Same renderer for both, so the copy a
+customer files and the copy a business keeps cannot disagree about what the
+invoice says.
+
+## One resolution path, because the order is the security property
+
+`/shared/:token` resolves a public request in a fixed order: the token finds one
+`shared_links` row, that row names both the resource and the organization, and
+the resource is then read filtered on both. The public request never chooses an
+organization — it is told one.
+
+The PDF route needs exactly that, and the obvious way to write it was to write
+it again. Two copies would be two chances for one of them to be subtly less
+careful about the order, and the order is the whole tenant boundary here: the
+service-role key bypasses row level security, so the `organization_id` filter is
+not a refinement of the query, it *is* the check. So the sequence came out of
+the page handler into `resolveShared(token)` first, and both routes call it. The
+extraction was made behaviour-preserving before anything new was added.
+
+Three details that are not obvious from the diff:
+
+- The download is `Cache-Control: private, no-store`. A shared link is revocable,
+  and a document sitting in a shared cache is a revocation that did not happen.
+- A token that opens a *booking* answers the invoice route exactly as a token
+  that opens nothing does. Answering differently would turn the route into a way
+  to ask what kind of thing a token points at.
+- The filename is built from `invoice_number` with everything outside
+  `[A-Za-z0-9._-]` stripped, because that field is typed by a person and it ends
+  up in a `Content-Disposition` header.
+
+On the owner side, a failed read of the invoice lines returns 503 rather than a
+document. `lines.ok ? lines.rows : []` would have produced a PDF saying the
+invoice has nothing on it — and the business forwards that to their customer,
+which makes it worse than no file at all. Payments carry `paymentsRead` through
+to the settlement module for the same reason: a payments table that could not be
+read is "the balance is not known", never "nothing has been paid".
+
+## A route nothing links to is a route nobody finds
+
+The owner-side route existed for a while before anything pointed at it. That is
+its own kind of untrue signal — the capability is present, the tests pass, and
+no customer can reach it. Record pages now take an optional `download` field,
+and only `/business-builder/owner/receivables` declares one.
+
+The guard is `page.download && parent`: the second half matters because a record
+this page could not find already renders "that record is not in your business",
+and offering a download beside that sentence is two answers to one question with
+one of them wrong.
+
+## The probe that did not fire, and what it was hiding
+
+Three falsification probes were run against the new tests. Two fired by name
+immediately. The third — "offers no such file on a record page that has not
+declared one" — did not, and the reason is worth keeping.
+
+It asked for `/business-builder/owner/quotes/:id`. Quotes has no child table, so
+that detail route **is never registered**: the request 404s at the Express layer
+with an empty body, which contains no download link for reasons that have
+nothing whatever to do with the guard being tested. The test passed with the
+guard removed. It was rewritten against purchase orders, which does render a
+detail page and declares no download, and it now asserts a 200 and the record's
+own number before checking that no link is there. Then the probe fired.
+
+Verified: `pnpm run lint` clean, 2,889 tests passing, `pnpm run verify:launch`
+exit 0 across all 26 commands.
+
+### 2026-08-25 — A PDF, written with nothing installed
+
+The previous piece was about a capability that **cannot** live in a serverless
+function. This is the opposite: looking for what can.
+
+This application already hands a business its records as a calendar file, a
+contact card, a CSV and a JSON export — every one a text format costing no
+dependency. The obvious missing one turned out to be the one customers most
+often need: an invoice they can file with an accountant or attach to an email.
+A shared invoice was a web page, which is fine to look at and impossible to
+keep.
+
+PDF belongs on that list. It is a text container with an offset table, the
+fourteen standard fonts are guaranteed present in every conformant viewer so
+nothing has to be embedded, and `node:zlib` ships with the runtime. No
+dependency, no binary, no service, a few milliseconds inside a function.
+
+## The font metrics, and the near miss worth recording
+
+Money on an invoice is right-aligned, and right-aligning needs to know how wide
+the text is. So the module carries Adobe's WX values for Helvetica and
+Helvetica-Bold, codes 32 to 126.
+
+**The first attempt read them out of a summary of the AFM file and got 91 of
+the 95.** Every value it did have was correct — space 278, W 944, all ten
+digits 556 — and every spot check passed. The four it had silently dropped
+would have shifted any column containing one of them. A table that is right
+where you look and wrong where you do not is precisely the defect this codebase
+is organised against, so the numbers were parsed out of the bytes in the end
+and the module says so at the top.
+
+What it cannot do is stated in the same place: exact widths cover ASCII;
+anything else is written through WinAnsiEncoding and its width approximated,
+and `measure()` returns `approximated` so it is never folded silently into a
+total. Every money column, being digits, stays exact.
+
+## How it is known to open
+
+A broken PDF does not error — it opens to a blank page, or renders in Chrome
+and not in Preview, and you find out from a customer saying the invoice was
+empty. So the test contains an **independent reader**: it walks the
+cross-reference table, checks every byte offset lands exactly on the object
+header it claims, inflates each stream, and reads the text back out of the
+drawing operators.
+
+Five probes. Four fired: an xref offset off by one byte, right alignment
+ignoring measured width, approximated characters counted as exact, and a
+stream's declared `/Length` off by one.
+
+**The fifth did not, and the test was the thing that was wrong.** Removing
+bracket escaping entirely broke nothing, because the test drew
+`"Repair (see attached)"` — *balanced* brackets, which a tolerant reader
+recovers either way. The case that actually corrupts a document is an
+**unmatched** bracket: one `)` with no `(` ends the literal string early and
+everything after it is read as drawing operators. The test now asserts on the
+encoded bytes and separately round-trips `"50%) off until Friday"`, and the
+probe fires.
+
+## The invoice itself
+
+`lib/sonara-invoice-pdf.cjs` renders exactly the columns
+`lib/sonara-shared-results.cjs` reviewed and allows, and the test reads that
+module's own `forbidden` declaration **with no fallback** — a default would let
+it pass against a copy on the day somebody renamed the export, which is the one
+thing it claims not to do.
+
+It shows the balance rather than the total again when a deposit was taken, says
+the balance is *not known* when payments could not be read rather than printing
+the total as unpaid, prints `-` rather than `0.00` for an absent price, and
+`Not set` for a date nobody chose. It grows no way to pay it: there is no
+Stripe Connect here, the shared page already tells its reader never to pay from
+a link, and a PDF is forwarded more easily than a link — so that sentence has
+to be true in the artifact too, and a test asserts no bank details, no
+checkout, no pay button.
+
+### 2026-08-25 — Reaching the voice studio, without becoming a place that holds voices
+
+`tools/voice-clone/` was built as something the owner runs on their own
+machine, and the honest answer at the time was "this is not inside SONARA One,
+and it cannot be." This is the other half: what the application can know about
+it, and how.
+
+`lib/sonara-voice-clone-adapter.cjs` joins the six-adapter family behind
+`lib/sonara-service-adapter.cjs`, so it inherits the four rules
+`docs/architecture/EXTERNAL-SERVICES.md` sets out — off by default, never a
+dependency, never renders configuration, validates anything that becomes part
+of a request. `/creator-studio/voice-studio` is the page.
+
+## What crosses the boundary, and what does not
+
+**No audio. Ever.** One GET that returns which engine is loaded, whether it
+produces real speech, and which languages and styles it offers. Three reasons
+and the first two would each be enough on their own:
+
+A reference clip is somebody's voice, and passing it through here would make
+this application a place that holds voices — with everything that implies about
+storage, retention and what a breach would mean — while gaining nobody
+anything, because the file is already on the machine where the model runs.
+
+A serverless function is the wrong pipe. There is no multipart parser here;
+Express 4 has none and this application has one production dependency, which is
+why even the spreadsheet importer takes a paste.
+
+And the consent gate lives at the service. Relaying a clone through here would
+put this application in the position of vouching for a consent it never saw.
+
+A test asserts the adapter's entire export surface, so adding a `clone()` fails
+it and the conversation happens before the audio does. Another greps the module
+for `FormData`, `multipart`, `Blob` and `createReadStream`.
+
+## The token is required, unlike every other adapter in the family
+
+Every other service in this family can be pointed at an unauthenticated
+instance and still work. EXTERNAL-SERVICES.md is blunt about the risk — a
+tunnel makes a service reachable by everyone, not only by this application —
+and an exposed voice cloner is worse than an exposed model endpoint. So
+`SONARA_VOICE_CLONE_TOKEN` is declared as a **required secret**: readiness
+refuses to call itself configured without one, and the service now refuses a
+request that does not present it, compared with `hmac.compare_digest` rather
+than `==`.
+
+## Two probes that did not fire, and what they found
+
+Both were tests weaker than their names, which is the reading this codebase
+tells you to take.
+
+**The narrowing was only ever tested in isolation.** `summarise()` had its own
+test, so a `capabilities()` that stopped calling it would have passed. Spreading
+the raw response body alongside the summary changed nothing. There is now a
+test that drives `capabilities()` and asserts the returned keys are exactly the
+five this application renders.
+
+**"Makes no call when it is off" tested one guard of two.** A disabled adapter
+is caught by the first guard; enabled-but-half-configured — a URL set, no token
+yet — is caught by a second, and removing that second guard failed nothing.
+That state is the one a real deployment passes through, and it has its own test
+now.
+
+## Six existing gates caught this page, all correctly
+
+A customer-facing link to raw JSON, and a label naming a data format at a
+customer. An endpoint reporting `ok:true` while every read failed. A page whose
+prose read as an empty-state claim. And two saying the manifest declared the
+page needed a signed-in customer while it served a stranger.
+
+Five were fixed by doing the right thing rather than exempting anything: the
+JSON link removed, `requireCustomer` added, and two sentences reworded — "no
+token on it" became "without a token on it" and "Nothing is configured" became
+"This has not been switched on".
+
+The sixth is worth recording. `/api/creator/voice-studio` reported success
+while reads were failing, and the gate that caught it excludes endpoints whose
+names end in `readiness`, `status`, `providers` and so on — configuration
+rather than records. Rather than add a bespoke exception, the endpoint was
+renamed `/api/creator/voice-studio/status`, which is what it actually is. The
+existing rule then covers it, and covers the next one automatically.
+
+### 2026-08-25 — Voice cloning, and the gate that makes it a tool rather than a forgery kit
+
+`tools/voice-clone/` — upload a voice, prove the speaker agreed, type text, get
+audio in that voice. Cross-lingual, so an English sample speaks Spanish, French,
+Chinese, Japanese or Korean. Built on OpenVoice (MIT, licence read from source).
+FastAPI, one HTML page, no build step.
+
+## The rule this ran into, and why the answer was to build it differently
+
+`AGENTS.md` says, in one line: *"Enforce provenance, consent, and anti-clone
+safety."* Not "ask about" — enforce. This branch already withholds
+`voice_identity` and `prompt_rules` from public creator profiles for exactly
+that reason. A tool that clones any uploaded clip with a tickbox would have
+contradicted a rule written into the repository it was being added to.
+
+The rule does not forbid voice work. It requires consent to be enforced, so
+that is what was built.
+
+**A tickbox proves nothing.** Anybody cloning a voice they should not have ticks
+it. What distinguishes a consenting speaker from a scraped clip is that a
+consenting speaker is *present when you ask* and can be asked to say something
+nobody could have predicted. So the server invents a challenge phrase — a fixed
+sentence plus four random words and a number — the speaker records themselves
+reading it, and only a transcript matching the phrase **the server issued**
+produces audio.
+
+The phrase never comes from the browser. A client that could supply its own
+could supply one it already had a recording of, and the check would be theatre.
+A test asserts that a phrase in the request body is ignored. Challenges are
+single-use and expire, so one consent recording authorises one clone.
+
+**Three outcomes, not two.** Granted, refused, and *unverified* — the last being
+when the check could not run at all. Unverified never becomes granted: a check
+that could not run and a check that passed are the same shape and opposite
+meanings, and merging them turns this back into a tickbox with extra steps.
+
+Refusals are recorded as fully as grants, because a tool that only writes down
+its successes cannot answer the one question anybody will ever ask it. A refused
+reference clip is deleted. Real output is watermarked with OpenVoice's own
+`wavmark`, which is the provenance half of the same rule.
+
+## Two engines, and one of them says what it is
+
+The stub produces a real playable WAV that is **a tone, not speech**, and says
+so in the API response and on the page. It exists so the consent gate, the
+validation, the interface and the tests all run on a machine with no GPU and
+nothing downloaded. A stub that dressed itself up as a result would let somebody
+demo this to a room without noticing nothing had happened.
+
+**The OpenVoice path has not been run.** It was written against OpenVoice's
+documentation and source layout; the machine it was written on had no GPU and
+could not download the checkpoints. That is stated at the top of the module, in
+the README and here — not left in a commit message for somebody to find after it
+fails.
+
+## Emotion, honestly
+
+OpenVoice **V1** has named emotions in its base speaker. **V2** replaces that
+base speaker with MeloTTS, which is better and multilingual and exposes none of
+them: delivery comes from the base speaker, tone colour from the reference clip.
+So V2's emotion control is weaker than the summary suggests. Rather than offer
+nine styles and render several identically, each engine reports what it actually
+has and the interface asks it — the stub offers six, the V2 adapter reports one.
+If named emotions matter more than V2's quality and languages, V1 is the model
+to wire in and the interface does not change.
+
+## Why it is not inside SONARA One
+
+Vercel serverless, one production dependency, `includeFiles` of
+`{public/**,routes/**,lib/**}`. PyTorch and gigabytes of checkpoints do not go
+there and would not suit that execution model if they did. This is the pattern
+`docs/architecture/EXTERNAL-SERVICES.md` describes: a service the owner runs. If
+it is ever reachable over the network, that document's four rules apply,
+starting with off by default and never a dependency.
+
+23 tests, named after ways somebody would get a clone they should not have.
+Five probes, all firing by name: unverified counted as consent, a challenge
+surviving its use, a refused clip left on disk, the stub claiming to be real
+speech, and the phrase threshold dropped to nothing.
+
+One test was wrong rather than the code: it globbed the whole workspace for
+leftover reference clips and caught ones a *granted* request had legitimately
+kept. It snapshots before and after now, which is the claim that was actually
+meant.
+
+### 2026-08-25 — The throwaway-address flag, and where a data file has to live
+
+Closing the loop opened when `disposable-email-domains` was registered with a
+live use. `lib/sonara-disposable-email.cjs` reads the list; the lead capture
+route looks the address up and hands the scorer a boolean; `scoreRisk` raises a
+`disposable_email` flag worth 15 points.
+
+**Flag, never block.** A real customer whose company mail is down uses a
+throwaway address, and so does somebody typing on a phone in a car park.
+Refusing them loses exactly the sale the widget exists to win, so the lead is
+still written, still scored and still routed — the only thing that changes is a
+number the business can see.
+
+## The failure that would have been invisible
+
+`vercel.json` bundles only `{public/**,routes/**,lib/**}` into the deployed
+function. The list started life in `tools/disposable-domains/`, where the
+project that maintains it lives — and a list kept there is **present in every
+test run and absent in production**. The lookup would find nothing, flag
+nothing, and every check would stay green while the feature did nothing at all
+for the customers who paid for it.
+
+So the file moved to `lib/sonara-disposable-domains.txt`, and the Python tool
+reaches across to it rather than keeping its own copy — two copies of a
+blocklist is a blocklist that disagrees with itself. A test parses
+`vercel.json`, works out which roots are bundled, and asserts the list's
+directory is one of them. A probe that moves the file back fails that test
+first, which is the point: it is checked rather than remembered.
+
+## The address never reaches the scorer
+
+`scorableAnswers` strips contact details on purpose and a test already asserted
+it. So the lookup happens at the call site, where the address already is, and
+only `disposableEmail: true|false` travels — the same shape as `gaveContact`.
+The lead's stored breakdown records which entry matched, for a page that has to
+explain the flag.
+
+## Three states, not two
+
+`blockedBy` returns the matching entry, `null` for an address that is fine, and
+**`undefined` when the list could not be read at all**. Merging the last two
+would record a check that never ran as a clean result.
+
+Four probes, all firing by name: matching by `endsWith` instead of label
+boundaries, the list moved outside the bundled directories, the flag priced as
+high as being unreachable, and the address handed to the scorer after all.
+
+One thing checked rather than assumed: `notmailinator.com` matches, and that is
+not a bug — it is genuinely in the upstream list as its own provider.
+`xxmailinator.com`, `my-mailinator.com` and `mailinator.com.example.org` are all
+correctly left alone.
+
+## And one thing not built
+
+`handleCheckoutSessionRequest` was the intended target for this session — 49
+lines in `server.js`, on the money path, and named in the branch's own notes as
+untested. It is not untested. `tests/checkout-price-guard.test.js` verifies the
+price charges what the pricing page advertises and that no checkout session is
+created when it does not; `tests/quoted-plan-boundary.test.js` covers quoted
+plans; `tests/server.test.js` covers invalid plans, a missing secret and a
+missing price. The note was stale. Left alone rather than churned, and the note
+is corrected here so the next person does not spend the same half hour.
+
+### 2026-08-25 — A disposable-domain blocklist, and the rule that stops it blocking a country
+
+`tools/disposable-domains/` is a standalone Python project: a plain text list,
+one domain per line, lowercase, sorted, deduplicated, plus the tooling that
+keeps it that way. 8,354 domains, assembled from the CC0 upstream source
+registered here earlier today. Standard library only — pytest is the sole
+dependency and only for tests, because a maintenance script that stops running
+when a dependency moves is a list that stops being maintained.
+
+```
+make check     validate; non-zero if anything is wrong
+make fix       rewrite into canonical form
+make update    fetch upstream, verify, and only then save
+```
+
+`make` builds the virtual environment on first run, so there is no setup step
+to forget.
+
+## The rule that matters most
+
+**A public suffix must never be in the list.** `co.uk` is not a domain anybody
+registers; it is the boundary under which every British company registers, so
+an entry for it blocks a whole country. There are around ten thousand of these
+and most do not look like suffixes — `github.io`, `s3.amazonaws.com`,
+`blogspot.com`.
+
+`check` refuses any of them and **`fix` will not quietly delete one**. Removing
+an entry somebody deliberately added is a destructive change, so it takes
+`--drop-public-suffixes` and names each removal as it goes.
+
+The corollary is the part that would have been easy to get wrong: when no
+cached copy of Mozilla's list is available, the suffix rules are reported as
+**unchecked** rather than passed. A validator answering "clean" about the one
+rule that matters most, having never looked, is precisely the defect this
+codebase is organised against — and here it would have been that defect wearing
+a security feature.
+
+## Matching walks up the labels
+
+An entry for a provider has to catch every subdomain it hands out, because
+handing out `yourname.theirdomain.com` is exactly how a provider defeats a list
+that compares whole strings. It matches on **label boundaries**, so
+`notmailinator.com` is not caught by `mailinator.com` — a plain `endswith`
+would block somebody else's domain, and a probe confirms the test catches that.
+
+## What `update` refuses
+
+The failure worth designing against is not a network error; those are loud. It
+is a *successful* fetch of something wrong — a truncated body, an HTML error
+page with status 200, an upstream list that has been emptied. Written straight
+over the blocklist, any of those silently turns the protection off and nothing
+says so until the spam arrives.
+
+So a download is parsed, counted, validated and compared before it is kept. It
+is refused below 1,000 domains, refused if it is less than half the current
+size, and rolled back if the written file does not pass `check`.
+
+## An argparse trap worth knowing
+
+The shared flags (`--blocklist`, `--cache`, `--allow-unchecked-suffixes`) are
+stripped out of argv wherever they appear, before the subcommand is parsed. The
+obvious approach — declaring them on the top-level parser and again on each
+subparser via `parents=` — looks like it works and does not: the option is
+parsed twice, and the subcommand's copy lands last with its default, silently
+wiping a value given before the subcommand. That was caught by trying both
+orders rather than one. **A flag that is accepted, ignored and reported as
+absent is worse than one that is rejected.**
+
+44 tests, named after the failures rather than the functions. Four probes, all
+firing by name: nothing ever a public suffix, matching by string suffix instead
+of labels, every download acceptable, and a missing suffix list counting as
+clean.
+
+The shipped list has its own tests, including the single worst thing this file
+could do: `gmail.com`, `outlook.com`, `yahoo.com`, `icloud.com` and
+`protonmail.com` must not be in it.
+
+### 2026-08-25 — A QR encoder, and the decoder that proves it works
+
+`lib/sonara-qr.cjs` turns a string into black and white modules.
+`lib/sonara-qr-png.cjs` turns those modules into a PNG or an SVG. Both are
+dependency-free; the only thing either imports is `node:zlib`, which ships with
+the runtime.
+
+The three public addresses this branch shipped — `/book/:slug`, `/chat/:slug`
+and `/shared/:token` — are all things a business wants on a van, a card or a
+shop window, and a URL on paper has to be typed unless there is a code beside
+it. The booking-page and chat-widget settings pages now show one.
+
+## The problem with testing an encoder
+
+**A QR code that is subtly wrong looks exactly like one that is right.** Wrong
+mask, mis-drawn alignment pattern, off-by-one in the block interleave — it is
+still black squares in a square, still has three corners, and still fails to
+scan on a printed poster weeks later with nobody there to say why. A snapshot
+test would have locked in whatever came out first.
+
+So `tests/a-qr-code-can-be-read-back.test.js` contains a **decoder written
+independently of the encoder**: it recovers the format information by trying
+every (level, mask) pair against the BCH codeword, undoes the mask, walks the
+zigzag, de-interleaves the blocks and reconstructs the string. Every case
+round-trips — eight strings, all four error-correction levels, all eight masks,
+and lengths from 1 to 1000 characters, so the multi-block interleave with mixed
+short and long blocks is actually exercised.
+
+The decoder deliberately **rebuilds its own map of which modules are function
+patterns** rather than importing the encoder's. Sharing that map would hide
+exactly the class of bug it exists to catch.
+
+An encoder and a decoder written from the same misunderstanding could still
+agree, so the structural facts are asserted separately against the standard:
+module count, finders in three corners and *not* the fourth, timing
+alternation, the always-dark module, the published data capacities for versions
+1 and 2, and format bits checked against two values anybody can look up.
+
+Five probes, all firing by name: L and M format bits swapped, the interleave off
+by one on short blocks, mask 4's axes swapped, byte segments counting characters
+instead of bytes, and the dark module left light.
+
+## What was taken, and what was not
+
+The two capacity tables printed in ISO/IEC 18004 were **read from Project
+Nayuki's reference implementation** (MIT, registered here the same day) rather
+than recalled, along with the closed forms for raw module count and alignment
+spacing. Those are the standard's numbers, not anybody's creative work — but
+reading them from there is why the module credits the project in its own header
+and why the register record now says so plainly. The Reed-Solomon arithmetic,
+masking, penalty scoring and bit placement are written here.
+
+## The multi-language part of the request, and why it is not here
+
+The ask was for a main implementation in Java with matching versions in
+JavaScript, Python, Rust, C++ and C. This repository is CommonJS on a
+serverless runtime with one production dependency and no build step: there is
+nowhere to compile Java, Rust, C++ or C, and `verify:launch` could not run a
+line of any of them. Five implementations nothing executes is five copies of
+untested code wearing the confidence of the one that is tested — the exact
+defect this codebase is organised against.
+
+Project Nayuki's library already provides all six languages under MIT, it is
+the reference this one was checked against, and it is recorded in the register
+with a live use. That is the honest answer to the multi-language half, and it
+is a better one than five unrun files.
+
+## One thing the PNG test got wrong about itself
+
+The pixel-comparison guard asserted `compared > 10000` and failed on its own
+fixture: a version 1 code at scale 3 is 87 pixels square, and 87 squared is
+7,569. The pixels all matched; the threshold was invented. It asserts
+`compared === side * side` now, which is the property that was actually wanted
+and cannot be picked wrong.
+
+### 2026-08-25 — Four repositories reviewed, and two questions closed instead of opened
+
+A sweep of GitHub for things this application could actually use. Four records
+added, register now 164. What is worth keeping is less the four than how three
+of them nearly went in wrong.
+
+## Reading the licence from where it actually lives
+
+**`disposable-email-domains` would have been recorded as unlicensed.** The
+conventional raw paths — `/LICENSE` on `main`, then on `master` — both return
+404. The file is `LICENSE.txt`. Under this project's own rule an absent licence
+is all rights reserved, so trusting the 404 would have blocked a CC0 public
+domain dedication on the strength of a file extension.
+
+**Nayuki's QR generator has no LICENSE file at all**, and no licence field in
+the GitHub sidebar. The MIT grant lives in the header comment of every source
+file. That is not a gap; for this project it is the whole point, because the
+adoption route here is vendoring a single file rather than adding a dependency —
+so the grant travels with the file, and stripping the header to tidy it up is
+the one thing MIT actually forbids.
+
+**The Public Suffix List is MPL-2.0, and MPL is not AGPL.** MPL-2.0 is
+file-level copyleft: the obligation attaches to the covered file, not to
+software that reads it, and there is no network clause. Somebody scanning for
+"copyleft" and stopping would block it incorrectly. It is recorded as *not*
+reciprocal in this register's sense, with the reasoning written down, because
+the next person will have the same doubt.
+
+The search results themselves said "most of these are available under the MIT
+license" about a list of eight repositories. That sentence is exactly what this
+register exists to not act on. Every licence here was read from source.
+
+## Two searches that ended in "we already do this"
+
+**CSV.** The obvious recommendation was an RFC 4180 parser for the paste
+importer. Reading `lib/sonara-tabular-import.cjs` first killed it:
+it already handles the five cases a library is normally adopted for — a quoted
+field containing the delimiter, a quoted field containing a newline, a doubled
+quote, CRLF, and a byte-order mark turning `Name` into an unmatched header.
+`@vanillaes/csv` is recorded as **reference only**, useful as a second opinion
+when a customer reports a paste that imported wrongly, and explicitly not as a
+dependency.
+
+**iCalendar.** Same shape. `lib/sonara-calendar-invite.cjs` already does CRLF
+line endings, folding at 75 **octets** rather than characters, TEXT escaping,
+and UTC-only timestamps. No record added, because there is no question left.
+
+A repository search that ends without an adoption is still a result. Both are
+written down so the next person finds the answer in one search rather than
+re-running the sweep.
+
+## The two with a live use
+
+**QR codes (Nayuki, MIT, no dependencies).** This branch shipped three public
+addresses — `/book/:slug`, `/chat/:slug`, `/shared/:token` — and all three are
+things a business wants on a poster, a van or a receipt. A QR code is pure
+computation over a string: no provider, no network, no cost per use, the same
+terms every other tool here ships on. Vendorable as one file, rendered to SVG,
+which needs no canvas and no image encoder.
+
+**Disposable email domains (CC0).** `lib/sonara-lead-scoring.cjs` already
+computes risk from flags it can observe. A throwaway address is another
+observable of that kind and needs no new mechanism. Recorded as **flag, never
+block**: a real customer whose company mail is down will use a throwaway
+address, and refusing them loses the sale the feature exists to win. The honest
+cost is that a vendored snapshot decays from the day it is taken — acceptable
+for a flag, not for a block, which is the second reason it is a flag.
+
+## What could not be checked
+
+`pnpm run verify:open-source:network` returned **401 for all 161 targets**: this
+session's GitHub token is scoped to `famouslytrill-boop/sonara-os` and cannot
+read public repository metadata. So whether these four repositories still exist
+was NOT confirmed by that gate here — their licences were read directly over
+HTTPS instead, which is the stronger check, but the existence sweep is owed.
+`.github/workflows/external-repository-health.yml` runs it with a token that
+can.
+
+Worth noting the gate behaved correctly under that failure: it reported
+"confirmed none of 161 registered targets, so this run established nothing"
+and exited non-zero, rather than passing on an empty result.
+
+### 2026-08-25 — The LeadForge page's promises, built
+
+`/leadforge` described a system that finds, enriches, scores, routes and
+activates leads. This is that system, for real, inside Growth Studio. Four pure
+modules, four tables, nine routes.
+
+## The formula had been handing off the only hard part
+
+`lib/sonara-formula-library.cjs` has carried this since it was written:
+
+```
+lead_score = fit_score + urgency_score + engagement_score - risk_score
+```
+
+**All four are inputs.** Adding four numbers together is not lead scoring;
+working out what they are is, and nothing in this product ever did — so the
+formula has been arithmetic over figures somebody typed, presented as a model.
+It is the same shape as `reorder_point` taking `safety_stock` as an input, which
+`lib/sonara-inventory-science.cjs` exists to answer. This is the answer for
+`lead_score`.
+
+`lib/sonara-lead-scoring.cjs` computes all four from an ideal customer profile
+the business wrote down and the answers a lead gave. No model call, no provider,
+no network, no cost per use.
+
+## The rule that matters more than the arithmetic
+
+**An unanswered question is not a bad answer.** A lead who said "under 500" is a
+poor fit. A lead who was never asked is *unknown*, and if unknown scores zero
+then everybody who leaves early looks like somebody who does not qualify — the
+exact opposite of the truth about a stranger who arrived and started typing.
+
+So `fit` and `urgency` are `null` rather than `0`, and every score carries a
+`confidence` saying how much of the profile it stands on plus a `provisional`
+flag when that is under half. The pipeline shows both. A band with no working
+visible is worse than no band.
+
+**An empty profile does not match everybody.** With no criteria declared, fit is
+`null`, not 100 — a vacuous perfect fit on every visitor would be this
+codebase's signature defect wearing a sales number.
+
+One real bug found by writing the test: the range score tapered over one
+profile-width, so a team of one against a 5–200 range scored 98. One is close to
+five on the scale of 195 and not on the scale of five. It is proportional to the
+boundary now.
+
+## Never lose a lead deciding whose it is
+
+`lib/sonara-lead-routing.cjs`. A scored lead nobody owns is lost quietly — it
+sits in the list looking exactly like a lead somebody is working. Two failures
+it is built against:
+
+**A rule that names somebody who is away.** Stopping means the lead is never
+picked up; falling through silently means the business believes Priya is working
+leads she has never seen. It assigns by round robin anyway and records
+`fallback` naming the rule that could not be honoured. Work moves, record is
+true.
+
+**`null >= 0` is `true`.** A catch-all written as "score 0 or above" would
+swallow every lead the scorer could not score. Score conditions match only a
+lead with a real number; a rule that wants the others says `unscored: true`. A
+genuine zero still matches.
+
+Round robin counts open leads rather than keeping a pointer, because a pointer
+drifts the first time somebody joins or leaves and has no truth to be checked
+against. Capacity is a flag, not a veto: everybody full still gets the lead to
+whoever is least full, with `overCapacity` set — an unassigned lead is worse
+than an overloaded person.
+
+## The widget's questions are the profile's criteria
+
+`lib/sonara-lead-capture-script.cjs` has **no question list**. `questionsFor()`
+reads the profile and produces exactly what the scorer scores, and the test
+asserts the two sets are equal in *both* directions — the reverse being the one
+nobody checks. Probes confirm both: adding a question nothing scores fails, and
+so does dropping one that is scored.
+
+It is a script, not a model. Nothing calls a provider. A model here is a cost
+per conversation and a per-message safety question — somebody's widget saying
+something the business never authorised — and this product has decided neither
+on the customer's behalf. The page says it follows a script.
+
+Contact is asked last, so a visitor who leaves halfway has still told the
+business something, and the transcript is kept either way.
+
+## The front door, and why it is a frame
+
+`/chat/:slug` resolves exactly as `/book/:slug`: the slug finds one *enabled*
+row, that row names the organization, and the profile, rules, people and written
+lead are all filtered on it. The visitor never chooses an organization.
+
+The conversation is one question per POST, server-rendered. It works with
+JavaScript off, in a frame on somebody else's site, on one bar of signal.
+
+The owner is given an `<iframe>` snippet, not a `<script>` tag. A script would
+be this application running on somebody else's domain, with their visitors'
+cookies and their DOM, on every page it is pasted into. A frame shows the same
+conversation in a box that cannot read the host page and that the host page
+cannot read. It is the smaller promise and it is the one this can keep.
+
+A visitor is never shown the score, the band, the profile or who it went to.
+Somebody who could see the score would learn what this business is not
+interested in.
+
+## What was checked
+
+Full chain green, `verify:launch` exit 0. 2,767 tests. Eighteen probes across
+the four pieces, every one firing by name — including a conversation looked up
+by token alone, a switched-off page still resolving, a lead written before the
+conversation finished, and an unscored lead written as zero.
+
+Five gates needed feeding and all five were right: the Supabase contract (four
+new tables), OpenAPI (three POSTs), the tenant-scoped table list, the
+`server.js` ceiling (eighth exception, +3), and four derived document counts.
+
+**One thing the next person should not have to rediscover.** The reachability
+gate looked, at first, as though it could not fail: a route registered and
+linked from nothing still passed it. It is not broken.
+`/growth-studio/dashboard` builds its workspace nav from the route registry, so
+a new `navigationPlacement: "workspace"` route is linked the moment it is
+registered. That was worth an hour to establish rather than assume, and the
+answer is the reassuring one.
+
+### 2026-08-25 — A LeadForge landing page, and the proof it refuses to invent
+
+`/leadforge` is a dark, high-energy landing page for LeadForge — an AI sales
+operating system pitched at lean revenue teams. Deep navy ground, cyan primary
+action, orange secondary, and the argument that finding, enriching, scoring,
+routing and activating a lead in one system beats five tools that disagree.
+
+Two things about it are worth reading before changing it.
+
+## The proof cannot be invented, structurally
+
+This application's own home page carries the sentence *"SONARA does not publish
+fake testimonials, invented customer counts, fictional awards, guaranteed
+revenue, false scarcity, or unsupported compliance and security claims"*, and
+`tests/brand-routes.test.mjs` asserts it is live. A sales page served from the
+same application with an invented "2,400 teams" on it would make that sentence
+false — the signature defect of this codebase, wearing marketing copy instead of
+a passing test.
+
+So it is not handled by being careful. Every stat, logo and quote in
+`lib/sonara-leadforge-content.cjs` is **either** `sample: true` — and then the
+page says so, in front of the reader — **or** carries a `source`. `validate()`
+refuses both an item with neither and an item with both, since a figure that is
+somehow sourced *and* a placeholder lets whoever reads the code believe
+whichever they prefer.
+
+The route does not get its own say in whether the notice renders:
+`content.hasSamples()` decides. Replace the samples with sourced figures and the
+notice disappears on its own; nobody can remove it while placeholders remain.
+The page is `noindex` while any of it is a sample, and a test asserts that too.
+
+Five probes: an unsourced customer count, a dropped notice, an unlabelled
+testimonial, a claimed SOC 2, and an indexable placeholder page. All five fail
+the tests.
+
+## It is a second brand, so it renders its own document
+
+`layout()` puts SONARA's header, nav and startup loader on a page. A LeadForge
+landing page wearing that would be neither one brand nor the other, so the route
+renders its own `<html>` and loads its own stylesheet. `public/leadforge.css`
+deliberately does not extend the SONARA design system — inheriting a light
+surface and overriding it back to navy is how two design systems end up fighting
+in one file.
+
+Every colour pair was **measured** rather than judged: the tightest is muted
+text on a raised card at 7.35:1, against a 4.5:1 requirement, and the arithmetic
+was sanity-checked against black-on-white at 21:1. One theme on purpose, so
+there is no second palette to keep in step.
+
+## Five existing gates caught it, which is the system working
+
+None of these were anticipated; all five were right.
+
+- **The reserved-handle list.** A new top-level route means `/creator/leadforge`
+  must not be claimable. Added.
+- **Every page is reachable.** A registered page nothing links to is
+  unreachable — recorded in `NOT_LINKED` with the reason, because a second
+  company does not belong in this one's navigation.
+- **The marketing surface rule.** Every public route must be classified. It sits
+  on the calm side, and the reason says why: not because it is a document, but
+  because it renders outside the SONARA shell entirely.
+- **No dead links.** Both calls to action pointed at `/leadforge/demo` and
+  `/leadforge/chat`, which do not exist. They point at `/contact` until they do.
+- **No page lies when the database is down.** The outage crawl flagged the line
+  *"there is no integration between these because there is nothing to
+  integrate"* as a possible empty-state claim about a customer's records. It was
+  a false positive, but the fix was to reword rather than add an exemption —
+  exemptions accumulate and weaken that gate, and the rewrite is better copy.
+
+## What is not built
+
+The design system at `gitreverse.com/designs/leadforge-business` **could not be
+read**: this environment's egress proxy blocks that host. The palette,
+typography and spacing here come from the written brief, so they will not match
+a token-for-token system if one exists. Point somebody at the tokens and this is
+a stylesheet edit, not a rebuild.
+
+There is no `/leadforge/demo` or `/leadforge/chat`. The chat widget is a mockup
+of a conversation, not a widget.
+
+
+### 2026-08-24 — The tenant boundary was the least-tested thing here
+
+`createOrAttachOrganization` was the largest function left in `server.js` and
+**nothing tested it**. It is the code that decides which organization a customer
+belongs to — and since every read in this application is scoped by
+`organization_id` against a service-role key that bypasses row level security,
+that decision *is* the tenant boundary. It should have been the best-tested
+thing in the file.
+
+Moved to `lib/sonara-workspace-bootstrap.cjs` with the two product-path helpers
+only it used. `server.js` 3,934 → 3,832; the ceiling follows to 3,833. That is
+the second real reduction, after the first said the next one should be.
+
+## The guarantee, and why it is ordered the way it is
+
+**A customer who has an organization never gets a second one.** Two
+organizations for one customer is not a duplicate row — it is a customer whose
+records are split across two tenants with no way to see both at once, and no
+screen anywhere would say so. Each workspace looks perfectly normal and half the
+work is missing from it.
+
+The existence check runs **before** the insert. A test asserts the ordering
+rather than the outcome, because a check placed after the insert always passes:
+it finds the row it just wrote. The probe that reorders it fails.
+
+**The redirect path cannot be chosen by the request.** `productPath` is
+interpolated into where the browser goes next, so anything not on the list of
+three products becomes the shared dashboard. Tested with `//evil.example.com`
+and `https://evil.example.com`, asserting the route is never protocol-relative
+and never absolute.
+
+**Every failure names the service that failed** — `profiles`, `organizations`,
+`organization_memberships`, or Supabase itself. "Setup required" on its own
+sends an owner to read four migrations instead of one.
+
+## What it cannot guarantee, recorded rather than hidden
+
+The organization and the membership are **two writes with no transaction**
+between them, because PostgREST offers none. A membership failure leaves an
+organization with no owner, and the next attempt does not reuse it — the
+membership is what makes an organization the customer's, so
+`getCustomerPrimaryOrganization` finds nothing and a retry creates a second
+organization, abandoning the first.
+
+That is safe for the customer and leaves a row nobody owns. Fixing it properly
+needs a database function that writes both, which is a migration and a review
+rather than a refactor. It is written at the top of the module, where the person
+who can fix it will be standing.
+
+## One test that was weaker than its name
+
+"Refuses somebody who is not signed in" passed `undefined` through a helper with
+a default parameter, so `undefined` quietly became a signed-in user and that case
+proved nothing. The request is now built without the helper for that test, and a
+case was added for a request with no shape at all.
+
+Six probes against the module, all firing.
+
+
+### 2026-08-24 — The ceiling comes down, and the invite flow gets a test
+
+The `server.js` ceiling had taken **six exceptions in a week with no reduction
+between them**, which meant it had stopped measuring what it was for and started
+measuring how often a page gets added. The fifth and sixth both said the next
+move should be a real reduction. This is it.
+
+**The Business Builder employee invite lifecycle** — create, email, accept —
+moved whole to `lib/sonara-business-employee-invites.cjs`. 113 lines out of
+`server.js` for a ten-line factory call, and the ceiling came **down** with it,
+from 4048 to 3935. A ceiling left above the current count is headroom nobody
+decided to grant.
+
+It was chosen over larger candidates because it is the one with a security story
+to hold, and **nothing tested it while it lived in `server.js`**:
+
+- **The owner never sets a password.** Three field names are refused outright
+  rather than ignored, because an owner who can set an employee's password can
+  sign in as them, and every audit trail after that is wrong about who did the
+  work.
+- **The token is never stored.** The table holds a hash; the raw token exists
+  only in the link. The test recomputes the hash from the token in the outgoing
+  email and asserts it matches the stored one — so it catches both a raw token
+  written to the table *and* a hash of something else, which would mean no
+  invite could ever be accepted.
+- **The email has to match the invite.** A token is a bearer credential;
+  without this, anybody who saw the link takes the seat.
+- **An expired invite is refused with its own status code**, so the page can
+  offer a new one rather than claiming the token was wrong.
+
+Six probes against those guarantees, all firing. Two more properties came out of
+writing it: the audit log records the email **domain** and not the address, and
+a failure to create the account stops the membership being written — a workspace
+seat given to an account that does not exist.
+
+One thing the test found that was **not** a defect: an empty role defaults to
+`employee`. That is correct — no role given should grant the least — so it is
+now pinned explicitly rather than lumped in with the refusals. A default of
+`manager` is what a hole there would look like.
+
+`crypto` was left unused in `server.js` once the block moved, which lint caught
+and which is the one dependency that came out with it.
+
+
+### 2026-08-24 — A person can only be in one place
+
+A business with two sites and one booking page was offering a slot at the shop
+to somebody rostered at the depot. `location_id` has existed on
+`employee_schedules`, `business_service_catalog` and `business_bookings` since
+migration 013, and availability read **none of them**.
+
+## The rule, and which way it fails
+
+- A service that names **no** location is done by anybody rostered. Unchanged,
+  and that is every single-site business.
+- A service that names a location needs a shift **at that location**.
+- A shift with **no** location does **not** count towards a service that names
+  one.
+
+That last one is the load-bearing choice, and it is deliberate. A business part
+way through naming locations — on services but not yet on shifts — sees *less*
+availability rather than somebody sent to the wrong site. It fails the same
+direction every other decision in that module does, and `shiftsElsewhere` is
+returned so the drop is explicable rather than mysterious.
+
+The two empty states are told apart, because a business can only fix the one it
+is actually in: **"nobody is on the rota"** and **"nobody on the rota is working
+where this service happens"** send somebody to different screens.
+
+## The one place location is deliberately ignored
+
+Whether a person is already booked. A person booked at the depot at ten is not
+available at the shop at ten — they cannot be in two places — so the
+already-booked check stays location-agnostic. Filtering it by site would sell
+the same person to both, which is the exact failure this feature exists to stop.
+There is a test for it, and the probe that adds the filter fails by name.
+
+## Three reads, any one of which makes the rule inert
+
+The rota, the catalogue and the diary all had to start selecting `location_id`.
+An unread location is indistinguishable from no location, which is what the code
+did before — so a test asserts all three queries carry it. The probe that drops
+it from just the rota fails.
+
+The booking now records where it is, taken from the service and never from the
+request; a test asserts the source contains no `location_id: req.`.
+
+Five probes, all firing.
+
+
+### 2026-08-20 — Saved presets, which turned out to be a column nobody read
+
+The last item on the list. It needed no table.
+
+`module_outputs` has carried **`input_payload` beside `output_payload` since it
+was created**, so every saved result already holds the numbers that produced it.
+Nothing had ever read them back — the saved-results list selects
+`id, module_key, created_at, output_payload` and stops. "Saved tool presets" was
+a column to use, not a feature to store.
+
+A saved result now carries **Use these numbers again**, which reopens its tool at
+`?reuse=<id>` with the form filled in.
+
+## Why a partial fill has to announce itself
+
+A tool's fields change. A payload saved in July can carry a field since renamed
+and miss one added since. Filling in what matches and staying quiet is the
+dangerous version: somebody recognises the form, sees their old numbers, presses
+the button, and gets an answer computed partly from a blank they never noticed.
+A break-even from a silent zero is a *confident* wrong answer.
+
+So `applyPreset` names both sides. `missing` is what the tool needs and the
+payload cannot fill — never defaulted. `ignored` is what the payload carried
+that the tool no longer has, reported rather than dropped, because it is how
+somebody learns the tool changed rather than that they mistyped.
+
+Zero and false survive; null, empty and NaN do not. A structure is refused
+rather than rendered — guessing puts `[object Object]` into a box somebody then
+submits. And a **select is only filled from one of its own options**, because a
+select whose value is not in its list renders as the first option, silently
+turning a stale answer into a different plausible one.
+
+## Two filters, two different jobs
+
+`organization_id` is the tenant boundary — the service key bypasses row level
+security, so without it an id from another business fetches that business's
+figures into this customer's form. `module_key` stops a saved break-even filling
+the reorder-point form, which would look like the tool working while answering
+from numbers that mean something else. Another business's id and one that does
+not exist are answered identically.
+
+## Ten probes, and the two that did not fire — again
+
+Five against the module, all firing. Five against the wiring, of which **two
+passed**, and both were the test asserting an outcome that a *different* layer
+already guaranteed:
+
+- "Refuses a bad reuse value **before it reaches a query**" passed with the
+  shape check removed, because `encodeURIComponent` already stops a crafted
+  value changing the query — an appended `&limit=99` becomes part of one filter
+  value and matches nothing. What the shape check uniquely buys is **not making
+  the round trip**, so the test now asserts no query was issued.
+- "Does not read anything when no preset was asked for" passed with the `reuse
+  &&` guard removed, because the shape check catches the empty string first. The
+  guard actually earns its place in *rendering*: without it a signed-in customer
+  opening a tool normally is told their numbers were not filled in. That is what
+  the new test asserts.
+
+Both re-probed and both now fail by name. This is the third session running
+where probes found a test weaker than its own name — it is the single highest-
+yield habit in this repository.
+
+## Two process notes
+
+**A second container reset** destroyed the in-flight rota work, exactly as the
+first did. Everything since is committed module-first, before the wiring.
+
+**`pnpm run lint | tail -3` reports success when lint fails.** A pipeline exits
+with the status of its *last* command, so the `&&` after it ran on `tail`'s
+success and a commit went out over two lint warnings. Fixed and amended. It is
+the same defect this codebase is built to hunt, in the shell rather than in the
+product: judge by exit code, never by what scrolled past.
+
+
+### 2026-08-20 — The rota as a week, and the hours a booking page is quietly refusing
+
+`/business-builder/owner/schedules` lists shifts, which answers "what have I
+entered" and not "who is on next Tuesday". That was a convenience gap until the
+public booking page shipped. It became a correctness one the moment staffing
+landed.
+
+**A staffed booking page only offers a slot when somebody is rostered for the
+whole of it.** So a business that ticked "book a member of staff" and then left
+a Tuesday empty has a page quietly showing that Tuesday as unavailable — and it
+does not read as closed to a customer, it reads as **full**. No screen anywhere
+said so.
+
+`/business-builder/owner/schedules/week` is the fix, and the coverage half is
+the point: the hours a business says it is open with nobody rostered, named by
+day, with the sentence saying what the booking page is doing about them.
+
+## Three pieces of arithmetic
+
+**A day is not always 24 hours.** The end of a local day is the next local
+midnight, asked of the zone rather than added.
+
+**A shift can span two local days.** 23:00 to 02:00 appears on both, clipped to
+each, counted once, and rendered as ending at `24:00` rather than `00:00` —
+which otherwise reads as ending before it started.
+
+**Two people at once is one hour of opening covered, and two hours worked.**
+Coverage is a union; hours are a sum.
+
+`gaps` is `null`, never `[]`, when the business has not said when it is open. An
+empty list reads as "fully covered", which would be a claim nothing checked.
+
+## Ten probes, and the two that did not fire
+
+Five against the module and five against the page. Eight failed the tests as
+they should. **Two did not, and both were the test being weaker than it claimed
+rather than the code being wrong** — which is the whole reason to run them.
+
+**Removing the interval merge changed nothing.** `subtractIntervals` is already
+overlap-tolerant, so merging is normalisation at that call site and not
+correctness. The "two people at once" test was really exercising subtraction.
+It now asserts `peopleOnAtOnce`, which the union genuinely decides, and the
+comment says which half proves what.
+
+**Ending a day by adding 86400000 also changed nothing**, because no fixture sat
+near a daylight-saving midnight. There is now a shift on the last hour of the
+25-hour Sunday in October, which the broken version drops out of the week
+entirely. Re-probed: it fails by name.
+
+## A note on the server.js ceiling
+
+Raised to 4048 — the **sixth** exception, each one a require, a blank line and a
+one-line registration. The fifth's note said the next reduction should be real
+rather than another registration paying for itself with a comment. It still
+says that, and this is not it. Six exceptions and no reduction is a ceiling that
+has stopped ratcheting: it now measures how often a new top-level page is added,
+which is not what it was for. **Before a seventh, move something out.**
+
+
+### 2026-08-20 — Standing arrangements, and the bill that walks out of February
+
+A business on retainers types the same invoice every month. It is both the most
+boring thing it does and the one most likely to be forgotten in a busy month,
+and a forgotten invoice is a month of work given away.
+
+`/business-builder/owner/recurring` holds the arrangement;
+`lib/sonara-recurring-invoices.cjs` works out when the next one is due and what
+goes on it.
+
+## The trap this exists for
+
+"The 31st of every month" is wrong in two directions at once, and both are
+silent. Advance 31 January by a month and February clamps it to the 28th.
+Advance **that** by a month and you get 28 March, then 28 April — a monthly bill
+that has moved three days earlier and will never come back. The contract says
+the 31st and the paperwork says the 28th, and nobody notices for a year.
+
+So the **anchor** is stored and never the clamped result: every issue date is
+computed from the anchor against the target month. `'last'` is a value in its
+own right rather than a synonym for 31, because a business billing on the last
+day of the month means that in April too.
+
+`lib/sonara-agent-schedule.cjs` dodges all of this by capping `day_of_month` at
+28, which is right for a weekly digest and wrong for money.
+
+## It will not catch up, and it will not send
+
+Three unrun months produce **one** invoice, dated when it was due — not three
+landing at once on a customer who may have settled two of them by hand. There is
+no way for software to know which.
+
+Everything produced is a **draft**. An invoice leaving for a customer is the
+business's decision, and the record checks already report drafts that have been
+sitting, so a draft nobody sends is visible rather than lost.
+
+Issuing is a button rather than a scheduled job. The agent schedule menu is
+restricted to actions that read and report; creating an invoice against a
+customer is a change, and a business should see what is about to be billed
+before it is. The arithmetic is the same either way, so putting it on a timer
+later is a registration and not a rewrite.
+
+## Ordering, and the index behind it
+
+`last_issued_on` is written **after** the invoice exists, never before. The
+other order means a failed insert still moves the arrangement on, and that
+period is never billed by anybody — the quiet failure, because nobody complains
+about an invoice they did not receive.
+
+A unique index on `(recurring_invoice_id, issued_on)` is the second line of
+defence. When it fires, the route treats the 409 as *already done* rather than
+as a failure to report: nothing is wrong and nothing was billed twice.
+
+The invoice number is left **null**. There is no numbering scheme here — no
+sequence, no per-organization counter, no agreed format — and a made-up number
+disagrees with whatever the business already uses on paper. A duplicate invoice
+number is an accounting problem rather than a cosmetic one.
+
+## Two things this session got wrong
+
+**A container reset lost the whole first attempt.** The container came back on
+an older snapshot with a different HEAD and two modified files nobody in this
+session had touched. The remote had all five earlier commits; the local
+remote-tracking ref was simply stale until fetched. The stale artifacts were
+backed up and discarded rather than committed, and the recurring-invoice work
+was rebuilt. The lesson is the one already in the check-in notes: **fetch before
+believing the local ref**, and commit sooner.
+
+**A test asked the wrong question of the schema.** It used `describedColumns` to
+check that `customer_invoices.recurring_invoice_id` exists. That function
+deliberately omits columns added by a later `alter table` — it exists to render
+form fields and will not guess a type it never read — so it reported a column
+that is really there as absent. `hasColumn` is the existence check. The parser
+was right and documented; the test was wrong.
+
+
+### 2026-08-20 — Bringing a spreadsheet in
+
+A small business arrives with its customers in a spreadsheet. Without an
+import, starting here means retyping them — which is the most common way a trial
+ends, not because the product was wrong but because the first hour was data
+entry.
+
+`/business-builder/owner/customers/import` takes a paste.
+
+## Why a paste and not a file upload
+
+This application has one production dependency, express, and Express 4 has no
+multipart parser. Adding one for a text box is a real dependency bought cheaply.
+A paste is also what copying out of Excel or Google Sheets actually produces, so
+`sniffDelimiter` reads tabs as readily as commas — somebody who selects cells and
+presses copy gets TSV and never has to know.
+
+The delimiter is decided on the **header line**, not the whole document: a body
+row with a comma inside a quoted address outnumbers the tabs, which is exactly
+how a TSV paste gets read as a one-column CSV.
+
+## The failure this is built against
+
+Not a crash. An import that reports "done" having created 94 of 100 customers,
+because six rows were dropped by a parser that could not see them. Nobody finds
+out until one of the six is not called back, and by then the sheet is gone.
+
+So `readSheet` returns every row as either a record to create or a rejection
+carrying **its line number in the sheet** and the reason, and a test asserts the
+two lists sum to the row count. The parser handles what real spreadsheets emit:
+a comma inside quotes, a newline inside quotes, a doubled quote, CRLF, an empty
+trailing field, and the byte-order mark Excel writes — without which `Name` is
+`﻿Name`, matches no header, and a sheet with perfectly good columns reports
+that none were recognised.
+
+A heading it does not know is **reported, not guessed at**. Matching to the
+nearest thing is how a phone number ends up in an email field. Two columns
+claiming the same field are reported too, because taking the first silently
+drops the second column's values.
+
+An empty cell is left out of the record rather than written — it must not become
+`""` in a column that means something by being null, and must never become the
+string `"null"`, which is what a template literal does to it.
+
+## Preview and confirm read the same text
+
+One endpoint, and `confirm=yes` is the difference. The confirm step **re-reads
+the pasted text through the same reader** rather than trusting a list carried
+back from the page, so a hidden field cannot smuggle in a row the preview never
+showed. A test posts one to prove it.
+
+Everything is an insert. Nothing on file is updated, and the page says so:
+matching a pasted row to an existing customer and overwriting them is a
+different feature with a different failure — it is how a corrected phone number
+gets replaced by a stale one from an old export.
+
+Rows that look like somebody already on file are flagged using the measured
+threshold in `lib/sonara-operations-science.cjs`. **Flagged, not blocked** — two
+real people do share a name. And when that check cannot run, the page says it
+could not check rather than showing an import with no warnings on it; "no
+duplicates found" and "we did not look" are otherwise the same screen, and one
+of them is a promise.
+
+The whole paste is written in one request, so a failure imports nobody — and the
+page says pasting again is safe, which is the thing somebody actually needs to
+know at that moment. The count reported is the count the database returned, not
+the count sent; a probe that changed that fails by name.
+
+
+### 2026-08-20 — The balance, and why there is still no pay button
+
+"Pay this invoice" was the next item. It is **not built**, for two reasons that
+belong on the record rather than in a backlog note, and the half that is honest
+today is built instead.
+
+## Why there is no pay button
+
+**There is no Stripe Connect in this application.** No connected-account model,
+no `on_behalf_of`, no `transfer_data`, no table holding a business's Stripe
+account — the only integration is SONARA's own subscription billing. A pay
+button would therefore take a small business's customer's money **into SONARA's
+account**, with no mechanism to pay it out. That is money custody, not a missing
+endpoint, and it needs a Connect platform account the owner has to enable before
+a line of it can be written.
+
+**The shared invoice already tells its reader not to.** Its footnote — written
+when `/shared/:token` shipped — says to pay the way they agreed with the
+business and never from a link, because a forwarded invoice with a pay button is
+the shape of a payment-redirection fraud. That advice only protects anybody if
+it is *always* true. A product where some invoice links have a pay button has
+taught its customers that a pay button on an invoice link is normal.
+
+A test now asserts the shared invoice grows no checkout form, so this stays a
+decision rather than an omission somebody quietly reverses.
+
+## What was actually wrong, and is now fixed
+
+**The shared invoice showed the total and never the balance.** A business that
+took a deposit showed its customer the whole figure again. The customer either
+pays twice or — far more likely — stops trusting the paperwork.
+
+`lib/sonara-invoice-settlement.cjs` works out what is still owed. It exists
+separately from `lib/sonara-chase-drafts.cjs`, which already subtracts payments,
+because that module deliberately does two things a statement must not:
+
+- `Math.max(0, total - paid)` — an overpayment reads as settled. Right when
+  deciding whether to chase; wrong on a statement, where money taken twice is a
+  refund somebody owes and "paid in full" is how it stays unnoticed.
+- `paidByInvoice.get(id) || 0` — a payments table nobody could read looks
+  identical to an invoice nobody has paid.
+
+Both are correct there and neither is correct here, which is why this is a new
+module and not a shared helper with a flag.
+
+`paymentsRead` is a **required argument**, not something inferred from an empty
+list, because "no payments" and "no answer" arrive looking identical and only
+the caller knows which happened. A payment row with no amount is counted as
+unreadable rather than as zero — it makes every figure a lower bound on what has
+been paid, so the page still shows a balance but stops calling it certain, and
+"Paid in full" gets qualified.
+
+## The probe that did not fire
+
+Three probes were run against the settlement and two failed the tests as they
+should. The third — hardcoding `paymentsRead: true` in the route — **passed
+everything**, because every fixture in the shared-link test has a readable
+payments table. The module was right and nothing checked that the route told it
+so.
+
+That gap is now a test that fails the payments read specifically and asserts the
+page says "we could not check" rather than showing the full total again. Re-run
+against the same probe, it fails by name.
+
+
+### 2026-08-20 — A firm of two stops selling one of every hour
+
+The booking page shipped this morning books the business, not a person, and the
+previous entry recorded that as the next thing to close. It was wrong in both
+directions at once: a firm with two plumbers was selling **one** of every hour,
+and the second plumber's whole diary was **unsellable**, because one appointment
+closed the hour for the business.
+
+`business_bookings.assigned_employee_id` and `employee_schedules` have both
+existed since migration 013. Nothing had joined them to availability.
+
+## Asked, not inferred
+
+`public_booking_pages.assign_staff` defaults to **false**, which reproduces
+today's behaviour exactly — the migration changes no existing page.
+
+The tempting shortcut is to look for shifts and use them if any exist. That
+fails precisely when it matters: a business that runs on a rota and has not
+entered next month's would see either every slot vanish, or — if the code falls
+back to counting the business as one — silently lose the protection at the
+moment its rota is empty. **A guarantee that switches itself off when the data
+is thin** is the defect class this codebase keeps finding, so this one is a
+column somebody ticks.
+
+A page switched on with nobody rostered says *"nobody is on the rota"* rather
+than showing an empty week, and the owner's settings page says the same thing
+before a customer has to discover it.
+
+## Three rules, each with the failure it prevents
+
+**A shift must cover the whole appointment.** Somebody who leaves at five cannot
+take a ninety-minute job starting at half past four. Adjacent shifts are not
+merged — they may be two different days.
+
+**A booking nobody is named on stops everybody.** This is the state a business
+is in the moment it ticks the box: every existing appointment predates the idea
+of an assignee. Treating those as blocking nobody would double-book every one of
+them.
+
+**An unrecognised shift status is not somebody at work** — the opposite of how
+an unrecognised *booking* status is treated, and deliberately. Both choices fail
+towards offering fewer slots, because the cost of offering one that is not
+really there is two people expecting the same hour.
+
+The visitor never sees which of the two it is, and never chooses: the assignee
+is derived on submit from the rota as it stands then, and a test posts
+`assigned_employee_id` in the form to prove a field cannot pick somebody who is
+not working.
+
+## The bug the fixture found
+
+Writing the route test surfaced a real hole that had nothing to do with staff.
+Both reads windowed on `starts_at` between "yesterday" and "the horizon" — which
+**misses the booking that matters most**: a job that began before the window and
+is still running inside it. That booking blocks a time and was invisible, so the
+page offered it. A double-booking hole created by the query rather than by the
+arithmetic, and `starts_at` is the intuitive filter.
+
+Both reads are now interval overlaps. The booking one is an `or` group rather
+than two ordinary filters, because `ends_at` is nullable and `blockingSpans`
+gives a booking with no end a real length rather than a length of zero —
+`ends_at=gte.X` alone would drop exactly the rows the module took care to handle.
+
+## The harness was widening queries in silence
+
+`tests/helpers/fake-supabase.cjs` skipped any filter it could not parse and
+returned `true` for any operator it did not know. So a query using a filter the
+fake does not model **matched every row**, which reads in a test as a tenant
+filter that works.
+
+It now models `or=(...)` and **throws** on anything it cannot parse. No existing
+test relied on the silent widening — the suite went from 2,382 to 2,409 with
+that change in place and nothing else broke, which is the evidence rather than
+the hope.
+
+## What is still not built
+
+No payment on a booking, and no confirmation email or SMS — under the AGENTS.md
+rule those are off unless a customer switches them on, and nothing switches them
+on yet. A per-location rota is not modelled: `employee_schedules.location_id`
+exists and availability ignores it, so a business running two sites from one
+booking page can roster somebody at the wrong one.
+
+
+### 2026-08-20 — A booking page a stranger can open
+
+The largest customer-facing gap on the list. Everything a booking needs already
+existed: `business_service_catalog` carries `duration_minutes` and
+`price_cents`, `business_bookings` carries `starts_at`, `ends_at`, a status
+vocabulary constrained at the table, and the customer's contact fields. What was
+missing was the front door — no route, no address, and nowhere to record when a
+business is open.
+
+`/book/:slug` is that door. `/business-builder/owner/booking-page` is where an
+owner opens it.
+
+## The resolution order is the safety
+
+The service-role key bypasses row level security, so the `organization_id`
+filter is the entire tenant boundary — and a public page has no session to
+derive one from. The slug finds one **enabled** `public_booking_pages` row; that
+row names the organization; the services offered, the bookings that block a
+time, and the booking finally written are all filtered on it. The visitor never
+chooses an organization. They are told one by the row its owner published. This
+is the same shape as `/shared/:token`, deliberately.
+
+A test posts `organization_id: <another org>` in the form and asserts the row
+written still carries the page's. Falsified by making the route read
+`req.body.organization_id` first: the test fails by name.
+
+## Three things it will not do
+
+**Show a stranger the diary.** Only free times render. The booking read selects
+`starts_at,ends_at,status` and nothing else, and the test asserts that at the
+query level rather than by grepping the rendered page — "the name was not
+rendered" can be true because the render dropped it; "the name was never
+fetched" is the property. Falsified by adding `customer_name` to the select.
+
+**Sell a slot twice.** The list a visitor is looking at was computed at page
+load. `isBookable` runs again on submit against a fresh read and **re-derives
+the whole grid** rather than trusting the submitted time — so a hand-made
+request cannot book 03:00 on a Sunday because nothing is booked then. Falsified
+by making the route trust the submitted value.
+
+**Confirm on a stranger's word.** A booking arrives as `requested`, the table's
+own default. The source test asserts the route never writes `confirmed`.
+
+## The arithmetic, and the bug the test found
+
+`lib/sonara-booking-availability.cjs` is pure — no clock, no network, no
+database, `now` passed in. Opening hours are wall-clock times in the business's
+own zone, and `Intl` does the zone arithmetic, so the file carries no offset
+table to go stale.
+
+Writing the test found a real defect in `instantFor`, which converts a wall
+time to an instant by iterating. The convergence check compared the round trip
+against the *guess* rather than against the *wanted* wall time, so it never
+reached zero and walked the answer an hour further away on each round. Every
+time the page offered would have been wrong by the zone's offset. It passed
+`node --check` and would have passed any test that only asked whether a list
+came back.
+
+The daylight-saving edges are handled by checking rather than assuming: the
+result is read back and compared, and a wall time that does not exist on that
+date returns null and is skipped. The test drives 29 March 2026, when the UK
+loses 01:00–01:59, and asserts 01:00 and 01:30 are not offered while 00:30 and
+02:00 still are.
+
+Two more places where absent is not zero. A booking with no `ends_at` gets a
+real length rather than a length of zero — zero blocks nothing and the time is
+sold twice. A malformed opening time closes the day rather than opening it at
+midnight.
+
+An unrecognised booking status **holds** the time. Cancelled, no-show and
+archived free it; anything else is not known to be free, and offering a slot
+that is actually taken is the failure that reaches two people at once.
+
+## What changed outside the feature
+
+`tests/every-write-names-a-business.test.js` scanned for `organizationId`,
+`resolveOrganization` or `getCustomerPrimaryOrganization` in a writing handler.
+A public route has none of those — it takes the tenant off a row it fetched
+under its own filter. The scanner now recognises that fourth form, with a
+negative lookahead that still rejects `organization_id: req.body.organization_id`,
+which is the exact bug the whole check exists to catch. Falsified: the probe
+that reintroduces it fails.
+
+The server.js line ceiling went to 4039 — a require, a blank line, and a
+one-line registration, the third such exception and for the same reason as the
+second. `/book/:slug` is a new top-level public surface, and no existing module
+owns a public booking page in the sense the shared-result routes own a published
+result.
+
+`brandCard` escapes its body, which is right for a sentence and wrong for a
+form. Cards carrying markup are built locally in the route module, in the shape
+the other route modules already use, rather than by loosening `brandCard` for
+everybody.
+
+## What it does not do
+
+No payment. No confirmation email or SMS — under the AGENTS.md rule those are
+off unless the customer switches them on, and nothing switches them on yet, so
+the business finds the request on `/business-builder/owner/bookings`. No
+per-staff availability: `employee_schedules` exists and the page books against
+the business as a whole, so a business with two plumbers can be double-booked by
+two visitors. That is stated on no screen yet and is the next thing to close.
+
+
+### 2026-08-20 — Agents that run for free, and a menu where four of five did nothing
+
+The request was to run agents inside the application at no cost. Most of the
+machinery for that already existed — `lib/sonara-agent-runner.cjs` classifies,
+decides, runs and records; `lib/sonara-agent-schedule.cjs` works out whether a
+schedule is due in the customer's own time zone; `lib/sonara-record-checks.cjs`
+does real work over the owner's own rows with no model call anywhere. What was
+missing was the join between the menu and the work.
+
+## The menu offered five jobs and one of them existed
+
+`/owner/agent-schedule` let a customer put five jobs on a timer. Exactly one —
+`check_data_quality` — had a handler registered. The other four ran on schedule,
+answered `unimplemented`, and wrote that answer into `agent_action_logs`, which
+the customer does not read. So the product looked like it was working for them
+every week and was doing nothing.
+
+All four now have handlers, and every one is arithmetic over records the
+business already owns — no provider, no metered API, nothing that costs a
+customer anything per run:
+
+- `suggest_next_step` runs the record checks and returns the single
+  highest-severity finding, ranked by the check module's own severity order
+  rather than by count. Eleven customers missing a phone number is not more
+  urgent than one invoice that was never sent.
+- `prepare_report` runs `lib/sonara-customer-journey.cjs` on a timer. It adds no
+  arithmetic of its own, deliberately: a second implementation of a funnel is a
+  second set of numbers to disagree with the first.
+- `summarise_records` counts rows per table using PostgREST's exact count with
+  `limit=0`, so it names no column and cannot rot the way a select list can.
+- `draft_reply` runs `lib/sonara-chase-drafts.cjs`. It drafts and does not send,
+  which is the reason drafting is on the self-serve list at all.
+
+**One label changed rather than one handler pretending.** The menu said
+"Summarise what changed"; the honest handler counts what is on file. The label
+now says that. Changing the words to fit the work is the direction that stays
+true; the other one is a label describing work nobody wrote.
+
+`tests/agent-schedule-handlers.test.js` pairs the menu against the handler
+registry and fails in both directions, so a sixth menu entry cannot ship without
+a handler and a handler cannot be quietly dropped. Falsified both ways: renaming
+one registration to `summarise_records_DISABLED` fails the test with the name of
+the orphaned entry.
+
+## Every handler had to be made to admit an outage
+
+The shared read returns `null` on a failed read, never `[]`, and every caller
+tests for it. An unreadable table read as an empty list turns "the database was
+unreachable" into "you have no overdue invoices" — the single most reassuring
+way for any of this to be wrong. Six tests drive each handler with a failing
+`fetch` and assert it counts the failure. Falsified by changing the shared read
+to return `[]` on failure: four tests fail.
+
+`draft_reply` refuses instead of counting, in two places, because it is the one
+job here whose output reaches a customer's customer. An unreadable invoice list
+fails the run; so does an unreadable payments table, because reading that as
+"nothing has been paid" would chase money already received.
+
+`summarise_records` reads its count out of the `Content-Range` header, and a
+response that carries no range is counted as unread rather than as zero rows —
+`Number(undefined)` is `NaN`, and this is the same absent-becomes-zero trap that
+has been found in this codebase before.
+
+## Five new record checks: the ones that read the calendar
+
+The twenty-two existing checks all answered "is this row filled in?" and none
+answered "is this row stuck?". A quote sent in March and never answered is
+complete, valid, worth nothing, and invisible to every check written before now.
+
+Added, all validated against `supabase/migrations/` by the existing `validate()`
+so no column is typed from memory:
+
+- **Invoices written and never sent.** `customer_invoices_overdue` deliberately
+  ignores drafts because a draft cannot be late. That left the worst case
+  uncovered: work done, priced, written up, and never asked for. Not late —
+  never sent, which is worse.
+- **Quotes nobody has answered**, measured from `updated_at` rather than
+  `created_at`, because sending writes the status and `created_at` would call a
+  quote drafted in January and sent yesterday six months stale.
+- **Quotes sent with no price.**
+- **Appointments that happened and were never closed off.** The status
+  vocabulary comes from the `CHECK` constraint on `business_bookings`, so the
+  two open statuses are read off the schema rather than guessed.
+- **Customers with no way to reach them.** `leads_without_contact` covers
+  `growth_leads` and `bookings_without_contact` covers one appointment; nothing
+  looked at the customer list itself, which is the record every quote, invoice
+  and reminder is addressed from.
+
+Each has a fixture that must be caught and one that must be left alone, and each
+`ignores` row is the one that would be caught if that check's own discrimination
+broke — a fresh draft for the ones reading the calendar, a wrong-status row for
+the ones reading the status. A row that is clean in every respect proves only
+that the check is not catching everything. Falsified both ways: a mistyped
+column is caught by `validate()`, and deleting the age comparison fails the
+"leaves the healthy row alone" assertion by name.
+
+`STALE_DAYS` is fourteen and is not presented as a discovered constant. It is a
+fortnight, and the sentences report the real age of the record so an owner can
+disagree with the threshold and still act on the fact.
+
+## What is still not true about agents
+
+**Nothing consumes approvals on a timer.** `lib/sonara-agent-queue.cjs` re-runs
+a gated action when a person approves it on `/owner/agent-activity`, and that is
+the only thing that consumes an approval. A scheduled job cannot propose
+something gated and have it picked up later; the schedule menu is restricted to
+the self-serve list for exactly that reason.
+
+**The handlers return counts, not content.** `lib/sonara-agent-action-log.cjs`
+deliberately stores no payload, so a scheduled run tells an owner *that* drafts
+are waiting and the receivables page shows them. An audit trail that accumulated
+the text of every chaser would be a second copy of the customer list with
+different retention.
+
+
+### 2026-08-19 — Three sprints, and two tables that had columns and no readers
+
+Sprints 06, 08 and 09 of the ship plan. Two of the three closed a hole of the
+same shape: a table created long ago, carrying exactly the right columns, that
+nothing at runtime had ever read or written.
+
+## Sprint 06 — customer service as a module
+
+**`service_comments` had no runtime reader or writer at all**, and there was no
+service request detail page either. A customer could raise a request, see it
+listed with a reference id, and never open it. Whoever picked it up had nowhere
+to reply, and the customer had nowhere to add the thing they forgot to say.
+
+Now `/requests/:requestId` opens one request with its thread, and
+`POST /api/service-requests/:requestId/comments` adds to it. The request is
+confirmed to be in the caller's organization **before** a comment is written
+against it — writing first and checking after leaves a message attached to
+somebody else's request when the check fails.
+
+**And the reply time is now measured rather than remembered.**
+`/growth-studio/tools/response-time` tells a customer what a slow first reply
+costs and asks them to type their own average in — a number nobody has, and the
+one people are most generous to themselves about. `service_requests.created_at`
+and the earliest comment on it make that a subtraction.
+`lib/sonara-service-response.cjs` does it, and refuses two things:
+
+- **A request nobody has answered is not a fast reply.** Averaging over only the
+  answered ones is how a business measures itself as excellent while its worst
+  cases sit untouched. Unanswered ones are counted separately and the oldest is
+  *named*, because "one is waiting" makes somebody open all of them.
+- **The median leads and the mean sits beside it.** One request left for a
+  fortnight moves a mean of ten far enough to misdescribe a normal week; a test
+  builds exactly that fixture and asserts the median does not move.
+
+A reply stamped before the request it answers is a clock problem, not a negative
+wait — dropped, counted, and never folded in as an impossibly fast answer.
+
+## Sprint 08 — templates and presets
+
+**`business_vertical_templates` had columns since the platform redesign, no rows
+and no reader.** `lib/sonara-subsystem-registry.cjs` recorded it as "reference
+and reporting rather than a workspace" with the note that it "would fit the
+Business Builder setup flow if that gets built". This is that flow: eight trades
+seeded, and `/business-builder/templates` renders them.
+
+**Every path in every row is checked against the route registry.** A template
+pointing at `/business-builder/scheduling` — which sounds real and is not — would
+be a starting point that starts with a 404, and the customer would reasonably
+conclude the product is broken rather than that the template is wrong. All 26
+seeded paths resolve, and the test fails if one stops.
+
+**Nothing here switches anything on**, and the page says so. Turning features on
+from a dropdown labelled with somebody's trade is how a customer ends up with
+pages they did not ask for and cannot find the way out of. A test asserts the
+handler contains no write at all.
+
+The registry entry was also **wrong about `service_comments`**, which it filed
+under "reference data". A reply on a service request is not reference data. Both
+corrected in the same change.
+
+## Sprint 09 — media, and what was deliberately left out
+
+This was held back because everything media-shaped here costs money per use:
+generation runs through a provider and a provider sends a bill. **Nothing in this
+sprint adds a provider, and that is the honest half of the answer** — the
+generative side still waits on pricing, which is the owner's decision and not
+this branch's.
+
+What shipped is the half that is free. Deciding whether a 1920×1080 file survives
+a 9:16 crop is geometry. `/creator-studio/tools/media-placements` takes a size
+and a duration and says where the file fits as it is, where it works with a crop
+and what that costs, and where it costs more than it is worth.
+
+Both answers are reported, not one: **cover** throws part of the picture away,
+**contain** keeps all of it and adds bars, and which is acceptable depends on
+what is in the frame — which this cannot see, and says so.
+
+The loudness table carries the sentence most often got wrong: mastering louder
+than a platform's target does not make it louder, because the platform turns it
+back down, and the dynamic range is spent for nothing. Broadcast at −23 LUFS is
+asserted to stay well below every streaming target, because a stream master
+handed to broadcast is a different job.
+
+**The numbers are dated and the page renders the date.** Platform requirements
+change without notice, and a specification table is exactly the kind of thing
+that is quietly wrong for a year.
+
+---
+
+Three gates fired and were right: `service_comments` needed a member read policy
+now that a page reads it, the planner tool count needed re-pinning, and the new
+comments endpoint was undocumented in the OpenAPI contract.
+
+One check from each sprint was falsified before being trusted: counting
+unanswered requests as instant replies fails; pointing a template at a page that
+does not exist fails; a positive LUFS target fails.
+
+Verified: `pnpm run lint` clean, 2299 tests passing, `pnpm run verify:launch`
+exit 0 across 26 commands, 15 planning tools, 288 registered routes.
+
+### 2026-08-19 — Two colours nobody could read, and a check that computes taste's one measurable half
+
+Sprint 04 of the ship plan was "one design system, colour graded". Most of what
+that phrase covers is taste, and taste is not checkable. **Contrast is the half
+that is** — WCAG 2.1 defines relative luminance and a contrast ratio exactly — so
+that is the half that became a release gate.
+
+**The audit found two real defects in the shipped stylesheet**, both on text a
+customer reads:
+
+| Token | Used for | Was | Needed |
+| --- | --- | --- | --- |
+| `--nx-faint` `#7a8495` | small print on cards | **3.78:1** | 4.5:1 |
+| `--nx-blue` `#4f6fff` | links on cards | **4.16:1** | 4.5:1 |
+
+`--nx-faint` is the `.fine` class — the share links, the record counts, the "this
+answer is not saved" notice. The least legible colour in the palette was carrying
+the text most likely to be missed.
+
+**Both were fixed by lowering lightness alone.** Hue moved by under one degree
+and saturation did not move at all: `#7a8495` → `#6d7789` (lightness 53.1% →
+48.1%) and `#4f6fff` → `#4667ff` (65.5% → 63.7%). That is what grading should
+mean — the palette still looks like itself and the words became legible. The
+alternative fix, desaturating toward grey, always passes a contrast check and
+costs the design everything, so **there is a test that fails when an accent drops
+below its minimum saturation.** Probed by setting `--nx-violet` to a 6%-saturated
+grey: it fails with "contrast was bought by draining the colour".
+
+`scripts/verify-colour-contrast.mjs` is command 26 in the release chain. Three
+things about how it is written are the reasons to trust it:
+
+- **Each token's required ratio follows from its declared job**, written down
+  beside it. Body text takes 4.5:1; a focus ring takes the 3:1 WCAG sets for a
+  control. A decorative hairline is not checked at all, and saying so is what
+  stops somebody lowering a threshold to make a failure go away.
+- **It refuses to pass on a partial read.** If the token blocks cannot be found
+  it says so rather than checking the light theme and reporting success; the
+  count of measured pairs is asserted against the count expected.
+- **The arithmetic is checked against values anybody can verify** — black on
+  white is exactly 21:1, a colour against itself is exactly 1:1, and `#767676` on
+  white is the 4.54:1 that WCAG's own boundary grey produces.
+
+**A defect in my own first draft, worth recording.** The first version split the
+stylesheet at the first mention of a dark theme and read a `prefers-contrast`
+block as the dark palette — producing a full table of ratios that was
+confidently wrong. Blocks are now matched by exact selector. And the first
+falsification probe silently failed to modify the file because of escaping,
+reporting "no failure" for a check it had never actually broken; the probe now
+asserts the file changed before drawing any conclusion. **A probe that cannot
+fail is the same defect as a check that cannot fail.**
+
+That escaping problem had a second half: the selector was being escaped twice and
+matched anyway, which is worse than not matching, because a regex that works by
+accident stops working the moment somebody tidies it. Both the script and the
+test now take a plain selector and escape it exactly once.
+
+Verified: `pnpm run lint` clean, 2269 tests passing, `pnpm run verify:launch`
+exit 0 across 26 commands, 26 colour pairs measured in both themes.
+
+### 2026-08-19 — Six website prompts, and the sentence the source versions were missing
+
+A batch of eight website-building prompts arrived as screenshots — build a
+premium website, nail the first impression, write a better homepage, a portfolio,
+a service page, an About page, fix mobile, write the entire site. Six of them are
+now in the builtin prompt library, which had nine and has fifteen.
+
+**The wording is original, and it had to be.** `template()` in
+`lib/sonara-prompt-library.cjs` stamps every builtin with
+`sourceType: "sonara_original"` and `license: "SONARA original; repository MIT
+license"`. Pasting somebody else's text under that stamp would make the record's
+own provenance false — which is a worse defect than the copying, because it is
+the field a future reviewer trusts.
+
+**What the submitted versions did not have is the reason these are worth
+shipping.** "Make it feel modern, high-end, and built to convert" is an open
+invitation to write testimonials, client counts, awards, years-in-business and
+guarantees that do not exist. A small business that publishes those has a problem
+that is not a marketing problem. Every one of the six ends by naming what must
+not be invented — and *naming* it, because "be accurate" is advice and "do not
+invent testimonials, client counts, awards, years in business, guarantees, or
+credentials" is a rule.
+
+Three things the prompts do that the source list did not:
+
+- **The service page has a "what is not included" section.** It is the section
+  that prevents the argument later and it is the one most service pages leave
+  out.
+- **The About page states when a business is new** rather than hiding it. New is
+  a fact, and hiding it reads worse than saying it.
+- **The portfolio prompt asks which pieces to leave out**, and flags any piece
+  whose right to publish is unclear. A portfolio is judged by its weakest piece,
+  and the reason to cut one is that it attracts work the creator does not want.
+
+**The mobile prompt holds this product to its own standard.** AGENTS.md says
+mobile layouts must avoid overflow and use large enough tap targets, so the
+prompt checks for both and names 44×44 as the minimum. A prompt this product
+ships that reviewed mobile pages to a looser standard than the one it holds
+itself to would be advising customers down.
+
+**The tests caught two real things.** The clause check found that the About page
+was the only one of the six not saying "do not invent" explicitly — it said "use
+nothing that is not in the inputs above", which is arguably stronger and did not
+name the specific things, and the About page is exactly where invented
+credentials do the most damage. And a new general check across all fifteen
+builtins asserts each declares exactly the variables it uses: a prompt asking for
+a variable it never uses wastes somebody's time, and one using a variable it
+never declares renders with `{{a_gap}}` still in it.
+
+Falsified before being trusted: replacing the hero prompt's closing rule with the
+submitted post's own wording — "make it feel modern, high-end, and built to
+convert" — fails the check, which is precisely the substitution it exists to
+catch.
+
+The existing summary test pinned three prompts per product area. It now pins
+eight, four and three, counted rather than loosened to "at least three", so
+adding one stays a decision somebody makes on purpose.
+
+Verified: `pnpm run lint` clean, 2263 tests passing, `pnpm run verify:launch`
+exit 0, 15 builtin prompts, all six visible on `/prompt-library`.
+
+### 2026-08-19 — Nine submitted repositories, one of them integrable
+
+A batch of nine arrived as screenshots of a social post. All nine are now on the
+register. **One produced a shipped feature; the other eight are recorded with the
+reason they cannot be, and four of those reasons are not about licences.**
+
+Four were already registered and the register was already right about them —
+Ollama (MIT, adapter built), Fincept Terminal (AGPL-3.0, blocked), Cloudflare
+Agentic Inbox (Apache-2.0, research only) and AutoHedge (MIT, blocked until
+review). That is the register doing the job it exists for.
+
+**Two blocked on licence, and one of those is not what the post said it was.**
+`Context Mode` was presented as an open-source repository; its `LICENSE` reads
+**Elastic License 2.0**, which permits use, forking and modification and
+explicitly forbids providing the software to third parties as a hosted or managed
+service. SONARA One is a hosted service. Fincept Terminal is AGPL-3.0, which
+triggers on network use, and was already blocked.
+
+**One blocked on conduct, and the licence is irrelevant to it.** `camofox-browser`
+is MIT and is a Firefox fork with C++-level fingerprint spoofing wrapped in a REST
+API; its own description is that it lets agents browse sites that block automated
+bots. This repository shipped the opposite thing earlier in this branch:
+`sourcePermission()` refuses to fetch any host an organization has not recorded as
+approved, and returns three outcomes so a failed check is never read as
+permission. **Bot detection is how a site says no.** No licence makes adopting a
+tool for defeating it a different decision.
+
+**One blocked on a claim that does not survive its own README.** `open-gen-ai` was
+described as free, subscription-free and running entirely on your machine. Its
+banner reads *Powered by MuAPI* and it offers 400+ models across 14 studios, which
+is a hosted API. Both statements cannot be true, and CLAUDE.md's rule decides it:
+a free tier is a price, not a licence.
+
+**Two blocked because this product does not do that.** AutoHedge and Vibe Trading
+generate and execute trading strategies with real money. The catalogue here was
+cut by eleven entries for describing work that did not exist; adding automated
+financial advice would be the same mistake with worse consequences.
+
+**A note on the source, which is worth recording.** The post's description of
+Ollama — "write HTML, generate video, transform it into polished MP4s" — is not
+what Ollama does; Ollama runs local models. And the screenshot under the heading
+"Vibe Trading" showed the Agentic Inbox README. Two of nine entries were
+mismatched with their subject, which is the reason every licence here was read
+from the project's own `LICENSE` file rather than from the badges in the images.
+
+---
+
+**The one that produced something: NotFair (MIT).** Its README describes turning
+an ambition stated in plain language into a metric with a measured baseline, then
+running a loop that scores its past moves against what it predicted. **The scoring
+half is arithmetic and was the thing this product was missing. The acting half is
+what AGENTS.md refuses** — customer campaigns need owner approval, and "around
+the clock, whether you're watching or not" is precisely what that rule exists to
+stop. No NotFair code was read or copied; `lib/sonara-goal-science.cjs` is
+original, and it measures and reports while a person decides.
+
+**Why a scoring rule rather than a hit rate.** Counting how often somebody was
+right rewards never committing: say 50% to everything and you are never very
+wrong. A **proper** scoring rule is one where the best score comes from stating
+what you actually believe. The Brier score is one, and the test asserts the
+property rather than the implementation — over events that happen 70% of the
+time, saying 70% must beat saying anything else. When that check was falsified by
+swapping squared error for absolute error, it caught that stating 80% then scored
+better than telling the truth, which is exactly the failure mode.
+
+Three decisions worth not rediscovering:
+
+- **An unrecorded outcome is held out and named, never scored as a miss.** Absent
+  is not false, and counting an unsettled call as wrong punishes somebody for
+  predictions nobody knows the answer to yet. A trailing comma in
+  `Still open, 50,` is what that looks like when typed, so empty trailing fields
+  are kept rather than filtered — dropping them turned an unsettled call into an
+  unreadable one.
+- **A goal that goes down is progress.** "Cut cost per lead from 50 to 30" moves
+  downward, and an unsigned distance would report it as going backwards.
+- **The log score is clamped and says so.** A confident miss scores infinitely
+  badly, which is correct and useless on a page; the clamp is in the output
+  rather than hidden, because a number whose derivation is invisible cannot be
+  checked.
+
+The page tells somebody what their score is *against* — the forecaster who knows
+only the overall hit rate — because a score with nothing beside it is a number
+people either ignore or over-read. And it separates reliability from resolution,
+so a customer who says the same number to everything is told that, which a
+hit-rate table cannot see.
+
+**Three of the five new records carried a repository URL I had guessed, and CI
+caught all three.** `verify-external-repositories` runs
+`verify-open-source-registry.mjs --network`, which asks GitHub whether each
+registered target exists; `open-gen-ai/open-gen-ai`, `virattt/vibe-trading` and
+`kortix-ai/notfair` do not. The real ones are `Anil-matcha/Open-Generative-AI`,
+`HKUDS/Vibe-Trading` and `nowork-studio/NotFair`, each confirmed by fetching its
+README before being written down the second time.
+
+That failure also corrected a licence. The Vibe Trading record carried
+Apache-2.0 "per the submitted screenshot", with a note saying it was unconfirmed
+because that screenshot showed the Agentic Inbox README — so the badge belonged
+to a different project. Read from `HKUDS/Vibe-Trading` itself, it is **MIT**. A
+licence copied from an image of the wrong repository is the reason this register
+reads `LICENSE` files, and writing "unconfirmed" beside a wrong value is not the
+same as not writing the wrong value.
+
+The network check cannot be run from here — the agent proxy answers 401 for
+GitHub API calls to repositories not attached to the session, and the script
+correctly refuses to report success on that, saying the run "established nothing
+about whether they exist" rather than passing on zero confirmations. Existence
+was established through `raw.githubusercontent.com` instead, which the proxy does
+allow.
+
+Verified: `pnpm run lint` clean, 2254 tests passing, `pnpm run verify:launch`
+exit 0, 160 registered repositories, 14 planning tools.
+
+### 2026-08-19 — A creator profile anybody can open, and a follow graph behind it
+
+`creator_artist_profiles` has carried a column called `public_description` since
+the artist system landed, and nothing had ever put one on a page a stranger could
+reach. The word "public" in that column name was aspirational. It is a page now:
+`/creator/:handle`.
+
+**Three fields are published and six are withheld, and the naming is not the
+reason.** That table also holds `private_backstory`, `voice_identity`,
+`genre_blend`, `writing_rules`, `visual_rules` and `prompt_rules`. Two of those
+matter more than the rest: publishing `voice_identity` or `prompt_rules` hands
+somebody the instructions for reproducing an artist's voice, which is the
+anti-clone rule in AGENTS.md rather than a preference. `PUBLIC_PROFILE_COLUMNS`
+and `NEVER_PUBLISHED_COLUMNS` are both written down, and a test asserts the
+select is the first list and contains none of the second.
+
+**A handle is an address, so it is refused as often as it is accepted.**
+Reserved for two separate reasons, and both are recorded: *routing*, because the
+cheapest future change is serving profiles from the root and a handle called
+`login` would make that impossible rather than awkward; and *impersonation*,
+because `support`, `official`, `verified` and `payments` are what somebody
+registers in order to be believed. A test derives every top-level segment from
+the route registry and asserts none of them is takeable. The refusal says "not
+available" rather than "reserved", because the second tells somebody guessing at
+the list that they guessed right.
+
+**The handle list is a literal, not derived from the registry.** Deriving it
+would mean a handle that is legal today becomes illegal the day somebody adds a
+page — silently invalidating a URL a creator has already printed on something.
+
+**`creator_follows` has no `organization_id`, and that is the one thing to read
+before changing it.** Every other tenant-scoped table has one because the
+service-role key bypasses row level security. A follow is different in kind: it
+is an edge between a person and somebody else's published profile and crosses the
+tenant boundary by design. The two reads it exists for are each scoped by
+something the caller owns or is — `artist_profile_id` for "who follows this
+artist", `follower_user_id` for "who do I follow". Adding an organization would
+either be wrong or a lie about what the row means. Both write handlers are
+recorded in `tests/every-write-names-a-business.test.js` with that reasoning,
+and what replaces the filter is asserted rather than promised: a follow is
+refused unless the profile is published, and an unfollow filters on the follower
+as well as the profile, so nobody can delete somebody else's follow by guessing a
+uuid.
+
+**Following notifies nobody.** AGENTS.md puts alerts off by default, and for a
+brand-new table the cheapest way to hold that is that nothing reads it for that
+purpose at all — asserted against the route source and the migration, because a
+promise in a comment is what stops being true first.
+
+**Two real bugs in my own code, both found by writing the check rather than the
+feature:**
+
+- `followerSummary(null)` returned "Nobody is following this yet". `Number(null)`
+  is `0` and `Number.isFinite(0)` is true, so "we could not count" became "nobody
+  follows this" — the exact trap this repository warns about, in code written the
+  same hour as the warning was read. Absent is now checked before the conversion.
+- The follow route decided "is this published" with a `not.is.null` PostgREST
+  filter. It reads the column back and decides in code instead: one fewer piece
+  of query syntax between the rule and somebody checking it, and this is the rule
+  that stops a guessed uuid creating a follow of a profile nobody can open.
+
+**And a blind spot in a release gate, found by probing it.** The Supabase
+contract scan finds runtime table references with four patterns, and all four
+require the name to appear as a literal at the point of use — `/rest/v1/quotes`,
+`rest("quotes")`. A module that does the ordinary thing instead:
+
+    const FOLLOW_TABLE = "creator_follows";
+    await rest(config, `${FOLLOW_TABLE}?select=...`);
+
+is invisible to every one of them. A deliberately undeclared table name passed
+the whole gate. **Two route modules were in that state** — the one added here and
+the shared-links one from earlier today, which passed only because an unrelated
+file happened to contain the same name as a literal. A fifth pattern matches a
+constant whose name is `TABLE` or ends `_TABLE`; the underscore is load-bearing,
+because without it `COSTABLE_RATE_TYPE` reports `hourly` as an uncontracted
+table. Probed after the fix: the undeclared name now fails.
+
+Three new checks were falsified before being trusted — publishing
+`voice_identity` fails the column check, dropping the follower filter from
+unfollow fails the scoping check, and allowing an unpublished profile to be
+followed fails the publication check.
+
+`server.js` grew by 3 to 4036, the second time this ceiling has been raised. The
+reason is in `tests/server-split.test.js`: two earlier registrations avoided it
+by being registered from the route module that already held their helpers, and
+that was right because that module owned the thing being served. No module owns a
+creator's public profile in that sense.
+
+Verified: `pnpm run lint` clean, 2231 tests passing, `pnpm run verify:launch`
+exit 0, 95 migrations.
+
+### 2026-08-19 — A quote, an invoice and an appointment can be sent to somebody
+
+Extending the share mechanism to the things a business actually sends. Four kinds
+now have a link: a saved tool result, a quote, an invoice and an appointment.
+
+**The first thing this did was replace a decision made earlier the same day.**
+`share_token` and `shared_at` went on `module_outputs` in migration
+20260819060000. That was right for one shareable type and wrong for four — four
+places to revoke from, four indexes, and a `/shared/:token` route that has to
+guess which table a token belongs to. `shared_links` is one table for all of
+them, and migration 20260819070000 drops the columns it replaces. The data
+migration that carries tokens across is written even though no row anywhere has
+one, because a migration that only works on an empty table fails the first time
+it meets a full one.
+
+**The resolution order is the security property.** These tables are read with the
+service-role key, which bypasses row level security, so the `organization_id`
+filter is the entire tenant boundary — and a public page has no organization to
+filter by. So: a token finds exactly one `shared_links` row; that row names both
+the resource *and* the organization; the resource is then fetched filtered on
+both. The public page never chooses an organization. It is told one by the row
+the customer created when they pressed Share. This is stronger than the version
+it replaces, where the resource read was filtered on the token's table alone.
+
+**What never travels, written down per kind and asserted against the select.**
+`SHAREABLE` names the columns each public page may ask for and `forbidden` names
+the ones it may not, and a test asserts the intersection is empty *and* that the
+route selects through the reviewed list rather than a select spelled inline.
+Two rules run through all four:
+
+- **No contact details, ever** — not the customer's email, phone or name. A link
+  gets forwarded, and whoever forwards it is not deciding to publish somebody
+  else's phone number. The person who booked already knows their own name.
+- **No internal note.** `notes` on an invoice is where a business writes things
+  *about* a customer, not *for* them.
+
+**Three states on the record's own page, not two.** The share card renders
+shared, not shared, and **could not tell**. A failed read of `shared_links` is
+not a record that is private: offering to publish something already public, or
+hiding the way to unpublish it, are both worse than saying the check did not run.
+The same three states are on the saved-results list.
+
+**A pre-existing defect found on the way past.** `openapi/sonara.yaml` referenced
+`#/components/responses/NotFound` in thirteen places and defined no such
+component. The contract verifier checked which routes were documented and whether
+`operationId`s were unique, and had never asked whether the document validates —
+so a spec no generator could read had been passing that gate for as long as the
+gate has existed. Both missing components are defined, and the verifier now
+resolves every `$ref`.
+
+**Two of my own checks were caught being vacuous, by looking rather than by
+trusting green.** The record-page test first went through `server.js`, got a 303
+from `requireBusinessManager`, and wrapped every assertion in
+`if (status === 200)` — so the block reported green while checking nothing. It is
+now built directly on the router with stubbed guards, the way
+`tests/business-owner-record-pages.test.js` does, and the status is asserted
+rather than guarded. The fixtures also had to become **real v4 UUIDs**: the owner
+record pages validate with a strict RFC pattern, and hex-and-dashes is rejected
+before any read happens.
+
+Both new checks were then falsified deliberately. Adding `customer_phone` to the
+appointment's select fails the column check; deleting the share card from the
+detail page fails the door check.
+
+Three existing gates fired and were right: `shared_links` had no member-readable
+policy (added to the generator, regenerated), the outage crawl caught "Nothing
+here asks you for anything" as a claim about a customer's records (the fix was
+the wording — *A shared page never asks you for anything*), and the supabase
+contract refused an uncontracted runtime reference.
+
+Verified: `pnpm run lint` clean, 2204 tests passing, `pnpm run verify:launch`
+exit 0, 94 migrations, `server.js` still 4032 lines.
+
+### 2026-08-19 — What this application is actually coupled to
+
+Asked to research free and open-source databases and authentication that could
+connect here. The research turned up two licence corrections and one fact about
+this repository that changes how a migration should be priced.
+
+**The coupling is the opposite shape of the assumption.** Measured on
+19 August 2026:
+
+| Surface | Files | What is used |
+| --- | --- | --- |
+| Supabase Auth | **2** | four endpoints: `/auth/v1/user`, `/token`, `/signup`, `/recover` |
+| PostgREST | **27** | 145 tables, 3 stored procedures |
+| Supabase Storage | **2** | signed object URLs |
+
+Four HTTP endpoints, nearly all inside one 426-line file, is a week of work
+rather than a quarter. And:
+
+**This application does not depend on Supabase. It depends on PostgREST.**
+Every read and write is an HTTPS request to `/rest/v1/<table>` with a
+service-role key. PostgREST is a separate project under the PostgreSQL licence
+that Supabase runs — not Supabase's invention and not Supabase's to withdraw. So
+the cheap database move is *keep PostgREST, change what is underneath*, and every
+other database is a rewrite of 27 files however good it is. Nothing in the
+repository had said this.
+
+**Two licences were not what this author believed, and both were read rather than
+recalled:**
+
+- **Zitadel is AGPLv3, not Apache-2.0.** AGPL triggers on network use and this is
+  a hosted product. There is a real distinction between modifying Zitadel and
+  being an HTTP client of an unmodified instance, and the usual reading is that
+  the second creates no obligation here — but that is a legal question and it is
+  recorded as an open question, not an answer.
+- **Directus is `MSCL-1.0-GPL`** — the Monospace Sustainable Core License 1.0,
+  copyright 2026, a licence written this year whose abbreviation carries GPL. Not
+  BSL, which is what memory said, and not OSI open source.
+
+**authentik is not one licence either.** Its `LICENSE` splits four ways: `website/`
+CC BY-SA 4.0, `authentik/enterprise/` under its own licence, client JavaScript MIT
+Expat, everything else MIT. "MIT" is true of the core and false of the whole.
+
+**Better Auth is ruled out on architecture, not licence.** MIT, and the natural
+choice on almost any other JavaScript project. This one has `express` as its
+single production dependency and a build script that is `node --check server.js`;
+a TypeScript library means a compile step, which is a bigger change than swapping
+identity provider.
+
+Recommendation: **do nothing yet.** The incumbent is Apache-2.0 and self-hostable,
+the exit is PostgREST rather than Supabase, and no constraint is binding. When a
+cache is needed, Valkey rather than Redis — same capability, BSD-3-Clause, no
+licence conversation. Redis has been tri-licensed since 8.0 and AGPLv3 is one of
+the three, so "Redis is not open source any more" is out of date; it is still the
+reciprocal choice.
+
+**The document's central measurement is now a build property**, because a
+measurement in a document is a measurement waiting to rot. `tests/the-auth-surface-stays-small.test.js`
+holds four things: the identity calls stay in a handful of files, no endpoint
+appears that the migration note was not priced against, the data surface stays
+larger than the auth surface (the asymmetry the whole argument rests on), and
+`package.json` keeps exactly one production dependency — which is the fact that
+rules out library-based auth. The ceilings are ceilings rather than equalities, so
+a legitimate change does not force somebody to bump a number without reading it.
+
+**The check was proven to fail before it was trusted green.** Appending
+`auth/v1/magiclink` to an unrelated module made the endpoint assertion fail;
+removing it made it pass again.
+
+Ten repositories added to `data/open-source-tools.ts` — the register claims to
+hold every reviewed repository, and these were reviewed. 155 records, 154 unique
+targets.
+
+Verified: `pnpm run lint` clean, 2192 tests passing, `pnpm run verify:launch`
+exit 0.
+
+### 2026-08-19 — Three answers the database was already holding
+
+Asked to build the capability that is within reach — where the missing piece is a
+page rather than an architecture. Three of those, checked against the schema
+before anything was written:
+
+- **`location_zones` really does store coordinates.** `latitude numeric(10,7)`
+  and `longitude numeric(10,7)`, both nullable, supplied by the customer.
+- **Sales history really is per item per day.** `pos_menu_mix_items.quantity_sold`
+  joins to `pos_sales_summaries.business_date`.
+- **`customer_records` really has name, email and phone.**
+
+So `lib/sonara-operations-science.cjs`, on the same terms as the inventory
+module: no model call, no provider, no network, no cost per use. That is not
+thrift for its own sake — a route plan costing a fifth of a cent per press is one
+a business stops pressing, and a number that changes between two presses is one
+nobody acts on.
+
+**Round order.** Nearest-neighbour, then 2-opt over haversine distances. Three
+decisions worth not rediscovering:
+
+- **The first stop never moves.** It is where the van already is, and a plan that
+  opens by driving somewhere else is not a plan.
+- **0,0 is refused rather than routed to.** It is open water in the Gulf of
+  Guinea, and it is exactly where an empty form field lands when read as a
+  number. Bad coordinates are *named* in the output, not counted — "three stops
+  were skipped" makes somebody re-check all of them.
+- **The improvement epsilon is load-bearing.** Floating-point noise can make a
+  reversal look like a gain of 1e-13 forever; without `- 1e-9` the loop runs to
+  its cap on every request while improving nothing.
+
+**Demand forecast.** Holt's linear method — simple smoothing forecasts a flat
+line, which for anything trending is wrong in a direction that compounds. Both
+smoothing constants come from a grid search minimising squared one-step error,
+which makes the fit a property of the data rather than of somebody's default, and
+makes it reproducible, which a gradient method from a random start would not be.
+
+**The page prints how wrong the forecast usually is, against the forecast that
+says "the same as last time".** A method that cannot beat that is not worth the
+page it is on, and when it cannot, the output says *plan around the average*
+rather than drawing a confident line through noise. Most forecasting tools omit
+this; it is the single most useful sentence on the page.
+
+**Duplicate customers.** Normalised comparison over name, email and phone.
+Two decisions that cut opposite ways, on purpose:
+
+- **`a.b@` and `ab@` are not treated as one person.** Gmail ignores dots; most
+  providers do not. Merging two real customers is the expensive direction.
+- **A phone keeps its last ten digits only**, because a country code on one row
+  and not the other is the commonest reason a real match is missed.
+
+**Nothing merges anything.** Merging customer records is destructive and
+irreversible, which AGENTS.md puts behind owner approval. This finds and reports;
+a person decides. A test asserts the module contains no `fetch(` and no
+`require(` at all.
+
+**The match threshold was measured, not picked.** Ten representative pairs, half
+the same person misspelled and half different people who look alike, are written
+into the source with their scores. 0.81 is the only value admitting every
+misspelling (Nair/Nayar at 0.818, Zhang/Chang at 0.889, Catherine/Katherine at
+0.923) while excluding every different person (Dave/Dan Brown at 0.800, Mike/Mia
+Ross at 0.778). It still misses "Sam" against "Samuel" at 0.769 — edit distance
+cannot see that one is a nickname for the other — and that miss is the
+conservative direction, which is the right one for a list somebody reads before
+deciding what to merge.
+
+**Two of the 33 new assertions exist to stop the others going vacuous.** 2-opt is
+asserted to *improve* at least ten of 120 random rounds, so an implementation
+whose 2-opt did nothing fails rather than passing every other check; and the grid
+search is compared against every point on its own grid, so a search returning its
+first candidate fails. Beyond those: haversine against London–Paris (343.5 km)
+and a degree of latitude (111.195 km); the round is asserted to be a permutation
+of its input; and for seven stops the result is compared against **every one of
+the 720 possible orders**, worst case 6% above optimal.
+
+Three real defects were found by these checks while writing them, all in the
+tool pages rather than the algorithms: a customer list exported with the name in
+two columns became a surname (`parts.find` took the first field, not all the
+non-contact ones); "100% alike, a suggestion to look at" was being said about two
+identical word sets in different orders, which now reports as *the same name the
+other way round*; and the summary line claimed "the name matches exactly" for a
+bucket that had come to hold two different kinds of match.
+
+Verified: `pnpm run lint` clean, 2187 tests passing, `pnpm run verify:launch`
+exit 0, 284 registered GET routes, 13 planning tools.
+
+### 2026-08-19 — A result worth sharing now has a page
+
+Sprint 03 of the ship plan. The previous sprint opened the tools to strangers;
+this one lets an answer leave the workspace.
+
+**There was no way for a customer to show anybody a result.** Every saved tool
+output lives in `module_outputs`, which is organization-scoped, so a break-even a
+customer worked out here reached their business partner as a screenshot or not at
+all. That is the whole distribution loop this product had: none. Nothing on any
+page linked outward, and nothing anyone made here could be forwarded.
+
+`/shared/:token` is the smallest honest one. One saved result, one unguessable
+link, published on purpose and revocable.
+
+**The risk in this feature is one risk, and it is worth naming plainly.**
+`module_outputs` is read with the service-role key, which bypasses RLS — so the
+`organization_id` filter in the query is the entire tenant boundary, and a public
+page has no organization to filter by. Every decision below follows from that:
+
+- **The read is the dumbest thing that can work.** Select by token, from one
+  table, one row. It resolves no session, so there is no session to confuse. It
+  takes no organization, so there is no organization to be told the wrong one.
+- **The column list is written down and reviewed, not spelled inline.**
+  `SHARED_SELECT_COLUMNS` names five columns; `FORBIDDEN_SHARED_COLUMNS` names
+  the five that must never join them, and a test asserts the intersection is
+  empty *and* that the route actually selects through the reviewed list — a
+  select spelled at the call site would drift and nothing would say so.
+- **The input never travels.** A customer sharing "you cover costs at 420 sales a
+  month" is not necessarily sharing the rent figure behind it, and the two are
+  different decisions. `input_payload` is not in the select and not in the view.
+- **The token is 192 bits.** The link is the only credential — there is nothing
+  behind it to check, because the point is that somebody with no account can open
+  it — so it has to be unguessable rather than merely unlikely.
+- **A malformed token is refused before it reaches a query.** The pattern fixes
+  the length rather than bounding it, because a pattern that accepted any length
+  would accept the empty string, and `share_token=eq.` matches rows whose token
+  is empty rather than none. The same shape of mistake as an organization filter
+  with nothing after the `eq.`, which this codebase has made before.
+
+Three distinctions the pages make that a simpler version would not:
+
+- **A read that failed is not a result that does not exist.** 503 for the first,
+  404 for the second. Telling somebody holding a working link "not found" has
+  them tell the person who sent it that it is broken.
+- **A revoked link and a made-up one get byte-identical pages.** Distinguishing
+  them would tell somebody guessing that they had guessed a token which used to
+  exist, and would tell a recipient that the sharer took it back — which is that
+  person's news to give. Asserted as `madeUp.text === wrongShape.text`, so the
+  property cannot rot into two similar-looking pages.
+- **Sharing twice keeps the first link.** A fresh token per press would silently
+  break every copy already handed out, and no button anywhere warned of that.
+
+`shared_at` survives revocation on purpose. It is what lets the records page say
+"this was shared before and is private again" rather than showing a button that
+looks untouched — the customer's own history of a decision they made.
+
+**Registered from `routes/sonara-service-lifecycle-routes.cjs`, not `server.js`.**
+That module makes these results — the tools compute them and `saveModuleOutput`
+stores them — and it was already handed all ten helpers the shared routes need. A
+second call site in `server.js` would have meant threading the same ten through
+twice to reach the same table, and would have pushed the file past its ceiling for
+no structural gain. `server.js` is unchanged at 4032 lines.
+
+Two existing gates caught this change and were right both times: `/shared` was
+registered and linked from nothing a crawl could see (it is linked from the token
+pages, which carry a token and so are not registered — recorded in `NOT_LINKED`
+with that reason), and it was on neither the cinematic nor the calm list. It is
+cinematic: whoever lands on it arrived from a link a stranger sent them and has
+never heard of this company, so orienting them is the page's entire job. The
+OpenAPI gate caught the two new write endpoints as undocumented.
+
+Verified: `pnpm run lint` clean, 2154 tests passing, `pnpm run verify:launch`
+exit 0, 93 migrations, 265 documented operations across 189 paths.
+
+### 2026-08-19 — The page that advertised the tools and then refused them
+
+Sprint 02 of the ship plan: make the front door earn its scroll. Two things were
+found by opening the files rather than by reading the plan, and both were worse
+than the plan said.
+
+**The home page linked to zero tools.** Thirty-five deterministic calculators —
+break-even, reorder point, split sheet, referral payback — and the page a first
+visitor lands on mentioned none of them. The strongest thing on this site was
+reachable only by someone who already knew it was there.
+
+**Every tool page redirected an anonymous visitor to `/login`, while the public
+directory listing them was open.** So `/business-builder/tools` rendered
+"Break-even calculator" to a stranger, named it, described it, linked it — and
+the link sent them to a sign-in form. It advertised, then refused. Nothing about
+those tools needs an account: **not one of them reads the database to produce its
+answer.** They are arithmetic over what the visitor typed. The account was
+gating a computation that costs nothing and reveals nothing.
+
+What changed, and the distinction the whole sprint rests on: **computing is open,
+saving is not.** A stranger gets the answer. Saving it to a workspace still needs
+an account, which is the half that was ever worth gating — and the page now says
+so, in the place where the answer appears, rather than at a login wall before it.
+
+Four things had to be got right for that not to be a hole:
+
+- **The GET is ungated but still resolves the session**, because dropping the
+  guard also dropped the thing that identified a signed-in customer. An earlier
+  pass removed both and signed-in customers' results silently stopped saving —
+  caught by an existing test, not by reading the diff. The session is resolved
+  and used; only the *refusal* was removed.
+- **`saveModuleOutput` now distinguishes a stranger from an unfinished
+  workspace.** Both used to answer `setup_required`, so a visitor with no account
+  was told to finish setting up an account they did not have. A visitor with no
+  user id gets `not_signed_in`; absent is not unfinished.
+- **A working tool is no longer reported as an outage.** `sendToolResult`
+  answered 503 for anything unsaved. For a stranger nothing failed — the tool ran
+  and answered — so 503 was a false alarm on the healthy path. It is still 503
+  when a write was attempted and failed, which is the case it was written for.
+- **The route manifest agrees by rule, not by list.** `PRODUCT_TOOL_ROUTE` is a
+  regex over `/{studio}/tools/{slug}`, so the thirty-sixth tool is open the day
+  it is added. Naming them individually would mean the next one quietly declared
+  itself customer-only in the manifest while answering strangers with a page —
+  exactly the disagreement
+  `tests/the-route-manifest-agrees-with-the-server.test.js` exists to catch. The
+  38 matched routes keep their `productOwner` and lose only `requiredRole`: who
+  owns a page and who may open it are different questions.
+
+The test that asserted the old behaviour was inverted rather than deleted — "tool
+pages require login for anonymous browsers" is now "computes for a stranger
+without showing them anything from the database", and it asserts the second half
+too, so opening the page cannot start leaking a workspace without failing. A
+second test asserts the unsaved-result message appears **and** that it does not
+say "Not saved yet", the setup-required wording, because the two messages read
+alike and only one of them is true for a visitor.
+
+Verified: `pnpm run lint` clean, 2129 tests passing, `pnpm run verify:launch`
+exit 0, `server.js` at 4032 lines — the home page section is spliced into the
+existing escaped string, so the front door grew by nine links and zero lines
+against the ratchet.
+
+### 2026-08-19 — Answering a question the formula library had been assuming
+
+Asked to research and build advanced deterministic algorithms. The useful place
+to look turned out to be the 47 formulas already here, and what they take as
+given.
+
+**Every one of them is a single expression over inputs it is handed**, and two
+hand off the only hard part:
+
+    reorder_point = (average_daily_usage * lead_time_days) + safety_stock
+    route_cost     = (distance_miles * cost_per_mile) + driver_labor + tolls
+
+`safety_stock` is an **input**. So is `distance_miles`. Multiplying once you know
+your safety stock is arithmetic; working out the safety stock is the question,
+and nothing computed it — the number came from somebody's judgement and the
+formula dressed it as a calculation. (A third, `stockout_risk_score`, is
+`max(0, reorder_point - current_stock)`, which is a shortfall in units rather
+than a risk, and is named as though it were a score.)
+
+`lib/sonara-inventory-science.cjs` answers it. No model call, no provider, no
+network, no cost per use — the terms every tool here ships on.
+
+**The numerics were verified before they were written down.** A service level
+becomes a multiplier through the inverse normal CDF, which has no closed form.
+This uses Acklam's rational approximation — public mathematics, published
+coefficients, not anybody's source. Checked against ten tabulated quantiles
+(worst absolute error 3.4e-9) *and* round-tripped through an independently
+written erf-based CDF, so it is not only being compared against numbers I typed
+in. Both are asserted in tests rather than claimed in a comment.
+
+Four decisions worth not rediscovering, each of which is a way to get this
+quietly wrong:
+
+- **A day with no row is a day of zero demand.** This is why the function takes a
+  day span as well as a list of quantities. Averaging only the days an item sold
+  answers "how much do we sell on days we sell any", which for a slow-moving item
+  is several times larger — the fixture in the tests is 2.27/day over 30 days
+  versus 4.86 over the 14 selling days. Stocking to the second is how a business
+  ends up with a year of something it sells twice a month. Absent is not zero,
+  again.
+- **Sample standard deviation, dividing by n−1.** Dividing by n understates the
+  spread, which understates safety stock, which is the direction that runs a
+  business out of stock rather than the one that costs it shelf space.
+- **Safety stock grows with the square root of the lead time.** Waiting four
+  times as long needs twice the buffer, not four times — variances add, standard
+  deviations do not. This is the part people get wrong by hand, so the tool says
+  it on the page.
+- **Fourteen days minimum, refused below that.** A number on a page is acted on
+  whatever sits beside it, so a standard deviation over a week of a seasonal
+  business is refused rather than computed and captioned "unreliable".
+
+The economic order quantity validates itself twice: `sqrt(2·1200·5000/300)` is
+exactly 200, and **at the optimum the annual ordering cost equals the annual
+holding cost** — a property of the optimum rather than of the implementation,
+asserted across 18 input combinations. A third test asserts the curve is flat
+near the bottom (20% off costs under 3% more), which is why the page tells people
+to round to a case or a pallet rather than chase the figure.
+
+**It has a caller.** `/business-builder/tools/reorder-point`, a tenth planning
+tool, because a capability with no caller is the shape this repository has spent
+the month closing. It reads pasted daily quantities — commas, spaces or new
+lines, since this gets copied out of a spreadsheet column — and the order
+quantity half is optional, so somebody who only wants to know *when* to order is
+not stopped by two cost questions.
+
+Three probes: dividing by n, using L instead of √L, and dropping the zero-fill.
+Each fails the tests.
+
+`tests/nine-planning-tools-do-the-arithmetic.test.js` asserted exactly three
+tools per product line and carried the count in its filename. Both went stale
+with the tenth. The number came out of the name, and what is asserted now is the
+shape that matters: a floor of three per line, and a pinned total so a tool
+cannot be added or lost without a decision being made in that file.
+
+**Not built, and worth saying why.** Stop sequencing is the obvious companion —
+`route_cost` assumes `distance_miles` the same way `reorder_point` assumed safety
+stock, and nearest-neighbour plus 2-opt over haversine distances would answer it
+deterministically. `location_zones` already carries latitude and longitude the
+customer supplies, so no geocoding service is needed. It is a separate piece of
+work rather than a line in this one.
+
+Suite 2,128 passing.
+
+### 2026-08-19 — The last two owner steps, researched rather than restated
+
+Asked to find ways to complete the leaked-password toggle and the preview-branch
+revoke test. Neither can be performed from here — no Supabase credentials in this
+container and the connector needs an authorization this session cannot do — so
+the work was to make each of them smaller, safer and verifiable.
+
+**The leaked-password gate was better than expected and had one hole.**
+`scripts/verify-production-project-identity.mjs` already reads the real
+`password_hibp_enabled` field from the Management API rather than trusting the
+ratchet variable, and already fails when the credentials to read it are missing.
+That was checked before assuming otherwise, and the assumption would have been
+wrong.
+
+The hole: the ratchet turned **disabled** into a deploy failure and left **could
+not read the configuration** and **the field was missing** as passing notes —
+*even with the ratchet set*. So the moment the owner set
+`SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION=true` believing the deploy now
+enforced it, a rotated token or an API change would silently downgrade it to
+unenforced and every release would stay green. An unread answer is not a
+confirmation. Both now fail when the ratchet is set, proved with a six-case truth
+table over {unreadable, missing-field, enabled} × {ratchet set, unset}.
+
+**`scripts/enable-leaked-password-protection.mjs`** turns the dashboard step into
+`pnpm run enable:leaked-password`. It reports by default and writes only with
+`--enable`; it refuses any project other than the pinned ref, because this
+organization holds a second project named like production and a setting flipped
+on the wrong one reads as done; and it **reads the value back from the server
+after writing**, because a 200 on a PATCH says the request was accepted, not that
+the setting is on. Seven branches probed, including the one that matters —
+Supabase accepting the change while the value stays false, which fails rather
+than congratulating anybody.
+
+**The revoke test turned out to be far less dangerous than it looked, and the
+measurement is the point.** Item 4 warned that revoking `EXECUTE` from
+`authenticated` could turn a working policy into a denial and lock customers out,
+with `is_org_member` backing 202 policies across 64 tables.
+
+**That mechanism is not currently reachable.** Every table read in the running
+product goes through `supabaseHeaders()`, which sends the service-role key as
+both `apikey` and `Authorization` — 75 call sites across 14 files, no exceptions.
+The service role bypasses row level security entirely, so no policy is evaluated
+on any live read, so no policy's call to a SECURITY DEFINER function is on a live
+path. `lib/sonara-supabase-clients.cjs`, the CRIT-3 (2) machinery for changing
+that, is required by exactly one file: its own test.
+
+**Which is a reassurance with an expiry date, so it got a label.**
+`tests/the-revoke-reasoning-is-still-true.test.js` fails the moment a user-scoped
+read is wired in — by import, by helper name, or by `supabaseHeaders` ceasing to
+send the service-role key — and its failure message says to re-read item 4 before
+revoking anything. It also asserts the module it watches still exists, because
+otherwise deleting it would make the check pass by having nothing to find. Probed
+two ways.
+
+Item 4 now recommends the same preview-branch test for a better reason: not
+because a lockout is likely, but because the reasoning rests on a measurement of
+*this repository*, and item 3 is the proof that the live database holds content
+this repository cannot see. It also adds the four functions from item 3 to that
+test as the next safest after `sonara_has_org_role`.
+
+### 2026-08-19 — The four authorization functions, read at last
+
+The owner ran the `pg_get_functiondef` query and supplied all four. Recording
+them was the easy half; reading them was the half worth doing.
+
+**They come from a different schema generation.** `has_scope` joins
+`public.organization_members` on `org_id`. This project's table is
+`organization_memberships` and its column is `organization_id` — a different name
+*and* a different column, not a typo. It also reads `app_scopes`, and
+`has_company_access` reads `organization_app_access`. **None of those three
+tables exists in any migration here, or anywhere else in this repository** —
+checked with a word-boundary search after a substring search returned 81 false
+positives, every one of them `organization_memberships` or a URL containing it.
+
+They also name six roles — owner, admin, manager, editor, billing_admin,
+security_admin — which `organization_memberships` does not carry.
+
+**`is_admin()` and `is_current_user_admin()` are byte-identical.** Same body,
+same volatility, same search_path, two names.
+
+**All four are hardened correctly.** Every one sets `search_path TO 'public'`,
+which is exactly what a SECURITY DEFINER function should do. The advisor's
+warning reads as though they are careless; they are not, and that is worth
+recording as a thing that is right.
+
+**No policy in any migration calls any of the four**, against more than thirty
+calls to `is_org_member` across five migrations. That is the most useful fact for
+OWNER-STEPS item 4 — and it does not settle it, for the reason that produced this
+item in the first place: these four existed in the database and in no migration,
+so the schema holds content this repository cannot see, and policies are part of
+that content.
+
+**The migration creates nothing, replaces nothing and drops nothing**, and that
+is the decision rather than the shortcut. A `LANGUAGE sql` body is validated when
+the function is created, so a `create or replace` of either function whose tables
+are missing **fails on deploy, on the authorization path**. And nothing here can
+execute Postgres, so a definition written here would be one nobody had run. What
+it does carry is the four definitions verbatim, plus a `do` block that raises
+notices saying which functions and which of the three tables the database it runs
+against actually has — the one question this repository cannot answer from
+outside it.
+
+**One report had already gone stale by the time this landed.**
+`report-security-definer-exposure.mjs` printed "These exist in the live database
+and not in version control, so they cannot be reviewed by reading this
+repository." True when written, false the moment the definitions were recorded.
+It now separates **recorded** from **defined** — the count of 8 of 12 is
+unchanged and still correct, because it counts what this repository defines, and
+this migration defines nothing on purpose. Collapsing the two states would have
+made the sentence wrong in the other direction.
+
+That reader deliberately reads the raw migration rather than the comment-stripped
+SQL every other check in that file uses, because the definitions are commented
+out on purpose; reading the stripped version would find nothing and report all
+four as unreadable. Probed both ways — removing one definition names it as
+unreadable, deleting the file names all four.
+
+### 2026-08-19 — The Stripe prices existed twice, and one subscription in the account's history
+
+Asked to check and complete the two owner-only items. One of them turned out to
+be reachable from here and mostly already done; the other is not reachable at
+all, and saying which is which is the point of this entry.
+
+**Stripe was reachable** — the connector holds live credentials for
+`acct_1TRSqj0dKtlEU3lA`, the same account `docs/owner/OWNER-STEPS.md` records as
+checked read-only on 12 August. So the step could be verified rather than
+described.
+
+**The three prices already existed.** Created 13 August 2026, at $19, $39 and
+$79 monthly, with lookup keys, nicknames, and product descriptions that match
+`lib/sonara-stripe-plans.cjs` **verbatim**. Checking first is the only reason
+that was found; creating them as the step instructed would have made a third
+set.
+
+**There were already two sets.** A second — bare products named `One workspace`,
+`All three` and `Team`, no descriptions, no lookup keys, auto-assigned default
+prices — was created on 19 August at the same three amounts. Two live prices at
+one amount, differing only in which carries the customer-facing description, is
+a trap: point a variable at the wrong one and the invoice names a product with
+no description on it.
+
+Neither set had a subscriber, so the duplicates were archived —
+`prod_V6FejKrPFMI61v`, `prod_V6FgqpmKZeEth5`, `prod_V6FgGMeVSnnwR2`. Reversible,
+nothing deleted, and Stripe does not permit deleting a price anyway.
+
+Stripe refused the first attempt with "this price cannot be archived because it
+is the default price of its product", which is why the products were archived
+rather than the prices. That leaves three prices reading `active: true` on
+archived products — **the exact shape `lib/sonara-billing.cjs` already guards
+for the three retired SONARA OS plans.** The guard was written because Stripe
+does not clear a price's active flag when its product is archived, and it now
+covers three more.
+
+**One subscription exists in the account's entire history.** $9.99/mo, started
+4 May 2026, cancelled the same day, on a price that is now archived. That is
+independent confirmation of OWNER-STEPS item 1 — nobody has completed a paid
+signup in production — and it comes from the subscription list rather than from
+the deploy output saying `positiveSubscribedUserTest: "pending"`.
+
+Item 5 is rewritten. It is no longer "create three prices"; it is "set three
+variables", with the price ids written down, because price ids are not secrets —
+they travel to the browser during checkout.
+
+**The four authorization functions were not reachable and remain open.** The
+Supabase connector needs an authorization this session cannot perform, and this
+container holds no `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` or
+`SUPABASE_ACCESS_TOKEN` — checked rather than assumed. There is no route from
+here to `pg_get_functiondef`, and PostgREST does not expose `pg_proc`. That step
+is unchanged and still needs the owner to run the query.
+
+### 2026-08-19 — Five repositories from a set of screenshots, and one that matters
+
+Submitted as phone screenshots of social posts rather than as links, which
+changes the first job: working out what was actually being shown, then checking
+it rather than reading it off the picture.
+
+**Every licence and star count below came from the GitHub API**, and that is not
+a formality. The GitHub Projects posts quoted figures within a few hundred of
+the API — those were fine. A separate image, a README titled "30 Things to
+Install into Claude", quoted 270.7k for one repository, 203k for another and a
+claimed 2,758,126 total across thirty; those do not survive the same check.
+Nothing from that image was recorded. **A star count in this register comes from
+the API, never from a screenshot**, and this is the first time that rule caught
+something.
+
+- **ToolJet** — AGPL-3.0, 40,501 stars. **Blocked, and it is the one that
+  matters.** The sub-app builder shipped earlier the same day: a customer defines
+  record types with their own fields and gets pages to fill them in. ToolJet is
+  the mature forty-thousand-star version of that idea, which makes it the one
+  repository here somebody could reasonably read as a shortcut. The Affero clause
+  triggers on network use, so incorporating any of it would oblige publishing
+  this product's source. The architectural reason stands at any licence: it is
+  React plus NestJS plus Postgres plus Redis in containers, against one Express
+  file with one production dependency. **Read the model, never the code** — how it
+  stores a customer-defined schema and validates rows against it is exactly what
+  `lib/sonara-sub-apps.cjs` solves, and reading a design is not deriving from it.
+  The record also says plainly that SONARA's sub-app builder is *not* a
+  competitor and should not be described as one.
+- **OpenCut** — MIT, 85,165 stars. Research only, and the licence is not what
+  decides it. **Creator Studio stores no media today** — its pages hold rows
+  describing work, not the work. An editor is the second half of a pipeline whose
+  first half does not exist, and that first half is uploads, storage and
+  transcoding: the first per-gigabyte recurring cost this product would carry.
+- **Logto** — MPL-2.0, 14,383 stars. Reference only. Supabase Auth already does
+  this, and swapping a working authentication system is not filling a gap. Kept
+  because MPL-2.0 is reciprocal *per file* rather than per project — a real
+  distinction from AGPL — and because it is the shape of an answer to
+  OWNER-STEPS item 3, where four authorization functions live in the database and
+  in no migration. Recorded as reference_only rather than blocked deliberately:
+  the refusal is about fit, not permission, and those are different answers.
+- **Public APIs** — MIT, 465,603 stars, by a wide margin the most-starred
+  repository on this register and the least consequential. It is a markdown list.
+  Its MIT licence covers the list and says nothing about any API in it, and **a
+  free tier is a price, not a licence** — a directory of free APIs is the most
+  efficient way to build a feature that stops working on somebody else's
+  decision.
+- **Unsloth** — Apache-2.0, 73,775 stars. Reference only. Clean licence, no fit:
+  it needs a GPU, a serverless function cannot reach one, and a GPU is rented by
+  the hour whether anyone generates anything or not. That is the opposite shape
+  to every tool this product ships, which are arithmetic over the customer's own
+  rows and cost nothing per use.
+
+Two of the five first declared `productFit: ["Shared Platform"]`, and
+`generate-product-integration-map.mjs` refused them: "Shared Platform" is a
+surface the map derives, not a label a record may claim. Corrected to
+`Admin Command Center` and `Private Model Mode`. The check was right and the
+records were wrong.
+
+Register now holds 145 records against 145 unique GitHub targets.
+
+### 2026-08-19 — The module boundary, and the sixteen routes it was wrong about
+
+Making the three studios separable starts with knowing what belongs to each,
+and that turned out to be already written down: `lib/sonara-route-registry.cjs`
+declares 248 routes with a `visibility`, a `requiredRole`, a `requiredPlan` and
+a `productOwner`. It is the module manifest. **Nothing checked it against the
+server.**
+
+`scripts/verify-route-registry.cjs` asserts every declared route is registered
+and that public routes are declared public. Neither it nor any test ever asked
+whether a route declared `requiredRole: "customer"` actually refuses somebody
+who is not one.
+
+**Sixteen of 246 declared GET routes served 200 to an anonymous visitor while
+declaring they needed a signed-in customer.** Measured against a *configured*
+server on purpose — without Supabase, pages that would redirect render "setup
+required" and answer 200 instead, so a probe on a bare machine measures the
+machine rather than the product.
+
+Nothing leaked. Thirteen are studio funnel pages with no database read, one is
+the support form, and the two account pages render a form whose write answers
+401 and stores nothing. So the server was right about fourteen and the manifest
+was wrong about them; on the other two the server was wrong.
+
+- **Thirteen studio entry pages** — each studio's start guide, tool directory,
+  catalogue, content page and support form. `visibility: "product"` mechanically
+  set `requiredRole: "customer"`, and for the funnel that was simply untrue.
+  They are now `PRODUCT_ENTRY_ROUTES`, and they **stay in `PRODUCT_ROUTES`**:
+  who owns a page and who may open it are different questions, and moving them
+  to `PUBLIC_ROUTES` would have made `/business-builder/tools` a platform page.
+  Which studio owns which page is the one thing anybody separating them has to
+  know first.
+- **`/support`** moved to the public list. The handler is built to work signed
+  out and its own comment says so — the requests card is omitted rather than the
+  page refused. A support form somebody locked out cannot reach is a support
+  form for people who do not need it.
+- **`/account` and `/account/setup`** now send a stranger to sign in. They render
+  account navigation and a form that would refuse them, which is the
+  customer-facing shape of a signal that reports success without being true.
+
+**`/account/setup` was the one worth finding.** `server.js` registers it with
+`requireCustomer`. An `app.use` interceptor in
+`routes/sonara-business-control-plane-routes.cjs` matched the same path, ran
+first, and answered a different page with no guard at all — so the route was
+gated in the file somebody would read and ungated in the file that ran. The
+guard it now uses is the one the `/business-builder/dashboard` interceptor
+twenty lines below already used, in the same shape.
+
+`tests/the-route-manifest-agrees-with-the-server.test.js` is the check, and it
+asks both directions plus the boundary itself: no page open that says it is
+closed, no page closed that says it is open, every route owned by one of the
+three studios or the platform, every owner owning something, and every studio's
+pages under that studio's path. Probed by re-opening `/account/setup` and by
+dropping a page from the entry list; both fail correctly.
+
+**Three existing checks had been reading pages as the wrong visitor**, and two
+of them only surfaced because this work changed what a stranger sees:
+
+- `tests/page-reachability.test.js` fetched `/account` signed out to read its
+  links. Once `/account` started redirecting it reported five account subpages
+  as unreachable. They were not — the check had been reading a page as somebody
+  who should never have been shown it. It signs in now.
+- `tests/marketing-surface-rule.test.js` checked that work screens carry no
+  marketing animation by fetching customer routes signed out and skipping
+  anything that redirected. Its own `rendered > 0` guard fired the moment the
+  last three open ones closed: **nothing rendered, so the check was proving
+  nothing**, and had been close to proving nothing for a long time.
+- `tests/server.test.js` listed both account pages among the public routes and
+  asserted 200. The assertion worth keeping — that the setup form is real — now
+  signs in rather than being deleted with the anonymous access it rested on.
+
+**Recovered from a container reset mid-task.** The clone had been rolled back
+behind six pushed commits, with two stale artifacts in the working tree that
+belonged to neither this work nor origin. Fetched first, confirmed origin had
+every commit, discarded the stale files, fast-forwarded, and re-applied the
+edits against the real files rather than copying the backups over them.
+
+Suite 2,100 passing.
+
+### 2026-08-19 — Sub-apps: records this product does not have a page for
+
+The owner's choice for the next block of work. Five `business_sub_app_*` tables
+were created on 30 May 2026 and nothing has ever read them;
+`lib/sonara-subsystem-registry.cjs` records why, honestly: "Designed, never
+built."
+
+**Why it could not have been built as it stood.**
+`business_sub_app_database_schemas` holds a `fields` jsonb describing what a
+record looks like, and **there was no table holding records**. A customer could
+design a record type and have nowhere to put one — a schema designer with no
+rows, which is the same shape as the feature it was meant to be.
+`20260819040000_sub_app_records.sql` is the missing half, and it is the first
+migration of the build rather than the last.
+
+One table for every customer record type, not one table each. Creating a real
+table per record type would mean this application issuing DDL at runtime with
+the service-role key, against a database whose migrations are frozen and
+checksummed precisely so nothing does that. Rows are jsonb, validated against
+the schema's own field list on the way in.
+
+The same migration adds what the original five tables never had: check
+constraints on their `status` columns — all of them were `text not null default
+'draft'` accepting any string, the gap `research_sources` carried until this
+morning — a constraint that `fields` is a non-empty array, and a unique index on
+`(sub_app_id, schema_key)` so two record types cannot claim the same page.
+
+**Seven field types**, and the shortness is the point: text, long text, number,
+money, date, yes/no, and one-of-a-list. Every one renders as an input, validates
+on the way in, and reads back as the same value. A type that cannot do all three
+is a column that looks supported and is not. File uploads, references between
+sub-apps and computed fields are absent on purpose — each needs storage,
+integrity or an evaluator that does not exist, and each would be a half-answer
+that looks whole in a dropdown.
+
+Four decisions worth not rediscovering:
+
+- **Money is whole cents.** `42.50` stores as `4250`, the rule every other money
+  column here follows, and a negative amount is refused rather than stored.
+- **A blank optional field is stored as `null`, not omitted.** Present-and-null
+  says "left blank"; absent says "this field did not exist when the record was
+  made", and those are different facts.
+- **An unticked checkbox is `false`, not unknown.** That is the one place absence
+  is a value rather than a gap, and it is true of every HTML form.
+- **A record is checked against the schema in the database, never against the
+  form that was submitted.** A form is HTML and a browser can edit it; the
+  stored field list cannot be.
+
+**Nothing writes `business_sub_app_deployments`.** It carries a
+`deployment_url` and this product cannot fill it: no build step, no per-tenant
+hosting, one serverless function serving every route. A sub-app lives inside
+SONARA at a path. A test asserts the route file never names that table or that
+column, because the next person to see `deployment_url` will reasonably assume
+it is meant to be written to.
+
+Registered from `routes/sonara-last9-routes.cjs` rather than from `server.js`:
+same product area, every dependency already in scope, and `server.js` is under a
+line ratchet whose whole point is that behaviour leaves it rather than arrives.
+It stays at 4,033.
+
+Twenty-five tests. Two probes fired correctly — dropping the organization filter
+from the schema lookup, and accepting any value for a list field. One existing
+guard caught a real problem in the new page: `no page lies when the database is
+down` flagged the sentence "nothing here will offer you one" as an empty-state
+claim about the customer's records. It was reworded rather than exempted.
+
+Suite 2,092 passing.
+
+### 2026-08-19 — Applying the pricing restructure, and the plan that was selling nothing
+
+The owner chose to apply it now rather than after the first production sale,
+which `docs/pricing/2026-08-11-PRICING-RESTRUCTURE.md` had named as a
+precondition. Their call, and stated as theirs in the document.
+
+**Most of the code half was already done, and I checked rather than assumed.**
+`workspace_monthly` $19, `all_three_monthly` $39 and `team_monthly` $79 are in
+`lib/sonara-stripe-plans.cjs` with `supersededBy` wired and `offeredPlanKeys`
+handling the changeover as a set. `lib/sonara-paid-access.cjs` maps all three to
+every workspace they cover, including `choosesOneWorkspace` so $19 does not
+quietly buy all three. `lib/sonara-plan-limits.cjs` gives each its location
+allowance. None of that needed touching.
+
+**One thing did.** The pricing document says exactly what Team sells: "The staff
+portal, per-person schedules, time entries and assigned tasks already exist and
+**are given away**." They were. All six `/staff` pages were registered with
+`requireCustomer`, so any signed-in account — free included — opened every one
+of them. Team's only difference from All three at $39 was a sentence.
+
+Nothing failed, because nothing asked. The pricing tests check the page shows
+the amount the config holds; the entitlement tests check a plan key opens a
+workspace. Neither asks whether a plan's *description* is true. A plan that
+charges for something free is this codebase's recurring defect wearing a price
+tag.
+
+`FEATURE_ENTITLEMENT_KEYS` in `lib/sonara-paid-access.cjs` is the fix, kept
+apart from `PAID_ENTITLEMENT_KEYS` because that map's keys are product keys and
+two tests walk them as products. The staff pages go through
+`requirePaidOrOwnerAccess("staff_portal")`, which already separates the three
+answers this needs kept apart: paid, not paid, and **a billing read that did not
+answer**. The third returns 503 with "this is on our side", never a paywall — an
+employee shown "upgrade required" because Supabase was slow is being told their
+employer has not paid.
+
+`tests/the-staff-portal-is-what-team-sells.test.js` covers all three, and the
+gate was probed by removing it and watching the free-account case fail with
+`/staff is still free (200)`.
+
+Two documents were wrong and are corrected: the pricing document pointed at
+`scripts/verify-stripe-config.mjs`, which does not exist (`verify-stripe-env.mjs`
+does), and its "given away" sentence now carries what changed.
+
+**What is left is Stripe**, and it is `docs/owner/OWNER-STEPS.md` item 5 — three
+Price objects, three variables, and the check that compares them against what the
+page promises. Until they exist the new plans render "Checkout is not configured
+for this plan yet" and the old ladder stays up, which is `offeredPlanKeys` doing
+exactly what it was built to do.
+
+### 2026-08-19 — The second application is gone
+
+The owner's decision, asked and answered: delete it.
+
+**672 files.** `app/` (231 Next.js pages, 12 API routes, 256 files in all), 181
+components, 216 `.ts` modules under `lib/`, plus `config/`, `types/`, `utils/`,
+`proxy.ts`, `tsconfig.json`, `next.config.mjs`, `postcss.config.mjs` and
+`next-env.d.ts`. None of it could run: `next`, `react` and `typescript` were not
+dependencies, `pnpm run build` is `node --check server.js`, and `vercel.json`
+bundles only `{public/**,routes/**,lib/**}` into one Express function with every
+route rewritten to it.
+
+`data/*.ts` stays — those are registers the shipped code parses as text, and
+`data/open-source-tools.ts` alone is read in twelve places.
+
+**The release chain never noticed.** All 24 commands passed with `app/` deleted
+and nothing repaired. What broke was everything else, and each break was a check
+telling the truth for the first time:
+
+- **`verify:env` reported six variables classified and read by nothing.** They
+  had been declared in `lib/env/server.ts`, `lib/auth/workspace.ts` and two other
+  dead modules. One of them matters: **`SONARA_ADMIN_EMAILS`**, which five
+  documents instructed the owner to set for admin access, and which no running
+  file has ever read. Setting it granted nothing and nothing said so.
+  `FOUNDER_EMAILS`, `ADMIN_EMAILS` and `ADMIN_EMAIL` are the live names; the five
+  documents and `.env.example` now say so.
+- **`verify:orphan-tables` gained ten tables**: the `entity_*` family from
+  migration 008. They were never queried by anything that ran either — they were
+  queried by `lib/entities/*.ts`, so the check counted them as used until those
+  files went. `entities` has slug, name and `is_public` and **no
+  `organization_id`**: a second tenancy model beside organizations, which is why
+  none of them can be "just wired up". Each now carries a recorded decision.
+- **Nine validator scripts existed whose entire subject was the dead
+  application** — `verify-brand`, `verify-local-launch`,
+  `validate-sonara-full-infrastructure`, `entity-heartbeat-check` and five more.
+  They asserted that files existed in an application that could not build.
+  **Nothing in `package.json` or CI referenced any of them**, so they had never
+  run at all. Deleted, along with `scripts/verify.sh`, which built a `frontend/`
+  directory this repository does not have.
+
+Two checks were rewritten rather than deleted, because their questions were
+still live and had been asked of the wrong surface:
+
+- `tests/brand-registry.test.mjs` asserted that every brand entity had a name, a
+  tagline and three hex colours — in `lib/brand/brand-system.ts`, which never
+  deployed. It now asks the same of `lib/sonara-brand-registry.cjs`, and asks
+  more: that every logo path resolves to a file in `public/`, and that each
+  product's accent token names a `.sonara-product--<token>` rule that actually
+  exists in the shipped CSS. Renaming one without the other silently loses a
+  product's colour, and both halves stay individually valid.
+- `check-github-radar-public-copy.mjs` guarded against public copy claiming a
+  reviewed repository ships with this product. It walked
+  `app/research-lab/github-radar/**/*.tsx` and passed every time. The live
+  research-lab is Express, at `/research-lab` and four child routes, and nothing
+  had ever read it. `scripts/check-research-lab-public-copy.mjs` reads the six
+  files that render it and **is in the chain**, which the old one never was.
+
+Probing that replacement found a defect in it: the first probe passed because a
+qualifier at one end of a long server-rendered line excused an overclaim at the
+other. The qualifier now has to sit within 140 characters of the claim. Both
+probes fail correctly.
+
+**Still here, and a separate question:** `backend/` — a 370-line Python FastAPI
+application. Checked properly after CI went green rather than assumed: the
+`backend-dependencies` job installs its requirements, runs `pip check`, audits
+them with `pip-audit`, compiles both modules and imports the app asserting
+`/health` and `/brands` are routed. **So unlike the Next.js tree, it builds**,
+and it is not dead code. What it does not do is deploy — `vercel.json` bundles
+only `{public/**,routes/**,lib/**}` into one Node function, so nothing in
+production serves it. Whether it should exist is still an open question, and the
+answer is not "delete it like the other one".
+
+**And the job named `frontend-dependencies` has no frontend.** It runs against
+the repository root and does real work — the pnpm audit, the open-source
+registry check, the parse check, the build — so the signal is sound and only the
+name misleads. It is left alone on purpose: a job's name is the check name
+GitHub reports, so renaming it retires that check and creates a new one, and if
+the old name is a required status check on `main` every pull request would then
+wait forever for a check that no longer runs. Both jobs now carry a comment
+saying what they actually cover.
+
+Suite 2,063 passing, chain green at 25 commands.
+
+### 2026-08-19 — What the owner actually has to install, checked by running it
+
+Asked for exact installation instructions. Producing them meant running the
+instructions that already existed, and three of them were wrong.
+
+- **`pnpm run db:push` could not run at all.** It called `pnpm exec supabase`,
+  and the Supabase CLI is not a dependency of this repository — the answer was
+  `[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command "supabase" not found`, which
+  reads like a corrupted install rather than a tool nobody has installed. Four
+  documents in `docs/` instruct somebody to run it.
+
+  Adding it as a devDependency was tried and reverted: the npm package pulls a
+  **155 MB** platform binary as an optional dependency, and Vercel runs
+  `pnpm install --frozen-lockfile` on every deploy, so it would sit on the
+  critical path of every production build for a tool a person runs by hand.
+  `scripts/require-supabase-cli.cjs` now checks for it and prints the install
+  commands for macOS, Windows and "no installer" instead.
+
+- **Copying `.env.example` to `.env` does nothing.** There is no `dotenv` here —
+  the only production dependency is `express`, and nothing reads a `.env` file
+  at startup. The README told people to copy it and then `pnpm start`, which
+  gets a running server with none of those variables set and looks exactly like
+  a working setup. Node 22 loads it natively, so `pnpm run dev` is now
+  `node --env-file=.env server.js`. Verified: a `.env` holding `PORT=3112`
+  produced `Listening on 3112`.
+
+- **The port is 5000, not 3000.** `server.js` reads `process.env.PORT || 5000`;
+  the 3000 in the README came from `.env.example`, which — see above — was never
+  being read.
+
+`docs/owner/INSTALL.md` is the guide, and every claim in it was run rather than
+recalled: `pnpm start` serves `/`, `/pricing` and `/business-builder` at 200 and
+`/dashboard` at 503, which is the correct "setup required" state for a blank
+install and not a fault.
+
+The honest headline is that there is **almost nothing to install**. One
+production dependency, no bundler, no compile step — `pnpm run build` parses the
+server and loads it. The work is four accounts and their settings, not a
+toolchain.
+
+### 2026-08-19 — The crawl permission gate, built
+
+`research_sources.permission_status` has existed since the platform redesign on
+28 May 2026, `not null default 'needs_review'`, with `crawl_status` beside it.
+Neither column had a check constraint, so both accepted any string. **Nothing in
+the application had ever read either one** — the table appeared in the generated
+tenant-scope inventory and one subsystem listing, and nowhere else. A permission
+gate was designed into the schema and nobody built it.
+
+`POST /api/market-intelligence/fetch-source` meanwhile took any HTTPS URL from a
+request body and had this server fetch it. Crawl4AI refuses loopback, link-local,
+cloud-metadata and private addresses before the request leaves, so it was not a
+request forwarder — but nothing anywhere asked whether the business had
+established it may look at the site at all.
+
+**No page called that endpoint**, which is exactly why closing it now cost
+nothing. There was no feature resting on the gap.
+
+What was built:
+
+- **The rule.** `sourcePermission()` in `routes/market-intelligence-routes.cjs`,
+  exported so a test can ask it directly. Three outcomes, never two: `approved`,
+  `not_approved`, and `unreadable`. A read that failed is not a source nobody
+  approved — both refuse, but one tells the customer to go and approve something
+  they may already have approved, and the other says the check did not run.
+  A full page of approved rows returns `unreadable` too, because a match could
+  have been on the next one and "not approved" there would be a guess.
+- **Host, not URL.** An approved row covers the whole site; asking somebody to
+  record every path means nobody uses it. Exact host though: `blog.example.com`
+  is not `example.com`, because `github.io`, `vercel.app` and `pages.dev` hand
+  subdomains out per user, and walking up the domain would approve strangers.
+- **The values.** `20260819020000_research_source_permission_values.sql` adds
+  check constraints on both columns, after normalising UPDATEs. Three values for
+  permission, because two would lose the distinction that matters: a source
+  nobody has ruled on is work somebody has to do, not a decision they made.
+- **The page.** `/business-builder/owner/research-sources` lists what has been
+  recorded and takes a new one.
+- **The way to change your mind.** Record pages create rows and never edit them,
+  so without `POST /api/business/research-sources/:sourceId/approve` a source
+  recorded honestly as `needs_review` would sit there for good and the gate would
+  refuse it for good. It is a row action on the page, scoped by organization as
+  well as by id — the service key bypasses row level security, and this row
+  decides what this server will go and fetch.
+
+Twenty-three tests in
+`tests/only-a-source-you-approved-is-fetched.test.js`. Both new contract
+assertions were probed by breaking the migration and watching them fail, and the
+endpoint test was probed by disabling the gate and watching it fail. Suite 2,063
+passing; `verify:launch` green.
+
+Four repository-wide checks caught the new page on the way in, which is the
+system working: `member-read-policies` wanted a policy a signed-in member can
+read through (the table's own policy predates `to authenticated`), `search`
+wanted the table accounted for either way, `verify-supabase-contract` wanted the
+table named in a reviewed group, and `verify-openapi-contract` wanted the three
+routes documented.
+
+**Still not automated, deliberately.** Nothing crawls on a schedule, so
+`crawl_status` records an intention rather than driving one, and the column
+comment says so. The gate is consulted per request by the endpoint that fetches.
+
+### 2026-08-19 — Scrapling, and the permission gate that was never built
+
+BSD-3-Clause, verified from the GitHub API's detected `license.spdx_id`. 75,014
+stars and 7,499 forks — **the second most-starred repository ever submitted
+here**, after MoneyPrinterTurbo. Python on Playwright, pushed hours before it was
+submitted.
+
+**It is two libraries in one repository and they need opposite answers**, which
+is the whole point of the record. Reading it as a single yes or no is how the
+second half arrives with the first.
+
+- **Adaptive selectors** are genuinely additive. `lib/sonara-crawl4ai-adapter.cjs`
+  fetches a page and returns readable text; it has no notion of finding the same
+  element again after a site is redesigned.
+- **Stealth** is out of bounds, for a concrete reason rather than a squeamish
+  one: SONARA's own egress does the fetching, so bypassing a site's bot detection
+  is this product overriding a site operator's stated wishes, on a customer's
+  behalf, at a volume the customer chooses.
+
+Different result from Figranium, and worth the contrast. Figranium was GPL-3.0
+and did what the Apache-2.0 Crawl4AI adapter already does — a worse-licensed
+duplicate, so the answer was no. This is permissively licensed and does something
+Crawl4AI does not. The answer is still **not yet**, but for a reason about this
+product rather than about the repository.
+
+**Checking what the product already does turned up the reason.**
+`research_sources` carries `permission_status text not null default 'needs_review'`
+— a column whose entire purpose is recording whether a source may be crawled.
+**Nothing reads it. Nothing writes it either**: the table is named only in the
+generated tenant-scope inventory and one subsystem listing, and the live fetch
+endpoint takes a URL straight from the request body and hands it to Crawl4AI.
+The schema anticipated a permission gate that was never built.
+
+That is the order-of-operations point and it decides the record. **Adding a tool
+whose selling point is not being detected, to a system that does not yet check
+whether it was allowed, is the wrong way round.** The gate is the cheaper work
+and the piece that would make either scraper defensible — and it is the obvious
+next thing here, deliberately not bundled into a repository review.
+
+Verified: `verify:launch` green, 140 registry records, 141 unique GitHub targets.
+
+### 2026-08-19 — an entire Next.js application that does not build or ship
+
+Asked to build roughly twenty-five product surfaces — projects, memos, logbooks,
+hiring, teams, files, and the rest. Rather than start typing, checked which of
+them already have schema and no way in. Two did: `sonara_projects` and
+`employee_job_posts`. Following `sonara_projects` to whatever reads it found
+`lib/sonara/projects/projectStore.ts`, and then the actual answer.
+
+**The repository contains 1,165 `.ts`/`.tsx` files, including an `app/` directory
+of 231 Next.js pages and 12 API routes. None of it builds and none of it ships.**
+
+| Fact | Where |
+| --- | --- |
+| `next` and `react` are not dependencies | `package.json`; `node_modules/next` does not exist |
+| No TypeScript build exists | `pnpm run build` is `node --check server.js && node -e "require('./server')"` |
+| `app/` is not in the deployment | `vercel.json` bundles `{public/**,routes/**,lib/**}` into `api/index.js` |
+| Nothing would route to it | `vercel.json` rewrites `/(.*)` to `/api`, the Express app |
+
+**Nothing in this repository's documentation mentioned it** — not the handoff, not
+`AGENTS.md`, not `SHIP_READINESS.md`. It does now.
+
+**What it was costing.** `scripts/report-orphan-tables.mjs` counted a table as
+queried when any `.ts` file named it, so the release chain reported *"0 tables
+created and never queried"* while **ten were queried only by code that cannot
+run.** A gate asserting a guarantee that had stopped holding — the defect this
+repository keeps finding, this time inside the check meant to catch it. The scan
+now reads only what ships. Confirmed by putting `.ts` back and watching the
+report demand those ten be *removed* as no longer orphaned.
+
+Each of the ten has a recorded decision, and three are warnings rather than
+opportunities: `sonara_user_subscriptions` is a **third** billing model beside the
+live `billing_subscriptions` and `billing_entitlements`; `sonara_projects`
+duplicates `music_projects`, which already has a working page; `system_audit_events`
+would be a **fifth** audit log. One is a real gap — `sonara_sound_assets` models
+licence, redistribution and attribution for third-party audio, which
+`data/open-source-tools.ts` does for code and nothing does for sound.
+
+**Whether that application is revived, deleted or left inert is the owner's
+decision**, and `docs/SHIP_READINESS.md` sets out the three costs without
+recommending one. Deleting ~1,165 files is destructive and `AGENTS.md` puts that
+behind owner approval; reviving it forks the product into two front-ends over one
+database, and the Express side is the one with the tests, the tenant guards and
+the release chain.
+
+**A container reset landed mid-task**, on HEAD `f3e51f2` with the documented
+stale artifacts. Recovered by the recorded procedure — stash, **fetch first**
+because the reset rewinds the `origin/` ref too, ff-only merge, drop. The tell was
+the suite reporting 1,728 tests where it had reported 2,037: a shrinking pass
+count with no failures is a tree that changed underneath, not a suite that got
+better. Every edit was then re-applied against the real files rather than copied,
+and the anchors differed — `ORPHAN_DISPOSITIONS` was empty on the real HEAD and
+populated on the reset one.
+
+Verified: `verify:launch` green, 2037 tests passing, 10 orphans all accounted for.
+
+### 2026-08-19 — MoneyPrinterTurbo, and the gap it pointed at
+
+Submitted on its own. **108,500 stars and 16,474 forks — by a wide margin the
+most-starred repository ever put into this register**, more than three times the
+next. MIT, verified from the GitHub API's detected `license.spdx_id`. Python,
+pushed the day before it was submitted.
+
+It generates a short video from a topic: script, narration, stock footage,
+subtitles, render, aimed at TikTok, Reels and Shorts.
+
+**The licence is the easy part and it is fine.** Three other things are not, and
+they are three different kinds of decision, which is why the record separates
+them rather than reaching one verdict:
+
+- **Architecture.** Python, ffmpeg, minutes of CPU and hundreds of megabytes of
+  scratch per video. This runtime is request-scoped serverless with no build
+  step. It is a worker the owner runs, like every other rendering candidate here.
+- **Downstream licences.** MIT covers the orchestration. Whatever stock source it
+  is configured with has its own terms, and identifiable people or trademarks in
+  stock footage carry release questions no licence file answers. Same shape the
+  register already recorded for AudioCraft, where the code is MIT and the weights
+  are not.
+- **Product policy.** It produces content published under a customer's name, at
+  volume, to platforms with their own rules about inauthentic and automated
+  content. Whether SONARA should do that for customers is a decision nobody has
+  made, and it is not an engineering one.
+
+One concrete constraint rather than a general worry: **the name never reaches
+customer-facing copy.** `tests/guides.test.js` already asserts no page promises
+revenue, ranking or a guaranteed outcome, and a creator feature called
+MoneyPrinter is that promise made in a single word.
+
+**The useful finding is structural, and it is about this codebase.**
+`creator_generation_jobs.capability` is a single
+`text not null check (capability in (...))` column — **one capability per job.**
+Text to speech is a job. Text to video is a job. A short video assembled from a
+script, a narration, footage and burnt-in subtitles is a *chain* of them, each
+step feeding the next, and nothing here can express that. Every generation
+surface is one-shot. That gap would have to be closed before any pipeline of this
+kind could be driven from Creator Studio — this one or one written here — and it
+was found by reading what a submitted repository does rather than by reading this
+codebase.
+
+**What was verified and what was not**, because the difference is the point of
+this register: licence, stars, forks, language, activity and topics come from the
+GitHub API. The repository's own files were **not** read — repository access here
+is scoped to `sonara-os` and the egress proxy blocks direct fetches — so the exact
+stock source and provider list come from its description, and anything resting on
+them needs checking against the repository itself.
+
+Verified: `verify:launch` green, 139 registry records, 140 unique GitHub targets.
+
+### 2026-08-19 — a cross-tenant write, found by auditing four endpoints
+
+**`/api/business/time-entries/stop` resolved no organization at all.** It took an
+id from the request body and patched `employee_time_entries` with the service
+key, which bypasses row level security. So **any signed-in customer could close
+any time entry in any business**, stamping `clock_out_at`, `status`, and a break
+length of their choosing.
+
+`break_minutes` is the part that reaches a number somebody is paid on:
+`workedHours()` subtracts it, and it feeds the labour cost on the daily sales
+page. It also accepted negatives, and a negative break adds hours.
+
+Found by listing every hand-written `app.post` in the file and asking one
+question of each — does it resolve an organization? Three of four did. This one
+did not, and **2,025 tests passed over it.** The comment above the child-line
+handler had said why it mattered for years: "without this check a line could be
+written into another organization's order by posting its id."
+
+Fixed: organization resolved, the entry checked against it before the patch, a
+failed read kept apart from an entry that belongs to somebody else, and
+`break_minutes` clamped at zero. The guard moved to `requireBusinessManager` to
+match `/business-builder/owner/time`, the only page that offers it.
+
+**A second, smaller defect on the same endpoint.** The row action there is an
+HTML form, so clocking somebody out answered a button press with raw JSON in the
+browser. It returns to the page now.
+
+**The same class on two more endpoints, one line each.** `/api/location/events`
+and `/api/business/time-entries/start` both took `employee_id` from the request
+body and wrote it unchecked. The staff portal lists by `employee_id`, so an
+unchecked one puts hours or a location record onto a colleague's page — or onto
+another business's employee entirely. Both now check that a supplied employee,
+area or location belongs to the caller's organization.
+
+The employee is deliberately **not** forced to be the caller: the form on
+`/business-builder/owner/time` asks "Who is starting", so a manager clocking
+somebody else in is the intended use. Checked before changing it, because
+forcing self-attribution would have broken a working feature.
+
+`belongsToOrganization` returns three answers rather than two — yes, no, and
+"the read did not happen" — because collapsing the third either refuses a
+legitimate clock-out during an outage or writes across a tenant boundary on no
+evidence.
+
+**The question is asked on every build now.** `tests/every-write-names-a-business.test.js`
+lists every writing handler across `server.js` and `routes/` and requires each to
+establish an organization, with one recorded exemption: `/auth/forgot-password`,
+which happens before anybody is signed in and writes to Supabase auth rather than
+a tenant table. The exemption is two-sided — it also fails if that handler starts
+resolving an organization or stops existing, because a reason that outlives what
+it excuses is what the next person reads instead of checking.
+
+What it can and cannot see is worth stating: it catches the **absence** of a
+scope, which is the shape that shipped. A handler that resolves an organization
+and then forgets to filter by it still passes.
+
+Verified: `verify:launch` green, 2037 tests passing. Every defect was confirmed
+by putting it back — removing the ownership check fails two tests, allowing a
+negative break fails one, and restoring the original unscoped handler fails six.
+
+### 2026-08-18 — a claim I published, made true
+
+The capability audit sent to the owner said of the product catalogue: "An invoice
+line can name one, **so a catalogue item goes onto a bill without being
+retyped**." Checking my own sentence against the code: the line recorded
+`variant_id`, and `description` and `line_total_cents` were both `required`, so a
+person picked "Oak shelf — Large" and then typed the name and the price they had
+just set on it. The catalogue saved nobody anything.
+
+Either the claim was wrong or the feature was unfinished. It was the feature.
+
+Picking a version now fills the description, the unit price and the line total.
+Four rules, and three of them are about not doing too much:
+
+- **Only blanks are filled.** `dropBlanks` has already removed anything left
+  empty, so `submitted[key] === undefined` is exactly "they did not type this".
+  A typed price is a discount somebody meant, and the migration is explicit that
+  a line total is what the business decided to charge.
+- **A blank quantity is the column's own `not null default 1`**, not a guess.
+  Without that, a version picked with nothing else typed saved a priced line
+  totalling zero.
+- **The lookup is scoped by organization**, like the parent check above it. The
+  service key bypasses row level security, so a guessed id would otherwise price
+  a line from another business's catalogue.
+- **A read that failed is not a version that does not exist.** The first would
+  put a null into a not-null column and surface as a database error nobody can
+  act on; the second is somebody else's row. They refuse separately and say
+  which.
+
+The two `required` flags had to come off, and that is the part worth
+understanding rather than copying: with `required` in the HTML the browser blocks
+the submission before the server can fill anything. So the rule moved to
+`requireEither: { reference, fields }` — pick one, or type those — and the server
+re-checks the **full** list after filling, so a reference that produced no
+description still refuses rather than inserting a null.
+
+`tests/owner-record-lines.test.js` built its submissions from `required` alone and
+so posted neither field, which made three unrelated tests look like the endpoint
+had broken. The harness knows about `requireEither` now; a harness that does not
+know what a page requires reports the page as broken.
+
+Verified: `verify:launch` green, 2025 tests passing. Both rules that matter were
+confirmed by breaking them — filling over typed values, and dropping the
+organization filter from the lookup — and each is caught.
+
+### 2026-08-18 — the production gate did not require four tables four pages read
+
+Found by checking an exclusion list against the runtime instead of reading it.
+
+`lib/sonara-database-retirement-contract.cjs` names tables "from superseded
+schemas" that "are not active SONARA runtime tables". Being on it is not
+cosmetic: `scripts/verify-production-supabase.mjs` drops those names from
+`expectedTables` and verifies them with **`required: false`**, so an absent one
+is not a failure — and each run emits a warning saying the table "should be
+reviewed for archival".
+
+Four of the twenty-seven were queried by live code:
+
+| Table | Read by |
+| --- | --- |
+| `employee_announcements` | `/staff/announcements` |
+| `employee_tasks` | `/staff/tasks` |
+| `quotes` | `/business-builder/owner/quotes` and `/api/business/quotes` |
+| `reviews` | the "Reviewed" stage of the customer-journey funnel |
+
+So **if `quotes` disappeared from production the gate would pass**, while
+recommending it be archived. None of the four is in the canonical
+`DATABASE_TABLES` either, which is what would have put them back into the
+required set.
+
+All four are off the list. The guard that would have caught it is now in
+`tests/supabase-active-contract-reconciliation.test.js`: no entry on the
+retirement list may be a table runtime code queries. Verified by putting `quotes`
+back and watching it name `quotes`.
+
+**Two things about how it was found, both worth keeping.** The first pass used a
+plain word-boundary grep and reported twelve — `files`, `payments`, `leads` and
+`campaigns` are ordinary English and ordinary variable names, and one of them was
+matching a variable in my own scratch script. Redone with the four patterns
+`verify-supabase-contract.mjs` already treats as a runtime table reference, it was
+four. A sloppy measure that over-reports is not the safe direction; it buries the
+real four in eight false ones.
+
+And `reviews` survived that second pass on a route suffix — `["reviews",
+addStageReview]` in the product-lifecycle routes — so it was checked a third time
+before being called live. It is: `lib/sonara-customer-journey.cjs` reads it as a
+funnel stage.
+
+Verified: `verify:launch` green end to end, 2017 tests passing. The production
+verifier itself cannot be run from here — it needs live Supabase credentials — so
+what changed is which tables it will require on its next run against production.
+
+### 2026-08-18 — two audits that found the schema right, and one gap they left
+
+Ran two systematic hunts generalised from defects already found today. Both are
+worth recording for what they did *not* find, because "checked and clean" is
+information the next person otherwise pays for again.
+
+**Boolean columns defaulting to `true`** — the generalisation of the
+feedback-profile fix, where the database decided a question `AGENTS.md` says a
+person has to. Twenty-one such columns across the migrations. Almost all are
+**fail-closed safety defaults and correct**: `requires_approval`,
+`human_review_required`, `security_review_required`, `rls_required`,
+`owner_review_required`, `license_review_required`, `private_required`,
+`no_artist_name_prompting`. Defaulting those on is the right way round.
+
+`notification_preferences` turned out to be exemplary rather than suspect:
+`sound_effects`, `voice_announcements`, `haptics`, `email_alerts`, `sms_alerts`
+and `browser_push` **all default `false`** — the six things `AGENTS.md` names —
+and only `visual_alerts`, the least intrusive kind and not on that list, defaults
+true. Somebody implemented that rule properly and it is still holding.
+
+One left alone deliberately: `creator_tracks.explicit_version_allowed` defaults
+true, and nothing in the runtime writes or reads it or the
+`clean_version_required` beside it. Changing a default on a column with no
+surface is motion, not a fix.
+
+**Columns a page renders but never asks for** — the inverse of
+`report:selected-columns`, and the more dangerous direction. A record page
+hand-writes `select` and `columns` separately; a column read but not selected is
+`undefined` on every row, so the page renders "Not set" for every record forever.
+That is indistinguishable by eye from a column nobody filled in.
+
+370 column reads across every record page, child table and `also` block: **all
+clean.** But nothing had been checking, and four record pages were hand-written
+in a single day this week, each with its own select string. It is a test now,
+verified by dropping one column from one select and watching it fail.
+
+Neither audit produced a product change. The first found the schema already
+right; the second found the pages already right and left a guard behind so they
+stay that way.
+
+Verified: `verify:launch` green end to end, 2016 tests passing.
+
+### 2026-08-18 — the location page knew how precisely it had tracked somebody
+
+Worked the sixteen advisory findings from `pnpm run report:selected-columns`,
+which had never been examined. One was a real defect and it is on the most
+sensitive surface in the staff portal.
+
+`/staff/location` selected `privacy_mode` and rendered nothing. The column allows
+**precise, approximate, masked and manual**, it is `not null default 'precise'`,
+and `grep` finds nothing anywhere — client or server — that has ever set it to
+anything else. So every check-in is stored at the most precise setting, the
+database chose that, and **the page a person opens to see what was recorded about
+them did not say which of the four applied.**
+
+Each check-in now says. The card copy changed too: "Nothing here tracks you in
+the background" was true and one-sided, which is the easy half of a sentence
+about somebody's location. It now says what *is* kept as well.
+
+**The default was deliberately not changed**, and the reason belongs next to the
+fix. A job-site check-in exists to record that somebody was there, and quietly
+degrading it to "approximate" would damage a business record on my judgement
+rather than the owner's. The fix is that the person is told, not that the fact is
+altered. That is the opposite call from the feedback-profile fix earlier today,
+where `AGENTS.md` requires sound and vibration off by default and the value
+itself was wrong.
+
+Labels live in `lib/sonara-plain-language.cjs` with the product's other words, and
+absent renders "Not recorded" rather than the most invasive of the four — asserted,
+because a missing value reported as `precise` is the same defect one level down.
+
+**The other fifteen findings were checked and are cross-function uses, exactly as
+the tool's tier 2 documents.** Worth recording so nobody re-examines them:
+
+- `isBusinessManagerUser` selects `organization_id` and returns `membership`, so
+  it reaches the caller. This one was opened first because it is authorization.
+- `staffSections` selects `break_minutes` for `workedHours()`, one function over.
+- `listSupportRequests` selects three columns the `/admin/support` handler
+  renders. Its `email_delivery_status || "pending"` fallback matches the column's
+  own `not null default 'pending'`, so it guesses nothing.
+- The rest are handlers passing rows to renderers.
+
+That is the tiering calibrated correctly: one real defect, fifteen benign, and the
+gate stayed on tier 1 where the rulings are verified.
+
+Verified: `verify:launch` green end to end, 2015 tests passing. The two new checks
+were confirmed by dropping the precision from the card again and watching them
+fail.
+
+### 2026-08-18 — "install all reciprocal repositories", worked through and answered
+
+Asked, and it needed the owner first: installing reciprocal code obliges
+publishing SONARA's own source under the same licence, which is a decision about
+the business rather than the build. The answer was **install what can be
+installed without changing SONARA's licence, and nothing that would change it.**
+
+Enumerating the 17 was the useful part, because the licence turned out not to be
+the binding constraint for most of them:
+
+- **Eleven are whole applications**, in four language runtimes this deploy does
+  not have — C#/.NET, PHP, Rust, Python. You run them; you do not install them
+  into an Express CommonJS app with no build step.
+- **Three are reference material** with no installable artifact.
+- **Exactly one is a library this runtime could load**: HyperFormula.
+
+**The clearest result was a reason not to build.** Figranium is GPL-3.0 and does
+what `lib/sonara-crawl4ai-adapter.cjs` already does — fetch a page, return
+readable text — except Crawl4AI is Apache-2.0, already built, already called from
+`routes/market-intelligence-routes.cjs`, and already refuses loopback,
+link-local, cloud-metadata and private ranges. Adopting it would trade a
+permissive licence for a reciprocal one and gain nothing. That kind of result
+does not announce itself, so it is written into the register's
+`recommendedAction` rather than left in a chat.
+
+**HyperFormula has two non-reciprocal routes and one missing fact.** Buy the
+vendor licence, or run it as a separate service called over HTTP — GPL is not
+AGPL, so the service boundary is the settled reading. Both are blocked on a price
+nobody has asked for, and `hyperformula.handsontable.com` is blocked by this
+environment's egress proxy, so **the number is not in any document I wrote.** It
+is an owner step now, phrased as the exact question to send.
+
+Neither route is worth taking yet: nothing lets a customer write a formula, so an
+adapter today would be a capability with no caller — the dead-end shape this
+month has been spent closing.
+
+**The AGPL and OSL eleven stay untouched, and the reason is stated as what it
+is.** `CLAUDE.md` takes the conservative reading and nothing here loosens it.
+Whether an AGPL service held at arm's length is genuinely separable is a lawyer's
+question, not this repository's, and the arrangement above is proposed only where
+the separation is settled.
+
+**A guard was missing and is now there.** `docs/architecture/EXTERNAL-SERVICES.md`
+read "The eight reciprocal repositories are a separate decision" — stale by nine,
+with nothing watching it, because the doc-count pattern requires the words "carry
+a reciprocal licence" and this phrasing has neither. One number, two sentences,
+one guard. A second pattern now covers "N reciprocal repositories", verified by
+putting the stale figure back and watching it fail.
+
+Two things worth carrying forward from that. **A derived count spelled as a word
+is invisible to every pattern** — "eight" could never have been caught, so write
+derived counts as digits. And the new guard caught its own author on first use:
+"the other 16 reciprocal repositories" reads as a claim about the total, and the
+fix was to stop putting a number in that sentence at all.
+
+Verified: `verify:launch` green end to end, 10 countable claims checked, 138
+registry records, 2013 tests passing. **Nothing was installed, and that is the
+finished state of the decision rather than a deferral.**
+
+### 2026-08-18 — twenty-eight repositories, submitted as "free and open source"
+
+They are not, and the register now says so with every licence read from the
+GitHub API's detected `license.spdx_id` rather than from a README. The batch
+divides three ways, and the groups need different decisions:
+
+**Three declare no licence at all** — `ripienaar/free-for-dev` (132,144 stars),
+`SadServers/sadservers`, `philtabor/MADDPG`. All rights reserved. The most-starred
+repository in the batch, by a factor of three, is the one with the least
+permission attached to it: **popularity is not a licence.**
+
+**Six are reciprocal** — three figranium repositories, `flox`, `nautilus_trader`,
+`Self-Driving-Car-in-Video-Games`. These *are* free and open source, and adopting
+one obliges releasing this product's source. Two distinctions recorded because
+they decide different cases: the AGPL closes the door the plain GPL leaves open
+(running it as a separate service is exactly what the AGPL was written for), and
+using a GPL tool to build software does not make the software GPL.
+
+**An organisation is not a licence.** The four figranium repositories carry three
+different licences across one org — GPL-3.0, MIT and AGPL-3.0. Checking one told
+you nothing about its siblings.
+
+**Three are NOASSERTION.** PostHog is the instructive one: MIT for most of the
+tree and its own enterprise terms for parts of it, so "PostHog is MIT" is true of
+most files and false of the repository.
+
+**The register's own checks caught two things I would have shipped wrong.** The
+duplicate-slug check refused a second `boxyhq-saas-starter-kit` record — already
+reviewed, and carried further than my fresh review would have taken it, so
+re-reviewing would have replaced a considered decision with a shallower one. And
+four `blocked` records were refused for not declaring `blockedUses`. Both are the
+register doing the job it exists for.
+
+**The doc-count guard caught the third.** Adding six reciprocal repositories moved
+a figure quoted at the owner in `docs/owner/WHAT-IS-LEFT.md` from 11 to 17, and
+the guard failed the build rather than letting it drift — which is the exact
+failure the required `reciprocalLicense` field was added to prevent.
+
+Eight repositories in the batch are named `agents` and mean at least three
+unrelated things: task agents that act for a business, reinforcement-learning
+policies, and prompt files for coding assistants. A batch assembled by keyword
+contains things the keyword only appears to connect, and the register is where
+that gets caught before something unrelated becomes a dependency.
+
+**Two skills written, and deliberately not copied from anything submitted.**
+`wshobson/agents` (MIT, 38,898 stars) and `open-saas` both ship skills for coding
+assistants, and reading them the useful conclusion was that the form transfers and
+the files do not — a general-purpose "code reviewer" skill would say nothing about
+pnpm-only, the 24-command chain, or that absent is not false. So
+`.claude/skills/adding-a-record-page` is the eight-file sequence and the six ways
+the chain refuses an incomplete one, and `.claude/skills/checks-that-cannot-lie`
+is the six shapes of the recurring defect, each with the case in this repository
+that produced it — including the one where the first version of a check would not
+have caught the bug it was written for.
+
+Analysis in `docs/market/2026-08-18-SUBMITTED-REPOSITORIES-BATCH-2.md`.
+
+Verified: `verify:launch` green end to end, 138 registry records, 139 unique
+GitHub targets, 2013 tests passing.
+
+### 2026-08-18 — the sweep became a check, and the check found the billing page
+
+The scratch sweep that found the consent-scope bug is now
+`scripts/report-unused-selected-columns.mjs`, in the release chain. Getting it
+right took two attempts, and the failed one is the part worth keeping.
+
+**The first version would not have caught the bug it was written for.** It
+compared each selected column against the whole file, and
+`routes/creator-generation-routes.cjs` names `consent_scope` eight times — in the
+consent POST handler, in the permission picker, in a constant — so the one
+function ignoring it was hidden behind seven that did not. Reintroducing the bug
+left the check green. A check reporting success over the defect it exists to find
+is the defect, so it was thrown away rather than shipped.
+
+The second version parses each file and asks per function. That does catch it:
+putting the bug back names `evaluatePolicy()` and `consent_scope`, and removing
+it again clears the finding.
+
+**Two tiers, and only one of them gates.** Tier 1 is "named nowhere in the file"
+— three of those, each opened and ruled on. Tier 2 is "used in the file, not in
+the function that asked", which is the tier that catches the consent shape and
+also catches sixteen perfectly correct helpers reading a row their caller
+fetched. Gating on tier 2 would mean sixteen exemptions written to clear a gate,
+and exemptions written that way are how a reason nobody rechecks becomes what the
+next person reads instead of checking — the failure this session already found in
+`tests/form-reachability.test.js`. So tier 2 prints and a person looks.
+
+**It found one immediately.** `getBillingPanelSummary` selected
+`current_period_end` and never used it, so the billing page fetched the renewal
+date and did not show it. Worse, it never asked for `cancel_at_period_end` at
+all — the Stripe webhook has always written that column and nothing had ever
+read it — so a customer who had already **cancelled** read "Core monthly: active"
+and nothing about it ending. True, and misleading in the one direction that costs
+a support ticket.
+
+The page says what happens next now, in three states, because absent is not
+false: cancelling with a date, renewing with a date, or a date with no answer
+about renewal, which says only when the period ends. A row with no date says
+nothing rather than guessing a month ahead. The protection the function already
+had is asserted alongside: a failed read is still "we could not check your plan",
+never "no active paid plan".
+
+espree is loaded through eslint's own require, and **if it cannot be found the
+script stops** rather than falling back to the file-level comparison. A check
+that quietly downgrades to a weaker measure while still printing "passed" is
+precisely what this one exists to catch.
+
+Verified: `verify:launch` green end to end with the new command (24 in the
+chain now), 2013 tests passing. Both tiers were confirmed against real defects —
+tier 2 against the consent bug put back, tier 1 against a planted select.
+
+### 2026-08-18 — a sweep for the defect that keeps recurring, and what it found
+
+The consent-scope bug had a shape worth generalising: **a column a query selects
+and the file never uses again**. Being in the `select` list is what made it look
+checked. So I swept every `select=` in `routes/`, `lib/` and `server.js` for
+columns fetched and never named again, with comments stripped so a column
+mentioned only in prose does not count as used.
+
+Three hits, and one of them was real.
+
+`/creator-studio/rights` selects `subject_type` and never uses it. Its cards are
+headed `row.subject_name || "Consent record"` — and **`subject_name` is nullable
+while `subject_type` is `not null`**, so the page discarded the fact that is
+always there in favour of the one that might not be. A permission recorded
+without a name was headed "Consent record" and named nobody.
+
+The same page also printed `consent_scope` with its underscores swapped for
+spaces, so one permission read "Voice copying" on
+`/creator-studio/voice-permissions` and **"voice clone"** on this one — two
+vocabularies for one table, which is how they drift, and a database value in
+front of a customer either way.
+
+`voiceSubjectLabel`, `voiceScopeLabel` and `voiceEvidenceLabel` now live in
+`lib/sonara-plain-language.cjs` with the product's other words, and both pages
+use them.
+
+The guard that matters most is not either page: **the label maps are checked
+against the migration's own check constraints.** A map that stops covering its
+column answers "Not recorded" for a real value — a permission that exists, shown
+as one that was not written down — and that is silent. Adding a value to the
+constraint now fails the build.
+
+The other two hits are not defects: `/api/integrations/providers` is a JSON API
+whose caller uses the fields, and a notification `category` is carried for the
+response rather than the render. Recorded here so the next person running the
+sweep does not re-examine them.
+
+Verified: `verify:launch` green end to end, 2005 tests passing. The three
+page-level checks were confirmed by putting the old expressions back and watching
+them fail.
+
+### 2026-08-18 — the consent record's one meaningful field decided nothing
+
+Went to check the consent-capture flow was really built, since `AGENTS.md`
+requires it: "Enforce provenance, consent, and anti-clone safety." It is —
+create, list, revoke, a page, and `evaluatePolicy` refusing a voice job without
+a live record. Two things inside it were not.
+
+**`consent_scope` was selected on every voice job and compared to nothing.** It
+is the field that says *what the person agreed to* — text-to-speech, speech-to-
+speech, voice clone, singing voice, or all of it — and a permission granted for
+text-to-speech authorised a voice clone. The column being in the `select` list is
+what made it look checked; that is this repository's recurring defect exactly, on
+the most sensitive gate in the product.
+
+There is now a map from capability to acceptable scopes, and a capability with no
+entry is **refused** rather than let through on the blanket scope, so adding one
+to `VOICE_CAPABILITIES` without deciding what covers it fails closed. A test
+asserts every gated capability has an entry, and a second asserts every scope
+named is one migration 20260723080000's check constraint will actually store —
+otherwise a permission that satisfies the check could never be created.
+
+`music_voice_profile` and `talking_avatar` have no scope of their own in that
+constraint, so only `all_voice_generation` covers them. Stated rather than
+quietly widened: the alternative is deciding on somebody's behalf that "singing
+voice" included their face.
+
+The mismatch has its own code and its own sentence. "Record a permission" would
+send somebody to create a second one identical to the first; what they need is to
+pick a different one or widen the one they have.
+
+**And the form offered two capabilities nothing can run.** The capability list was
+hand-written and included `voice_clone` and `singing_voice`; **no provider in
+`lib/creator-generation-provider-registry.cjs` declares either.** So the two most
+sensitive things on the menu were the two that could not work — a customer picked
+"Voice copy", was told voice work needs a permission on file, went and recorded
+one **naming a real person**, came back, pressed the button and got
+`capability_not_supported`. A consent record about a real human being, collected
+for nothing.
+
+The list is derived from what providers declare now, filtered through an explicit
+intent order, so both come back on their own the moment a provider offers them —
+and a test asserts they are still filtered out, so the day that happens somebody
+is told the menu grew rather than finding out later.
+
+The check the change had to survive: the scope test must not become the only
+test. A revoked or expired permission whose scope matches exactly is still
+refused, and both are asserted.
+
+Verified: `verify:launch` green end to end, 1999 tests passing. The scope check
+was confirmed by disabling it and watching three tests fail.
+
+### 2026-08-18 — the database was answering a question AGENTS.md says a person has to
+
+Went to give `sensory_feedback_profiles` — the last of the three device tables
+with an insert endpoint and no surface — a list and a form on
+`/creator-studio/device-cues`, and found something in the schema on the way.
+
+`AGENTS.md`: "Sounds, voice announcements, haptics, SMS, push, and email alerts
+must be **off or explicitly user-controlled by default**." Migration 015 gives
+`sensory_feedback_profiles.sound_enabled` and `.vibration_enabled` a **column
+default of `true`**, and the insert path never named either. So every profile
+created arrived with sound and vibration on, decided by the database, on a
+question the rule says the person has to answer.
+
+It is harmless today because nothing reads the table. That is not a reason to
+leave it — the row is written now and read whenever somebody builds the consumer,
+and by then nobody is looking at this. The four toggles are defaulted off in the
+insert and asked for explicitly on the form. Both halves are tested: created off
+when unasked, and **still on when somebody says yes**, because a default that
+cannot be overridden is not a default and the rule is "off or explicitly
+user-controlled" rather than "off".
+
+Select options may now be `{ value, label }` as well as strings. `"true"` and
+`"false"` in a dropdown is the schema talking to the customer; the eleven string
+lists already written are untouched.
+
+The "Uses" column folds four booleans into one readable cell and keeps the
+distinction this repository keeps rediscovering: **absent is not false**. A row
+whose columns did not come back reads "Not set"; all four genuinely off reads
+"Nothing". Both are asserted, along with the two mixed cases.
+
+That closes the third and last of the write-only device tables. All three
+exemptions are gone from `tests/form-reachability.test.js` rather than reworded.
+
+Verified: `verify:launch` green end to end, 1988 tests passing.
+
+### 2026-08-18 — two tables nothing showed, and a wrong reason in an exemption list
+
+`waste_logs` and `location_zones` were both excused in
+`tests/form-reachability.test.js` as "no page displays this". One reason was
+right and the other was false.
+
+**`waste_logs` was right.** The endpoint existed, the columns existed, and a row
+written through it was invisible from the moment it was created; the exemption
+said "a form without a page to read the result on would be worse, not better",
+which is true and describes the wrong fix. `/business-builder/owner/waste` is the
+page. It belongs beside recipes and daily sales because it is the third number in
+the same sum — `lib/sonara-formula-library.cjs` already defines `waste_cost` over
+`waste_logs` and `inventory_items`, and a kitchen that knows its food cost and not
+its waste knows the smaller half of where the money went.
+
+**`location_zones` was false.** "No page displays location_zones; only the
+generic list and insert exist" — `/business-builder/routes` has listed them the
+whole time, and its empty state read "Add the areas you cover and they will
+appear here" above no form, on a page that never had one. **A wrong reason inside
+an exemption is worse than no exemption**, because it is what the next person
+reads instead of checking. `/business-builder/owner/areas` lists and creates them;
+the routes page redirects there, on the precedent set for vehicles — one page per
+kind of record rather than a second view that can drift.
+
+`polygon_geojson` is deliberately not on the form. Pasting GeoJSON into a text box
+is not a form, and nothing here draws a polygon or reads one.
+
+Two checks caught things on the way, both worth recording:
+
+- The outage crawl rejected "Nothing is dispatched and nothing is tracked in the
+  background" — "nothing is" reads as *you have no records* on a page whose reads
+  are failing. Reworded to "It dispatches nobody and follows nobody". That is the
+  **third** time this session the fix was the wording rather than an exemption.
+- `tests/search-keeps-up.test.js` refused both pages until they were searchable.
+  Waste searches by item and by the customer's own word for why; areas by name and
+  kind. Not by cost — a number is not a search term.
+
+Verified: `verify:launch` green end to end, 1981 tests passing, 277 required GET
+routes.
+
+### 2026-08-18 — the cue page was promising playback
+
+Went to close the vibration-patterns dead end — a list with no way to add to it —
+and checked what happens to a row before building the form, which is now the
+habit. Found something bigger than the missing form.
+
+`/creator-studio/device-cues` said: "Nothing plays, vibrates or moves on its own
+— **a cue only runs when something you do asks for it** and your device allows
+it." The first clause is the `AGENTS.md` position and was always true. The second
+says a cue runs. **Nothing reads `sound_cues` or `haptic_patterns` anywhere.**
+`grep` across `server.js`, `routes/` and `lib/` finds the record page, the generic
+insert, and no consumer; the sound and vibration the application actually makes
+come from a hardcoded map of five kinds in `public/sensory-device-client.js` —
+success, error, warning, tap, complete — which never looks a row up.
+
+So a customer could define a cue, be told it would fire when they did something,
+and it would never fire. **The sound cue form has been in that position the whole
+time** — the vibration list was the visible half of a problem both halves had.
+
+The copy says what the rows are now: definitions, written down, not yet read by
+anything. And with that true of both, the vibration form is honest, so it exists.
+This is the fourth dead end examined this week and the first where the answer was
+a door rather than a status — because the door's neighbour was already open.
+
+`also` blocks carry forms now. That needed three things, and the third is the one
+that would have rotted quietly:
+
+- `routes/sonara-last9-routes.cjs` renders `formCard` under an `also` list when
+  the block declares a form and an endpoint.
+- `loadReferences` walks `also` form fields. **None of them is a reference
+  today**, which is exactly when a picker breaks silently — the first one added
+  would render "Nothing to choose yet" to a customer with records. That failure
+  has now shipped twice in this file, on child forms and on the artist pages, and
+  both were found afterwards.
+- `lib/sonara-form-reachability.cjs` sees them, so `/api/sensory/haptic-patterns`
+  came off the exemption list. Its stated reason was "no `also` block carries a
+  create form" — an excuse that outlives its reason is the same defect as a page
+  describing a capability it does not have.
+
+**Two new checks, both verified by breaking them.** One asserts no runtime file
+outside the record page's own surface names either table, so if somebody builds
+the consumer the copy stops being true *and the build says so, naming the file* —
+rather than leaving a page telling customers their cues do nothing after they
+started working. The other checks every `also` form field against
+`lib/sonara-migration-columns.cjs`, because a payload naming a column that is not
+there is rejected by PostgREST while every stub in the suite accepts it: the
+button works and nothing saves, which is how all nineteen record forms shipped
+broken once.
+
+Verified: `verify:launch` green end to end, 1975 tests passing.
+
+Two rewrites the outage crawl forced, worth recording because the wording rule is
+not obvious. "Nothing here plays, vibrates or moves" and "Nothing plays these"
+both failed `tests/no-page-lies-when-the-database-is-down.test.js` — "Nothing
+here" reads as *you have no records* on a page whose reads are failing. Reworded
+to "Writing one down does not make it play", which says the same thing about the
+feature and nothing about the customer's rows. Rewording beat adding an
+exemption, the same call as the accounting-exports copy.
+
+### 2026-08-18 — selling something that is not a service
+
+Business Builder could price work and had no way to list a **thing**.
+`business_service_catalog` carries one flat `price_cents` and a
+`duration_minutes`, which is a service; `menu_items` is a menu; `inventory_items`
+is stock on hand. A search across all 88 migrations for a variant or price-tier
+table found only `growth_experiment_variants`, which is A/B testing. So a
+business selling objects in sizes, colours or pack sizes had to retype every one
+of them onto every invoice.
+
+`merchant_products` and `merchant_product_variants` close that, with the record
+page at `/business-builder/owner/products` and the versions as its child.
+
+**The price is on the version and nowhere else.** A product with two sizes at one
+price is a product with two versions that happen to agree. A price on the parent
+as well would give two answers to "what does this cost", and the two would
+disagree the first time somebody edited one. `tests/a-product-is-priced-through-its-versions.test.js`
+asserts no column on `merchant_products` matches `/price|amount|cost/` and that
+the form does not ask for one — verified by adding `price_cents` to the migration
+and watching five tests fail.
+
+**Named `merchant_products` rather than fighting for the word.** `products`
+already exists and means something else: its `product_key` is constrained to
+`business_builder`, `creator_studio`, `growth_studio` and `sonara_one`, so it
+records which SONARA product an organization enabled. Two tables called products,
+one of them meaning something else, is how the next person loses an afternoon.
+
+**Scope, stated so nobody assumes the rest arrived with it.** This is a
+catalogue: what you sell, in which variations, at what price. There is **no cart,
+no checkout, no tax calculation and no shipping**. Those touch money rules
+`AGENTS.md` governs, and a half-built checkout is worse than none. Quotes and
+invoices already exist to take money for these.
+
+**The one thing that could have looked finished and been useless.** An invoice
+line can now name a catalogue version, which is what makes the catalogue worth
+having — otherwise it is a list you retype. But a variant row says "Large",
+"Blue", "Box of 12", and a dropdown offering three different products' "Large"
+is a control that looks like a choice and is not one. `REFERENCE_SOURCES` grew an
+optional `select`, used by exactly one of its nine sources, so the picker embeds
+`merchant_products(name)` and each option reads "Oak shelf — Large". If the embed
+does not come back the read is not-ok and the field renders "We could not load
+these just now" rather than a list of adjectives. Verified by deleting the
+`select` line and watching the test fail.
+
+**Whether a product can be sold is a fact about its children**, so it is a card
+on the detail page rather than a column on the list. Five states, and each says
+only what is known: read failed, no versions, all versions archived, versions
+with no price, and a price or a range. A blank price is not a free product —
+`finiteNumber` again, for the same reason as every other total in that file.
+
+`totalFrom` is now genuinely optional on a child spec, and the versions table
+declares none. Adding up the prices of a small, a medium and a large produces a
+number nobody is ever charged. `tests/owner-record-lines.test.js` distinguishes
+"left out" from "set to undefined", so the omission is a decision rather than a
+gap.
+
+Verified: `pnpm run verify:launch` green end to end (exit 0), 1973 tests passing,
+orphan-table check at 0 unused tables — the two new tables have a read path, which
+is why the migration could not be committed on its own.
+
+### 2026-08-18 — the third row claiming a worker, and a form not built
+
+Went to close the reference-analysis dead end — a page listing analyses with no
+way to create one — and checked what happens to a row before building the form
+that would make them. Nothing happens to it.
+
+`grep` for `creator_reference_analyses` finds the constant, one insert, and
+**no runner, no status transition and no reader**. The endpoint wrote
+`status: "queued"`, so every row claimed work waiting to be picked up and none
+ever was. **Third instance of that shape this week**, after `accounting_exports`
+reporting "whether each one finished" about a file nothing produced and
+`integration_jobs` claiming a worker that does not exist.
+
+Status is `review_required` now — in the schema's check constraint, and true
+twice over. Nothing automated will touch it, and analysing reference material is
+exactly what `AGENTS.md` puts in front of a person: provenance, consent and
+anti-clone safety are judgements rather than jobs.
+
+**The form was deliberately not built.** Adding one would let a customer queue an
+analysis that never runs and watch it sit there, which is the defect this session
+has now fixed three times. A dead end is better closed by telling the truth than
+by adding a door onto nothing.
+
+**What remains is an owner decision, not an engineering one.**
+`/creator-studio/generation/reference-analysis` is a 302 into the generation page
+carrying `capability=reference_analysis`, and the generation form's capability
+picker does not offer it — the policy check even special-cases it
+(`capability !== "reference_analysis"`). So the link names a capability the page
+it lands on cannot perform. Either reference analysis is a product, in which case
+it needs something that runs it, or it is not, in which case the signpost should
+go. Both are decisions about what the product does.
+
+**One thing checked and found not to be a bug.** `evaluatePolicy` lets
+`reference_analysis` past the prompt requirement and then reads `prompt.length`
+on the next line, which looks like a crash on a missing prompt. It is not:
+`clean()` returns `String(value || "")`, so the prompt is always at least an
+empty string. Reported here because the next person will read those two lines
+the same way.
+
+`verify:launch` green, 1954 tests passing.
+
+### 2026-08-18 — a network check that could never have passed
+
+`verify-external-repositories` failed on the branch head, and the log said what
+happened without ambiguity:
+
+> WARNING: GitHub API rate limit reached; remaining remote checks are indeterminate.
+> ERROR: Network verification confirmed **none of 115** registered targets, so this run established nothing about whether they exist.
+
+**The checker was right and behaved correctly.** It reached the rate limit before
+confirming a single repository, and refused to report success on a run that
+established nothing. That is the same discipline as every list-based check here:
+a check satisfied by an empty result is worse than a check that fails.
+
+**The workflow ran unauthenticated.** No token, which means 60 GitHub API
+requests an hour shared across every runner on the same address, against **115
+targets**. It could not have passed reliably at any point, and the register
+growing from ninety-odd records to 111 this week turned "unlikely" into
+"certain".
+
+`scripts/verify-open-source-registry.mjs` has read `GITHUB_TOKEN` since it was
+written — its own failure message ends "check GitHub availability and **the
+token**". The workflow simply never passed one. One `env:` block does it, and
+the existing `permissions: contents: read` is enough for the public repository
+metadata it reads.
+
+Worth stating plainly because the shape recurs: this was not a flaky check and
+not a bad record. It was a check whose *preconditions were never met*, failing
+honestly for months' worth of scheduled runs and only becoming visible when the
+population grew past the free allowance. Nothing about the registry was wrong.
+
+`verify:launch` green, 1954 tests passing.
+
+### 2026-08-18 — offline touchpoints, refused twice and now built
+
+The refusal note in `lib/sonara-growth-create-specs.cjs` named its own
+condition: *"If offline touchpoints are wanted later, the honest version starts
+with a column recording that a person entered it."* That column landed earlier
+today, so the feature is built — and the three parts that make it safe landed
+together rather than in sequence.
+
+**The form.** A business can record the conversation at the counter, the phone
+call, the person who mentioned where they heard of you. It deliberately does not
+offer `provider_key`, `anonymous_id` or `external_event_id`: those identify a
+tracked source, and putting them on a hand-entry form is offering to dress a
+typed row as a measured one.
+
+**The endpoint records which.** `true` for anything the form submits, and
+**`null` — not `false` — when a caller says nothing**, because defaulting to
+false would assert that every integration-written row is *known* to be
+machine-recorded, which is a claim about callers this endpoint has never met.
+
+**The funnel excludes it, and this is the half that matters.** The "Reached"
+stage counts only rows that are not hand-entered. Every drop rate below it is
+computed against that number, so without this a business could raise its own
+reach and lower its own apparent drop-off by typing. `!== true` rather than
+`=== false`, because null means "nobody recorded which" and every row written
+before the column existed is tracked as far as anybody knows — treating null as
+hand-entered would erase the whole history from the funnel.
+
+The typed ones are **reported, not dropped**. `countStage` returns `handEntered`
+alongside `count`. Excluding them silently would be as misleading as counting
+them: the business recorded those on purpose and is entitled to see them, just
+not inside a measured figure.
+
+**Three existing checks refused the change, and each was right.** The
+Growth-forms test caught that the handler wants `tracking_basis_attested` and the
+form had no field for it — a form that submits into a 400 the customer cannot
+act on, which is a defect that test already guards for content. The
+form-reachability test caught its own now-stale exemption. And the test that had
+refused this form twice failed by name.
+
+That third one was rewritten rather than deleted, and it now asserts the
+**invariant instead of the absence**: the column exists, the funnel excludes
+typed rows and still counts null ones, the form offers no tracked-source field,
+and the attestation is present and not pre-ticked. Verified by removing each of
+those three protections in turn — every one fails, and the funnel one fails by
+name.
+
+`verify:launch` green, **1954** tests passing.
+
+### 2026-08-18 — an existence check that was asking the wrong module
+
+Adding `hand_entered` to a customer-journey stage failed validation, which
+turned out to be the validation's fault rather than the column's.
+
+`lib/sonara-migration-columns.cjs` answers two different questions.
+`tableColumns` says which columns **exist** — including the 229 added by
+`alter table` across the migrations. `describedColumns` says which columns can
+be **described**, meaning declared inside a `create table` block with a parsed
+type; it deliberately omits the rest, and says why: *"a form field with a
+made-up type is worse than a missing one"*.
+
+`lib/sonara-customer-journey.cjs` used the second to answer the first. Its
+`validate()` exists so no column is typed from memory, and it would have
+reported a real column as missing — **35 columns across 22 tables exist without
+being describable**, and the first stage to name one would have been rejected.
+`sonara_sound_assets` alone has 13 of them.
+
+Existence uses `tableColumns` now. Nothing in that file needed a type, so the
+describable helper went out with the switch rather than staying beside it as a
+second way to ask.
+
+Verified in both directions, because a permissive check that stops rejecting
+anything is the obvious way to "fix" this and would have been worse: a stage
+naming a column that does not exist is still caught by name, and a stage naming
+a real `alter table` column is now accepted.
+
+**And a fix that was not made.** The first read of this looked like a 229-column
+blind spot in the module itself, and the first instinct was to teach it to
+describe `alter table` columns too. Reading the code stopped that. The omission
+is deliberate, documented, and protective: describing those 35 columns would put
+them into forms built from descriptions, and `hand_entered` reaching a customer
+form is exactly the wrong outcome. The narrow fix was in the caller, not the
+module.
+
+`verify:launch` green, 1948 tests passing.
+
+### 2026-08-18 — which AI is possible here, and the column two features were waiting on
+
+Two pieces of work, and the first decided the second.
+
+**Researching what AI could be added produced an answer about headers, not
+models.** `AGENTS.md` requires AI calls through the Provider Gateway or an
+approved adapter, and a feature must cost the customer nothing. Together those
+rule out every hosted model API as a shipped capability: a per-token bill cannot
+sit behind a free tool, and a free tier is a price somebody else can change. So
+the question is *which AI has no per-use cost*, and there are two answers.
+
+**The first is that the plumbing already exists and is switched off.** Six
+adapters — Ollama, Open WebUI, Dify, Langflow, RAGFlow, Crawl4AI — plus the
+gateway itself, every one reporting setup-required until configured, with no page
+noticing its absence. The realistic zero-cost version of AI here is **Ollama on
+hardware the owner already owns**, and that is configuration rather than
+engineering.
+
+**The second is browser-side inference**, and it mirrors the video sweep exactly:
+the constraint that blocks server-side tools does not apply to something running
+on the customer's own device. **Transformers.js** (16,261 stars) and **WebLLM**
+(18,569), both verified Apache-2.0, registered at **111**.
+
+Both are `needs_security_review` rather than adapters, and the reasons are in
+this application's own headers, read out of `server.js` rather than assumed.
+`connect-src` names Supabase and Stripe and nothing else, so a model download
+from huggingface.co is refused — either that list grows or the weights are served
+from here and this product pays the bandwidth. **`Cross-Origin-Embedder-Policy`
+is not set anywhere in the codebase**: COOP is, COEP is not, so the page is not
+cross-origin isolated, `SharedArrayBuffer` is unavailable, and multithreaded WASM
+inference cannot run. And `script-src 'self'` with no bundler means a vendored
+bundle this project then owns. None of that refuses the idea; it makes it an
+owner decision about security posture.
+
+WebLLM carries one more constraint that decides it alone: a usable model is
+hundreds of megabytes at best and usually several gigabytes, once per device, on
+the customer's connection. **Free that costs somebody two gigabytes of data is
+not free.**
+
+**Then the column two refused features were waiting on.** `growth_touchpoints`
+and `sonara_prompt_templates` both refuse a form for the same reason: a typed row
+would be indistinguishable from a tracked or curated one.
+`lib/sonara-growth-create-specs.cjs` says so in as many words and names the fix —
+"the honest version starts with a column recording that a person entered it".
+
+`hand_entered` is that column, and it is **nullable on purpose**: true means a
+person typed it, false means it arrived tracked or curated, and **null means
+nobody recorded which**. A `not null default false` would write a claim about
+every existing row — that it is *known* to be machine-recorded — on the strength
+of nothing, which is the collapse this repository keeps finding, introduced
+deliberately.
+
+`tests/hand-entered-stays-three-state.test.js` pins that against the
+well-intentioned tidy-up. Verified against both: making it `not null default
+false` fails by name, and adding a backfill fails separately, because an UPDATE
+is the same claim written another way.
+
+Nothing writes the column yet, and that is stated rather than glossed. Before a
+touchpoint form ships, two things have to happen: the form sets `hand_entered`
+true, and the **"Reached" stage of `lib/sonara-customer-journey.cjs` stops
+counting hand-entered rows as measured** — a funnel a business makes decisions on
+must not quietly include evidence somebody typed.
+
+A container reset landed mid-task and destroyed the migration, the research
+document and the register edits before they were committed. All three were
+rewritten. Sixth reset in twelve check-ins.
+
+Register at **111**, 87 migrations. `verify:launch` green, **1948** tests passing.
+
+### 2026-08-18 — contacts, and the same literal mistake for the third and fourth time
+
+Third record type to become a file somebody else's software opens, after
+bookings became calendar entries and accounting exports became CSV. A grep for
+`VCARD` across `server.js`, `lib/` and `routes/` found nothing, so **"Customer &
+Enquiry Tracker" — a paid product — could hold a customer's phone number and
+offer no way to get it into the phone you would ring them from.**
+
+`/business-builder/owner/customers/:id/contact` for one,
+`/business-builder/owner/customers/contacts` for the address book. No dependency,
+no service the owner runs, no per-customer cost. The static path is declared
+before the parameterised one deliberately rather than by luck.
+
+Two judgements written into the module rather than left implicit. **A name and
+nothing else is a valid vCard and a useless one** — it imports somebody you still
+cannot contact — so a card needs an email or a phone and the refusal says which
+is missing. And **N is not guessed**: the product stores one `name` column, and
+treating the last word as a family name is wrong for most of the world, so the
+whole value goes in the first component and the rest stay empty.
+
+**Then the same mistake, twice more.** `escapeText` was written
+`.replace(/;/g, "\;")` — which in a JavaScript literal is just `";"`. In a vCard
+that is worse than in a calendar file: `N` is positional and semicolon-separated,
+so an unescaped semicolon in "Ashby; Ltd" imports as a family name and a given
+name. Then the test asserting the fix was written with the same literal and
+agreed with the broken code. That is the **third** and **fourth** occurrence of
+one two-character mistake across three files.
+
+So the guard is no longer per-module. One test now asserts that **both**
+`sonara-contact-card.cjs` and `sonara-calendar-invite.cjs` escape a semicolon, a
+comma and a backslash, and names which one failed. Verified by regressing each
+module in turn: the calendar regression fails with "calendar invite leaves a
+semicolon unescaped", the contact regression with "contact card leaves a
+semicolon unescaped". Each module's own test would have caught only its own copy,
+and the second copy was written *after* the first was fixed.
+
+The outage crawl asked for the new download to be listed in `FILE_DOWNLOADS`,
+which is the hand-maintained list added when the diary shipped. That puts it
+under the stricter download assertion — 503, a readable body, no JSON blob, no
+placeholder — rather than the page rule, which is the designed path and not a
+weakening.
+
+`verify:launch` green, **1944** tests passing.
+
+### 2026-08-18 — the first e-commerce record, and a table named for the wrong thing
+
+`lunarphp/lunar` was submitted with the instruction to add it to the application.
+Verified **MIT** from GitHub's detected licence field, 3,650 stars, 495 forks,
+pushed the day it was submitted. Registered at **109** — and it is the register's
+**first e-commerce record**, which is a real gap in the same way speech
+recognition was.
+
+**It cannot be added as a dependency, and the licence is not why.** It is a
+Composer package for Laravel; this application is Express CommonJS on Vercel
+serverless with no build step. Adopting it means the owner runs a second
+application with its own database — an infrastructure and cost decision, not a
+licensing one. Recorded `reference_only` for that reason.
+
+**Checking what Business Builder already has turned up the more interesting
+thing.** The table called `products` is not a merchant catalogue at all: its
+`product_key` is constrained to `business_builder`, `creator_studio`,
+`growth_studio` and `sonara_one`, so it records *which SONARA product an
+organization has enabled*. The merchant-facing tables are
+`business_service_catalog`, `menu_items` and `inventory_items`, with quotes and
+`customer_invoices` on top.
+
+So a business here can price a service and invoice for it, and has **no product
+catalogue with variants, no cart, no checkout, no tax rules and no shipping**.
+That is a larger gap than the submission implied, and it is worth knowing before
+anybody plans around the word "products".
+
+Third table this week whose name points somewhere its columns do not —
+`song_fingerprints` holds descriptions rather than audio, `accounting_exports`
+promised a file nothing produced, and now `products` names SONARA's own
+enablement rather than anything a customer sells. None is a bug. All three are
+the kind of thing somebody builds a plan on.
+
+What Lunar is genuinely good for is the model: variants, price breaks, tax rules
+and discount stacking are the hard part of selling, they are worked out and
+tested there, and reading them costs nothing and needs no service running. Its
+payment and refund paths are explicitly out of scope — money here goes through
+the existing provider path, and refunds are one of the seven owner-approval
+categories whatever an imported library would allow.
+
+`verify:launch` green, 1932 tests passing.
+
+### 2026-08-18 — a submitted document, assessed rather than assumed
+
+A saved MHTML archive of a newsletter landing page was submitted with the
+instruction to use its information in the product and in the Claude setup. It was
+opened before anything was done with it, which settled the question quickly.
+
+**The archive is 125 KB and its entire visible text is 1,746 characters** — a
+heading, fourteen resource tiles carrying a title, a category and a one-line
+description each, and a footer reading `© 2026 The Code Newsletter`. No code, no
+data, no specification, no attachment. Every tile is an outbound link to a
+separate hosted site, eleven of them on `lovable.app`, and **none of the fourteen
+is a repository**, so none is something this register can assess for a licence.
+
+Registered **blocked**, on the reading already applied to the IONOS guide: a
+document that is free to view and carries an explicit copyright notice has
+granted nothing. Free is a price, not a licence. Register at **108**.
+
+**What could honestly be taken was a count, not a sentence.** Eight of the
+fourteen resources are about Claude Code, the Claude Agent SDK or building AI
+agents. That is a dated, checkable observation about where a developer newsletter
+believes its subscribers' attention is, and
+`docs/market/2026-08-18-SUBMITTED-RESOURCE-INDEX.md` records it along with
+something more useful: a table mapping the subjects those tiles name against what
+this repository already has — the agent runner, the seven owner-approval
+categories, the hourly scheduler, the approval queue that re-asks the gate, and
+the 23-command release chain. Nothing on that list came from the document, and
+the table says so plainly. **The subjects are current and the work is already
+here.**
+
+Written down deliberately rather than left implicit: none of the fourteen
+destinations was fetched to extract its content. Reading somebody's guide in
+order to lift it is exactly what the register exists to refuse, and a page being
+publicly reachable is not a grant.
+
+`verify:launch` green, 1932 tests passing.
+
+### 2026-08-18 — the unexamined queue is empty
+
+`tests/form-reachability.test.js` carried **thirteen** entries reading "NOT YET
+EXAMINED". There are none left. Each now states what was checked and what was
+found, and the answers divide into two kinds that matter more than the entries do.
+
+**Listed somewhere, creatable nowhere.** A page displays the records and no form
+makes one, so a customer sees an empty list with no way to fill it.
+
+- `creator_reference_analyses` is rendered at
+  `/creator-studio/generation/reference-analysis`, and the generation form's
+  capability picker does not offer `reference_analysis` at all — the validator
+  even special-cases it. Only a direct POST creates one.
+- `haptic_patterns` is rendered on `/creator-studio/device-cues` as an `also`
+  block, and **no `also` block in the whole file carries a create form**; that
+  page's one form makes sound cues.
+
+The second one was telling a customer something false. Its empty state read
+*"You have not defined any vibration patterns yet"* — which says they simply had
+not got round to it, when there is no way for them to do it at all. It now says
+so, and states the `AGENTS.md` position while it is there: vibration stays off
+until one exists. **A page inviting an action it does not offer is the same
+defect as a page claiming a capability it does not have.**
+
+**Displayed nowhere at all.** `waste_logs`, `location_zones` and
+`sensory_feedback_profiles` appear only in the generic RESOURCE_MAP — a GET that
+lists and a POST that inserts, with no page anywhere. A record written through
+them is invisible from the moment it is created, which is exactly the shape that
+made the market-intelligence page worth fixing. A form would make that worse
+rather than better, and the entries say so.
+
+**The four prompt-library endpoints are reachable only by API**, and the reason
+is now stated rather than left as an absence. The library's single form —
+"Fill the template" — posts to `/prompt-library/:slug/render`, produces a preview
+to read, and saves nothing. What those pages render is curated content in
+`data/prompts-chat-reference.cjs`, so a customer-authored row saved beside it
+would be indistinguishable from the curated set on the page that lists them.
+That is the same objection already recorded for growth touchpoints, and it wants
+the same answer first: **a column marking a row as customer-authored.**
+
+Two of the thirteen turned into fixes; the rest turned into reasons somebody can
+disagree with. Both are better than "not yet examined", which is a note that
+survives indefinitely because nothing about it ever fails.
+
+`verify:launch` green, 1932 tests passing.
+
+### 2026-08-18 — a page that never showed what it told you it would show
+
+Working the "NOT YET EXAMINED" queue in `tests/form-reachability.test.js`. The
+four market-intelligence entries examined together, and the examination found
+something bigger than the entries.
+
+**`/*/market-intelligence` said "The workspace starts empty until
+organization-scoped evidence is recorded."** That tells a customer that recording
+evidence changes what they see. The handler was **synchronous**, read nothing,
+and rendered the same static framework cards whether the organization had one
+competitor recorded or four hundred. Four endpoints accept POSTs — segments,
+competitors, signals, opportunities — no page displayed any of them, and no form
+anywhere posts to them, so a record written through the API was invisible from
+the moment it was created.
+
+The page counts the organization's own evidence now, and a record type that could
+not be read is **named** rather than folded into a zero.
+
+**One exemption reason described a form that does not exist.**
+`/api/market-intelligence/fetch-source` was excused with "…and the signal form is
+still the only way anything is written". There is no signal form: no form action,
+no create spec, nothing posts to any market-intelligence endpoint from a page.
+The same defect as a page describing a capability it does not have, sitting in
+the reason a check was excused.
+
+**Then the crawl let the new page lie, and that was the real find.** Injecting
+`0` in place of "could not be read" left the whole suite green. `CLAIMS_EMPTY`
+looks for *words* — "no", "nothing", "yet" — and **"Competitors: 0" contains
+none of them.** Any page rendering counts could tell somebody they have none of
+something during a total outage and this crawl would pass it.
+
+`CLAIMS_ZERO` closes that. No page renders a bare "Label: 0" today, so it is an
+addition with nothing to clean up behind it, and it is deliberately narrow — a
+pattern that fired on money would be switched off within a week.
+
+**And the first version of `CLAIMS_ZERO` matched nothing at all.** Its lookahead
+`0(?![.\d])` rejected "Competitors: 0." because the sentence-ending full stop
+looked like a decimal point. It passed, while measuring zero pages — this file's
+own defect, inside this file's own check — and the only thing that found it was
+injecting the bug again and watching it stay green. **A check that has not been
+run against bad input is not a check, however carefully it was written.**
+
+`verify:launch` green, 1932 tests passing.
+
+### 2026-08-18 — the same defect, found by generalising the last one
+
+The accounting export was one instance of a shape: a row written with a status
+that promises processing, and nothing that processes it. Rather than wait to trip
+over the next one, the shape was searched for — every table inserted with a
+default status through the generic write endpoints, thirty-one of them.
+
+Most defaults are `active` or `draft`, which are honest initial states a *person*
+changes by editing the record. Two words promise a machine: `queued` and
+`scheduled`. **`integration_jobs` is the other `queued` one**, and grep finds the
+insert, the tenant-scoped list, and no runner anywhere — no page, no status
+transition, nothing that reads it.
+
+Its default is **`manual_required`** now, which is already in the schema's check
+constraint and is true: a person has to do this. One word, no migration, and the
+row stops claiming a worker this system does not have.
+
+**This one was already recorded as unexamined, and that is the part worth
+keeping.** `tests/form-reachability.test.js` listed it as *"NOT YET EXAMINED:
+resource in RESOURCE_MAP with no page."* — one of fourteen such entries. The
+codebase had honestly written down that it did not know, rather than assuming it
+was fine, and examining it took ten minutes and closed it. The entry now says
+what is true: nothing consumes `integration_jobs`, so a form would let somebody
+queue work that will never run, which is worse than no form.
+
+Thirteen "NOT YET EXAMINED" entries remain, and they are a better queue of real
+work than the rest of the GitHub category sweep.
+
+`verify:launch` green, 1932 tests passing.
+
+### 2026-08-18 — a status nothing could advance, and a cell that runs as code
+
+Checking the product before searching again, this time across every record type:
+**the application emitted no CSV at all.** 141 HTML responses, 10 plain text, one
+XML. Nothing else.
+
+That matters because `/business-builder/owner/accounting-exports` said *"Batches
+of your records prepared for an accountant or accounting software, and whether
+each one finished."* `accounting_exports` carries `export_type`, a period, a
+`status` and a `file_url`. **Nothing wrote `file_url`. Nothing moved `status`
+past `queued`.** The only code touching the table is the endpoint that inserts
+the request. So a customer asked for an export, saw "Queued" under a column
+promising to say whether it finished, and the answer could never change.
+
+**The file is built when it is asked for**, not queued and stored. There is no
+worker here, and a status only a worker could advance is how the promise came to
+be written.
+
+Three export types are served — bills, sales, inventory — and
+`payroll_summary` and `journal_entries` are **refused by name**. Both need
+accounting judgement this code has not been given: what belongs in a journal
+line, how gross pay reconciles to cost. Guessing would put wrong figures in front
+of an accountant, which is worse than putting none, and "not supported" tells
+somebody nothing about whether to wait.
+
+**A cell is not a formula, and that is a security property.** A value beginning
+`=`, `+`, `-`, `@`, tab or carriage return is executed by Excel, Sheets and
+LibreOffice on open — so a note a customer typed becomes code running on their
+accountant's machine. `lib/sonara-record-csv.cjs` prefixes such a value with an
+apostrophe, which **changes it**, so the count is returned and the route sends it
+in a header rather than rewriting somebody's records silently.
+
+**And the first version of that broke the export it was protecting.** `-` is a
+formula-start character, so every negative amount came out as `'-12.50` — text,
+in a file whose whole purpose is for an accountant to sum it. A plain number is
+exempt now, by an exact pattern rather than a permissive one: `-1+cmd|'/c calc'!A1`
+still fails it. The test caught this by asserting the behaviour and my reading
+what that meant, not by going red.
+
+Three more things the checks caught, each a real ambiguity rather than a nuisance:
+`accounting_exports` had no member read policy (added, 51 now); the page copy I
+wrote to replace the old promise said *"nothing sits here waiting to be
+processed"*, which the outage crawl read as a claim that the customer has no
+exports — ambiguous rather than wrong, and reworded rather than exempted; and the
+"Status" column, which on seven other pages tracks something that moves, is
+labelled **"Asked for"** here because nothing advances it.
+
+`verify:launch` green, **1932** tests passing.
+
+### 2026-08-18 — the diary, and a crawl that judged a file as if it were a page
+
+The per-booking calendar download shipped as half a feature. A business wants
+their week in their calendar, not to click twenty times.
+`/business-builder/owner/bookings/calendar` is the diary.
+
+**One builder, not two.** The feed was going to assemble its own VEVENT lines,
+which is how two builders of one format drift until a client accepts the download
+and rejects the feed. `eventLines` is now shared, and a test asserts the same
+booking renders **identically** whether downloaded alone or inside the diary.
+
+**What it does with a booking a calendar cannot show is the point.** It skips it
+and *counts* it, and the count is returned rather than dropped — a feed that
+quietly omits three appointments is a diary that lies by being incomplete, and
+the business has no way to notice. The route sends the number in a header. `null`
+and `[]` stay different answers too: a failed read is refused with
+`not_a_list` rather than rendered as a business with no bookings, and the route
+answers 503 instead of handing back an empty but perfectly valid calendar.
+
+**Then the outage crawl failed, correctly, and the fix was not to relax it.**
+The crawl requires every route to render a page with HTML markers. This route
+serves a *file*; putting an HTML page into a `.ics` request would be the wrong
+thing, so it answers 503 with a plain sentence.
+
+The HTML rule was always a proxy for "a human can read what came back", chosen
+because everything crawled until now was a page. **Widening that proxy for every
+route would have weakened it.** Instead downloads come out of that population
+into a separate, *stricter* assertion: 503, a body a person can read, no JSON
+blob, no placeholder, and wording that says what actually happened. The count of
+routes accounted for does not fall, and these gain a check the pages do not have.
+`FILE_DOWNLOADS` is listed by hand and deliberately short, because a route added
+there stops being checked for page markers.
+
+Verified against bad input: answering JSON instead of a sentence fails, a
+placeholder leaking into the message fails, and emptying `FILE_DOWNLOADS` fails
+rather than passing on nothing.
+
+**A note on how nearly this went wrong.** The first two probe runs appeared to
+show the new check passing on bad input, and the honest conclusion looked like
+"the check does not work". It did work — `head -3` was truncating the output
+before the summary line, and the visible matches were test *names* containing the
+word "failing". Printing what the check had actually collected settled it in one
+run. A probe that lies about a check is the same defect one level up, and the
+only cure is looking at the data rather than at a filtered view of it.
+
+`verify:launch` green, **1923** tests passing.
+
+### 2026-08-18 — a booking you can put in a calendar
+
+Thirteenth sweep pass: calendar. Checking the product before searching ended it
+before a query was run.
+
+`business_bookings` has `starts_at`, `ends_at`, a customer and a status. Three
+booking tables, an API, a page. A grep for `VCALENDAR`, `text/calendar`, `VEVENT`
+or `.ics` across `server.js`, `lib/` and `routes/` found **nothing**, and
+`package.json` has no calendar dependency. A business could take a booking and
+still have to retype it into whatever they actually use.
+
+**No repository was needed.** RFC 5545 for one event is a few lines of text.
+`lib/sonara-calendar-invite.cjs` builds it: no dependency, no bundle, no service
+the owner runs, no per-customer cost, works offline. Against this sweep's other
+findings — six repositories cleared on licence and blocked on architecture or
+bandwidth — the capability worth shipping needed nothing adopted at all. That is
+a fifth kind of result: **the gap was real and the answer was not a repository**,
+and a sweep looking only for things to adopt does not find it.
+
+`/business-builder/owner/bookings/:id/calendar` serves it, organization-scoped
+like every sibling read, because the service key bypasses row level security and
+the tenant filter is the only boundary. A download rather than an emailed
+invitation on purpose: sending mail is a customer campaign under `AGENTS.md` and
+needs owner approval; handing somebody a file they asked for is not. A failed
+read answers 503 and a missing booking 404, because answering 404 to both would
+tell a business their booking is gone during an outage.
+
+**The parts of the spec that fail silently are done rather than approximated.** A
+malformed `.ics` does not error — the calendar declines it, or imports it at the
+wrong time, and the business finds out when nobody arrives. CRLF on every line
+including the last. Folding at 75 **octets** via `Buffer.byteLength`, because
+counting characters splits a multi-byte character in half and one accented name
+does it. UTC with `Z`, since a local time without `VTIMEZONE` is the commonest
+way an invite lands an hour out. A stable UID, so downloading twice replaces the
+entry rather than double-booking the day. An unrecognised status stays
+`TENTATIVE`; a booking with no end time is refused by name rather than given a
+guessed hour.
+
+**And the bug worth keeping.** `escapeText` was written
+`.replace(/;/g, "\;")` — in a JavaScript literal that is just `";"`, so it
+compiles, runs, and emits an unescaped semicolon. Caught by printing the
+generated file, not by reading the code. Then the test asserting the fix was
+written with **the same literal**, agreed with the broken implementation, and
+failed against the correct one. Running it caught that. Neither would have caught
+itself, which is the whole argument for doing both.
+
+The member-read-policy check then caught the new read: `business_bookings` had no
+policy a signed-in member could read through. Added to `ORGANIZATION_READ_TABLES`
+rather than the service-role escape hatch, because it is ordinary workspace data
+— a business's own appointments, sibling to `customer_records` — and the hatch is
+for privilege and audit tables. 50 organization-scoped policies now.
+
+Register unchanged at **107**. `verify:launch` green, **1919** tests passing.
+
+### 2026-08-18 — the category that was already built, and a description I nearly acted on
+
+Twelfth sweep pass: automation. Twelve Apache-2.0 results above 2,000 stars —
+`conductor` (32,100), `trigger.dev`, `dagster`, `cadence`, `argo-events`.
+
+This looked like the most product-relevant category yet, because a paragraph
+describing this codebase says an agent action refused by the approval gate has
+nothing to re-run it once the owner approves, and a serverless runtime has no
+process running when no request is in flight. That is exactly what this class of
+software is for.
+
+**The gap is closed, and it was closed here.** Checked rather than assumed: an
+hourly Vercel cron at `/api/agents/schedule/tick`, secret-gated, reading
+`agent_schedules` across tenants — deliberately unscoped with the reason *stated*
+to `buildTenantQuery` rather than hand-built to slip past the guard — and scoping
+every run to the `organization_id` on its own row; `agent_pending_actions`
+holding a refused run with its inputs; `lib/sonara-agent-queue.cjs` calling the
+**same runner** again on approval; and a test.
+
+It is also better for this purpose than any candidate, because the requirement
+was never durable distributed execution. The classification is re-derived from
+the action type rather than read off the row, since a stored classification is a
+column the subject can write. Approving is not running, and approving something
+unimplemented writes `unimplemented` rather than reporting a job as done. A
+decision is made once, because approving claims the row out of `waiting` first.
+Adopting Conductor or Cadence would put the approval gate inside a third-party
+execution engine — the one place `AGENTS.md`'s rule is hardest to enforce.
+
+**Fourth kind of empty result: *already built*.** With wrong word, wrong intent
+and wrong altitude, that is the full set this sweep has needed.
+
+**And a methodological note worth more than the pass.** I began from that
+paragraph and was ready to treat the gap as real. The paragraph was true when
+written; the repository has moved past it, and `lib/sonara-agent-queue.cjs` is
+the queue it says does not exist. Acting on it would have meant **removing a
+working, tested approve button** — the paragraph even says no button should
+suggest otherwise. The finding came only from opening the files instead of
+trusting a description of them.
+
+That is the same failure the `song_fingerprints` record turned on, pointing the
+other way: there, a description promised a capability the columns did not have;
+here, a description denied one the code does have. Descriptions drift in both
+directions, and nothing executes them either way.
+
+Register unchanged at **107**. `verify:launch` green, 1910 tests passing.
+
+### 2026-08-18 — a category that yields tooling, and a property nothing was holding
+
+Eleventh sweep pass: animation. Ten results above 1,000 stars, and **every one
+runs in the browser** — the good shape by pass nine's rule. By the standard the
+owner set, none of them qualifies. `anime.js` (72,222 stars, the most-starred
+repository found anywhere in this sweep), `mojs`, `svg.js`, `two.js`, `thorvg`
+and the rest are **libraries for building our own interface**. They would make
+these pages nicer. None is something a Creator Studio customer would ever see
+listed as a feature.
+
+That is a third kind of empty result, and the three are worth keeping distinct:
+**wrong word** (`topic:paywall`, where the software existed under
+`topic:publishing`), **wrong intent** (paywall removers, StreamCap), and now
+**wrong altitude** — real, well-licensed, well-shaped software that is
+infrastructure for us rather than a product for a customer. A sweep optimising
+for registrations adds `anime.js` on its star count, and the register then holds
+a JavaScript animation library inside a programme of work about products that
+solve customer problems.
+
+**What the pass produced instead.** Asking whether the product needed an
+animation library meant checking what it already does, and that turned up an
+unguarded property rather than a defect.
+
+Eight client assets start motion. **All eight respect `prefers-reduced-motion`,
+so nothing is broken.** What did not exist was anything holding it there:
+`tests/motion-brand-system.test.js` asserts that
+`public/sonara-application-ui.css` carries a reduced-motion block — true, and
+about that one loader. A ninth animating file with no guard would have failed
+nothing, and the suite would have stayed green while the guarantee quietly
+stopped being true. That is this codebase's defect class in its purest form: not
+a signal reporting success falsely, but a guarantee with no signal at all.
+
+`tests/motion-respects-the-reduced-motion-setting.test.js` now asserts it across
+every asset in `public/`, and asserts the list is non-empty first, because a
+list-based check passes by being empty. **Verified three ways before being
+trusted**: a new animating file with no guard (caught), the guard stripped from a
+real file (caught and named), and the population emptied to zero (caught by the
+non-empty assertion rather than passing silently).
+
+`AGENTS.md` puts sounds, voice announcements and haptics off by default or under
+explicit user control. Motion is the same kind of thing, and the operating system
+already carries the user's answer.
+
+Register unchanged at **107** repositories. `verify:launch` green, **1910** tests
+passing.
+
+### 2026-08-18 — a cost that grows when the customer succeeds
+
+Tenth sweep pass: streaming, licence-first, MIT and Apache-2.0 run separately
+because qualifiers cannot be OR'd. Six results above 800 stars, and pass nine's
+rule sorted them on sight: `srs` (29,145), `vidgear` and `red5-server` are media
+servers; `rx-player` (932) is client-side but a browser already plays ordinary
+video, so it earns its place only for adaptive streaming with DRM, which this
+product does not have.
+
+**"A server the owner runs" was hiding two different costs, and the distinction
+matters.** Every server-side candidate so far — whisper.cpp, vosk, Spleeter,
+Ghost — costs compute **per file, once**: transcribe a video and the cost is paid
+and finished. A media server costs **bandwidth, per viewer, every time**. It is
+the one shape where the bill grows with the customer's success — a business whose
+event goes well pays more than one whose event nobody watched, and pays again on
+every replay.
+
+The shorthand this sweep has used since the speech-recognition pass was accurate
+and was concealing that. For a product whose rule is that a feature costs the
+customer nothing, per-viewer bandwidth is the one cost that cannot be absorbed by
+buying a bigger box once.
+
+**And the category produced a second conduct block.** `ihmily/StreamCap` — 4,113
+stars, verified Apache-2.0, second-largest result — monitors and automatically
+records live streams from TikTok, Twitch, YouTube, Bilibili, Douyin, Douyu and
+Huya. Every recording is somebody else's broadcast, taken without their
+involvement. AGENTS.md requires this product to enforce provenance, consent and
+anti-clone safety; this is not a borderline reading of that rule, it is the case
+the rule describes. Recorded `blocked`, on **conduct rather than licence** — the
+same shape as watermarks-remover, also permissive and also blocked.
+
+Worth keeping visible for how it presents: legitimate topic, legitimate search,
+clean permissive licence, high stars, and **nothing in its metadata flags it**.
+Only the description does. That is `topic:paywall` again — a search term right
+for the capability and wrong for the intent — and it is the concrete argument
+against screening on licence and stars and skipping the reading, which is
+otherwise the fastest way to run these passes.
+
+Register at **107** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the blocker was a server-side blocker
+
+Ninth sweep pass: video, licence-first. Fourteen MIT results above 1,000 stars.
+Most are Python pipelines — moviepy, backgroundremover, autoclip, FunClip — with
+the familiar blocker. **Two are a different shape**, both verified MIT:
+**WebAV** (2,085 stars, WebCodecs SDK) and **FreeCut** (2,046, a complete
+browser editor on WebCodecs and WebGPU).
+
+**This qualifies the conclusion from pass six.** That pass ended "licence was the
+constraint when this sweep started, architecture is now", on the strength of six
+permissive repositories all blocked by this runtime. Every one of those six needs
+**a server the owner runs** — infrastructure they pay for, a queue, and the
+customer's media leaving the customer's machine.
+
+A WebCodecs library has none of that shape. The work happens in the browser the
+customer already has: no per-customer cost, no queue, and no upload of a file
+that was never meant to leave their device. That is the same pair of constraints
+this product's rules impose anyway, satisfied for free.
+
+So architecture is the constraint **for server-side tools**, and there is a class
+of candidate for which it is not. The sweep had not looked at that class until
+now, only because every earlier category's leaders happened to be Python — which
+is a fact about the categories chosen, not about what exists. A generalisation
+drawn from six samples that shared a hidden property; the second one this sweep
+has had to walk back, after the NOASSERTION rule.
+
+What does **not** change, written into both records rather than glossed:
+WebCodecs is not available everywhere and a browser without it must be *told* the
+feature is unavailable rather than shown an editor that silently does nothing;
+video work is heavy on a phone and `AGENTS.md` requires mobile to work; the
+vendoring decision under `script-src 'self'` is the same one Excalidraw needs;
+and FreeCut was created November 2025, so a browser editor's real cost — keeping
+up with codec and browser changes — is a cost it has not paid yet.
+
+Carried forward for the remaining categories: **ask where a candidate runs before
+asking what it does.** Client-side and server-side are not two implementations of
+one capability here — they are a free feature and a funded one.
+
+Register at **106** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — a table whose name promised something its columns do not have
+
+Eighth sweep pass: audio and music, licence-first. Two registered, both verified
+MIT — **spleeter** (28,379 stars, stem separation) and **seek-tune** (5,595, Go,
+Shazam's recognition algorithm). Both carry the split that WhisperX established:
+the code is MIT and the pretrained models are separately licensed, and the models
+are the part doing the work. Both are outside this runtime, so both are services
+the owner runs.
+
+**seek-tune is registered mainly because of a trap next to it.** This repository
+has a table called `song_fingerprints`, and the subsystem registry described it
+as backing anti-clone matching. Pointing an acoustic fingerprinter at it is the
+obvious move and it is wrong.
+
+Its columns are `song_title`, `creator_name`, `identity`, `mood`,
+`audience_signal`, `sonic_palette`, and a `fingerprint_id` that is **a plain text
+field somebody supplies**. No audio, no hash, nothing derived from a recording.
+The word "fingerprint" in its name means something entirely different from the
+word "fingerprint" in seek-tune's. `grep` finds no writer either — the migration,
+the tenant-scoped list, the registry note, and no code.
+
+So acoustic matching is new storage and a new safety flow, not a column added to
+a table that already sounds right.
+
+**The registry's description was the part that misled, and it is fixed.** It read
+*"Fingerprints used to tell one piece of work from another"* — which is precisely
+what an acoustic fingerprint does, so it promised what the columns do not hold.
+It now says what the table actually stores. The table cannot be renamed from
+here: migration 004 is frozen and a rename is a destructive data change, which
+`AGENTS.md` puts behind owner approval, so the description was moved to the
+columns rather than the other way round.
+
+This is the codebase's recurring defect found one layer out from the code. A
+*description* claiming a capability that does not exist is harder to catch than a
+function that lies, because nothing executes a description — no test fails, no
+page breaks, and it reads as documentation of something real for as long as
+nobody opens the schema.
+
+The safety point sits ahead of the engineering one and the registry already had
+it right: a false positive accuses a creator of copying, so the flow that
+consumes a match is the safety-critical part, not the matcher, and nothing should
+act on a match until that flow exists.
+
+Register at **104** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the empty category was the wrong word
+
+Seventh sweep pass: publishing. `topic:publishing` splits between publishing and
+**package** publishing — lerna, gradle-play-publisher and intuit/auto are all
+about shipping software releases. Fifth ambiguity, milder than the rest because
+the real hits still sit at the top.
+
+**And the top result is what pass three went looking for and reported as absent.**
+Pass three searched `topic:paywall` for a way to help creators put work *behind*
+a paywall and get paid, found four tools for defeating paywalls, and wrote the
+category up as yielding nothing. It was not an empty category. It was the wrong
+word: nobody building membership software tags it "paywall" — the people using
+that tag are the ones removing them. **`TryGhost/Ghost`**, 54,789 stars, Node.js,
+verified **MIT**, describes itself as "publishing, memberships, subscriptions and
+newsletters", and was under `topic:publishing` the whole time.
+
+Carried into the sweep document as a rule, because it will happen again: **when a
+category comes back empty or hostile, suspect the search term before concluding
+the software does not exist.** An empty result is evidence about vocabulary at
+least as often as evidence about the world.
+
+Ghost is also the strongest counterexample yet to the NOASSERTION observation
+from pass five. Ghost(Pro) is not a side business, it is how the project is
+funded, and the software is still MIT. Two clear exceptions out of six data
+points now. The tendency stays as something to search by; both documents say
+plainly it is not something to conclude from.
+
+What is actually available: being Node.js is less useful than it sounds, since
+Ghost is a full application with its own database and admin client — adopting it
+means running it, not importing it. The part that needs no licence resolved and
+no service run is the **membership model** — tiers, gated posts, what a member
+sees before and after paying. That is the piece this product does not have.
+
+Register at **102** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the rule broke on its first test, which is the useful part
+
+Sixth sweep pass, run licence-first — `license:mit` in the query before any
+assessment of fit, which is what the previous pass concluded to do. The method
+works. It also broke the rule that motivated it, in one category.
+
+**Digital signage** yields three MIT results above 200 stars and nothing worth
+registering: a Flutter embedder, an Android kiosk lockdown app, a 363-star
+signage CMS. Hardware-adjacent enough that signage would be a new product rather
+than an improvement to an existing one.
+
+**Whiteboard and drawing** yields `excalidraw/excalidraw` at **129,927 stars**,
+verified **MIT** — and Excalidraw has a hosted commercial product at
+excalidraw.com behind it, exactly like twenty, Carbon and Hi.Events. The rule was
+stated after three data points and contradicted by the fourth, which is about
+what three data points are worth. It stays in the sweep document as a good thing
+to *search* by and not as something to conclude from. Recording that explicitly
+matters more than the rule did: a generalisation that survives in a document
+because nobody went back to check it reads exactly like one that held.
+
+Same result set, same old lesson: `poteto/hiring-without-whiteboards` at 51,379
+stars is a **list of companies**, not software.
+
+**The bottleneck has moved, and that is the finding of the day.** Excalidraw is
+the first candidate in the whole sweep whose licence, size, maturity and product
+fit all pass. What stops it is that it is a React package and this application is
+server-rendered Express with **no build step** and `script-src 'self'`. Using it
+means vendoring a prebuilt bundle served from this origin — permitted by the CSP
+— and owning its size and updates permanently. A supply-chain decision for the
+owner, and explicitly not a licence problem, so the record does not describe it
+as one.
+
+Counting this pass with the speech-recognition pass: of the four repositories
+added whose licences are fully settled and permissive — whisper.cpp, whisperX,
+vosk, Excalidraw — **all four are blocked by this runtime rather than by their
+terms**. Licence was the binding constraint when this sweep started. It is not
+any more.
+
+Register at **101** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — three for three, and a rule worth more than the repositories
+
+Fifth sweep pass: events, RSVP and ticketing. `topic:event-management` turns out
+to be mostly **software event dispatchers** — fourth topic-name trap, after
+`topic:pos`, `topic:scheduling` and `topic:paywall`. Four of eight results above
+300 stars are event buses and listener libraries, `saltstack/salt` among them.
+
+One real hit, `HiEventsDev/Hi.Events` (3,981 stars, Eventbrite alternative), and
+its detected licence is **NOASSERTION** — the third in a row.
+
+**That is now the most useful thing this whole sweep produced.** Three
+categories, three leaders, three licences GitHub cannot classify: twenty (CRM,
+55,066 stars, twenty.com behind it), Carbon (manufacturing, carbon.ms),
+Hi.Events (ticketing, hi.events). Written up as a rule rather than three
+anecdotes:
+
+> A project positioned as "the open-source alternative to X", with a hosted
+> commercial product behind it, has usually written a licence specifically
+> against being resold as a hosted service. That is what this product is.
+
+Three consequences, all of which change how the next sweep should be run.
+**Star count and category leadership predict licence trouble, not licence
+safety** — the more polished the alternative-to-X project, the more likely a
+company is protecting it. **Read the licence first**, because screening by stack
+or stars and checking the licence afterwards means doing the fit analysis on
+exactly the repositories least likely to be usable. And **NOASSERTION is not
+"unknown, probably fine"** — it means GitHub read a real licence file and could
+not match it to anything standard, which is what a lawyer-written custom licence
+looks like from outside.
+
+None of the three is blocked, and all three are worth reading for their domain
+models, which needs no licence resolved. What none of them is, on current
+evidence, is something to take code from.
+
+Register at **100** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the closest fit keeps having the worst licence
+
+Fourth sweep pass: manufacturing and industrial. 13 repositories above 300 stars
+pushed in the last year, splitting cleanly in two.
+
+**Most of the category is MQTT and protocol plumbing** — emqx (16,630), vernemq,
+nanomq, node-opcua, neuron. Brokers for talking to PLCs and sensors. Correctly
+tagged and irrelevant: Business Builder helps somebody run a business, not read a
+Siemens S7. The ERP half is dominated by the GPL family (ERPNext at 38,211,
+metasfresh), which reaches a hosted product.
+
+**`crbnos/carbon` is the second closest-fit-worst-licence in this sweep.** ERP,
+MES and QMS on **Supabase, PostgreSQL, TypeScript and React Router** — this
+product's exact stack — and its detected licence is **NOASSERTION**. So is
+`twentyhq/twenty`, the closest fit in the CRM category, also Supabase and
+TypeScript, also with a hosted commercial product behind it.
+
+That is not a coincidence and it is now written down where the next sweep will
+find it: **a project with a company behind it writes a licence protecting it
+from being resold as a hosted service, which is exactly the use this product
+would make of it.** Searching by stack and then checking the licence walks into
+that every time. Reading the licence first and letting the stack decide between
+what is left is the cheaper order.
+
+**And the doc-count guard fired on a true sentence.** Writing that finding up
+produced "13 repositories above 300 stars pushed in the last year", which the
+register-count pattern read as a claim about our register and failed the release
+over. Rewording the prose would have been the wrong fix — a check that fires on
+true statements does not get fixed, it gets written around, and then it is
+training people to avoid it rather than measuring anything. The pattern now
+requires "**reviewed** repositories".
+
+Narrowing a pattern is a quiet weakening on its own, so it comes with the thing
+that stops it being one: the check now **refuses to pass if that pattern matches
+nothing at all**. Three cases were run before trusting it — the register count
+wrong (caught), the claim reworded out of the document entirely (caught by the
+new guard), and the true sentence about search results (correctly ignored).
+
+Register at **99** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the search term that would have got it backwards
+
+Third sweep pass: paywall, creator economy, speech recognition.
+
+**`topic:paywall` is paywall *bypassing*.** Third topic-name trap after
+`topic:pos` (postcss, postgrest, oh-my-posh) and `topic:scheduling` (cron, not
+appointments), and the first one where following the results would have been
+actively harmful rather than merely wasteful. Five repositories carry the topic
+above 200 stars; **four exist to defeat paywalls** — `everywall/ladder` at 8,819
+stars leads the category. Creator Studio's job is to help creators put work
+*behind* a paywall and get paid. A sweep that ranked by stars and skipped the
+reading would have reported the most popular anti-paywall tool on GitHub as the
+category leader for a product that sells paywalls. Nothing registered, and
+licence had nothing to do with it.
+
+**`topic:creator-economy` is thin and yields nothing.** Four repositories above
+50 stars in the last year: a curriculum, a Google-Drive-plus-crypto video
+platform, a 100-star project with 161 open issues, and a cookbook for a keyed
+hosted API that also "finds verified emails" — a price rather than a licence, and
+a lead-scraping capability that meets this product's consent rules head-on. The
+empty result is recorded deliberately: research that only reports hits cannot be
+distinguished from research that found nothing and said nothing.
+
+**Speech recognition was a real gap.** 33 projects above 3,000 stars pushed in
+the last year, and the register held **nothing at all** under it across 95
+records — while captions and transcripts are squarely Creator Studio's job and
+the owner named speech recognition explicitly. Three added, each licence verified
+by the detected-licence method: **whisper.cpp** MIT (52,977 stars),
+**whisperX** BSD-2-Clause (23,617), **vosk-api** Apache-2.0 (15,064).
+
+**Licence is not what constrains any of the three, and the records say so.** This
+is Express on Vercel serverless with no build step. A C++ binary with
+multi-gigabyte weights, a Python GPU pipeline and native bindings are none of
+them things a serverless function loads. All three sit at
+`optional_adapter_after_review` because adopting them means the owner runs a
+service reached under the four rules in `docs/architecture/EXTERNAL-SERVICES.md`
+— infrastructure and cost, not licensing. Two further things the licence does not
+cover, written into the records rather than left to be found: WhisperX's
+permissive licence does not reach the alignment and diarization models it
+downloads at runtime, which are the pieces doing the work; and diarization
+attributes speech to a named person, which under this product's provenance and
+consent rules is a draft for a human to confirm, never a published label.
+
+Register at **98** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the repository had been renamed, and six licences were guesses
+
+Having just written that a search filter is not a licence, the obvious next
+question was whether anything *could* verify one from here. Something can, and it
+changed six records.
+
+**`search_repositories` with `minimal_output: false` returns GitHub's detected
+licence.** The full repository object carries `license.spdx_id` — what GitHub
+read out of the root `LICENSE` file — as distinct from the licence *filter*,
+which only says which bucket a repository sorted into. Every record resting on a
+family was re-read, and **none of the six was as recorded**: wacrm **MIT**
+(back into the adoption path), vercel-labs/skills **MIT**, GPT-SoVITS **MIT** on
+the code, ury **AGPL-3.0**, brightbean-studio **AGPL-3.0** confirmed rather than
+inferred from its topic list, and twenty **NOASSERTION** — GitHub read its
+licence file and could not match it to any known licence, which is a far better
+answer than "appeared in neither filter" and means the same thing.
+
+**Foodya-Restaurant settled the other way.** Its repository object has **no
+`license` key at all**, which is what GitHub returns when it finds no licence
+file: an established absence, not an unread field. The record moved
+`needs_license_review` → `blocked`. Repositories declaring no licence went 5 →
+6, and `verify-doc-counts` — added hours earlier — caught the stale figure in
+`docs/owner/WHAT-IS-LEFT.md` before it could ship. That is the check earning its
+place on its first live change.
+
+**Cal.com was not refused. It was renamed.** Yesterday's note recorded that
+`repo:calcom/cal.com` returned 422 and concluded the session lacked permission.
+The repository is now **`calcom/cal.diy`** — same repository id `350360184`, same
+2021 creation date, 47,768 stars. The 422 was accurate; the inference was not.
+GitHub's message says *"the resource does not exist **or** you do not have
+permission"*, and it was read as the second clause because that was the clause
+already suspected. **A refusal that names two causes is not evidence for
+whichever one you came in believing.** It is now record 95, at
+`needs_license_review` despite a clean MIT at the root — because GitHub detects
+the *root* licence and this is a monorepo, and projects in this category
+routinely keep an enterprise directory under separate commercial terms. The root
+is established; the packages are not, and taking code from one means reading that
+one.
+
+Method note for whoever sweeps next: `repo:` returns 422 for any repository name
+containing a dot. Use `org:` plus a filter for those.
+
+Register at **95** repositories, 11 reciprocal, 6 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — a bucket is not a grant, and half an adoption path
+
+Three CRM and social-scheduling repositories went onto the register from a
+second GitHub sweep, and closing the counts behind them turned up two checks
+measuring less than they claimed.
+
+**A search filter is not a licence.** `wacrm` was recorded as permissive because
+GitHub's licence *filter* sorted it into the permissive bucket, and it shipped
+at `optional_adapter_after_review` on that basis.
+`tests/open-source-licence-terms.test.js` rejected it, correctly: a filter
+reports which bucket a repository fell into, not what its author granted.
+Reading the file itself was refused — `api.github.com/repos/ArnasDon/wacrm/license`
+answers **403** to a session scoped to this repository only — so the record now
+says the licence is **not established** and sits at `needs_license_review`. The
+same 403 is why Cal.com's licence is still recorded as unverified rather than
+recalled.
+
+**The adoption-path check covered half the adoption path.** Its name says
+"everything in the adoption path"; its status set held
+`optional_adapter_after_review` alone. `adapter_built` — the status meaning code
+from that repository *is already here and something calls it*, the stronger
+commitment of the two — was outside the population it claimed to measure. The
+covered set went **13 → 19**. Two named-but-not-SPDX licences (Dify, Open WebUI)
+are allowlisted explicitly rather than admitted by loosening the pattern.
+
+**The reciprocal-licence count is derived now, and could not be derived the
+obvious way.** `docs/owner/WHAT-IS-LEFT.md` quotes it at somebody deciding what
+may legally be adopted, and it had drifted **10 → 11** with nothing watching.
+Searching the licence prose for `AGPL` reports **12**: one record's licence text
+reads *"it appeared in neither the permissive filter (MIT, Apache-2.0,
+BSD-3-Clause) nor the reciprocal filter (AGPL-3.0, GPL-3.0, ...)"* — four
+reciprocal licences named in the course of saying the repository is in none of
+them. So the register states the fact instead, in a **required** `reciprocalLicense`
+field: a missing flag is a type error, and `verify-doc-counts` refuses to run
+the count unless all 94 records answer. Optional would have let somebody add an
+AGPL repository, omit the flag, and leave the figure sitting where it was.
+
+**Each of the three new checks was run against bad input before being trusted.**
+Wrong number in prose, a dropped flag, an AGPL record flagged false, and a vague
+licence promoted to `adapter_built` — all four fail. The first pattern written
+for the prose claim matched *nothing*, because the document wraps "carry a /
+reciprocal licence" across a line break and the pattern had a literal space in
+it; it reported green while checking zero claims. Countable claims went 7 → 8
+only after that was fixed, which is how it was caught.
+
+Register at **94** repositories, 11 reciprocal, 5 declaring no licence.
+`verify:launch` green, 1908 tests passing.
+
+### 2026-08-18 — the open end closed, and the pin that was loose by more than double
+
+Yesterday's entry recorded thirteen routes the outage crawl could not render,
+unexamined, with the count pinned "so the set cannot grow unnoticed". Examining
+them found something about the pin itself first.
+
+**There were six, not thirteen.** The 13 came from a run before the alias rule
+took effect and was never re-measured. A pin set at more than double the real
+figure would have sat green through **seven** new failures — which is the same
+defect as the bare `continue` it replaced, only quieter, because a number that
+looks deliberate invites less suspicion than an obvious gap.
+
+**Examining the six closed all of them.**
+
+- `/business-builder/dashboard` and `/business-builder/control-center` answer
+  **503 and render a real page** — *"Business Builder is temporarily
+  unavailable"*. The crawl skipped every non-200, which meant **it had never
+  inspected the pages written for the state it exists to test**. Those are the
+  pages most likely to make a claim about a customer's records, because they are
+  the ones with something to explain. 503 bodies are read now, when a body came
+  back; a 302 has nothing to read and a 500 is a different check's problem.
+- `/creator-studio/billing` and `/growth-studio/billing` redirect to `/billing`,
+  which redirects again to `/business-builder/billing`, which the crawl renders.
+  **A two-hop chain against a one-hop rule.** The rule follows the chain now,
+  with a `seen` set, because a redirect loop would otherwise hang the check that
+  exists to stop things going unnoticed.
+- `/business-builder/businesses` is a 302 to `/control-center`, resolved by the
+  same two fixes together.
+- `/auth/callback` answers *"OAuth deferred"* to a request carrying no OAuth
+  code, which is correct.
+
+**The pin is now zero**, asserted as `deepEqual(unreachable, [])`. Every route is
+either rendered or lands on a page that was. Proved rather than assumed: adding
+one unrenderable route to the registry fails the run, and removing it passes.
+
+Worth keeping the shape of this. The finding was not in the six routes — five of
+the six were behaving correctly all along. The finding was that **the number
+guarding them was wrong, and wrong in the permissive direction**, which is the
+only direction that stays quiet.
+
+### 2026-08-18 — a GitHub category sweep, and the search that returned postcss
+
+Two categories swept properly out of roughly forty asked for. Method and findings
+in `docs/market/2026-08-18-GITHUB-CATEGORY-SWEEP.md`; three records added.
+
+**The failed search is the useful half of the method.** The first attempt used
+free text — `restaurant OR point-of-sale OR pos in:name,description` — and
+returned **postcss, postgrest, oh-my-posh, postal, node-postgres and
+postgres-operator**. Substring matching on "pos". Zero of eight results were
+relevant and the call cost about thirty thousand tokens. `topic:` filters find
+the category; free text finds the spelling. Written down so the next person does
+not spend the same thirty thousand tokens discovering it.
+
+**Finding one: the POS category is mostly closed to us, on licensing.** Of
+eighteen point-of-sale projects above 200 stars pushed in the last year, **eight
+are reciprocal and every large one is** — erpnext at 38.2k, frappe/books, NexoPOS,
+lakasir, OCA/pos, viewtouch. That includes **ury**, the only purpose-built
+restaurant system in the set and otherwise the obvious candidate. A reciprocal
+licence triggers on network use, and this is a hosted product.
+
+The route that stays open is not adoption but an **owner-operated deployment
+reached through an adapter**, where the obligation sits with that deployment
+rather than with this codebase — the arrangement `EXTERNAL-SERVICES.md` already
+describes. Five of the eighteen are permissive, and none of those five is a
+restaurant system.
+
+**Finding two: four of the five headline speech projects are voice cloning.**
+GPT-SoVITS (61k, clones from one minute of audio), VoxCPM, CosyVoice and dia are
+all permissively licensed and all pushed recently — and `AGENTS.md` says *enforce
+provenance, consent, and anti-clone safety*. They are recorded as **one** record
+rather than four, because they pose one question. None is unusable; all are
+unusable *as a general feature*. Cloning a voice whose owner has recorded
+permission is the legitimate case and the only one, and the difference is a
+`creator_voice_consents` row, not a disclaimer.
+
+**The one worth pursuing is the one that runs offline.** `sherpa-onnx` —
+Apache-2.0, 14.2k stars — does speech-to-text, text-to-speech, diarization and
+VAD with **no network call at all**. That is the same commercial argument that
+made the calculator tools worth building: no per-customer cost, and no customer
+audio leaving the machine. It is also the only headline speech project in the
+shortlist not built around cloning.
+
+**What these three records claim, stated precisely.** Licence and fit, from the
+GitHub API licence field and the project's own description. **Not a source read.**
+The other 88 records were read before they were written, and writing three that
+quietly implied the same standard would be the defect this register exists to
+prevent. Each says so in its own licence field.
+
+**And what was not done.** The request named around forty categories and asked
+for "all repositories at github.com". GitHub holds hundreds of millions; there is
+no completion state for that, and a register claiming to have swept it would be
+this codebase's recurring defect at the largest scale yet attempted. Two
+categories cost six searches and an afternoon of judgement. Forty is a programme,
+best done in the order the product actually needs them.
+
+### 2026-08-18 — a storyboard that adds up, and a guide that cannot be copied
+
+**The IONOS guide cannot go into the product, and the reason is on its cover.**
+Submitted as a PDF to add to the application: *"Smarter business with AI — the
+ultimate prompting guide for entrepreneurs"*, fourteen pages, and the cover reads
+**COPYRIGHT © 2025 IONOS INC.** It grants nothing. A free download is a price of
+zero, not a licence, and copying its text in would be the failure this register
+exists to prevent with prose instead of code.
+
+Two things can be taken from it legitimately, and both were. The **intelligence**:
+a hosting competitor is spending marketing budget teaching small businesses to
+prompt, which says where that market believes the value is. And the **techniques**
+— role prompting, style targeting, prompt chaining, few-shot, progressive
+layering — which are industry-standard, predate the document by years and belong
+to nobody. What is theirs is the wording, and none of it has been used. Registered
+as blocked with that reasoning attached.
+
+**The Creator Studio tool, built rather than offered.** The storyboard prompt
+circulating online produces a handsome document whose shot durations do not sum
+to the runtime. That is not cosmetic: a creator books a shoot, a voice artist and
+an edit against those numbers and finds out on the timeline that the shot list
+was thirty seconds long for a fifteen-second slot.
+
+So the arithmetic is the product. `allocateSeconds` uses **largest-remainder**
+rather than rounding each shot independently — eight shots rounded separately
+lose or gain up to four seconds against the runtime, which is exactly the defect.
+The test checks the property across nine awkward runtimes and three shot counts,
+including 7 seconds over 8 shots, where independent rounding falls apart.
+
+**What is ours and what is film grammar.** The shape — hook, subject, tension,
+demonstration, message, payoff, climax, ending — is in every screenwriting text
+for fifty years and is nobody's property. Ours is the **weighting**: the hook and
+the ending get more than an even split, because those two shots decide whether
+the middle is watched at all. That is asserted rather than asserted-to: the test
+compares both against `total / count`.
+
+It also refuses. No runtime, no shot list — a plan built on a guessed runtime is
+worse than none. No idea, no subject invented. And a runtime that leaves shots
+under two seconds gets told so, without the warning costing the sum.
+
+**Not done, and said plainly rather than left to look done.** The request also
+asked to improve all products, to research breakthrough technology worldwide, and
+to review "all GitHub repositories at github.com that pertains to our
+application". The register holds 88 records, each one read before it was written;
+GitHub holds hundreds of millions. There is no version of that last item that
+finishes, and a sweep that pretends to would be this codebase's own recurring
+defect at the largest scale it has yet been attempted. The forty-two catalog
+products can be improved one at a time against stated criteria, which is a real
+piece of work with a real shape, and it is the next thing worth doing.
+
+### 2026-08-18 — nine more products, this time from what the market complains about
+
+The first nine were built from what a small business obviously needs. These nine
+were built from dated survey figures, and each one is only defensible while its
+number holds. Sources in `docs/market/2026-08-18-PRODUCT-GAP-RESEARCH.md`, with a
+February 2027 review date on them.
+
+**The three numbers that drove the design.**
+
+- **67% of creators had a contract or payment dispute in the past year** (HubSpot
+  2025), and the average creator earns **$44,293** (CreatorIQ 2026). That is a
+  market with a paperwork problem and no budget for a lawyer. The crowded answer
+  is contract *generators*; the gap is the moment before a contract exists.
+- **83% of small businesses call referrals their best acquisition source, up from
+  65%; 87% at ten staff or fewer** (LocaliQ 2026). The channel most businesses
+  rate first is the one almost no software measures, because a referral has no
+  click to attribute.
+- **52% of buyers switch business software over inefficiency, not price**, and
+  the feature they need is *"buried, missing, or on the enterprise tier at three
+  times the budget"*. Competing on breadth competes where the complaint is, so
+  three of these are deliberately narrow.
+
+**Business Builder** — Price Rise Planner (pricing tools compute a price; none
+answer *how many customers can I afford to lose*); Software Spend Auditor (the
+category's own products add to the stack, this one measures it); Quiet Month Cash
+Plan (forecasts project a trend, this names the month you run out).
+
+**Creator Studio** — Deal Memo Recorder; Late Payment Escalation (invoicing tools
+resend, this prices the delay); Usage Rights Expiry (no mainstream creator tool
+tracks a licence *end* date, and the failure is silent — the brand keeps using
+the work and nobody is doing anything wrong on purpose).
+
+**Growth Studio** — Referral Source Tracker; Review Recency Score (review tools
+optimise the average while the survey says **recency** is what moved); Enquiry
+Response Clock.
+
+**Profitability, stated rather than assumed.** All nine are deterministic: no
+model call, no provider, no network, **no per-customer cost**. A tool with a
+per-use cost cannot sit on a free tier and act as the reason somebody signs up,
+which is the whole commercial argument for building them this way.
+
+**Where the tools refuse to answer.** A price rise on a price already below cost
+returns no "customers you can afford to lose" figure at all, because there is
+not one — it says the rise is not the first move. Late payment accrues no
+interest before the due date. The response-time tool states its rule in the
+output and says plainly *"not a measurement of your business"*, because it is one
+explicit assumption applied to the customer's own numbers, and dressing that as
+data would be the most saleable thing on the page and the least honest.
+
+**Three of my own test expectations were wrong**, and running them is what found
+it: a cash plan whose figures never actually went negative while the test
+asserted a month it ran out; a licence expiry asserted as December when 12 × 30.44
+days lands in January; and a response-time gap asserted at double its real value.
+The code was right in all three. The corrections are in the test with the
+arithmetic spelled out, because the next person will otherwise redo the same
+sums.
+
+**Also registered: `vercel-labs/skills`** (`find-skills`), as
+`needs_license_review` — its licence has not been read, and that is stated rather
+than assumed from a social post. The reason it is not simply low-risk developer
+tooling: its output is *an install command for somebody else's skill*, so the
+thing under review is not one repository but a channel for arbitrary ones, and
+`npx` fetches and executes on the spot. Recorded with the boundary that nothing
+it recommends is installed without its own register entry.
+
+**And `watermarks-remover` arrived again, and stays blocked.** The screenshot
+adds detail that confirms the original review rather than changing it: 5k stars,
+v0.4.0, and a table naming C2PA, EXIF and XMP across PNG, JPEG, PDF, DOCX, HTML
+and Markdown. Popularity is not a licence argument and was never the objection.
+
+### 2026-08-18 — the outage crawl had never once opened the admin area
+
+`tests/no-page-lies-when-the-database-is-down.test.js` opens with the sentence
+*"Every page, rendered with every data read failing."* It was not every page. It
+was 211 of 260.
+
+**The `continue` that hid it.** The crawl skipped any route that did not answer
+200, with a bare `continue` and no record. Measured: **49 routes skipped**, 46 of
+them redirects to a login the customer session cannot pass, and almost all of
+those the admin area. So the file whose whole job is catching a page that tells
+somebody they have no records had never rendered `/admin`, `/admin/database`,
+`/admin/users` or `/admin/system` — the pages an **owner** opens during an
+outage, which is where that false claim does the most damage, because the owner
+is the person deciding whether anything has actually been lost.
+
+The guard beside it, `rendered >= 150`, says how much was looked at and says
+nothing about what was missed. That is the shape worth remembering: a population
+check that cannot shrink-detect is not a population check.
+
+**Two passes now**, customer and owner, over the same routes. The stub answers
+`user_roles` with `owner` and `ADMIN_EMAILS` is set alongside the Supabase
+stubs, so the admin gate resolves.
+
+**What the owner pass found on its first run: nothing false.** Three findings,
+all the same sentence, all the database console's own caveat card — *"Nothing
+here says your database is empty."* That card exists to stop an owner concluding
+exactly the thing this check hunts for, so it is the opposite of a lie, flagged
+only because the pattern matches the words "Nothing here" anywhere. It went into
+`NOT_A_CLAIM_ABOUT_RECORDS` with that reason, which is what the excuse list is
+for. Reporting it as a defect found would have been the easy write-up and the
+wrong one.
+
+**Accounting, rather than a bare skip.** A route now counts as unreachable only
+when *both* sessions were refused — neither cookie reaches everything, the owner
+being redirected away from `/billing` and `/account/*` just as the customer is
+from `/admin/*`. Aliases are covered too: `/business-builder/tutorial` is a 302
+to `/tutorials/business-builder` and `/business-builder/pricing` a 302 to
+`/pricing`, both of which the crawl renders, so a redirect whose destination was
+rendered is not a gap.
+
+**Thirteen routes are left, and that is stated rather than dressed up.** They
+sit behind a session this crawl does not establish, and they have not been
+examined one by one. The count is pinned so the set cannot grow without somebody
+being told — which is strictly better than the `continue` that dropped
+forty-nine in silence, and honestly worse than examining them. Next person: that
+is the open end of this.
+
+### 2026-08-18 — nine new products, three for each product line
+
+Built on what is already here rather than on anything new: the free-tool runtime,
+the module-output save path, the records pages, the catalog, and the outage crawl
+written this morning — which covered all nine the moment they were registered,
+without a line added to it.
+
+**Why calculators and not generators.** The fifteen tools that came before are
+mostly outline and script builders: words in, better-organised words out. What a
+small business is actually stuck on is arithmetic it does not trust itself to do
+— what price covers the cost, how long the cash lasts, whether a referral reward
+is affordable, whether the splits add to a hundred. Those have one right answer
+and an expensive wrong one.
+
+So all nine are deterministic. No model call, no provider, no network, **no
+per-customer cost**, same inputs to same output. `docs/SHIP_READINESS.md` records
+eleven catalog products removed for describing work that did not exist, and the
+cheapest way not to repeat that is to ship things that compute.
+
+**Business Builder** — Break-Even and Runway; Shift Rota Cost Planner; Deposit and
+Payment Schedule.
+**Creator Studio** — Rate Card Builder; Split Sheet and Credits; Repurposing
+Planner.
+**Growth Studio** — Campaign Budget Split; Referral Reward Planner; Follow-Up
+Schedule.
+
+**Two rules run through all of them.** A number that cannot be read is *named*,
+never turned into `NaN` — `numberFrom` returns null and every tool checks before
+doing arithmetic, so the customer is told which box was unreadable rather than
+shown `$NaN`. And a case with no answer says so rather than returning zero: a
+business losing money on every sale has **no** break-even, and "0 sales needed"
+would be the most dangerous possible rounding of that. A rota with no expected
+sales reports that the labour share cannot be worked out and *"is not zero"*.
+
+**Guards caught three things on the way in**, each a real integration the work
+would otherwise have half-done:
+
+- `verify-route-registry` refused nine routes that existed but were not
+  canonically registered.
+- The catalog seed migration `20260725180000` is applied and **frozen**, so the
+  new products could not be added to it. They are seeded by a new migration
+  instead, and the test that checked "one migration seeds every product" now asks
+  whether each product is seeded *anywhere* — which is the actual guarantee. It
+  also refuses to count the generated sync migration, because that one only
+  updates: a product listed there and nowhere else would be retired-proof and
+  never created.
+- `verify-doc-counts` caught a migration count that moved 83 → 84.
+
+**One assumption checked rather than acted on.** The existing tools use
+`parsePositiveNumber`, which returns null, and null in arithmetic gives `NaN` —
+so I expected `$NaN` on the pricing tool for prose input and went to fix it.
+Submitted it: zero occurrences. The existing path already handles it. Nothing was
+changed on the strength of a defect I had reasoned my way to rather than seen.
+
+### 2026-08-18 — a malformed role read could take out every admin page
+
+Ten focused minutes on the sweep, and the one thing found is the worst-placed
+instance of the day.
+
+**`getUserRoles` iterated whatever came back.** It read `user_roles` and ran
+`for (const row of rows)` on the parsed body. PostgREST answers **200 with an
+object** in some failure modes — an error body rather than a row list — and
+`for...of` on an object throws. This is the admin authorization path; every admin
+page calls it. Before the route safety net landed earlier in this branch that
+throw hung the request forever, and after it the same throw is a **500 on every
+admin page at once**, from a database that is answering.
+
+Verified by removing the guard and watching `TypeError: rows is not iterable` at
+`getUserRoles` on `/admin`, rather than by reading the code and reasoning about
+it.
+
+The fix fails closed, which is the only acceptable direction here: an unreadable
+role list grants nothing. `row?.role` rather than `row.role` for the same reason —
+a ragged array denies instead of throwing, and a valid row after a bad one is
+still honoured.
+
+**Two smaller cause-claims corrected while there.** The dashboard said *"Setup
+required: the service_requests table is not available yet"* and the same for
+deliverables, whenever `safeListTable` returned not-ok. A 500 is not a missing
+table, and that sentence sends an owner to run a migration that is already
+applied. Both now say the figure could not be read.
+
+**Two sibling reads were already guarded** — storage buckets and the agent
+activity queue both do `Array.isArray(rows) ? rows : []`. `getUserRoles` was the
+outlier, which is the useful shape of the finding: the pattern was known here and
+the one place it was missing is the one that gates administration.
+
+### 2026-08-18 — a crawl for the pages nobody crawled, and the branch it proved unreachable
+
+Six instances of this pattern were found by hand today. The seventh was found by
+a check, which is the point: the last two lived on **pages a customer only sees
+after pressing a button**, and every sweep in this repository issues GETs.
+
+**Placeholder leakage, everywhere.**
+`tests/no-page-lies-when-the-database-is-down.test.js` already renders 150+ pages
+with every read failing. It now also fails on `null`, `undefined`, `NaN` and
+`[object Object]` in visible text — the four things a JavaScript template
+produces when the value behind it is missing, and none of them a word this
+product's copy would use. It found nothing on the GET pages, which is why it was
+proved rather than trusted: injecting `Reference ID: null.` into one real card
+fails the run, and removing it passes.
+
+**Its self-check caught a trap on the way in.** A `/g` regex carries `lastIndex`
+between calls, so the recognition test matched its first sentence, resumed from
+that offset for the second, and reported that the pattern had stopped working.
+The file already had this shape for its other pattern — `CLAIMS_EMPTY` and
+`CLAIMS_EMPTY_ALL` — and the new one now follows it. **The check written to prove
+the check works is what caught it.**
+
+**And the pages that were never crawled at all.**
+`tests/every-tool-result-page-survives-an-outage.test.js` posts to all **fifteen**
+free tools with the session resolved, the workspace found, and every write
+refused — the state a real customer is in during an outage, and the state where a
+result page has most to get wrong: the tool worked, so there is an answer to
+show, and the save did not, so there is bad news beside it. `TOOLS` is exposed
+through `app.locals.sonaraFreeTools`, following the same pattern
+`sonaraDatabaseManagementPage` already uses.
+
+**The generated submission was wrong first, and the fix was to stop guessing.**
+The first draft chose values by field name — numbers for `/cost|price|rate|…/`,
+prose otherwise — and got `visitors`, `leads` and `customers` wrong, so the KPI
+calculator correctly refused with a 400 and this file reported its own bad input
+as a missing page. Every field now gets `"12"`, which the calculators parse and
+the text tools accept. A per-name heuristic is a thing that drifts silently the
+moment somebody adds the sixteenth tool.
+
+**Then the crawl found what hand-testing had missed.** Re-injecting yesterday's
+`Reference ID: null` defect did **not** fail the run — because the branch it
+lives in was unreachable. `saveModuleOutput` returned `code: "setup_required"`
+for *every* unsaved outcome, including this one: past a resolved workspace, past
+a working config, with only the writes failing. So `sendToolResult` always took
+its setup branch, and the "this is on our side" wording added yesterday had never
+once rendered. The code is `save_failed` now, the branch is reachable, and the
+crawl bites on the defect it was written for.
+
+That is the part worth remembering. Yesterday's fix was verified by a test that
+asserted the *new* wording appears — and it did, on the one path that test drove.
+It never asked whether the other path could happen at all.
+
+### 2026-08-17 — "Reference ID: null", which I put there
+
+Sixth instance, and the first one this session's own work created. Worth the
+entry for that reason rather than its size.
+
+**What happened.** Two commits earlier, `saveModuleOutput` stopped minting a
+`randomUUID()` reference for work it had not saved and returned `null` instead.
+That was right. `sendToolResult` printed the value through `String(...)`
+unconditionally, so every unsaved free-tool result rendered:
+
+> Save requires account database setup. Your output was generated and is shown
+> above. … **Reference ID: null.**
+
+A fix that swapped a misleading number for the literal word "null" on a
+customer's screen. Nothing objected, because **no test rendered that page** — the
+existing coverage asserted the JSON body, and the two page-level assertions in
+`saas-platform-upgrade` were checking for the presence of the string "Reference
+ID", which `null` satisfies.
+
+**The test I wrote to catch it was itself wrong first**, and that is the more
+useful half. Its first draft asked for `text/html` while calling `.send(object)`,
+which sets `Content-Type: application/json` — and this application answers JSON
+to that regardless of `Accept`. So two assertions about page content passed
+against a body with no page in it. They went green immediately, which is the only
+reason I looked: a check that passes the moment you write it has not been shown
+to work. The HTML case posts a form now, the way a browser does.
+
+**Two more things wrong on the same card.** *"Save requires account database
+setup"* states a cause, and it is false whenever the workspace is finished and
+the write failed underneath it — `workspace_unreadable` and `records_unavailable`
+both arrive here, and both sent the customer to a setup page with nothing on it
+to do. There are two messages now, and which one shows depends on the code rather
+than on the assumption. And a JSON caller got **200 with `ok: true`** for a write
+that stored nothing, while `POST /service-requests` and `sendWorkspacePostResult`
+both answer 503 with `ok: false` for the same failure — one product, one kind of
+failure, two answers. Now 503 either way.
+
+**The output still renders in every case**, asserted first, because a free tool
+that loses the answer it just worked out to a save failure would be a worse
+product than the one with the bad label.
+
+### 2026-08-17 — the queue that was not there
+
+Fifth instance, and the first one that is not a read collapsing. This is a
+**mechanism described to the customer that was never built**, with a passing test
+asserting it.
+
+**The sentence.** A support request whose insert failed ended at:
+
+> "Setup required: the account database is not configured, so the request used
+> the safe fallback queue. Reference ID: `<uuid>`."
+
+There is no fallback queue. Searched for: no table, no file, no in-memory store,
+nothing scheduled. The phrase was in five strings — the support result, two
+dashboard cards, an admin card and a service-lifecycle page — and every one of
+them described something that does not exist.
+
+**What actually happened on that path.** The insert had failed *and* the
+notification email had failed, so nothing was stored and nothing was sent. The
+customer got `ok: true`, HTTP 200, a reference number, and the word "queue". They
+would reasonably stop chasing it. **A support request that silently disappears is
+worse than a form that refuses to submit, because the second one gets retried** —
+and this was the one page somebody reaches when something has already gone wrong.
+
+**A test asserted the fabrication**, by name: *"POST /support/request uses the
+safe fallback queue with a reference ID when database is missing"*. It cleared
+the Supabase environment and checked for `ok: true` and a reference ID. The
+guarantee had a green tick and no implementation, which is this codebase's stated
+recurring defect in its purest form.
+
+**The reference number is the part that does the damage.** It is minted before
+the insert and written into the row as `reference_id`, so when the row is stored
+it genuinely identifies it — and when the row is not stored but the email went
+out, it is in the email body, so support can still find it. Both real, in
+different places, and the message now says which. When neither happened it
+identifies nothing anywhere, and handing it over is the artefact that makes
+somebody believe they have a case open. That case now returns **no reference at
+all**, `ok: false`, and 503 — so a caller reading only the status code cannot
+record a vanished request as a filed one.
+
+`lib/sonara-support-outcome.cjs` holds the four-way decision. Its test asserts
+the two success endings *first*, because every "did not go through" assertion
+would otherwise pass against a form that refuses everything.
+
+**Three more invented references, swept in the same pass.** `POST
+/service-requests` minted one with `randomUUID()` on two failure branches and, on
+the success branch, fell back to `randomUUID()` when the insert worked but the
+representation did not come back — the hardest of the three to notice, because
+everything else about the request was fine. `saveModuleOutput` did the same in
+two places, and `sendWorkspacePostResult` printed the result on a page that had
+already, correctly, said the work could not be saved. All now null, and the
+unsaved page prints no reference.
+
+**Lint proved the sweep was complete** in one file: removing the last
+`randomUUID()` call left the import unused and the build said so. That is a
+better completeness check than my own reading of the file.
+
+Four tests changed. Each asserted the old behaviour, and each was read before
+being touched — one of them, *"still accepts a valid request"*, is a real guard
+against fixing a failure path by breaking a success path, so it kept its job and
+lost only its acceptance of the word "queued".
+
+### 2026-08-17 — Awesome DeepSeek Agent reviewed; the answer is that nothing needs adding
+
+Added to the register on request. **Blocked**, and the more useful half of the
+finding is that the request it came with was already satisfied.
+
+**No licence, checked three ways** rather than assumed: the repository page shows
+no LICENSE file, the repository API returns no licence field, and
+`/repos/deepseek-ai/awesome-deepseek-agent/license` answers 404, which is what
+GitHub returns when it detects none. No licence is not permissive by default. It
+is all rights reserved, and nobody here can grant what the author has not.
+
+**Two claims in the pitch did not survive reading the repository.** It described
+twenty applications; the contents table lists 24. And the one-million-token
+context window is stated there for one tool's DeepSeek-TUI entry, not as a
+property of a model — worth being exact about, because that is precisely the kind
+of figure that gets repeated into marketing copy and then has to be defended.
+`DeepSeek-V4-Pro` and `DeepSeek-V4-Flash` are referenced by name in the
+repository; their pricing, terms and availability were **not** verified here, and
+cost is a constraint of the same weight as licence.
+
+**There is nothing to install.** It is documentation — 24 setup guides, no
+runnable code, no installer, no agent skill.
+
+**And DeepSeek already works without a line of code changing here.**
+`lib/sonara-open-webui-adapter.cjs` sends `model: readiness.model`, read from
+`SONARA_OPEN_WEBUI_MODEL`. The model is a configuration value, not a code path,
+so a DeepSeek model served behind the owner's own Open WebUI or gateway is
+reachable today. That is the arrangement `docs/architecture/EXTERNAL-SERVICES.md`
+describes, and the reason the register has carried DeepSeek V3 as an optional
+gateway model family rather than as a dependency since before this.
+
+**A second stale number fell out of it.** The doc-count guard rejected the
+release for `docs/owner/WHAT-IS-LEFT.md` saying "85 reviewed repositories", which
+is what it is for. Counting the rest of that sentence by hand found the next
+clause wrong too: it said **2** repositories declare no licence, and the register
+held **4** before today. That figure was never checked, because
+`verify-doc-counts.mjs` deliberately leaves licence questions to a human — and
+rightly, for the interpretive ones. Whether a reciprocal licence reaches a hosted
+product is a judgement. How many records say no licence was declared is not; it
+is a fact about the register, and it is now derived and compared like the other
+counts. Verified by putting the wrong figure back and watching it fail before
+trusting the green. The sentence now reads 86 and 5.
+
+**One correction worth recording, because a guard made it.** The record was first
+filed as `reference_only`, reasoning that reading a public page needs no licence.
+That reasoning is true and it is not what this register governs.
+`tests/open-source-licence-terms.test.js` refused it: a record whose licence text
+says nothing was declared must be `blocked`. The rule is right to be absolute —
+the moment an undeclared licence can sit at `reference_only`, the line between
+may-read and may-take rests on whoever opens the entry next. **The record moved,
+not the check.** Weakening it would also have needed a documented reason in
+`SECURITY_NOTES.md`, which is the second reason not to.
+
+### 2026-08-17 — the fourth instance, and this one is what the customer sees
+
+Went looking for it deliberately. Three fixes today were the same collapse in
+three different modules, so the question was where else it lives — and the
+answer was one layer further out, in the rendering rather than the reading.
+
+**`workspaceRecordCards` returned `""` for a read that failed.** It returns `""`
+for three unrelated situations: a page with no records section, a read that
+failed, and a read that could not be attempted. The reasoning above it is sound
+and is kept — *"a records list that cannot load should leave the tool usable
+rather than take the page down with it"*. The mistake is the choice of `""` for
+the middle one. `""` is what a page with no records section looks like, so a
+customer with twenty saved leads saw the form and nothing under it. On a page
+titled Records, an empty page is not the absence of a statement.
+
+**The neighbouring renderers already had it right for the case they could see.**
+`renderRecordCards` on a genuinely empty list says *"Nothing saved yet. Use the
+form above and it will appear here."* That sentence is true after a successful
+read and false after a failed one, and nothing told them apart — the failure
+never reached the renderer at all.
+
+`renderRecordsUnavailable` now says the list could not be loaded, that it is our
+side, and that nothing has been deleted. Setup codes stay silent, because a
+customer with no workspace yet is not looking at a failure and the page has its
+own setup card; a "we could not load" banner on a brand-new account would be a
+new false statement in place of the old one.
+
+**Two smaller things found on the way in.** `moduleCrud.list` passed a 200
+carrying a non-array straight through as `records`, which reached `.map` in the
+renderers — before this morning's route safety net that hung the request, and
+after it a 500. It is a read failure now. And `readModuleRecords` reported
+`setup_required` for every organization failure, which since this morning
+includes `workspace_unreadable`; only a genuine `workspace_not_ready` maps there
+now.
+
+**The test's second half is the half that matters.** For each of the two page
+shapes it asserts the failed read says so — and then that a *successful* empty
+read still says "Nothing saved yet" and does not say "could not load". Without
+that pair, a page apologising unconditionally would pass, and that is the same
+lie told in the commoner direction, to every customer who genuinely has not
+saved anything yet.
+
+**Line-neutral in server.js**, which stays at 4032: two `return ""` became two
+calls, and the new markup lives in `lib/sonara-module-crud.cjs` beside the
+renderers it belongs with.
+
+### 2026-08-17 — a customer who had paid could be shown a paywall
+
+Third instance of the same collapse in one day, and the one that touches money.
+
+`getCustomerPaidEntitlement` asks two tables whether this customer holds a plan
+that opens this product: `billing_entitlements`, then `billing_subscriptions`.
+Both reads were `if (response?.ok) { ... }` with no else. A read that failed and
+a read that found nothing ended in the same place — **HTTP 402**, under the
+heading **"Upgrade required"**, beside a link to pricing, with the sentence
+*"Paid access is locked until payment updates show an active or trialing plan."*
+
+So during an outage on our side, a paying customer was told they had not paid.
+402 is literally Payment Required. The first thought of somebody shown a paywall
+they already paid past is that they have been charged wrongly, and every element
+of that page agreed with them.
+
+A plan can live in either table, so **one** silent read is enough to make the
+conclusion unfounded — the subscription read failing alone was sufficient, with
+the entitlement read answering correctly and finding nothing.
+
+**Now:** `readBilling` returns rows or `null`, never `[]`, and treats a 200
+carrying a non-array as failed too. If either read came back null and neither
+found a match, the answer is `503 entitlement_unreadable` with a message that
+says whose fault it is and does not mention payment. `workspace_unreadable` and
+`workspace_unavailable` from the tenant resolver land there as well, rather than
+being flattened into `upgrade_required` as every organization failure was.
+
+**The page had to change with it.** The heading was hardcoded, so a 503 would
+still have rendered under "Upgrade required". The result now carries a `heading`,
+and server.js drops the pricing link when it is present — there is nothing to buy.
+Results that genuinely mean upgrade carry no heading and are untouched, which is
+what the test's `assert.equal(unpaid.heading, undefined)` is for.
+
+**The test asserts the paid paths and the genuine-402 path first**, so the three
+503 cases are not green against a reader that stopped charging anybody.
+
+Two notes for whoever is next. The four production markers
+`verify-production-product-catalog.mjs` greps for are intact — both PostgREST
+paths, the active-or-trialing filter, and the locked message, which is still the
+text of a genuine 402. And `billingRowOpensProduct`, which refuses a
+`workspace_monthly` row for the wrong workspace, still returns its own 402: that
+is a real answer about a real row, not a read that failed.
+
+**A container reset landed mid-change** and put the tree back on `f3e51f2`, four
+commits behind. Recovered by fetching and fast-forwarding rather than resetting
+hard. Worth recording because the first version of this fix was written against
+the stale file — which had neither `metadata` in its selects nor
+`billingRowOpensProduct` — and the patch's own assertion is the only reason it
+did not apply cleanly onto code that had moved on.
+
+### 2026-08-17 — a read that failed could hand a customer a second workspace
+
+Found while sweeping for the absent-vs-empty collapse this codebase keeps
+producing. This one is in the tenant boundary itself, which makes it the worst
+place it has turned up.
+
+**What it was.** `getCustomerPrimaryOrganization` looks in
+`organization_memberships`, then `business_memberships`, and if neither has a
+row it calls `sonara_bootstrap_customer_workspace` to make one. Both lookups
+were written as `if (response?.ok) { ... }` with no else, so "the read failed"
+and "there is no row" fell through to the third step identically.
+
+**Why it was not caught by the RPC being idempotent.** It is idempotent — but
+only against `organization_memberships`, which it checks for an active
+membership before creating anything. It never looks at `business_memberships`.
+So a failed read of the first table was covered by accident, and a failed read
+of the second was not: a customer whose only membership lives there, on a
+request where that read failed, was handed a brand-new empty organization while
+their real one sat untouched with every record in it. From their side the
+product had lost their business.
+
+**The fix is a refusal, not a retry.** Both reads must answer before "there is
+nothing to find" is a conclusion anyone may write against. `readMemberships`
+returns the rows or `null`, never `[]`, for exactly that reason — and it returns
+null for a 200 carrying something that is not an array too, which is a real
+PostgREST failure mode and read as "no membership" before.
+
+**And the same collapse one level up.** "No workspace" and "could not check"
+were both `workspace_not_ready`, a code that reads as a fact about the customer.
+Someone mid-outage was told they had no workspace and offered a button to create
+one. `workspace_unreadable` is now separate; callers testing only `.ok` are
+unaffected, which is nearly all 95 of them.
+
+**Extracted while fixing**, to `lib/sonara-customer-organization.cjs`. server.js
+came down 40 lines and the ratchet in `tests/server-split.test.js` went to 4033
+— below where it stood before this morning's seven-line rise for the async route
+safety net.
+
+**Two existing guards caught the move before the tests did**, which is worth
+recording because both were written after being fooled once.
+`tests/member-read-policies.test.js` refuses any function handed a table name
+that it does not know, so `readMemberships` had to be registered before its two
+tables could go unchecked. And `tests/database-query-contract.test.js` pins the
+deterministic membership query — explicit total order and `limit=1`, without
+which a customer in two organizations flips between them per request. Its
+assertions now read the whole runtime rather than server.js, per that file's own
+note that which file holds a query is not part of the contract, and check that
+both tables go through one shared query rather than each carrying its own.
+
+### 2026-08-17 — a route that fails now answers, instead of hanging
+
+`docs/SHIP_READINESS.md` carried one open finding since 13 August: a request to
+`/admin/database` with a *healthy* catalog did not complete, while requests whose
+catalog failed answered in milliseconds. It was never diagnosed. It is now, and
+the cause was not in that route.
+
+**Express 4 ignores the promise an async handler returns.** A handler that
+throws, or awaits something that rejects, never reaches `next(error)`. Nothing
+writes a response. The request stays open until whoever is at the other end
+gives up. Probed directly against this application: `UNHANDLED REJECTION` on the
+process, and no response at all through a five-second deadline. There are **225
+async handlers** here. `/admin/database` was where somebody happened to be
+looking, and its healthy branch is simply the one with more code in it to fail.
+
+**A stall is not a slow 500**, which is why this got a module rather than a
+try/catch in the handler that was noticed. The customer sees a spinner, so they
+retry rather than report. The serverless function is billed until its own
+timeout rather than until the error. And it landed on the page an owner opens
+when they already think something is wrong.
+
+**Fixed at registration.** `lib/sonara-async-route-safety.cjs` patches
+`app.get/post/put/patch/delete/use/all` once, before the first route exists, so
+a rejection becomes `next(error)`; a terminal handler registered last answers
+500 — a branded page, or JSON under `/api/` — with no error text and no stack in
+it. Wrappers keep their argument count, because Express decides what is an error
+handler by counting parameters, and a 4-argument handler wrapped in a
+3-argument one silently stops being one and starts receiving the error as `req`.
+Express routers are left unwrapped so `verify-route-registry` can still walk
+their stacks. 225 handlers cannot be individually remembered, and the 226th gets
+written by somebody who never read this entry.
+
+**The test's first assertion is that the defect exists.** An unpatched Express 4
+app must stall; otherwise the four passing cases after it would be green against
+a framework that never had the problem. Then: a page for a browser, JSON for an
+API caller, no error text or stack in either, a synchronous throw caught too,
+and a response already sent left alone — a 500 written over work that succeeded
+is worse than the stall. Two more read the real router stack: every registered
+handler wrapped, terminal handler last.
+
+**The one thing still unknown**, said plainly rather than closed over: what made
+`/admin/database` throw was never identified and no longer reproduces — 2ms
+inside the full suite, 40ms standalone. An unidentified throw is still an
+unidentified throw. What changed is that it can no longer take a request down
+with it, and if it comes back it arrives as a 500 with a stack in the log rather
+than as silence.
+
+**One ratchet moved.** `server.js` grew 7 lines and the ceiling in
+`tests/server-split.test.js` went 4066 → 4073, with the reason written next to
+it: a require, one call after `const app = express()`, and a four-line terminal
+handler, all of which must be in that file because they bracket every route
+registered in it. Everything else went into the module.
+
+### 2026-08-17 — "GitHub is down" is not "the repository is gone"
+
+`external-repository-health` went red on PR #202 with thirty-five lines of
+`ERROR: GitHub returned 504 for ...`, naming `rust-lang/rust`,
+`sindresorhus/awesome` and `ollama/ollama` among others. Nothing was wrong with
+the register. GitHub's API was returning gateway timeouts, and the checker
+reported that as evidence about the repositories.
+
+**Why this one mattered more than the noise.** The obvious response to a red
+external-repository-health run is to go and remove the named entries from
+`data/open-source-tools.ts`. A check that cannot tell *this repository is gone*
+from *GitHub did not answer* does not merely fail uselessly — it argues for
+deleting eighty-five records that are fine, in the one place where the argument
+looks authoritative.
+
+**Three outcomes now, not two.** Confirmed means GitHub answered and the answer
+was good; error means GitHub answered and the answer was bad — 404, 410,
+disabled, no default branch; indeterminate means GitHub did not answer — 5xx,
+timeout, transport failure, rate limit. 429 and 5xx are retried twice with
+backoff first, because a gateway timeout is usually a moment rather than a
+state; a rate limit is not retried, since burning attempts against it only
+deepens it. Transport failures were folded in too — an offline runner used to
+report every registered repository as broken.
+
+**And the pass had to be tightened at the same time.** Downgrading 5xx to a
+warning on its own would have turned thirty-five false errors into a silent
+green, which is this codebase's recurring defect wearing its other face. So a
+`--network` run that confirms *zero* targets now fails, and the summary line
+reports the population it actually reached rather than the one it was given.
+That line already lied on the rate-limit path, which breaks out of the loop
+partway and then went on to claim "every registered repository still exists".
+
+**Verified against a stubbed API rather than reasoned about**, since a check
+about failure handling that has only been read is a check nobody has run: three
+504s among ninety-one targets warn and exit 0 naming 88 of 91 confirmed; a 404
+on `rust-lang/rust` still exits 1; a rate limit on the first target exits 1 for
+having established nothing; and the offline release-chain path is unchanged.
+
+### 2026-08-14 — the 124 policy-less tables are correct, and now provably so
+
+The Supabase work asked for was a search for what is broken. What it found was
+a property that is right and undefended, which is a different kind of problem
+and a worse one, because the fix for it looks like a fix.
+
+**The finding.** Row level security is enabled on every table in this schema.
+124 of them carry no policy at all. A security advisor reads that as a gap, and
+the obvious remedy is to write policies. Both readings are wrong. RLS enabled
+with zero policies denies every row to `anon` and to `authenticated`; the
+service role bypasses RLS entirely. Every query this product makes goes through
+Express holding the service key, so deny-all is not a gap in the wall — it *is*
+the wall, and it is the strongest state available. Writing policies to satisfy
+the advisor would open 124 tables to any signed-in user of any organization, in
+exchange for nothing, because nothing is being denied that anybody wanted.
+
+**Why it held.** Checked rather than assumed: no file under `public/` or
+`packages/` names `/rest/v1/`, a `*.supabase.co` host, or `createClient(`. The
+anon key appears only in server-side modules. The browser genuinely has no route
+to PostgREST, so the tenant boundary is the `organization_id` filter in Express
+and nothing depends on a policy that isn't there.
+
+**What was missing.** Nothing checked the "no route to PostgREST" half. That is
+the load-bearing assumption, it is invisible from the database side, and the
+first client script to query PostgREST directly would get empty results from 124
+tables and send whoever wrote it straight to the policy editor. The database
+cannot warn about this; only the client tree can.
+
+**What was added.** `scripts/client-secret-scan.cjs`, already in
+`verify:launch`, now also fails if a browser file names a PostgREST path, a
+Supabase host, or a Supabase client constructor — with the reasoning in the
+failure text, so the person who trips it reads why before deciding what to do.
+The scan also throws on zero files read, since a walk that stopped matching
+would otherwise report both of its checks green having read nothing, which is
+this codebase's recurring defect exactly.
+
+**Verified to bite.** Appending a `fetch("https://<ref>.supabase.co/rest/v1/customers")`
+call to `public/sonara-one.js` fails the scan; so does a bare Supabase host
+string with no fetch around it. The restored tree passes and names the count of
+files it read.
+
+**Still open and owner-only.** Leaked-password protection is a dashboard toggle
+in Supabase Auth and no tool here can set it. The four authorization functions
+(`is_admin`, `is_current_user_admin`, `has_scope`, `has_company_access`) exist
+in the live database and not in any migration; exporting them needs the Supabase
+MCP connector authorized, which it is not.
+
+### 2026-08-14 — watermarks-remover reviewed and refused
+
+Added to the register on request, and **blocked**. The name suggests removing a
+photographer's visible watermark. Read from the repository, it does something
+else: it strips multi-vendor **AI provenance marks** — C2PA Content Credentials,
+SynthID-class statistical text watermarks, invisible Unicode markers, and
+EXIF/XMP metadata — across PNG, JPEG, WebP, SVG, PDF, DOCX, ODT, HTML and
+Markdown. Its own skill manifest gives the purpose as *"anti-detect clean AI
+output"*, and it ships a reference document on defeating one specific vendor's
+marks.
+
+**The licence is MIT, and that is the point of this entry.** There is no licence
+obstacle whatsoever. The obstacle is ours. `AGENTS.md` says, in as many words:
+*enforce provenance, consent, and anti-clone safety*. C2PA and SynthID **are**
+the provenance layer. A product that sells provenance enforcement and also ships
+a provenance stripper is not offering two features — it is contradicting itself,
+and the contradiction gets discovered by whichever customer relied on the first
+one. This is the register's most useful shape: a repository with a clean licence
+that still cannot be used, for a reason that has nothing to do with copyright.
+
+**The legitimate slice, acknowledged rather than flattened.** The project frames
+itself as privacy and hygiene on content you own, and one part of that is real:
+stripping GPS coordinates out of your own photograph before publishing is
+privacy hygiene creators genuinely need. That slice does not require this. It is
+a metadata field, it can be built against the files a customer already uploads,
+and building it separately is what keeps it from arriving bundled with
+provenance removal. The register entry says so, and the safety boundary written
+against it is that any future EXIF-privacy feature strips location and device
+fields only and leaves content credentials intact.
+
+**Not installed anywhere.** The repository ships an agent-skill installer
+(`skills/remove-ai-marks/`, `install-skill.sh`). It was not installed into this
+session or into the repository's skills, and "installing that skill into any
+agent used on this codebase" is written into `blockedUses` so the reason
+outlives whoever read it.
+
 ### 2026-08-13 — Every connector reconciled against what the application actually uses
 
 A connector being available as a tool is not the same as the product depending

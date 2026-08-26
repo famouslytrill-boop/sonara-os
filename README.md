@@ -34,15 +34,31 @@ The app intentionally remains an Express/Node deployment for this repo. Do not a
 
 ## Local setup
 
-```powershell
-cd C:\Users\AXPAY\famouslytrill-project
+```
 corepack enable
-pnpm install
-copy .env.example .env
+pnpm install --frozen-lockfile
 pnpm start
 ```
 
-Open `http://localhost:3000`.
+Open `http://localhost:5000`. The port is `process.env.PORT || 5000`.
+
+Public pages serve; signed-in pages return 503 "setup required" until Supabase
+is configured. That is the correct state for a blank install, not a fault.
+
+**There is no `dotenv` in this project.** Copying `.env.example` to `.env` sets
+nothing on its own — the file is not read at startup. To load it, use Node's
+own flag:
+
+```
+cp .env.example .env
+pnpm run dev
+```
+
+which runs `node --env-file=.env server.js`.
+
+`docs/owner/INSTALL.md` is the full version: what has to be installed by hand
+(one CLI, and only for migrations), what is configured in a dashboard instead,
+and the order to do it in.
 
 ## Required env vars
 

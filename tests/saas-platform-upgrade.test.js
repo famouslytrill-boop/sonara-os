@@ -257,7 +257,7 @@ describe("software-in-a-service platform upgrade", () => {
       }
     });
 
-    it("POST /service-requests names the service_requests table when the insert is unavailable", async function() {
+    it("POST /service-requests refuses the request when the insert is unavailable", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       setSupabaseEnv();
       const originalFetch = global.fetch;
@@ -270,11 +270,18 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Authorization", "Bearer customer-session")
           .set("Accept", "application/json")
           .send({ productKey: "business_builder", serviceName: "Launch Website Setup", summary: "Need a site", details: "Full details of the request." });
-        assert.equal(res.status, 200);
+        // The old assertions were 200 with `saved: false` and a reference ID,
+        // which is the shape of an accepted request. `saved: false` carried the
+        // truth and nothing surfaced it: the page said "Setup required" and gave
+        // a reference number minted by randomUUID() for a row that was never
+        // written. A number that identifies nothing is what makes somebody
+        // believe they have a case open.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
         assert.equal(res.body.saved, false);
-        assert.equal(res.body.code, "setup_required");
+        assert.equal(res.body.code, "not_recorded");
         assert.equal(res.body.service, "service_requests");
-        assert.ok(res.body.referenceId);
+        assert.equal(res.body.referenceId, null);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);
@@ -348,7 +355,7 @@ describe("software-in-a-service platform upgrade", () => {
       assert.equal(res.body.code, "validation_failed");
     });
 
-    it("POST /support/request uses the safe fallback queue with a reference ID when database is missing", async function() {
+    it("POST /support/request says a request went nowhere, rather than inventing a reference for it", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       clearSupabaseEnv();
       try {
@@ -356,10 +363,18 @@ describe("software-in-a-service platform upgrade", () => {
           .post("/support/request")
           .set("Accept", "application/json")
           .send({ name: "Casey Customer", email: "casey@example.com", subject: "Access question", message: "I need help understanding workspace setup.", category: "support", consent: "yes" });
-        assert.equal(res.status, 200);
-        assert.equal(res.body.ok, true);
-        assert.ok(res.body.referenceId);
-        assert.match(res.body.message, /Reference ID/);
+        // This test asserted the fabrication. Its old name was "uses the safe
+        // fallback queue with a reference ID when database is missing", and
+        // there is no fallback queue -- no table, no file, no in-memory store.
+        // With Supabase cleared and no email provider the request was stored
+        // nowhere and sent nowhere, and the customer was handed ok:true, a
+        // reference number and the word "queue", which is everything somebody
+        // needs to stop chasing it.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
+        assert.equal(res.body.status, "not_recorded");
+        assert.equal(res.body.referenceId, null);
+        assert.doesNotMatch(res.body.message, /queue|Reference ID/i);
       } finally {
         restoreEnv(snapshot);
       }
@@ -410,16 +425,72 @@ describe("software-in-a-service platform upgrade", () => {
   });
 
   describe("free tools", () => {
-    it("tool pages require login for anonymous browsers", async function() {
+    // This asserted that a tool page redirected an anonymous browser to /login,
+    // and that stopped being true on 19 August 2026.
+    //
+    // The funnel it described was: /business-builder/tools is a public page
+    // listing every tool by name and description, and clicking one bounced you
+    // to a login wall. It advertised and then refused, at the strongest and
+    // cheapest thing in the product -- arithmetic that costs nothing per use and
+    // reads nothing from the database to produce an answer.
+    //
+    // Gating the computation drove bounces; gating the *saving* is what drives
+    // signups, and that is unchanged. Nothing moved from paid to free -- the free
+    // plan already included these tools.
+    //
+    // So the assertion is inverted, and strengthened where it matters: the thing
+    // worth checking now is not that a stranger is refused, but that a stranger
+    // is served **an answer and nothing else**.
+    it("computes for a stranger without showing them anything from the database", async function() {
       const snapshot = snapshotEnv(SUPABASE_KEYS);
       clearSupabaseEnv();
       try {
         for (const route of ["/business-builder/tools/pricing", "/creator-studio/tools/brief", "/growth-studio/tools/kpi"]) {
           const res = await request(app).get(route).set("Accept", "text/html");
-          assert.equal(res.status, 303, `${route} should redirect anonymous browsers`);
-          assert.equal(res.headers.location, "/login");
+          assert.equal(res.status, 200, `${route} should open for anybody`);
+          // A tool renders a form and its own words. If a customer's record ever
+          // reached one of these pages it would be reaching somebody with no
+          // account at all, so this asserts the absence rather than trusting it.
+          assert.match(res.text, /<form/i, `${route} rendered no form`);
+          assert.doesNotMatch(res.text, /Reference ID/i, `${route} showed a saved record to a stranger`);
         }
       } finally {
+        restoreEnv(snapshot);
+      }
+    });
+
+    it("tells a stranger their answer was not saved, and why an account would save it", async function() {
+      const snapshot = snapshotEnv(SUPABASE_KEYS);
+      setSupabaseEnv();
+      const originalFetch = global.fetch;
+      // Configured database, nobody signed in -- the state a visitor arrives in.
+      global.fetch = async (url) => {
+        const signedOut = String(url).includes("/auth/v1/user");
+        return {
+          ok: !signedOut,
+          status: signedOut ? 401 : 200,
+          headers: { get: () => null },
+          json: async () => (signedOut ? { error: "no session" } : [])
+        };
+      };
+      try {
+        const res = await request(app)
+          .post("/business-builder/tools/break-even")
+          .set("Accept", "text/html")
+          .type("form")
+          .send({ fixedCostsMonthly: "3000", pricePerSale: "50", variableCostPerSale: "20", cashOnHand: "9000" });
+
+        // 200, not 503. The tool ran and answered; nothing on our side broke,
+        // and reporting a working tool as an outage would be a lie about the
+        // product to the person least likely to come back.
+        assert.equal(res.status, 200, "a working tool answered a stranger with a server error");
+        assert.match(res.text, /100 sales a month/, "the answer itself is missing");
+        assert.match(res.text, /not saved/i, "it did not say the answer was unsaved");
+        // "Setup required" is the wrong instruction for somebody with no account
+        // to set up. A stranger is not an unfinished workspace.
+        assert.doesNotMatch(res.text, /Not saved yet/, "it told a stranger their workspace setup was unfinished");
+      } finally {
+        global.fetch = originalFetch;
         restoreEnv(snapshot);
       }
     });
@@ -483,13 +554,22 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Authorization", "Bearer customer-session")
           .set("Accept", "application/json")
           .send({ costBasis: "100", hoursPerUnit: "2", hourlyRate: "50", targetMargin: "50" });
-        assert.equal(res.status, 200);
-        assert.equal(res.body.ok, true);
+        // "honest save state" now includes the status code and `ok`. A write
+        // that stored nothing answered 200 with ok: true, while POST
+        // /service-requests answered 503 with ok: false for the same failure.
+        assert.equal(res.status, 503);
+        assert.equal(res.body.ok, false);
         assert.equal(res.body.saved, false);
-        assert.equal(res.body.code, "setup_required");
+        // Was "setup_required". This stub has a resolved workspace and a working
+        // config; only the writes fail, so setup is not the reason and the
+        // result page was choosing its wording from this code.
+        assert.equal(res.body.code, "save_failed");
         assert.match(res.body.output.baseCost, /\$200\.00/);
         assert.match(res.body.output.targetPrice, /\$400\.00/);
-        assert.ok(res.body.referenceId);
+        // "honest save state" is `saved: false`; the reference ID was the part
+        // that was not honest. It came from randomUUID() and identified no row
+        // in any table, on the one path where nothing had been written.
+        assert.equal(res.body.referenceId, null);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);
@@ -510,11 +590,20 @@ describe("software-in-a-service platform upgrade", () => {
           .set("Accept", "text/html")
           .type("form")
           .send({ leadName: "Jordan", service: "Growth audit", lastTouch: "call on Tuesday", consentStatus: "opted_in" });
-        assert.equal(res.status, 200);
+        // Was: 200, "Save requires account database setup.", and a "Reference ID".
+        // All three were wrong here. This stub sets the Supabase environment and
+        // answers the membership read, so setup is finished and it is the write
+        // that fails -- the message sent the customer to a setup page with
+        // nothing on it to do. The reference was printed through String(null)
+        // after referenceId stopped being an invented randomUUID(), so the page
+        // read "Reference ID: null". And a write that saved nothing answered 200
+        // while its two sibling endpoints answered 503.
+        assert.equal(res.status, 503);
         assert.equal(res.type, "text/html");
-        assert.match(res.text, /Save requires account database setup\./);
+        assert.match(res.text, /could not be saved/i);
+        assert.doesNotMatch(res.text, /Reference ID/);
+        // The output is the point of a free tool and survives either way.
         assert.match(res.text, /Jordan/);
-        assert.match(res.text, /Reference ID/);
       } finally {
         global.fetch = originalFetch;
         restoreEnv(snapshot);

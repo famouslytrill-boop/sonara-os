@@ -1,0 +1,32 @@
+# docker compose up
+#
+# Then point anything at it:
+#
+#   aws --endpoint-url http://localhost:4566 s3 ls
+#   AWS_ENDPOINT_URL=http://localhost:4566 node your-app.js
+#
+# There is no token to set, no account to make and no feature behind a licence.
+# The credentials are ignored -- `test`/`test` by convention, because the AWS
+# CLI refuses to send a request without something in them.
+
+services:
+  aws:
+    build: .
+    # A name worth having: `docker logs aws-emulator` is where Lambda output
+    # goes, since CloudWatch Logs is not emulated and inventing a log group
+    # would be a lie about where to find them.
+    container_name: aws-emulator
+    ports:
+      - "4566:4566"
+    environment:
+      # Uncomment to keep state across restarts. Off by default: a test suite
+      # wants a clean account every run, and state nobody can see is the most
+      # annoying way for a test to pass.
+      # AWS_EMULATOR_STATE_DIR: /var/lib/aws-emulator
+      AWS_EMULATOR_PORT: 4566
+    volumes:
+      - aws-emulator-state:/var/lib/aws-emulator
+    restart: unless-stopped
+
+volumes:
+  aws-emulator-state:

@@ -1105,6 +1105,87 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/merchant-products:
+    get:
+      operationId: listBusinessMerchantProducts
+      tags: [Operations]
+      summary: List the products the business sells.
+      description: Things rather than time. A product carries no price of its own; the price is on each version of it.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessMerchantProduct
+      tags: [Operations]
+      summary: List a product for sale.
+      description: Created as a draft. A product with no versions has no price, so it is not offered as on sale until one exists.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/product-variants:
+    post:
+      operationId: createBusinessProductVariant
+      tags: [Operations]
+      summary: Add a version of a product, with its price.
+      description: The parent product must belong to the caller's organization. Versions are reachable only through the product they belong to, and the price lives here rather than on the product.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/research-sources:
+    get:
+      operationId: listBusinessResearchSources
+      tags: [Operations]
+      summary: List the sites the business may research.
+      description: Each row records a site and whether the business has established it may look at it. needs_review means nobody has ruled on it, which is not the same as declined.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: createBusinessResearchSource
+      tags: [Operations]
+      summary: Record a site the business researches.
+      description: Created as needs_review with repeat crawling off unless stated otherwise. Market intelligence will only fetch a page from a source recorded here and marked approved.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/research-sources/{sourceId}/approve:
+    post:
+      operationId: approveBusinessResearchSource
+      tags: [Operations]
+      summary: Mark a recorded source as one the business may research.
+      description: The source must belong to the caller's organization and must have an address. Approving is a judgement the account holder makes -- that the site is theirs, is public, or its owner has agreed -- and it is what lets the market intelligence fetcher request that host.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: sourceId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-apps:
+    post:
+      operationId: createBusinessSubApp
+      tags: [Operations]
+      summary: Build a set of records this product does not already have a page for.
+      description: A sub-app is a named collection of customer-designed record types, living at a page inside SONARA rather than at its own web address. The name becomes its address within the business and must be unique there.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-app-schemas:
+    post:
+      operationId: createBusinessSubAppSchema
+      tags: [Operations]
+      summary: Describe a record type inside a sub-app.
+      description: Takes a name and a field list. Each field has a label and one of seven types; a list field also carries its options. The parent sub-app must belong to the caller's organization, and a record type with no fields is refused because nothing could be entered against it.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "409": { $ref: "#/components/responses/Conflict" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/sub-app-records:
+    post:
+      operationId: createBusinessSubAppRecord
+      tags: [Operations]
+      summary: Save one record against a customer-designed record type.
+      description: Checked against the field list stored on the record type, read from the database rather than taken from the submitted form. Amounts are stored in whole cents, dates as a calendar day, and a blank optional field as null rather than being dropped.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "201": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "404": { $ref: "#/components/responses/NotFound" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/purchase-order-lines:
     post:
       operationId: createBusinessPurchaseOrderLine
@@ -1527,6 +1608,141 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring:
+    post:
+      operationId: createRecurringInvoice
+      tags: [Business Builder]
+      summary: Set up a standing arrangement that bills a customer on a schedule.
+      description: >-
+        A browser form, so every outcome is a 303 back to the arrangements page;
+        a refusal carries a `problem` query parameter naming what was wrong. The
+        tax rate is submitted as a percentage and stored as basis points. An
+        arrangement is refused rather than created when the line it bills for
+        has no description, quantity or price, because an arrangement that bills
+        nothing produces no invoice and looks set up.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the arrangements page, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring/disable:
+    post:
+      operationId: disableRecurringInvoice
+      tags: [Business Builder]
+      summary: Switch off one standing arrangement so it stops producing invoices.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the arrangements page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/recurring/run:
+    post:
+      operationId: runRecurringInvoices
+      tags: [Business Builder]
+      summary: Turn every standing arrangement that is due into a draft invoice.
+      description: >-
+        Each invoice is dated the day it was due rather than today, so a late
+        run bills for the period it was for. A missed period is not made up:
+        three unrun months produce one invoice, not three. Everything produced
+        is a draft; nothing is sent. The redirect carries `done` with the count
+        created, and `problem=partial` when an arrangement that was due could
+        not be turned into an invoice.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect carrying how many drafts were created. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/business/customers/import:
+    post:
+      operationId: importCustomers
+      tags: [Business Builder]
+      summary: Read a pasted spreadsheet of customers - preview what would happen, or add them.
+      description: >-
+        One endpoint for both steps of the same flow; `confirm=yes` is the
+        difference. Without it nothing is written and the response is a preview
+        naming every row that would be added and every row that cannot be, with
+        its line number in the sheet. With it the pasted text is read again
+        through the same reader rather than a list carried back from the page,
+        so no field on the form can add a row the preview did not show. Every
+        row is an insert; nothing already on file is updated.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { description: The preview, or the result of the import, as a page. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "502": { description: Nothing was written. The whole paste goes in one request, so pasting again is safe. }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/booking-page:
+    post:
+      operationId: saveBookingPage
+      tags: [Business Builder]
+      summary: Save this organisation's public booking page - its address, opening hours and how far ahead people may book.
+      description: >-
+        A browser form, so every outcome is a 303 back to the settings page; a
+        refusal carries a `problem` query parameter naming what was wrong.
+        Switching the page on with no open day, or with no address, is refused
+        rather than published as an address that can never offer a time.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the booking page settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/creator/voice-studio/status:
+    get:
+      operationId: getVoiceStudioStatus
+      tags: [Creator Studio]
+      summary: Whether a voice studio the owner runs is configured and reachable, and what it can do.
+      description: >-
+        Reports configuration state, the host (never the URL), and the
+        languages and styles the service says it offers. Carries no audio: the
+        reference clip, the consent recording and the generated audio all stay
+        on the machine running the studio. Answers 200 with a state of
+        `disabled` when nothing is configured, which is not a fault.
+      security: [{ bearerAuth: [] }]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-profile:
+    post:
+      operationId: saveLeadIdealCustomerProfile
+      tags: [Growth Studio]
+      summary: Save what a good customer looks like - the criteria every lead is scored against, and the questions the chat widget asks.
+      description: >-
+        A browser form, so every outcome is a 303 back to the settings page; a
+        refusal carries a `problem` query parameter naming what was wrong. A
+        blank criterion is not scored on rather than matching everybody, and a
+        smallest larger than a largest is refused because it would match nothing
+        while reading as a working filter.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the ideal customer settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-capture-page:
+    post:
+      operationId: saveLeadCapturePage
+      tags: [Growth Studio]
+      summary: Save this organisation's chat widget - its address, whether it is taking enquiries, and the words it opens and closes with.
+      description: >-
+        A browser form, so every outcome is a 303 back to the settings page.
+        Switching the widget on with no address is refused rather than published
+        as an address nobody can open, and an address already held by another
+        business is reported as taken rather than as a save that failed.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the chat widget settings, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/lead-routing-rules:
+    post:
+      operationId: saveLeadRoutingRule
+      tags: [Growth Studio]
+      summary: Add or remove a rule deciding who gets a lead. Rules are tried in order and the first match wins.
+      description: >-
+        A browser form, so every outcome is a 303 back to the rules page. A
+        score range never matches a lead that has no score, which is a separate
+        condition; a rule naming somebody outside this organisation is refused.
+        Removing a rule is filtered on the organisation as well as the rule id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the lead routing rules, with a problem parameter when nothing was saved. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/scroll-sites:
+    post:
+      operationId: saveScrollSite
+      tags: [Creator Studio]
+      summary: Create, edit, publish, unpublish or delete a cinematic scroll site.
+      description: >-
+        A browser form, so every outcome is a 303 back to the site being edited,
+        carrying a problem parameter when nothing changed. The saved document is
+        rebuilt through the validator rather than merged into the stored one, so
+        what is written is always something the renderer can draw. Publishing
+        checks the plan allowance and refuses an address already taken; every
+        read and write is filtered on the organisation as well as the site id.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "303": { description: Browser form redirect back to the site, with a problem parameter when nothing was changed. }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "429": { $ref: "#/components/responses/TooManyRequests" }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/integrations/jobs:
     get:
       operationId: listIntegrationJobs
@@ -2519,6 +2735,147 @@ paths:
       responses:
         "201": { $ref: "#/components/responses/Success" }
         "400": { $ref: "#/components/responses/BadRequest" }
+  /api/creator-profiles/{id}/publish:
+    post:
+      operationId: publishCreatorProfile
+      tags: [Creator Studio]
+      summary: Give a creator profile a public address anyone can open.
+      description: >-
+        Sets a globally unique handle on a profile the caller's organization owns, making it
+        readable at /creator/{handle}. The published page shows the artist name, the public
+        description and a follower count; the backstory, voice identity, genre blend and the
+        writing, visual and prompt rules are never published.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [handle]
+              properties:
+                handle: { type: string, minLength: 3, maxLength: 32, pattern: "^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$" }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/unpublish:
+    post:
+      operationId: unpublishCreatorProfile
+      tags: [Creator Studio]
+      summary: Release a creator profile's public address, so it stops opening.
+      description: >-
+        Clears the handle. When the profile was public is kept, so the owner can be told it was
+        published once rather than shown a form that looks untouched.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/follow:
+    post:
+      operationId: followCreatorProfile
+      tags: [Creator Studio]
+      summary: Follow a published creator profile.
+      description: >-
+        Records one follow per person per profile. Only a published profile can be followed.
+        Following sends nothing to anybody -- no email, no push, no message -- and nothing reads
+        this record to do so.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/creator-profiles/{id}/unfollow:
+    post:
+      operationId: unfollowCreatorProfile
+      tags: [Creator Studio]
+      summary: Stop following a creator profile.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/service-requests/{requestId}/comments:
+    post:
+      operationId: addServiceRequestComment
+      tags: [Workspace]
+      summary: Add a message to a service request the caller's organization raised.
+      description: >-
+        Writes to service_comments, which had no runtime reader or writer before this: a customer
+        could raise a request and nobody could reply to it. The request is confirmed to belong to
+        the caller's organization before anything is written, so a guessed reference cannot attach
+        a message to another business's request.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: requestId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body: { type: string, minLength: 1, maxLength: 4000 }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/shared-links/{resourceType}/{id}/share:
+    post:
+      operationId: shareSavedResult
+      tags: [Workspace]
+      summary: Publish one saved result, quote, invoice or appointment at an unguessable link anybody can open.
+      description: >-
+        Mints a share token for a module output the caller's organization owns and returns its
+        public path. Re-sharing an already shared result returns the existing token rather than
+        minting a new one, so links already handed out keep working. The published page shows the
+        output only; the input the result was worked out from is never published.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: resourceType, required: true, schema: { type: string, enum: [module_output, quote, customer_invoice, business_booking] } }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
+  /api/shared-links/{resourceType}/{id}/revoke:
+    post:
+      operationId: revokeSharedResult
+      tags: [Workspace]
+      summary: Stop sharing a published record, so its link stops opening.
+      description: >-
+        Clears the share token. The record that the result was once published is kept, so the
+        customer can be told it was public until they took it back.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { in: path, name: resourceType, required: true, schema: { type: string, enum: [module_output, quote, customer_invoice, business_booking] } }
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/SetupRequired" }
   /api/admin/prompt-library/readiness:
     get:
       operationId: getAdminPromptLibraryReadiness
@@ -2597,8 +2954,25 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
+    TooManyRequests:
+      description: >-
+        The rate limiter refused this request. It is bounding a script rather
+        than pacing a person, so a customer working normally does not reach it.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
     MethodNotAllowed:
       description: The registered compatibility method is intentionally unavailable.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    NotFound:
+      description: No record of that kind exists, or none that this caller's organization owns. The two are answered alike on purpose, so a caller cannot learn which by guessing identifiers.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Conflict:
+      description: The request is understood but the workspace is not in a state that can serve it -- usually an organization that has not finished setup.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }

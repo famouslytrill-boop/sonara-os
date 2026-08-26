@@ -52,6 +52,7 @@ const ROOTS = Object.freeze([
 // reachable fails too, because a stale reason is how this list would rot the
 // same way the ones it replaced did.
 const NOT_LINKED = Object.freeze({
+  "/leadforge": "A landing page for a different brand, rendering its own document outside the SONARA shell. It is meta noindex while its proof is placeholder content, and linking it from SONARA navigation would put a second company in this one's menu.",
   "/sitemap.xml": "A machine endpoint. Search engines fetch it; a link to it on a page would be noise.",
   "/robots.txt": "Same as the sitemap: fetched by crawlers, not by people.",
 
@@ -59,6 +60,7 @@ const NOT_LINKED = Object.freeze({
   "/auth/callback": "The redirect target a provider sends the browser back to. Nothing links it because nothing should.",
   "/reset-password": "Arrives as a link in an email, with a token. A link from a page would land without one.",
   "/business-builder/invite/accept": "Arrives as a link in an invitation email, carrying the token that makes it work.",
+  "/shared": "Reached by trimming a shared result's link, and linked from every /shared/:token page. Those carry a token, so they are not registered and this crawl cannot see the link from them.",
 
   // The canonical legal pages live under /legal/* and the footer links all of
   // them on every page. These are aliases kept for older links.
