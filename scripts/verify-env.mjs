@@ -113,6 +113,23 @@ const OPTIONAL_CAPABILITY = new Set([
   // flag is the one thing an owner can set truthfully from what they can see in
   // their own dashboard.
   "STRIPE_CONNECT_ENABLED",
+  // Web push. Optional, and it must stay optional for two separate reasons.
+  //
+  // The ordinary one: a customer with no push configured gets email and the
+  // pages they already use, which is the product working rather than a product
+  // broken. `pushReadiness()` reports setup_required naming the missing keys.
+  //
+  // The one that is a rule rather than a preference: AGENTS.md says *"Sounds,
+  // voice announcements, haptics, SMS, push, and email alerts must be off or
+  // explicitly user-controlled by default."* Push being free does not make it
+  // default-on, and a required classification here would be this check
+  // vouching for the opposite.
+  //
+  // VAPID_PRIVATE_KEY is a signing key and belongs nowhere near a browser. It
+  // is read only by lib/sonara-web-push.cjs, which runs server-side.
+  // VAPID_PUBLIC_KEY does reach the browser -- a subscription cannot be created
+  // without it -- and that is correct: it is the public half.
+  "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
   "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
   "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",
   "STRIPE_PRICE_CREATOR_STUDIO_CORE_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_CORE_MONTHLY",

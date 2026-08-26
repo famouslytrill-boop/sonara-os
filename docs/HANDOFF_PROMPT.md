@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 102 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 238 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 239 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -128,6 +128,62 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - Push notifications, checked against the RFC's own ciphertext
+
+First of the zero-margin capabilities, and the reason is narrow and checkable:
+the Push API, the Notifications API and the Service Worker API are standard
+browser features, and **the browser vendor's push service does the delivery and
+is free**. No account, no per-message charge, no subscriber tier. It reaches
+exactly the population SMS is usually bought to reach -- people who have already
+used the site.
+
+`lib/sonara-web-push.cjs`, `node:crypto` only, no dependency. Three
+specifications stack up: RFC 8030 for delivery, RFC 8291 for payload
+encryption, RFC 8292 for the VAPID token.
+
+## The verification, which is the point of this entry
+
+Recalled crypto is wrong crypto. So the encryption is checked against **RFC
+8291's own published test vector** rather than against my reasoning about it.
+Section 5 of that RFC fixes both key pairs, the salt and the auth secret, and
+publishes the exact ciphertext; the test reproduces it byte for byte.
+
+Appendix A publishes every intermediate value, and each is asserted separately
+-- shared ECDH secret, IKM, CEK, nonce -- so a failure names the step that is
+wrong rather than only that the output differs. A single end-to-end assertion
+would have said "the ciphertext is wrong" and left the next person bisecting
+four derivations by hand.
+
+Two other things a round-trip test alone would not have caught, so both are
+asserted directly:
+
+- **The last-record delimiter is 0x02, not 0x01.** 0x01 means another record
+  follows, and a receiver that sees it waits for one that never arrives. Read
+  back by decrypting with the RFC's receiver private key.
+- **The VAPID signature must be raw r||s, not DER.** Node signs DER by default,
+  and a push service rejects that with a bare 401 that says nothing about the
+  encoding. The test verifies with `dsaEncoding: "ieee-p1363"`, which is what
+  proves the format rather than assuming it.
+
+And one distinction that decides whether a row gets deleted: **404 and 410 mean
+the subscription is gone; 429 and 5xx mean try later.** Collapsing them either
+keeps sending to a browser that is gone for ever, or deletes a live subscription
+because a push service had a bad minute. A network failure is a third state and
+is not reported as either.
+
+## Off by default, which is a rule
+
+AGENTS.md: *"Sounds, voice announcements, haptics, SMS, push, and email alerts
+must be off or explicitly user-controlled by default."* Being free does not make
+it default-on, and the three VAPID variables are classified
+`OPTIONAL_CAPABILITY` with that quoted as the reason -- a required
+classification here would be the environment check vouching for the opposite of
+the rule.
+
+Worth recording: the `getEnv("NAME")` pass added to `verify-env.mjs` yesterday
+caught all three new variables immediately. That hole was found by walking into
+it once; this is the first time it paid for itself.
 
 ### 2026-08-26 - What has to be paid for, and what turns out not to
 
