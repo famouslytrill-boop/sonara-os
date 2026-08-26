@@ -38,6 +38,7 @@ from __future__ import annotations
 import uuid
 
 from .agents import Agent
+from .credits import Budget, InsufficientCredits
 from .errors import NotConfigured, ProviderError
 from .events import RunResult, Session
 from .models import FunctionCall, FunctionResponse, Message, Text
@@ -51,10 +52,21 @@ DEFAULT_MAX_STEPS = 12
 class Runner:
     """Runs one agent tree against one provider."""
 
-    def __init__(self, agent: Agent, *, client, max_steps: int = DEFAULT_MAX_STEPS) -> None:
+    def __init__(
+        self,
+        agent: Agent,
+        *,
+        client,
+        max_steps: int = DEFAULT_MAX_STEPS,
+        budget: "Budget | None" = None,
+    ) -> None:
         self.agent = agent
         self.client = client
         self.max_steps = max_steps
+        #: Optional. With no budget a run is bounded only by max_steps,
+        #: which bounds calls and not cost -- a step that reads a long
+        #: document costs many times one that reads a sentence.
+        self.budget = budget
         self._check_natives()
 
     def _check_natives(self) -> None:
@@ -87,12 +99,48 @@ class Runner:
         grounding = None
         last_text = ""
 
+        if self.budget:
+            self.budget.start_run()
+
         while steps < self.max_steps:
             steps += 1
             active = self.agent.find(session.active_agent) or self.agent
             declarations = [tool.declaration() for tool in active.function_tools]
             if active.sub_agents:
                 declarations.append(_transfer_declaration(active))
+
+            # Checked BEFORE the call, not after.
+            #
+            # A budget verified after the provider has answered has already been
+            # paid for -- the tokens are spent whatever the ledger then says. So
+            # the estimate is reserved first, and a run that cannot cover one
+            # more step stops here with what it has rather than overdrawing.
+            #
+            # It stops rather than raising, because a run that has already
+            # produced useful text and then throws loses that text. The caller
+            # reads stop_reason, exactly as it does for step_limit.
+            reservation = None
+            if self.budget:
+                try:
+                    reservation = self.budget.reserve_step()
+                except InsufficientCredits as short:
+                    steps -= 1
+                    session.record(
+                        "budget",
+                        active.name,
+                        f"stopped before step {steps + 1}: {short}",
+                        needed=short.needed,
+                        available=short.available,
+                    )
+                    return RunResult(
+                        text=last_text,
+                        session=session,
+                        stop_reason="budget_exhausted",
+                        steps=steps,
+                        agent=active.name,
+                        grounding=grounding,
+                        usage=usage,
+                    )
 
             try:
                 answer = self.client.generate(
@@ -107,8 +155,31 @@ class Runner:
                 # Recorded and raised. The event log is the debugging story, and
                 # a run that died with nothing in the log is the hardest kind to
                 # read back.
+                #
+                # The reservation is released first. A provider error that left
+                # credits reserved would leak them for the life of the process,
+                # and the symptom -- available_at() falling with no matching
+                # spend in history() -- looks exactly like a customer who has
+                # run out. Released rather than charged: the call failed, and
+                # charging for an answer nobody got is the wrong default even
+                # when the provider may have billed for it.
+                if reservation:
+                    reservation.release()
                 session.record("error", active.name, str(error), status=error.status, retryable=error.retryable)
                 raise
+
+            if reservation and self.budget:
+                charge = self.budget.settle_step(reservation, model=active.model, usage=answer.usage)
+                session.record(
+                    "budget",
+                    active.name,
+                    f"step {steps} charged",
+                    charged=charge["charged"],
+                    # Surfaced rather than buried: an estimated charge means the
+                    # provider reported no usage, and a caller seeing several in
+                    # a row is looking at a provider it cannot cost.
+                    estimated=charge["estimated"],
+                )
 
             usage = _add_usage(usage, answer.usage)
             if answer.grounding:

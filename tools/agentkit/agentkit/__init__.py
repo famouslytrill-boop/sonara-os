@@ -34,6 +34,18 @@ reading exactly what it did.
 """
 
 from .agents import DEFAULT_MODEL, Agent
+from .credits import (
+    MICRO,
+    Budget,
+    Grant,
+    InsufficientCredits,
+    Ledger,
+    ModelPrice,
+    PriceList,
+    Reservation,
+    credits,
+    to_credits,
+)
 from .errors import AgentkitError, NotConfigured, ProviderError, ToolError, UnknownAgent
 from .events import Event, RunResult, Session
 from .models import (
@@ -59,6 +71,8 @@ __all__ = [
     "GoogleSearch", "UrlContext", "FunctionTool", "NativeTool", "Tool", "ToolContext", "ToolResult",
     "Message", "Text", "FunctionCall", "FunctionResponse", "LlmResponse",
     "Session", "Event", "RunResult",
+    "Budget", "Ledger", "PriceList", "ModelPrice", "Grant", "Reservation",
+    "credits", "to_credits", "MICRO", "InsufficientCredits",
     "AgentkitError", "NotConfigured", "ProviderError", "ToolError", "UnknownAgent",
     "declaration_for", "check_declaration_matches",
     "__version__",
