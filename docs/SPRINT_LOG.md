@@ -2,6 +2,100 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - A local AWS emulator, and the first time the CLI met a server
+
+`tools/aws-emulator/` is one process on one port answering S3, DynamoDB, SQS,
+Lambda, STS and IAM. No account, no auth token, no licence key, nothing behind a
+paid tier, and no dependencies -- so the container is the Node image plus about
+two thousand lines and starts in well under a second.
+
+## The design decision the whole thing turns on
+
+An emulator's dangerous failure is not crashing. It is **answering**.
+
+A service that returns `200 {}` for an operation it has not implemented lets the
+caller's code carry on with what looks like a valid empty result: no items, no
+messages, no instances. The test passes, the developer ships, and it breaks
+against real AWS for a reason nothing local ever hinted at.
+
+So there is no third state between "implemented and tested" and "refuses".
+Fifteen named services that are not implemented each answer 501 with an error in
+that service's own dialect -- and the dialect matters, because a JSON-protocol
+SDK handed XML reports "unknown error" and loses the message entirely. The same
+rule holds inside a service that *is* implemented: DynamoDB's `TransactWriteItems`
+names the operation and refuses rather than returning something readable as
+success.
+
+`/_emulator/health` lists both sets from the registry rather than from a written
+list, so the README cannot drift from what runs.
+
+## The two limitations, said out loud rather than discovered
+
+It does not authenticate. Signatures are parsed -- that is how a request's
+service is identified -- and never verified. Locally there is nothing to protect,
+and checking would only add failures unrelated to the code under test: a clock an
+hour out, a proxy that reordered a header, each arriving as a 403 that looks like
+an application bug. The README says not to expose the port.
+
+It does not evaluate IAM policies, so **a test that passes here can still be
+denied by AWS**. A partial evaluator would be worse -- some denials right, some
+wrong, indistinguishable without reading its source -- so
+`SimulatePrincipalPolicy` refuses rather than answering "allowed".
+
+## The test that gave both projects something neither had
+
+`tools/serverless-cli/` signs real AWS requests and, until now, **had never
+spoken to a server**; its README says so in those words. Its SigV4 signer was
+checked against AWS's published vectors, which proves the arithmetic and proves
+nothing about whether the requests it assembles are ones a service accepts.
+
+`tests/the-cli-can-drive-it.test.js` points it at the emulator. Two projects
+written independently, one signing and one parsing, agreeing over a socket is a
+far stronger statement than either making sense alone.
+
+It found a real problem on the first run. `createBucket` addresses a bucket the
+way AWS does -- `bucket.s3.region.amazonaws.com` -- and a local endpoint is one
+host with no wildcard DNS in front of it, so the bucket name was simply lost and
+the emulator answered "S3 does not answer PUT at the root". That is the problem
+every emulator user hits. The CLI now honours `AWS_ENDPOINT_URL` (the variable
+the AWS CLI and the v3 SDKs already use) and switches S3 to path style when one
+is set, which is what `forcePathStyle` does in the SDKs.
+
+The other half of that test is the one worth keeping: `describeStack` reads "does
+not exist" as `exists: false` and everything else as a failure, and the emulator
+refuses CloudFormation by name. The test asserts the refusal arrives as an
+**error** rather than as an empty account -- the exact conflation both projects
+were separately written to avoid, checked where they meet.
+
+## Also worth knowing
+
+SQS has a real visibility timeout. A queue emulator that hands the same message
+to two consumers is emulating a list, not a queue -- and a worker written against
+it would look correct and lose work against AWS.
+
+DynamoDB keys on the typed value, not the JSON text: `{"N":"1"}` and
+`{"N":"1.0"}` are one key to DynamoDB and two strings to JSON, and keying on the
+text lets somebody write an item and fail to read it back with a key their code
+considers identical.
+
+Regions are kept apart, as AWS keeps them. One map key, and getting it wrong
+lets a test pass locally and fail in production for a reason the test could never
+show.
+
+Three probes, all firing: unimplemented services answering 200 (3 failures,
+including the cross-project one), SQS handing a message out twice (1), and
+DynamoDB keying on JSON text (1).
+
+## Not verified
+
+The Docker image. There is no Docker daemon in this environment, so
+`docker compose up` has never been run -- the Dockerfile and compose file are
+written and unexercised, and the README says so. Everything they would start runs
+under plain Node and is verified that way.
+
+Verified: 43 emulator tests, 221 CLI tests, 3,004 repository tests,
+`pnpm run lint` clean, `pnpm run verify:launch` exit 0.
+
 ### 2026-08-26 - Video to frames, in the browser, tested in a browser
 
 The last piece of the scroll-site builder. Somebody drops a short clip into the

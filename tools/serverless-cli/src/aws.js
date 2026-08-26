@@ -20,6 +20,49 @@ const { sign } = require("./sigv4.js");
 
 const CFN_VERSION = "2010-05-15";
 
+// Where the requests go.
+//
+// Empty means real AWS, and every host below is built the way AWS names it.
+// Set `AWS_ENDPOINT_URL` -- the variable the AWS CLI and the v3 SDKs already
+// honour -- and everything is sent there instead, which is how this is pointed
+// at a local emulator.
+//
+// The S3 half is the part that has to change shape rather than just address.
+// AWS addresses a bucket in the hostname (`bucket.s3.region.amazonaws.com`);
+// a local endpoint is one host with no wildcard DNS in front of it, so the
+// bucket has to move into the path. That is exactly what `forcePathStyle` does
+// in the SDKs, and without it the bucket name is simply lost -- which produces
+// "S3 does not answer PUT at the root", found by pointing this at
+// tools/aws-emulator for the first time.
+function endpointOverride() {
+  const raw = String(process.env.AWS_ENDPOINT_URL || "").trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw);
+    return { host: url.host, protocol: url.protocol.replace(":", "") };
+  } catch {
+    return null;
+  }
+}
+
+// The host to sign for, and the URL to send to. They are the same against AWS
+// and different against an endpoint override, and the signature must cover the
+// host the request is actually sent to or every call is a 403.
+function addressFor(service, region, { bucket = null, path = "/" } = {}) {
+  const override = endpointOverride();
+  if (!override) {
+    const host = bucket ? `${bucket}.s3.${region}.amazonaws.com` : `${service}.${region}.amazonaws.com`;
+    return { host, url: `https://${host}${path}`, path };
+  }
+  // Path style: the bucket becomes the first path segment.
+  const finalPath = bucket ? `/${bucket}${path === "/" ? "" : path}` : path;
+  return {
+    host: override.host,
+    url: `${override.protocol}://${override.host}${finalPath}`,
+    path: finalPath
+  };
+}
+
 function decodeEntities(text) {
   return text
     .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
@@ -110,7 +153,7 @@ async function queryCall({ service, action, region, credentials, parameters, ver
     form.set(name, String(value));
   }
   const body = form.toString();
-  const host = `${service}.${region}.amazonaws.com`;
+  const { host, url } = addressFor(service, region);
 
   const signed = sign({
     method: "POST",
@@ -123,7 +166,7 @@ async function queryCall({ service, action, region, credentials, parameters, ver
     credentials
   });
 
-  const response = await fetchImpl(`https://${host}/`, { method: "POST", headers: signed.headers, body });
+  const response = await fetchImpl(url, { method: "POST", headers: signed.headers, body });
   const text = await response.text();
   if (!response.ok) throw errorFrom(text, response.status);
   return text;
@@ -287,41 +330,41 @@ function deleteStack({ region, credentials, stackName, fetchImpl }) {
 // --- S3 ----------------------------------------------------------------
 
 async function putObject({ region, credentials, bucket, key, body, fetchImpl = fetch }) {
-  const host = `${bucket}.s3.${region}.amazonaws.com`;
-  const path = `/${key}`;
+  const address = addressFor("s3", region, { bucket, path: `/${key}` });
+  const { host, url } = address;
+  const path = address.path;
   const signed = sign({
     method: "PUT", host, path, body,
     headers: { "content-type": "application/zip", "content-length": String(body.length) },
     region, service: "s3", credentials
   });
-  const response = await fetchImpl(`https://${host}${path}`, { method: "PUT", headers: signed.headers, body });
+  const response = await fetchImpl(url, { method: "PUT", headers: signed.headers, body });
   if (!response.ok) throw errorFrom(await response.text(), response.status);
   return { bucket, key };
 }
 
 async function objectExists({ region, credentials, bucket, key, fetchImpl = fetch }) {
-  const host = `${bucket}.s3.${region}.amazonaws.com`;
-  const path = `/${key}`;
+  const { host, url, path } = addressFor("s3", region, { bucket, path: `/${key}` });
   const signed = sign({ method: "HEAD", host, path, body: "", region, service: "s3", credentials });
-  const response = await fetchImpl(`https://${host}${path}`, { method: "HEAD", headers: signed.headers });
+  const response = await fetchImpl(url, { method: "HEAD", headers: signed.headers });
   if (response.status === 404) return false;
   if (!response.ok) throw new AwsError(`Could not check for the package in ${bucket}.`, { status: response.status });
   return true;
 }
 
 async function createBucket({ region, credentials, bucket, fetchImpl = fetch }) {
-  const host = `${bucket}.s3.${region}.amazonaws.com`;
+  const { host, url, path } = addressFor("s3", region, { bucket });
   // us-east-1 is the one region where a LocationConstraint is an error rather
   // than a requirement.
   const body = region === "us-east-1"
     ? ""
     : `<CreateBucketConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/"><LocationConstraint>${region}</LocationConstraint></CreateBucketConfiguration>`;
   const signed = sign({
-    method: "PUT", host, path: "/", body,
+    method: "PUT", host, path, body,
     headers: body ? { "content-type": "application/xml" } : {},
     region, service: "s3", credentials
   });
-  const response = await fetchImpl(`https://${host}/`, { method: "PUT", headers: signed.headers, body: body || undefined });
+  const response = await fetchImpl(url, { method: "PUT", headers: signed.headers, body: body || undefined });
   if (response.ok) return true;
   const text = await response.text();
   // Already ours is success. Racing two deploys should not fail either of them.
@@ -344,7 +387,7 @@ async function callerIdentity({ region, credentials, fetchImpl }) {
 }
 
 module.exports = {
-  AwsError,
+  AwsError, addressFor, endpointOverride,
   describeStack, createChangeSet, describeChangeSet, executeChangeSet, deleteChangeSet, stackEvents,
   listStackResources, deleteStack,
   putObject, objectExists, createBucket,
