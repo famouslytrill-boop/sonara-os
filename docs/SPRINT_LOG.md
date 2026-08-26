@@ -2,6 +2,91 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 - Cinematic scroll sites: the model, the renderer, the export
+
+The first half of a scroll-site builder: five templates, a validated site
+document, one renderer, and a static ZIP export. Routes and the editor are the
+next piece; this is the part everything else stands on, and it is built and
+tested first on purpose.
+
+## The decision the research changed
+
+CSS scroll-driven animations (`animation-timeline: view()`) are supported in
+Chrome, Edge and Safari 18, and in Firefox only behind a flag as of Firefox 152
+in June 2026 -- about 84% of browsers. **Not Baseline.**
+
+Written the obvious way -- start at `opacity: 0`, animate in on scroll -- the
+other 16% get a page that scrolls through nothing. And the author would never
+see it, because they are looking at Chrome. That is this codebase's recurring
+defect wearing a visual disguise: it reports success and is not true.
+
+So the animation is not the mechanism. Every section is written **in its
+finished state**, and the motion is declared inside
+`@supports (animation-timeline: view())`. A browser without support ignores the
+block and shows a finished page. A test asserts that nothing outside that guard
+sets `opacity: 0` or `visibility: hidden`, and a probe that moves an `opacity: 0`
+above the guard fails it by name.
+
+## One renderer, three callers
+
+The preview, the published page and the exported `index.html` all come from
+`renderSite`. The export is the strictest caller -- a folder of files on any
+host, no server, no build, no network -- so it is what the renderer is shaped
+around, and `standalone: true` drops the webfont link rather than letting a
+downloaded folder quietly depend on fonts.googleapis.com being up.
+
+## Two modules moved rather than copied
+
+`lib/sonara-zip.cjs` is the zip writer from `tools/serverless-cli/`, promoted.
+The CLI now requires it across the tree. A second zip writer would have been a
+second chance to get a binary format subtly wrong in one of them.
+
+`lib/sonara-contrast.cjs` is the WCAG arithmetic from
+`scripts/verify-colour-contrast.mjs`, promoted for the same reason and one more:
+a customer picks their own colours, and pale grey on white publishes perfectly
+happily. `vercel.json` bundles `lib/` and does not bundle `scripts/`, so a
+module a route needs cannot stay there -- it would work in every test on this
+machine and be absent in production. The release check now uses the shared copy,
+including its known-answer cases (black on white is exactly 21:1).
+
+## The test that found a real bug by unpacking the archive
+
+Four probes. Three fired. **The fourth did not**, and it is the one worth
+recording.
+
+The probe broke the exporter so `index.html` went on pointing at the hosted
+frames instead of the copies inside the folder -- which would produce a download
+that only works while this application is up, the exact opposite of the point.
+The suite stayed green.
+
+The test was called "repoints the frames at the folder's own copies", and what
+it actually did was call `renderSite` itself, with the right pattern hardcoded,
+and assert on *that*. It never opened the zip. So it was checking a page the
+test had built.
+
+Rewritten to unpack the archive with `unzip` and read the real `index.html`, it
+immediately failed -- not on the probe, on the committed code. `safeUrl` rejected
+`frames/%d.jpg` because `%` was missing from its allowed character set, so every
+export shipped `data-pattern=""` and would never have loaded a single frame.
+Nothing threw, the zip was valid, the page looked right.
+
+Both the probe and that bug fail the test now.
+
+## Also worth knowing
+
+Audio is a button and never autoplay -- AGENTS.md requires it, and a page that
+starts making noise at a stranger is what the rule is about. `preload="none"`,
+so a visitor who never presses play never fetches the file.
+
+Templates are checked rather than trusted: every one runs through `buildSite`
+and must come back with **no problems**, so a template whose palette fails
+contrast fails the build instead of being offered as a starting point.
+
+`slugify` returns null rather than generating an address. A generated slug
+publishes a site somewhere its author never chose and cannot guess.
+
+Verified: 2,970 tests passing, `pnpm run lint` clean, `pnpm run typecheck` clean.
+
 ### 2026-08-25 - Two pages that reported an outage as news about your business
 
 Hunted with `pnpm run report:selected-columns` and the recurring-defect list.

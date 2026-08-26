@@ -19,104 +19,22 @@
 // same bytes. `deploy` keys the upload on the hash of those bytes, so an
 // unchanged application really does show as unchanged.
 
-const zlib = require("node:zlib");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
-// 1980-01-01, the earliest a DOS timestamp can express. Chosen because it is
-// the conventional "no time" value and cannot be mistaken for a real build.
-const DOS_TIME = 0;
-const DOS_DATE = 33; // (1980-1980)<<9 | 1<<5 | 1
-
-function crc32(buffer) {
-  let table = crc32.table;
-  if (!table) {
-    table = new Int32Array(256);
-    for (let i = 0; i < 256; i += 1) {
-      let c = i;
-      for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-      table[i] = c;
-    }
-    crc32.table = table;
-  }
-  let crc = -1;
-  for (let i = 0; i < buffer.length; i += 1) crc = (crc >>> 8) ^ table[(crc ^ buffer[i]) & 0xff];
-  return (crc ^ -1) >>> 0;
-}
-
-/**
- * Build a ZIP from a list of { name, data, executable? } entries.
- *
- * Returns a Buffer. The same entries in the same order always give the same
- * bytes.
- */
-function createZip(entries) {
-  const locals = [];
-  const central = [];
-  let offset = 0;
-
-  for (const entry of entries) {
-    const name = Buffer.from(String(entry.name).replace(/\\/g, "/"), "utf8");
-    const data = Buffer.isBuffer(entry.data) ? entry.data : Buffer.from(String(entry.data), "utf8");
-    const compressed = zlib.deflateRawSync(data, { level: 9 });
-    const crc = crc32(data);
-
-    const local = Buffer.alloc(30);
-    local.writeUInt32LE(0x04034b50, 0);
-    local.writeUInt16LE(20, 4);           // version needed
-    local.writeUInt16LE(0, 6);            // flags
-    local.writeUInt16LE(8, 8);            // deflate
-    local.writeUInt16LE(DOS_TIME, 10);
-    local.writeUInt16LE(DOS_DATE, 12);
-    local.writeUInt32LE(crc, 14);
-    local.writeUInt32LE(compressed.length, 18);
-    local.writeUInt32LE(data.length, 22);
-    local.writeUInt16LE(name.length, 26);
-    local.writeUInt16LE(0, 28);
-    locals.push(local, name, compressed);
-
-    const header = Buffer.alloc(46);
-    header.writeUInt32LE(0x02014b50, 0);
-    header.writeUInt16LE(0x031e, 4);      // made by: unix, zip 3.0
-    header.writeUInt16LE(20, 6);
-    header.writeUInt16LE(0, 8);
-    header.writeUInt16LE(8, 10);
-    header.writeUInt16LE(DOS_TIME, 12);
-    header.writeUInt16LE(DOS_DATE, 14);
-    header.writeUInt32LE(crc, 16);
-    header.writeUInt32LE(compressed.length, 20);
-    header.writeUInt32LE(data.length, 24);
-    header.writeUInt16LE(name.length, 28);
-    header.writeUInt16LE(0, 30);          // extra
-    header.writeUInt16LE(0, 32);          // comment
-    header.writeUInt16LE(0, 34);          // disk
-    header.writeUInt16LE(0, 36);          // internal attrs
-    // Unix mode in the high 16 bits. Lambda will not run a handler it cannot
-    // read, and a zip built without modes gives 000 on some unpackers.
-    // `>>> 0` is not decoration: JavaScript's bitwise operators work on signed
-    // 32-bit integers, so 0o100644 << 16 overflows to a negative number and
-    // writeUInt32LE refuses it.
-    header.writeUInt32LE(((entry.executable ? 0o100755 : 0o100644) << 16) >>> 0, 38);
-    header.writeUInt32LE(offset, 42);
-    central.push(header, name);
-
-    offset += local.length + name.length + compressed.length;
-  }
-
-  const centralBuffer = Buffer.concat(central);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(0x06054b50, 0);
-  end.writeUInt16LE(0, 4);
-  end.writeUInt16LE(0, 6);
-  end.writeUInt16LE(entries.length, 8);
-  end.writeUInt16LE(entries.length, 10);
-  end.writeUInt32LE(centralBuffer.length, 12);
-  end.writeUInt32LE(offset, 16);
-  end.writeUInt16LE(0, 20);
-
-  return Buffer.concat([...locals, centralBuffer, end]);
-}
+// The zip writer itself lives in the application's `lib/`, not here.
+//
+// It was written in this file first, and then `lib/sonara-scroll-export.cjs`
+// needed a zip as well -- for exporting a scroll site as a static folder. Two
+// zip writers in one repository is two chances to get the format subtly wrong
+// in one of them and not notice, so there is one, and this requires it.
+//
+// That does couple this tool to the tree it sits in. It is a real coupling and
+// worth stating rather than hiding: this is `tools/` of the SONARA repository,
+// not a package published anywhere, and the alternative was a second copy of a
+// binary format writer.
+const { createZip, crc32 } = require("../../../lib/sonara-zip.cjs");
 
 // What never belongs in a deployment package. `.env` is the one that matters:
 // it is how a secret gets uploaded to a place a good many people can read it,

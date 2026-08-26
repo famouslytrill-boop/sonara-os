@@ -18,7 +18,13 @@ const browserGlobals = {
   URLSearchParams: "readonly",
   Event: "readonly",
   CustomEvent: "readonly",
-  HTMLElement: "readonly"
+  HTMLElement: "readonly",
+  // Named one at a time rather than pulling the whole browser set in, so this
+  // list stays a record of what the scripts in public/ actually reach for.
+  // CSS.supports is how sonara-scroll.js asks whether the browser drives the
+  // progress bar itself; Image is how it preloads a frame.
+  CSS: "readonly",
+  Image: "readonly"
 };
 
 const serviceWorkerGlobals = {

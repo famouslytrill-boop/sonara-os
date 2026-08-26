@@ -2,6 +2,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
 
 // Whether the text this application ships can actually be read.
 //
@@ -34,34 +37,16 @@ const fail = (message) => failures.push(message);
 // WCAG 2.1 relative luminance and contrast
 // ---------------------------------------------------------------------------
 
-function toRgb(hex) {
-  const raw = String(hex).replace("#", "").trim();
-  const full = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw.slice(0, 6);
-  if (!/^[0-9a-fA-F]{6}$/.test(full)) return null;
-  return [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
-}
-
-// The 0.03928 threshold and the 2.4 exponent are the sRGB transfer function as
-// WCAG 2.1 states it. Copied from the specification rather than approximated,
-// because an eyeballed gamma curve produces ratios that look plausible and are
-// wrong by enough to pass a failing pair.
-function relativeLuminance(rgb) {
-  const [r, g, b] = rgb.map((value) => {
-    const channel = value / 255;
-    return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-}
-
-function contrastRatio(foreground, background) {
-  const a = toRgb(foreground);
-  const b = toRgb(background);
-  if (!a || !b) return null;
-  const first = relativeLuminance(a);
-  const second = relativeLuminance(b);
-  const [lighter, darker] = first > second ? [first, second] : [second, first];
-  return (lighter + 0.05) / (darker + 0.05);
-}
+// The arithmetic moved to lib/sonara-contrast.cjs when a second caller
+// appeared: a customer picking their own colours for a scroll site needs the
+// same answer this check needs, and two copies of a gamma curve is two chances
+// to get one of them subtly wrong. It has to live in lib/ rather than here
+// because vercel.json bundles lib/ and does not bundle scripts/.
+//
+// The known-answer checks further down -- black on white is exactly 21:1, and
+// #767676 on white is WCAG's own 4.54:1 boundary -- now check the shared
+// module rather than a private copy, which is the point.
+const { contrastRatio } = require("../lib/sonara-contrast.cjs");
 
 // ---------------------------------------------------------------------------
 // Reading the tokens out of the stylesheet
