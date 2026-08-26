@@ -2,6 +2,73 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-25 - The delete command, and a test that was weaker than its name
+
+`sonara-serverless remove` printed "not implemented" when the tool shipped a few
+hours ago. That was the honest thing to print at the time; it is not a thing to
+leave printed. It now deletes the stack.
+
+## There is no change set for a delete
+
+`plan` can ask CloudFormation what an update would do. Nothing asks it what
+`DeleteStack` would destroy -- there is no preview API for a delete, and no undo
+after it. So `remove` reads the stack's own resource list first and prints what
+it found before calling anything.
+
+Read from CloudFormation rather than derived from the local YAML, deliberately:
+the file on this machine describes what the stack *would* be, and deleting acts
+on what it *is*. Somebody who removed a resource from their file and never
+deployed would otherwise be shown a list missing the very thing about to be
+deleted.
+
+## Kept is not a footnote
+
+`template.js` creates tables and buckets with `DeletionPolicy: Retain`, so they
+survive. That is deliberate -- taking a stack down should not be what loses a
+customer's orders -- but it is only a kindness if somebody knows it happened. A
+retained bucket goes on costing money under a name this tool will not reuse, and
+a person who believes they deleted everything has left both.
+
+So they are named individually, by their real AWS names, because that is the
+list somebody needs to finish the job by hand. And a third category exists
+alongside deleted and kept: **unclassified**. A resource type this tool has no
+rule for would otherwise fall into "deleted" by default and be reported as gone
+when nobody established that. "I cannot tell you whether this survives" is a
+worse-looking report and a truer one.
+
+`tests/removal.test.js` derives the retained set from `template.js` itself and
+asserts the two agree, so a type that gains a retain policy in the template and
+not in `removal.js` fails rather than being reported as deleted while surviving.
+
+Confirmation is typing the stack name rather than pressing return through a
+`y/n`, and a non-interactive shell refuses instead of assuming yes.
+
+## The probe that would not fire, and what it was hiding
+
+Six probes. Four fired immediately. The fifth and sixth were the same edit --
+remove the early return after a failed resource read, so the command carries on
+with an empty list -- and it **did not fail any test**.
+
+The test was called "stops rather than guessing when the resource list cannot be
+read". It passed with the guard removed, because the *confirmation prompt*
+caught the request anyway. It was testing the confirmation. The name said it was
+testing something else, and the something else was unprotected.
+
+Two tests replaced it, and they are the ones that separate the two guards:
+
+- A failed read must not produce a sentence *describing* the stack. With the bug,
+  the command printed "the stack has no resources in it" about a stack it had
+  never seen.
+- With `--yes` there is no confirmation left to fall back on. An empty list read
+  as real sails straight into `DeleteStack` -- which is the actual disaster, and
+  the original test could not see it at all.
+
+Both fail on the probe now. `--yes` is also refused outright when anything in the
+stack is unclassified, since the flag means "I have read this and I agree" and
+there is nothing to have read.
+
+Verified: 221 tool tests passing, `pnpm run lint` clean.
+
 ### 2026-08-25 - A serverless CLI, in tools/, with no dependencies
 
 `tools/serverless-cli/` defines Lambda functions and the AWS resources they need

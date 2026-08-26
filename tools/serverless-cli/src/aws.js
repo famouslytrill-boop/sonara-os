@@ -255,6 +255,35 @@ async function stackEvents({ region, credentials, stackName, fetchImpl }) {
   }));
 }
 
+/**
+ * What is actually in the deployed stack.
+ *
+ * Read from CloudFormation rather than derived from the local YAML, and the
+ * difference matters for `remove`: the file on this machine describes what the
+ * stack would be, and deleting acts on what it *is*. Somebody who removed a
+ * resource from the file and never deployed would otherwise be shown a list
+ * missing the very thing that is about to be deleted.
+ */
+async function listStackResources({ region, credentials, stackName, fetchImpl }) {
+  const xml = await queryCall({
+    service: "cloudformation", action: "ListStackResources", version: CFN_VERSION,
+    region, credentials, parameters: { StackName: stackName }, fetchImpl
+  });
+  return members(xml, "StackResourceSummaries").map((entry) => ({
+    logicalId: element(entry, "LogicalResourceId"),
+    physicalId: element(entry, "PhysicalResourceId"),
+    resourceType: element(entry, "ResourceType"),
+    status: element(entry, "ResourceStatus")
+  }));
+}
+
+function deleteStack({ region, credentials, stackName, fetchImpl }) {
+  return queryCall({
+    service: "cloudformation", action: "DeleteStack", version: CFN_VERSION,
+    region, credentials, parameters: { StackName: stackName }, fetchImpl
+  });
+}
+
 // --- S3 ----------------------------------------------------------------
 
 async function putObject({ region, credentials, bucket, key, body, fetchImpl = fetch }) {
@@ -317,6 +346,7 @@ async function callerIdentity({ region, credentials, fetchImpl }) {
 module.exports = {
   AwsError,
   describeStack, createChangeSet, describeChangeSet, executeChangeSet, deleteChangeSet, stackEvents,
+  listStackResources, deleteStack,
   putObject, objectExists, createBucket,
   callerIdentity,
   queryCall, elements, element, members, decodeEntities, errorFrom, CAPABILITIES

@@ -24,7 +24,7 @@ lines, because the alternative was several hundred packages to do four things.
 
 This matters more than a feature list, so it goes first.
 
-**Exercised by the test suite** (198 tests, `make test`): the YAML parser, the
+**Exercised by the test suite** (221 tests, `make test`): the YAML parser, the
 manifest validation, CloudFormation template synthesis, the plan renderer, the
 ZIP writer, the SigV4 signer, the PKCE login construction, the local dev server,
 the scaffold, and the command line itself. Several of those are checked against
@@ -37,9 +37,6 @@ repository. The requests are built and signed correctly as far as offline
 verification can establish, and the responses are parsed against captured
 response shapes — but nobody has watched a stack come up. Treat the first
 deploy as the first deploy.
-
-`remove` says "not implemented" rather than doing something approximate,
-because a half-written delete is the worst thing here to be wrong about.
 
 ---
 
@@ -110,7 +107,7 @@ group rather than the account-wide `logs:*` the managed policy grants.
 | `login` | sign in to AWS through your browser |
 | `whoami` | which account these credentials are for |
 | `info` | what is deployed, and where it answers |
-| `remove` | take the stack down *(not implemented — see above)* |
+| `remove` | take the stack down, keeping what holds data |
 
 Flags: `--path`, `--profile`, `--region`, `--port`, `--typescript`, `--yes`.
 
@@ -179,6 +176,28 @@ this tool's cache, then `~/.aws/credentials`. A tool that resolved them
 differently from the AWS CLI sitting next to it deploys to the wrong account
 exactly once.
 
+### `remove`
+
+There is no change set for a delete — CloudFormation will not tell you in
+advance what `DeleteStack` destroys — so `remove` works it out from the stack's
+own resource list and prints it before calling anything.
+
+The summary has three parts. **Deleted** is what goes. **Kept** is what
+survives: tables and buckets are created with `DeletionPolicy: Retain`, so
+taking the stack down is not the thing that loses a customer's orders. They are
+listed by their real AWS names, because that is the list you need to finish the
+job by hand — a retained bucket is still costing money under a name this tool
+will not reuse, and a person who believes they deleted everything has left both.
+**Unclassified** is any resource type this tool has no rule for, which is
+reported as its own category rather than being counted as deleted: saying "I
+cannot tell you whether this survives" is a worse-looking report and a truer one.
+
+Confirmation is typing the stack name, not pressing return through a `y/n`. In a
+non-interactive shell it refuses rather than assuming yes. `--yes` is honoured
+only when everything in the stack is classified — and never when the resource
+list could not be read at all, since an empty list read as real would otherwise
+sail straight into a delete nobody had seen the contents of.
+
 ---
 
 ## Node.js and TypeScript
@@ -225,7 +244,7 @@ x orders-api has a setting called "memorySize", which this does not read.
 ## Working on the tool
 
 ```sh
-make test        # 198 tests, node --test
+make test        # 221 tests, node --test
 make lint
 make check       # both
 ```

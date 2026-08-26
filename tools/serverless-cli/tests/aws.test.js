@@ -140,6 +140,27 @@ test("reports a change set still being worked out as pending, not as empty", asy
     "a change set that had not finished was read as having no changes");
 });
 
+test("lists what is actually in the stack", async () => {
+  const resources = await aws.listStackResources({
+    ...BASE, stackName: "orders-api",
+    fetchImpl: answering(200, `<r><StackResourceSummaries>
+      <member><LogicalResourceId>FnCheckout</LogicalResourceId><PhysicalResourceId>orders-api-FnCheckout-ABC</PhysicalResourceId><ResourceType>AWS::Lambda::Function</ResourceType><ResourceStatus>CREATE_COMPLETE</ResourceStatus></member>
+      <member><LogicalResourceId>TableOrders</LogicalResourceId><PhysicalResourceId>orders-api-TableOrders-DEF</PhysicalResourceId><ResourceType>AWS::DynamoDB::Table</ResourceType><ResourceStatus>CREATE_COMPLETE</ResourceStatus></member>
+    </StackResourceSummaries></r>`)
+  });
+  assert.equal(resources.length, 2);
+  assert.equal(resources[0].logicalId, "FnCheckout");
+  assert.equal(resources[1].physicalId, "orders-api-TableOrders-DEF",
+    "the real AWS name was not read, and it is the only thing that helps somebody clean up by hand");
+});
+
+test("asks CloudFormation to delete the stack by name", async () => {
+  const sent = [];
+  await aws.deleteStack({ ...BASE, stackName: "orders-api", fetchImpl: answering(200, "<r/>", sent) });
+  assert.match(sent[0].body, /Action=DeleteStack/);
+  assert.match(sent[0].body, /StackName=orders-api/);
+});
+
 test("uploads a package to the bucket and key it was given", async () => {
   const sent = [];
   await aws.putObject({ ...BASE, bucket: "code-bucket", key: "app/abc.zip", body: Buffer.from("zip"), fetchImpl: answering(200, "", sent) });

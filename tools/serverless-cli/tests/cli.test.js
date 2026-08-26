@@ -178,17 +178,13 @@ test("login refuses without knowing the account and role, and says where to find
   }
 });
 
-test("remove says it is not implemented rather than pretending", async () => {
+test("remove needs credentials before it will look at anything", async () => {
   const dir = scratch();
   try {
     await cli(["init", "."], { cwd: dir });
-    fs.mkdirSync(path.join(dir, ".sonara-serverless"), { recursive: true });
-    fs.writeFileSync(path.join(dir, ".sonara-serverless", "credentials.json"),
-      JSON.stringify({ default: { accessKeyId: "AK", secretAccessKey: "SK" } }));
-
     const result = await cli(["remove"], { cwd: dir });
-    assert.equal(result.code, 1, "remove exited 0 while doing nothing, which a script would read as success");
-    assert.match(result.all, /Not implemented/);
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /No AWS credentials were found/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

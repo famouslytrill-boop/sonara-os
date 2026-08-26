@@ -38,6 +38,7 @@ const { parse, YamlError } = require("./yaml.js");
 const { buildApp, ManifestError } = require("./manifest.js");
 const { buildTemplate } = require("./template.js");
 const { buildPlan } = require("./plan.js");
+const { buildRemoval } = require("./removal.js");
 const { createZip, collectFiles, keyFor } = require("./bundle.js");
 const { scaffold } = require("./scaffold.js");
 const { serve } = require("./dev.js");
@@ -113,15 +114,23 @@ function getCredentials(options) {
   }
 }
 
-function ask(question) {
-  // Not a terminal means nobody is there to answer. Defaulting to "yes" in CI
+/**
+ * Ask, and treat silence as no.
+ *
+ * `expect` makes the answer a specific word rather than "yes" -- used by
+ * `remove`, where typing the stack name is the difference between agreeing and
+ * pressing return through a prompt.
+ */
+function ask(question, { expect = null } = {}) {
+  // Not a terminal means nobody is there to answer. Defaulting to yes in CI
   // would make the confirmation decorative exactly where it matters most.
   if (!process.stdin.isTTY) return Promise.resolve(false);
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
     rl.question(question, (answer) => {
       rl.close();
-      resolve(/^y(es)?$/i.test(answer.trim()));
+      const given = answer.trim();
+      resolve(expect ? given === expect : /^y(es)?$/i.test(given));
     });
   });
 }
@@ -525,18 +534,90 @@ async function commandInfo(args, options) {
 
 async function commandRemove(args, options) {
   const { app } = loadApp(path.resolve(options.path || "."));
-  getCredentials(options);
+  const creds = getCredentials(options);
+  const call = { region: app.region, credentials: creds };
 
-  ui.heading(`This would delete the stack ${app.stackName} in ${app.region}.`);
+  const stack = await aws.describeStack({ ...call, stackName: app.stackName });
+  if (!stack.exists) {
+    ui.heading(`${app.stackName} is not deployed in ${app.region}.`);
+    ui.note("  There is nothing to remove.");
+    return 0;
+  }
+
+  // Read what is in the stack before saying anything about it. A failed read
+  // is reported as a failed read, never as an empty stack -- "there is nothing
+  // in it" is a reason to go ahead, and it must not be produced by not looking.
+  let resources = [];
+  let status = "unknown";
+  try {
+    resources = await aws.listStackResources({ ...call, stackName: app.stackName });
+    status = "ready";
+  } catch (error) {
+    ui.failure({
+      message: `Could not read what is in ${app.stackName}.`,
+      where: `AWS (${error.code || "unknown"})`,
+      detail: error.message,
+      hint: "Nothing was deleted. Try again, or look at the stack in the CloudFormation console."
+    });
+    return 1;
+  }
+
+  const removal = buildRemoval({ resources, status, stackName: app.stackName, region: app.region });
+
+  ui.heading(`${app.name} in ${app.region}, account ${stack.outputs.Account || ""}`.trimEnd());
   ui.line("");
-  ui.line("  Tables and buckets declared in this file are kept: they are created with a");
-  ui.line("  retain policy, so deleting the stack leaves the data behind. Everything else");
-  ui.line("  -- functions, roles, the API, schedules -- goes.");
-  ui.line("");
-  ui.warn("Not implemented. Delete the stack in the CloudFormation console for now.");
-  ui.note("  Saying so rather than pretending: this command has never been run against a real stack,");
-  ui.note("  and a half-written delete is the worst thing in this tool to be wrong about.");
-  return 1;
+  for (const removalLine of removal.lines) ui.line(removalLine);
+
+  // Always confirmed, whatever the summary said. There is no change set for a
+  // delete and no undo after it, so this is the one command that does not have
+  // a quiet path -- and --yes is refused rather than honoured when something in
+  // the stack could not be classified.
+  if (!options.yes || !removal.safe) {
+    if (options.yes && !removal.safe) {
+      ui.line("");
+      ui.warn("--yes is not honoured here: something in this stack is not classified, so nobody can say what would survive.");
+    }
+    ui.line("");
+    const confirmed = await ask(`Type the stack name (${app.stackName}) to delete it: `, { expect: app.stackName });
+    if (!confirmed) {
+      ui.line("");
+      ui.warn("Stopped. Nothing was deleted.");
+      return 1;
+    }
+  }
+
+  const deleting = ui.progress(`Deleting ${app.stackName}`);
+  try {
+    await aws.deleteStack({ ...call, stackName: app.stackName });
+
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const current = await aws.describeStack({ ...call, stackName: app.stackName });
+      // A stack that no longer exists is the successful end of a delete, which
+      // is the one place `exists: false` is good news.
+      if (!current.exists) break;
+      if (/DELETE_FAILED/.test(current.status || "")) {
+        deleting.fail();
+        const events = await aws.stackEvents({ ...call, stackName: app.stackName }).catch(() => []);
+        const reason = events.find((event) => /DELETE_FAILED/.test(event.status || ""));
+        throw new CommandError(`CloudFormation could not delete ${app.stackName}.`, {
+          detail: reason ? `${reason.logicalId}: ${reason.reason || reason.status}` : "",
+          hint: "The stack is still there. A non-empty bucket is the usual cause -- CloudFormation will not delete one that has objects in it."
+        });
+      }
+    }
+    deleting.done(`${app.stackName} is gone.`);
+  } catch (error) {
+    deleting.fail();
+    throw error;
+  }
+
+  if (removal.kept.length) {
+    ui.line("");
+    ui.warn(`${removal.kept.length} ${removal.kept.length === 1 ? "resource is" : "resources are"} still in your account:`);
+    ui.table(removal.kept.map((entry) => [entry.friendly, entry.physicalId || entry.logicalId]));
+  }
+  return 0;
 }
 
 // --- dispatch ----------------------------------------------------------
@@ -549,7 +630,7 @@ const COMMANDS = Object.freeze({
   login: { run: commandLogin, summary: "sign in to AWS through your browser" },
   whoami: { run: commandWhoami, summary: "which account these credentials are for" },
   info: { run: commandInfo, summary: "what is deployed, and where it answers" },
-  remove: { run: commandRemove, summary: "take the stack down" }
+  remove: { run: commandRemove, summary: "take the stack down, keeping what holds data" }
 });
 
 // --flag, --flag=value, --flag value, --no-flag.
