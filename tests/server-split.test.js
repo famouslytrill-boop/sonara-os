@@ -471,9 +471,17 @@ describe("the server.js split stays safe", () => {
     // it prices putting behaviour *in this file*, and nothing has been put in
     // it. The number to act on is a feature that costs thirty lines here, not
     // the count of exceptions.
+    // Then 3846 on 26 August 2026, by 2, for
+    // routes/sonara-asset-file-routes.cjs -- attaching a file to a Creator
+    // Studio asset, which is the first thing this application can accept that
+    // is not a form field. Eleventh exception, and two lines: a first draft
+    // cost ten because the reasoning was written here, and the reasoning
+    // belongs in the route module where it already was. Worth recording,
+    // because a comment is the easiest thing to grow this file with and the
+    // hardest to argue against.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3844,
+      lines <= 3846,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
