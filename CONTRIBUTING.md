@@ -1,40 +1,57 @@
-## Developer Certificate of Origin and License
+# Contributing
 
-By contributing to GitLab B.V., you accept and agree to the following terms and
-conditions for your present and future contributions submitted to GitLab B.V.
-Except for the license granted herein to GitLab B.V. and recipients of software
-distributed by GitLab B.V., you reserve all right, title, and interest in and to
-your Contributions.
+This repository is proprietary. See `LICENSE`: no licence is granted, and
+possession of a copy conveys no right to use or redistribute it.
 
-All contributions are subject to the Developer Certificate of Origin and license set out at [docs.gitlab.com/ce/legal/developer_certificate_of_origin](https://docs.gitlab.com/ce/legal/developer_certificate_of_origin).
+Contributions are accepted only from people SONARA Industries has authorised in
+writing. If that is you, everything you need is below. If it is not, there is no
+contribution process to follow — this is not an open-source project, and a pull
+request from outside that list cannot be accepted regardless of its quality.
 
-_This notice should stay as the first item in the CONTRIBUTING.md file._
+## Ownership of contributions
 
-## Code of conduct
+By contributing, you assign to SONARA Industries all right, title, and interest
+in your contributions, including copyright. You confirm the work is yours to
+assign and that it carries no obligation to a third party — in particular, that
+you have not copied it from a repository under a reciprocal licence (AGPL, GPL,
+OSL), which would oblige releasing this product's source under the same terms
+the moment it is served over a network.
 
-As contributors and maintainers of this project, we pledge to respect all people
-who contribute through reporting issues, posting feature requests, updating
-documentation, submitting pull requests or patches, and other activities.
+Before adapting any external code, read the record in `data/open-source-tools.ts`
+and the rules in `CLAUDE.md`. Two facts decide most cases: **a repository with no
+licence declared is all rights reserved** — the absence of a licence is not
+permission — and **a reciprocal licence triggers on network use**.
 
-We are committed to making participation in this project a harassment-free
-experience for everyone, regardless of level of experience, gender, gender
-identity and expression, sexual orientation, disability, personal appearance,
-body size, race, ethnicity, age, or religion.
+## The rules
 
-Examples of unacceptable behavior by participants include the use of sexual
-language or imagery, derogatory comments or personal attacks, trolling, public
-or private harassment, insults, or other unprofessional conduct.
+`AGENTS.md` is the safety rule and it is not advisory. Read it before your first
+change. `CLAUDE.md` explains what else to read.
 
-Project maintainers have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct. Project maintainers who do not follow the
-Code of Conduct may be removed from the project team.
+The short version:
 
-This code of conduct applies both within project spaces and in public spaces
-when an individual is representing the project or its community.
+- pnpm only. Not npm, not `npm audit fix`, not `package-lock.json`.
+- Never commit a secret. Service-role keys are server-only.
+- Do not weaken an audit or security check without writing the exact reason in
+  `SECURITY_NOTES.md`.
+- Before you push: `pnpm install --frozen-lockfile`, `pnpm audit --audit-level
+  moderate`, `pnpm run typecheck`, `pnpm run lint`, `pnpm test`, `pnpm run
+  build`. Before a release: `pnpm run verify:launch`.
 
-Instances of abusive, harassing, or otherwise unacceptable behavior can be
-reported by emailing contact@gitlab.com.
+## Checks that cannot lie
 
-This Code of Conduct is adapted from the [Contributor Covenant](https://contributor-covenant.org), version 1.1.0,
-available at [https://contributor-covenant.org/version/1/1/0/](https://contributor-covenant.org/version/1/1/0/).
+The recurring defect here is not broken code — it is a check that reports success
+without being true. When you add one, **break the thing it tests and watch it go
+red before you trust it green**, then record in `docs/SPRINT_LOG.md` what you
+broke to prove it works. `.claude/skills/checks-that-cannot-lie` has the six
+shapes this has taken so far.
+
+## Reporting a security problem
+
+Report it privately to the repository owner. Do not open an issue, and do not
+describe it in a pull request title, a commit message, or any other place that
+is readable before the fix lands.
+
+## Conduct
+
+Treat the people you work with decently. The owner decides what falls short of
+that and may remove anyone's access.

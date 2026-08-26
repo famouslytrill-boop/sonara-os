@@ -110,6 +110,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:doc-counts`
 - `pnpm run verify:research-copy`
 - `pnpm run verify:contrast`
+- `pnpm run verify:source-licence`
 
 `pnpm` only. Never `npm`, never `npm audit fix`, never a `package-lock.json`.
 
@@ -124,6 +125,61 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - The repository was giving itself away under someone else's name
+
+Asked to confirm the source stays private, I read the three files that decide it
+and found none of them said so.
+
+`LICENSE` was an MIT licence reading **"Copyright (c) 2017-Present GitLab
+B.V."**. `package.json` declared `"license": "MIT"`. `CONTRIBUTING.md` assigned
+every contribution to GitLab B.V. and sent security reports to
+`contact@gitlab.com`. All three were scaffold leftovers, and
+`grep -rln LICENSE scripts/` returned nothing, so no release check had ever
+opened any of them. They had been green since the first commit by not being
+looked at.
+
+Two distinct problems, and the second one hides behind the first:
+
+1. An MIT grant gives anyone holding a copy the right to redistribute this
+   source. That is the direct contradiction of the owner's standing instruction.
+2. `"private": true` reads like protection and is not. It stops
+   `pnpm publish` and says nothing whatsoever about the rights in `LICENSE` --
+   the same shape as every other defect in this log: a flag that looks like a
+   guarantee and guarantees something narrower.
+
+All three replaced. `LICENSE` reserves all rights to SONARA Industries and
+grants none; `CONTRIBUTING.md` is now a real contributor guide that assigns
+copyright here and repeats the two licence facts that decide most external-code
+questions; `package.json` declares `UNLICENSED`.
+
+## The check, and what was broken to prove it
+
+`scripts/verify-source-licence.mjs`, twenty-seventh in `verify:launch`. It tests
+the **grant**, not the wording, so rewording the notice stays legal and
+reintroducing a permissive grant does not.
+
+Probes fired, each confirmed red before being reverted:
+
+- MIT text restored in `LICENSE` -> caught by two granting patterns at once.
+- `"license": "MIT"` in `package.json` -> named, plus the redistribution note.
+- `"private"` removed -> named the publish risk specifically.
+- `contact@gitlab.com` restored in `CONTRIBUTING.md` -> caught by the
+  non-SONARA address pattern. I had predicted the foreign-holder pattern would
+  fire too and it did not, because the probe appended the address without the
+  company name. Worth recording: the two patterns cover different halves of that
+  file and neither is redundant. The probe also showed the address reported with
+  the sentence's period attached, which is now fixed.
+- `LICENSE` deleted -> "named as a licence surface and not found", which is the
+  point: fail closed, never skip past a missing file.
+- All three files emptied -> the blindness guard fired on byte count rather than
+  the check reporting a clean pass over nothing.
+
+What the next person should not have to rediscover: the scaffold this repository
+started from left legal text in it, and legal text is the one category of file
+that looks finished on the day it is written and is never opened again. If you
+add another (a NOTICE, a TERMS, a privacy page), add it to the SURFACES the
+check reads in the same commit.
 
 ### 2026-08-26 - The upload page, and four resets in one afternoon
 
