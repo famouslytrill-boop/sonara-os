@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 101 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 233 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 235 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,86 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-26 - The wall that had stopped being a trade-off: uploads
+
+"No file upload" was on the list of things this application cannot do, with an
+honest reason beside it -- adding a dependency for one text box is a real cost
+bought cheaply. That reason had expired. A job had no photo, a signed document
+had nowhere to go, and the transcription adapter built this morning could only
+reach audio that was *already at a URL*, which is not a thing a customer has.
+
+Two modules, both written here, both with no dependency.
+
+## Reading the file: `lib/sonara-multipart.cjs`
+
+About a hundred and fifty lines, because the format is genuinely simple. The
+parts that are not simple are the two ways a parser like this fails silently.
+
+**It works on Buffers, never strings.** A JPEG turned into a UTF-8 string and
+back is not the same JPEG: invalid sequences become U+FFFD and the file is
+quietly corrupted. The boundary search is `Buffer.indexOf`, the parts are
+`subarray`, and the only thing decoded as text is a header line, which is ASCII
+by specification. A test sends all 256 byte values through and asserts they come
+back; a probe replacing the copy with a string round trip fails it.
+
+**The CRLF before a boundary belongs to the framing, not the content.**
+Dropping the wrong number of bytes there corrupts every file by exactly two,
+which no test of "did the upload succeed" would ever notice. Probed.
+
+**Filenames are rebuilt rather than cleaned.** `../../etc/passwd` becomes
+`passwd`, `..` becomes `file`, and no separator survives.
+
+**The declared content type is a claim.** `sniff()` reads the magic bytes and
+returns `null` when it cannot tell -- not a guess and not the sender's word,
+because "I could not tell" and "this is a JPEG" are different answers and
+folding them together is how a page serves HTML as an image.
+
+**Nothing throws.** A malformed body comes from outside; a parser that throws on
+it hands whoever sent it a way to produce a 500. Eight shapes of rubbish are
+tested, including random bytes and a boundary that never appears.
+
+## Storing it: `lib/sonara-file-storage.cjs`
+
+A private Supabase Storage bucket over its REST API, with the wire shape read
+from `supabase/storage-js` rather than recalled -- including the detail that
+`createSignedUrl` returns a **path**, which has to be joined to the storage URL.
+
+**The tenant boundary is the first path segment.** Every object lives at
+`{organization_id}/{kind}/{uuid}-{filename}`. Every read in this application
+uses the service-role key, which bypasses row level security, so the
+`organization_id` filter *is* the boundary -- and for files that means it has to
+be in the path. Signing and deleting both refuse a path that does not begin with
+the caller's organization *and a separator*, because `1111...` and
+`1111...-extra` must not be confusable. Both refusals are probed.
+
+**Nothing returns a public URL.** These are customers' files. Links are signed,
+bounded between 30 seconds and an hour, so a link pasted into a chat is not a
+lasting way in.
+
+**A 200 with no link is a failure.** Returning `{ ok: true, url: undefined }`
+would put an empty href on a page and call it a working download.
+
+**The store's own error body never reaches the caller** -- it can echo the
+headers, and the headers carry the service-role key. The status goes through
+because it is useful and safe.
+
+## What is deliberately not closed
+
+The competitive assessment listed four places this product is behind. This
+closes one and leaves three, with reasons rather than silence:
+
+- **Offline work screens.** Offline *reads* are tractable; offline *writes* are
+  a queue, and a queued write that silently never syncs is exactly the defect
+  this codebase is organised against. Not worth doing badly.
+- **Taking a payment on a customer's behalf.** Stripe Connect is a
+  money-movement and identity-verification decision with regulatory weight, and
+  `AGENTS.md` puts payout changes behind owner approval. Not a change to make
+  while tidying.
+- **The bucket itself.** `storageReadiness` reports that it *assumes* the bucket
+  exists and is private, because nothing here can see the policy from outside. A
+  public bucket would make every signed link pointless. That is a fifth owner
+  step and it is stated as one rather than assumed away.
 
 ### 2026-08-26 - The 26 "installable after review", reviewed; one of them installed
 
