@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 100 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 227 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 228 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -124,6 +124,68 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-25 - Two pages that reported an outage as news about your business
+
+Hunted with `pnpm run report:selected-columns` and the recurring-defect list.
+Two of the three candidates turned out to be correctly guarded already --
+`evaluatePolicy` checks org, user, attestation, revocation, expiry *and* scope,
+and `sonara-cash-position` counts a failed payments read as unavailable rather
+than as nothing paid. The two below did not.
+
+## "Set the customer on the invoice" -- on an invoice that already had one
+
+`/business-builder/owner/chase-drafts` reads invoices, payments and customers.
+`customers.ok` was computed, pushed into the `unavailable` list, and then
+**thrown away** before `chase.build()` was called. So an unreadable customer
+table produced an empty map, and every overdue invoice came back skipped with:
+
+> It is not attached to a customer, so there is nobody to address. Set the
+> customer on the invoice.
+
+That is a specific claim about a specific invoice, it is false, and it ends with
+an instruction the owner would go and act on -- for every overdue invoice at
+once. The headline above it read "Nothing here can be drafted yet -- see below
+for what each invoice needs first", which sends them straight to it. A generic
+"some records could not be read" card did sit at the top, and it did not stop
+any of the sentences underneath it being wrong.
+
+`build()` now takes `customersRead`, exactly as `settle()` takes `paymentsRead`
+in `lib/sonara-invoice-settlement.cjs` -- carry the outcome, not just the rows.
+The skipped entry also carries `cause`, so the page can group the two without
+matching on prose, and the headline is three-way rather than two.
+
+## "Somebody who is no longer here" -- about somebody who is still here
+
+Found by following the same shape into `/growth-studio/owner/lead-routing`,
+which is code from this branch. A routing rule renders the person it assigns to.
+With the people table unreadable, `named` is null for every rule, so a business
+whose staff are all present was shown:
+
+> Hot leads to Ana -- score 80 or more -> somebody who is no longer here
+
+next to a Remove button. There was already a notice saying the people list could
+not be read, and it referred to "the list below" -- the picker -- not to the
+rules above it. Now three states: named, genuinely gone, and could not look.
+
+## The probe that mattered
+
+Two probes fired immediately at the unit level. **A third did not**, and it is
+the one worth recording: deleting `customersRead: customers.ok` from the caller
+-- which is precisely the original bug -- left the entire suite green. Every test
+was of `build()`, and `build()` was fine. The bug was in the wiring.
+
+So both fixes are now covered by tests that drive the real route with one table
+failing and everything else answering, asserting on what reaches the page. With
+those in place the probe fails by name. `tests/an-outage-is-not-news-about-your-staff.test.js`
+is new; the chase-drafts tests grew a route-level block.
+
+Each page also keeps its honest message: a rule really pointing at somebody who
+left still says so, and an invoice really missing a customer still says that.
+Trading one wrong answer for another would not be a fix.
+
+Verified: 2,908 tests passing, `pnpm run lint` clean, `pnpm run verify:launch`
+exit 0.
 
 ### 2026-08-25 - The delete command, and a test that was weaker than its name
 

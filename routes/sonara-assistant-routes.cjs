@@ -153,7 +153,14 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
     // invoice that may be half settled, so no draft is written at all.
     if (!payments.ok || !invoices.ok) return { unavailable, drafts: [], skipped: [] };
 
-    return { unavailable, ...chase.build({ invoices: invoices.rows, customersById, paidByInvoice, businessName }) };
+    // `customers.ok` travels with the rows. Without it an unreadable customer
+    // table produces an empty map, and every overdue invoice is reported as
+    // "not attached to a customer" -- a specific claim about the owner's own
+    // records, and an instruction to go and fix data that is not broken.
+    return {
+      unavailable,
+      ...chase.build({ invoices: invoices.rows, customersById, paidByInvoice, businessName, customersRead: customers.ok })
+    };
   });
 
   function asMoney(cents) {
@@ -430,11 +437,19 @@ module.exports = function registerSonaraAssistantRoutes(app, deps = {}) {
       "Every figure above comes from your own invoices and the payments recorded against them. Nothing is generated, which is why these read like forms — and also why none of them can claim a reminder you never sent, a payment term you never agreed, or a late fee you cannot charge."
     ));
 
-    const headline = drafts.length === 0
-      ? (skipped.length > 0
-        ? "Nothing here can be drafted yet — see below for what each invoice needs first."
-        : "Nothing is overdue. There is nothing to chase.")
-      : `${drafts.length} ${drafts.length === 1 ? "invoice needs" : "invoices need"} chasing, most overdue first.`;
+    // Three headlines, because the three states mean different things to the
+    // person reading. "See what each invoice needs" sends somebody to do work;
+    // it must not be said when the reason nothing could be drafted is that a
+    // table would not load, and "nothing is overdue" must never be said on the
+    // strength of a read that did not happen.
+    const blocked = skipped.some((entry) => entry.cause === "unreadable");
+    const headline = drafts.length > 0
+      ? `${drafts.length} ${drafts.length === 1 ? "invoice needs" : "invoices need"} chasing, most overdue first.`
+      : blocked || unavailable.length > 0
+        ? "Nothing could be drafted, because some of your records could not be read. This is not a statement about what you are owed."
+        : skipped.length > 0
+          ? "Nothing here can be drafted yet — see below for what each invoice needs first."
+          : "Nothing is overdue. There is nothing to chase.";
 
     return page("Chase drafts", headline, sections);
   });

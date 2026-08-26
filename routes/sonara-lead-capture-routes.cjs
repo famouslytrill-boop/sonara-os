@@ -942,10 +942,19 @@ function registerLeadCaptureRoutes(app, deps = {}) {
           rule.regions?.length ? `in ${rule.regions.join(" or ")}` : null,
           rule.sources?.length ? `from ${rule.sources.join(" or ")}` : null
         ].filter(Boolean);
+        // Three states, not two. "No longer here" is a claim that somebody left,
+        // and it is only knowable when the people table was readable. With the
+        // read failed, `named` is null for every rule -- so a business whose
+        // rules all point at people who are very much still here was told they
+        // had all gone, next to a Remove button.
         const named = people.ok ? people.rows.find((person) => person.id === rule.assign_to) : null;
-        const to = rule.assign_to
-          ? (named ? escapeHtml(named.full_name || "somebody") : "somebody who is no longer here")
-          : "whoever is carrying the fewest";
+        const to = !rule.assign_to
+          ? "whoever is carrying the fewest"
+          : named
+            ? escapeHtml(named.full_name || "somebody")
+            : people.ok
+              ? "somebody who is no longer here"
+              : "somebody we could not look up just now";
         return `<li>${escapeHtml(rule.name)} — ${conditions.length ? escapeHtml(conditions.join(", ")) : "anything"} → ${to}`
           + `${rule.enabled ? "" : " <em>(off)</em>"}`
           + `<form method="post" action="/api/lead-routing-rules" class="sonara-inline-form">`
@@ -956,7 +965,7 @@ function registerLeadCaptureRoutes(app, deps = {}) {
     }
 
     if (!people.ok) {
-      sections.push(brandCard("We could not read your people", "The list below is empty because of that, not because you have nobody."));
+      sections.push(brandCard("We could not read your people", "Nobody is named above and the list below is empty because of that, not because you have nobody. No rule has been changed."));
     } else if (!people.rows.length) {
       sections.push(brandCard("You have nobody to give a lead to", "Leads will arrive and wait. Add somebody on your people page and they start being given out."));
     }
