@@ -2,6 +2,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - Growth Studio is not competing with Klaviyo, it is driving it
+
+`docs/market/2026-08-26-PER-PRODUCT-COMPETITOR-REASSESSMENT.md` compares each
+product against the tools that compete with *that* product. Earlier surveys in
+that directory compared the stack — what somebody pays for all three jobs at
+once — and averaging the three hid the finding that matters most.
+
+**Growth Studio cannot send.** No SMTP path, no SMS, no Twilio anywhere;
+`scripts/verify-env.mjs` classifies every variable this application reads and
+the only sending credential is `RESEND_API_KEY`, used by
+`lib/sonara-business-employee-invites.cjs` for staff invitations.
+`lib/growth-studio-provider-registry.cjs` registers HubSpot, Klaviyo, PostHog and
+GA4 as providers, and `routes/growth-studio-control-routes.cjs:912` posts to
+HubSpot's campaigns endpoint. A customer on Growth Studio still pays Klaviyo.
+
+That is either the weakest thing about the product or the strongest, and which
+one it is depends on how it is described rather than on anything in the code.
+Sold as the layer above — enforcing consent, pruning profile counts before
+Klaviyo bills for them — it is honest and differentiated. Sold as a replacement,
+it fails the first time a customer presses send. Nothing needs building to fix
+that; the copy needs correcting.
+
+Two more that were already true in the source and had never been written beside
+a competitor's price:
+
+- **No customer can pay an invoice.** `lib/sonara-invoice-settlement.cjs:29`
+  states there is no Stripe Connect — no connected-account model, no
+  `on_behalf_of`, no `transfer_data`. Jobber and Housecall Pro both take card
+  payments on a job at every tier. This product produces a statement.
+- **Creator Studio cannot sell either**, for the same reason, while Podia takes
+  5% of a transaction and Gumroad 10% + $0.50 of one this cannot process at all.
+
+The technology recommendation is browser-side inference over WebGPU, and the
+argument is economic rather than novel: a per-token bill that grows with use
+cannot sit behind a tool promised as free, and inference in the customer's own
+browser has a marginal cost of zero to the operator. WebLLM and Transformers.js
+are already in `data/open-source-tools.ts` at `needs_security_review`, so that
+review is the next step and not a new decision.
+
+One warning recorded where somebody will meet it at the same time as the tool:
+**GitReverse must never be pointed at this repository.** It converts a GitHub
+repository into a single prompt by swapping the hostname in the URL, and it is a
+third-party service that hands what it ingests to an LLM. It is for reading
+other people's public repositories.
+
 ### 2026-08-26 - The repository was giving itself away under someone else's name
 
 Asked to confirm the source stays private, I read the three files that decide it

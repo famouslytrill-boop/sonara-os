@@ -176,6 +176,47 @@ Nothing on the outside looks wrong.
 
 ---
 
+## The six things under `tools/`, and what each one costs you to run
+
+Added 26 August 2026 and not covered by the sections above, which were written
+on 19 August when none of them existed.
+
+**None of these is part of the deployed application.** `vercel.json` bundles
+`{public/**,routes/**,lib/**}` and nothing else, so nothing in `tools/` ships to
+production, and none of it can break the site. They are separate programs that
+live in this repository. You install something only if you want to run one.
+
+| Directory | What it is | What you need | What it costs to run |
+| --- | --- | --- | --- |
+| `tools/songsmith` | Web app: a text idea becomes a song. Approval-gated accounts. | Node 22, and Docker if you want `docker compose up` | Free locally. **The generation backend is RunPod, and RunPod bills by the second.** Without a RunPod key it runs, takes requests and reports that generation is not configured. |
+| `tools/agentkit` | Python toolkit for building single- and multi-agent systems, with a browser dev UI. | Python 3.11 or newer. Nothing else. | Free to run. A model key costs whatever that model charges — Gemini, or anything OpenAI-compatible. With no key the scripted client runs the tests. |
+| `tools/aws-emulator` | Local AWS on one port. S3, DynamoDB, Lambda, SQS. | Node 22, or Docker | Free. No account, no auth token, no paid tier. |
+| `tools/serverless-cli` | Define Lambda functions in YAML, see what a deploy would change before it changes. | Node 22 | Free locally. Deploying costs whatever AWS charges. |
+| `tools/voice-clone` | Upload a voice with recorded consent, type text, get audio in that voice. | Python, `make`, and a GPU for the real engine | Free. **Runs immediately without having cloned anything** — read "Two engines" in its README before assuming otherwise. |
+| `tools/disposable-domains` | The tooling that keeps `lib/sonara-disposable-domains.txt` correct. | Nothing | Free. The list it maintains *is* used by the deployed application. |
+
+Every one of them has **zero dependencies** by deliberate policy: `node:sqlite`,
+`node:crypto`, `node:http`, `urllib`, `json`, `http.server`. Each has a test
+that fails if a non-standard-library import appears, so the claim cannot rot
+quietly. That is why "install" for five of the six is "have Node, or have
+Python".
+
+### If you only want to try one
+
+```
+cd tools/agentkit && python3 -m unittest discover -s tests -v
+```
+
+Python 3.11+ and nothing else. It runs 69 tests and needs no key, no account and
+no network.
+
+**Run it with `-v`, and check a number came out.** `python -m unittest discover`
+exits 0 when it discovers nothing at all, so a silent green here means "no tests
+failed", not "the tests passed". That is the single most useful habit in this
+repository, in miniature.
+
+---
+
 ## What you do not have to install, and should not
 
 The application names six optional service adapters: Ollama, Langflow, Open
