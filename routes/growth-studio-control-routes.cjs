@@ -643,7 +643,8 @@ module.exports = function registerGrowthStudioControlRoutes(app, deps = {}) {
     }
     const providers = getGrowthProviderCatalog();
     const sections = [
-      ui.card("Growth operating system", "Run your campaigns, leads, audience lists, permissions, content approvals, contacts, sales, experiments, numbers, and connected services from one place."),
+      ui.card("Growth operating system", "Plan your campaigns, leads, audience lists, permissions, content approvals, contacts, sales, experiments, numbers, and connected services from one place."),
+      ui.card("What this does and does not do", "Growth Studio is the layer above your email and SMS tools, not a replacement for them. It plans the campaign, scores and routes the lead, and records consent before anything is dispatched. The message itself goes out through the provider you connect below, on that provider's account, under that provider's bill."),
       summaryTable(dashboard, ui.escape),
       ui.card("Approval boundary", "Public posts, campaign sends, ad changes, budget changes, and high-volume follow-up messaging require explicit human approval. Automation rules are created disabled and cannot contain arbitrary code."),
       ui.card("Attribution boundary", "Every conversion records an attribution model and confidence level. Provider sampling and data freshness are preserved instead of presenting estimates as exact causal truth."),
