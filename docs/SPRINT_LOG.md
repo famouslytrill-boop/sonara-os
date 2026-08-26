@@ -2,6 +2,49 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - And somewhere for push to send to
+
+`lib/sonara-web-push.cjs` could encrypt and send, and nothing could call it --
+there was nowhere to keep a subscription. A capability that exists, passes its
+tests, and no customer can reach is the defect this repository is named against,
+so the sending half was only half.
+
+`push_subscriptions` plus `lib/sonara-push-subscriptions.cjs`. Three decisions
+worth arguing with:
+
+**Consent is per topic, not per switch.** AGENTS.md requires alerts to be
+explicitly user-controlled, and a single on/off makes "tell me when an invoice
+is paid" and "tell me about anything" the same permission -- only one of which
+is what most people meant. So a row carries the topics it agreed to, the query
+filters on array containment, and **a subscription with no topics receives
+nothing** rather than everything. An empty list is the safe reading of "granted
+permission and chose nothing"; the opposite reading is how a product ends up
+notifying somebody about things they never asked for.
+
+**The endpoint is unique, and a re-subscribe updates.** Without that a person
+who granted permission twice hears everything twice, and there is no moment at
+which anybody notices -- it looks like a keen product. `Prefer:
+resolution=merge-duplicates` is what turns the second grant into an update
+rather than a 409 the browser reports as failure.
+
+**Deleting is part of sending, and only on two statuses.** A 404 or 410 means
+that browser is gone for ever and the row must go, or this application spends
+its life encrypting for a device that does not exist -- work nobody sees and
+nothing reports. A 429 or 5xx is a bad minute, and deleting on those loses live
+subscribers to somebody else's outage. A network failure is a third state and
+deletes nothing. Three tests hold those apart.
+
+`notify()` returns counts rather than a boolean: "sent to 3, 2 browsers gone, 1
+unreachable" is four facts and a success flag loses all of them. A failed read
+of who is subscribed is reported as a failed read, never as sent-to-nobody --
+which told to somebody with fifty subscribers is the shape of the bug.
+
+Worth recording about process: the contract check caught `push_subscriptions`
+missing from the reviewed extension list, exactly as it caught
+`business_payment_accounts` this afternoon. The difference is that this time
+`verify:launch` was run in full before pushing rather than a hand-picked subset,
+so the check caught it here instead of in CI.
+
 ### 2026-08-26 - Push notifications, checked against the RFC's own ciphertext
 
 First of the zero-margin capabilities, and the reason is narrow and checkable:
