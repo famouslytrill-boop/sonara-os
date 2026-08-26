@@ -42,6 +42,16 @@ jobs:
           pnpm exec mocha --pass-with-no-tests --reporter dot > /tmp/sonara-tests.log 2>&1
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          # On failure the log has to reach the person reading the job, not only
+          # the artifact. Until now a failing suite printed "exit code 1" and
+          # nothing else, so working out what broke meant downloading a zip from
+          # the web UI -- which nothing automated can do, and which is exactly
+          # the friction that turns a real failure into an assumed flake.
+          if [ "$status" -ne 0 ]; then
+            echo "::group::mocha output (last 200 lines)"
+            tail -n 200 /tmp/sonara-tests.log
+            echo "::endgroup::"
+          fi
           exit $status
 
       - name: Upload test diagnostics
@@ -64,6 +74,13 @@ jobs:
           pnpm run lint > /tmp/sonara-lint.log 2>&1
           status=$?
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          # Same reason as the test step above: a lint failure that prints only
+          # "exit code 1" sends whoever is reading to a zip file.
+          if [ "$status" -ne 0 ]; then
+            echo "::group::eslint output (last 200 lines)"
+            tail -n 200 /tmp/sonara-lint.log
+            echo "::endgroup::"
+          fi
           exit $status
 
       - name: Upload lint diagnostics
