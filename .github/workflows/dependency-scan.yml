@@ -73,6 +73,27 @@ jobs:
       - name: Build root app
         run: pnpm run build
 
+  # tools/agentkit/ is a Python package with no dependencies at all, so there is
+  # nothing to install and nothing to audit -- which is why this job is four
+  # lines and does not touch pip beyond the interpreter it is given.
+  #
+  # It exists because a test suite nothing runs is a check that cannot fail, and
+  # this repository's recurring defect is exactly that: a signal reporting
+  # success without being true. The agentkit tests are only worth having if
+  # something outside a developer's own machine runs them.
+  agentkit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/agentkit
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run the agentkit tests
+        run: python -m unittest discover -s tests -t . -v
+
   # backend/ is a real second application, and this is the only thing that says
   # so. It is a 370-line Python FastAPI service that CI installs, compiles,
   # imports and asserts two routes on -- so unlike the Next.js tree deleted on

@@ -61,6 +61,13 @@ def type_of(annotation: typing.Any, *, where: str) -> dict:
     if annotation in _SIMPLE:
         return {"type": _SIMPLE[annotation]}
 
+    # A bare `list` or `dict` annotation has no origin, so it reaches here
+    # before the parameterised branches below and needs saying explicitly.
+    if annotation is list:
+        raise TypeError(f"{where}: a bare `list` does not say what is in it; use `list[str]` or similar")
+    if annotation is dict:
+        return {"type": "OBJECT"}
+
     origin = typing.get_origin(annotation)
     if origin in (list, typing.List):
         args = typing.get_args(annotation)

@@ -2,6 +2,95 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - agentkit: a code-first agent framework, and four ways it could have lied
+
+`tools/agentkit/` is a Python toolkit for building single- and multi-agent
+systems. An agent is a dataclass, its tools are Python functions, its team is a
+list of other agents, and `python -m agentkit.devui my_agents.py` opens a
+browser UI for chatting with it and reading exactly what it did. **69 tests, and
+nothing outside the standard library is imported anywhere in the package** --
+asserted by a test that parses every import rather than by a sentence in the
+README.
+
+The shape follows Google's Agent Development Kit, down to `root_agent` as the
+conventional name so a file written for one loads in the other. None of ADK's
+code is used or vendored; this is an independent implementation against the
+public Gemini REST API.
+
+## The wire shape was read, not remembered
+
+`ai.google.dev` is blocked by this environment's egress proxy, so the request
+and response shapes come from Google's own REST cookbook on GitHub: `contents`
+with roles `user`, `model` and **`function`** -- not `tool`, which is the one
+most easily got wrong from memory and the hardest to notice -- tools as
+`{"functionDeclarations": [...]}`, a call arriving as a `functionCall` part, its
+result going back as a `functionResponse` part whose `response` is an object,
+and parameter types in upper case.
+
+Worth stating rather than glossing over: Google now documents a newer
+`interactions` API and labels `generateContent` legacy. This targets
+`generateContent` because that is the contract whose exact shape could be read
+from here. `base_url` and `api_version` are constructor arguments, so moving is
+an argument change rather than a rewrite.
+
+## The four things an agent framework can quietly get wrong
+
+Each has a test that names it, and each was broken on purpose first.
+
+**A declaration that does not match its function.** Writing the schema by hand
+beside the function gives you two things that drift apart invisibly: the model
+is told the tool takes `query` while the function takes `q`, every call fails,
+and nothing in the declaration looks wrong. So it is derived from the signature
+and then checked against it **in both directions**. The reverse direction -- a
+parameter the function requires and the declaration never mentions -- is the one
+nobody checks and the one that produces a tool the model can never call
+successfully. An unannotated parameter is refused rather than defaulted to a
+string, because a guessed type is the quiet kind of wrong.
+
+**A native tool silently dropped.** `GoogleSearch()` is run by Gemini itself. On
+a provider that cannot run it, the `Runner` refuses to be built -- because an
+agent that quietly loses its search answers from memory and sounds exactly as
+certain. The check walks the whole team, so an agent buried two levels down
+cannot slip through.
+
+**A transfer that did not happen.** A coordinator delegates through a
+`transfer_to_agent` tool built from its actual team, with the names as an `enum`
+so the model chooses from a list rather than typing one from memory. A transfer
+naming an agent that does not exist comes back to the model as an error listing
+every agent that does exist, and lands in the trace marked failed. A coordinator
+carrying on as though it had delegated is a run where the work was never done
+and the transcript reads normally.
+
+**A truncated run presented as an answer.** Hitting `max_steps` produces
+`stop_reason="step_limit"` and `finished == False`. The text is still carried,
+because the last thing the model said is worth seeing -- and rendering it
+without checking `finished` is exactly how a truncated run looks complete. The
+dev UI draws it in the colour it uses for problems.
+
+## The dev UI is mostly the trace
+
+Three panes, and the trace is a third of the screen rather than a panel behind a
+toggle. Reading a final answer tells you almost nothing about a multi-agent run;
+the question is nearly always *why did that agent get the work*, and only the
+trace answers it. Every transfer, every tool call with the arguments the model
+actually sent, every result, and the search queries and sources when the model
+searched.
+
+No inline script, `script-src 'self'`, `frame-ancestors 'none'`. It binds to
+loopback and has **no authentication**, and the startup banner says so every
+time -- anybody who reaches that port can spend the owner's API credit.
+
+## A test suite nothing runs is a check that cannot fail
+
+So `dependency-scan.yml` gained a four-line `agentkit` job. There is nothing to
+install and nothing to audit, which is most of why it is four lines. Verified
+the command exits 1 on a broken assertion before trusting it green.
+
+One thing found by writing the tests rather than by reading the code: a bare
+`list` annotation has no `typing.get_origin`, so it fell through to the generic
+"cannot declare this" message instead of the specific one telling the author to
+write `list[str]`.
+
 ### 2026-08-26 - Songsmith: an approval-gated song generator with nothing installed
 
 `tools/songsmith/` is a self-hosted web application for turning a text idea into
