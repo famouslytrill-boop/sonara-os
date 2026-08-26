@@ -1,0 +1,47 @@
+# docker compose up
+#
+# Everything except the RunPod credentials has a working default. Without them
+# the application runs, accounts work, the editor works, and pressing Generate
+# writes a song that says plainly that no backend is configured and that nothing
+# has been charged -- which is better than a container that refuses to start
+# and makes somebody guess why.
+
+services:
+  songsmith:
+    build: .
+    image: sonara/songsmith:0.1.0
+    ports:
+      - "8787:8787"
+    environment:
+      # --- generation -----------------------------------------------------
+      # A RunPod serverless endpoint that returns a stereo M4A. Without these
+      # two the application runs and refuses to submit anything.
+      RUNPOD_API_KEY: "${RUNPOD_API_KEY:-}"
+      RUNPOD_ENDPOINT_ID: "${RUNPOD_ENDPOINT_ID:-}"
+
+      # --- the writing helper (optional) ----------------------------------
+      # Any OpenAI-shaped chat endpoint: llama.cpp, vLLM, Ollama's compatible
+      # route, or a hosted one. Without it the helper gives section headings
+      # and says so rather than pretending to have written anything.
+      SONGSMITH_LLM_BASE_URL: "${SONGSMITH_LLM_BASE_URL:-}"
+      SONGSMITH_LLM_MODEL: "${SONGSMITH_LLM_MODEL:-}"
+      SONGSMITH_LLM_API_KEY: "${SONGSMITH_LLM_API_KEY:-}"
+
+      # --- this installation ----------------------------------------------
+      # Set this to a long random string in production and keep it. Left unset,
+      # one is generated into the data directory on first start, which is fine
+      # for a single container and wrong the moment there are two.
+      SONGSMITH_SECRET: "${SONGSMITH_SECRET:-}"
+      # "false" closes the request form once everybody who needs an account has
+      # one. The first account is always allowed, or nobody could ever start.
+      SONGSMITH_OPEN_REQUESTS: "${SONGSMITH_OPEN_REQUESTS:-true}"
+      # Only set this to "true" when something in front really is terminating
+      # TLS and setting X-Forwarded-For. Trusting those headers without a proxy
+      # lets anybody choose their own rate-limit bucket.
+      SONGSMITH_TRUST_PROXY: "${SONGSMITH_TRUST_PROXY:-false}"
+    volumes:
+      - songsmith-data:/data
+    restart: unless-stopped
+
+volumes:
+  songsmith-data:

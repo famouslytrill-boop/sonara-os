@@ -125,6 +125,101 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - Songsmith: an approval-gated song generator with nothing installed
+
+`tools/songsmith/` is a self-hosted web application for turning a text idea into
+a song. Somebody asks for an account, an admin approves it, they write lyrics
+and a style, and the job goes to a RunPod endpoint. When it comes back they play
+the stereo M4A, rename it, make it again with the same seed, share it with the
+other accounts here, or delete it.
+
+**42 tests, no dependencies.** Storage is `node:sqlite`, hashing is
+`node:crypto`, the server is `node:http`. That is a licence decision as much as
+a weight one: this source is private, a reciprocal licence triggers on network
+use, and the cheapest dependency tree to audit is the empty one.
+
+## `/runsync` is the trap, and it is the obvious call
+
+RunPod's synchronous route holds the connection open and returns the result,
+which is exactly what you want for a job that takes two seconds and exactly
+wrong for one that takes three minutes. If the response has not arrived in its
+window the request returns **without the result while the job keeps running and
+keeps being billed**, and with no id in hand there is nothing to poll and
+nothing to cancel. Its results are also discarded after about a minute against
+about thirty for `/run`.
+
+So: `/run`, then poll `/status/{id}`. The job id is written to the song row
+before anything else happens, because every other order leaves a window in which
+a crash orphans paid work.
+
+## Four places a song generator grows a signal that reports more than happened
+
+One test each, each probe confirmed to fire:
+
+1. **A progress bar that moves because time passed.** `progress` is `null`
+   unless the backend reported a number. A running job with no percentage says
+   "working on it" and renders no `<progress>` element at all. The probe set the
+   no-news case to 50 and the test failed by name.
+2. **`COMPLETED` with no audio in it.** Recorded as failed rather than left
+   `ready` -- a `ready` row with an empty `audio_path` is a play button that does
+   nothing and a state nothing will ever retry.
+3. **An unreachable backend recorded as a failed song.** The network being down
+   is news about the network. The job is left alone until the window in which
+   RunPod would still have the result has passed, and *then* failed with that
+   reason quoted.
+4. **A writing helper that produces a scaffold and calls it a draft.** With no
+   model configured the helper answers with section headings and every line a
+   visible `(a line about ...)` placeholder, and the page says in front of the
+   reader that nothing wrote any words. A model endpoint that breaks falls back
+   to the outline **and says the model answered 502**, because a broken endpoint
+   that looks like a working one nobody likes is the worst of the outcomes.
+
+## The audio is checked before it is stored
+
+`src/audio.js` walks the MP4 box tree far enough to say what came back: the
+`ftyp` brand, the codec, the channel count and the sample rate. A backend that
+answers with a JSON error is caught here and quoted back -- "it failed" tells
+whoever runs this nothing; "out of memory" tells them what to change.
+
+`channels` is a number **or null**, never a guess. Mono is reported and kept
+rather than refused: the song plays, and throwing away three minutes of paid
+work over a channel count would be worse than saying so on the page. The box
+offsets were checked by building a file byte by byte and reading it back, not by
+reasoning about the specification.
+
+## Two probes that did not fire, and what that was worth
+
+**Disabling an account has two independent defences** -- the session rows are
+deleted, and a live session is refused when its user is not active. Removing
+either one left the outcome test green, because the other still held. That test
+could not tell them apart, so each layer now has a test that can fail on its
+own: one asserts the rows are gone, and one changes a status *underneath* a live
+session without going through the delete path and asserts the session stops
+working anyway. Both probes fire now.
+
+**The 413 path was a real bug found by a test that would not pass.** Refusing an
+oversized body destroyed the request socket before the reply was written, so the
+caller saw a connection reset instead of the 413 that would have explained it.
+The request is paused instead.
+
+## What is deliberately not there
+
+- **No public share link.** "Shared" means the other approved accounts on this
+  installation. A song generator that mints public URLs is a publishing product,
+  and that is a different set of consent questions.
+- **An admin cannot read a private song.** "Private by default" would mean very
+  little if the person who approves the accounts could read everybody's.
+- **No JSON API and no client-side router**, which is what lets the CSP forbid
+  inline script outright. The whole application works with JavaScript off; the
+  one script reloads a page while a song is being made, and it does not reload
+  while somebody is typing in the rename box.
+
+## The limitation, stated rather than implied
+
+The Docker daemon is not available in this environment, so `Dockerfile` and
+`docker-compose.yml` are written and read but have never been built here. The
+README says so in its own words. Everything else is covered by the 42 tests.
+
 ### 2026-08-26 - A local AWS emulator, and the first time the CLI met a server
 
 `tools/aws-emulator/` is one process on one port answering S3, DynamoDB, SQS,
