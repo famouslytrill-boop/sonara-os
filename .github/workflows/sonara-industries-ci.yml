@@ -4,6 +4,20 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Manually runnable, added 26 August 2026, because this is the workflow whose
+  # signal matters most and it was the one that could not be asked for.
+  #
+  # GitHub Actions events fire only intermittently on this repository -- heads
+  # have landed carrying nothing but a skipped "Supabase Preview". Every other
+  # workflow here already accepts workflow_dispatch, so a missing signal could
+  # be chased. This one could not, and it is the job that runs `verify:db`,
+  # `typecheck` and `pnpm audit` -- the checks the lighter validation workflow
+  # does not.
+  #
+  # PR #203 is what surfaced it: seven checks reported, and neither this job nor
+  # "Build, test, and security" among them. An absent check reads as an absent
+  # problem, which is this repository's recurring defect wearing a CI badge.
+  workflow_dispatch:
 
 jobs:
   sonara-industries:
