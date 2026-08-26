@@ -207,6 +207,7 @@ function createApp({
     shared: "Shared. Anybody signed in here can now play it.",
     unshared: "Not shared any more.",
     "song-deleted": "Song deleted.",
+    cancelled: "Stopped. The backend was told, so nothing carries on being generated.",
     asked: "Asked. You will be able to sign in once somebody approves it.",
     created: "Account created. You are the first one here, so you are signed in and can approve everybody else.",
     "signed-out": "Signed out.",
@@ -491,6 +492,16 @@ function createApp({
       }
       db.updateSong(store, song.id, { visibility: wanted });
       return goTo(res, `/songs/${song.id}?notice=${wanted === "shared" ? "shared" : "unshared"}`);
+    }
+
+    if (action === "/cancel") {
+      const outcome = await songs.cancel(ctx, song);
+      if (!outcome.ok) {
+        return page(res, 400, pages.songPage({
+          user, song: db.findSong(store, song.id), mine: true, ownerName: "", problem: outcome.problem
+        }));
+      }
+      return goTo(res, `/songs/${song.id}?notice=cancelled`);
     }
 
     if (action === "/replay") {

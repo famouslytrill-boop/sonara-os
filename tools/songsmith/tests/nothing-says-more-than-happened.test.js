@@ -243,3 +243,44 @@ test("a writing model that breaks is not silently replaced by the outline", asyn
   assert.match(drafted.problem, /could not be used/);
   assert.match(drafted.problem, /502/, "a broken endpoint that looks like a working one nobody likes is the worst outcome");
 });
+
+test("stopping a song tells the backend before it marks the row", async (t) => {
+  const harness = await boot();
+  t.after(() => harness.close());
+  const { singer } = await withTwoPeople(harness);
+
+  const song = await submitOne(harness, singer);
+  const page = await singer.get(`/songs/${song.id}`);
+  assert.match(page.text, /Stop making it/, "there is nothing to press if the button is not offered");
+
+  const told = [];
+  const realCancel = harness.app.ctx.backend.cancel.bind(harness.app.ctx.backend);
+  harness.app.ctx.backend.cancel = async (id) => {
+    told.push(id);
+    return realCancel(id);
+  };
+
+  await singer.post(`/songs/${song.id}/cancel`, {}, { from: `/songs/${song.id}` });
+  assert.deepEqual(told, [song.job_id], "a row marked cancelled while a worker carries on is the one bad outcome");
+  assert.equal(db.findSong(harness.store, song.id).state, "cancelled");
+
+  const after = await singer.get(`/songs/${song.id}`);
+  assert.doesNotMatch(after.text, /Stop making it/);
+});
+
+test("a backend that will not accept the cancel leaves the song running and says so", async (t) => {
+  const harness = await boot();
+  t.after(() => harness.close());
+  const { singer } = await withTwoPeople(harness);
+
+  const song = await submitOne(harness, singer);
+  harness.app.ctx.backend.cancel = async () => {
+    throw new Error("connect ECONNREFUSED");
+  };
+
+  const answer = await singer.post(`/songs/${song.id}/cancel`, {}, { from: `/songs/${song.id}` });
+  assert.equal(answer.status, 400);
+  assert.match(answer.text, /could not be told to stop/);
+  assert.equal(db.findSong(harness.store, song.id).state, "queued",
+    "\"cancelled\" on the page has to mean the backend agreed");
+});

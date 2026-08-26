@@ -239,6 +239,32 @@ function remove(ctx, song) {
   return db.deleteSong(ctx.db, song.id);
 }
 
+/**
+ * Stop a job that has not finished.
+ *
+ * The backend is told first and the row is written second. The other order
+ * gives somebody a song marked cancelled while a worker carries on generating
+ * it and the meter carries on running -- which is the one outcome a cancel
+ * button must never produce.
+ *
+ * A backend that cannot be reached is reported as such rather than swallowed.
+ * "Cancelled" on the page has to mean the backend agreed.
+ */
+async function cancel(ctx, song) {
+  if (song.state !== "queued" && song.state !== "running") {
+    return { ok: false, problem: "That song is not being made, so there is nothing to stop." };
+  }
+  if (song.job_id) {
+    try {
+      await ctx.backend.cancel(song.job_id);
+    } catch (error) {
+      return { ok: false, problem: `The generation backend could not be told to stop: ${error.message}` };
+    }
+  }
+  db.updateSong(ctx.db, song.id, { state: "cancelled", error: "Stopped before it finished." });
+  return { ok: true };
+}
+
 /** Same words, same style, same seed: the same song again. */
 async function replay(ctx, song, user) {
   return start(ctx, {
@@ -251,4 +277,4 @@ async function replay(ctx, song, user) {
   });
 }
 
-module.exports = { start, pollOne, pollAll, remove, replay, newSeed, audioPathFor, GIVE_UP_AFTER_MS, MAX_AUDIO_BYTES };
+module.exports = { start, pollOne, pollAll, remove, replay, cancel, newSeed, audioPathFor, GIVE_UP_AFTER_MS, MAX_AUDIO_BYTES };

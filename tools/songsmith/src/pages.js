@@ -216,6 +216,14 @@ function songPage({ user, song, mine, ownerName, problem, notice }) {
           ${song.state === "ready" ? "" : html`<span class="fine">A song can be shared once it is ready.</span>`}
         </form>
 
+        ${song.state === "queued" || song.state === "running"
+          ? html`<form method="post" action="/songs/${song.id}/cancel" class="inline">
+              ${csrf(user)}
+              <button type="submit" class="quiet">Stop making it</button>
+              <span class="fine">A job that keeps running keeps costing.</span>
+            </form>`
+          : ""}
+
         <form method="post" action="/songs/${song.id}/replay" class="inline">
           ${csrf(user)}
           <button type="submit" class="quiet">Make it again with the same seed</button>

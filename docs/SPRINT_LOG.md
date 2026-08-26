@@ -10,7 +10,7 @@ and a style, and the job goes to a RunPod endpoint. When it comes back they play
 the stereo M4A, rename it, make it again with the same seed, share it with the
 other accounts here, or delete it.
 
-**42 tests, no dependencies.** Storage is `node:sqlite`, hashing is
+**44 tests, no dependencies.** Storage is `node:sqlite`, hashing is
 `node:crypto`, the server is `node:http`. That is a licence decision as much as
 a weight one: this source is private, a reciprocal licence triggers on network
 use, and the cheapest dependency tree to audit is the empty one.
@@ -81,6 +81,11 @@ The request is paused instead.
 
 ## What is deliberately not there
 
+- **A cancel that means it.** The backend is told first and the row is written
+  second. The other order gives somebody a song marked cancelled while a worker
+  carries on generating it and the meter carries on running. A backend that
+  cannot be reached leaves the song running and says so, because "cancelled" on
+  the page has to mean the backend agreed.
 - **No public share link.** "Shared" means the other approved accounts on this
   installation. A song generator that mints public URLs is a publishing product,
   and that is a different set of consent questions.
@@ -95,7 +100,7 @@ The request is paused instead.
 
 The Docker daemon is not available in this environment, so `Dockerfile` and
 `docker-compose.yml` are written and read but have never been built here. The
-README says so in its own words. Everything else is covered by the 42 tests.
+README says so in its own words. Everything else is covered by the 44 tests.
 
 ### 2026-08-26 - A local AWS emulator, and the first time the CLI met a server
 

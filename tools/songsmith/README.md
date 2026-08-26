@@ -86,7 +86,7 @@ play button that does nothing. A file whose channel count cannot be read reports
 
 ```
 node --run start        # needs Node 22 or newer for node:sqlite
-node --test tests/      # 42 tests
+node --test tests/*.test.js   # 44 tests
 ```
 
 ## What this is not
