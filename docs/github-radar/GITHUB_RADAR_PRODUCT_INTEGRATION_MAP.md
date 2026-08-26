@@ -58,7 +58,7 @@ Create, launch, run and manage a business.
 | [TastyIgniter](https://github.com/tastyigniter/TastyIgniter) | MIT | Adapt after review | online ordering |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [ToolJet](https://github.com/ToolJet/ToolJet) | AGPL-3.0, read from the GitHub API's detected license.spdx_id on | Blocked | internal tool builder |
-| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [ury (ERPNext restaurant management)](https://github.com/ury-erp/ury) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | restaurant management |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
@@ -105,7 +105,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Spleeter](https://github.com/deezer/spleeter) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio processing |
-| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
@@ -151,7 +151,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
-| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Security review first | browser-side AI |
+| [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Not classifiable by GitHub. Its detected licence on 18 August 20 | Licence unresolved | CRM |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [wacrm (self-hostable WhatsApp CRM template)](https://github.com/ArnasDon/wacrm) | MIT. Read on 18 August 2026 from GitHub's own detected licence f | Adapt after review | CRM |

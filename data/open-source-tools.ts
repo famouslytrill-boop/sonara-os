@@ -2775,7 +2775,7 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     licenseRisk: "medium",
     reciprocalLicense: false,
     commercialUseStatus: "needs_review",
-    integrationStatus: "needs_security_review",
+    integrationStatus: "optional_adapter_after_review",
     recommendedAction: [
       "treat this as a Content-Security-Policy decision before it is a feature decision -- three headers in server.js would have to change, and each is named in the notes",
       "if adopted, serve the model weights from this origin rather than widening connect-src to a model host, and accept the bandwidth that implies",

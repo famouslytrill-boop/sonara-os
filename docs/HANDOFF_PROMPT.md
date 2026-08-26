@@ -112,6 +112,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run verify:contrast`
 - `pnpm run verify:source-licence`
 - `pnpm run verify:growth-copy`
+- `pnpm run verify:csp`
 
 `pnpm` only. Never `npm`, never `npm audit fix`, never a `package-lock.json`.
 
