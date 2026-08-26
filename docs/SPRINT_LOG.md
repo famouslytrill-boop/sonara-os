@@ -2,6 +2,32 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - A probe that does not apply looks exactly like a test that is too weak
+
+Five probes against the new agentkit credit model. Four fired red. The fifth --
+restoring `round()` in place of half-away-from-zero rounding -- **passed**, which
+reads as the fifth shape from `.claude/skills/checks-that-cannot-lie`: a check
+too weak to catch the bug it was written for.
+
+It was not. The probe's `str.replace` used eight spaces of indentation against a
+module-level function indented with four, so it matched nothing and wrote the
+file back unchanged. The suite then passed because the code was never broken.
+
+Re-run with the right indentation and an `assert old in s` guarding the
+substitution, the same probe fails by name immediately.
+
+**So every probe now asserts its own substitution applied.** A probe that
+silently does not apply is worse than no probe: it produces the exact output of
+a passing check over broken code, and the conclusion it invites -- "my test is
+too weak, let me weaken my belief in it" -- is the opposite of the truth. This
+is the second time on this branch that probe mechanics rather than probe results
+were the finding; the first was `git checkout -- .` reverting uncommitted work
+mid-probe, which is why commits now land before the probe pass.
+
+For the record, since the numbers matter: `credits(0.0000005)` is 1 under
+half-away-from-zero and 0 under `round()`, because Python's `round()` is
+banker's rounding and ties to even. The test was right all along.
+
 ### 2026-08-26 - A business can now connect an account and be paid into it
 
 The largest thing this application could not do. A plumber could raise an
