@@ -44,9 +44,27 @@ const SURFACES = [
 const CLAIMS_DELIVERY = [
   /\b(we|sonara|growth studio|this product)\s+(will\s+)?(send|sends|deliver|delivers|blast|blasts|text|texts|email|emails)\b/gi,
   /\bsend (your|the|a) (campaign|email|newsletter|blast|sms|text|message)\b/gi,
-  /\b(campaign|email|newsletter|sms|message)s? (are|is|get|gets|will be) (sent|delivered|blasted)\b/gi,
+  /\b(campaign|email|newsletter|sms|message)s? (are|is|get|gets|will be) (sent|delivered|blasted)\b/gi
+];
+
+// Claims no neighbouring sentence can make true.
+//
+// Split out after probing. "Unlimited emails." was added to the brand registry
+// description and this check **passed**, because the honest sentence sat inside
+// the 160-character qualifier window below and excused it -- the precise leak
+// that window exists to close, reappearing one file later.
+//
+// The distinction that fixes it is real rather than a patch. A contextual verb
+// ("sends") genuinely changes meaning when a boundary sentence sits beside it,
+// so it belongs in the list above. A volume promise or a built-in-delivery
+// claim does not: "unlimited emails, but the provider sends them" is still a
+// promise about somebody else's bill. These are never excused.
+const CLAIMS_UNCONDITIONALLY = [
+  /\bunlimited (emails|sends|sms|texts|messages)\b/gi,
   /\bbuilt-in (email|sms|newsletter) (sending|delivery)\b/gi,
-  /\bunlimited (emails|sends|sms)\b/gi
+  /\bno (send|sending|email) limits\b/gi,
+  /\b(included|free) (email|sms) sends?\b/gi,
+  /\breplaces? (klaviyo|hubspot|mailchimp|brevo)\b/gi
 ];
 
 // Wording that makes the claim a description of the boundary rather than a
@@ -88,6 +106,12 @@ for (const relative of SURFACES) {
         const window = line.slice(Math.max(0, match.index - NEARBY), match.index + match[0].length + NEARBY);
         if (QUALIFIED.test(window)) continue;
         findings.push(`${relative}:${index + 1}: copy claims Growth Studio sends -- ${window.trim().slice(0, 150)}`);
+      }
+    }
+    for (const pattern of CLAIMS_UNCONDITIONALLY) {
+      pattern.lastIndex = 0;
+      for (let match = pattern.exec(line); match; match = pattern.exec(line)) {
+        findings.push(`${relative}:${index + 1}: copy promises delivery this product does not control -- "${match[0]}" (no neighbouring sentence excuses this one)`);
       }
     }
   });
