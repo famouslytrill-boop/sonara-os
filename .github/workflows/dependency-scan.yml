@@ -141,3 +141,55 @@ jobs:
         run: |
           python -m py_compile main.py app/main.py
           python -c 'from app.main import app; paths = {route.path for route in app.routes}; assert "/health" in paths and "/brands" in paths'
+
+  # The three Node subprojects under tools/. Nothing ran them until now, and two
+  # of the three declared a test command that could not run at all.
+  #
+  # `node --test tests/` -- what aws-emulator and serverless-cli both shipped --
+  # does not glob on Node 22. It resolves `tests` as a module, fails with
+  # MODULE_NOT_FOUND, and reports "# tests 1 / # pass 0 / # fail 1". So the
+  # declared command produced a failure that looks like broken tests rather than
+  # a runner that never found them, and the 221 and 43 figures quoted in the
+  # handoff were reproducible only by somebody who happened to type the glob.
+  # Fixed in both package.json files; this job is what stops it recurring.
+  #
+  # The floors matter more than the runs. `node --test` over a glob that matches
+  # nothing exits 0 with "# tests 0", which is the same green as a passing suite
+  # -- the exact defect this repository keeps finding. Each floor is set below
+  # today's count so adding a test does not fail the job, and far above zero so
+  # a moved directory does.
+  tools-node-suites:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: aws-emulator
+            floor: 40
+          - project: serverless-cli
+            floor: 200
+          - project: songsmith
+            floor: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run the ${{ matrix.project }} tests
+        working-directory: tools/${{ matrix.project }}
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test tests/*.test.js 2>&1 | tee /tmp/out.log
+          status=${PIPESTATUS[0]}
+          ran=$(grep -oP '^# tests \K[0-9]+' /tmp/out.log | tail -n 1)
+          if [ -z "$ran" ]; then
+            echo "::error::no '# tests' line in the output; the runner did not report a count"
+            exit 1
+          fi
+          if [ "$ran" -lt "${{ matrix.floor }}" ]; then
+            echo "::error::only $ran tests ran in ${{ matrix.project }}, floor is ${{ matrix.floor }}; discovery has gone blind"
+            exit 1
+          fi
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          echo "$ran tests passed in ${{ matrix.project }}."

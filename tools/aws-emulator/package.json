@@ -8,5 +8,5 @@
   "main": "src/server.js",
   "bin": { "aws-emulator": "src/server.js" },
   "engines": { "node": ">=20" },
-  "scripts": { "start": "node src/server.js", "test": "node --test tests/" }
+  "scripts": { "start": "node src/server.js", "test": "node --test tests/*.test.js" }
 }

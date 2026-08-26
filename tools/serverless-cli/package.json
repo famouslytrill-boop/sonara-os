@@ -7,5 +7,5 @@
   "type": "commonjs",
   "bin": { "sonara-serverless": "bin/sonara-serverless.js" },
   "engines": { "node": ">=22.6.0" },
-  "scripts": { "test": "node --test tests/" }
+  "scripts": { "test": "node --test tests/*.test.js" }
 }
