@@ -257,6 +257,93 @@ list: both rows are handed whole to `settle()`, which reads them, and this modul
 deliberately does no arithmetic of its own over them.
 
 Suite 3,202 -> 3,224. `verify:launch` green end to end.
+### 2026-08-27 - The migrations had never been run
+
+`verify:db` has never executed a line of SQL. Nor has any other database check
+here — they read the migration files and compare **text**: names, tables,
+constraints, policies. So the release chain could be green end to end on a
+migration history no database would accept, and it was.
+
+`scripts/verify-migration-replay.mjs` is the 31st chain command and the only one
+that runs the SQL. It starts a throwaway PostgreSQL, applies the Supabase
+primitives a hosted project provides, then applies all 104 migrations in order
+with `ON_ERROR_STOP=1`.
+
+**The bug it was written for, which it found on `main`:**
+
+`20260812120000_retire_removed_catalog_products.sql` ended by asserting that all
+42 catalog products were already active published rows. That assertion is
+*generated from today's catalog* and written into a file *dated 12 August*.
+Nineteen of those products are first inserted six days later — 9 by
+`20260818060000`, 9 by `20260818070000`, 1 by `20260818080000`. The file demanded
+rows that would not exist for another six days.
+
+Production never noticed, and that is the part worth keeping. A database that
+migrates forward in real time does not re-run an old migration, so the drift was
+invisible exactly where the data lives. The only thing that ever sees it is a
+**fresh replay** — a new Supabase preview branch, a restored backup, a second
+environment. Every Supabase preview branch on this repository was failing on it,
+and it read as one PR's problem rather than as the repository's.
+
+**The fix is a rule, not a patch.** An operation belongs at the point in history
+where it happened; an assertion about the end state belongs at the end. The sync
+and the retirement stay in `20260812120000`, because they describe what changed
+on 12 August. Both assertions move to a generated
+`20260827100000_published_catalog_is_complete.sql`. The retired-name check gets
+stronger for free: where it sat, it only ever saw the rows that existed on
+12 August.
+
+`generate-catalog-sync-migration.cjs` now owns two files and refuses to write
+either while any migration dated *after* the assertions inserts catalog rows —
+the guard for the bug, in the generator that produced it, reading the directory
+rather than naming files.
+
+## Two checks that had to learn a generator can own more than one file
+
+`verify-applied-migrations.mjs` and its test read `module.migrationName`,
+singular. Left alone, the new assertion migration would have been **frozen** —
+and a pinned file that a generator legitimately rewrites fails the pin on the
+next regeneration. Both read the full set now, and the checker additionally
+refuses a generator that names a file which is not on disk: a reason outliving
+the thing it describes is the shape that leaves a stale exemption over a real
+problem.
+
+`tests/published-catalog-sync.test.js` read only the sync migration and asserted
+the retired-name check was in it. After the split that assertion lives next door,
+so the test would have been reading half of what the generator writes — and
+passing. It reads the pair now, and asserts the retired-name check against the
+assertion file **by name**, so it cannot start passing because the check drifted
+into whichever file happens to still be read.
+
+## The rule that keeps the replay honest
+
+A bare PostgreSQL is not a Supabase project, so a shim supplies `auth`,
+`storage`, the three PostgREST roles and `auth.uid()`. **The shim may only
+supply what Supabase itself supplies, and never anything in `public`.** The
+moment it creates something of ours to get a migration past, the check has
+stopped measuring the migrations and started measuring the shim — and it would
+still print "passed". Every entry names what provides it in production, the
+whole list is printed on every run, and a test fails if anything in `public`
+appears in it.
+
+Without PostgreSQL the command prints an unmissable
+`MIGRATIONS WERE NOT REPLAYED IN THIS RUN` and exits 0, so a contributor with no
+local database is not blocked. `SONARA_MIGRATION_REPLAY_REQUIRED=1` turns that
+into a failure and CI sets it, because **a check whose skip path is the one that
+always runs is not a check**. A test asserts CI still sets it.
+
+Six falsification probes, each failing by name: a migration referencing a table
+that does not exist, a catalog migration dated after the assertions, the
+assertions dated back before the inserts, a shim entry creating something in
+`public`, CI dropping the required flag, and the replay's own
+"did it build anything" floor cut to one table.
+
+Worth recording that the replay caught two of my own mistakes within minutes of
+existing: `$$` in the shim being expanded by the shell into a process id (all SQL
+goes through files now, never `psql -c`), and an escaped `\${keyRows}` that
+emitted the literal text instead of the catalog.
+
+Suite 3,202 -> 3,217. Chain 30 -> 31 commands, green end to end.
 
 ### 2026-08-26 - The browser half, and a phantom I chased
 

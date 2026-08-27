@@ -156,9 +156,21 @@ const OPTIONAL_CAPABILITY = new Set([
   "STRIPE_PRICE_CREATOR_STUDIO_PRO_MONTHLY", "STRIPE_PRICE_GROWTH_STUDIO_PRO_MONTHLY"
 ]);
 
-// Turns a warning into a gate. Not required to run; required to know the deploy
-// is telling the truth. docs/owner/OWNER-STEPS.md item 2.
-const RATCHET = new Set(["SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION"]);
+// Turn a warning into a gate. Not required to run; required to know a check is
+// telling the truth. Two now, with different scopes.
+//
+// SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION is about production --
+// docs/owner/OWNER-STEPS.md item 2.
+//
+// SONARA_MIGRATION_REPLAY_REQUIRED is about CI, and never reaches a customer.
+// scripts/verify-migration-replay.mjs is the only check here that executes the
+// migrations rather than reading them, and it cannot run without PostgreSQL. A
+// contributor without one should get a loud notice rather than a blocked
+// commit; CI must get a failure, or the skip path becomes the only path that
+// ever runs and the check stops being one. .github/workflows/sonara-industries-ci.yml
+// sets it, and tests/migrations-are-replayed-not-just-read.test.js asserts CI
+// still does.
+const RATCHET = new Set(["SONARA_REQUIRE_LEAKED_PASSWORD_PROTECTION", "SONARA_MIGRATION_REPLAY_REQUIRED"]);
 
 // Must never be true in production. The code enforces it as well as the
 // classification — routes/sonara-last9-routes.cjs checks NODE_ENV and VERCEL_ENV
@@ -270,8 +282,15 @@ const examplePath = path.join(root, ".env.example");
 const example = fs.existsSync(examplePath) ? fs.readFileSync(examplePath, "utf8") : "";
 if (!example) errors.push(".env.example is missing, so there is nowhere to read what has to be set.");
 
-for (const name of [...REQUIRED, ...RATCHET].sort()) {
+// A ratchet is not always about paid usage -- SONARA_MIGRATION_REPLAY_REQUIRED
+// is about CI and never reaches a customer -- so the two are reported in their
+// own words. A message that tells the next reader a CI switch gates paid usage
+// is a reason they would act on and it would be wrong.
+for (const name of [...REQUIRED].sort()) {
   if (!example.includes(`${name}=`)) errors.push(`${name} must be set for paid usage and is not in .env.example.`);
+}
+for (const name of [...RATCHET].sort()) {
+  if (!example.includes(`${name}=`)) errors.push(`${name} turns a warning into a gate and is not documented in .env.example.`);
 }
 
 for (const error of errors) console.error(`ERROR: ${error}`);

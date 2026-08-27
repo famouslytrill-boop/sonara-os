@@ -47,11 +47,26 @@ const GENERATORS = ["generate-member-read-policies.cjs", "generate-catalog-sync-
 const writable = new Set();
 for (const generator of GENERATORS) {
   const module = require(path.join(root, "scripts", generator));
-  if (!module.migrationName) {
+  // A generator may own more than one file. generate-catalog-sync-migration.cjs
+  // owns two since the catalog assertions moved out of the retirement migration
+  // into one dated after the products they assert about exist -- reading only
+  // `migrationName` would have frozen the second, and the next regeneration
+  // would have failed the pin on a file a generator is supposed to rewrite.
+  const owned = [module.migrationName, module.assertionMigrationName, ...(module.migrationNames || [])].filter(Boolean);
+  if (!owned.length) {
     console.error(`[fail] ${generator} does not export migrationName, so this check cannot tell which migration it still owns.`);
     process.exit(1);
   }
-  writable.add(module.migrationName);
+  for (const name of owned) {
+    // A generator naming a file that is not there is a reason that has outlived
+    // the thing it describes -- the shape that leaves a stale exemption sitting
+    // over a real problem. Refused rather than skipped.
+    if (!fs.existsSync(path.join(migrationsDirectory, name))) {
+      console.error(`[fail] ${generator} says it owns ${name}, and there is no such migration. Regenerate, or correct the generator.`);
+      process.exit(1);
+    }
+    writable.add(name);
+  }
 }
 
 const write = process.argv.includes("--write");

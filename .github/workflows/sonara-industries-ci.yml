@@ -75,6 +75,20 @@ jobs:
       - name: Verify database and storage contracts
         run: pnpm run verify:db
 
+      # The only check in this repository that executes the migrations rather
+      # than reading them.
+      #
+      # SONARA_MIGRATION_REPLAY_REQUIRED turns "no PostgreSQL here" from a
+      # notice into a failure. Locally the notice is right -- a contributor
+      # without a database should not be blocked -- but a check whose skip path
+      # is the one that always runs is not a check, and CI is where that has to
+      # be impossible. ubuntu-latest ships PostgreSQL 16; the script starts its
+      # own throwaway cluster and removes it, so no service container is needed.
+      - name: Replay every migration into a throwaway PostgreSQL
+        env:
+          SONARA_MIGRATION_REPLAY_REQUIRED: "1"
+        run: pnpm run verify:migration-replay
+
       - name: Verify launch configuration and route registry
         run: pnpm run verify:config
 
