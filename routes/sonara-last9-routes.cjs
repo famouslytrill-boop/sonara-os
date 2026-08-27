@@ -19,6 +19,7 @@ const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs")
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 
 // `person` names the column that records who created the row, and it is here
 // because leaving it implicit broke every form on these pages.
@@ -755,6 +756,39 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
       const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
+
+      // The one product event this application notifies on.
+      //
+      // Recording a payment is the only place in the codebase where an invoice
+      // can become settled, so it is the only honest place to send
+      // "invoice_paid" from. Everything else about push was already built and
+      // reachable -- the store, the sender, the service worker, the page that
+      // asks permission -- and nothing called notify(), which made the whole
+      // set a capability nobody could ever receive.
+      //
+      // Three deliberate choices, each the opposite of the obvious one:
+      //
+      //   Awaited, not fired and forgotten. This runs as a serverless function;
+      //   execution can be frozen the moment the response is written, and an
+      //   un-awaited fetch is a notification that silently never leaves.
+      //
+      //   Its result is dropped. A push that could not be sent must not turn a
+      //   payment that WAS saved into an error on the person's screen. The
+      //   money is recorded either way, and that is the fact the page reports.
+      //
+      //   It cannot throw. announcePayment returns a reason rather than
+      //   rejecting, and the try/catch is the second line of that same rule:
+      //   the response below is owed to somebody whose payment already landed.
+      if (spec.table === "customer_invoice_payments" && saved?.ok !== false) {
+        try {
+          await announcePayment(pushDeps(config, deps), {
+            organizationId: org.organizationId,
+            invoiceId: parentId,
+            paymentId: saved?.rows?.[0]?.id || null
+          });
+        } catch { /* a saved payment is not undone by a notification that failed */ }
+      }
+
       return respond(saved?.ok === false ? 502 : 200, saved);
     });
     });
@@ -1974,6 +2008,19 @@ function getConfig(deps) {
 
 function headers(config, extra = {}) {
   return { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json", ...extra };
+}
+
+// The dependency shape lib/sonara-push-subscriptions.cjs asks for, built from
+// the one this file already has.
+//
+// getEnv falls back to process.env rather than refusing. Every other consumer
+// of these routes passes it, and a missing one here would turn the notification
+// into a thrown TypeError inside a request that has already saved a payment --
+// the fallback reads the same variables the injected function does, and
+// pushReadiness still refuses cleanly when the VAPID keys are absent.
+function pushDeps(config, deps) {
+  const getEnv = typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name];
+  return { getEnv, supabaseUrl: config.url, serviceRoleHeaders: () => headers(config) };
 }
 
 // How many rows a record list loads at once.

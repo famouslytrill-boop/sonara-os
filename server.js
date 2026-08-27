@@ -649,7 +649,7 @@ registerLastNineHoursRoutes(app, {
   requireWorkspaceAccess, requirePaidOrOwnerAccess, // staff portal is what Team sells; see STAFF_PAGES
   getCustomerPrimaryOrganization,
   getCustomerPaidEntitlement, // location limits need the plan; see lib/sonara-plan-limits.cjs
-  getSupabaseServerConfig
+  getSupabaseServerConfig, getEnv // getEnv: the VAPID keys, for the invoice-paid notification
 });
 
 registerCreatorProfileRoutes(app, { layout, brandCard, linkAction, escapeHtml, responsePage, requireCustomer, resolveCustomerSession, wantsJson, getSupabaseServerConfig, supabaseHeaders, getCustomerPrimaryOrganization });
