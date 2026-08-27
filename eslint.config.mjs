@@ -43,6 +43,12 @@ const browserGlobals = {
   // before a customer loads it, so an undefined global has to be an error here
   // or it is a runtime failure nobody sees.
   Notification: "readonly",
+  // The call client in public/sonara-call.js. Named for the same reason as
+  // every other entry here rather than switching to a wholesale browser preset:
+  // a browser script gets no feedback before a customer loads it, so an
+  // undefined global has to be an error at lint time or it is a runtime failure
+  // in the middle of somebody's call.
+  RTCPeerConnection: "readonly",
   module: "writable",
   self: "readonly"
 };

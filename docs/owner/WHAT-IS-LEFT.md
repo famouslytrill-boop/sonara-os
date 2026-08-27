@@ -76,7 +76,7 @@ never save and two POST handlers silently sharing one path.
 Counted from the repository on 12 August 2026, not recalled.
 
 - **248** registered GET routes
-- **319** tables created by the migrations, **225** of them organization-scoped
+- **321** tables created by the migrations, **227** of them organization-scoped
 - **23** owner record pages, **22** record checks
 - **31** verification commands in the release chain
 - **82** external repositories reviewed with their licences read off each one

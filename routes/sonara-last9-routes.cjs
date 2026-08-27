@@ -18,7 +18,9 @@ const { settle } = require("../lib/sonara-invoice-settlement.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
-const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
+const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
+const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
 // `person` names the column that records who created the row, and it is here
 // because leaving it implicit broke every form on these pages.
@@ -154,7 +156,31 @@ const STAFF_PAGES = [
 // tests/server-split.test.js whose whole point is that behaviour leaves it
 // rather than arriving. Four more lines there to reach a module that belongs
 // beside these ones would have been four lines in the wrong direction.
+// Exactly the values location_events.event_type allows, from migration 015.
+// Kept as a list here because the alternative is finding out from a Postgres
+// check-constraint error at the moment somebody records a check-in.
+const LOCATION_EVENT_TYPES = Object.freeze([
+  "check_in", "check_out", "zone_enter", "zone_exit",
+  "position_update", "delivery_stop", "job_site_arrival", "job_site_departure", "manual"
+]);
+
 const registerSubAppRoutes = require("./sonara-sub-app-routes.cjs");
+// Calling a customer is NOT registered from here, and the attempt is worth
+// recording. /business-builder/owner/customers/:recordId/call sits beside
+// /contact, which this file serves, so registering it here looked right.
+//
+// It broke nine tests at once. This module accepts a partial dependency object
+// on purpose -- `deps.requireCustomer || passthrough`, and so on -- so a test
+// can build it with three helpers and exercise one page. The call module
+// refuses to register without all nine of its own, which is the stricter and
+// better contract, and hanging it off this one silently imposed that contract
+// on every existing caller.
+//
+// The two are not reconcilable by loosening either: a call module that
+// registered without getEnv would render a call page that cannot read the ICE
+// configuration, which is the failure it exists to report. So it is wired in
+// server.js like every other feature, and the line ceiling in
+// tests/server-split.test.js moved by two with the reason recorded there.
 
 module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   registerSubAppRoutes(app, deps);
@@ -645,7 +671,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // record this page could not find hands somebody a link that answers
           // 404, and the page above it has already said the record is not
           // there -- two answers to the same question, one of them wrong.
-          ...(page.download && parent ? [ui.link(page.download.href(recordId), page.download.label)] : []),
+          ...(parent ? downloadsOf(page).map((entry) => ui.link(entry.href(recordId), entry.label)) : []),
           ui.link(page.path, `All ${page.title.toLowerCase()}`),
           ui.link("/business-builder/owner", "Owner Dashboard"),
           ui.link("/business-builder/dashboard", "Dashboard")
@@ -755,6 +781,39 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
       const payload = sanitizeObject({ ...submitted, ...derived, [spec.parentColumn]: parentId, organization_id: org.organizationId });
       const saved = await supabaseInsert(config, spec.table, payload);
+
+      // The one product event this application notifies on.
+      //
+      // Recording a payment is the only place in the codebase where an invoice
+      // can become settled, so it is the only honest place to send
+      // "invoice_paid" from. Everything else about push was already built and
+      // reachable -- the store, the sender, the service worker, the page that
+      // asks permission -- and nothing called notify(), which made the whole
+      // set a capability nobody could ever receive.
+      //
+      // Three deliberate choices, each the opposite of the obvious one:
+      //
+      //   Awaited, not fired and forgotten. This runs as a serverless function;
+      //   execution can be frozen the moment the response is written, and an
+      //   un-awaited fetch is a notification that silently never leaves.
+      //
+      //   Its result is dropped. A push that could not be sent must not turn a
+      //   payment that WAS saved into an error on the person's screen. The
+      //   money is recorded either way, and that is the fact the page reports.
+      //
+      //   It cannot throw. announcePayment returns a reason rather than
+      //   rejecting, and the try/catch is the second line of that same rule:
+      //   the response below is owed to somebody whose payment already landed.
+      if (spec.table === "customer_invoice_payments" && saved?.ok !== false) {
+        try {
+          await announcePayment(pushDeps(config, deps), {
+            organizationId: org.organizationId,
+            invoiceId: parentId,
+            paymentId: saved?.rows?.[0]?.id || null
+          });
+        } catch { /* a saved payment is not undone by a notification that failed */ }
+      }
+
       return respond(saved?.ok === false ? 502 : 200, saved);
     });
     });
@@ -1028,14 +1087,29 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       const me = await resolveEmployee(config, org, req);
       const sections = await staffSections(config, org, me, path, ui);
-      return res.status(200).type("html").send(ui.layout({
+      // What the no-JavaScript path says when it comes back.
+      //
+      // Without this the form redirects to a page that looks exactly as it did
+      // before, which is a success reported to nobody. The list below will show
+      // the new row, but only somebody who already knew to look would know that
+      // is what changed.
+      if (path === "/staff/location" && req.query.checked_in) {
+        sections.unshift(ui.card("Checked in", "Your check-in was recorded. It is in the list below."));
+      }
+      if (path === "/staff/location" && req.query.problem) {
+        sections.unshift(ui.card("Not recorded", "Your check-in was not saved. Try again."));
+      }
+      const html = ui.layout({
         title,
         eyebrow: "Staff portal",
         heading: title,
         body,
         sections,
         actions: [ui.link("/staff", "Staff Portal"), ui.link("/staff/schedule", "Schedule"), ui.link("/staff/time", "Time"), ui.link("/staff/tasks", "Tasks"), ui.link("/staff/announcements", "Announcements")]
-      }));
+      });
+      // Only this page loads them. A script that captures a position has no
+      // business being served to the four staff pages that never ask for one.
+      return res.status(200).type("html").send(path === "/staff/location" ? withCheckInScripts(html) : html);
     });
   });
 
@@ -1223,21 +1297,82 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
       if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
     }
+    // Staff may only attribute a check-in to themselves.
+    //
+    // The organization check below already stops a check-in being written into
+    // another business. Within one business it stopped nothing: any signed-in
+    // member could post a colleague's employee_id and put a location record on
+    // that colleague's own /staff/location page. That was theoretical while
+    // nothing posted to this endpoint. It stopped being theoretical the moment
+    // that page grew a button.
+    //
+    // Only staff are constrained. Somebody with no employee profile of their
+    // own is the owner or a manager, who can already write any record in their
+    // own business, so refusing them here would protect nothing and break
+    // recording a check-in on somebody's behalf.
+    const suppliedEmployee = String(req.body.employee_id || "");
+    if (suppliedEmployee) {
+      const me = await resolveEmployee(config, org, req);
+      if (me.ok && me.profile.id !== suppliedEmployee) {
+        return res.status(403).json({ ok: false, code: "employee_id_not_yours" });
+      }
+    }
+
+    // Checked against the list the table's own constraint allows, rather than
+    // sanitised into whatever the caller typed. sanitizeChoice made
+    // "check_inn" into a legal-looking string that PostgREST then rejected as
+    // a check-constraint violation -- a database error nobody outside this file
+    // can read, on a request that looked fine.
+    const eventType = sanitizeChoice(req.body.event_type, "position_update");
+    if (!LOCATION_EVENT_TYPES.includes(eventType)) {
+      return res.status(400).json({ ok: false, code: "unknown_event_type", allowed: LOCATION_EVENT_TYPES });
+    }
+
+    // The precision the person asked for, applied again here.
+    //
+    // NOT as a second line of defence -- nothing on this side can recover
+    // precision the browser already discarded, and it should not want to. It is
+    // here so a payload that arrives finer than the mode it declares is stored
+    // at the coarseness it claims. A row saying "approximate" while holding
+    // seven decimal places is the shape of defect this codebase keeps finding:
+    // a field that reports a guarantee it is not providing.
+    const reduced = reducePosition(
+      {
+        latitude: toNumberOrNull(req.body.latitude),
+        longitude: toNumberOrNull(req.body.longitude),
+        accuracyMeters: toNumberOrNull(req.body.accuracy_meters ?? req.body.accuracy)
+      },
+      req.body.privacy_mode
+    );
+
     const payload = {
       organization_id: org.organizationId,
       user_id: org.userId || null,
       employee_id: req.body.employee_id || null,
       location_zone_id: req.body.location_zone_id || null,
-      event_type: sanitizeChoice(req.body.event_type, "position_update"),
-      latitude: toNumberOrNull(req.body.latitude),
-      longitude: toNumberOrNull(req.body.longitude),
-      accuracy_meters: toNumberOrNull(req.body.accuracy_meters || req.body.accuracy),
-      speed_mps: toNumberOrNull(req.body.speed_mps || req.body.speed),
-      heading_degrees: toNumberOrNull(req.body.heading_degrees || req.body.heading),
-      privacy_mode: sanitizeChoice(req.body.privacy_mode, "precise"),
+      event_type: eventType,
+      latitude: reduced.latitude,
+      longitude: reduced.longitude,
+      accuracy_meters: reduced.accuracyMeters,
+      // Movement, not position. Both are dropped when the position was
+      // coarsened or withheld: a speed and a heading beside a masked coordinate
+      // narrow it back down, which would undo the choice the person made.
+      speed_mps: reduced.mode === "precise" ? toNumberOrNull(req.body.speed_mps ?? req.body.speed) : null,
+      heading_degrees: reduced.mode === "precise" ? toNumberOrNull(req.body.heading_degrees ?? req.body.heading) : null,
+      privacy_mode: reduced.mode,
       metadata: sanitizeObject(req.body.metadata)
     };
-    return res.status(200).json(await supabaseInsert(config, "location_events", payload));
+    const saved = await supabaseInsert(config, "location_events", payload);
+    // A browser that submitted the form itself gets the page back, not JSON.
+    //
+    // The form carries a real method and action so it works with no JavaScript
+    // at all -- which records a check-in with no position, the `manual` mode,
+    // and is the honest outcome when nothing on the page could ask the device
+    // where it is. Rendering raw JSON at somebody who pressed a button is not.
+    if (acceptsHtml(req)) {
+      return res.redirect(303, saved?.ok === false ? "/staff/location?problem=not_saved" : "/staff/location?checked_in=1");
+    }
+    return res.status(200).json(saved);
   });
 
   app.post("/api/motion/events", requireCustomer, async (req, res) => {
@@ -1444,6 +1579,7 @@ async function staffSections(config, org, me, path, ui) {
         "What is recorded, and what is not",
         "A check-in happens when you choose to record one and your device allows it \u2014 nothing here follows you in the background. Each one below says how precisely your position was stored."
       ),
+      checkInCard(me.profile.id, ui),
       ...(listed.rows.length
         ? listed.rows.map((row) => ui.card(
           String(row.event_type || "check-in").replaceAll("_", " "),
@@ -1454,6 +1590,64 @@ async function staffSections(config, org, me, path, ui) {
   }
 
   return [ui.card("Nothing here yet", STAFF_EMPTY)];
+}
+
+// The check-in form, and the reason it is four radio buttons rather than a
+// button.
+//
+// `location_events.privacy_mode` has allowed precise, approximate, masked and
+// manual since migration 015 and has never held anything but the default. The
+// page above renders the value, so every person reading their own history has
+// been told "precise" by a database default rather than by a choice they made.
+//
+// Making it a choice is the whole feature. A tradesperson checking in at a
+// customer's house and a delivery driver on a route want different things
+// recorded about them, and neither of them wants the answer decided by a column
+// default. `approximate` is preselected rather than `precise`: a default that
+// errs is going to err, and erring towards less of somebody's location is the
+// recoverable direction.
+//
+// The rounding runs in the browser before anything is sent -- see
+// public/sonara-location-precision.js. Rounding here would describe the storage
+// and not the disclosure.
+function checkInCard(employeeId, ui) {
+  const options = LOCATION_PRIVACY_MODES.map((mode) => {
+    const checked = mode.value === LOCATION_PRECISION_DEFAULT ? " checked" : "";
+    return `<label class="choice"><input type="radio" name="privacy_mode" value="${ui.escape(mode.value)}"${checked}> <strong>${ui.escape(mode.label)}</strong><span class="fine"> ${ui.escape(mode.note)}</span></label>`;
+  }).join("");
+
+  // Configuration as JSON in a script tag, not a global set by inline script:
+  // the Content-Security-Policy is `script-src 'self'` and an inline script
+  // would need 'unsafe-inline'.
+  // `<` escaped as its JSON unicode form rather than HTML-escaped. The contents
+  // of a <script> element are raw text, so HTML entities inside one are NOT
+  // decoded -- escaping the quotes would hand JSON.parse a string full of
+  // `&quot;`. What actually needs neutralising is a literal `</script>` in the
+  // data, and \u003c does that while staying valid JSON.
+  const config = JSON.stringify({ endpoint: "/api/location/events", employeeId }).replaceAll("<", "\\u003c");
+
+  return [
+    '<div class="card">',
+    "<h2>Record a check-in</h2>",
+    "<p>Nothing is sent until you press the button, and only what you pick here is sent.</p>",
+    `<script type="application/json" id="sonara-check-in-config">${config}</script>`,
+    '<form id="sonara-check-in-form" method="post" action="/api/location/events">',
+    options,
+    '<button class="action" type="submit" data-sonara-check-in-submit>Check in</button>',
+    '<p class="fine" data-sonara-check-in-status></p>',
+    "</form>",
+    "</div>"
+  ].join("");
+}
+
+// The two files the form above needs, added to the page rather than to every
+// staff page. Both are `src` references to this origin, which is what the
+// `script-src 'self'` policy allows and an inline script is not.
+function withCheckInScripts(html) {
+  return html.replace(
+    "</body>",
+    '<script src="/sonara-location-precision.js"></script><script src="/sonara-check-in.js"></script></body>'
+  );
 }
 
 function when(value) {
@@ -1974,6 +2168,19 @@ function getConfig(deps) {
 
 function headers(config, extra = {}) {
   return { apikey: config.serviceRoleKey, Authorization: `Bearer ${config.serviceRoleKey}`, "Content-Type": "application/json", ...extra };
+}
+
+// The dependency shape lib/sonara-push-subscriptions.cjs asks for, built from
+// the one this file already has.
+//
+// getEnv falls back to process.env rather than refusing. Every other consumer
+// of these routes passes it, and a missing one here would turn the notification
+// into a thrown TypeError inside a request that has already saved a payment --
+// the fallback reads the same variables the injected function does, and
+// pushReadiness still refuses cleanly when the VAPID keys are absent.
+function pushDeps(config, deps) {
+  const getEnv = typeof deps.getEnv === "function" ? deps.getEnv : (name) => process.env[name];
+  return { getEnv, supabaseUrl: config.url, serviceRoleHeaders: () => headers(config) };
 }
 
 // How many rows a record list loads at once.

@@ -40,8 +40,21 @@ const NO_FORM_NEEDED = {
 
   // Posted by client scripts, not by a person filling anything in.
   "/api/motion/events": "Interface telemetry, posted by public/sonara-one.js.",
-  "/api/location/events": "Location telemetry, posted by client script.",
+  // /api/location/events used to be here, exempted as "posted by client script"
+  // while no script posted to it. It has a real form now -- the check-in form on
+  // /staff/location -- so the exemption is gone rather than reworded. The
+  // two-sided half of this check is what removed it: it failed the moment the
+  // form appeared, which is the whole reason exemptions are checked from both
+  // directions.
   "/api/business-builder/checklist": "Driven by the checklist page's own controls rather than a form submit.",
+
+  // Genuinely has no form, and unlike the location entry above that reason is
+  // checkable: a call cannot work without JavaScript at all. RTCPeerConnection
+  // and getUserMedia have no markup equivalent, so a form submit here would
+  // create a call row and a join link for a browser that could never place the
+  // call. The button on /business-builder/owner/customers/:recordId/call is
+  // what posts this, in public/sonara-call.js.
+  "/api/calls": "Posted by public/sonara-call.js from the call page. A call needs RTCPeerConnection, which no form can reach, so a form submit would create a call nothing could place.",
 
   // There used to be two entries here calling /api/growth/campaigns and
   // /api/growth/leads "JSON twins" of /api/growth-studio/<type>. Neither was a

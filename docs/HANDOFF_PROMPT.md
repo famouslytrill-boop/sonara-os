@@ -23,11 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3850 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3852 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 104 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
+- 246 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 - 243 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
@@ -130,6 +131,261 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-27 - Calling a customer, with nothing passing through us
+
+`/business-builder/owner/customers/:recordId/call` places a browser-to-browser
+call and hands the owner a link. `/call/:token` is what the customer opens. The
+audio is peer to peer: it never reaches this application, which is why a call
+costs nothing however long it lasts.
+
+Signalling is rows in `call_sessions` and `call_signals`, polled. The obvious
+channel is a WebSocket and there is no process to hold one open -- this runs as
+a serverless function -- so each side writes rows and reads the other's back
+every second and a half, and **stops the moment the connection is established**,
+because after that nothing more comes through here.
+
+**Two things that had to change before any of it could run at all**, and both
+are the same defect as the check-in work found:
+
+`Permissions-Policy` said `microphone=()`, which denies the feature to this
+origin as well as to embedded ones. It is `microphone=(self)` now, recorded in
+`SECURITY_NOTES.md`. `camera=()` is unchanged and stays denied: calling here is
+audio only, and a camera permission nothing uses is one worth not having.
+
+`/business-builder/owner/customers/:recordId/contact` -- the vCard route -- had
+existed since the contact-card work, reachable only by typing the URL. `download`
+on a record page was a single object; it takes a list now, the same way `lines`
+does, and a customer record links to both things you can do with it.
+
+**Three design decisions where the obvious answer was wrong:**
+
+*No default STUN address.* Hardcoding a public one would make calling work
+everywhere on day one and make it somebody else's decision when it stops --
+CLAUDE.md's rule about a free tier being a price rather than a licence. With
+nothing configured the page says so, and calls between two devices on one
+network still connect because host candidates need no server at all.
+
+*TURN credentials are minted per request and expire within the hour.* A static
+relay username and password rendered into a page is a permanent open relay for
+anybody who reads the page. `SONARA_TURN_SECRET` never leaves the server and
+signs the credentials; a name containing a colon cannot move the expiry
+boundary, which is the one field a relay has to read unambiguously.
+
+*The role is derived, never accepted.* A body field naming which end is asking
+would let the customer post as the business. `resolveCall` tries the join token
+first -- deliberately before the session, so an owner testing their own link is
+the customer end of it rather than silently becoming the business end and
+delivering nothing.
+
+The join token is a bearer capability and is treated as one: 32 random bytes,
+`expires_at` not null with a database constraint, revoked by ending the call,
+and a missing expiry read as expired rather than as no expiry. `byToken`
+re-checks the token against the row it got back -- a query edited wrongly on
+that path hands a stranger somebody else's call, and no test of the happy path
+would notice.
+
+**Nothing here can record.** No recording, transcript or audio column exists in
+either table and no endpoint accepts audio. A schema with room for it would be
+an invitation to route media through this application later, and recording a
+call is a consent decision AGENTS.md puts behind owner review.
+
+## What the build caught in its own work
+
+The customer-ownership check in `POST /api/calls` first asked
+`store.forCustomer`, which reads `call_sessions` -- so it looked up previous
+*calls* against that id and proved nothing about whether the customer exists or
+is ours. It passed on an empty list, which is exactly what an id from another
+business returns. Shape 2 again, in the one place here where it means writing a
+call against somebody else's record.
+
+Registering the call routes from `routes/sonara-last9-routes.cjs` -- beside the
+customer pages they belong with, and costing nothing against the `server.js`
+ceiling -- broke nine tests at once. That module accepts a partial dependency
+object by design; the call module refuses to register without all nine of its
+own. Hanging one off the other silently imposed the strict contract on every
+existing caller. The right answer was to pay the two lines in `server.js` rather
+than loosen a contract, and the ceiling moved to 3852 with the reason recorded.
+
+Ten falsification probes, each failing by name: the path-versus-token guard
+removed, the role read from the body, `byToken` not re-checking, a failed poll
+reported as no signals, a default STUN address, a missing expiry read as fine,
+an ended call written with no ending, a colon left in a TURN name, the
+microphone denied again, and the customer page losing its ICE servers.
+
+**One thing left open and not mine.** `tests/frames-come-out-of-a-real-video.test.js`
+failed once in nine full-suite runs, on `the moving square is at ... across four
+frames -- seeking is returning the same picture`. It drives a real Chromium and
+seeks a video; the assertion's own message anticipates this. Neither that test
+nor anything it exercises is touched by this branch (`git diff origin/main` on
+the test, `sonara-frame-plan.js`, `sonara-zip-core.js` and `sonara-zip.cjs` is
+empty), so it is a pre-existing browser-timing flake rather than a regression.
+Recorded rather than fixed, and recorded rather than called harmless.
+
+Suite 3,248 -> 3,296. `verify:launch` green end to end.
+
+### 2026-08-27 - A check-in somebody can actually record
+
+`location_events` (migration 015), `POST /api/location/events`,
+`/staff/location`, and the GPS helpers in `public/sensory-device-client.js` all
+existed. None of them could ever run. `server.js` sent
+`Permissions-Policy: ... geolocation=() ...`, which denies the feature to **this**
+origin as well as to embedded ones, so `getCurrentPosition` would have failed on
+our own page. The header change is recorded in `SECURITY_NOTES.md` as AGENTS.md
+requires: `geolocation=(self)`, camera and microphone unchanged at `()`.
+
+`(self)` is permission to *ask*. The browser still prompts, and nothing captures
+a position without a click -- `public/sonara-check-in.js` calls
+`getCurrentPosition` inside the submit handler and there is no `watchPosition`
+anywhere. That distinction is the entire difference between a check-in and
+tracking.
+
+**`privacy_mode` became a choice instead of a default.** The column has allowed
+`precise`, `approximate`, `masked` and `manual` since migration 015 and had never
+held anything but `precise` -- while `/staff/location` renders the value, so
+every person reading their own history was being told "precise" by a column
+default rather than by anything they decided.
+
+The four modes are now four radio buttons, and **the rounding happens on the
+device**. That is why `public/sonara-location-precision.js` is shared between
+browser and server rather than being a server helper: rounding server-side would
+describe the storage and not the disclosure, because by then the exact
+coordinate has already left the phone. The server applies the same function
+afterwards, not as a second line of defence -- it cannot recover precision that
+was never sent -- but so a payload cannot declare a coarseness it did not apply.
+
+Three details that each fix a number that would otherwise lie:
+
+- **Accuracy is widened to the rounding grid.** A masked point carrying the
+  device's 8m accuracy draws a tight circle around a place the person was not.
+- **Speed and heading are dropped unless the mode is `precise`.** Both narrow a
+  coarsened position back down, which would undo the choice.
+- **A mode that wanted coordinates and got none is stored as `manual`**, not as
+  itself. "Approximate, with no position" is a row claiming a precision it does
+  not have. And an unknown mode falls back to `approximate`, never `precise`: a
+  default that errs should err towards less of somebody's location.
+
+`event_type` is now checked against the nine values migration 015 allows.
+`sanitizeChoice` happily produced legal-looking strings the database then
+rejected as a check-constraint violation -- an error nobody outside that file
+could read.
+
+**Two things the build itself found, both worth keeping:**
+
+The first version of the test comparing the route's event types to the table's
+matched `event_type ... check (...)` against the whole migration file. Migration
+015 creates several sensor tables and `motion_sensor_events` comes first, so it
+compared the location list against the motion list and failed on correct code --
+shape 2, measuring a different population from the one it names, written into a
+test whose job was to prevent exactly that. It reads the `location_events` block
+now and asserts the block contains `privacy_mode` before trusting the slice.
+
+And `form-reachability` failed the moment the form appeared: `/api/location/events`
+was listed there as having no form, exempted as "posted by client script" while
+no script posted to it. The exemption is deleted rather than reworded. **The
+two-sided half of that check is what removed it** -- it fails when a recorded
+reason stops describing anything, which is the only reason a stale exemption
+ever gets found.
+
+Intra-organization attribution was closed at the same time. The endpoint refused
+another business's employee and, within one business, refused nothing: any
+member could post a colleague's `employee_id` and put a location record on that
+colleague's page. Theoretical while nothing posted there; not theoretical once
+the page grew a button. Staff may now only attribute a check-in to themselves;
+somebody with no employee profile is the owner or a manager, who can already
+write any record in their own business.
+
+The form carries a real `method` and `action`, so it works with no JavaScript at
+all -- recording a `manual` check-in, which is the honest outcome when nothing
+can ask the device where it is -- and the route answers a browser submit with the
+page rather than raw JSON.
+
+Seven falsification probes, each failing by name: accuracy left at the device's
+figure, the default changed to `precise`, a coordinate-less mode keeping its own
+name, the header put back to `geolocation=()`, a `watchPosition` added, speed
+kept on a masked position, and the event-type list drifting from the table.
+
+Suite 3,224 -> 3,248. `verify:launch` green end to end.
+
+### 2026-08-27 - The first notification anything actually sends
+
+Push had four working parts and no event. `lib/sonara-web-push.cjs` could
+encrypt against the RFC 8291 test vector, `lib/sonara-push-subscriptions.cjs`
+could store and select, `/account/notifications` could ask for permission, and
+`public/sw.js` could display. **Nothing in the application called `notify()`.** A
+person could tick "An invoice is paid", grant permission, and wait for ever --
+the recurring defect at full size, with every part tested and the whole
+unreachable.
+
+`lib/sonara-invoice-paid-notice.cjs` is the join, and it runs from the one place
+in the codebase where an invoice can become settled: recording a payment against
+it, `POST /api/business/invoice-payments`.
+
+**It sends on a transition, not a state.** "The invoice is paid" is true of a
+settled invoice every time anybody touches it, so sending on the state means a
+correcting payment, an overpayment, or any later payment re-announces it. So the
+settlement is computed twice -- over the payments as they stand, and as they
+stood without the row that triggered it -- and a notification goes out only when
+those two disagree in the one direction that matters.
+
+It refuses rather than guessing in five cases, each with its own reason:
+either read failing, the invoice belonging to another organization, no id for
+the saved row, and the saved row absent from the read-back. A missed
+notification is a page refresh; a duplicate is a reason to revoke permission.
+
+Two decisions in the route that read backwards and are deliberate. The
+announcement is **awaited** -- this is a serverless function, execution can be
+frozen the moment the response is written, and an un-awaited fetch is a
+notification that silently never leaves. And its result is **dropped** -- a push
+that could not be sent must not turn a payment that *was* saved into an error on
+somebody's screen.
+
+One thing it does that looks wrong: it sends on an *uncertain* settlement.
+`totalPaid` skips a payment whose amount cannot be read, so `paidCents` is a
+lower bound; a settlement reading `paid` on a lower bound is still genuinely
+covered. `certain: false` is about how much was paid, not about whether it was
+enough.
+
+Five falsification probes, each failing by name: removing the already-settled
+guard, treating a failed payments read as an empty list, dropping the
+organization scope from a read, un-awaiting the announcement, and letting an
+unpriced invoice through (`Number(null)` is `0` and finite).
+
+## The parser that stopped matching, found by accident
+
+`report-unused-selected-columns.mjs --check` failed on the new module *and* on
+`routes/sonara-last9-routes.cjs: invoice_number` -- a column that file reads at
+line 338 and has read for months. The check was accusing correct code.
+
+Both that script and `report-orphan-tables.mjs` stripped comments in two passes:
+block comments, then line comments. The block pass runs over text that still
+contains line comments, and line 153 of that file is
+
+    // /business-builder/owner/* and this module already receives ...
+
+The `/*` in a path inside a **line** comment opens a block comment that stays
+open until the next `*/` anywhere in the file. While no file had a later `*/`
+the non-greedy match found nothing and the damage was zero, which is why it sat
+there unnoticed. The moment this sprint added a one-line `/* ... */` inside a
+catch, 636 lines stopped being code as far as the measurement was concerned --
+`invoice.invoice_number` among them.
+
+Both copies are now one module, `lib/sonara-comment-stripping.cjs`, doing it in
+a single left-to-right alternation so whichever comment starts first wins. The
+`[^:]` guard is unchanged and still there because `https://` is not a comment.
+Probe: restoring the two-pass version fails
+`does not let a slash-star inside a line comment swallow the code after it`.
+
+The lesson is not the regex. It is that **a report can be wrong in the direction
+of confidence** -- this one measured a smaller file than the one on disk and said
+nothing about having done so. The tempting fix was to write my comment
+differently and move on, which would have left the landmine armed for whoever
+wrote the next inline block comment.
+
+`amount_cents` and `total_cents` are now recorded in that script's `ACCOUNTED`
+list: both rows are handed whole to `settle()`, which reads them, and this module
+deliberately does no arithmetic of its own over them.
+
+Suite 3,202 -> 3,224. `verify:launch` green end to end.
 ### 2026-08-27 - The migrations had never been run
 
 `verify:db` has never executed a line of SQL. Nor has any other database check

@@ -33,6 +33,7 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const { withoutComments } = require(path.join(root, "lib", "sonara-comment-stripping.cjs"));
 const { ORPHAN_TABLES, ORPHAN_DISPOSITIONS } = require(path.join(root, "lib", "sonara-orphan-tables.cjs"));
 
 // Generated inventories. They enumerate every table, so counting them as usage
@@ -109,9 +110,9 @@ function createdTables() {
 // location_transfer_lines as newly queried, when all three had only been named
 // in a comment explaining why they deliberately have no page. Stripping
 // comments is the difference between measuring usage and measuring mentions.
-function withoutComments(text) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
-}
+// One implementation, in lib/sonara-comment-stripping.cjs, because this script
+// and report-orphan-tables.mjs both had a copy and both copies had the same bug.
+// The reason it was wrong is written out there.
 
 function applicationSource() {
   let source = withoutComments(fs.readFileSync(path.join(root, "server.js"), "utf8"));

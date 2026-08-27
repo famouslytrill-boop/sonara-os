@@ -21,6 +21,73 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+## Permissions-Policy: microphone moved from `()` to `(self)`
+
+**Date:** 27 August 2026. **Header:** `server.js`, the same `app.use` as below.
+
+`microphone=()` denies the feature to every origin including this one, so
+`navigator.mediaDevices.getUserMedia({ audio: true })` fails on our own pages.
+It is now `microphone=(self)`. **`camera=()` is unchanged** and stays denied:
+calling here is audio only, and a camera permission nothing uses is a permission
+worth not having.
+
+**Why it was changed.** `/business-builder/owner/customers/:recordId/call` and
+`/call/:token` place a browser-to-browser call. The audio is peer to peer and
+never reaches this application; without microphone access there is nothing to
+send.
+
+**What it does not do.** `(self)` is permission to *ask*. The browser shows its
+own prompt, and `public/sonara-call.js` calls `getUserMedia` only inside a click
+handler -- there is no capture on load, and nothing starts a microphone without
+somebody pressing a button on a page that has already explained what it is for.
+
+**Nothing is recorded.** There is no recording, transcript or audio column
+anywhere in `call_sessions` or `call_signals`, and no endpoint accepts audio.
+Recording a call is a consent decision in most jurisdictions this product is
+used in, which AGENTS.md puts behind owner review rather than behind a default.
+
+**No audit threshold moved and no check was weakened.**
+`tests/a-call-never-passes-through-us.test.js` asserts the header still denies
+the camera, still scopes the microphone to `self` rather than `*`, and that the
+call client asks for audio only.
+
+## Permissions-Policy: geolocation moved from `()` to `(self)`
+
+**Date:** 27 August 2026. **Header:** `server.js`, the one `app.use` that sets
+security headers for every response.
+
+`geolocation=()` denies the feature to every origin including this one, so
+`navigator.geolocation.getCurrentPosition` fails with a permission error on our
+own pages. It is now `geolocation=(self)`: this origin may ask, and no embedded
+third party may. `camera=()` and `microphone=()` are unchanged.
+
+**Why it was changed.** `location_events` (migration 015), `POST
+/api/location/events`, `/staff/location`, and the GPS helpers in
+`public/sensory-device-client.js` all existed and none of them could ever run:
+the header made the capture impossible, so the page promising a person their own
+check-in history was guaranteed to be empty for ever.
+
+**What it does not do.** `(self)` is permission to *ask*. The browser still
+shows its own prompt, the person still has to grant it, and a refusal is
+final and ours to respect. Nothing captures a position without a click:
+`public/sonara-check-in.js` calls `getCurrentPosition` inside a submit handler
+and nowhere else, and there is no `watchPosition` on any page. That satisfies
+AGENTS.md -- location is off until a person turns it on, per request, and is
+never on in the background.
+
+**The narrower alternative, and why not.** A per-response header allowing
+geolocation only on `/staff/location` would be tighter. It was not taken because
+the header is set once for every response by design, and a policy that varies by
+path is a policy whose current value nobody can state -- which is worse than a
+slightly broader one everybody can read in a single line. If a second page ever
+needs it, the line does not change.
+
+**No audit threshold moved and no check was weakened**; `pnpm audit
+--audit-level moderate` and `scripts/verify-security.mjs` are unaffected.
+`tests/a-check-in-records-only-what-was-asked-for.test.js` asserts the header
+still denies camera and microphone, still scopes geolocation to `self` rather
+than `*`, and that no page starts a position watch.
+
 ## Package Manager Boundary
 
 The repo uses pnpm only. `package-lock.json` files were removed, and CI installs from `pnpm-lock.yaml` with `pnpm install --frozen-lockfile`.

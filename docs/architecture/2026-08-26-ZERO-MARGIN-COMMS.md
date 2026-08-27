@@ -24,10 +24,10 @@ Every figure below is dated and sourced at the foot.
 | **Calendar** | `.ics` files, generated in-process | Nothing | **Already built** — `lib/sonara-calendar-invite.cjs` |
 | **Clock / time tracking** | Arithmetic over rows | Nothing | **Already built** — `/business-builder/owner/time` |
 | **Scheduling** | Arithmetic + a public booking page | Nothing | **Already built** — `/book/:slug` |
-| **GPS** | Browser Geolocation API | Nothing | Not built. The API is free and needs no server. |
+| **GPS** | Browser Geolocation API | Nothing | **Built 27 Aug** — check-in button on `/staff/location`, four precision modes, rounding on the device |
 | **Maps** | PMTiles served from our own storage | ~$11/month at 10M tile requests | Not built |
-| **Messaging** | Web Push (VAPID) | Nothing per message | Not built |
-| **Calling** | WebRTC peer-to-peer | Nothing for 80–85% of calls | Not built |
+| **Messaging** | Web Push (VAPID) | Nothing per message | **Built 26–27 Aug** — `/account/notifications` subscribes; a settled invoice is the first event that sends |
+| **Calling** | WebRTC peer-to-peer | Nothing for 80–85% of calls | **Built 27 Aug** — from a customer record; needs `SONARA_STUN_URLS` set before it works across networks |
 | **Carrier SMS / voice** | — | Per message, per minute | Priced as a paid capability |
 
 ---
@@ -52,6 +52,28 @@ will approach, rather than a per-minute bill.
 So the shape is: **peer-to-peer by default, one small TURN box as fallback.** A
 customer-to-business call placed from a booking page or an invoice costs us
 nothing 80–85% of the time and a fraction of a fixed monthly cost the rest.
+
+### What was built, 27 August 2026
+
+`/business-builder/owner/customers/:recordId/call` places a call and hands the
+owner a link; `/call/:token` is what the customer opens. Signalling is rows in
+`call_sessions` and `call_signals`, polled -- there is no WebSocket to use,
+because this runs as a serverless function, and the polling **stops the moment
+the call connects** because nothing more comes through us after that.
+
+Two decisions worth carrying forward from the research into the code:
+
+**There is no default STUN address.** The estimate above assumed one, and
+hardcoding a public one would have made calling work everywhere on day one at
+the price of depending on somebody else's free tier. `SONARA_STUN_URLS` is
+unset out of the box, the call page says so, and calls between two devices on
+one network still connect because host candidates need no server.
+
+**TURN credentials are minted per request and expire within the hour.** The
+research priced the relay and did not say how a browser gets onto it. A static
+username and password in page source is a permanent open relay for anybody who
+reads the page; `SONARA_TURN_SECRET` stays on the server and signs short-lived
+credentials instead.
 
 **What it does not replace:** a call from someone who has not opened the page —
 a stranger dialling a phone number. That is carrier voice and it has a bill.
