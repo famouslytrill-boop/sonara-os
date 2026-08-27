@@ -40,10 +40,17 @@ const migrationsDirectory = path.join(root, "supabase", "migrations");
 
 // The migrations a generator may still rewrite, read the way the checker reads
 // them. Everything else in the directory is frozen.
+//
+// A generator may own more than one file. generate-catalog-sync-migration.cjs
+// owns two since the catalog assertions moved out of the retirement migration
+// into one dated after the products they assert about are inserted -- reading
+// only `migrationName` would have expected the second to be pinned, and pinning
+// a file a generator rewrites breaks the generator.
 const GENERATOR_OWNED = [
-  require("../scripts/generate-member-read-policies.cjs").migrationName,
-  require("../scripts/generate-catalog-sync-migration.cjs").migrationName
-];
+  require("../scripts/generate-member-read-policies.cjs"),
+  require("../scripts/generate-catalog-sync-migration.cjs")
+].flatMap((module) => [module.migrationName, module.assertionMigrationName, ...(module.migrationNames || [])])
+  .filter(Boolean);
 
 function run(args = []) {
   try {
