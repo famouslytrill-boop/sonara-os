@@ -27,9 +27,21 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const { RECOMMENDED_PRODUCT_CATALOG, CATALOG_VERSION } = require("../lib/sonara-recommended-product-catalog.cjs");
-const { migrationName } = require("../scripts/generate-catalog-sync-migration.cjs");
+const { migrationName, assertionMigrationName } = require("../scripts/generate-catalog-sync-migration.cjs");
 
-const migration = fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", migrationName), "utf8");
+const read = (name) => fs.readFileSync(path.join(__dirname, "..", "supabase", "migrations", name), "utf8");
+
+// The generator owns two files now, and this reads both.
+//
+// It read only the sync migration, which was right while that file carried the
+// updates AND the assertions. The completeness assertion had to move: generated
+// from today's catalog and dated 12 August, it demanded rows that nineteen
+// migrations dated 18 August had not inserted yet, so a fresh replay always
+// failed on it. Reading one file after the split would have left this test
+// asserting against half of what the generator writes -- and passing.
+const syncMigration = read(migrationName);
+const assertionMigration = read(assertionMigrationName);
+const migration = `${syncMigration}\n${assertionMigration}`;
 
 describe("the published catalog matches the catalog in code", () => {
   it("carries every product", () => {
@@ -59,8 +71,11 @@ describe("the published catalog matches the catalog in code", () => {
       assert.doesNotMatch(item.name, /\bnexus\b/i, `${item.serviceKey} still carries a retired public name`);
       assert.doesNotMatch(item.summary, /\bnexus\b/i, `${item.serviceKey}'s summary still carries a retired public name`);
     }
-    // And the migration refuses to leave one behind in a row it did not update.
-    assert.match(migration, /a retired public name survives in service_catalog_items/);
+    // And the generated pair refuses to leave one behind in a row it did not
+    // update. Asserted against the assertion migration by name rather than
+    // against the pair, so this cannot start passing because the check drifted
+    // into whichever file happens to still be read here.
+    assert.match(assertionMigration, /a retired public name survives in service_catalog_items/);
   });
 
   it("agrees on the fields the deploy gate compares", () => {
