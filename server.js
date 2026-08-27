@@ -321,7 +321,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(self)");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)"); // geolocation: /staff/location asks, see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
