@@ -2,6 +2,98 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-27 - Calling a customer, with nothing passing through us
+
+`/business-builder/owner/customers/:recordId/call` places a browser-to-browser
+call and hands the owner a link. `/call/:token` is what the customer opens. The
+audio is peer to peer: it never reaches this application, which is why a call
+costs nothing however long it lasts.
+
+Signalling is rows in `call_sessions` and `call_signals`, polled. The obvious
+channel is a WebSocket and there is no process to hold one open -- this runs as
+a serverless function -- so each side writes rows and reads the other's back
+every second and a half, and **stops the moment the connection is established**,
+because after that nothing more comes through here.
+
+**Two things that had to change before any of it could run at all**, and both
+are the same defect as the check-in work found:
+
+`Permissions-Policy` said `microphone=()`, which denies the feature to this
+origin as well as to embedded ones. It is `microphone=(self)` now, recorded in
+`SECURITY_NOTES.md`. `camera=()` is unchanged and stays denied: calling here is
+audio only, and a camera permission nothing uses is one worth not having.
+
+`/business-builder/owner/customers/:recordId/contact` -- the vCard route -- had
+existed since the contact-card work, reachable only by typing the URL. `download`
+on a record page was a single object; it takes a list now, the same way `lines`
+does, and a customer record links to both things you can do with it.
+
+**Three design decisions where the obvious answer was wrong:**
+
+*No default STUN address.* Hardcoding a public one would make calling work
+everywhere on day one and make it somebody else's decision when it stops --
+CLAUDE.md's rule about a free tier being a price rather than a licence. With
+nothing configured the page says so, and calls between two devices on one
+network still connect because host candidates need no server at all.
+
+*TURN credentials are minted per request and expire within the hour.* A static
+relay username and password rendered into a page is a permanent open relay for
+anybody who reads the page. `SONARA_TURN_SECRET` never leaves the server and
+signs the credentials; a name containing a colon cannot move the expiry
+boundary, which is the one field a relay has to read unambiguously.
+
+*The role is derived, never accepted.* A body field naming which end is asking
+would let the customer post as the business. `resolveCall` tries the join token
+first -- deliberately before the session, so an owner testing their own link is
+the customer end of it rather than silently becoming the business end and
+delivering nothing.
+
+The join token is a bearer capability and is treated as one: 32 random bytes,
+`expires_at` not null with a database constraint, revoked by ending the call,
+and a missing expiry read as expired rather than as no expiry. `byToken`
+re-checks the token against the row it got back -- a query edited wrongly on
+that path hands a stranger somebody else's call, and no test of the happy path
+would notice.
+
+**Nothing here can record.** No recording, transcript or audio column exists in
+either table and no endpoint accepts audio. A schema with room for it would be
+an invitation to route media through this application later, and recording a
+call is a consent decision AGENTS.md puts behind owner review.
+
+## What the build caught in its own work
+
+The customer-ownership check in `POST /api/calls` first asked
+`store.forCustomer`, which reads `call_sessions` -- so it looked up previous
+*calls* against that id and proved nothing about whether the customer exists or
+is ours. It passed on an empty list, which is exactly what an id from another
+business returns. Shape 2 again, in the one place here where it means writing a
+call against somebody else's record.
+
+Registering the call routes from `routes/sonara-last9-routes.cjs` -- beside the
+customer pages they belong with, and costing nothing against the `server.js`
+ceiling -- broke nine tests at once. That module accepts a partial dependency
+object by design; the call module refuses to register without all nine of its
+own. Hanging one off the other silently imposed the strict contract on every
+existing caller. The right answer was to pay the two lines in `server.js` rather
+than loosen a contract, and the ceiling moved to 3852 with the reason recorded.
+
+Ten falsification probes, each failing by name: the path-versus-token guard
+removed, the role read from the body, `byToken` not re-checking, a failed poll
+reported as no signals, a default STUN address, a missing expiry read as fine,
+an ended call written with no ending, a colon left in a TURN name, the
+microphone denied again, and the customer page losing its ICE servers.
+
+**One thing left open and not mine.** `tests/frames-come-out-of-a-real-video.test.js`
+failed once in nine full-suite runs, on `the moving square is at ... across four
+frames -- seeking is returning the same picture`. It drives a real Chromium and
+seeks a video; the assertion's own message anticipates this. Neither that test
+nor anything it exercises is touched by this branch (`git diff origin/main` on
+the test, `sonara-frame-plan.js`, `sonara-zip-core.js` and `sonara-zip.cjs` is
+empty), so it is a pre-existing browser-timing flake rather than a regression.
+Recorded rather than fixed, and recorded rather than called harmless.
+
+Suite 3,248 -> 3,296. `verify:launch` green end to end.
+
 ### 2026-08-27 - A check-in somebody can actually record
 
 `location_events` (migration 015), `POST /api/location/events`,
