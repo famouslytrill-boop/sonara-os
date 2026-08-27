@@ -2,6 +2,87 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-27 - The first notification anything actually sends
+
+Push had four working parts and no event. `lib/sonara-web-push.cjs` could
+encrypt against the RFC 8291 test vector, `lib/sonara-push-subscriptions.cjs`
+could store and select, `/account/notifications` could ask for permission, and
+`public/sw.js` could display. **Nothing in the application called `notify()`.** A
+person could tick "An invoice is paid", grant permission, and wait for ever --
+the recurring defect at full size, with every part tested and the whole
+unreachable.
+
+`lib/sonara-invoice-paid-notice.cjs` is the join, and it runs from the one place
+in the codebase where an invoice can become settled: recording a payment against
+it, `POST /api/business/invoice-payments`.
+
+**It sends on a transition, not a state.** "The invoice is paid" is true of a
+settled invoice every time anybody touches it, so sending on the state means a
+correcting payment, an overpayment, or any later payment re-announces it. So the
+settlement is computed twice -- over the payments as they stand, and as they
+stood without the row that triggered it -- and a notification goes out only when
+those two disagree in the one direction that matters.
+
+It refuses rather than guessing in five cases, each with its own reason:
+either read failing, the invoice belonging to another organization, no id for
+the saved row, and the saved row absent from the read-back. A missed
+notification is a page refresh; a duplicate is a reason to revoke permission.
+
+Two decisions in the route that read backwards and are deliberate. The
+announcement is **awaited** -- this is a serverless function, execution can be
+frozen the moment the response is written, and an un-awaited fetch is a
+notification that silently never leaves. And its result is **dropped** -- a push
+that could not be sent must not turn a payment that *was* saved into an error on
+somebody's screen.
+
+One thing it does that looks wrong: it sends on an *uncertain* settlement.
+`totalPaid` skips a payment whose amount cannot be read, so `paidCents` is a
+lower bound; a settlement reading `paid` on a lower bound is still genuinely
+covered. `certain: false` is about how much was paid, not about whether it was
+enough.
+
+Five falsification probes, each failing by name: removing the already-settled
+guard, treating a failed payments read as an empty list, dropping the
+organization scope from a read, un-awaiting the announcement, and letting an
+unpriced invoice through (`Number(null)` is `0` and finite).
+
+## The parser that stopped matching, found by accident
+
+`report-unused-selected-columns.mjs --check` failed on the new module *and* on
+`routes/sonara-last9-routes.cjs: invoice_number` -- a column that file reads at
+line 338 and has read for months. The check was accusing correct code.
+
+Both that script and `report-orphan-tables.mjs` stripped comments in two passes:
+block comments, then line comments. The block pass runs over text that still
+contains line comments, and line 153 of that file is
+
+    // /business-builder/owner/* and this module already receives ...
+
+The `/*` in a path inside a **line** comment opens a block comment that stays
+open until the next `*/` anywhere in the file. While no file had a later `*/`
+the non-greedy match found nothing and the damage was zero, which is why it sat
+there unnoticed. The moment this sprint added a one-line `/* ... */` inside a
+catch, 636 lines stopped being code as far as the measurement was concerned --
+`invoice.invoice_number` among them.
+
+Both copies are now one module, `lib/sonara-comment-stripping.cjs`, doing it in
+a single left-to-right alternation so whichever comment starts first wins. The
+`[^:]` guard is unchanged and still there because `https://` is not a comment.
+Probe: restoring the two-pass version fails
+`does not let a slash-star inside a line comment swallow the code after it`.
+
+The lesson is not the regex. It is that **a report can be wrong in the direction
+of confidence** -- this one measured a smaller file than the one on disk and said
+nothing about having done so. The tempting fix was to write my comment
+differently and move on, which would have left the landmine armed for whoever
+wrote the next inline block comment.
+
+`amount_cents` and `total_cents` are now recorded in that script's `ACCOUNTED`
+list: both rows are handed whole to `settle()`, which reads them, and this module
+deliberately does no arithmetic of its own over them.
+
+Suite 3,202 -> 3,224. `verify:launch` green end to end.
+
 ### 2026-08-26 - The browser half, and a phantom I chased
 
 `public/sw.js` gained `push` and `notificationclick` handlers. There was a

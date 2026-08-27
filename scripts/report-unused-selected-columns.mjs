@@ -49,6 +49,7 @@ import { createRequire } from "node:module";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
+const { withoutComments } = require(path.join(root, "lib", "sonara-comment-stripping.cjs"));
 
 // espree ships inside eslint, which is already a direct devDependency and
 // already runs in this chain. Resolved through eslint's own require so it is
@@ -90,6 +91,10 @@ const ACCOUNTED = Object.freeze({
     columns: ["service_id"],
     reason: "The arrangement's lines are handed whole to buildInvoice in lib/sonara-recurring-invoices.cjs, which copies service_id onto each customer_invoice_lines row so an invoice line still points at the service it bills for. The route deliberately never touches it -- it moves the value, it does not read it. Both files opened to confirm it."
   },
+  "lib/sonara-invoice-paid-notice.cjs": {
+    columns: ["amount_cents", "total_cents"],
+    reason: "Both rows are handed whole to settle() in lib/sonara-invoice-settlement.cjs, which reads invoice.total_cents directly and payment.amount_cents inside totalPaid(). This file deliberately never touches either: doing its own arithmetic over them is how the balance shown on a notification and the balance shown on the receivables page come to disagree. Both files opened to confirm it."
+  },
   "routes/sonara-public-booking-routes.cjs": {
     columns: ["employee_id"],
     reason: "The rota rows are handed whole to shiftSpans and freeStaffFor in lib/sonara-booking-availability.cjs, which key on shift.employee_id to work out who is free and which of them the appointment goes to. The route deliberately never touches it -- rendering a rostered person's id on a page a stranger can open would publish the rota. Both files opened to confirm it."
@@ -107,9 +112,9 @@ const SELECT = /select=([a-z0-9_,]{3,})(?=[&`"'])/gi;
 
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.
-function withoutComments(text) {
-  return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
-}
+// One implementation, in lib/sonara-comment-stripping.cjs, because this script
+// and report-orphan-tables.mjs both had a copy and both copies had the same bug.
+// The reason it was wrong is written out there.
 
 function sourceFiles() {
   const files = [...EXTRA_FILES];
