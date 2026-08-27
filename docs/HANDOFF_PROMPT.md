@@ -210,7 +210,7 @@ figure, the default changed to `precise`, a coordinate-less mode keeping its own
 name, the header put back to `geolocation=()`, a `watchPosition` added, speed
 kept on a masked position, and the event-type list drifting from the table.
 
-Suite 3,224 -> 3,255. `verify:launch` green end to end.
+Suite 3,224 -> 3,248. `verify:launch` green end to end.
 
 ### 2026-08-27 - The first notification anything actually sends
 
