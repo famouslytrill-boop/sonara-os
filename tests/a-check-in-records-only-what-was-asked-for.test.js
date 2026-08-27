@@ -172,6 +172,13 @@ describe("capturing a check-in in the browser", () => {
     assert.doesNotMatch(code, /https?:\/\/(?!localhost)/, "a check-in must not be sent anywhere but this origin");
   });
 
+  // /staff/location lists check-ins by employee_id. A check-in with none is
+  // written, reports success, and never appears on the page the person was just
+  // told to reload.
+  it("attributes the check-in to the person, so it appears on their own page", () => {
+    assert.match(code, /employee_id: config\.employeeId/);
+  });
+
   it("says which of the three refusals happened rather than one sentence for all", () => {
     for (const reason of ["denied", "unsupported"]) {
       assert.match(code, new RegExp(`result\\.reason === "${reason}"`), `${reason} has no sentence of its own`);
@@ -214,6 +221,21 @@ describe("the page and the header that let it work at all", () => {
     assert.ok(listed, "the route no longer keeps a list of allowed event types");
     const inCode = listed[1].split(",").map((entry) => entry.trim().replace(/["\s]/g, "")).filter(Boolean).sort();
     assert.deepEqual(inCode, allowed, "the route and the table disagree about which event types exist");
+  });
+
+  // The form carries a real method and action, so it submits with no
+  // JavaScript at all. What comes back then must be the page, not raw JSON.
+  it("answers a plain form submit with the page rather than JSON", () => {
+    assert.match(routes, /acceptsHtml\(req\)[\s\S]{0,400}\/staff\/location\?checked_in=1/);
+    assert.match(routes, /req\.query\.checked_in/, "coming back to an unchanged page says nothing happened");
+    assert.match(routes, /req\.query\.problem/, "a failed save must say so too");
+  });
+
+  it("refuses to put a staff member's check-in on a colleague's page", () => {
+    // The organization check catches another business. Within one business it
+    // caught nothing, which was theoretical only while nothing posted here.
+    assert.match(routes, /const suppliedEmployee = String\(req\.body\.employee_id \|\| ""\)/);
+    assert.match(routes, /me\.ok && me\.profile\.id !== suppliedEmployee/);
   });
 
   // A speed and a heading beside a masked coordinate narrow it back down.

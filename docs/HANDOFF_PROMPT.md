@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 103 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 244 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 245 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -128,6 +128,89 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-08-27 - A check-in somebody can actually record
+
+`location_events` (migration 015), `POST /api/location/events`,
+`/staff/location`, and the GPS helpers in `public/sensory-device-client.js` all
+existed. None of them could ever run. `server.js` sent
+`Permissions-Policy: ... geolocation=() ...`, which denies the feature to **this**
+origin as well as to embedded ones, so `getCurrentPosition` would have failed on
+our own page. The header change is recorded in `SECURITY_NOTES.md` as AGENTS.md
+requires: `geolocation=(self)`, camera and microphone unchanged at `()`.
+
+`(self)` is permission to *ask*. The browser still prompts, and nothing captures
+a position without a click -- `public/sonara-check-in.js` calls
+`getCurrentPosition` inside the submit handler and there is no `watchPosition`
+anywhere. That distinction is the entire difference between a check-in and
+tracking.
+
+**`privacy_mode` became a choice instead of a default.** The column has allowed
+`precise`, `approximate`, `masked` and `manual` since migration 015 and had never
+held anything but `precise` -- while `/staff/location` renders the value, so
+every person reading their own history was being told "precise" by a column
+default rather than by anything they decided.
+
+The four modes are now four radio buttons, and **the rounding happens on the
+device**. That is why `public/sonara-location-precision.js` is shared between
+browser and server rather than being a server helper: rounding server-side would
+describe the storage and not the disclosure, because by then the exact
+coordinate has already left the phone. The server applies the same function
+afterwards, not as a second line of defence -- it cannot recover precision that
+was never sent -- but so a payload cannot declare a coarseness it did not apply.
+
+Three details that each fix a number that would otherwise lie:
+
+- **Accuracy is widened to the rounding grid.** A masked point carrying the
+  device's 8m accuracy draws a tight circle around a place the person was not.
+- **Speed and heading are dropped unless the mode is `precise`.** Both narrow a
+  coarsened position back down, which would undo the choice.
+- **A mode that wanted coordinates and got none is stored as `manual`**, not as
+  itself. "Approximate, with no position" is a row claiming a precision it does
+  not have. And an unknown mode falls back to `approximate`, never `precise`: a
+  default that errs should err towards less of somebody's location.
+
+`event_type` is now checked against the nine values migration 015 allows.
+`sanitizeChoice` happily produced legal-looking strings the database then
+rejected as a check-constraint violation -- an error nobody outside that file
+could read.
+
+**Two things the build itself found, both worth keeping:**
+
+The first version of the test comparing the route's event types to the table's
+matched `event_type ... check (...)` against the whole migration file. Migration
+015 creates several sensor tables and `motion_sensor_events` comes first, so it
+compared the location list against the motion list and failed on correct code --
+shape 2, measuring a different population from the one it names, written into a
+test whose job was to prevent exactly that. It reads the `location_events` block
+now and asserts the block contains `privacy_mode` before trusting the slice.
+
+And `form-reachability` failed the moment the form appeared: `/api/location/events`
+was listed there as having no form, exempted as "posted by client script" while
+no script posted to it. The exemption is deleted rather than reworded. **The
+two-sided half of that check is what removed it** -- it fails when a recorded
+reason stops describing anything, which is the only reason a stale exemption
+ever gets found.
+
+Intra-organization attribution was closed at the same time. The endpoint refused
+another business's employee and, within one business, refused nothing: any
+member could post a colleague's `employee_id` and put a location record on that
+colleague's page. Theoretical while nothing posted there; not theoretical once
+the page grew a button. Staff may now only attribute a check-in to themselves;
+somebody with no employee profile is the owner or a manager, who can already
+write any record in their own business.
+
+The form carries a real `method` and `action`, so it works with no JavaScript at
+all -- recording a `manual` check-in, which is the honest outcome when nothing
+can ask the device where it is -- and the route answers a browser submit with the
+page rather than raw JSON.
+
+Seven falsification probes, each failing by name: accuracy left at the device's
+figure, the default changed to `precise`, a coordinate-less mode keeping its own
+name, the header put back to `geolocation=()`, a `watchPosition` added, speed
+kept on a masked position, and the event-type list drifting from the table.
+
+Suite 3,224 -> 3,255. `verify:launch` green end to end.
 
 ### 2026-08-27 - The first notification anything actually sends
 

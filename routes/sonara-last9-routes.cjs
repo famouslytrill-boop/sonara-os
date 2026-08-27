@@ -1071,6 +1071,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       const org = await resolveOrganization(req, deps);
       const me = await resolveEmployee(config, org, req);
       const sections = await staffSections(config, org, me, path, ui);
+      // What the no-JavaScript path says when it comes back.
+      //
+      // Without this the form redirects to a page that looks exactly as it did
+      // before, which is a success reported to nobody. The list below will show
+      // the new row, but only somebody who already knew to look would know that
+      // is what changed.
+      if (path === "/staff/location" && req.query.checked_in) {
+        sections.unshift(ui.card("Checked in", "Your check-in was recorded. It is in the list below."));
+      }
+      if (path === "/staff/location" && req.query.problem) {
+        sections.unshift(ui.card("Not recorded", "Your check-in was not saved. Try again."));
+      }
       const html = ui.layout({
         title,
         eyebrow: "Staff portal",
@@ -1269,6 +1281,27 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       if (!check.ok) return res.status(502).json({ ok: false, code: `${field}_unreadable` });
       if (!check.belongs) return res.status(403).json({ ok: false, code: `${field}_not_yours` });
     }
+    // Staff may only attribute a check-in to themselves.
+    //
+    // The organization check below already stops a check-in being written into
+    // another business. Within one business it stopped nothing: any signed-in
+    // member could post a colleague's employee_id and put a location record on
+    // that colleague's own /staff/location page. That was theoretical while
+    // nothing posted to this endpoint. It stopped being theoretical the moment
+    // that page grew a button.
+    //
+    // Only staff are constrained. Somebody with no employee profile of their
+    // own is the owner or a manager, who can already write any record in their
+    // own business, so refusing them here would protect nothing and break
+    // recording a check-in on somebody's behalf.
+    const suppliedEmployee = String(req.body.employee_id || "");
+    if (suppliedEmployee) {
+      const me = await resolveEmployee(config, org, req);
+      if (me.ok && me.profile.id !== suppliedEmployee) {
+        return res.status(403).json({ ok: false, code: "employee_id_not_yours" });
+      }
+    }
+
     // Checked against the list the table's own constraint allows, rather than
     // sanitised into whatever the caller typed. sanitizeChoice made
     // "check_inn" into a legal-looking string that PostgREST then rejected as
@@ -1313,7 +1346,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       privacy_mode: reduced.mode,
       metadata: sanitizeObject(req.body.metadata)
     };
-    return res.status(200).json(await supabaseInsert(config, "location_events", payload));
+    const saved = await supabaseInsert(config, "location_events", payload);
+    // A browser that submitted the form itself gets the page back, not JSON.
+    //
+    // The form carries a real method and action so it works with no JavaScript
+    // at all -- which records a check-in with no position, the `manual` mode,
+    // and is the honest outcome when nothing on the page could ask the device
+    // where it is. Rendering raw JSON at somebody who pressed a button is not.
+    if (acceptsHtml(req)) {
+      return res.redirect(303, saved?.ok === false ? "/staff/location?problem=not_saved" : "/staff/location?checked_in=1");
+    }
+    return res.status(200).json(saved);
   });
 
   app.post("/api/motion/events", requireCustomer, async (req, res) => {

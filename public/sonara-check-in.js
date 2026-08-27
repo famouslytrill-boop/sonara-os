@@ -130,6 +130,14 @@
         var reduced = precision.reduce(result.ok ? result.reading : null, mode);
         return post({
           event_type: "check_in",
+          // Sent because /staff/location lists check-ins by employee_id. Without
+          // it the row is written, the request succeeds, and the person is told
+          // to reload a page their check-in will never appear on -- a success
+          // message about something that did not happen from where they stand.
+          // The value came from the server on this page; it is not a claim the
+          // browser gets to make freely, and the endpoint refuses one that is
+          // not the caller's own.
+          employee_id: config.employeeId || null,
           privacy_mode: reduced.mode,
           latitude: reduced.latitude,
           longitude: reduced.longitude,
