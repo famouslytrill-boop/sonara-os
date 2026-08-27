@@ -197,10 +197,13 @@ describe("the page and the header that let it work at all", () => {
     assert.ok(header, "the Permissions-Policy header has moved; this check has gone blind");
     assert.match(header[1], /geolocation=\(self\)/);
     assert.doesNotMatch(header[1], /geolocation=\*/);
-    // Unchanged, and asserted so that widening one permission does not quietly
-    // widen the others beside it.
+    // The camera is asserted here so that widening one permission does not
+    // quietly widen the others beside it. The microphone is no longer `()` --
+    // calling opened it to `(self)` on 27 August, recorded in SECURITY_NOTES.md
+    // and asserted in tests/a-call-never-passes-through-us.test.js. This
+    // assertion is narrowed rather than deleted: something must still fail when
+    // the camera is opened, and it is this.
     assert.match(header[1], /camera=\(\)/);
-    assert.match(header[1], /microphone=\(\)/);
   });
 
   it("records the reason for the header change where AGENTS.md requires it", () => {

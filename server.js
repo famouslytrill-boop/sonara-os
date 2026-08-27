@@ -60,6 +60,7 @@ const registerModuleCrudRoutes = require("./routes/sonara-module-crud-routes.cjs
 const registerAssetFileRoutes = require("./routes/sonara-asset-file-routes.cjs");
 const registerConnectedPaymentRoutes = require("./routes/sonara-connected-payment-routes.cjs");
 const registerNotificationRoutes = require("./routes/sonara-notification-routes.cjs");
+const registerCallRoutes = require("./routes/sonara-call-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
@@ -321,7 +322,7 @@ app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(self), payment=(self)"); // geolocation: /staff/location asks, see SECURITY_NOTES.md
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(self), payment=(self)"); // microphone and geolocation are asked for on a click; see SECURITY_NOTES.md
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-origin");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'self'; form-action 'self' https://checkout.stripe.com; frame-ancestors 'none'; object-src 'none'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; script-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; upgrade-insecure-requests");
@@ -1464,6 +1465,7 @@ registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, r
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,

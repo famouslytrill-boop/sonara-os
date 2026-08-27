@@ -18,7 +18,7 @@ const { settle } = require("../lib/sonara-invoice-settlement.cjs");
 const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs");
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
-const { finiteNumber } = require("../lib/sonara-owner-record-pages.cjs");
+const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -165,6 +165,22 @@ const LOCATION_EVENT_TYPES = Object.freeze([
 ]);
 
 const registerSubAppRoutes = require("./sonara-sub-app-routes.cjs");
+// Calling a customer is NOT registered from here, and the attempt is worth
+// recording. /business-builder/owner/customers/:recordId/call sits beside
+// /contact, which this file serves, so registering it here looked right.
+//
+// It broke nine tests at once. This module accepts a partial dependency object
+// on purpose -- `deps.requireCustomer || passthrough`, and so on -- so a test
+// can build it with three helpers and exercise one page. The call module
+// refuses to register without all nine of its own, which is the stricter and
+// better contract, and hanging it off this one silently imposed that contract
+// on every existing caller.
+//
+// The two are not reconcilable by loosening either: a call module that
+// registered without getEnv would render a call page that cannot read the ICE
+// configuration, which is the failure it exists to report. So it is wired in
+// server.js like every other feature, and the line ceiling in
+// tests/server-split.test.js moved by two with the reason recorded there.
 
 module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   registerSubAppRoutes(app, deps);
@@ -655,7 +671,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
           // record this page could not find hands somebody a link that answers
           // 404, and the page above it has already said the record is not
           // there -- two answers to the same question, one of them wrong.
-          ...(page.download && parent ? [ui.link(page.download.href(recordId), page.download.label)] : []),
+          ...(parent ? downloadsOf(page).map((entry) => ui.link(entry.href(recordId), entry.label)) : []),
           ui.link(page.path, `All ${page.title.toLowerCase()}`),
           ui.link("/business-builder/owner", "Owner Dashboard"),
           ui.link("/business-builder/dashboard", "Dashboard")

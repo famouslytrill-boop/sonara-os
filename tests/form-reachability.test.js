@@ -48,6 +48,14 @@ const NO_FORM_NEEDED = {
   // directions.
   "/api/business-builder/checklist": "Driven by the checklist page's own controls rather than a form submit.",
 
+  // Genuinely has no form, and unlike the location entry above that reason is
+  // checkable: a call cannot work without JavaScript at all. RTCPeerConnection
+  // and getUserMedia have no markup equivalent, so a form submit here would
+  // create a call row and a join link for a browser that could never place the
+  // call. The button on /business-builder/owner/customers/:recordId/call is
+  // what posts this, in public/sonara-call.js.
+  "/api/calls": "Posted by public/sonara-call.js from the call page. A call needs RTCPeerConnection, which no form can reach, so a form submit would create a call nothing could place.",
+
   // There used to be two entries here calling /api/growth/campaigns and
   // /api/growth/leads "JSON twins" of /api/growth-studio/<type>. Neither was a
   // twin: those endpoints call saveModuleOutput and write guidance text into

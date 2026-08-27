@@ -1608,6 +1608,58 @@ paths:
       security: [{ bearerAuth: [] }]
       requestBody: { $ref: "#/components/requestBodies/JsonBody" }
       responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/calls:
+    post:
+      operationId: placeCall
+      tags: [Business Builder]
+      summary: Place a browser-to-browser call and return a link to send the other party.
+      description: >-
+        The audio never reaches this application. This writes one row so the two
+        browsers can exchange a session description, and returns the join link
+        plus the ICE servers the caller's browser needs. Any TURN credentials in
+        the response are minted for this request and expire within the hour.
+        Refused with 503 before a row is written when no STUN address is
+        configured, because a call row with no way to connect is a link the
+        customer is the first to discover does not work.
+      security: [{ bearerAuth: [] }]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/calls/{callId}/signals:
+    get:
+      operationId: readCallSignals
+      tags: [Business Builder]
+      summary: Read what the other end of this call has sent since a cursor.
+      description: >-
+        Authenticated either by a signed-in member of the organization the call
+        belongs to, or by the join token from the call link. Which end is asking
+        is derived from that, never read from the request, and each end is only
+        ever handed what the other end sent. A read that failed is reported as a
+        failure rather than as an empty list.
+      security: [{ bearerAuth: [] }, {}]
+      responses: { "200": { $ref: "#/components/responses/Success" }, "403": { $ref: "#/components/responses/Forbidden" }, "410": { description: The call has ended or its link has expired. }, "502": { description: The call could not be read or written. Says nothing about the call itself. }, "503": { $ref: "#/components/responses/SetupRequired" } }
+    post:
+      operationId: sendCallSignal
+      tags: [Business Builder]
+      summary: Send one offer, answer, ICE candidate or hangup to the other end.
+      description: >-
+        The payload is stored and relayed without being interpreted. It is
+        bounded in size and never rendered as anything but JSON.
+      security: [{ bearerAuth: [] }, {}]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "410": { description: The call has ended or its link has expired. }, "502": { description: The call could not be read or written. Says nothing about the call itself. }, "503": { $ref: "#/components/responses/SetupRequired" } }
+  /api/calls/{callId}/status:
+    post:
+      operationId: setCallStatus
+      tags: [Business Builder]
+      summary: Mark a call connected or ended.
+      description: >-
+        Only those two. A call starts as ringing and is marked missed by the
+        business, and neither is something a browser gets to assert. Accepted
+        after the link has expired, because hanging up must keep working when
+        everything else about the call has stopped.
+      security: [{ bearerAuth: [] }, {}]
+      requestBody: { $ref: "#/components/requestBodies/JsonBody" }
+      responses: { "200": { $ref: "#/components/responses/Success" }, "400": { $ref: "#/components/responses/BadRequest" }, "403": { $ref: "#/components/responses/Forbidden" }, "502": { description: The call could not be read or written. Says nothing about the call itself. }, "503": { $ref: "#/components/responses/SetupRequired" } }
   /api/business/recurring:
     post:
       operationId: createRecurringInvoice

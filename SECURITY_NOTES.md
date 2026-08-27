@@ -21,6 +21,36 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+## Permissions-Policy: microphone moved from `()` to `(self)`
+
+**Date:** 27 August 2026. **Header:** `server.js`, the same `app.use` as below.
+
+`microphone=()` denies the feature to every origin including this one, so
+`navigator.mediaDevices.getUserMedia({ audio: true })` fails on our own pages.
+It is now `microphone=(self)`. **`camera=()` is unchanged** and stays denied:
+calling here is audio only, and a camera permission nothing uses is a permission
+worth not having.
+
+**Why it was changed.** `/business-builder/owner/customers/:recordId/call` and
+`/call/:token` place a browser-to-browser call. The audio is peer to peer and
+never reaches this application; without microphone access there is nothing to
+send.
+
+**What it does not do.** `(self)` is permission to *ask*. The browser shows its
+own prompt, and `public/sonara-call.js` calls `getUserMedia` only inside a click
+handler -- there is no capture on load, and nothing starts a microphone without
+somebody pressing a button on a page that has already explained what it is for.
+
+**Nothing is recorded.** There is no recording, transcript or audio column
+anywhere in `call_sessions` or `call_signals`, and no endpoint accepts audio.
+Recording a call is a consent decision in most jurisdictions this product is
+used in, which AGENTS.md puts behind owner review rather than behind a default.
+
+**No audit threshold moved and no check was weakened.**
+`tests/a-call-never-passes-through-us.test.js` asserts the header still denies
+the camera, still scopes the microphone to `self` rather than `*`, and that the
+call client asks for audio only.
+
 ## Permissions-Policy: geolocation moved from `()` to `(self)`
 
 **Date:** 27 August 2026. **Header:** `server.js`, the one `app.use` that sets

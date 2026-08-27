@@ -129,6 +129,25 @@ const OPTIONAL_CAPABILITY = new Set([
   // is read only by lib/sonara-web-push.cjs, which runs server-side.
   // VAPID_PUBLIC_KEY does reach the browser -- a subscription cannot be created
   // without it -- and that is correct: it is the public half.
+  // Browser-to-browser calling. Optional, and for a reason worth writing down
+  // rather than the usual one.
+  //
+  // The tempting alternative is a hardcoded public STUN address, which would
+  // make calling work everywhere on day one with no configuration. CLAUDE.md
+  // rules it out: *"A hosted service with a free tier is a price, not a
+  // licence, and a shipped feature resting on one stops working when the tier
+  // changes -- which is the vendor's decision, not this project's."*
+  //
+  // With none of these set, `callReadiness` reports setup_required and names
+  // the variable, and the call page says so instead of offering a button that
+  // cannot work. Calls between two devices on the same network still connect,
+  // because host candidates need no server at all.
+  //
+  // SONARA_TURN_SECRET is a secret in the AGENTS.md sense and must stay
+  // server-only: it signs the ephemeral TURN credentials handed to browsers.
+  // The credentials themselves reach a browser and are meant to -- they expire
+  // within the hour. The secret that mints them does not expire at all.
+  "SONARA_STUN_URLS", "SONARA_TURN_URL", "SONARA_TURN_SECRET",
   "VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY", "VAPID_SUBJECT",
   "STRIPE_PRICE_ID_BUSINESS_BUILDER_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_STARTER_MONTHLY",
   "STRIPE_PRICE_ID_CREATOR_STUDIO_MONTHLY", "STRIPE_PRICE_BUSINESS_BUILDER_CORE_MONTHLY",

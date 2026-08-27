@@ -493,9 +493,21 @@ describe("the server.js split stays safe", () => {
     // Thirteenth exception, and exactly two lines again: one require, one
     // registration. Every sentence about why the prompt follows a click, and
     // why the topics are checkboxes, lives in the route module.
+    // Then 3852 on 27 August 2026, by 2, for
+    // routes/sonara-call-routes.cjs -- calling a customer browser to browser,
+    // where the audio never reaches this application at all. Fourteenth
+    // exception, and exactly two lines again: one require, one registration.
+    //
+    // It was first registered from routes/sonara-last9-routes.cjs, beside the
+    // customer pages it belongs with, to cost nothing here. That broke nine
+    // tests: last9 accepts a partial dependency object by design, the call
+    // module refuses to register without all nine of its own, and hanging one
+    // off the other imposed the strict contract on every existing caller. The
+    // right answer was to pay the line rather than loosen a contract, which is
+    // what this ceiling is for.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3850,
+      lines <= 3852,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
