@@ -2,6 +2,30 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-27 - Two green pull requests that merged into a red main
+
+`verify:doc-counts` failed on `main` immediately after #205 and #204 were
+merged in sequence. `docs/SHIP_READINESS.md` and `docs/owner/INSTALL.md` both
+said "104 migrations"; the tree held 105.
+
+Neither pull request was wrong. #204 counted 104 and was right on its own base:
+103 migrations plus `call_sessions`. #205 added
+`20260827100000_published_catalog_is_complete.sql`, which made 105 the moment
+both landed. **Each branch's CI measured a tree that stopped existing when the
+other merged**, and no check anywhere ran against the combination.
+
+That is a semantic merge conflict, and it is worth naming because none of the
+usual defences see it: the merge was clean, both diffs were correct, and both
+heads were green. The two things that would have caught it are a repository
+setting rather than code -- requiring a branch to be up to date with `main`
+before merging -- and a derived figure that no human has to retype. The counts
+in those two documents are the second kind waiting to happen: this is the third
+time in one session they have been hand-edited to match a number a script
+already knows.
+
+Fixed by correcting both figures. Recorded rather than only fixed, because the
+lesson is about when a check runs, not about what it checks.
+
 ### 2026-08-27 - Calling a customer, with nothing passing through us
 
 `/business-builder/owner/customers/:recordId/call` places a browser-to-browser
