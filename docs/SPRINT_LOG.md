@@ -2,6 +2,168 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-26 - The browser half, and a phantom I chased
+
+`public/sw.js` gained `push` and `notificationclick` handlers. There was a
+sender, an encrypted payload, and nothing in any browser listening for one.
+
+Everything in the handler is defensive about the payload, for a reason worth
+stating: **a service worker crash is invisible.** No console anybody watches, no
+error page, no user-visible failure -- the notification simply never appears,
+and the sender's own logs say it was delivered. So a malformed payload degrades
+to a plain notification rather than throwing, and a test drives the real handler
+from the real file inside a `vm` sandbox with the service worker globals stubbed.
+
+Three properties held by tests rather than by reading:
+
+- **A click can only go to a same-origin path.** Without that, whoever composes
+  a push payload decides where a click lands, which is an open redirect with a
+  notification in front of it. `https://evil.example`, `//evil.example`,
+  `javascript:` and `../../etc` all fall back to `/dashboard`.
+- **Title and body are bounded**, because their length is chosen by whoever sent
+  them and a title long enough to fill a lock screen is one nobody reads.
+- **Silent, no vibration, no requireInteraction.** AGENTS.md puts sounds and
+  haptics behind explicit user control, and a notification is not the place to
+  take that decision.
+
+## The transient that was never a failure, and the bug it hid
+
+I recorded, twice, an "unexplained transient" in which `verify:launch` failed
+naming `docs/stale-claim-probe.md` and two `SONARA_PROBE_*` variables that were
+not on disk. I even wrote a narrowing about it reproducing only when two chain
+invocations were chained in one shell command.
+
+**None of it was true, and the way it went wrong is the more useful half.**
+
+Those three errors are the *intentional output of the repository's own
+falsification tests*. `dated-claims-say-when-to-recheck` and
+`env-check-can-report-a-name-it-does-not-know` plant a bad file, run the checker
+as a child process, and assert it objects. The checker's complaint goes to the
+console, and mocha's reporter interleaves it. In the chain log the errors sit at
+line 1620 and the test summary `3202 passing` sits at line 4301 -- **the errors
+are inside the test run, hundreds of lines before it finishes**.
+
+I diagnosed from `grep -iE "^ERROR|failed"` over a log instead of from the actual
+exit, and the grep matched output that was working correctly. Then I wrote a
+theory, tested it against the wrong evidence, refined it, and recorded a
+narrowing -- all of it downstream of never having read the end of the file.
+
+**The real failure was two lint errors in code I had just written**:
+`Notification` was not a declared global for `public/`, and a `catch (error)`
+binding went unused. Both would have taken thirty seconds to see in
+`tail -5 /tmp/chain.log`.
+
+Two things worth carrying forward:
+
+- **Read the end of the log, not a grep of it.** A chain that exits non-zero
+  says why on its last lines. A grep for the word ERROR finds every check that
+  is deliberately demonstrating an error, and this repository is full of those
+  by design.
+- **`eslint.config.cjs` is dead.** Flat-config precedence loads
+  `eslint.config.mjs`, so the `.cjs` file is never read. I edited it, saw no
+  change, and only then checked with `eslint --print-config`. It is left in
+  place rather than deleted here because removing it is not this branch's work,
+  but the next person to add a browser global should know which file is live.
+
+### 2026-08-26 - And somewhere for push to send to
+
+`lib/sonara-web-push.cjs` could encrypt and send, and nothing could call it --
+there was nowhere to keep a subscription. A capability that exists, passes its
+tests, and no customer can reach is the defect this repository is named against,
+so the sending half was only half.
+
+`push_subscriptions` plus `lib/sonara-push-subscriptions.cjs`. Three decisions
+worth arguing with:
+
+**Consent is per topic, not per switch.** AGENTS.md requires alerts to be
+explicitly user-controlled, and a single on/off makes "tell me when an invoice
+is paid" and "tell me about anything" the same permission -- only one of which
+is what most people meant. So a row carries the topics it agreed to, the query
+filters on array containment, and **a subscription with no topics receives
+nothing** rather than everything. An empty list is the safe reading of "granted
+permission and chose nothing"; the opposite reading is how a product ends up
+notifying somebody about things they never asked for.
+
+**The endpoint is unique, and a re-subscribe updates.** Without that a person
+who granted permission twice hears everything twice, and there is no moment at
+which anybody notices -- it looks like a keen product. `Prefer:
+resolution=merge-duplicates` is what turns the second grant into an update
+rather than a 409 the browser reports as failure.
+
+**Deleting is part of sending, and only on two statuses.** A 404 or 410 means
+that browser is gone for ever and the row must go, or this application spends
+its life encrypting for a device that does not exist -- work nobody sees and
+nothing reports. A 429 or 5xx is a bad minute, and deleting on those loses live
+subscribers to somebody else's outage. A network failure is a third state and
+deletes nothing. Three tests hold those apart.
+
+`notify()` returns counts rather than a boolean: "sent to 3, 2 browsers gone, 1
+unreachable" is four facts and a success flag loses all of them. A failed read
+of who is subscribed is reported as a failed read, never as sent-to-nobody --
+which told to somebody with fifty subscribers is the shape of the bug.
+
+Worth recording about process: the contract check caught `push_subscriptions`
+missing from the reviewed extension list, exactly as it caught
+`business_payment_accounts` this afternoon. The difference is that this time
+`verify:launch` was run in full before pushing rather than a hand-picked subset,
+so the check caught it here instead of in CI.
+
+### 2026-08-26 - Push notifications, checked against the RFC's own ciphertext
+
+First of the zero-margin capabilities, and the reason is narrow and checkable:
+the Push API, the Notifications API and the Service Worker API are standard
+browser features, and **the browser vendor's push service does the delivery and
+is free**. No account, no per-message charge, no subscriber tier. It reaches
+exactly the population SMS is usually bought to reach -- people who have already
+used the site.
+
+`lib/sonara-web-push.cjs`, `node:crypto` only, no dependency. Three
+specifications stack up: RFC 8030 for delivery, RFC 8291 for payload
+encryption, RFC 8292 for the VAPID token.
+
+## The verification, which is the point of this entry
+
+Recalled crypto is wrong crypto. So the encryption is checked against **RFC
+8291's own published test vector** rather than against my reasoning about it.
+Section 5 of that RFC fixes both key pairs, the salt and the auth secret, and
+publishes the exact ciphertext; the test reproduces it byte for byte.
+
+Appendix A publishes every intermediate value, and each is asserted separately
+-- shared ECDH secret, IKM, CEK, nonce -- so a failure names the step that is
+wrong rather than only that the output differs. A single end-to-end assertion
+would have said "the ciphertext is wrong" and left the next person bisecting
+four derivations by hand.
+
+Two other things a round-trip test alone would not have caught, so both are
+asserted directly:
+
+- **The last-record delimiter is 0x02, not 0x01.** 0x01 means another record
+  follows, and a receiver that sees it waits for one that never arrives. Read
+  back by decrypting with the RFC's receiver private key.
+- **The VAPID signature must be raw r||s, not DER.** Node signs DER by default,
+  and a push service rejects that with a bare 401 that says nothing about the
+  encoding. The test verifies with `dsaEncoding: "ieee-p1363"`, which is what
+  proves the format rather than assuming it.
+
+And one distinction that decides whether a row gets deleted: **404 and 410 mean
+the subscription is gone; 429 and 5xx mean try later.** Collapsing them either
+keeps sending to a browser that is gone for ever, or deletes a live subscription
+because a push service had a bad minute. A network failure is a third state and
+is not reported as either.
+
+## Off by default, which is a rule
+
+AGENTS.md: *"Sounds, voice announcements, haptics, SMS, push, and email alerts
+must be off or explicitly user-controlled by default."* Being free does not make
+it default-on, and the three VAPID variables are classified
+`OPTIONAL_CAPABILITY` with that quoted as the reason -- a required
+classification here would be the environment check vouching for the opposite of
+the rule.
+
+Worth recording: the `getEnv("NAME")` pass added to `verify-env.mjs` yesterday
+caught all three new variables immediately. That hole was found by walking into
+it once; this is the first time it paid for itself.
+
 ### 2026-08-26 - What has to be paid for, and what turns out not to
 
 Two halves of one question, and the second half is the surprising one.

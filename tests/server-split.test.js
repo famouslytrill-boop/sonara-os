@@ -486,9 +486,16 @@ describe("the server.js split stays safe", () => {
     // lines: one require, one registration. Every sentence of reasoning about
     // custody, direct charges and why there is no pay button lives in the route
     // module, which is the shape this ceiling exists to push work into.
+    // Then 3850 on 26 August 2026, by 2, for
+    // routes/sonara-notification-routes.cjs -- the page where a person turns
+    // push notifications on, which is what made the web-push sender, store and
+    // service worker reachable rather than three modules nothing called.
+    // Thirteenth exception, and exactly two lines again: one require, one
+    // registration. Every sentence about why the prompt follows a click, and
+    // why the topics are checkboxes, lives in the route module.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3848,
+      lines <= 3850,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });
