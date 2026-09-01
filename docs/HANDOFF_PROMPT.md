@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3873 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 107 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 256 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 257 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,86 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - Archived is off the list, not out of the books
+
+Sixteen of the twenty-seven owner record pages had **no terminal status at all**.
+A customer entered twice, a vehicle sold, a supplier no longer used, stayed on
+the list for ever and there was nothing anybody could do about it. The other
+eleven already say "finished with" in their own vocabulary — a quote goes
+`declined`, an invoice goes `void`, a booking goes `cancelled`.
+
+This was deferred once, on 1 September, with the reason recorded: *"39 files read
+those tables, and a half-done version means a business's invoice silently
+vanishing from a page that computes money."* That reason was right, and it is
+what the design answers rather than what the design ignores.
+
+## The property that makes it safe
+
+**Exactly one read filters on `archived_at`** — the owner list page — and
+nothing that computes money looks at it. An archived vendor invoice is still in
+the payables total, an archived time entry is still in the labour cost of its
+day, an archived sales summary is still in the revenue figure, and every
+accounting export still contains all of them.
+
+The alternative — hiding archived rows from the totals too — is how a business
+ends up with a figure on screen that does not match its books, discovered at the
+end of a tax year. Somebody who archives a supplier they stopped using in March
+must not thereby change what March cost.
+
+That is not a claim in a comment. The last test in the file walks every runtime
+file under `lib/`, `routes/` and `server.js`, greps for a PostgREST filter on the
+column in any shape this codebase writes one, and asserts the result is **exactly
+two entries**, both belonging to the list page. A money read that started
+filtering on it goes red immediately — verified by making `supabaseCount` do it.
+
+## Which pages get it is derived, not listed
+
+A hand-written list of sixteen table names would be the copy that drifts: a page
+gaining a status later would offer two ways to retire one record, with nothing
+reporting it. So `canArchive` asks the page whether its own status vocabulary
+already contains a terminal value.
+
+The migration is written by hand, and those two must agree — so the test parses
+the `alter table` lines out of the SQL and asserts they equal the derived set,
+**in both directions**. A table dropped from the migration and a page gaining a
+button both go red.
+
+## The bug this shipped with for about ten minutes
+
+Sixteen page declarations name their columns explicitly, and **not one listed
+`archived_at`** — there was no such column when they were written. So the row
+reached the renderer without it, the button read it as absent, and every
+archived record still showed **"Archive"** rather than "Put back": a control
+reporting the opposite of the state it is in.
+
+Fixed in one place rather than sixteen declarations: `selectWith(page)` appends
+the column for the pages that need it, so a page added tomorrow cannot forget.
+
+## Three states, and a sentence people need
+
+The count of what is hidden is read separately, and a count that failed stays
+`null` rather than becoming zero — *"nothing is archived"* on the strength of a
+request that did not happen is how somebody concludes a record they archived has
+been deleted.
+
+And the confirmation says the thing the whole design rests on, because
+**"archive" reads like "delete" to most people**: *"Archived. It is off your list
+and still counted in every total it was part of."*
+
+One wording bug caught on the way: seven of the eleven excluded pages have
+`archived` as their terminal status, and the first draft told those *"retired by
+setting their status to archived, rather than archived"*.
+
+## Verified by breaking it
+
+Thirteen probes, each confirmed to fail a test **by name**: offering archiving
+where a terminal status exists; not selecting the column the button reads;
+not hiding archived rows; hiding them even when asked to show them; calling a
+failed count zero; the circular wording; dropping the "still counted" sentence;
+writing more than the archive column; dropping the organization filter;
+archiving without recording who; not saying how many are hidden; making a money
+read filter on the column; and removing one table from the migration.
 
 ### 2026-09-01 - A password was the whole of the credential
 

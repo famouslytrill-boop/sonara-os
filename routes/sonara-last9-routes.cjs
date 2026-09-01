@@ -23,6 +23,7 @@ const recordStatus = require("../lib/sonara-record-status.cjs");
 const recordEdit = require("../lib/sonara-record-edit.cjs");
 const changeLog = require("../lib/sonara-record-change-log.cjs");
 const recordFilter = require("../lib/sonara-record-filter.cjs");
+const recordArchive = require("../lib/sonara-record-archive.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -535,13 +536,33 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // What this page is filtering by, if anything. Read before the query
       // because the read, the count and the pager all have to agree about it.
       const wanted = recordFilter.termFrom(req.query.q);
+      const showingArchived = recordArchive.showingArchived(req.query.archived);
+      // Counted separately rather than inferred from the rows on screen: the
+      // page is a hundred rows of a longer list, so "how many did we hide" is
+      // not a number this page's own result can answer.
+      let archivedCount = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page), recordFilter.clauseFor(page, wanted.term));
+        const listed = await listRecordPage(
+          config,
+          page.table,
+          org.organizationId,
+          "created_at.desc",
+          recordArchive.selectWith(page, page.select || "*"),
+          pageNumber(req.query.page),
+          `${recordFilter.clauseFor(page, wanted.term)}${recordArchive.hiddenClause(page, { including: showingArchived })}`
+        );
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
+        if (recordArchive.canArchive(page) && !showingArchived) {
+          const counted = await supabaseCount(config, page.table, org.organizationId, "&archived_at=not.is.null");
+          // Left null when the count did not happen. Saying "nothing is
+          // archived" on the strength of a failed request is how somebody
+          // concludes a record they archived has been deleted.
+          archivedCount = counted.ok ? counted.count : null;
+        }
       }
       // What the last status change did, for the pages whose control is in the
       // row. The change is a POST that redirects, so without this it looks
@@ -553,7 +574,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         : [
             ...(statusSaid ? [ui.card(req.query.edited ? "Saved" : "Status", statusSaid)] : []),
             filterCard(page, wanted, ui),
-            recordsCard(page, rows, ui, loaded, wanted.term),
+            recordsCard(page, rows, ui, loaded, wanted.term, { showingArchived, archivedCount }),
             ...(page.form ? [formCard(page, references, ui)] : [])
           ];
       return res.status(200).type("html").send(ui.layout({
@@ -702,6 +723,51 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
 
         if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: told, recorded: logged.ok });
         return res.redirect(303, `${page.path}?edited=${encodeURIComponent(told)}`);
+      });
+    }
+
+    // Taking a record off the list, and putting it back.
+    //
+    // Registered only where the page has no terminal status of its own, so no
+    // page offers two ways to retire one record. See
+    // lib/sonara-record-archive.cjs for why that set is derived rather than
+    // written down.
+    //
+    // This is not a delete and nothing here cascades. AGENTS.md puts
+    // destructive data changes behind owner approval; nothing is destroyed, and
+    // the owner pressing a button they can see is the owner.
+    if (recordArchive.canArchive(page)) {
+      app.post(`${page.path}/:recordId/archive`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${page.path}?status_problem=${encodeURIComponent(detail || code)}`);
+        };
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        const wanted = String(req.body?.archived ?? "") === "1";
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Scoped by organization on the write as well, for the same reason as
+        // every other write on these pages: the service key bypasses row level
+        // security, so the filter is the whole tenant boundary.
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, recordArchive.archivePatch(wanted));
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: ["archived_at"] }
+        );
+        const said = logged.ok
+          ? recordArchive.describeChange(wanted)
+          : `${recordArchive.describeChange(wanted)} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, archived: wanted, detail: said, recorded: logged.ok });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
       });
     }
 
@@ -2078,7 +2144,7 @@ function statusReturnPath(page, recordId) {
   return childrenOf(page).length > 0 ? `${page.path}/${id}` : page.path;
 }
 
-function recordsCard(page, rows, ui, loaded = null, term = null) {
+function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
@@ -2108,6 +2174,12 @@ function recordsCard(page, rows, ui, loaded = null, term = null) {
   // which is the shape of dead-end this codebase has shipped before.
   const editable = recordEdit.canEdit(page);
 
+  // And a way to take it off the list. Only on the sixteen pages whose records
+  // have no terminal status of their own -- the rest already say "finished
+  // with" in their own vocabulary, and two ways to do one thing is worse than
+  // one way somebody has to learn.
+  const archivable = recordArchive.canArchive(page);
+
   const extraHeads = [
     ...(opens ? ["<th>Details</th>"] : []),
     ...(editable ? ["<th>Correct</th>"] : []),
@@ -2115,6 +2187,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null) {
     // status as one of their own columns, and two headers reading Status is a
     // table nobody can read at a glance.
     ...(rowStatus ? ["<th>Change status</th>"] : []),
+    ...(archivable ? ["<th>On your list</th>"] : []),
     ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
   ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
@@ -2125,6 +2198,7 @@ function recordsCard(page, rows, ui, loaded = null, term = null) {
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
       if (editable) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}/edit`, "Edit")}</td>`);
       if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
+      if (archivable) cells.push(`<td>${archiveControl(page, row, ui)}</td>`);
       if (action) {
         const id = encodeURIComponent(String(row.id || ""));
         let reason = null;
@@ -2151,9 +2225,20 @@ function recordsCard(page, rows, ui, loaded = null, term = null) {
     // "You have no customers yet" is false when the business has eight hundred
     // and none of them match what was typed.
     : `<tr><td colspan="${width}">${ui.escape(term ? `None of your records match "${term}". Clear the filter to see them all.` : page.empty)}</td></tr>`;
-  const count = recordCountCaption(rows, loaded, term);
+  const hidden = recordArchive.describeHidden(archive.archivedCount, { including: archive.showingArchived });
+  const said = recordCountCaption(rows, loaded, term);
+  // Appended rather than folded in: "12 records" stays the answer to how many
+  // there are, and the archived line is a separate fact about what is on screen.
+  // A single merged number would be a third thing that is neither.
+  const count = hidden ? `${said} ${hidden}` : said;
+  const toggle = archivable
+    ? ui.link(
+        recordFilter.pathWith(page.path, { term }) + (archive.showingArchived ? "" : (term ? "&" : "?") + "archived=1"),
+        archive.showingArchived ? "Hide archived" : "Show archived too"
+      )
+    : "";
   const pager = page.path ? pagerLinks(page, loaded, ui, term) : "";
-  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p>${toggle ? `<nav class="card-actions">${toggle}</nav>` : ""}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
 }
 
 // One awkward value should cost its own cell, not the whole page.
@@ -2319,6 +2404,22 @@ function historyCard(history, ui) {
     rows,
     "</tbody></table>",
     "</article>"
+  ].join("");
+}
+
+// Off the list, or back on it.
+//
+// One button whose label is the action, not the state. "Archived / Current" as
+// a status word would leave somebody guessing whether pressing it sets that
+// state or leaves it.
+function archiveControl(page, row, ui) {
+  const archived = Boolean(row?.archived_at);
+  const id = encodeURIComponent(String(row?.id || ""));
+  return [
+    `<form method="post" action="${ui.escape(`${page.path}/${id}/archive`)}">`,
+    `<input type="hidden" name="archived" value="${archived ? "0" : "1"}">`,
+    `<button class="action" type="submit">${archived ? "Put back" : "Archive"}</button>`,
+    "</form>"
   ].join("");
 }
 

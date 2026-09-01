@@ -102,5 +102,6 @@
   "20260826100000_push_subscriptions.sql": "4caad7eabe19b8dd90d3ca5296a3d7003e9272792fb71a4021ae860d7d0ade82",
   "20260827090000_call_sessions.sql": "5204dc0bcf23e16881491e46ac93d241cedf89a2d9ba0ae005e5312234750e39",
   "20260901090000_record_change_log.sql": "4a13bffc2d83dccc1b16354d013e9b191145e470a4a76d0f1f2acdafd6481f2f",
-  "20260901120000_two_factor_authentication.sql": "0f2be0005d7d1a27a0eee73bd4adef19367e35938e890a93ddb5bbda7d3e6ed3"
+  "20260901120000_two_factor_authentication.sql": "0f2be0005d7d1a27a0eee73bd4adef19367e35938e890a93ddb5bbda7d3e6ed3",
+  "20260901150000_owner_records_can_be_archived.sql": "4bb83ecdd2669ea4e7b3197e03a1a9fb95e40e66050eef1515a3f61ae91a8e0a"
 }
