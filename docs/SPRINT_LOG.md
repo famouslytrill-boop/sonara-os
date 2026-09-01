@@ -2,6 +2,82 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - Five ticks that did nothing, and one that does something now
+
+`/account/notifications` offered six notification topics as six identical
+ticked boxes. **One of them was wired.** A person could tick "A job is marked
+finished", grant permission, and wait for ever.
+
+`job_finished` was the sharpest of the five, because **this application has no
+jobs.** No jobs table, no job record page, nowhere a job could be marked
+finished. The topic named a feature that does not exist. `booking_reminder`
+needs a scheduler nothing runs, `payment_failed` has no handler, and
+`quote_accepted` changes through the generic record editor with nothing
+watching it.
+
+## `booking_made`, wired
+
+`POST /book/:slug` is the one place in this application where a **stranger**
+writes a row, and the one nobody is watching when it happens: the request sits
+at `requested` until a person opens the page. That makes it the event a booking
+notification exists for, and it is now sent.
+
+Simpler than the invoice notice on purpose. That one computes a settlement twice
+because "the invoice is paid" is a state that stays true and would re-announce
+itself; **a booking request is not a state, the insert is the event**, so there
+is no before-and-after here and adding one would be ceremony.
+
+Three rules carried over unchanged, each for the same reason as before: awaited,
+because an un-awaited fetch in a serverless function silently never leaves; its
+result dropped, because the booking is saved either way; and it cannot throw,
+which matters more here than anywhere else — the person waiting on that response
+is a stranger who did nothing wrong.
+
+**No contact details in the payload.** A push is decrypted by the browser and
+rendered by the operating system: notification history, lock screen, whatever
+the OS syncs. The name and the service, because without them the notification
+says only that something happened; the email and phone stay behind the session,
+one tap away, which is where somebody would act on them anyway.
+
+## Two lists, because one was a promise the product did not keep
+
+`TOPICS` is what a subscription may **store** — narrowing it would silently
+invalidate subscriptions people already made. `SENDING_TOPICS` is what a page may
+honestly **offer**. A topic nothing sends now renders disabled with a sentence
+saying so, rather than as a tick that does nothing.
+
+Listed rather than hidden, deliberately: a greyed row with a reason tells
+somebody what this product does and does not do yet; an absent row tells them
+nothing.
+
+Two hand-maintained lists is how the first one came to be wrong, so
+`tests/a-notification-topic-cannot-be-offered-with-nothing-to-send-it.test.js`
+**derives the second from the source** — every entry must appear as a `topic:`
+argument to a `notify()` call in `lib/` or `routes/`, with comments stripped
+first so a topic named in a sentence explaining why it is *not* wired cannot
+count as wiring it. It gates both directions: claiming a topic is sent when
+nothing sends it, and wiring one without offering it.
+
+## What lint caught that would have reached a customer
+
+The first draft passed a bare `organizationId` into the announcement. There is
+no such variable in that handler — it is `page.organization_id`. `no-undef`
+caught it. Without that, **every public booking would have thrown after the row
+was already written**, and a stranger would have seen an error page for a
+booking that saved. Guarded by a test now, both directions.
+
+Worth recording that my own `&&` chain hid it for one commit: `pnpm run lint |
+tail -4 && git commit` takes `tail`'s exit status, not eslint's, so a failing
+lint still ran the commit.
+
+Eight falsification probes, each failing by name: a dead topic claimed as
+sending; a wired topic dropped from what is offered; the page offering a dead
+topic as a live tick; contact details in the payload; the announcement
+un-awaited; the bare `organizationId` restored; a broken date printed rather
+than omitted; and one shared tag collapsing two bookings into one.
+
+Suite 3,313 -> 3,336. `verify:launch` green end to end.
+
 ### 2026-09-01 - A registered repository that stopped existing
 
 `external-repository-health` went red on #207 naming two records, and **neither
