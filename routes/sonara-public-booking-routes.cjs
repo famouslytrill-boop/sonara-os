@@ -456,7 +456,12 @@ function registerPublicBookingRoutes(app, deps = {}) {
       await announceBooking(
         { getEnv: readEnv, supabaseUrl: config.url, serviceRoleHeaders: () => supabaseHeaders(config) },
         {
-          organizationId,
+          // page.organization_id, not a variable named organizationId -- there
+          // isn't one in this handler. eslint's no-undef caught it; without
+          // that, every public booking would have 500'd after the row was
+          // already written, and the customer would have seen an error for a
+          // booking that saved.
+          organizationId: page.organization_id,
           bookingId,
           customerName: row.customer_name,
           serviceName: service.name,

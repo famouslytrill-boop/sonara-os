@@ -126,6 +126,16 @@ describe("a booking request reaches the business", () => {
       assert.ok(write > -1 && refusal > -1 && announce > refusal, "a booking that failed to save must not be announced");
     });
 
+    // The first version of this passed a bare `organizationId`, which does not
+    // exist in that handler. eslint's no-undef caught it before it shipped;
+    // without that, every public booking would have thrown after the row was
+    // already written, and a customer would have seen an error page for a
+    // booking that saved.
+    it("takes the organization from the booking page, which is what is in scope", () => {
+      assert.match(code, /organizationId: page\.organization_id/);
+      assert.doesNotMatch(code, /\n\s*organizationId,\n/, "a bare organizationId is not defined in this handler");
+    });
+
     it("asks the database for the row back, so the notification can be tagged", () => {
       assert.match(code, /Prefer: "return=representation"/);
     });
