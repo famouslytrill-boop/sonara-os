@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 106 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 253 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 254 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,70 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - Where is Ada? Keep clicking.
+
+The twenty-seven owner record pages list a hundred rows at a time with
+"Previous" and "Next" and nothing else. A business with eight hundred customers
+looking for one of them pages through eight screens, reading a hundred names
+each time. The product's answer to *where is Ada* was **keep clicking**.
+
+`/search` exists and covers twenty of these tables, and it is not the same
+thing: a different page reached from a different link, returning ten rows per
+table across every table at once. It answers "is this person anywhere in my
+records". It does not answer "show me the customers whose name has Ada in it",
+which is the question somebody standing on the customers page is asking.
+
+## The columns come from the search module
+
+`lib/sonara-record-filter.cjs` reads `SEARCHABLE` rather than holding a second
+list, because a second list would be the copy that drifts — and the drift would
+show up as a filter box quietly matching fewer columns than the search page over
+the same records, which nobody notices because both return rows. The test
+asserts column-for-column equality on all twenty.
+
+The seven tables that cannot be filtered get **no box and a reason**, taken from
+`NOT_SEARCHABLE` where it was already written: *"A shift is found by who and
+when, not by text."* That is a fact about shifts rather than a limitation of the
+product, and a control that would find nothing is worse than its absence.
+
+## Two things that fail silently once a filter exists
+
+**The count.** The caption comes from a separate `count=exact` request. Left
+unfiltered it says "812 records" above three rows — a bigger lie than no caption.
+`supabaseCount` now takes the same clause as the list, and the caption says
+*"3 records match "ada""* rather than "3 records", because the second is true and
+useless: the reader cannot tell whether they have three customers or three
+matches.
+
+**The pager.** `?page=2` without the term drops it, so "Next" takes somebody from
+three matching customers to a hundred arbitrary ones with nothing on the page
+saying anything changed.
+
+And the empty row: *"You have no customers yet"* is false when the business has
+eight hundred and none match what was typed.
+
+A one-letter term is treated as no filter and the page says why — one letter
+matches almost everything — while keeping what was typed in the box, so it does
+not look like the request never happened. The term is escaped through the search
+module's own escaper: a bare `,` or `)` would close the `or=(...)` list early and
+silently change which columns are matched.
+
+## A duplicate header this exposed
+
+The customers table was rendering two columns headed **Status** — its own, and
+the status control added earlier today. The control's header is now "Change
+status". Found by reading the HTML in a failing assertion rather than by looking
+for it.
+
+## Verified by breaking it
+
+Ten probes, each confirmed to fail the test **by name**: never sending the filter
+to the query; counting the whole table while showing a filtered list; dropping
+the filter from the pager; saying the business has no records when none match;
+removing the box; offering a box on a page whose records are not found by text;
+accepting a one-letter term; not escaping the term; holding a second column list;
+and calling a count that could not be read a count of zero.
 
 ### 2026-09-01 - Who changed it, now that anybody can
 

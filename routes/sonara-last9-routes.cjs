@@ -22,6 +22,7 @@ const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.
 const recordStatus = require("../lib/sonara-record-status.cjs");
 const recordEdit = require("../lib/sonara-record-edit.cjs");
 const changeLog = require("../lib/sonara-record-change-log.cjs");
+const recordFilter = require("../lib/sonara-record-filter.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -531,10 +532,13 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let references = {};
       let loaded = null;
       let unavailable = null;
+      // What this page is filtering by, if anything. Read before the query
+      // because the read, the count and the pager all have to agree about it.
+      const wanted = recordFilter.termFrom(req.query.q);
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
+        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page), recordFilter.clauseFor(page, wanted.term));
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
@@ -548,7 +552,8 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         ? [ui.card("Not available right now", unavailable)]
         : [
             ...(statusSaid ? [ui.card(req.query.edited ? "Saved" : "Status", statusSaid)] : []),
-            recordsCard(page, rows, ui, loaded),
+            filterCard(page, wanted, ui),
+            recordsCard(page, rows, ui, loaded, wanted.term),
             ...(page.form ? [formCard(page, references, ui)] : [])
           ];
       return res.status(200).type("html").send(ui.layout({
@@ -1979,8 +1984,49 @@ async function loadReferences(config, organizationId, page) {
 //   the read reached the end          -- the count is the count
 //   it did not, and the total is known -- say both, so the cap is visible
 //   it did not, and the count failed   -- "more than N", the honest floor
-function recordCountCaption(rows, loaded) {
+// The box that narrows the list.
+//
+// Rendered from lib/sonara-record-filter.cjs, which reads its columns from the
+// search module rather than holding a second list. A page whose records are not
+// found by text gets no box and says why, in the words already recorded for
+// that table -- "a shift is found by who and when, not by text" is a fact about
+// shifts, and a control that would find nothing is worse than its absence.
+function filterCard(page, wanted, ui) {
+  const reason = recordFilter.reasonWithoutFilter(page);
+  if (reason) return ui.card("Finding one of these", reason);
+  if (!recordFilter.canFilter(page)) return "";
+
+  const typed = wanted?.term || wanted?.typed || "";
+  const note = wanted?.tooShort
+    ? `<p class="fine" role="status">Type at least ${recordFilter.MINIMUM_TERM} characters. One letter matches almost everything, which is a list nobody can use.</p>`
+    : "";
+  const clear = wanted?.term ? ui.link(page.path, "Show all") : "";
+
+  return [
+    '<article class="card">',
+    `<form method="get" action="${ui.escape(page.path)}" role="search">`,
+    `<label>Find one<input type="search" name="q" value="${ui.escape(typed)}" minlength="${recordFilter.MINIMUM_TERM}" autocomplete="off"></label>`,
+    '<button class="action" type="submit">Find</button>',
+    clear,
+    "</form>",
+    note,
+    "</article>"
+  ].join("");
+}
+
+function recordCountCaption(rows, loaded, term = null) {
   const shown = rows.length;
+
+  // With a filter on, "3 records" is true and useless -- the reader cannot tell
+  // whether they have three customers or three matches. Everything below counts
+  // the filtered rows, so the sentence has to say so.
+  if (term) {
+    const total = loaded && typeof loaded.total === "number" ? loaded.total : (loaded?.loadedAll ? shown : null);
+    const said = recordFilter.describeFilter(term, loaded ? total : shown);
+    if (!loaded || loaded.loadedAll || shown === 0) return said;
+    const from = (loaded.offset || 0) + 1;
+    return `${said} Showing ${from} to ${(loaded.offset || 0) + shown}.`;
+  }
   const plural = (value) => (value === 1 ? "1 record" : `${value} records`);
 
   // No paging information at all: an older caller, or a page that never asked.
@@ -2009,9 +2055,12 @@ function recordCountCaption(rows, loaded) {
 //
 // Plain links, because the rest of these pages are plain forms and a customer
 // who has disabled JavaScript still has a business to run.
-function pagerLinks(page, loaded, ui) {
+function pagerLinks(page, loaded, ui, term = null) {
   if (!loaded || (!loaded.hasNext && !loaded.hasPrevious)) return "";
-  const at = (number) => `${page.path}?page=${number}`;
+  // Carrying the filter. `?page=2` alone drops it, so "Next" would take
+  // somebody from three matching customers to a hundred arbitrary ones with
+  // nothing on the page saying anything had changed.
+  const at = (number) => recordFilter.pathWith(page.path, { term, page: number });
   const links = [];
   if (loaded.hasPrevious) links.push(ui.link(at(loaded.page - 1), "Previous 100"));
   if (loaded.hasNext) links.push(ui.link(at(loaded.page + 1), "Next 100"));
@@ -2029,7 +2078,7 @@ function statusReturnPath(page, recordId) {
   return childrenOf(page).length > 0 ? `${page.path}/${id}` : page.path;
 }
 
-function recordsCard(page, rows, ui, loaded = null) {
+function recordsCard(page, rows, ui, loaded = null, term = null) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
@@ -2062,7 +2111,10 @@ function recordsCard(page, rows, ui, loaded = null) {
   const extraHeads = [
     ...(opens ? ["<th>Details</th>"] : []),
     ...(editable ? ["<th>Correct</th>"] : []),
-    ...(rowStatus ? ["<th>Status</th>"] : []),
+    // "Change status", not "Status". Several of these pages already show the
+    // status as one of their own columns, and two headers reading Status is a
+    // table nobody can read at a glance.
+    ...(rowStatus ? ["<th>Change status</th>"] : []),
     ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
   ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
@@ -2096,9 +2148,11 @@ function recordsCard(page, rows, ui, loaded = null) {
       }
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
-    : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
-  const count = recordCountCaption(rows, loaded);
-  const pager = page.path ? pagerLinks(page, loaded, ui) : "";
+    // "You have no customers yet" is false when the business has eight hundred
+    // and none of them match what was typed.
+    : `<tr><td colspan="${width}">${ui.escape(term ? `None of your records match "${term}". Clear the filter to see them all.` : page.empty)}</td></tr>`;
+  const count = recordCountCaption(rows, loaded, term);
+  const pager = page.path ? pagerLinks(page, loaded, ui, term) : "";
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
 }
 
@@ -2647,10 +2701,10 @@ function pageNumber(value) {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
 }
 
-async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1) {
+async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1, filterClause = "") {
   const offset = (page - 1) * PAGE_SIZE;
   const window = offset > 0 ? `&offset=${offset}` : "";
-  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
+  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}${filterClause}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
   const listed = await supabaseList(config, table, query);
   if (!listed.ok) return listed;
 
@@ -2663,7 +2717,10 @@ async function listRecordPage(config, table, organizationId, order = "created_at
   // records, and forgetting that would report page 3 of 250 as "12 records".
   if (!more && page === 1) return { ...base, total: rows.length, loadedAll: true };
 
-  const counted = await supabaseCount(config, table, organizationId);
+  // Counted through the same filter as the list. An unfiltered count over a
+  // filtered list would say "812 records" above three rows, which is a bigger
+  // lie than no caption at all.
+  const counted = await supabaseCount(config, table, organizationId, filterClause);
   // A failed count is left null rather than guessed at, and the caption says
   // only what the read itself established.
   return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
@@ -2693,9 +2750,9 @@ async function supabaseList(config, table, query) {
   return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
 }
 
-async function supabaseCount(config, table, organizationId) {
+async function supabaseCount(config, table, organizationId, filterClause = "") {
   const scope = organizationId ? `&organization_id=eq.${encodeURIComponent(organizationId)}` : "";
-  const response = await fetch(`${config.url}/rest/v1/${table}?select=id${scope}&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
+  const response = await fetch(`${config.url}/rest/v1/${table}?select=id${scope}${filterClause}&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, count: null };
   const range = response.headers?.get?.("content-range") || "";
   const match = range.match(/\/(\d+)$/);
