@@ -106,6 +106,43 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - Two checks that had stopped being able to fail
+
+A sweep of all 252 test files for the first shape in
+`.claude/skills/checks-that-cannot-lie`: a loop over a derived collection with
+nothing asserting the collection is non-empty. 371 such loops; the great
+majority are already guarded, several with the exact "this check has gone blind"
+wording. **Two were not, and both are the sharpest sub-shape — a parser that
+would silently stop matching.**
+
+**`stripe-checks-agree-with-each-other`** parses the two summary lines out of
+`scripts/verify-stripe-env.mjs` and asserts each says which half of the check
+ran. Rewording "Stripe configuration verified" to anything else drops the match
+count to zero and the loop then asserts nothing — green, over precisely the
+defect the test was written for: a summary printed unconditionally that claims
+work which was skipped.
+
+**`dashboard-setup-doc`** scans the checklist for Price IDs and asserts none
+carries the capital-I-for-lowercase-l transcription error that actually
+happened. A checklist with no Price IDs in it satisfied that loop while proving
+nothing.
+
+Both now assert the population first. Verified the way this file asks: the two
+mutations above were applied against the **old** tests and both stayed green,
+then against the new ones and both went red naming the test and saying the check
+had gone blind.
+
+## Why no new release-chain command came out of this
+
+The sweep is a heuristic, and shipping it as a gate would have meant either a
+green light that tolerates 42 unguarded `matchAll` loops or a rule with dozens of
+exemptions. Most of those 42 are false positives: the collection is accumulated
+across files inside a helper and the guard sits on the accumulated total under a
+different name. A check too weak to catch the bug it was written for is the sixth
+shape in that skill, so it was not shipped. The method is recorded here instead —
+scan `tests/` for `for (const x of <name>)` and `<name>.forEach(`, then look for
+`<name>.length` anywhere in the same file — and is worth rerunning by hand.
+
 ### 2026-09-01 - A record you cannot correct is a record you cannot trust
 
 Twenty-six of the twenty-seven owner record pages declare a create form. **None

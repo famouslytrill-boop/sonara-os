@@ -100,7 +100,11 @@ describe("the manual dashboard setup checklist", () => {
     // base62, so a capital I is legal in principle -- but every real ID in this
     // account uses "0dKtlEU3lA", and the typo'd ones read "0dKtIEU3IA". Pin the
     // exact confusion that happened rather than guessing at a general rule.
-    for (const match of doc.matchAll(/price_[A-Za-z0-9]+/g)) {
+    const written = [...doc.matchAll(/price_[A-Za-z0-9]+/g)];
+    // A document with no Price IDs in it would satisfy the loop below while
+    // proving nothing about the transcription this test exists to catch.
+    assert.ok(written.length >= 3, `only ${written.length} Price IDs found in the checklist; this check has gone blind`);
+    for (const match of written) {
       assert.ok(!match[0].includes("0dKtIEU3IA"), `${match[0]} has capital I where the real IDs have lowercase l`);
     }
   });
