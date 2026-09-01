@@ -136,6 +136,7 @@ describe("frames come out of a real video", function () {
       const canvas = Object.assign(document.createElement("canvas"), { width: made.width, height: made.height });
       const ctx = canvas.getContext("2d");
       const seen = [];
+      const signatures = [];
       const frames = [];
       const pick = [0, Math.floor(made.count / 3), Math.floor(made.count * 2 / 3), made.count - 1];
       for (const index of pick) {
@@ -149,17 +150,62 @@ describe("frames come out of a real video", function () {
         let firstWhite = -1;
         for (let i = 0; i < data.length; i += 4) if (data[i] > 200) { firstWhite = (i / 4) % made.width; break; }
         seen.push(firstWhite);
+        // The whole picture, not just where the square starts. Two frames can
+        // share a first-white column and still be different pictures, and the
+        // assertions below need to tell those apart from two frames that are
+        // the same picture.
+        let signature = 2166136261;
+        for (let i = 0; i < data.length; i += 4) {
+          signature ^= data[i];
+          signature = Math.imul(signature, 16777619);
+        }
+        signatures.push(signature >>> 0);
         const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", made.quality));
         frames.push(new Uint8Array(await blob.arrayBuffer()));
       }
       window.__frames = frames;
-      return { seen, sizes: frames.map((f) => f.length) };
+      return { seen, signatures, sizes: frames.map((f) => f.length) };
     })()`);
 
-    assert.equal(new Set(positions.seen).size, positions.seen.length,
-      `the moving square is at ${JSON.stringify(positions.seen)} across four frames — seeking is returning the same picture`);
-    assert.ok(positions.seen[0] < positions.seen[positions.seen.length - 1],
-      "the frames are not in the order the timestamps asked for");
+    const last = positions.seen.length - 1;
+
+    // The defect this test exists for: a seek that silently does nothing hands
+    // back frame one every time. Then the square has not moved between the
+    // first sample and the last, and this fails.
+    assert.ok(
+      positions.seen[0] < positions.seen[last],
+      `the moving square is at ${JSON.stringify(positions.seen)} across four frames — seeking is returning the same picture`
+    );
+
+    // And it moved in the direction the timestamps asked for the whole way, not
+    // just end to end.
+    assert.deepEqual(
+      positions.seen,
+      [...positions.seen].sort((a, b) => a - b),
+      `the frames are not in the order the timestamps asked for: ${JSON.stringify(positions.seen)}`
+    );
+
+    // Why this is an equality between two counts rather than "all four are
+    // different".
+    //
+    // The clip is recorded in real time: a `setTimeout` in the drawing loop
+    // that overruns on a loaded machine leaves the square in one place across
+    // several captured frames, so the video genuinely contains a run of
+    // identical pictures. Sampling twice inside that run returns the same
+    // picture correctly. Asserting all four differ asserts something about the
+    // recorder rather than about seeking, and it failed exactly that way in CI
+    // on 1 September 2026 — three distinct positions out of four, on a tree
+    // that had passed the same job eight minutes earlier.
+    //
+    // What is true whatever the recorder did: two samples are the same picture
+    // **only if** they are also the same position. That catches a seek landing
+    // on a neighbouring frame that happens to share a first-white column, and
+    // it cannot be broken by a stalled capture.
+    assert.equal(
+      new Set(positions.signatures).size,
+      new Set(positions.seen).size,
+      `four frames gave ${new Set(positions.signatures).size} distinct pictures but ${new Set(positions.seen).size} distinct square positions — one of the two is not measuring the frame it thinks it is`
+    );
     for (const size of positions.sizes) {
       assert.ok(size > 200, `a frame encoded to ${size} bytes, which is not a picture`);
     }

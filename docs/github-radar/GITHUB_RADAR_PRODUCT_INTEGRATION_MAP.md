@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-170 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 170.
+171 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 171.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -165,7 +165,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-80 repositories.
+81 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -239,6 +239,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
+| [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [Unsloth](https://github.com/unslothai/unsloth) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Read only | model training |
 | [Valkey](https://github.com/valkey-io/valkey) | BSD-3-Clause | Research only | cache |

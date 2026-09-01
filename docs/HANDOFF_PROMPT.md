@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-170 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+171 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,101 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - Fifty-one links, one repository
+
+A message arrived carrying fifty-one URLs and asking for all of them to be added
+as repositories, routed into products, modules, systems and skills.
+
+**Fifty of them are Facebook.** Three `/share/v/` videos, forty-five `/share/r/`
+reels, two `/share/p/` posts. A reel is not a repository. There is no licence to
+read, no file count to take, nothing to add to `data/open-source-tools.ts` and
+nothing to integrate — and the links are behind Facebook's authentication, so
+their contents cannot be established from here either. Saying so is the only
+honest answer available; inventing fifty register records would be exactly the
+defect this repository is organised against.
+
+**One is a repository**, and it was reviewed properly.
+
+## `stratumauth/app` — blocked twice over
+
+`LICENSE` read 1 September 2026: **GNU General Public License version 3**, with
+the "or (at your option) any later version" grant, so GPL-3.0-or-later.
+
+Two independent blockers, and the second is the one a licence check alone would
+miss.
+
+**The licence.** GPLv3 obligations trigger on conveying the program or a
+derivative. The only way to use an Android authenticator is to ship it, and
+shipping is conveying — so adopting it would oblige releasing the derivative
+under the GPL, and this product's source is private.
+
+**The technology.** Measured rather than described: **7,182 files, of which 289
+are C# and 6,207 are icon PNGs**, targeting `net10.0-android` with a Wear OS
+companion project. SONARA One is an Express 4 CommonJS server with one
+production dependency and no mobile application. Every file would be a rewrite
+rather than a reuse, so the fit rules it out on its own before the licence does.
+
+The record is kept anyway, because the licence finding is worth having the next
+time somebody meets this project.
+
+## The buildable thing underneath
+
+The repository implements **RFC 6238 (TOTP)** and **RFC 4226 (HOTP)** — open
+standards nobody owns, of which this is one implementation among many. This
+application has **no two-factor authentication of any kind** today: nothing under
+`lib/`, `routes/` or `server.js` mentions TOTP, 2FA or MFA. That is a real gap,
+and it is reachable from the specifications with no dependency on this
+repository. Recorded in the register's `recommendedAction` so the next person
+finds the standard rather than the code.
+
+### 2026-09-01 - A test that asserted something about the recorder
+
+`sonara-industries` went red on #206 at `c4eaa44` — and `c4eaa44`'s tree is
+**byte-identical** to `5486d90`, which had passed the same job eight minutes
+earlier. Same tree, opposite result: nondeterminism, not a code difference.
+
+`tests/frames-come-out-of-a-real-video.test.js` records a real clip of a square
+moving left to right, seeks to four points, and asserted all four showed the
+square in four different places. It saw three.
+
+## Why it could fail without anything being broken
+
+The clip is captured in **real time**: a drawing loop with `setTimeout(35)`
+feeding `captureStream(25)`. On a loaded runner one of those sleeps overruns,
+the canvas holds one position across several captured frames, and the video
+genuinely contains a run of identical pictures. Sampling twice inside that run
+returns the same picture **correctly**.
+
+So "all four differ" was an assertion about the recorder, not about seeking —
+the thing the file exists to test. It was also measuring each frame by a single
+number: the column of the first white pixel, which two different pictures can
+share.
+
+## What it asserts now
+
+Three things, none of which a stalled capture can break:
+
+- The square has moved between the first sample and the last. **This is the
+  motivating bug**: a seek that silently does nothing hands back frame one every
+  time, and then it has not moved.
+- The positions are non-decreasing across all four, so it moved the way the
+  timestamps asked the whole way rather than only end to end.
+- The number of distinct **whole-frame signatures** equals the number of
+  distinct positions. Two samples are the same picture only if they are also the
+  same position — which catches a seek landing on a neighbour that happens to
+  share a first-white column, and is true whatever the recorder did.
+
+## Verified in both directions
+
+| applied to | old test | new test |
+| --- | --- | --- |
+| a seek that silently does nothing | red | **red** |
+| a stalled capture, two samples on one picture | **red** | green |
+
+The second row is the point: the flake was reproduced against the old assertion
+before the fix and against the new one after. The first row is the point of the
+file, and it still holds.
 
 ### 2026-09-01 - Where is Ada? Keep clicking.
 

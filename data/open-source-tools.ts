@@ -4646,6 +4646,36 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     blockedUses: ["producing a shippable artefact from a book this project does not own the rights to"],
     humanReviewRequired: true,
   },
+  {
+    name: "Stratum",
+    slug: "stratum-authenticator-app",
+    category: ["two-factor authentication", "TOTP/HOTP authenticator", "Android application", "reciprocal licence"],
+    useCase: ["reference only for how a TOTP authenticator is structured; the standards it implements are the reusable part, not this code"],
+    productFit: ["Internal Development"],
+    license: "GPL-3.0-or-later",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not vendor, adapt or translate any of it into this repository",
+      "if two-factor authentication is wanted here, implement RFC 6238 (TOTP) and RFC 4226 (HOTP) from the specifications, which are open standards nobody owns and which this repository is one implementation of",
+      "treat a UI or data-model shape copied from reading it as derivation, not inspiration",
+    ],
+    officialUrl: "https://stratumauth.com",
+    repoUrl: "https://github.com/stratumauth/app",
+    notes:
+      "LICENSE read 1 September 2026: GNU GENERAL PUBLIC LICENSE Version 3, with the \"either version 3 of the License, or (at your option) any later version\" grant, so GPL-3.0-or-later. Two independent blockers, and the second is the one a licence check alone would miss. First, the licence is reciprocal: GPLv3 obligations trigger on conveying the program or a derivative, and the only way to use an Android authenticator is to ship it, which is conveying -- so adopting it would oblige releasing the derivative under the GPL, and this product's source is private. Second, there is nothing here this codebase could run: measured 1 September 2026, 7,182 files, of which 289 are C# and 6,207 are icon PNGs, targeting net10.0-android with a Wear OS companion project. SONARA One is an Express 4 CommonJS server with one production dependency and no mobile application, so every file would be a rewrite rather than a reuse. Recorded because the licence finding is worth keeping even though the technology fit already rules it out on its own.",
+    safetyBoundaries: [
+      "no Stratum source copied, translated or restructured into this repository",
+      "any two-factor work here is written from the RFCs, with the specification cited rather than this repository",
+    ],
+    blockedUses: [
+      "incorporating any Stratum source into this repository",
+      "shipping any derivative of it without offering its source under the GPL",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
