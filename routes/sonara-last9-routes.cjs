@@ -21,6 +21,7 @@ const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
 const recordStatus = require("../lib/sonara-record-status.cjs");
 const recordEdit = require("../lib/sonara-record-edit.cjs");
+const changeLog = require("../lib/sonara-record-change-log.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -623,12 +624,19 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         if (!row) return notFound("That record is not in your business, or it has been removed.");
 
         const references = await loadReferences(config, org.organizationId, page);
+        // Shown here rather than on a page of its own: somebody is on this page
+        // because they are about to change something, and "a manager changed the
+        // price an hour ago" matters at exactly that moment.
+        const history = await changeLog.historyOf(
+          (table, query) => supabaseList(config, table, query),
+          { organizationId: org.organizationId, table: page.table, recordId }
+        );
         return res.status(200).type("html").send(ui.layout({
           title: page.title,
           eyebrow: "Business Builder operations",
           heading: page.title,
           body: page.body,
-          sections: [editFormCard(page, row, references, ui, req.query.edit_problem)],
+          sections: [editFormCard(page, row, references, ui, req.query.edit_problem), historyCard(history, ui)],
           actions: [
             ui.link(page.path, `All ${page.title.toLowerCase()}`),
             ui.link("/business-builder/owner", "Owner Dashboard"),
@@ -679,8 +687,16 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
         if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
 
-        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: said });
-        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+        // The column names rather than the labels, because the log is data and
+        // the labels are wording that will be rewritten.
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: Object.keys(wanted.patch) }
+        );
+        const told = logged.ok ? said : `${said} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: told, recorded: logged.ok });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(told)}`);
       });
     }
 
@@ -760,8 +776,20 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         // lie this codebase keeps finding.
         if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
 
-        const said = recordStatus.describeChange(before.status, wanted.status);
-        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, status: wanted.status, changed: said });
+        // Recorded after the change, because a log entry for a write that did
+        // not happen is worse than no entry. See lib/sonara-record-change-log.cjs
+        // for why a failed log is said out loud rather than swallowed: a log
+        // that silently drops what it could not write reads as complete, and
+        // somebody looking for a missing change concludes it never happened.
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "status", fields: ["status"] }
+        );
+        const said = logged.ok
+          ? recordStatus.describeChange(before.status, wanted.status)
+          : `${recordStatus.describeChange(before.status, wanted.status)} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, status: wanted.status, changed: said, recorded: logged.ok });
         return res.redirect(303, `${back}?status_done=${encodeURIComponent(said)}`);
       });
     }
@@ -2203,6 +2231,41 @@ function recordNoun(page) {
   if (title.endsWith("sses") || title.endsWith("ches") || title.endsWith("shes")) return title.slice(0, -2);
   if (title.endsWith("s")) return title.slice(0, -1);
   return title;
+}
+
+// What has happened to this record.
+//
+// Three states rather than two, like every other read on these pages: entries,
+// no entries, and **we could not tell**. A read that failed rendered as "nothing
+// has been changed" would tell somebody a definite thing about their own history
+// on the strength of a request that did not happen -- and this is the page where
+// they came to check exactly that before changing something themselves.
+function historyCard(history, ui) {
+  if (!history?.ok) {
+    return ui.card("Changes", "We could not read this record's history just now. That does not mean nothing has changed.");
+  }
+  const entries = history.entries || [];
+  if (!entries.length) {
+    return ui.card("Changes", "Nothing has been changed since this was created.");
+  }
+  const rows = entries
+    .map((entry) => {
+      const when = entry.when ? String(entry.when).slice(0, 16).replace("T", " ") : "at an unrecorded time";
+      return `<tr><td>${ui.escape(entry.what)}</td><td>${ui.escape(entry.who)}</td><td>${ui.escape(when)}</td></tr>`;
+    })
+    .join("");
+  return [
+    '<article class="card">',
+    "<h2>Changes</h2>",
+    // Said rather than left to be discovered. Somebody reading a history and
+    // finding no old value will otherwise assume it is missing rather than
+    // deliberately absent.
+    '<p class="fine">Which fields changed, and when. The values themselves are not kept here — these records hold contact details, and a second copy of them would be a second place erasure has to reach.</p>',
+    "<table><thead><tr><th>What</th><th>Who</th><th>When</th></tr></thead><tbody>",
+    rows,
+    "</tbody></table>",
+    "</article>"
+  ].join("");
 }
 
 function statusControl(page, row, options, ui) {

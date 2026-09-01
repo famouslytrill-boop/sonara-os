@@ -2,6 +2,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - Who changed it, now that anybody can
+
+The two changes above created something this schema had never needed. Until
+today nothing on the owner record pages could change a saved record, so there
+was nothing to log and the absence of a change log was not a gap. A status
+control on eleven pages and an edit form on twenty-five ended that — both behind
+`requireBusinessManager`, which is owners **and managers**. A business with two
+people can now have a price changed with no way to find out by whom.
+
+`record_change_log` is that record. It arrives now, because of those two
+changes, rather than having sat in the schema in anticipation of them.
+
+## It holds field names and no values
+
+That costs a real answer — "the price was 4500 and is now 450" is better than
+"somebody changed the price" — and it is refused for two reasons.
+
+These records hold people's contact details. A log with before-and-after values
+is a **second copy** of every customer's phone number and email, in a table with
+different retention and a different read path. `/account/data` says erasure here
+is a request a person handles rather than an automated wipe, so a second copy is
+a second place that person has to remember to clear, and the one they will not
+think of.
+
+And the question a business actually asks is *who changed this and when*. What
+it was before is answered by asking them; the log is what tells you who to ask.
+
+The property is enforced rather than intended. `record()` builds the row from a
+fixed list of six columns rather than spreading its argument, so a caller that
+starts handing it the record — the obvious way somebody adds "just the old
+value" later — writes nothing extra. The test asserts the exact key set, and the
+migration has no value column of any name.
+
+## A failed log is said out loud
+
+`record()` returns `{ ok }` and the route says so: *"Name updated. We could not
+record who changed it."* The change is already saved by then and must not be
+undone, so the only honest option left is to say both things. **A log that
+quietly drops the writes it could not make is worse than no log**, because it
+reads as complete — somebody looking for a change that is missing concludes it
+never happened.
+
+The history is on the edit page rather than a page of its own: somebody is there
+because they are about to change something, and "a manager changed the price an
+hour ago" matters at exactly that moment. It renders three states, not two — a
+read that failed says *"That does not mean nothing has changed"* rather than
+"nothing has been changed since this was created", which is a definite claim
+about their own history on the strength of a request that did not happen.
+
+## Verified by breaking it
+
+Eleven probes, each confirmed to fail the test **by name** before being reverted:
+saving an edit without recording it; saving a status change without recording it;
+swallowing a failed log; rendering a failed history read as an empty one;
+removing the history from the edit page; logging the field name with the value it
+was set to; letting an empty change be recorded; naming somebody for a change
+nobody was attributed to; dropping the array-length constraint; dropping row
+level security; and spreading the caller's argument into the row.
+
+One probe was written wrong and is worth recording: the first attempt at "put the
+values in the log" added a key the module ignores, so nothing leaked and the test
+correctly reported no leak. The probe was fixed rather than the test, and the
+property it was reaching for became its own assertion.
+
 ### 2026-09-01 - Two checks that had stopped being able to fail
 
 A sweep of all 252 test files for the first shape in
