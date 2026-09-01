@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 105 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 249 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 250 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -90,31 +90,7 @@ Run `pnpm run verify:launch`. It chains:
 - `pnpm run lint`
 - `pnpm run smoke:routes`
 - `pnpm run verify:db`
-- `pnpm run verify:env`
-- `pnpm run verify:config`
-- `pnpm run verify:api`
-- `pnpm run verify:stripe`
-- `pnpm run verify:tenant-tables`
-- `pnpm run verify:member-policies`
-- `pnpm run verify:applied-migrations`
-- `pnpm run verify:catalog-sync`
-- `pnpm run verify:catalog-doc`
-- `pnpm run verify:open-source`
-- `pnpm run verify:product-map`
-- `pnpm run verify:handoff`
-- `pnpm run verify:definer-exposure`
-- `pnpm run verify:unreferenced-modules`
-- `pnpm run verify:orphan-tables`
-- `pnpm run verify:selected-columns`
-- `pnpm run verify:stale-claims`
-- `pnpm run verify:doc-counts`
-- `pnpm run verify:research-copy`
-- `pnpm run verify:contrast`
-- `pnpm run verify:source-licence`
-- `pnpm run verify:growth-copy`
-- `pnpm run verify:csp`
-- `pnpm run verify:margins`
-- `pnpm run verify:migration-replay`
+- `pnpm run verify:gates`
 
 `pnpm` only. Never `npm`, never `npm audit fix`, never a `package-lock.json`.
 

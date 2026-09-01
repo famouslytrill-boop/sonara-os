@@ -32,6 +32,7 @@ const { createHash } = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
+const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "verify-applied-migrations.mjs");
@@ -148,6 +149,13 @@ describe("an applied migration cannot be edited", () => {
   it("is in the release chain, not just runnable by hand", () => {
     const scripts = require("../package.json").scripts;
     assert.ok(scripts["verify:applied-migrations"], "no verify:applied-migrations script");
-    assert.match(scripts["verify:launch"], /verify:applied-migrations/, "the check is not in verify:launch, so nothing runs it");
+    // Chain membership is asked of lib/sonara-release-chain.cjs, not of the string.
+    //
+    // `verify:launch` used to be one flat line, so matching it for a command
+    // name worked. Everything after `verify:db` now sits in `verify:gates` so
+    // CI can run the whole gate in one step, and five checks reported commands
+    // as missing from a chain that runs them -- accurate about the string,
+    // wrong about the thing they named.
+    assert.ok(chainCommands(scripts).includes("verify:applied-migrations"), "the check is not in the release chain, so nothing runs it");
   });
 });

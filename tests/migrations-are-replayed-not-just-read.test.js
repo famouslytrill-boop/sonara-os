@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const generator = require("../scripts/generate-catalog-sync-migration.cjs");
+const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
 const root = path.join(__dirname, "..");
 const migrationsDir = path.join(root, "supabase", "migrations");
@@ -23,7 +24,14 @@ describe("the migrations are executed somewhere, not only read", () => {
     it("is in the release chain", () => {
       const scripts = require("../package.json").scripts;
       assert.ok(scripts["verify:migration-replay"], "the command is not declared");
-      assert.match(scripts["verify:launch"], /verify:migration-replay/, "the command is not in verify:launch");
+      // Chain membership is asked of lib/sonara-release-chain.cjs, not of the string.
+    //
+    // `verify:launch` used to be one flat line, so matching it for a command
+    // name worked. Everything after `verify:db` now sits in `verify:gates` so
+    // CI can run the whole gate in one step, and five checks reported commands
+    // as missing from a chain that runs them -- accurate about the string,
+    // wrong about the thing they named.
+      assert.ok(chainCommands(scripts).includes("verify:migration-replay"), "the command is not in the release chain");
     });
 
     // A check whose skip path is the one that always runs is not a check.

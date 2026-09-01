@@ -28,6 +28,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "report-stale-claims.mjs");
@@ -85,6 +86,13 @@ describe("a document that checked something says when to check it again", () => 
 
   it("runs in the release chain", () => {
     const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-    assert.match(String(packageJson.scripts["verify:launch"] || ""), /verify:stale-claims/, "the check is not in verify:launch, so nothing runs it");
+    // Chain membership is asked of lib/sonara-release-chain.cjs, not of the string.
+    //
+    // `verify:launch` used to be one flat line, so matching it for a command
+    // name worked. Everything after `verify:db` now sits in `verify:gates` so
+    // CI can run the whole gate in one step, and five checks reported commands
+    // as missing from a chain that runs them -- accurate about the string,
+    // wrong about the thing they named.
+    assert.ok(chainCommands(packageJson.scripts || {}).includes("verify:stale-claims"), "the check is not in the release chain, so nothing runs it");
   });
 });

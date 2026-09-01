@@ -75,8 +75,30 @@ jobs:
       - name: Verify database and storage contracts
         run: pnpm run verify:db
 
-      # The only check in this repository that executes the migrations rather
-      # than reading them.
+      # Every release gate, in one step, from the same definition the release
+      # chain uses.
+      #
+      # This replaced four individual steps -- verify:config, verify:api,
+      # verify:open-source and verify:migration-replay -- and the reason is
+      # worth writing down rather than inferring from the diff.
+      #
+      # `verify:launch` is what this repository calls its gate: 31 commands, and
+      # docs/owner/WHAT-IS-LEFT.md quotes the number at whoever is deciding
+      # whether this is shippable. **Twenty-one of them ran in no workflow at
+      # all.** Among them verify:doc-counts, verify:source-licence, verify:csp,
+      # verify:margins, verify:orphan-tables and verify:stale-claims. A pull
+      # request could be green on every check GitHub showed while two thirds of
+      # the gate had never executed.
+      #
+      # That is not hypothetical. On 27 August two green pull requests merged
+      # into a main that was red on verify:doc-counts, and CI did not notice
+      # because CI does not run it. It surfaced only because the chain was run
+      # by hand afterwards.
+      #
+      # `verify:gates` is now the single definition of everything after
+      # verify:db, and `verify:launch` is defined in terms of it, so the two
+      # cannot drift into disagreeing. tests/the-release-gate-is-the-gate.test.js
+      # fails if a chain command is run by no workflow.
       #
       # SONARA_MIGRATION_REPLAY_REQUIRED turns "no PostgreSQL here" from a
       # notice into a failure. Locally the notice is right -- a contributor
@@ -84,19 +106,10 @@ jobs:
       # is the one that always runs is not a check, and CI is where that has to
       # be impossible. ubuntu-latest ships PostgreSQL 16; the script starts its
       # own throwaway cluster and removes it, so no service container is needed.
-      - name: Replay every migration into a throwaway PostgreSQL
+      - name: Run every release gate
         env:
           SONARA_MIGRATION_REPLAY_REQUIRED: "1"
-        run: pnpm run verify:migration-replay
-
-      - name: Verify launch configuration and route registry
-        run: pnpm run verify:config
-
-      - name: Verify OpenAPI drift contract
-        run: pnpm run verify:api
-
-      - name: Verify open-source and external repository controls
-        run: pnpm run verify:open-source
+        run: pnpm run verify:gates
 
       - name: Verify documentation links
         run: pnpm run test:docs
