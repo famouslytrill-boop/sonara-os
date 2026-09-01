@@ -63,6 +63,15 @@ describe("the two Stripe checks ask the same question", () => {
     // The property that broke. A summary printed unconditionally cannot be
     // telling the truth in both branches, because one of them skipped the work.
     const summaries = [...releaseCheck.matchAll(/console\.log\(\s*\n?\s*"\\nStripe configuration verified[^"]*"/g)];
+    // The script has two summary branches -- one for the run that compared live
+    // prices and one for the run that could not. Without this the loop below
+    // asserts nothing the moment somebody rewords the sentence it matches on,
+    // and the check goes green over exactly the defect it was written for: a
+    // summary printed unconditionally that claims work which was skipped.
+    assert.ok(
+      summaries.length >= 2,
+      `only ${summaries.length} summary lines parsed from scripts/verify-stripe-env.mjs; this check has gone blind`
+    );
     for (const summary of summaries) {
       assert.ok(
         /including live prices/.test(summary[0]) || /offline/.test(summary[0]),

@@ -17,6 +17,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
 const ROOT = path.join(__dirname, "..");
 const STYLESHEET = path.join(ROOT, "public", "sonara-application-ui.css");
@@ -119,9 +120,12 @@ describe("the small print can be read", () => {
     // until somebody runs the chain instead of the tests.
     const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
     assert.ok(manifest.scripts["verify:contrast"], "there is no verify:contrast script");
-    assert.match(
-      manifest.scripts["verify:launch"],
-      /verify:contrast/,
+    // Asked of lib/sonara-release-chain.cjs, not of the string. Everything
+    // after verify:db now sits in verify:gates so CI can run the whole gate in
+    // one step, and matching the literal chain reported this check as missing
+    // from a chain that runs it.
+    assert.ok(
+      chainCommands(manifest.scripts).includes("verify:contrast"),
       "the contrast check is not in the release chain, so a failing colour would ship"
     );
   });

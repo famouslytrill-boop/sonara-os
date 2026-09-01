@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-165 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 165.
+170 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 170.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -10,12 +10,13 @@ Generated from `data/open-source-tools.ts` by `scripts/generate-product-integrat
 
 Create, launch, run and manage a business.
 
-50 repositories.
+51 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [@vanillaes/csv](https://github.com/vanillaes/csv) | MIT | Read only | CSV parsing |
 | [ads-proposals](https://github.com/AmanLegendDev/ads-proposals) | No licence file. Default copyright applies, which means all righ | Blocked | proposal presentation |
+| [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
@@ -69,10 +70,11 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-41 repositories.
+42 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
+| [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
@@ -119,10 +121,11 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-34 repositories.
+35 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
+| [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Content Studio (naqashafzal)](https://github.com/naqashafzal/AI-Content-Studio) | MIT | Adapt after review | content generation workflow |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [AWS Generative AI Use Cases](https://github.com/aws-samples/generative-ai-use-cases) | MIT-0 | Adapt after review | AI application patterns |
@@ -162,11 +165,13 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-75 repositories.
+80 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [500 AI Agents Projects](https://github.com/ashishpatel26/500-AI-Agents-Projects) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Research only | link directory |
+| [Academic Research Skills](https://github.com/Imbad0202/academic-research-skills) | Creative Commons Attribution-NonCommercial 4.0 International (CC | Blocked | Claude Code skills |
+| [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | course |
 | [Archon](https://github.com/coleam00/Archon) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | AI coding harness |
 | [authentik](https://github.com/goauthentik/authentik) | MIT core, with CC BY-SA 4.0 docs and a separate enterprise licen | Research only | identity provider |
@@ -176,6 +181,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
 | [Better Auth](https://github.com/better-auth/better-auth) | MIT | Research only | authentication library |
+| [book-to-skill](https://github.com/virgiliojr94/book-to-skill) | MIT | Adapt after review | agent skill packaging |
 | [BoxyHQ SaaS Starter Kit](https://github.com/boxyhq/saas-starter-kit) | Apache-2.0 | Adapt after review | enterprise SaaS patterns |
 | [camofox-browser](https://github.com/redf0x1/camofox-browser) | MIT | Blocked | browser automation |
 | [Casdoor](https://github.com/casdoor/casdoor) | Apache-2.0 | Research only | identity provider |
@@ -192,6 +198,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
 | [Directus](https://github.com/directus/directus) | MSCL-1.0-GPL (Monospace Sustainable Core License 1.0) | Research only | headless CMS |
 | [DSPy](https://github.com/stanfordnlp/dspy) | MIT | Read only | structured model programming |
+| [Ecommerce Intelligence APIs](https://github.com/cporter202/ecommerce-intelligence-apis) | MIT | Blocked | API directory |
 | [Fenix AI Studio](https://github.com/FenixStudioAU/FenixAIStudio) | AGPL-3.0, read from the repository sidebar and restated in its R | Read only | local model workstation |
 | [Figranium](https://github.com/figranium/figranium) | GPL-3.0, read from the GitHub API's detected license.spdx_id on  | Read only | browser automation |
 | [Flox](https://github.com/flox/flox) | GPL-2.0, read from the GitHub API's detected license.spdx_id on  | Read only | developer environments |
@@ -226,6 +233,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Public APIs](https://github.com/public-apis/public-apis) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Read only | directory |
 | [Public Suffix List](https://github.com/publicsuffix/list) | MPL-2.0 | Research only | data list |
 | [RAGFlow](https://github.com/infiniflow/ragflow) | Apache-2.0 noted upstream; bundled service and dependency licens | adapter_built | retrieval augmented generation |
+| [Real Estate Data APIs](https://github.com/cporter202/real-estate-data-apis) | MIT | Blocked | API directory |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [Rust programming references](https://github.com/rust-lang/rust) | Reference material licenses vary and require source-level review | Read only | high-performance systems |
@@ -289,4 +297,4 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | [The Code — Developer Resources (newsletter landing page)](https://learn-code-tiles.lovable.app/) | All rights reserved. The page carries \ | Blocked | see the register |
 | [Unity ML-Agents Toolkit](https://github.com/Unity-Technologies/ml-agents) | NOASSERTION: GitHub detects a licence file it cannot classify. U | Licence unresolved | see the register |
 | [Vibe-Trading agent](https://github.com/HKUDS/Vibe-Trading) | MIT | Research only | automated trading |
-| [XenDroid Xbox 360 emulator](https://github.com/deivid22srk/XenDroid) | No licence declared | Blocked | see the register |
+| [XenDroid Xbox 360 emulator](https://example.invalid/blocked) | No licence declared | Blocked | see the register |

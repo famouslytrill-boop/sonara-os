@@ -2,6 +2,555 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - Where is Ada? Keep clicking.
+
+The twenty-seven owner record pages list a hundred rows at a time with
+"Previous" and "Next" and nothing else. A business with eight hundred customers
+looking for one of them pages through eight screens, reading a hundred names
+each time. The product's answer to *where is Ada* was **keep clicking**.
+
+`/search` exists and covers twenty of these tables, and it is not the same
+thing: a different page reached from a different link, returning ten rows per
+table across every table at once. It answers "is this person anywhere in my
+records". It does not answer "show me the customers whose name has Ada in it",
+which is the question somebody standing on the customers page is asking.
+
+## The columns come from the search module
+
+`lib/sonara-record-filter.cjs` reads `SEARCHABLE` rather than holding a second
+list, because a second list would be the copy that drifts — and the drift would
+show up as a filter box quietly matching fewer columns than the search page over
+the same records, which nobody notices because both return rows. The test
+asserts column-for-column equality on all twenty.
+
+The seven tables that cannot be filtered get **no box and a reason**, taken from
+`NOT_SEARCHABLE` where it was already written: *"A shift is found by who and
+when, not by text."* That is a fact about shifts rather than a limitation of the
+product, and a control that would find nothing is worse than its absence.
+
+## Two things that fail silently once a filter exists
+
+**The count.** The caption comes from a separate `count=exact` request. Left
+unfiltered it says "812 records" above three rows — a bigger lie than no caption.
+`supabaseCount` now takes the same clause as the list, and the caption says
+*"3 records match "ada""* rather than "3 records", because the second is true and
+useless: the reader cannot tell whether they have three customers or three
+matches.
+
+**The pager.** `?page=2` without the term drops it, so "Next" takes somebody from
+three matching customers to a hundred arbitrary ones with nothing on the page
+saying anything changed.
+
+And the empty row: *"You have no customers yet"* is false when the business has
+eight hundred and none match what was typed.
+
+A one-letter term is treated as no filter and the page says why — one letter
+matches almost everything — while keeping what was typed in the box, so it does
+not look like the request never happened. The term is escaped through the search
+module's own escaper: a bare `,` or `)` would close the `or=(...)` list early and
+silently change which columns are matched.
+
+## A duplicate header this exposed
+
+The customers table was rendering two columns headed **Status** — its own, and
+the status control added earlier today. The control's header is now "Change
+status". Found by reading the HTML in a failing assertion rather than by looking
+for it.
+
+## Verified by breaking it
+
+Ten probes, each confirmed to fail the test **by name**: never sending the filter
+to the query; counting the whole table while showing a filtered list; dropping
+the filter from the pager; saying the business has no records when none match;
+removing the box; offering a box on a page whose records are not found by text;
+accepting a one-letter term; not escaping the term; holding a second column list;
+and calling a count that could not be read a count of zero.
+
+### 2026-09-01 - Who changed it, now that anybody can
+
+The two changes above created something this schema had never needed. Until
+today nothing on the owner record pages could change a saved record, so there
+was nothing to log and the absence of a change log was not a gap. A status
+control on eleven pages and an edit form on twenty-five ended that — both behind
+`requireBusinessManager`, which is owners **and managers**. A business with two
+people can now have a price changed with no way to find out by whom.
+
+`record_change_log` is that record. It arrives now, because of those two
+changes, rather than having sat in the schema in anticipation of them.
+
+## It holds field names and no values
+
+That costs a real answer — "the price was 4500 and is now 450" is better than
+"somebody changed the price" — and it is refused for two reasons.
+
+These records hold people's contact details. A log with before-and-after values
+is a **second copy** of every customer's phone number and email, in a table with
+different retention and a different read path. `/account/data` says erasure here
+is a request a person handles rather than an automated wipe, so a second copy is
+a second place that person has to remember to clear, and the one they will not
+think of.
+
+And the question a business actually asks is *who changed this and when*. What
+it was before is answered by asking them; the log is what tells you who to ask.
+
+The property is enforced rather than intended. `record()` builds the row from a
+fixed list of six columns rather than spreading its argument, so a caller that
+starts handing it the record — the obvious way somebody adds "just the old
+value" later — writes nothing extra. The test asserts the exact key set, and the
+migration has no value column of any name.
+
+## A failed log is said out loud
+
+`record()` returns `{ ok }` and the route says so: *"Name updated. We could not
+record who changed it."* The change is already saved by then and must not be
+undone, so the only honest option left is to say both things. **A log that
+quietly drops the writes it could not make is worse than no log**, because it
+reads as complete — somebody looking for a change that is missing concludes it
+never happened.
+
+The history is on the edit page rather than a page of its own: somebody is there
+because they are about to change something, and "a manager changed the price an
+hour ago" matters at exactly that moment. It renders three states, not two — a
+read that failed says *"That does not mean nothing has changed"* rather than
+"nothing has been changed since this was created", which is a definite claim
+about their own history on the strength of a request that did not happen.
+
+## Verified by breaking it
+
+Eleven probes, each confirmed to fail the test **by name** before being reverted:
+saving an edit without recording it; saving a status change without recording it;
+swallowing a failed log; rendering a failed history read as an empty one;
+removing the history from the edit page; logging the field name with the value it
+was set to; letting an empty change be recorded; naming somebody for a change
+nobody was attributed to; dropping the array-length constraint; dropping row
+level security; and spreading the caller's argument into the row.
+
+One probe was written wrong and is worth recording: the first attempt at "put the
+values in the log" added a key the module ignores, so nothing leaked and the test
+correctly reported no leak. The probe was fixed rather than the test, and the
+property it was reaching for became its own assertion.
+
+### 2026-09-01 - Two checks that had stopped being able to fail
+
+A sweep of all 252 test files for the first shape in
+`.claude/skills/checks-that-cannot-lie`: a loop over a derived collection with
+nothing asserting the collection is non-empty. 371 such loops; the great
+majority are already guarded, several with the exact "this check has gone blind"
+wording. **Two were not, and both are the sharpest sub-shape — a parser that
+would silently stop matching.**
+
+**`stripe-checks-agree-with-each-other`** parses the two summary lines out of
+`scripts/verify-stripe-env.mjs` and asserts each says which half of the check
+ran. Rewording "Stripe configuration verified" to anything else drops the match
+count to zero and the loop then asserts nothing — green, over precisely the
+defect the test was written for: a summary printed unconditionally that claims
+work which was skipped.
+
+**`dashboard-setup-doc`** scans the checklist for Price IDs and asserts none
+carries the capital-I-for-lowercase-l transcription error that actually
+happened. A checklist with no Price IDs in it satisfied that loop while proving
+nothing.
+
+Both now assert the population first. Verified the way this file asks: the two
+mutations above were applied against the **old** tests and both stayed green,
+then against the new ones and both went red naming the test and saying the check
+had gone blind.
+
+## Why no new release-chain command came out of this
+
+The sweep is a heuristic, and shipping it as a gate would have meant either a
+green light that tolerates 42 unguarded `matchAll` loops or a rule with dozens of
+exemptions. Most of those 42 are false positives: the collection is accumulated
+across files inside a helper and the guard sits on the accumulated total under a
+different name. A check too weak to catch the bug it was written for is the sixth
+shape in that skill, so it was not shipped. The method is recorded here instead —
+scan `tests/` for `for (const x of <name>)` and `<name>.forEach(`, then look for
+`<name>.length` anywhere in the same file — and is worth rerunning by hand.
+
+### 2026-09-01 - A record you cannot correct is a record you cannot trust
+
+Twenty-six of the twenty-seven owner record pages declare a create form. **None
+of them could change a saved record.**
+
+A customer's phone number entered with a digit missing, a quote priced at 450
+instead of 4500, a booking put against the wrong service — the only recourse in
+the product was to create a second record and leave the wrong one sitting there.
+An address book with two entries for the same person, one of which cannot be
+reached, is **worse** than one with a single wrong entry, because now nobody
+knows which is current.
+
+Twenty-five pages now have `GET {path}/:recordId/edit` and `POST {path}/:recordId`,
+and every row links to its own edit page. The two that do not are recorded rather
+than forgotten: `/business-builder/owner/costs` declares no form, and
+`/business-builder/owner/time` names its own action — clocking in is not "create
+a time entry with these values", because the server stamps the time.
+
+## The patch is built from the declaration, not filtered from the body
+
+`lib/sonara-record-edit.cjs` reads the page's own field declaration and writes
+only what it names. That is the security property rather than a tidiness one:
+the patch goes out with the service role key, which bypasses row level security,
+so a body carrying `organization_id` would otherwise be a way to move a record
+between businesses. Building from a fixed list means a new attack name has
+nothing to land on. The test posts `organization_id`, `id` and `created_at` and
+asserts the patch keys are exactly `["name"]`.
+
+Only fields that **differ from the row as read** are sent. A patch of everything
+declared would overwrite a column somebody else edited in the seconds since the
+form loaded, with a value the person saving never looked at.
+
+## Three bugs found while building it, each the same shape
+
+**Comparing by prefix.** `same()` treated a stored value starting with the
+submitted one as unchanged, to cope with a timestamp read back carrying a zone
+the input never showed. That made shortening any text a no-op: correcting
+"Ada L" to "Ada" was reported as saved and wrote nothing. The prefix rule is now
+restricted to `date` and `datetime-local`.
+
+**A reference whose picker did not load.** The select rendered with no current
+value, so saving the form would clear a reference nobody touched. The record's
+existing choice is now always an option, labelled "The one already chosen", so
+blank is a decision rather than an accident.
+
+**An empty form over a failed read.** A read that failed is not a record that is
+missing, and an empty form invites somebody to retype a record that is still
+there and save the blanks over it. The edit page answers 502 and renders no form.
+
+Blank clears a column rather than writing `""`, because "" and "not recorded"
+are different answers. Nothing different sends no PATCH at all and says
+"Nothing was different, so nothing was changed" — the third outcome, neither
+failure nor save.
+
+## Verified by breaking it
+
+Twelve probes, each confirmed to fail the test **by name** before being reverted:
+registering the edit page only for pages with line items; rendering the form
+empty; unlinking it from the row; rendering a form over a failed read; patching
+every declared field; comparing text by prefix; writing a blank as `""`; building
+the patch from the body; letting a required field be emptied; accepting a select
+value the form does not offer; sending an empty patch and calling it a save;
+dropping the current reference when its picker did not load.
+
+### 2026-09-01 - Twenty-seven record pages could create and read. None could change.
+
+Business Builder has twenty-seven owner record pages. Every one of them could
+create a record and read it back, and **not one of them could change anything.**
+
+Eleven declare a `status` select in their create form — draft, sent, accepted,
+confirmed, received, partially_received, no_show — and every one of those values
+was fixed at the moment the record was typed in.
+
+That is not a missing convenience, because three places in this product tell
+somebody to do the thing the product does not offer:
+
+- `lib/sonara-quote-conversion.cjs`, refusing to make an invoice: *"Mark it
+  accepted once the customer says yes, and it can become an invoice."*
+- The public booking page, to a stranger who has just booked: *"A request is not
+  an appointment until the business accepts it."*
+- `lib/sonara-booking-notice.cjs`, to the business: *"Not confirmed until you
+  accept it."*
+
+The first matters most. Quote → invoice is gated on `accepted`, so invoices, the
+payments recorded against them, the settlement, the receivables page and the
+invoice-paid notification wired two days ago were **all downstream of a change
+nobody could make**.
+
+## The options come from the page, not from a list here
+
+Each table has its own check constraint and its own vocabulary. The create form
+already declares exactly those values and the database enforces them, so
+`lib/sonara-record-status.cjs` reads the page's own declaration and validates
+against it. A hand-written list would be the third copy and the first to drift.
+
+It deliberately does not decide whether a transition makes sense — `paid` back to
+`draft` is a business correcting a mistake, and a workflow engine that has to be
+argued with is how people end up keeping the real records somewhere else. And it
+does not touch money: marking an invoice `paid` changes a label, writes no
+payment, and `lib/sonara-invoice-settlement.cjs` still computes what is owed from
+`customer_invoice_payments` alone. The two are independent on purpose.
+
+## The bug this shipped with for about an hour
+
+The first version registered the endpoint inside the loop over pages that *have
+line items*. That is six pages. **Quotes and bookings — the two records the whole
+change exists for — were among the five that got no endpoint at all.**
+
+It was found by asking the running app which routes it had, and that is now what
+the test does: `tests/a-record-status-can-be-changed.test.js` iterates every page
+where `recordStatus.hasStatus(page)` is true, rather than the two it was written
+for, and asserts there are at least eight of them so it cannot pass by measuring
+an empty list.
+
+The control now lives in exactly one place per page: the card on the detail page
+where a detail page exists, the row on the list page where it does not.
+
+## Verified by breaking it
+
+Six probes, each confirmed to fail the test **by name** before being reverted:
+
+| broken | test that went red |
+| --- | --- |
+| register the route only for pages with line items (the original bug) | gives every page that declares a status somewhere to change it |
+| render no control on the list page | renders the control on a page an owner can actually open |
+| drop the organization filter from the write | filters the read and the write by organization, not by id alone |
+| accept any status the caller types | refuses a status the page does not offer, and writes nothing |
+| skip the read, so another business's record is written to | will not change a record belonging to another business |
+| call an empty PATCH result a saved change | does not report a change when the write matched nothing |
+
+The last one is the shape this repository keeps finding: PostgREST answers a
+PATCH that matched no row with `200` and an empty list. Reporting that as a saved
+change is a green light over a write that did not happen, so the route refuses
+`404` when the returned list is empty.
+
+`supabasePatchScoped` filters on `organization_id` as well as `id`. The read
+above it already proved ownership, so the second filter changes no outcome today
+— it is there because the service key bypasses row level security, and the day
+somebody shortens that read is the day the only tenant boundary on the write
+disappears silently.
+
+The owner pressing a button they can see is the owner acting, not an agent, so
+`lib/sonara-agent-authority.cjs` is not involved. It governs what runs without a
+person.
+
+### 2026-09-01 - Two thirds of the release gate never ran in CI
+
+`verify:launch` is what this repository calls its gate, and
+`docs/owner/WHAT-IS-LEFT.md` quotes its length at whoever is deciding whether
+this is shippable. **Twenty-one of its thirty-one commands ran in no workflow at
+all.**
+
+Among them `verify:doc-counts`, `verify:source-licence`, `verify:csp`,
+`verify:margins`, `verify:orphan-tables`, `verify:stale-claims`,
+`verify:contrast`, `verify:env` and thirteen more. A pull request could be green
+on every check GitHub displayed while two thirds of the gate had never executed.
+
+This is the recurring defect at the largest scale it comes in, and it had
+already cost something: on 27 August two green pull requests merged into a main
+that was red on `verify:doc-counts`, and CI did not notice **because CI does not
+run it**. It surfaced only because the chain was run by hand afterwards.
+
+## One definition, one CI step
+
+`verify:gates` is now everything after `verify:db`, and `verify:launch` is
+defined *in terms of it* rather than repeating it. CI runs `verify:gates` as a
+single step, replacing four commands it used to name by hand. The workflow and
+the chain cannot drift into disagreeing about what a gate is, because there is
+one list.
+
+`tests/the-release-gate-is-the-gate.test.js` fails when a chain command runs in
+no workflow, resolving what a workflow runs *through package.json* so a step
+running one script that runs another counts the inner one.
+
+## Five checks that measured the shape of the definition
+
+Nesting the chain broke five checks at once, and every one of them reported
+something that looked like a real finding:
+
+- `verify-launch-config.mjs` — `verify:config` missing from a chain that runs it
+- `verify-doc-counts.mjs` — the chain as **7 commands**, against a document
+  correctly saying 31
+- `an-applied-migration-cannot-be-edited`, `dated-claims-say-when-to-recheck`,
+  `the-small-print-can-be-read` — each "the check is not in verify:launch"
+- `no-check-claims-more-than-it-ran` — *"only 3 scripts parsed out of
+  verify:launch; this check has gone blind"*
+
+None was wrong about the string. All were **measuring the shape of the
+definition rather than what it does** — this repository's recurring defect in
+its least obvious disguise, where the check is accurate and the thing it
+measures is not the thing it names.
+
+The last one is worth keeping: its blindness guard is what turned a silent hole
+into a two-minute fix. It refused to check three scripts and pass.
+
+`lib/sonara-release-chain.cjs` is the one implementation now — six call sites
+had grown their own, and a seventh would have been the seventh to break. Pure
+groupings are excluded from the count by construction, so `verify:gates` does
+not inflate a figure that is supposed to mean "checks that run": **34**, up from
+31, because expanding the nesting also reached `verify:supabase-contract`,
+`verify:agent-sync` and `verify:customer-ready`, which always ran and were never
+counted.
+
+Three falsification probes, each failing by name: CI running something other
+than the gates; the gates inlined back into the chain; and CI dropping
+`SONARA_MIGRATION_REPLAY_REQUIRED`.
+
+Suite 3,336 -> 3,341. `verify:launch` green end to end.
+
+### 2026-09-01 - Five ticks that did nothing, and one that does something now
+
+`/account/notifications` offered six notification topics as six identical
+ticked boxes. **One of them was wired.** A person could tick "A job is marked
+finished", grant permission, and wait for ever.
+
+`job_finished` was the sharpest of the five, because **this application has no
+jobs.** No jobs table, no job record page, nowhere a job could be marked
+finished. The topic named a feature that does not exist. `booking_reminder`
+needs a scheduler nothing runs, `payment_failed` has no handler, and
+`quote_accepted` changes through the generic record editor with nothing
+watching it.
+
+## `booking_made`, wired
+
+`POST /book/:slug` is the one place in this application where a **stranger**
+writes a row, and the one nobody is watching when it happens: the request sits
+at `requested` until a person opens the page. That makes it the event a booking
+notification exists for, and it is now sent.
+
+Simpler than the invoice notice on purpose. That one computes a settlement twice
+because "the invoice is paid" is a state that stays true and would re-announce
+itself; **a booking request is not a state, the insert is the event**, so there
+is no before-and-after here and adding one would be ceremony.
+
+Three rules carried over unchanged, each for the same reason as before: awaited,
+because an un-awaited fetch in a serverless function silently never leaves; its
+result dropped, because the booking is saved either way; and it cannot throw,
+which matters more here than anywhere else — the person waiting on that response
+is a stranger who did nothing wrong.
+
+**No contact details in the payload.** A push is decrypted by the browser and
+rendered by the operating system: notification history, lock screen, whatever
+the OS syncs. The name and the service, because without them the notification
+says only that something happened; the email and phone stay behind the session,
+one tap away, which is where somebody would act on them anyway.
+
+## Two lists, because one was a promise the product did not keep
+
+`TOPICS` is what a subscription may **store** — narrowing it would silently
+invalidate subscriptions people already made. `SENDING_TOPICS` is what a page may
+honestly **offer**. A topic nothing sends now renders disabled with a sentence
+saying so, rather than as a tick that does nothing.
+
+Listed rather than hidden, deliberately: a greyed row with a reason tells
+somebody what this product does and does not do yet; an absent row tells them
+nothing.
+
+Two hand-maintained lists is how the first one came to be wrong, so
+`tests/a-notification-topic-cannot-be-offered-with-nothing-to-send-it.test.js`
+**derives the second from the source** — every entry must appear as a `topic:`
+argument to a `notify()` call in `lib/` or `routes/`, with comments stripped
+first so a topic named in a sentence explaining why it is *not* wired cannot
+count as wiring it. It gates both directions: claiming a topic is sent when
+nothing sends it, and wiring one without offering it.
+
+## What lint caught that would have reached a customer
+
+The first draft passed a bare `organizationId` into the announcement. There is
+no such variable in that handler — it is `page.organization_id`. `no-undef`
+caught it. Without that, **every public booking would have thrown after the row
+was already written**, and a stranger would have seen an error page for a
+booking that saved. Guarded by a test now, both directions.
+
+Worth recording that my own `&&` chain hid it for one commit: `pnpm run lint |
+tail -4 && git commit` takes `tail`'s exit status, not eslint's, so a failing
+lint still ran the commit.
+
+Eight falsification probes, each failing by name: a dead topic claimed as
+sending; a wired topic dropped from what is offered; the page offering a dead
+topic as a live tick; contact details in the payload; the announcement
+un-awaited; the bare `organizationId` restored; a broken date printed rather
+than omitted; and one shared tag collapsing two bookings into one.
+
+Suite 3,313 -> 3,336. `verify:launch` green end to end.
+
+### 2026-09-01 - A registered repository that stopped existing
+
+`external-repository-health` went red on #207 naming two records, and **neither
+was one of the five that PR adds**. Both predate the branch and are present on
+`main`.
+
+`deivid22srk/XenDroid` has been removed from GitHub. Confirmed twice, because
+one 404 is not a fact here: the workflow's API call answered 404, and
+`git ls-remote` through a separate path found nothing either. That pair is what
+distinguishes a deleted repository from a rate limit or a scoped token, and this
+session gets a 404 from `api.github.com` for every repository outside its own
+scope. `BryanTheLai/RestaurantProject` is only a warning — archived, still
+there.
+
+Fixed with the sentinel the check already understands: `repoUrl` becomes
+`https://example.invalid/blocked`, which requires `integrationStatus: "blocked"`
+and which XenDroid already was. `officialUrl` still points at where the
+repository was.
+
+**The record stays.** Deleting it would erase the finding — that the project had
+no licence file across three branches and five filenames, so it was all rights
+reserved — and the next person to meet it would redo a check somebody already
+did. Leaving the live URL would keep the health workflow red for everyone, on a
+repository nobody can fix. The verdict is worth keeping; the unanswerable
+question is not.
+
+Written into `.claude/skills/reviewing-an-outside-repository/` under "When a
+registered repository disappears", including the second-path confirmation,
+because the tempting move on a red health run is to delete the row.
+
+### 2026-08-27 - Five repositories from a feed, and the licence class nobody was watching
+
+Five GitHub repositories arrived as social-media screenshots. All five are now
+in `data/open-source-tools.ts`, 165 records to 170. Every one was **cloned and
+its LICENSE read**, because a screenshot shows what a post claims and not what a
+repository grants.
+
+Three of the five turned out to be something other than advertised.
+
+**`Imbad0202/academic-research-skills` is CC BY-NC 4.0, not MIT.** It was
+submitted as a Claude skill library — 44.3k stars, 3.5k forks, a
+`.claude-plugin` directory, 2,581 files. NonCommercial means "not primarily
+intended for or directed towards commercial advantage or monetary
+compensation". SONARA One is sold on paid plans, so every use this product would
+make of it is the use the licence withholds. Blocked, and the record says
+plainly that no internal review can unblock it — only the author relicensing
+can.
+
+**Two "curated API directories" are affiliate placement lists.**
+`ecommerce-intelligence-apis`: 2,273 of 2,283 catalogue links carry an `?fpr=`
+parameter. `real-estate-data-apis`: 1,090 of 1,096. Two codes, `p2hrc6` and
+`chris69`, and both files record in their own first line that they are synced
+from `cporter202/API-mega-list`. The licences are clean MIT; the problem is
+disclosure, and it is invisible in a screenshot. Several listed products are
+bulk B2B email scrapers, which AGENTS.md rules out on consent grounds
+independently.
+
+The other two are what they say. `agentic-ai-starters` is MIT and contains no
+executable code at all — 57 markdown files, twelve starters of README /
+architecture / prompts / stack — which makes it reference-only as a fact rather
+than as a caution. `virgiliojr94/book-to-skill` is MIT and genuinely useful, with
+one boundary worth recording: **a tool's licence says nothing about the rights in
+what you feed it**, and distilling a purchased book into a redistributable skill
+is a copyright question about the book.
+
+## The gap in the register's own checks
+
+`tests/open-source-licence-terms.test.js` gated reciprocal licences and
+undeclared ones. It had nothing for **NonCommercial** or **source-available**,
+and both are strictly worse for this product than reciprocal. Reciprocal has a
+price: release the source. These have no price at all — no term this project can
+accept unlocks them.
+
+So the CC BY-NC repository could have been marked an adaptation source and every
+existing check would have stayed green. Two patterns added, three assertions,
+and the blindness guard extended so they cannot pass over a register that stops
+containing anything they match.
+
+Probes, each failing by name: the CC BY-NC record marked
+`optional_adapter_after_review`; the same record marked
+`allowed_after_review` for commercial use; and the existing ELv2 record marked
+`adapter_built`.
+
+## A skill for the thing that keeps happening
+
+`.claude/skills/reviewing-an-outside-repository/` is the procedure, written down
+because this is the second time a screenshot and a licence have disagreed — the
+Context Mode record was the first, advertised as open source and actually
+Elastic License 2.0.
+
+It carries the parts that are easy to get wrong: `api.github.com` answers 403
+for repositories outside this session's scope and that is not the repository
+being missing; handles are misread from screenshots (`Imbad0202` was read as
+`lmbad0202`, capital I against lowercase l, and every probe failed until it was
+searched for); and the two grep commands that turn "curated directory" into
+2,273 of 2,283.
+
+Suite 3,311 -> 3,313. Register 165 -> 170. `verify:launch` green end to end.
+
 ### 2026-08-27 - Two green pull requests that merged into a red main
 
 `verify:doc-counts` failed on `main` immediately after #205 and #204 were

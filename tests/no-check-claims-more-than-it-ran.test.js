@@ -32,9 +32,15 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), 
 
 // The chain itself, read rather than restated -- a script added to verify:launch
 // is covered here without anybody remembering to add it.
-const LAUNCH = String(packageJson.scripts?.["verify:launch"] || "");
-const chainScripts = [...LAUNCH.matchAll(/pnpm run ([a-z:-]+)/g)]
-  .map((match) => String(packageJson.scripts?.[match[1]] || ""))
+// Expanded rather than matched. Reading `verify:launch` for `pnpm run` names
+// found three of them once everything after verify:db moved into
+// `verify:gates` -- and this file's own blindness guard caught it, reporting
+// "only 3 scripts parsed out of verify:launch; this check has gone blind"
+// rather than quietly checking three scripts and passing. That guard is the
+// reason this was a two-minute fix instead of a silent hole.
+const { chainCommands } = require(path.join(root, "lib", "sonara-release-chain.cjs"));
+const chainScripts = chainCommands(packageJson.scripts || {})
+  .map((name) => String(packageJson.scripts?.[name] || ""))
   .map((command) => command.match(/scripts\/([A-Za-z0-9._-]+\.(?:mjs|cjs|js))/)?.[1])
   .filter(Boolean);
 
