@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-08-27 - Five repositories from a feed, and the licence class nobody was watching
+
+Five GitHub repositories arrived as social-media screenshots. All five are now
+in `data/open-source-tools.ts`, 165 records to 170. Every one was **cloned and
+its LICENSE read**, because a screenshot shows what a post claims and not what a
+repository grants.
+
+Three of the five turned out to be something other than advertised.
+
+**`Imbad0202/academic-research-skills` is CC BY-NC 4.0, not MIT.** It was
+submitted as a Claude skill library — 44.3k stars, 3.5k forks, a
+`.claude-plugin` directory, 2,581 files. NonCommercial means "not primarily
+intended for or directed towards commercial advantage or monetary
+compensation". SONARA One is sold on paid plans, so every use this product would
+make of it is the use the licence withholds. Blocked, and the record says
+plainly that no internal review can unblock it — only the author relicensing
+can.
+
+**Two "curated API directories" are affiliate placement lists.**
+`ecommerce-intelligence-apis`: 2,273 of 2,283 catalogue links carry an `?fpr=`
+parameter. `real-estate-data-apis`: 1,090 of 1,096. Two codes, `p2hrc6` and
+`chris69`, and both files record in their own first line that they are synced
+from `cporter202/API-mega-list`. The licences are clean MIT; the problem is
+disclosure, and it is invisible in a screenshot. Several listed products are
+bulk B2B email scrapers, which AGENTS.md rules out on consent grounds
+independently.
+
+The other two are what they say. `agentic-ai-starters` is MIT and contains no
+executable code at all — 57 markdown files, twelve starters of README /
+architecture / prompts / stack — which makes it reference-only as a fact rather
+than as a caution. `virgiliojr94/book-to-skill` is MIT and genuinely useful, with
+one boundary worth recording: **a tool's licence says nothing about the rights in
+what you feed it**, and distilling a purchased book into a redistributable skill
+is a copyright question about the book.
+
+## The gap in the register's own checks
+
+`tests/open-source-licence-terms.test.js` gated reciprocal licences and
+undeclared ones. It had nothing for **NonCommercial** or **source-available**,
+and both are strictly worse for this product than reciprocal. Reciprocal has a
+price: release the source. These have no price at all — no term this project can
+accept unlocks them.
+
+So the CC BY-NC repository could have been marked an adaptation source and every
+existing check would have stayed green. Two patterns added, three assertions,
+and the blindness guard extended so they cannot pass over a register that stops
+containing anything they match.
+
+Probes, each failing by name: the CC BY-NC record marked
+`optional_adapter_after_review`; the same record marked
+`allowed_after_review` for commercial use; and the existing ELv2 record marked
+`adapter_built`.
+
+## A skill for the thing that keeps happening
+
+`.claude/skills/reviewing-an-outside-repository/` is the procedure, written down
+because this is the second time a screenshot and a licence have disagreed — the
+Context Mode record was the first, advertised as open source and actually
+Elastic License 2.0.
+
+It carries the parts that are easy to get wrong: `api.github.com` answers 403
+for repositories outside this session's scope and that is not the repository
+being missing; handles are misread from screenshots (`Imbad0202` was read as
+`lmbad0202`, capital I against lowercase l, and every probe failed until it was
+searched for); and the two grep commands that turn "curated directory" into
+2,273 of 2,283.
+
+Suite 3,311 -> 3,313. Register 165 -> 170. `verify:launch` green end to end.
+
 ### 2026-08-27 - Two green pull requests that merged into a red main
 
 `verify:doc-counts` failed on `main` immediately after #205 and #204 were
