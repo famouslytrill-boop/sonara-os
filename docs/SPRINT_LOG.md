@@ -2,6 +2,36 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - A registered repository that stopped existing
+
+`external-repository-health` went red on #207 naming two records, and **neither
+was one of the five that PR adds**. Both predate the branch and are present on
+`main`.
+
+`deivid22srk/XenDroid` has been removed from GitHub. Confirmed twice, because
+one 404 is not a fact here: the workflow's API call answered 404, and
+`git ls-remote` through a separate path found nothing either. That pair is what
+distinguishes a deleted repository from a rate limit or a scoped token, and this
+session gets a 404 from `api.github.com` for every repository outside its own
+scope. `BryanTheLai/RestaurantProject` is only a warning — archived, still
+there.
+
+Fixed with the sentinel the check already understands: `repoUrl` becomes
+`https://example.invalid/blocked`, which requires `integrationStatus: "blocked"`
+and which XenDroid already was. `officialUrl` still points at where the
+repository was.
+
+**The record stays.** Deleting it would erase the finding — that the project had
+no licence file across three branches and five filenames, so it was all rights
+reserved — and the next person to meet it would redo a check somebody already
+did. Leaving the live URL would keep the health workflow red for everyone, on a
+repository nobody can fix. The verdict is worth keeping; the unanswerable
+question is not.
+
+Written into `.claude/skills/reviewing-an-outside-repository/` under "When a
+registered repository disappears", including the second-path confirmation,
+because the tempting move on a red health run is to delete the row.
+
 ### 2026-08-27 - Five repositories from a feed, and the licence class nobody was watching
 
 Five GitHub repositories arrived as social-media screenshots. All five are now

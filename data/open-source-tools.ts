@@ -2165,9 +2165,20 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "if it is ever wanted, the author has to be asked for a licence first",
     ],
     officialUrl: "https://github.com/deivid22srk/XenDroid",
-    repoUrl: "https://github.com/deivid22srk/XenDroid",
+    // The repository is gone from GitHub. Confirmed 1 September 2026 twice --
+    // the health workflow's API call answered 404, and `git ls-remote` through
+    // a separate path found nothing either, which is what distinguishes a
+    // deleted repository from a bad token or a rate limit.
+    //
+    // Sentinel rather than deletion, and rather than leaving a URL that 404s.
+    // Deleting the record would erase the finding: somebody would meet this
+    // project again and redo the licence check that already concluded. Leaving
+    // the live URL keeps external-repository-health red for everyone, on a
+    // repository nobody can fix. The record stays, the verdict stays, and the
+    // network check stops being asked a question with no answer.
+    repoUrl: "https://example.invalid/blocked",
     notes:
-      "An Android Xbox 360 emulator. **No LICENSE file exists in the repository**, checked across main, master and dev and across five common filenames. The absence of a licence is not permission: with nothing declared the work is all rights reserved, and nobody here can grant what its author has not. That alone settles it. Separately it has nothing to do with running a business, publishing creative work, or growing an audience, and console emulation carries its own legal questions about firmware and copied game images that this project has no reason to take on. Blocked on licence first, scope second.",
+      "An Android Xbox 360 emulator. **No LICENSE file exists in the repository**, checked across main, master and dev and across five common filenames. The absence of a licence is not permission: with nothing declared the work is all rights reserved, and nobody here can grant what its author has not. That alone settles it. Separately it has nothing to do with running a business, publishing creative work, or growing an audience, and console emulation carries its own legal questions about firmware and copied game images that this project has no reason to take on. Blocked on licence first, scope second. **The repository was removed from GitHub some time before 1 September 2026**, which changes nothing about the verdict and is recorded because a vanished repository is the one case where a register entry can quietly become a question nobody can answer.",
     safetyBoundaries: ["no unlicensed code enters this repository", "no console firmware or game images touched"],
     blockedUses: ["vendoring or adapting code with no declared licence", "treating an absent licence as a permissive one"],
     humanReviewRequired: true,

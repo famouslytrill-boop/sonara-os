@@ -117,6 +117,28 @@ truth, say so in `recommendedAction`: a CC BY-NC repository is recorded as
 `blocked_until_review` because that is the declared value, and the action line
 has to add that no internal review can unblock it, only the author relicensing.
 
+## When a registered repository disappears
+
+`external-repository-health.yml` runs `verify:open-source:network` and fails on
+a 404. A record is not wrong because its repository vanished — the licence
+finding it holds is still true and still worth keeping.
+
+Confirm it is really gone before touching anything. `api.github.com` answers 404
+for repositories outside this session's scope, and a rate limit or a bad token
+looks the same from one call. Check by a second path:
+
+```
+git ls-remote --heads https://github.com/<owner>/<name>
+```
+
+Then set `repoUrl` to `https://example.invalid/blocked` — the sentinel the check
+already understands, which requires `integrationStatus: "blocked"` — leave
+`officialUrl` pointing at where the repository was, and say in `notes` that it
+was removed and when that was observed.
+
+Do not delete the record. Deleting it erases the finding, and the next person to
+meet that project redoes a licence check somebody already did.
+
 ## What this skill will not do
 
 It will not tell you a repository is safe. It tells you what the licence says,

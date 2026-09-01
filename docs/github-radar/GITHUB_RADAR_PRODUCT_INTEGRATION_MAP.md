@@ -297,4 +297,4 @@ Not an oversight list. Each of these is either blocked, unresolved, or build-tim
 | [The Code — Developer Resources (newsletter landing page)](https://learn-code-tiles.lovable.app/) | All rights reserved. The page carries \ | Blocked | see the register |
 | [Unity ML-Agents Toolkit](https://github.com/Unity-Technologies/ml-agents) | NOASSERTION: GitHub detects a licence file it cannot classify. U | Licence unresolved | see the register |
 | [Vibe-Trading agent](https://github.com/HKUDS/Vibe-Trading) | MIT | Research only | automated trading |
-| [XenDroid Xbox 360 emulator](https://github.com/deivid22srk/XenDroid) | No licence declared | Blocked | see the register |
+| [XenDroid Xbox 360 emulator](https://example.invalid/blocked) | No licence declared | Blocked | see the register |
