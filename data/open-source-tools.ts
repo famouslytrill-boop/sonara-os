@@ -4485,6 +4485,156 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  // ---------------------------------------------------------------------------
+  // Five repositories submitted as social-media screenshots, 27 August 2026.
+  //
+  // Every one was cloned and its LICENSE read, because a screenshot shows what
+  // a post claims and not what a repository grants. That is not a formality
+  // here: one of the five is advertised as a Claude skill library and is
+  // licensed CC BY-NC, which forbids exactly what this product does. See the
+  // Context Mode record above for the previous time a screenshot and a licence
+  // disagreed.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Agentic AI Starters",
+    slug: "agentic-ai-starters",
+    category: ["agent design references", "prompt patterns", "architecture sketches", "permissive licence"],
+    useCase: ["design reference when shaping a new agent; there is no code here to depend on"],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the architecture and prompt sketches when designing an agent, and write our own",
+      "never quote a starter's stack recommendations as a costing -- each names third-party paid APIs whose price is a separate decision",
+      "keep lib/sonara-agent-authority.cjs as the authority on what an agent may do; nothing here changes the approval categories",
+    ],
+    officialUrl: "https://github.com/cporter202/agentic-ai-starters",
+    repoUrl: "https://github.com/cporter202/agentic-ai-starters",
+    notes:
+      "Cloned and LICENSE read 27 August 2026: MIT, Copyright (c) 2026 Chris Porter. 57 files and not one of them executes: twelve starters, each four markdown files (README, architecture, prompts, stack), plus docs/ and prompts/ index pages. That makes it genuinely reference-only rather than reference-only-for-now -- there is no dependency to take even if we wanted one. The starter list overlaps this product directly (customer-support, lead-gen, outreach, ecommerce-monitor, real-estate, competitor-intel), which is why it is worth reading and why its prompts must not be pasted in: an MIT grant permits copying, and a prompt written for somebody else's product is still the wrong prompt for ours.",
+    safetyBoundaries: [
+      "no starter prompt text copied verbatim into an agent this product ships",
+      "MIT attribution retained if any material is ever reproduced",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Ecommerce Intelligence APIs",
+    slug: "ecommerce-intelligence-apis",
+    category: ["API directory", "affiliate link catalogue", "web scraping vendors", "permissive licence"],
+    useCase: ["none -- the catalogue is an affiliate placement, not a provider evaluation"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not republish this catalogue, or any part of it, on a SONARA surface",
+      "if a provider listed here is ever wanted, reach it through its own site and evaluate it on its own terms",
+      "treat the star count as unrelated to quality: the substance is a synced copy of another repository's list",
+    ],
+    officialUrl: "https://github.com/cporter202/ecommerce-intelligence-apis",
+    repoUrl: "https://github.com/cporter202/ecommerce-intelligence-apis",
+    notes:
+      "Cloned and measured 27 August 2026. LICENSE is MIT, Copyright (c) 2026 Chris Porter, so the licence is not the problem. The content is: of 2,283 links in catalog/, 2,273 carry an `?fpr=` affiliate parameter -- two codes, `p2hrc6` and `chris69` -- and the file's own first line records that it is synced from cporter202/API-mega-list. Presented as a curated directory of ecommerce intelligence APIs, it is an affiliate placement list with 99.6% of its links monetised. Republishing it would put undisclosed affiliate links in front of customers, which is a disclosure problem before it is a licence one. Several listed products are bulk B2B email scrapers, which AGENTS.md rules out on consent grounds independently of any of this.",
+    safetyBoundaries: [
+      "no affiliate-tagged link reproduced on any SONARA surface",
+      "no bulk contact-email scraping tool adopted from this list, whatever its licence",
+    ],
+    blockedUses: [
+      "republishing the catalogue as SONARA's own provider directory",
+      "presenting any entry as an evaluated recommendation",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Real Estate Data APIs",
+    slug: "real-estate-data-apis",
+    category: ["API directory", "affiliate link catalogue", "property data vendors", "permissive licence"],
+    useCase: ["none -- same affiliate catalogue in a different vertical"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not republish this catalogue, or any part of it, on a SONARA surface",
+      "reach any wanted provider through its own site",
+    ],
+    officialUrl: "https://github.com/cporter202/real-estate-data-apis",
+    repoUrl: "https://github.com/cporter202/real-estate-data-apis",
+    notes:
+      "Cloned and measured 27 August 2026. MIT, Copyright (c) 2026 Chris Porter. Of 1,096 catalogue links, 1,090 carry an `?fpr=` affiliate parameter, and catalog/README.md records that it is synced from cporter202/API-mega-list. Structurally identical to the ecommerce directory above -- same layout, same sync workflow, same two affiliate codes -- which is worth recording because the two arrived as separate recommendations and are one artefact in two verticals.",
+    safetyBoundaries: ["no affiliate-tagged link reproduced on any SONARA surface"],
+    blockedUses: ["republishing the catalogue as SONARA's own provider directory"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Academic Research Skills",
+    slug: "academic-research-skills",
+    category: ["Claude Code skills", "agent skill packaging", "research pipeline", "NonCommercial licence"],
+    useCase: ["nothing shipped -- the licence forbids the only use this product would have for it"],
+    productFit: ["Internal Development"],
+    license: "Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)",
+    licenseRisk: "critical",
+    // Not reciprocal: it does not oblige releasing SONARA's source. It is
+    // stricter than reciprocal in the way that matters here -- it withholds
+    // commercial use altogether rather than pricing it in source.
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy any skill, prompt, agent definition or mode from this repository into SONARA",
+      "no internal review can unblock this -- only the author relicensing can, so treat 'blocked_until_review' as blocked",
+      "reading it to understand how a skill suite is organised is fine; ideas are not what CC BY-NC withholds",
+    ],
+    officialUrl: "https://github.com/Imbad0202/academic-research-skills",
+    repoUrl: "https://github.com/Imbad0202/academic-research-skills",
+    notes:
+      "Cloned and LICENSE read 27 August 2026: Creative Commons Attribution-NonCommercial 4.0 International, Copyright (c) 2026 Cheng-I Wu. The licence defines NonCommercial as 'not primarily intended for or directed towards commercial advantage or monetary compensation'. SONARA One is sold on paid plans, so every use this product would make of it is the use the licence withholds. This is the sharpest record in the register for a reason worth stating: it was submitted as a Claude skill library with 44.3k stars and a `.claude-plugin` directory, and star count, plugin format and popularity say nothing whatever about whether a licence permits commercial use. A permissive-looking repository is not a permissive repository. 2,581 files, none of which may be adapted here.",
+    safetyBoundaries: [
+      "no file, prompt, skill, agent or mode copied into this repository",
+      "no derivative of its skill structure shipped to a paying customer",
+      "never described internally as MIT or as open source -- CC BY-NC is neither",
+    ],
+    blockedUses: [
+      "incorporating any part of it into SONARA One",
+      "installing it as a plugin into a workflow that produces customer deliverables",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "book-to-skill",
+    slug: "book-to-skill",
+    category: ["agent skill packaging", "document distillation", "developer tooling", "permissive licence"],
+    useCase: ["a developer-side tool for turning our own documentation into an agent skill"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "if used, point it at documentation this project owns -- docs/, AGENTS.md, the runbooks -- and never at a purchased book",
+      "keep it a local developer tool: nothing it produces should reach a customer without being read first",
+      "check what it sends anywhere before running it on anything of ours",
+    ],
+    officialUrl: "https://github.com/virgiliojr94/book-to-skill",
+    repoUrl: "https://github.com/virgiliojr94/book-to-skill",
+    notes:
+      "Cloned and LICENSE.md read 27 August 2026: MIT, Copyright (c) 2025 virgiliojr94. A Python tool (107 files) that distils a document set into a single agent skill rather than pushing whole texts through a context window. The licence is clean and the idea is directly useful to this repository, which now has three hand-written skills and a lot of documentation. The caution is not about its licence at all: **the tool's licence says nothing about the rights in what you feed it.** Distilling a technical book somebody bought into a redistributable skill is a copyright question about that book, and it is the headline use the project advertises. Pointed at our own docs it raises no such question, which is the only use recorded here.",
+    safetyBoundaries: [
+      "never run it against third-party copyrighted material and keep the output",
+      "no generated skill committed without a person reading it",
+    ],
+    blockedUses: ["producing a shippable artefact from a book this project does not own the rights to"],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {
