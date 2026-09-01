@@ -106,6 +106,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-01 - Two thirds of the release gate never ran in CI
+
+`verify:launch` is what this repository calls its gate, and
+`docs/owner/WHAT-IS-LEFT.md` quotes its length at whoever is deciding whether
+this is shippable. **Twenty-one of its thirty-one commands ran in no workflow at
+all.**
+
+Among them `verify:doc-counts`, `verify:source-licence`, `verify:csp`,
+`verify:margins`, `verify:orphan-tables`, `verify:stale-claims`,
+`verify:contrast`, `verify:env` and thirteen more. A pull request could be green
+on every check GitHub displayed while two thirds of the gate had never executed.
+
+This is the recurring defect at the largest scale it comes in, and it had
+already cost something: on 27 August two green pull requests merged into a main
+that was red on `verify:doc-counts`, and CI did not notice **because CI does not
+run it**. It surfaced only because the chain was run by hand afterwards.
+
+## One definition, one CI step
+
+`verify:gates` is now everything after `verify:db`, and `verify:launch` is
+defined *in terms of it* rather than repeating it. CI runs `verify:gates` as a
+single step, replacing four commands it used to name by hand. The workflow and
+the chain cannot drift into disagreeing about what a gate is, because there is
+one list.
+
+`tests/the-release-gate-is-the-gate.test.js` fails when a chain command runs in
+no workflow, resolving what a workflow runs *through package.json* so a step
+running one script that runs another counts the inner one.
+
+## Five checks that measured the shape of the definition
+
+Nesting the chain broke five checks at once, and every one of them reported
+something that looked like a real finding:
+
+- `verify-launch-config.mjs` — `verify:config` missing from a chain that runs it
+- `verify-doc-counts.mjs` — the chain as **7 commands**, against a document
+  correctly saying 31
+- `an-applied-migration-cannot-be-edited`, `dated-claims-say-when-to-recheck`,
+  `the-small-print-can-be-read` — each "the check is not in verify:launch"
+- `no-check-claims-more-than-it-ran` — *"only 3 scripts parsed out of
+  verify:launch; this check has gone blind"*
+
+None was wrong about the string. All were **measuring the shape of the
+definition rather than what it does** — this repository's recurring defect in
+its least obvious disguise, where the check is accurate and the thing it
+measures is not the thing it names.
+
+The last one is worth keeping: its blindness guard is what turned a silent hole
+into a two-minute fix. It refused to check three scripts and pass.
+
+`lib/sonara-release-chain.cjs` is the one implementation now — six call sites
+had grown their own, and a seventh would have been the seventh to break. Pure
+groupings are excluded from the count by construction, so `verify:gates` does
+not inflate a figure that is supposed to mean "checks that run": **34**, up from
+31, because expanding the nesting also reached `verify:supabase-contract`,
+`verify:agent-sync` and `verify:customer-ready`, which always ran and were never
+counted.
+
+Three falsification probes, each failing by name: CI running something other
+than the gates; the gates inlined back into the chain; and CI dropping
+`SONARA_MIGRATION_REPLAY_REQUIRED`.
+
+Suite 3,336 -> 3,341. `verify:launch` green end to end.
+
 ### 2026-09-01 - Five ticks that did nothing, and one that does something now
 
 `/account/notifications` offered six notification topics as six identical
