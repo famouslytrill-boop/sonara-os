@@ -128,6 +128,18 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
 
     const checkboxes = store.TOPICS.map((topic) => {
       const label = TOPIC_LABELS[topic] || topic;
+      // A topic nothing can send is shown, disabled, and said so.
+      //
+      // All six used to render as identical ticked boxes. Four of them had
+      // nothing anywhere that would ever send them -- `job_finished` most
+      // sharply, because this application has no jobs at all -- so a person
+      // could tick it, grant permission, and wait for ever. That is a promise
+      // the product does not keep, and the fix is not to hide the topic: a
+      // disabled row with a reason tells somebody what this product does and
+      // does not do yet, and an absent row tells them nothing.
+      if (!store.isSending(topic)) {
+        return `<label class="choice sonara-choice-unavailable"><input type="checkbox" name="topic" value="${escapeHtml(topic)}" disabled> ${escapeHtml(label)}<span class="fine"> — not sent yet, so ticking it would do nothing</span></label>`;
+      }
       return `<label class="choice"><input type="checkbox" name="topic" value="${escapeHtml(topic)}" checked> ${escapeHtml(label)}</label>`;
     }).join("");
 
@@ -135,7 +147,10 @@ module.exports = function registerNotificationRoutes(app, deps = {}) {
     // be created without it, and it is the public half of the pair. The private
     // key is read only by lib/sonara-web-push.cjs, server-side.
     sections.push(
-      brandCard("Choose what is worth interrupting you for", "Everything is ticked to begin with. Untick anything you would rather not hear about; a subscription with nothing ticked receives nothing at all."),
+      brandCard(
+        "Choose what is worth interrupting you for",
+        "Everything this product can send is ticked to begin with. Untick anything you would rather not hear about; a subscription with nothing ticked receives nothing at all. Greyed-out rows are things nothing sends yet — they are listed so you can see what is coming rather than being offered a switch that does nothing."
+      ),
       `<article class="card sonara-depth">
         <form id="sonara-push-form">
           <div class="sonara-push-topics">${checkboxes}</div>

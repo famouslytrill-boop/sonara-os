@@ -48,6 +48,20 @@ const SCHEDULES_TABLE = "employee_schedules";
 
 const PAGES_TABLE = "public_booking_pages";
 const BOOKINGS_TABLE = "business_bookings";
+
+const { announceBooking } = require("../lib/sonara-booking-notice.cjs");
+
+// The VAPID keys, for the booking notification.
+//
+// Read from process.env rather than taken as a dependency: this module's
+// REQUIRED list is its contract with server.js, and adding to it would break
+// every existing caller -- which is exactly what happened when the call routes
+// were hung off a module with a looser contract. pushReadiness still refuses
+// cleanly when the keys are absent, so an unconfigured deploy takes the booking
+// and sends nothing, which is the correct behaviour.
+function readEnv(name) {
+  return process.env[name];
+}
 const CATALOG_TABLE = "business_service_catalog";
 
 // Same shape as the CHECK constraint in the migration. Checked before the value
@@ -408,10 +422,48 @@ function registerPublicBookingRoutes(app, deps = {}) {
 
     const saved = await fetch(`${config.url}/rest/v1/${BOOKINGS_TABLE}`, {
       method: "POST",
-      headers: { ...supabaseHeaders(config), "Content-Type": "application/json", Prefer: "return=minimal" },
+      headers: { ...supabaseHeaders(config), "Content-Type": "application/json", Prefer: "return=representation" },
       body: JSON.stringify(row)
     }).catch(() => undefined);
     if (!saved?.ok) return res.redirect(303, `${back}&problem=not_saved`);
+
+    // Tell the business, if anybody there asked to be told.
+    //
+    // This is the one place in this application where a stranger writes a row,
+    // and the one nobody is watching when it happens: the request sits at
+    // `requested` until a person opens the page. It is the event a booking
+    // notification exists for.
+    //
+    // The same three rules as the invoice notice, and for the same reasons.
+    // **Awaited**, because this runs as a serverless function and an
+    // un-awaited fetch is a notification that silently never leaves. **Its
+    // result dropped**, because the booking is saved either way and the person
+    // waiting on this response is the customer, not the business. **Cannot
+    // throw**, which the try/catch enforces on top of announceBooking's own
+    // promise not to -- an exception here would turn a saved booking into an
+    // error page for somebody who did nothing wrong.
+    //
+    // Prefer changed from return=minimal to return=representation above, only
+    // so the notification can carry the booking's id as its tag. Two requests
+    // in the same minute are two facts and must not collapse into one.
+    let bookingId = null;
+    try {
+      const rows = await saved.json();
+      bookingId = Array.isArray(rows) ? rows[0]?.id || null : rows?.id || null;
+    } catch { /* the notification is worth sending without an id */ }
+
+    try {
+      await announceBooking(
+        { getEnv: readEnv, supabaseUrl: config.url, serviceRoleHeaders: () => supabaseHeaders(config) },
+        {
+          organizationId,
+          bookingId,
+          customerName: row.customer_name,
+          serviceName: service.name,
+          startsAt: row.starts_at
+        }
+      );
+    } catch { /* a saved booking is not undone by a notification that failed */ }
 
     return res.status(200).type("html").send(publicPage({
       heading: "Requested",
