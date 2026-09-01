@@ -20,6 +20,7 @@ const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
 const recordStatus = require("../lib/sonara-record-status.cjs");
+const recordEdit = require("../lib/sonara-record-edit.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -541,11 +542,11 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       // row. The change is a POST that redirects, so without this it looks
       // exactly like a page reload -- including the case that matters most,
       // where the record already had the status asked for and nothing changed.
-      const statusSaid = String(req.query.status_problem || req.query.status_done || "").slice(0, 300);
+      const statusSaid = String(req.query.status_problem || req.query.status_done || req.query.edited || "").slice(0, 300);
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
         : [
-            ...(statusSaid ? [ui.card("Status", statusSaid)] : []),
+            ...(statusSaid ? [ui.card(req.query.edited ? "Saved" : "Status", statusSaid)] : []),
             recordsCard(page, rows, ui, loaded),
             ...(page.form ? [formCard(page, references, ui)] : [])
           ];
@@ -558,6 +559,130 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         actions: ownerActions(ui, page.path)
       }));
     });
+
+    // Correcting a record.
+    //
+    // Twenty-six of these pages could create a record and none could change
+    // one, so a phone number typed with a digit missing could only be fixed by
+    // creating a second customer and leaving the wrong one there. An address
+    // book with two entries for the same person, one unreachable, is worse than
+    // one with a single wrong entry: now nobody knows which is current.
+    //
+    // Two routes, and the edit form has a page of its own rather than sitting
+    // under the list. Only nine of the twenty-seven pages have a detail page,
+    // and a form reachable on nine of them is the gap the status control was
+    // just fixed for.
+    if (recordEdit.canEdit(page)) {
+      app.get(`${page.path}/:recordId/edit`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const notFound = (detail) => res.status(404).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: "Not found",
+          body: detail,
+          sections: [ui.card("Nothing to correct", "Go back to the list and choose a record from there.")],
+          actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
+        }));
+        if (!isUuid(recordId)) return notFound("That record reference is not one of ours.");
+
+        const config = getConfig(deps);
+        const org = await resolveOrganization(req, deps);
+        if (!config.ok) return res.status(503).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [ui.card("Not available right now", "Your account database is not connected yet, so there is nothing to correct.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+        if (!org.ok) return res.status(403).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [ui.card("Not available right now", "We could not tell which business you are signed in to. Sign in again and this will fill up.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+
+        // Scoped by organization as well as by id, because the service key
+        // bypasses row level security and a guessed id would otherwise open
+        // another business's record in an editable form.
+        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+        if (!found.ok) return res.status(502).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          // A read that failed is not a record that is missing, and offering an
+          // empty form for one would invite somebody to retype a record that is
+          // still there and then save the blanks over it.
+          sections: [ui.card("Not available right now", "We could not read that record just now. Nothing has been changed.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+        const row = found.rows[0];
+        if (!row) return notFound("That record is not in your business, or it has been removed.");
+
+        const references = await loadReferences(config, org.organizationId, page);
+        return res.status(200).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [editFormCard(page, row, references, ui, req.query.edit_problem)],
+          actions: [
+            ui.link(page.path, `All ${page.title.toLowerCase()}`),
+            ui.link("/business-builder/owner", "Owner Dashboard"),
+            ui.link("/business-builder/dashboard", "Dashboard")
+          ]
+        }));
+      });
+
+      app.post(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const edit = `${page.path}/${encodeURIComponent(recordId)}/edit`;
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${edit}?edit_problem=${encodeURIComponent(detail || code)}`);
+        };
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Read first. The previous values are what turn "saved" into a sentence
+        // naming what actually changed, and they are also what stops an
+        // unchanged field being rewritten over somebody else's edit.
+        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+        if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
+        const before = found.rows[0];
+        if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // Built from the page's own field declaration, so a body key the form
+        // never declared is not written whatever it is called. That is the
+        // point rather than a tidiness: the patch goes out with the service
+        // key, and a body carrying organization_id would otherwise be a way to
+        // move a record between businesses.
+        const wanted = recordEdit.changesFrom(page, req.body, before);
+        if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
+
+        const said = recordEdit.describeEdit(wanted.changed);
+        // Nothing differed. Sending an empty PATCH would ask the database to do
+        // nothing and then report it as a save.
+        if (!wanted.changed.length) {
+          if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: [], detail: said });
+          return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+        }
+
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, wanted.patch);
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: said });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+      });
+    }
 
     // Changing a record's status.
     //
@@ -1901,8 +2026,14 @@ function recordsCard(page, rows, ui, loaded = null) {
   // where there is a detail page the card is there and this column is not.
   const rowStatus = recordStatus.hasStatus(page) && !opens ? recordStatus.statusOptionsFor(page) : null;
 
+  // And a way to correct it. Every row, on every page whose form is a create
+  // form -- without this the edit page is registered and nothing points at it,
+  // which is the shape of dead-end this codebase has shipped before.
+  const editable = recordEdit.canEdit(page);
+
   const extraHeads = [
     ...(opens ? ["<th>Details</th>"] : []),
+    ...(editable ? ["<th>Correct</th>"] : []),
     ...(rowStatus ? ["<th>Status</th>"] : []),
     ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
   ];
@@ -1912,6 +2043,7 @@ function recordsCard(page, rows, ui, loaded = null) {
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      if (editable) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}/edit`, "Edit")}</td>`);
       if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
       if (action) {
         const id = encodeURIComponent(String(row.id || ""));
@@ -2038,6 +2170,41 @@ function summaryCard(page, row, ui) {
 // Rendered from the page's own declaration, so the options a person can pick
 // are exactly the ones the create form offers and the database allows. A
 // hand-written list here would be the third copy and the first to drift.
+// The create form again, with the record already in it.
+//
+// The same `formField` renderer, so a field type added to the create form is
+// editable the day it is added. A second renderer here would be the copy that
+// drifts, and the divergence would show up as an edit form quietly missing the
+// newest field -- which looks exactly like a field that has no value.
+function editFormCard(page, row, references, ui, problem) {
+  const fields = recordEdit
+    .editableFields(page)
+    .map((field) => formField(field, references, ui, recordEdit.currentValue(field, row)))
+    .join("");
+  const outcome = problem ? `<p class="fine" role="status">${ui.escape(String(problem).slice(0, 300))}</p>` : "";
+  return [
+    '<article class="card">',
+    `<h2>Correct this ${ui.escape(recordNoun(page))}</h2>`,
+    outcome,
+    `<form method="post" action="${ui.escape(`${page.path}/${encodeURIComponent(String(row?.id || ""))}`)}">`,
+    fields,
+    '<button class="action" type="submit">Save changes</button>',
+    "</form>",
+    "</article>"
+  ].join("");
+}
+
+// "Correct this customer" rather than "Correct this Customers". The page titles
+// are plural because they name lists, and a heading over one record should not
+// be.
+function recordNoun(page) {
+  const title = String(page?.title || "record").toLowerCase();
+  if (title.endsWith("ies")) return `${title.slice(0, -3)}y`;
+  if (title.endsWith("sses") || title.endsWith("ches") || title.endsWith("shes")) return title.slice(0, -2);
+  if (title.endsWith("s")) return title.slice(0, -1);
+  return title;
+}
+
 function statusControl(page, row, options, ui) {
   const current = String(row?.status || "");
   const id = String(row?.id || "");
@@ -2223,8 +2390,12 @@ function formCard(page, references, ui) {
   return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(action)}">${fields}<button type="submit">${ui.escape(submit)}</button></form></article>`;
 }
 
-function formField(field, references, ui) {
+// `current` is the value already on the record, for the edit form. It defaults
+// to undefined so every create-form caller is unchanged: an input with no value
+// attribute is an empty input, which is what creating a record wants.
+function formField(field, references, ui, current = "") {
   const required = field.required ? " required" : "";
+  const now = String(current ?? "");
   const label = ui.escape(field.label);
   const hint = field.hint ? `<span class="fine">${ui.escape(field.hint)}</span>` : "";
   const name = ui.escape(field.name);
@@ -2233,12 +2404,25 @@ function formField(field, references, ui) {
     // one with nothing in it -- the first tells a customer to go and create a
     // record they may already have dozens of.
     const source = references[field.from];
-    const options = (source?.options || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    const listed = source?.options || [];
+    const options = listed.map((option) => `<option value="${ui.escape(option.id)}"${String(option.id) === now ? " selected" : ""}>${ui.escape(option.label)}</option>`).join("");
+
+    // The record already chosen, when the list does not contain it.
+    //
+    // This is the edit form's problem, not the create form's. A picker whose
+    // list failed to load -- or which is paged and does not reach this record
+    // -- would otherwise render a select with no current value, and saving that
+    // form would clear the reference somebody never touched. Keeping the
+    // current one as an option means blank is a choice rather than an accident.
+    const already = now && !listed.some((option) => String(option.id) === now)
+      ? `<option value="${ui.escape(now)}" selected>The one already chosen</option>`
+      : "";
+
     if (source && source.ok === false) {
-      return `<label>${label}<select name="${name}"${required}><option value="">We could not load these just now</option></select></label>${hint}`;
+      return `<label>${label}<select name="${name}"${required}>${already}<option value=""${already ? "" : " selected"}>We could not load these just now</option></select></label>${hint}`;
     }
-    if (!options) return `<label>${label}<select name="${name}"${required}><option value="">Nothing to choose yet — add one first</option></select></label>${hint}`;
-    return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
+    if (!options) return `<label>${label}<select name="${name}"${required}>${already}<option value="">${already ? "Choose a different one once they load" : "Nothing to choose yet — add one first"}</option></select></label>${hint}`;
+    return `<label>${label}<select name="${name}"${required}>${already}<option value="">Choose one</option>${options}</select></label>${hint}`;
   }
   if (field.type === "select") {
     // A string option is its own label, which is right for a status column
@@ -2249,17 +2433,18 @@ function formField(field, references, ui) {
     const options = (field.options || []).map((option) => {
       const value = option && typeof option === "object" ? option.value : option;
       const shown = option && typeof option === "object" ? option.label : String(option).replaceAll("_", " ");
-      return `<option value="${ui.escape(value)}">${ui.escape(shown)}</option>`;
+      return `<option value="${ui.escape(value)}"${String(value) === now ? " selected" : ""}>${ui.escape(shown)}</option>`;
     }).join("");
     return `<label>${label}<select name="${name}"${required}>${options}</select></label>${hint}`;
   }
   if (field.type === "textarea") {
-    return `<label>${label}<textarea name="${name}" rows="4" maxlength="${Number(field.maxLength || 2000)}"${required}></textarea></label>${hint}`;
+    return `<label>${label}<textarea name="${name}" rows="4" maxlength="${Number(field.maxLength || 2000)}"${required}>${ui.escape(now)}</textarea></label>${hint}`;
   }
   const type = ui.escape(field.type || "text");
   const step = field.step ? ` step="${ui.escape(field.step)}"` : "";
   const maxLength = field.maxLength ? ` maxlength="${Number(field.maxLength)}"` : "";
-  return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${required}></label>${hint}`;
+  const value = now ? ` value="${ui.escape(now)}"` : "";
+  return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${value}${required}></label>${hint}`;
 }
 
 function ownerActions(ui, currentPath) {

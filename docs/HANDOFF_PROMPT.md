@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 105 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 251 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 252 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,70 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - A record you cannot correct is a record you cannot trust
+
+Twenty-six of the twenty-seven owner record pages declare a create form. **None
+of them could change a saved record.**
+
+A customer's phone number entered with a digit missing, a quote priced at 450
+instead of 4500, a booking put against the wrong service — the only recourse in
+the product was to create a second record and leave the wrong one sitting there.
+An address book with two entries for the same person, one of which cannot be
+reached, is **worse** than one with a single wrong entry, because now nobody
+knows which is current.
+
+Twenty-five pages now have `GET {path}/:recordId/edit` and `POST {path}/:recordId`,
+and every row links to its own edit page. The two that do not are recorded rather
+than forgotten: `/business-builder/owner/costs` declares no form, and
+`/business-builder/owner/time` names its own action — clocking in is not "create
+a time entry with these values", because the server stamps the time.
+
+## The patch is built from the declaration, not filtered from the body
+
+`lib/sonara-record-edit.cjs` reads the page's own field declaration and writes
+only what it names. That is the security property rather than a tidiness one:
+the patch goes out with the service role key, which bypasses row level security,
+so a body carrying `organization_id` would otherwise be a way to move a record
+between businesses. Building from a fixed list means a new attack name has
+nothing to land on. The test posts `organization_id`, `id` and `created_at` and
+asserts the patch keys are exactly `["name"]`.
+
+Only fields that **differ from the row as read** are sent. A patch of everything
+declared would overwrite a column somebody else edited in the seconds since the
+form loaded, with a value the person saving never looked at.
+
+## Three bugs found while building it, each the same shape
+
+**Comparing by prefix.** `same()` treated a stored value starting with the
+submitted one as unchanged, to cope with a timestamp read back carrying a zone
+the input never showed. That made shortening any text a no-op: correcting
+"Ada L" to "Ada" was reported as saved and wrote nothing. The prefix rule is now
+restricted to `date` and `datetime-local`.
+
+**A reference whose picker did not load.** The select rendered with no current
+value, so saving the form would clear a reference nobody touched. The record's
+existing choice is now always an option, labelled "The one already chosen", so
+blank is a decision rather than an accident.
+
+**An empty form over a failed read.** A read that failed is not a record that is
+missing, and an empty form invites somebody to retype a record that is still
+there and save the blanks over it. The edit page answers 502 and renders no form.
+
+Blank clears a column rather than writing `""`, because "" and "not recorded"
+are different answers. Nothing different sends no PATCH at all and says
+"Nothing was different, so nothing was changed" — the third outcome, neither
+failure nor save.
+
+## Verified by breaking it
+
+Twelve probes, each confirmed to fail the test **by name** before being reverted:
+registering the edit page only for pages with line items; rendering the form
+empty; unlinking it from the row; rendering a form over a failed read; patching
+every declared field; comparing text by prefix; writing a blank as `""`; building
+the patch from the body; letting a required field be emptied; accepting a select
+value the form does not offer; sending an empty patch and calling it a save;
+dropping the current reference when its picker did not load.
 
 ### 2026-09-01 - Twenty-seven record pages could create and read. None could change.
 
