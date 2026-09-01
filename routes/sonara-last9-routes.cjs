@@ -19,6 +19,7 @@ const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs")
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
+const recordStatus = require("../lib/sonara-record-status.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -536,9 +537,18 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
       }
+      // What the last status change did, for the pages whose control is in the
+      // row. The change is a POST that redirects, so without this it looks
+      // exactly like a page reload -- including the case that matters most,
+      // where the record already had the status asked for and nothing changed.
+      const statusSaid = String(req.query.status_problem || req.query.status_done || "").slice(0, 300);
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [recordsCard(page, rows, ui, loaded), ...(page.form ? [formCard(page, references, ui)] : [])];
+        : [
+            ...(statusSaid ? [ui.card("Status", statusSaid)] : []),
+            recordsCard(page, rows, ui, loaded),
+            ...(page.form ? [formCard(page, references, ui)] : [])
+          ];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
@@ -548,6 +558,88 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         actions: ownerActions(ui, page.path)
       }));
     });
+
+    // Changing a record's status.
+    //
+    // Registered only for pages that declare one, so a table with no status
+    // gets no endpoint rather than an endpoint that always refuses.
+    //
+    // Registered here, beside the list page, rather than beside the detail
+    // page below: only six of the twenty-seven pages have line items and so
+    // only six have a detail page, and the first version of this hung off that
+    // loop. Quotes and bookings -- the two records this whole change exists
+    // for -- were both among the five that got no endpoint at all. The list
+    // page is the one page every record kind has.
+    //
+    // This is the smallest thing that was missing and the one that mattered
+    // most: twenty-seven record pages could create and read, and none could
+    // change anything. Eleven of them declare a status, and quote -> invoice is
+    // gated on `accepted`, so invoices, payments, settlement, the receivables
+    // page and the invoice-paid notification were all downstream of a change
+    // nobody could make. Meanwhile lib/sonara-quote-conversion.cjs was telling
+    // people to "mark it accepted", and the public booking page was telling
+    // strangers the business would confirm their request.
+    //
+    // The owner acting, not an agent -- the same reading as the quote
+    // conversion above. lib/sonara-agent-authority.cjs governs what runs
+    // without a person; a person pressing a button they can see is the person.
+    if (recordStatus.hasStatus(page)) {
+      app.post(`${page.path}/:recordId/status`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const back = statusReturnPath(page, recordId);
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${back}?status_problem=${encodeURIComponent(detail || code)}`);
+        };
+
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        // Validated against the page's own declaration before anything is read.
+        // A status the database would reject surfaces as a check-constraint
+        // violation nobody outside this file can read.
+        const wanted = recordStatus.validateStatus(page, req.body?.status);
+        if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
+
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Read first, and scoped by organization as well as by id: the service
+        // key bypasses row level security, so without the filter a guessed id
+        // from another business would be changed. Reading also gives the
+        // previous value, which is what makes the confirmation say what
+        // actually happened rather than only what was asked for.
+        const found = await supabaseList(
+          config,
+          page.table,
+          `?select=id,status&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+        );
+        if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
+        const before = found.rows[0];
+        if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // Scoped by organization on the write as well as on the read above.
+        // The read already proved this record belongs to the business, so the
+        // second filter changes no outcome today -- it is here because the
+        // service key bypasses row level security, and the day somebody moves
+        // or shortens that read is the day the only tenant boundary on this
+        // write disappears silently. supabasePatch filters on id alone and is
+        // shared with callers that do not want an organization column, so this
+        // one writes its own request rather than widening that.
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, { status: wanted.status });
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so the status is unchanged.");
+
+        // A PATCH that matched nothing answers 200 with an empty list. That is
+        // not a saved change, and reporting it as one is exactly the shape of
+        // lie this codebase keeps finding.
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        const said = recordStatus.describeChange(before.status, wanted.status);
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, status: wanted.status, changed: said });
+        return res.redirect(303, `${back}?status_done=${encodeURIComponent(said)}`);
+      });
+    }
   });
 
   // The four pages whose records have line items: purchase orders, stock
@@ -657,6 +749,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
+            ...(recordStatus.hasStatus(page) && parent ? [statusCard(page, parent, ui, req.query.status_problem, req.query.status_done)] : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
 
@@ -1772,6 +1865,17 @@ function pagerLinks(page, loaded, ui) {
   return `<nav class="card-actions" aria-label="More records">${links.join("")}</nav>`;
 }
 
+// Where a status change goes back to.
+//
+// A record with line items has a detail page and that is where the control is;
+// everything else only has the list. Sending somebody back to a detail page
+// that was never registered would answer 404 immediately after a change that
+// actually succeeded -- which reads as a failure and is not one.
+function statusReturnPath(page, recordId) {
+  const id = encodeURIComponent(String(recordId || ""));
+  return childrenOf(page).length > 0 ? `${page.path}/${id}` : page.path;
+}
+
 function recordsCard(page, rows, ui, loaded = null) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
@@ -1787,13 +1891,28 @@ function recordsCard(page, rows, ui, loaded = null) {
   // it renders it, and the row that cannot says why in the same column rather
   // than showing a button that will refuse.
   const action = page.rowAction || null;
-  const extraHeads = [...(opens ? ["<th>Details</th>"] : []), ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])];
+
+  // And, for the record kinds with no detail page, the status control itself.
+  //
+  // Eleven pages declare a status; only four of those have line items and so a
+  // detail page to put a card on. The other seven -- quotes, bookings,
+  // customers, services, areas, payments made, receivables -- have the list and
+  // nothing else, so the control lives in the row. Exactly one place per page:
+  // where there is a detail page the card is there and this column is not.
+  const rowStatus = recordStatus.hasStatus(page) && !opens ? recordStatus.statusOptionsFor(page) : null;
+
+  const extraHeads = [
+    ...(opens ? ["<th>Details</th>"] : []),
+    ...(rowStatus ? ["<th>Status</th>"] : []),
+    ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
+  ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
   const width = page.columns.length + extraHeads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
       if (action) {
         const id = encodeURIComponent(String(row.id || ""));
         let reason = null;
@@ -1912,6 +2031,71 @@ function summaryCard(page, row, ui) {
     .map((column) => `<tr><th>${ui.escape(column.label)}</th><td>${ui.escape(safeCell(column, row))}</td></tr>`)
     .join("");
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
+}
+
+// The control for the field whose whole purpose is to change.
+//
+// Rendered from the page's own declaration, so the options a person can pick
+// are exactly the ones the create form offers and the database allows. A
+// hand-written list here would be the third copy and the first to drift.
+function statusControl(page, row, options, ui) {
+  const current = String(row?.status || "");
+  const id = String(row?.id || "");
+  const choices = options
+    .map((value) => `<option value="${ui.escape(value)}"${value === current ? " selected" : ""}>${ui.escape(readableStatus(value))}</option>`)
+    .join("");
+  return [
+    `<form method="post" action="${ui.escape(`${page.path}/${encodeURIComponent(id)}/status`)}">`,
+    // The column header already says Status, so the visible label would be the
+    // same word twice in every row. The select still needs a name for anybody
+    // arriving by keyboard or screen reader, and aria-label is that name.
+    `<select name="status" aria-label="Status">${choices}</select>`,
+    '<button class="action" type="submit">Save</button>',
+    "</form>"
+  ].join("");
+}
+
+// Underscores are how the database spells these; they are not how anybody
+// reads them.
+function readableStatus(value) {
+  return String(value || "").replaceAll("_", " ");
+}
+
+// What happened last time somebody pressed one of those buttons.
+//
+// Carried in the query string because the change is a POST that redirects, and
+// rendered wherever the control is. Without it a status change looks exactly
+// like a page reload -- including the case that matters most, where the record
+// already had the status asked for and genuinely nothing changed.
+function statusOutcome(ui, problem, done) {
+  const text = problem || done;
+  if (!text) return "";
+  return `<p class="fine" role="status">${ui.escape(String(text).slice(0, 300))}</p>`;
+}
+
+// The control for the field whose whole purpose is to change.
+//
+// Rendered from the page's own declaration, so the options a person can pick
+// are exactly the ones the create form offers and the database allows. A
+// hand-written list here would be the third copy and the first to drift.
+function statusCard(page, row, ui, problem, done) {
+  const options = recordStatus.statusOptionsFor(page);
+  const current = String(row?.status || "");
+
+  // Said above the control rather than only after it. Somebody arriving to
+  // change a status wants to know what it is now.
+  const note = current
+    ? `This is ${ui.escape(readableStatus(current))} at the moment.`
+    : "This has no status recorded yet.";
+
+  return [
+    '<article class="card">',
+    "<h2>Status</h2>",
+    `<p>${note}</p>`,
+    statusOutcome(ui, problem, done),
+    statusControl(page, row, options, ui),
+    "</article>"
+  ].join("");
 }
 
 function linesCard(spec, listed, ui) {
@@ -2275,6 +2459,23 @@ async function supabaseInsert(config, table, payload) {
   if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
   const rows = await response.json().catch(() => []);
   return { ok: true, table, rows };
+}
+
+// A PATCH filtered by organization as well as by id.
+//
+// supabasePatch above filters on id alone, which is right for the tables that
+// have no organization column. These do, and the service key bypasses row level
+// security, so the filter is the whole tenant boundary.
+async function supabasePatchScoped(config, table, id, organizationId, payload) {
+  const query = `?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}`;
+  const response = await fetch(`${config.url}/rest/v1/${table}${query}`, {
+    method: "PATCH",
+    headers: headers(config, { Prefer: "return=representation" }),
+    body: JSON.stringify(payload)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, code: "update_failed", table, status: response?.status || null, rows: [] };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
 }
 
 async function supabasePatch(config, table, id, payload) {

@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 105 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 250 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 251 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,87 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - Twenty-seven record pages could create and read. None could change.
+
+Business Builder has twenty-seven owner record pages. Every one of them could
+create a record and read it back, and **not one of them could change anything.**
+
+Eleven declare a `status` select in their create form — draft, sent, accepted,
+confirmed, received, partially_received, no_show — and every one of those values
+was fixed at the moment the record was typed in.
+
+That is not a missing convenience, because three places in this product tell
+somebody to do the thing the product does not offer:
+
+- `lib/sonara-quote-conversion.cjs`, refusing to make an invoice: *"Mark it
+  accepted once the customer says yes, and it can become an invoice."*
+- The public booking page, to a stranger who has just booked: *"A request is not
+  an appointment until the business accepts it."*
+- `lib/sonara-booking-notice.cjs`, to the business: *"Not confirmed until you
+  accept it."*
+
+The first matters most. Quote → invoice is gated on `accepted`, so invoices, the
+payments recorded against them, the settlement, the receivables page and the
+invoice-paid notification wired two days ago were **all downstream of a change
+nobody could make**.
+
+## The options come from the page, not from a list here
+
+Each table has its own check constraint and its own vocabulary. The create form
+already declares exactly those values and the database enforces them, so
+`lib/sonara-record-status.cjs` reads the page's own declaration and validates
+against it. A hand-written list would be the third copy and the first to drift.
+
+It deliberately does not decide whether a transition makes sense — `paid` back to
+`draft` is a business correcting a mistake, and a workflow engine that has to be
+argued with is how people end up keeping the real records somewhere else. And it
+does not touch money: marking an invoice `paid` changes a label, writes no
+payment, and `lib/sonara-invoice-settlement.cjs` still computes what is owed from
+`customer_invoice_payments` alone. The two are independent on purpose.
+
+## The bug this shipped with for about an hour
+
+The first version registered the endpoint inside the loop over pages that *have
+line items*. That is six pages. **Quotes and bookings — the two records the whole
+change exists for — were among the five that got no endpoint at all.**
+
+It was found by asking the running app which routes it had, and that is now what
+the test does: `tests/a-record-status-can-be-changed.test.js` iterates every page
+where `recordStatus.hasStatus(page)` is true, rather than the two it was written
+for, and asserts there are at least eight of them so it cannot pass by measuring
+an empty list.
+
+The control now lives in exactly one place per page: the card on the detail page
+where a detail page exists, the row on the list page where it does not.
+
+## Verified by breaking it
+
+Six probes, each confirmed to fail the test **by name** before being reverted:
+
+| broken | test that went red |
+| --- | --- |
+| register the route only for pages with line items (the original bug) | gives every page that declares a status somewhere to change it |
+| render no control on the list page | renders the control on a page an owner can actually open |
+| drop the organization filter from the write | filters the read and the write by organization, not by id alone |
+| accept any status the caller types | refuses a status the page does not offer, and writes nothing |
+| skip the read, so another business's record is written to | will not change a record belonging to another business |
+| call an empty PATCH result a saved change | does not report a change when the write matched nothing |
+
+The last one is the shape this repository keeps finding: PostgREST answers a
+PATCH that matched no row with `200` and an empty list. Reporting that as a saved
+change is a green light over a write that did not happen, so the route refuses
+`404` when the returned list is empty.
+
+`supabasePatchScoped` filters on `organization_id` as well as `id`. The read
+above it already proved ownership, so the second filter changes no outcome today
+— it is there because the service key bypasses row level security, and the day
+somebody shortens that read is the day the only tenant boundary on the write
+disappears silently.
+
+The owner pressing a button they can see is the owner acting, not an agent, so
+`lib/sonara-agent-authority.cjs` is not involved. It governs what runs without a
+person.
 
 ### 2026-09-01 - Two thirds of the release gate never ran in CI
 
