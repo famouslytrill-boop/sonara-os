@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3852 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3873 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 106 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 107 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 254 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 256 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,114 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-01 - A password was the whole of the credential
+
+Until today this application had **no second factor of any kind**. Nothing under
+`lib/`, `routes/` or `server.js` mentioned TOTP, 2FA or MFA. A password was the
+entire credential protecting an account holding a business's customer records,
+invoices and payment settings.
+
+Built from the specifications rather than from a package, for a reason that is
+checkable rather than stylistic: **RFC 4226 and RFC 6238 publish their own test
+vectors**, so a wrong implementation cannot pass, and a right one agrees with
+every authenticator app in the world.
+
+| checked against | vectors | result |
+| --- | --- | --- |
+| RFC 4226 Appendix D | 10 counters | all match |
+| RFC 6238 Appendix B | 6 times × SHA-1, SHA-256, SHA-512 | all 18 match |
+| RFC 4648 section 10 | 7 base32 strings | all match |
+
+The SHA-256 and SHA-512 rows are the ones that matter most: they come out right
+only if the truncation offset is read from the **last byte** of the digest
+rather than from byte 19. For SHA-1 those are the same byte and the mistake
+never shows.
+
+## The bug that made the whole thing decorative
+
+`holdForSecondFactor` sits between Supabase accepting the password and this
+application setting the session cookie. Its first version ended:
+
+```js
+return res.redirect(303, "/login/verify");
+```
+
+**`res.redirect()` returns `undefined`.** So the caller saw a falsy value, fell
+through, and set the session cookie — while the browser was being redirected to
+the code prompt. The hold looked like it worked from the outside and did
+nothing: the person landed on the prompt already signed in, and closing it was
+enough.
+
+The JSON path did not have the bug, because `res.json()` does return the
+response. That is exactly the sort of half-working that survives a demo. It now
+returns a boolean, and the test asserts on the session cookie rather than on the
+redirect — which is what caught it.
+
+## What is stored, and in what form
+
+| | stored as | why |
+| --- | --- | --- |
+| TOTP shared secret | AES-256-GCM, key from the environment | a readable table would otherwise be every second factor on the system, usable at once |
+| Recovery codes | HMAC-SHA-256 under a pepper, per-code salt | 96 bits each; the pepper lives outside the database |
+| The parked session | sealed the same way | an unfinished challenge grants nothing |
+| The challenge id | SHA-256 digest | the table is not a way to continue somebody's sign-in |
+
+`verify-supabase-contract` fails the build if the migration ever declares a
+column named `secret`, `access_token`, `refresh_token` or five other names, and
+also if it stops declaring `sealed_secret`, `sealed_session`, `token_hash` or
+`last_used_step`. Both directions were verified by breaking the migration.
+
+## Three corrections made while building it, each found by checking
+
+**Recovery codes were drawn from the base32 alphabet**, with a comment saying
+the confusable characters "are not in the set at all". Checking took one line:
+base32 is A–Z plus 2–7, so it has no 0, 1, 8 or 9 — but **O, I and L are all in
+it**. There is now a separate 28-character alphabet with I, L, O and U removed.
+
+**They were hashed with scrypt.** Measured at **500ms per verification attempt**
+— ten codes, hashed one after another to keep the timing flat — and it bought
+nothing: nobody enumerates 2^96 however slow the hash is. Slow hashing is for
+secrets people choose. HMAC under a pepper is 1ms and defeats the realistic
+threat, which is a database read on its own.
+
+**The server.js line comment counted its own change wrong**, claiming 7 and 8
+lines for what was a 6 and 13 line change. The numbers now come from the diff.
+
+## What RFC 6238 requires that is not the maths
+
+Section 5.2 asks for two things a validator must do, and both are here with the
+column that makes them possible:
+
+- **A window of one step either side**, because clocks drift and people take
+  four seconds to type. Two steps is refused, and the test asserts exactly two
+  rather than three — the first version used three and stayed green when the
+  window was widened, which is the change it exists to catch.
+- **Never accept a code twice.** `last_used_step` is written *before* the caller
+  is told yes, because a step recorded after the session is granted is a step
+  that is not recorded at all if the request dies in between.
+
+## Verified by breaking it
+
+**45 probes**, each confirmed to fail a test by name before being reverted: 22
+on the algorithm and its storage, 23 on the routes and the hold. Among them:
+dropping the `& 0x7f`, reading the offset from byte 19, a little-endian counter,
+widening the drift window, accepting a spent code, waving a sign-in through when
+the factor read fails, putting the access token in the challenge cookie, storing
+the parked session in the clear, and returning `res.redirect()` — the bug above,
+now permanently caught.
+
+Three probes were written wrong rather than the tests being weak, and one found
+a genuine redundancy: the attempt cap is enforced twice, so removing either half
+alone was invisible. The test now asserts the stronger half — that a capped
+challenge is *consumed* rather than merely refused — so the remaining minutes
+are not five more minutes of guessing.
+
+## What it costs to turn on
+
+One environment variable, `SONARA_TOTP_KEY`, and `openssl rand -hex 32` makes
+it. Without it the feature refuses to switch on and says so on the page; it does
+not fall back to storing secrets in the clear.
 
 ### 2026-09-01 - Fifty-one links, one repository
 

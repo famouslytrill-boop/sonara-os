@@ -61,6 +61,7 @@ const registerAssetFileRoutes = require("./routes/sonara-asset-file-routes.cjs")
 const registerConnectedPaymentRoutes = require("./routes/sonara-connected-payment-routes.cjs");
 const registerNotificationRoutes = require("./routes/sonara-notification-routes.cjs");
 const registerCallRoutes = require("./routes/sonara-call-routes.cjs");
+const registerTwoFactorRoutes = require("./routes/sonara-two-factor-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
@@ -385,6 +386,19 @@ const loginRateLimiter = createAuthRateLimiter("auth.login", {
   maxAttempts: 10,
   scopes: ["ip", "subject"],
   subjectFrom: emailFromBody
+});
+
+// Tighter than sign-in, and scoped by address only.
+//
+// There is no email in the body of a code submission -- the account is named by
+// the sealed challenge, not by the request -- so there is no subject to scope
+// by, which is why this differs from the sign-in and signup limiters above.
+// A challenge already caps itself at five wrong codes; this is what stops
+// somebody opening a fresh challenge for each new guess.
+const twoFactorRateLimiter = createAuthRateLimiter("auth.two_factor", {
+  windowSeconds: 15 * 60,
+  maxAttempts: 20,
+  scopes: ["ip"]
 });
 
 const signupRateLimiter = createAuthRateLimiter("auth.signup", {
@@ -1071,6 +1085,12 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", loginRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
+  // Between the password being accepted and the session cookie being set.
+  // Everything else about two-step sign-in is enrolment; this call is what
+  // makes it a second factor rather than a form somebody can navigate away
+  // from. It answers null when this account has none, and the line below runs.
+  const held = twoFactor.ok ? await twoFactor.holdForSecondFactor(result, req, res) : false;
+  if (held) return undefined;
   return sendEmailAuthResult(req, res, result, "/dashboard", "/login", ({ message }) =>
     loginPage(req, { email: req.body?.email, error: message }));
 });
@@ -1466,6 +1486,7 @@ registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requir
 registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+const twoFactor = registerTwoFactorRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, verifySupabaseAccessToken, sendEmailAuthResult, verifyRateLimiter: twoFactorRateLimiter });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,

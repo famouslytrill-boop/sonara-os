@@ -505,9 +505,32 @@ describe("the server.js split stays safe", () => {
     // off the other imposed the strict contract on every existing caller. The
     // right answer was to pay the line rather than loosen a contract, which is
     // what this ceiling is for.
+    //
+    // Then 3873 on 1 September 2026, by 21, for
+    // routes/sonara-two-factor-routes.cjs -- a second factor built from RFC
+    // 4226 and RFC 6238. Fifteenth exception, and the first that is not two
+    // lines. What it bought:
+    //
+    //   1 line   the require
+    //   1 line   the registration
+    //   13 lines a rate limiter for the verify endpoint, its reason and a blank
+    //   6 lines  the hook in POST /auth/login, with its reason
+    //
+    // Those four numbers are counted from the diff rather than reasoned about:
+    // the first draft of this comment said 7 and 8, which added up to eighteen
+    // for what was then a seventeen-line change.
+    //
+    // The hook is why this could not be two lines. Signing in exchanges a
+    // password for a Supabase access token and sets it as a session cookie in
+    // the same breath, so a second factor asked for after that point is a page
+    // somebody can navigate away from -- they already hold a working session.
+    // The call sits between those two steps, in this file, because this file is
+    // where the sign-in handler is. Everything it does lives in the route
+    // module; what is here is the four lines that make the difference between a
+    // second factor and a decoration, and their reason.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3852,
+      lines <= 3873,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

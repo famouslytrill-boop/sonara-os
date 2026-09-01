@@ -291,8 +291,8 @@ function registerRouteRegistryRoutes(app, deps) {
     eyebrow: "Your account",
     heading: "Security",
     body: "Manage password recovery and active sign-in behavior without exposing session details.",
-    sections: [accountNoticeCard(req), brandCard("Password", "Use the secure recovery flow when you need to change a forgotten password."), brandCard("Sessions", "SONARA keeps short-lived access and rotating refresh tokens in HttpOnly cookies. Explicit logout clears both browser cookies.")],
-    actions: [linkAction("/forgot-password", "Reset password"), linkAction("/account", "Account"), logoutAction()]
+    sections: [accountNoticeCard(req), brandCard("Password", "Use the secure recovery flow when you need to change a forgotten password."), brandCard("Two-step sign-in", "Add a code from an app on your phone, asked for after your password. Without a link here the page exists and nothing points at it."), brandCard("Sessions", "SONARA keeps short-lived access and rotating refresh tokens in HttpOnly cookies. Explicit logout clears both browser cookies.")],
+    actions: [linkAction("/account/security/two-factor", "Two-step sign-in"), linkAction("/forgot-password", "Reset password"), linkAction("/account", "Account"), logoutAction()]
   }));
 
   app.get("/account/preferences", requireCustomer, async (req, res) => {
