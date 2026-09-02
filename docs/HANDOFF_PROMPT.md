@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 269 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 270 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,62 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - The least-tested file in the repository is on an hourly cron
+
+Measured rather than guessed. Node 22 writes V8 coverage to `NODE_V8_COVERAGE`
+with no dependency added, so the whole mocha suite was run under it and folded
+into per-file line coverage:
+
+    area            files   lines  covered   pct
+    server.js           1    2877     1532   53.2%
+    lib/              145   20486    16287   79.5%
+    routes/            42   14162     6545   46.2%
+    scripts/            9     797      592   74.3%
+    data/               4     484      482   99.6%
+    TOTAL (non-test)  206   39082    25666   65.7%
+
+The lowest was `lib/sonara-agent-schedule.cjs` at **3 of 59 lines, 5.1%** -- the
+`require` and two constants, nothing else. No test file named it. It is reached
+from `vercel.json`'s hourly production cron on `/api/agents/schedule/tick`, and
+from `sonara-recurring-invoices` and `sonara-booking-availability`. Its whole
+job is deciding whether a customer's scheduled work runs, and its own header
+says why that is dangerous: "a schedule that fires twice looks like an eager
+product, and one that never fires looks like nothing at all."
+
+Every function in it is pure. There was nothing stopping it being tested.
+
+29 tests, named after the three properties the header claims rather than after
+the functions. Two run the property rather than reasoning about it: 96 ticks
+across a day produce exactly one run, and a three-day outage produces one run on
+return rather than three.
+
+**Writing them found a bug, which is the point of writing them.** The hour was
+read with `Number.isInteger(Number(schedule.hour_of_day))`. `Number(null)` is 0,
+and so are `Number("")` and `Number([])` -- so all three were accepted as hour
+0, and an hour of 0 is due at *every* hour, because `parts.hour < 0` is never
+true. A schedule with no hour recorded fired on the next tick whatever the time.
+`undefined` was refused, so the three states were already collapsed into two
+inconsistently. `day_of_week` had it too, where 0 means Sunday.
+
+This is the defect CLAUDE.md already names -- "`Number(null)` is `0` and finite,
+which made unpriced services read as free across twenty-three columns" -- in a
+second place.
+
+**Not a live incident, and worth saying so precisely.** `agent_schedules.hour_of_day`
+is `not null default 9`, and the only insert in the repository clamps both
+fields with `clampInt`. What is true is that `day_of_week` is nullable in the
+schema (`day_of_week is null or day_of_week between 0 and 6`), so the database
+permits a weekly row this would have read as "every Sunday", and `isDue` is
+exported to three callers rather than reachable only through that insert. The
+fix is the function refusing rather than guessing.
+
+`wholeNumber` returns null for null, `""`, arrays and booleans, and the three
+checks compare against null instead of relying on `Number.isInteger`. The other
+side is tested too: a schedule genuinely set for midnight still fires.
+
+After: **5.1% -> 65.6%** (42/64), and the count of runtime files under 35% goes
+from 22 to 21.
 
 ### 2026-09-02 - Two Python suites nothing ran, one of them the consent gate
 
