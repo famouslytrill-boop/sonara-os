@@ -210,6 +210,42 @@ describe("a generated file says what made it", () => {
       assert.match(ROUTES, /PROVENANCE_COLUMNS\.join/, "the download route no longer takes its columns from the module");
     });
 
+    it("names the columns the outputs table needs, instead of asking for the whole row", () => {
+      // `select=*` is what hid the provenance: the row carried it, the page
+      // loaded it, printed none of it, and report-unused-selected-columns.mjs
+      // could not read the query to say so.
+      for (const column of ["provenance", "checksum_sha256", "asset_role", "media_type", "byte_size"]) {
+        assert.ok(
+          ROUTES.includes(`select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256`),
+          `the outputs read no longer names ${column}`
+        );
+      }
+      // Literal, not joined from a constant. A computed list is readable to a
+      // person and opaque to the script that audits selects, so building one
+      // here would trade one blindness for the other.
+      assert.doesNotMatch(
+        ROUTES,
+        /rest\(config, ASSET_TABLE, `select=\$\{[^}]*\}&job_id/,
+        "the outputs read builds its column list at run time, which the select audit cannot read"
+      );
+    });
+
+    it("does not report a failed asset read as a job with no files", async () => {
+      // `assets.ok ? assets.rows : []` handed a caller an empty array whether
+      // the job had no outputs or the read had failed, and nothing in the
+      // response told them apart.
+      assert.doesNotMatch(
+        ROUTES,
+        /assets:\s*assets\.ok \? assets\.rows : \[\]/,
+        "a failed asset read is reported as an empty list again"
+      );
+      assert.match(
+        ROUTES,
+        /generation_assets_unreadable/,
+        "the endpoint no longer has a way to say the asset read failed"
+      );
+    });
+
     it("stops collapsing an unanswered attestation into No on the request card", () => {
       assert.doesNotMatch(
         ROUTES,

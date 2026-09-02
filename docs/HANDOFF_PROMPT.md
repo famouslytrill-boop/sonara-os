@@ -171,6 +171,48 @@ thirty-five `select=*`; this script records thirty-four. The difference is a
 star selects were removed from the record pages. Comments are stripped before
 counting, here as everywhere else in this script.
 
+## Then the first one was actually narrowed, and the ratchet worked
+
+Recording blindness is not the same as reducing it, so the query that caused all
+of this went first. The generation job page's asset read is now
+
+    select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256
+
+rather than `select=*`. Audited selects went 100 to 101 and star selects 34 to
+33: the query moved out of the blind bucket into the audited one, which is the
+whole shape of the thing working.
+
+**Written out literally on purpose.** The obvious tidy is
+`select=${OUTPUT_COLUMNS.join(",")}`, which is more readable to a person and
+completely opaque to the script auditing it -- that would have moved the query
+from one blind bucket to the other and reported it as an improvement. A probe
+covers exactly that mutation.
+
+The exact-match guard then did its job in the good direction: narrowing the
+query made the check **fail**, saying 33 were found where 34 were recorded, and
+telling whoever did it to lower the number and say which query was fixed. A
+ratchet that stayed silent on an improvement would have been the same ratchet
+that stays silent on a broken matcher.
+
+## And one more failed read reported as an empty list
+
+`/api/creator/generation/jobs/:jobId` answered
+
+    assets: assets.ok ? assets.rows : []
+
+so a caller got an empty array whether the job had no outputs or the read had
+failed, with nothing in the response telling them apart. The job read succeeded
+and the asset read did not, so the endpoint cannot answer the question it was
+asked: it is a 502 with `generation_assets_unreadable`, not an empty success.
+
+`tests/no-endpoint-reports-success-on-a-failed-read.test.js` did not catch this
+because it crawls JSON GETs without parameters and this route carries a `:jobId`.
+Worth knowing about that gate's reach.
+
+Three further probes, each confirmed to fail by name: the read back to
+`select=*`; the column list built at run time instead of written out; and the
+failed read back to an empty list.
+
 ### 2026-09-02 - The row knew what made the file; the page did not say
 
 `routes/creator-generation-routes.cjs` writes provenance onto every generated

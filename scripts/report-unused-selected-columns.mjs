@@ -161,7 +161,13 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // `select=*` sits inside a comment in routes/sonara-last9-routes.cjs explaining
 // why star selects were removed from the record pages. Comments are stripped
 // before counting, here as everywhere else in this script.
-const STAR_SELECT_COUNT = 34;
+// 34 on 2 September 2026, then 33 the same afternoon: the generation job page's
+// asset read was narrowed from `select=*` to the seven columns it actually
+// renders. That query is the one that hid the provenance defect, so it is the
+// right one to have gone first. Its replacement is written out literally rather
+// than joined from a constant -- a computed list is readable to a person and
+// opaque to this script, which would have traded one blindness for the other.
+const STAR_SELECT_COUNT = 33;
 const COMPUTED_SELECT_COUNT = 23;
 
 // A column named in a comment is a column discussed, not used. Same reasoning

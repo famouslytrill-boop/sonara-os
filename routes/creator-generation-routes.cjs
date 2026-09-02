@@ -148,7 +148,12 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const job = await loadJob(config, context, req.params.jobId);
     if (!job.ok) return res.status(job.status).json(job);
     const assets = await rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`);
-    return res.status(200).json({ ok: true, job: job.job, assets: assets.ok ? assets.rows : [] });
+    // `assets.ok ? assets.rows : []` reported a failed read as a job with no
+    // files, and a caller cannot tell those apart from an empty array. The job
+    // read succeeded and the asset read did not, so this endpoint cannot answer
+    // the question it was asked -- which is a 502, not an empty success.
+    if (!assets.ok) return res.status(502).json({ ok: false, code: "generation_assets_unreadable" });
+    return res.status(200).json({ ok: true, job: job.job, assets: assets.rows });
   });
 
   app.post("/api/creator/generation/jobs", access, async (req, res) => {
@@ -480,7 +485,14 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
 
     const job = loaded.job;
     const [assets, events] = await Promise.all([
-      rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
+      // Named rather than `select=*`, which is what hid the provenance: the row
+      // carried the provider, the attestations and the checksum, the page
+      // loaded all three and printed none of them, and
+      // report-unused-selected-columns.mjs could not see the query to say so.
+      // Written out literally on purpose -- a list joined from a constant is
+      // readable to a person and opaque to that script, which is the other
+      // half of the same blindness.
+      rest(config, ASSET_TABLE, `select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
       rest(config, EVENT_TABLE, `select=event_type,event_status,details,created_at&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.desc&limit=50`)
     ]);
 
