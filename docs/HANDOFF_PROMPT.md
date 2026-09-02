@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 36 public routes, 18 customer routes, 29 admin routes.
-- 257 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 262 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,55 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - The handoff counted a different population from the one it named
+
+`docs/HANDOFF_PROMPT.md` said **"257 test files run under mocha"**. Mocha ran
+**261**.
+
+The generator counted `tests/*.test.js` at the top level. Mocha's spec, in
+`.mocharc.json`, is `tests/**/*.js` and `tests/**/*.mjs` — recursive, and not
+limited to the `.test.js` suffix. Four `.mjs` suites ran and were never counted.
+
+Small in size, and exactly the shape this repository is organised against: a
+derived number measuring one thing while its sentence names another. It went
+unnoticed because the generator and the runner were never compared to each
+other — each was internally consistent.
+
+Found while writing a capability summary from the handoff, by counting the
+files a second way and getting a different answer.
+
+## The globs now come from the runner
+
+`countMochaFiles()` reads `spec` out of `.mocharc.json` and converts each glob
+to a regular expression, rather than restating the patterns. A pattern added
+there is followed here; a config that goes missing throws rather than counting
+nothing. An empty match throws too — a confident **0** in a document people read
+to decide whether this is shippable is worse than a failure.
+
+## Two implementations that must agree
+
+`tests/the-handoff-counts-what-mocha-runs.test.js` derives the count a second
+time, independently, from the same config, and compares it to the number in the
+generated document. A shared helper would make them one implementation and the
+test would prove nothing.
+
+It also asserts every extension the spec asks for contributes at least one
+counted file — which is the original bug stated as a property: `.mjs` files ran
+and were invisible.
+
+## Verified by breaking it
+
+Four probes, each confirmed to fail the test **by name**: reverting to the
+top-level `*.test.js` count; counting only the first extension; reporting zero
+when the globs stop matching; and restating the globs instead of reading the
+config.
+
+The last one is worth recording. Its first assertion matched `.mocharc.json`
+anywhere in the generator's source, and the mutation **still passed** — the
+error messages under the read name the file, so the string was there whether or
+not anything read it. The assertion now requires the filename inside a `read(`
+or `readFileSync(` call. A check for a mention is not a check for a behaviour.
 
 ### 2026-09-01 - Archived is off the list, not out of the books
 
