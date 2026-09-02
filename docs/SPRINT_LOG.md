@@ -2,6 +2,28 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - Two controls in the header that both looked like a menu
+
+The experience settings button drew
+
+    <path d="M5 7h14M8 12h8M6 17h12" />
+
+which is three plain horizontal lines -- the hamburger glyph. Measured in the
+mobile header at 390px, it sat 77px from the actual Menu button, so the header
+offered two controls that read as the same thing and one of them was not
+navigation at all. The third, a magnifier for the command palette, was never
+ambiguous.
+
+It is now the same lines with knobs on them, which is what says "settings"
+rather than "menu", drawn at the stroke width and cap style the sibling icon
+already used. Checked at 4x against the rendered header rather than only in the
+markup.
+
+Guarded in `tests/sonara-experience.test.js`, which already covered this button,
+rather than in a new file. Two assertions, both probed: restoring the hamburger
+path fails on the missing knobs, and giving both header tool buttons the same
+icon fails on their being equal.
+
 ### 2026-09-02 - Thirty footer links a finger could not reliably hit
 
 Same measurement pass as the sideways-scroll fix, at a 390px viewport with
