@@ -56,13 +56,27 @@ function visibleText(html) {
 // that one call is enough to be somebody.
 async function scan(headers) {
   const findings = [];
+  // What was walked and what was actually read. `renderedCount` alone reads as
+  // coverage: signed in it is 179 out of 282 walked, and the 103 that answered
+  // something other than 200 HTML were dropped without comment. A count that
+  // names one population and measures another is the shape this repository
+  // keeps finding, so the skipped set is carried out of here rather than lost.
+  const skipped = [];
+  let walkedCount = 0;
   let renderedCount = 0;
 
   for (const route of customerFacingRoutes()) {
+    walkedCount += 1;
     const response = await request(app).get(route).set("accept", "text/html").set(headers);
-    if (response.status !== 200) continue;
+    if (response.status !== 200) {
+      skipped.push({ route, status: response.status });
+      continue;
+    }
     // sitemap.xml lists route paths, which are URLs rather than copy.
-    if (!/html/.test(response.headers["content-type"] || "")) continue;
+    if (!/html/.test(response.headers["content-type"] || "")) {
+      skipped.push({ route, status: "not html" });
+      continue;
+    }
     renderedCount += 1;
     const text = visibleText(response.text);
     for (const term of plainLanguage.BANNED_ON_CUSTOMER_PAGES) {
@@ -71,7 +85,7 @@ async function scan(headers) {
       if (hits) findings.push({ route, term, count: hits.length });
     }
   }
-  return { findings, renderedCount };
+  return { findings, renderedCount, walkedCount, skipped };
 }
 
 function report(findings) {
@@ -178,6 +192,30 @@ describe("signed-in workspaces speak plainly", () => {
     assert.ok(
       result.renderedCount >= 120,
       `only ${result.renderedCount} pages rendered signed in; the session is not being recognised and the workspaces are not being checked`
+    );
+  });
+
+  // Measured on 2 September 2026 over the signed-in pass. Held exactly rather
+  // than as a ceiling, for the reason report-unused-selected-columns.mjs
+  // records: a bound that only fails in one direction cannot tell an
+  // improvement from a measurement that stopped working. A page that starts
+  // rendering is good news and still has to be recorded here.
+  const SIGNED_IN_SKIPPED = 103;
+
+  it("says how much of the application it actually read", () => {
+    // The number that was missing. 179 rendered is not 282 walked, and until
+    // this ran, nothing said which 103 were dropped or why -- so "the plain
+    // language check is green" meant less than it looked.
+    assert.ok(result.walkedCount >= 250, `only ${result.walkedCount} routes were walked; this check has gone blind`);
+    const byStatus = new Map();
+    for (const entry of result.skipped) byStatus.set(entry.status, (byStatus.get(entry.status) || 0) + 1);
+    const summary = [...byStatus].sort((a, b) => b[1] - a[1]).map(([status, count]) => `${count} answered ${status}`).join(", ");
+    assert.equal(
+      result.skipped.length,
+      SIGNED_IN_SKIPPED,
+      `${result.skipped.length} of ${result.walkedCount} routes were skipped rather than read (${summary}); this file records ${SIGNED_IN_SKIPPED}.\n` +
+        "If it rose, a page stopped rendering and its copy is no longer checked. If it fell, a page started rendering:\n" +
+        "good news, and still record it here -- a fall nobody records looks exactly like a crawl that has stopped walking."
     );
   });
 

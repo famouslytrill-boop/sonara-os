@@ -166,6 +166,30 @@ down.
 parameters** is unaffected by any of this and was verified separately -- it is
 why that gate missed the `:jobId` route.
 
+## And then the skipped set was made to say its own size
+
+The 103 needed no decision after all: the repository already has the pattern,
+from `report-unused-selected-columns.mjs` earlier the same day. The crawl now
+carries what it skipped out of `scan()` and holds the number **exactly**, with
+the breakdown in the failure message:
+
+    104 of 282 routes were skipped rather than read
+    (45 answered 303, 36 answered 503, 15 answered 302, 4 answered 409, 2 answered not html)
+
+No exemption list, no 103 entries to write. A page that stops rendering fails
+the build because its copy is no longer being read; a page that starts rendering
+fails it too, because a fall nobody records looks exactly like a crawl that has
+stopped walking.
+
+Worth noticing in that breakdown: **36 routes answer 503** under this crawl's
+own stub, which fails every data read on purpose. Their copy is checked in the
+unconfigured state and never in the working one. That is a real hole and a
+larger job than this; it is now visible rather than folded into a number that
+looked like coverage.
+
+Two probes, each confirmed to fail by name: a page that stops rendering, and the
+crawl walking fewer routes.
+
 ## And a false positive in the outage crawl, seven characters wide
 
 Changing the wording made `no-page-lies-when-the-database-is-down` fail:
