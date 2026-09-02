@@ -628,6 +628,12 @@
   top: 8px;
   left: 8px;
   z-index: 10000;
+  /* Measured at 43.7px tall with 10px of padding, a third of a pixel under the
+     44px tap target it is meant to be. */
+  min-height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
   padding: 10px 14px;
   border-radius: var(--sonara-radius-sm);
   background: var(--sonara-text);

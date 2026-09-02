@@ -249,6 +249,24 @@ code,pre{font-family:var(--nx-mono)}pre{max-width:100%;overflow:auto;padding:16p
 .setup-required,[data-state="setup-required"]{border-color:color-mix(in srgb,var(--nx-warning) 35%,var(--nx-line));background:color-mix(in srgb,var(--nx-warning) 7%,var(--nx-surface))}
 
 footer{padding:44px 0 64px;border-top:1px solid var(--nx-line)}footer nav{display:flex;flex-wrap:wrap;gap:9px 18px;margin-top:16px}footer nav a{color:var(--nx-muted);font-size:13px;text-decoration:none}
+/* Measured at a 390px viewport: every one of the 22 legal links and 8 footer
+   links was 20.5px tall with no padding, laid out in a wrapping flex row with a
+   9px row gap. Stacked that closely, a mis-tap opens the wrong legal document.
+   AGENTS.md: "Mobile layouts must ... use large enough tap targets."
+
+   Scoped to `pointer: coarse` rather than to a width, because the rule is about
+   fingers and not about screens -- a 1024px tablet needs it and a 700px browser
+   window on a laptop does not. The row gap goes to 0 in that block because the
+   min-height now supplies the separation; leaving it at 9px would space the
+   footer twice. */
+@media (pointer: coarse) {
+  footer nav { row-gap: 0; column-gap: 6px }
+  /* 6px of padding either side of a 6px column gap keeps the 18px of visible
+     space the row had, while widening the narrowest link ("About", measured at
+     35px) to a size a finger can find. */
+  footer nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px }
+  .brand { min-height: 44px }
+}
 
 .sonara-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--nx-bg);opacity:1;visibility:visible;transition:opacity .22s var(--nx-ease),visibility .22s var(--nx-ease)}
 .sonara-loader.is-ready{opacity:0;visibility:hidden}.sonara-loader__core{display:grid;place-items:center;gap:16px}.sonara-loader__mark{width:74px;height:74px;filter:drop-shadow(0 16px 30px rgba(79,111,255,.22));animation:nxPulse 1.15s var(--nx-ease) infinite alternate}.sonara-loader__track{width:152px;height:3px;overflow:hidden;border-radius:999px;background:var(--nx-line)}.sonara-loader__track::after{content:"";display:block;width:42%;height:100%;background:linear-gradient(90deg,var(--nx-pink),var(--nx-violet),var(--nx-cyan));animation:nxLoad .95s var(--nx-ease) infinite}.sonara-loader__label{color:var(--nx-muted);font:800 10px var(--nx-mono);letter-spacing:.17em}
@@ -293,7 +311,7 @@ html.sonara-leaving main{opacity:.88;transition:opacity .12s ease}
   .sonara-site-header,body>header{min-height:var(--nx-header);padding:9px 12px;gap:8px}
   .sonara-brand-mark{width:36px;height:36px}.sonara-brand-copy strong{font-size:13px}.sonara-brand-copy small{font-size:8px}
   .sonara-header-tools{gap:5px}.sonara-icon-button{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}.sonara-account-menu summary{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}
-  .sonara-mobile-menu>summary{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}
+  .sonara-mobile-menu>summary{width:44px;min-width:44px;height:44px;min-height:44px;padding:0}
   .sonara-mobile-menu>nav{grid-template-columns:1fr;padding:10px 12px 14px}
   .hero{padding:48px 0 38px;gap:28px}.eyebrow{margin-bottom:14px}
   h1,.sonara-home-v3 .sonara-hero-copy h1{font-size:clamp(36px,11.5vw,48px);line-height:.98;letter-spacing:-.048em}

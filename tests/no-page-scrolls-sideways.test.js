@@ -47,10 +47,21 @@ const css = Object.fromEntries(
 // words inside comments too. Anchoring to the start of a line or the end of the
 // previous rule is what keeps a sentence mentioning `html` from being read as
 // the html rule.
-function ruleFor(source, selector) {
+function elementRules(source, selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-  const match = source.match(new RegExp(String.raw`(?:^|\})\s*${escaped}\s*\{([^}]*)\}`, "m"));
-  return match ? match[1] : null;
+  const pattern = new RegExp(String.raw`(?:^|\})\s*${escaped}\s*\{([^}]*)\}`, "gm");
+  return [...source.matchAll(pattern)].map((match) => match[1]);
+}
+
+// The value the browser ends up with is the last one declared at this
+// specificity, not the first one written.
+function lastOverflowX(blocks) {
+  let value = null;
+  for (const block of blocks) {
+    const match = block.match(/overflow-x:\s*([a-z]+)/);
+    if (match) value = match[1];
+  }
+  return value;
 }
 
 // `.sonara-stage::before` is written eight times across the design system --
@@ -83,12 +94,17 @@ describe("no page scrolls sideways", () => {
   });
 
   it("clips horizontal overflow on the element that actually scrolls", () => {
-    const html = ruleFor(css.app, "html");
-    assert.ok(html, "the html rule was not found, so nothing here was checked");
-    assert.match(
-      html,
-      /overflow-x:\s*clip/,
-      "html no longer clips horizontal overflow. The full-bleed decorations on " +
+    // `html` is written twice in this stylesheet and `body` three times. No
+    // later rule sets overflow-x today, so reading only the first would be
+    // right by luck -- and a later `html{overflow-x:visible}` is exactly the
+    // edit this check exists to catch. So every block is read, and the last one
+    // to state a value is the one that wins.
+    const blocks = elementRules(css.app, "html");
+    assert.ok(blocks.length, "the html rule was not found, so nothing here was checked");
+    assert.equal(
+      lastOverflowX(blocks),
+      "clip",
+      "html does not end up clipping horizontal overflow. The full-bleed decorations on " +
         ".sonara-stage::before and .sonara-hero-stage::before make the document wider than the " +
         "viewport, and body{overflow-x:clip} does not stop it -- the scrolling box is the " +
         "documentElement."
@@ -99,14 +115,15 @@ describe("no page scrolls sideways", () => {
     // `overflow-x: hidden` on html makes it a scroll container, and the site
     // header is position:sticky. Verified in Chromium: with clip the header
     // holds at top=0 through a 600px scroll on every page tested.
-    const html = ruleFor(css.app, "html");
-    assert.doesNotMatch(html, /overflow-x:\s*hidden/, "overflow-x:hidden on html would break the sticky site header");
+    for (const block of elementRules(css.app, "html")) {
+      assert.doesNotMatch(block, /overflow-x:\s*hidden/, "overflow-x:hidden on html would break the sticky site header");
+    }
   });
 
   it("keeps the body rule too, so the two do not drift into disagreeing", () => {
-    const body = ruleFor(css.app, "body");
-    assert.ok(body, "the body rule was not found");
-    assert.match(body, /overflow-x:\s*clip/, "body no longer clips, so only one of the two boxes is guarded");
+    const blocks = elementRules(css.app, "body");
+    assert.ok(blocks.length, "the body rule was not found");
+    assert.equal(lastOverflowX(blocks), "clip", "body does not end up clipping, so only one of the two boxes is guarded");
   });
 
   it("does not lay out the mobile menu while it is closed", () => {

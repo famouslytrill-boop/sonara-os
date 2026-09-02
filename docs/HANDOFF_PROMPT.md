@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 268 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 269 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,60 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - Thirty footer links a finger could not reliably hit
+
+Same measurement pass as the sideways-scroll fix, at a 390px viewport with
+touch emulation on, across all 13 public routes:
+
+    30 footer links   20.5px tall, no padding, wrapping flex row, 9px row gap
+    a.brand           36px tall
+    summary (menu)    42px wide
+    a.sonara-skip     43.7px tall
+
+The footer is the one that matters. Twenty-two of those links are legal
+documents stacked 29.5px apart, so a mis-tap does not miss -- it opens the
+wrong policy. AGENTS.md: "Mobile layouts must ... use large enough tap targets."
+
+Scoped to `@media (pointer: coarse)`, not to a width, because the rule is about
+fingers rather than screens: a 1024px tablet needs it and a 700px browser window
+on a laptop does not. Measured both ways at 390px -- coarse block suppressed:
+footer 467px tall, 23 links under 44px. Applied: footer 605px, none. The header
+is 67px either way, so the brand rule fits inside the header height rather than
+growing it, and at 1440 with a mouse the footer keeps its 9px row gap and the
+brand its 40px. The touch rule is a touch rule, not a redesign.
+
+Two details worth keeping:
+
+- `min-height` does nothing on an inline box. The footer links had to become
+  `inline-flex` for the 44px to apply at all, and the test asserts that
+  separately -- a rule that sets a height on a box that cannot have one is the
+  shape of thing that reads as fixed and is not.
+- Height alone left "About" at 35x44. 6px of padding either side of a 6px
+  column gap keeps the 18px of visible space the row already had while taking
+  the narrowest link to 47px.
+
+After: 0 tap targets under 44px on all 13 routes, with sideways scroll and
+in-flow overflow still 0 across 39 page/width pairs.
+
+`tests/a-finger-can-hit-what-a-mouse-can.test.js`. Probed, each failing by
+name: the coarse block deleted; the footer min-height dropped; `inline-flex`
+reverted to `inline`; the padding dropped; the row-gap zeroing removed; the
+brand height removed; the menu button back at 42px; the skip link's min-height
+removed; its `border-box` removed; the mouse footer's own gap deleted.
+
+**The menu-button probe did not fail the first time, and that is the finding.**
+`.sonara-mobile-menu>summary` is written twice -- a base rule already saying
+44px, and a narrow-screen override saying 42px. Chromium measured 42 because the
+override wins. The check took the first block with a `min-width`, found the base
+rule, and never read the one that decides. It now checks every block.
+
+The same weakness was then looked for in the sideways-scroll check, and was
+there: `html` is written twice in this stylesheet and `body` three times. No
+later rule sets `overflow-x` today, so reading only the first was right by luck,
+and a later `html{overflow-x:visible}` is precisely the edit that check exists
+to catch. Both now read every block and take the last declared value. Probed
+with a later rule un-clipping it, which the previous version passed.
 
 ### 2026-09-02 - Every marketing page could be swiped sideways into empty space
 
