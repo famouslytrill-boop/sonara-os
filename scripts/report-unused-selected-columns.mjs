@@ -110,6 +110,60 @@ const EXTRA_FILES = ["server.js"];
 // column being unused there is the point rather than a defect.
 const SELECT = /select=([a-z0-9_,]{3,})(?=[&`"'])/gi;
 
+// The selects this script cannot audit, counted rather than ignored.
+//
+// The character class above excludes `*`, so `select=*` was invisible here --
+// and "101 multi-column selects across 181 runtime files" read as coverage
+// while thirty-five queries went unexamined. That is the second shape in
+// .claude/skills/checks-that-cannot-lie: measuring a different population from
+// the one claimed.
+//
+// It is not a hypothetical. /creator-studio/generation/jobs/:jobId selects `*`
+// on the asset table, loads each output's provenance -- the service that made
+// the file, the rights and consent attestations, the checksum -- and rendered
+// none of it. Exactly the defect this script exists to find, in exactly the
+// select style it could not see.
+//
+// A star select cannot be audited column by column, because the query does not
+// name its columns; the schema does. Listing every column of the table and
+// asking whether each is used would flag a row handed whole to a helper, which
+// is normal here and is why tier 2 exists. So this does the one honest thing
+// available: it counts them, says so in the summary, and holds a ratchet. The
+// blindness may shrink and may not grow.
+const STAR_SELECT = /select=\*/gi;
+
+// The other kind this script cannot read: a select whose column list is built
+// at run time. `select=${page.select}` and `select=${PROVENANCE_COLUMNS.join(",")}`
+// are both perfectly good code and both opaque to a regex over the source.
+//
+// Found while adding the star count, by noticing the audited total had dropped
+// by one: the provenance change earlier the same day replaced a literal
+// `select=bucket_id,object_path` with a computed list, which moved one query
+// out of the audited bucket without anybody deciding to. Twenty-three of these
+// exist. Most are fine -- the list is a frozen constant a test asserts against
+// the schema -- but "fine" is a judgement made per query, and the number being
+// visible is what makes anybody make it.
+const COMPUTED_SELECT = /select=\$\{/g;
+
+// Present on 2 September 2026, counted over stripped source.
+//
+// These are matched **exactly**, not as ceilings, and the reason is a probe.
+// The first draft failed only when a count rose. Breaking the star matcher then
+// dropped the count to zero and the check **passed**, printing "0 `select=*`
+// (ceiling 34)" -- a confident zero over thirty-four unaudited queries, which
+// is the whole defect this repository is organised against.
+//
+// A fall is good news and still has to be recorded: fix a query, lower the
+// number here, say which one. That makes a broken matcher indistinguishable
+// from an unrecorded improvement, and both stop the build.
+//
+// The star figure is 34 rather than the 35 a plain grep reports, because one
+// `select=*` sits inside a comment in routes/sonara-last9-routes.cjs explaining
+// why star selects were removed from the record pages. Comments are stripped
+// before counting, here as everywhere else in this script.
+const STAR_SELECT_COUNT = 34;
+const COMPUTED_SELECT_COUNT = 23;
+
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.
 // One implementation, in lib/sonara-comment-stripping.cjs, because this script
@@ -233,6 +287,26 @@ if (!selectsExamined) {
   process.exit(1);
 }
 
+// Counted over the same file list, from the same stripped source, so the two
+// figures describe one population split in two rather than two populations.
+let starSelects = 0;
+let computedSelects = 0;
+const starFiles = new Set();
+const computedFiles = new Set();
+for (const file of files) {
+  const stripped = withoutComments(fs.readFileSync(path.join(root, file), "utf8"));
+  const stars = stripped.match(STAR_SELECT);
+  if (stars) {
+    starSelects += stars.length;
+    starFiles.add(file);
+  }
+  const computed = stripped.match(COMPUTED_SELECT);
+  if (computed) {
+    computedSelects += computed.length;
+    computedFiles.add(file);
+  }
+}
+
 function group(tier, keyOf) {
   const byKey = new Map();
   for (const finding of findings.filter((entry) => entry.tier === tier)) {
@@ -305,4 +379,36 @@ if (stale.length) {
   process.exit(1);
 }
 
-console.log(`Selected-column check passed: ${selectsExamined} multi-column selects across ${files.length} runtime files. Tier 1: ${tierOne.length}, all ruled on. Tier 2: ${tierTwo.length}, advisory.`);
+if (computedSelects !== COMPUTED_SELECT_COUNT) {
+  console.error(
+    `ERROR: ${computedSelects} selects build their column list at run time; this file records ${COMPUTED_SELECT_COUNT}.\n` +
+      `They are in: ${[...computedFiles].sort().join(", ")}\n`
+  );
+  console.error(
+    "Nothing here can read a computed list, so a column fetched and never used inside one is invisible.\n" +
+      "If the count rose, name the columns in the query instead. If it fell, lower COMPUTED_SELECT_COUNT and say\n" +
+      "which query was fixed -- a fall nobody records looks exactly like a matcher that has stopped matching."
+  );
+  process.exit(1);
+}
+
+if (starSelects !== STAR_SELECT_COUNT) {
+  console.error(
+    `ERROR: ${starSelects} \`select=*\` queries; this file records ${STAR_SELECT_COUNT}. Each one is a read this script cannot audit.\n` +
+      `They are in: ${[...starFiles].sort().join(", ")}\n`
+  );
+  console.error(
+    "If the count rose, name the columns the caller actually uses -- or, if the whole row really is handed on, raise\n" +
+      "STAR_SELECT_COUNT deliberately and say which query it was. If it fell, lower it and say which one was fixed:\n" +
+      "a fall nobody records looks exactly like a matcher that has stopped matching, which is how this guard was found."
+  );
+  process.exit(1);
+}
+
+console.log(
+  `Selected-column check passed: ${selectsExamined} multi-column selects across ${files.length} runtime files. ` +
+    `Tier 1: ${tierOne.length}, all ruled on. Tier 2: ${tierTwo.length}, advisory. ` +
+    `Not audited: ${starSelects} \`select=*\` (recorded ${STAR_SELECT_COUNT}) and ${computedSelects} built at run time ` +
+    `(recorded ${COMPUTED_SELECT_COUNT}), across ${new Set([...starFiles, ...computedFiles]).size} files -- ` +
+    "neither names its columns in the source, so nothing here can say whether they are used."
+);

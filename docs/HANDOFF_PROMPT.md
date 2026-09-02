@@ -106,6 +106,71 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - The tool that hunts unused columns could not see 57 of the queries
+
+`report-unused-selected-columns.mjs` is the script written to find the third
+shape: a value fetched into a decision and never used. Its summary read
+
+    101 multi-column selects across 181 runtime files
+
+which reads as coverage. Its pattern is
+
+    /select=([a-z0-9_,]{3,})(?=[&`"'])/gi
+
+and the character class excludes `*`. **Thirty-four `select=*` queries were
+invisible to it** -- the second shape, measuring a different population from the
+one named, in the script written to catch the third.
+
+Not hypothetical. The provenance defect fixed earlier the same day is a
+`select=*` on the generation asset table that loads each output's provider,
+attestations and checksum and rendered none of them. Exactly the defect this
+script exists to find, in exactly the select style it could not see.
+
+## A third kind, found by an inconsistency rather than by looking
+
+Adding the star count dropped the audited total from 101 to 100. That was the
+provenance change itself: it had replaced a literal `select=bucket_id,object_path`
+with `select=${provenanceOf.PROVENANCE_COLUMNS.join(",")}`, moving one query out
+of the auditable bucket without anybody deciding to.
+
+**Twenty-three** selects build their column list at run time. Most are fine --
+the list is a frozen constant a test asserts against the schema -- but "fine" is
+a judgement made per query, and the number being visible is what makes anybody
+make it.
+
+So the honest population is three numbers, not one: **100 audited, 34 star, 23
+computed.** More than a third of the queries in this codebase are outside what
+this script can read, and now it says so.
+
+## The probe that found the hole in the fix
+
+The first draft held both numbers as ceilings, failing only when a count rose.
+Breaking the star matcher dropped the count to zero and **the check passed**,
+printing `0 select=* (ceiling 34)` -- a confident zero over thirty-four
+unaudited queries. The guard against a check going blind had exactly the defect
+it was written to prevent.
+
+Both are matched **exactly** now. A fall is good news and still has to be
+recorded: fix a query, lower the number, say which one. That makes a broken
+matcher indistinguishable from an unrecorded improvement, and both stop the
+build.
+
+Worth keeping as a general rule: **a ratchet that only fails in one direction
+cannot tell an improvement from a measurement that stopped working.**
+
+## Verified by breaking it
+
+Five probes, each confirmed to fail by name: a new `select=*`; a new computed
+select; the star matcher stopping (which passed against the first draft and
+fails now); the computed matcher stopping; and a star select genuinely narrowed
+without the recorded number being lowered.
+
+One count worth explaining, because it looks like an error. A plain grep finds
+thirty-five `select=*`; this script records thirty-four. The difference is a
+`select=*` inside a comment in `routes/sonara-last9-routes.cjs` explaining why
+star selects were removed from the record pages. Comments are stripped before
+counting, here as everywhere else in this script.
+
 ### 2026-09-02 - The row knew what made the file; the page did not say
 
 `routes/creator-generation-routes.cjs` writes provenance onto every generated
