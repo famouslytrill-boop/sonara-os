@@ -158,6 +158,25 @@ well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
 
+### 2026-09-02 - CI red again, and this time the override was the cause
+
+Four high advisories in `fast-uri@3.1.5`, dev-only, through
+`@vercel/node > ajv`. Checked before assuming: the failure appeared on
+`6fd0a5d`, whose diff is a workflow file and documentation, and the audit had
+been clean locally twenty minutes earlier. Newly published, not caused by the
+change it landed next to.
+
+What makes this one worth writing down is that **the override was holding the
+tree on the vulnerable version**. `pnpm-workspace.yaml` already carried
+`"fast-uri@>=3.0.0 <3.1.5": "3.1.5"` from an earlier advisory. Pinning to
+whatever was current at the time is what makes an override go stale: once
+`3.1.5` is itself in the vulnerable range, that entry pins the tree **to** the
+problem. Raised to `"fast-uri@<3.1.6": "3.1.6"`.
+
+Second time this shape has appeared -- `SECURITY_NOTES.md` records the same
+thing happening to `js-yaml` -- so it is now written there as the first place to
+look when an audit names a package the override register already mentions.
+
 ### 2026-09-02 - The coverage figures were wrong, and the gate caught it
 
 `NODE_V8_COVERAGE` writes **one file per process**, and a whole-suite run leaves

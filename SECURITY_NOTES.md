@@ -21,6 +21,42 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 2 September 2026 -- `fast-uri`, and an override that had gone stale
+
+Four **high** advisories in `fast-uri@3.1.5`, all reached the same way --
+`.>@vercel/node>@vercel/static-config>ajv>fast-uri` -- and all patched in
+`3.1.6`:
+
+- **GHSA-f65p-4m7j-42xc**, server-side request forgery via malformed IPv6
+  normalization (`>=3.0.0 <3.1.6`)
+- **GHSA-fph4-wmhf-6fwf**, server-side request forgery via repeated hostname
+  percent-decoding (`>=3.1.2 <3.1.6`)
+- **GHSA-jqff-g426-hqxp**, host confusion via percent-encoded scheme
+  normalization (`>=3.0.0 <3.1.6`)
+- and a fourth on the same package in the same run.
+
+Every path is `dev: true`. `@vercel/node` is a development dependency and
+nothing in the served application parses URIs through it, so no customer
+request reached this code. It is still a real patch rather than an exemption:
+the version in the tree changed.
+
+**The override was the problem, not the absence of one.** The register already
+carried `"fast-uri@>=3.0.0 <3.1.5": "3.1.5"`, added for an earlier advisory.
+Pinning to the version that was current at the time is what makes an override
+go stale: the moment `3.1.5` is itself found vulnerable, the entry is pinning
+the tree **to** the vulnerable version rather than away from it. Raised to
+`"fast-uri@<3.1.6": "3.1.6"`.
+
+This is the same shape as the `js-yaml` note above -- an override pinned for one
+advisory sitting inside the range of the next -- and it is now the second time.
+Worth stating plainly for whoever hits the third: when an audit names a package
+this file already has an override for, check whether the override is the thing
+holding the tree on the vulnerable version.
+
+**No audit threshold moved and no check was weakened.** `pnpm audit` reports no
+known vulnerabilities at `--audit-level low` as well as `moderate`, and
+`pnpm install --frozen-lockfile` succeeds.
+
 ### 2 September 2026 -- `qs` and `body-parser`, reached through `express`
 
 `pnpm audit --audit-level moderate` began failing on three advisories, all of
