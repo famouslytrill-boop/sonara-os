@@ -41,7 +41,8 @@ const store = require("../lib/sonara-call-sessions.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "linkAction", "escapeHtml",
-  "requireCustomer", "getCustomerPrimaryOrganization", "getSupabaseServerConfig", "supabaseHeaders", "getEnv"
+  "requireCustomer", "resolveCustomerSession", "getCustomerPrimaryOrganization",
+  "getSupabaseServerConfig", "supabaseHeaders", "getEnv"
 ];
 
 const CUSTOMER_PAGE = "/call";
@@ -90,7 +91,8 @@ module.exports = function registerCallRoutes(app, deps = {}) {
   }
   const {
     layout, brandCard, linkAction, escapeHtml,
-    requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv
+    requireCustomer, resolveCustomerSession, getCustomerPrimaryOrganization,
+    getSupabaseServerConfig, supabaseHeaders, getEnv
   } = deps;
 
   // Built per request rather than once: getSupabaseServerConfig reads the
@@ -101,11 +103,31 @@ module.exports = function registerCallRoutes(app, deps = {}) {
     return { getEnv, supabaseUrl: config.url, serviceRoleHeaders: () => supabaseHeaders(config) };
   }
 
-  // Takes the *user*, not the request. Passing `req` and using the answer as a
-  // string filters on `organization_id=eq.[object Object]`, which returns no
-  // rows and looks exactly like a working boundary.
-  async function organizationFor(req) {
-    const user = req.sonaraUser || req.sonaraAccess?.user || null;
+  /**
+   * Which organization this request is signed in to, or null.
+   *
+   * **The session is resolved here rather than by middleware, and that is the
+   * whole reason the business end of a call worked at all.** The three
+   * signalling endpoints below carry no `requireCustomer`, deliberately: the
+   * customer end is a person holding a link and no account, and demanding one
+   * before somebody can answer their builder's call is a product nobody would
+   * use. But `req.sonaraUser` is only ever set by that middleware -- five
+   * assignment sites in `server.js`, all route-level, none mounted on
+   * `/api/calls` -- so with no middleware there was no user, and the business
+   * end resolved to `no_organization` on every poll and every offer. The
+   * browser was sending its session cookie the whole time (`sonara-call.js`
+   * fetches with `credentials: "same-origin"`); nothing read it.
+   *
+   * `resolveCustomerSession` is the same function `requireCustomer` uses. The
+   * difference is that failing is allowed: a request with no session is the
+   * customer end, and gets `null` rather than a refusal.
+   */
+  async function organizationFor(req, res = null) {
+    let user = req.sonaraUser || req.sonaraAccess?.user || null;
+    if (!user) {
+      const session = await resolveCustomerSession(req, res).catch(() => null);
+      user = session?.ok ? session.user : null;
+    }
     if (!user) return null;
     const organization = await getCustomerPrimaryOrganization(user, { autoBootstrap: false }).catch(() => null);
     if (!organization?.ok || !organization.organizationId) return null;
@@ -151,7 +173,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
    * owner testing their own call link the business end of it, and then nothing
    * would ever be delivered to the customer end.
    */
-  async function resolveCall(req) {
+  async function resolveCall(req, res = null) {
     const dependencies = storeDeps();
     if (!dependencies) return { ok: false, code: "setup_required" };
 
@@ -162,7 +184,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
       return { ok: true, deps: dependencies, call: found.call, role: "customer" };
     }
 
-    const organizationId = await organizationFor(req);
+    const organizationId = await organizationFor(req, res);
     if (!organizationId) return { ok: false, code: "no_organization" };
     const callId = String(req.params?.callId || "");
     if (!isUuid(callId)) return { ok: false, code: "no_such_call" };
@@ -192,7 +214,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
     const dependencies = storeDeps();
     if (!dependencies) return res.status(503).json({ ok: false, code: "setup_required", service: "supabase" });
 
-    const organizationId = await organizationFor(req);
+    const organizationId = await organizationFor(req, res);
     if (!organizationId) return res.status(403).json({ ok: false, code: "no_organization" });
 
     const customerId = String(req.body?.customer_id || "");
@@ -239,7 +261,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
   // ---------------------------------------------------------------------------
 
   app.get("/api/calls/:callId/signals", async (req, res) => {
-    const resolved = await resolveCall(req);
+    const resolved = await resolveCall(req, res);
     if (!resolved.ok) return res.status(resolved.code === "setup_required" ? 503 : 403).json({ ok: false, code: resolved.code, detail: explain(resolved.code) });
     // The id in the path has to be the call the token names. Without this a
     // valid token would read any call's signals by changing the path.
@@ -272,7 +294,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
   });
 
   app.post("/api/calls/:callId/signals", async (req, res) => {
-    const resolved = await resolveCall(req);
+    const resolved = await resolveCall(req, res);
     if (!resolved.ok) return res.status(resolved.code === "setup_required" ? 503 : 403).json({ ok: false, code: resolved.code, detail: explain(resolved.code) });
     if (String(req.params.callId) !== String(resolved.call.id)) {
       return res.status(403).json({ ok: false, code: "no_such_call" });
@@ -297,7 +319,7 @@ module.exports = function registerCallRoutes(app, deps = {}) {
   });
 
   app.post("/api/calls/:callId/status", async (req, res) => {
-    const resolved = await resolveCall(req);
+    const resolved = await resolveCall(req, res);
     if (!resolved.ok) return res.status(resolved.code === "setup_required" ? 503 : 403).json({ ok: false, code: resolved.code, detail: explain(resolved.code) });
     if (String(req.params.callId) !== String(resolved.call.id)) {
       return res.status(403).json({ ok: false, code: "no_such_call" });

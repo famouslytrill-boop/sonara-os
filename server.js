@@ -1498,7 +1498,7 @@ registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, r
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
-registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, resolveCustomerSession, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 const twoFactor = registerTwoFactorRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, verifySupabaseAccessToken, sendEmailAuthResult, verifyRateLimiter: twoFactorRateLimiter });
 
 app.get("/api/health", (req, res) => res.status(200).json({

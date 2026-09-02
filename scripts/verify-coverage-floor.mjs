@@ -41,7 +41,7 @@
  *
  * ## Why a register rather than a bare floor
  *
- * Three files are under the floor. A gate that simply failed on them would have
+ * Two files are under the floor. A gate that simply failed on them would have
  * had to be switched off on the day it landed, which is how a check becomes
  * decoration. So it is two-sided, the way `report-orphan-tables.mjs` is:
  *
@@ -81,9 +81,7 @@ const BELOW_FLOOR = Object.freeze({
   "routes/sonara-subsystem-routes.cjs":
     { covered: 30, total: 177, namesModule: 1, note: "reached only as one of many routes in the outage crawl, which renders the unconfigured state rather than driving the handlers" },
   "scripts/verify-member-read-access.mjs":
-    { covered: 21, total: 86, namesModule: 1, note: "a release script that talks to Supabase; the suite loads it but cannot run it against a database" },
-  "routes/sonara-call-routes.cjs":
-    { covered: 71, total: 273, namesModule: 2, note: "the two tests that name it assert a call never routes through us; the rest of the handlers need a live Supabase" }
+    { covered: 21, total: 86, namesModule: 1, note: "a release script that talks to Supabase; the suite loads it but cannot run it against a database" }
 });
 
 // If a registered file loses more than this many percentage points it fails.

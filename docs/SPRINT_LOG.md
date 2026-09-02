@@ -54,6 +54,62 @@ well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
 
+### 2026-09-02 - The business end of every call was refused
+
+`routes/sonara-call-routes.cjs` was the lowest-covered file left in the register
+-- 71 of 273 lines. Two tests named it and neither drove a handler: one asserts
+registration throws when a dependency is missing, the other reads the source for
+hardcoded STUN addresses. Everything the four endpoints decide was unexercised.
+
+Writing tests for it found that **no call could ever connect from the business
+side.**
+
+The chain, each link read rather than assumed:
+
+1. The three signalling endpoints -- `GET`/`POST /api/calls/:callId/signals` and
+   `POST /api/calls/:callId/status` -- carry **no authentication middleware**.
+   That is deliberate and documented: the customer end is a person holding a
+   link and no account, and "requiring an account before somebody can answer
+   their builder's call is a product nobody would use."
+2. `req.sonaraUser` is set **only** by route-level middleware. Five assignment
+   sites in `server.js`, all inside `requireCustomer`, `requireAppAccess`,
+   `requireWorkspaceAccess` and `requirePaidOrOwnerAccess`.
+3. Nothing is mounted on `/api/calls` -- no `app.use` for that path exists.
+4. So `organizationFor` found no user, `resolveCall` returned `no_organization`,
+   and every business poll and every business offer got **403**.
+5. And the business browser had no token to fall back on: the business page's
+   client config passes `role`, `createEndpoint`, `customerId`, `joinBase`,
+   `iceServers` and `relay` -- no token -- and `sonara-call.js` sets `token`
+   once from that config and never reassigns it.
+
+The session cookie was on the request the whole time. `sonara-call.js` fetches
+with `credentials: "same-origin"`. **Nothing read it.**
+
+`organizationFor` now resolves the session itself when no middleware has
+attached one, using `resolveCustomerSession` -- the same function
+`requireCustomer` uses, with failing allowed, because a request with no session
+is the customer end and must get `null` rather than a refusal. The dependency is
+**required**, so a server that forgets to pass it fails at startup rather than
+serving a calling feature that refuses every business request, which is exactly
+how this went unnoticed.
+
+25 tests, driving the real routes and the real store with only `fetch` replaced
+by a stub that answers like PostgREST and records every URL and body -- so the
+assertions are about the query the application would really send. The boundary
+lives in those queries: `from_role=eq.<the other end>` and
+`organization_id=eq.<this business>`.
+
+Probed, each failing by name: the session resolution removed (**three** tests,
+including the one named for this bug); the role taken from the request body;
+the path/callId match dropped; `otherRole` replaced by `role` so each end reads
+its own signals back; and the organization filter removed from the customer
+ownership check.
+
+Worth stating for the next person: the module's header already said "The role is
+derived, never accepted", and it was true. What no comment said, because nobody
+had run it, was that the end which derives its role from a session could not get
+one.
+
 ### 2026-09-02 - CI red again, and this time the override was the cause
 
 Four high advisories in `fast-uri@3.1.5`, dev-only, through
