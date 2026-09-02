@@ -20,6 +20,7 @@ const {
 
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
+const provenanceOf = require("../lib/sonara-generation-provenance.cjs");
 const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
@@ -511,12 +512,23 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const loaded = await loadJob(config, context, req.params.jobId);
     if (!loaded.ok) return res.redirect(303, "/creator-studio/generation/jobs");
     if (!validUuid(req.params.assetId)) return res.redirect(303, jobPath(loaded.job.id));
-    const found = await rest(config, ASSET_TABLE, `select=bucket_id,object_path&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+    const found = await rest(config, ASSET_TABLE, `select=${provenanceOf.PROVENANCE_COLUMNS.join(",")}&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
     const asset = found.ok ? found.rows[0] : undefined;
     if (!asset) return res.redirect(303, jobPath(loaded.job.id));
     const signed = await signAsset(config, asset);
     if (!signed.ok) return res.redirect(303, jobPath(loaded.job.id));
-    await event(config, context, loaded.job.id, "generation.output_downloaded", "success", { asset_id: req.params.assetId });
+    // What was collected, not only that something was. The event used to carry
+    // the asset id alone, so the history could say a file left and not which
+    // service had made it or what its fingerprint was -- the two facts anybody
+    // asking about a download afterwards actually wants.
+    await event(
+      config,
+      context,
+      loaded.job.id,
+      "generation.output_downloaded",
+      "success",
+      provenanceOf.downloadEventDetails(req.params.assetId, provenanceOf.describeAsset(asset))
+    );
     return res.redirect(302, signed.url);
   });
 
@@ -966,8 +978,18 @@ function jobOutputsCard(job, assets, escape) {
       : "Nothing to collect yet. Files appear here as soon as they are made.";
     return `<article class="card"><h2>Your files</h2><p>${escape(waiting)}</p></article>`;
   }
-  const rows = outputs.map((asset) => `<tr><td><a href="${escape(`${jobPath(job.id)}/outputs/${encodeURIComponent(asset.id)}`)}">Download</a></td><td>${escape(fileKind(asset))}</td><td>${escape(sizeText(asset.byte_size))}</td><td>${escape(whenText(asset.created_at))}</td></tr>`).join("");
-  return `<article class="card"><h2>Your files</h2><table><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Made</th></tr></thead><tbody>${rows}</tbody></table><p>Download links are private to your workspace and expire after a few minutes.</p></article>`;
+  // Where each file came from, which the row has always carried and this table
+  // has never shown. The page selects `*`, so none of this is a new read -- it
+  // was loaded and dropped. AGENTS.md asks for provenance to be enforced, and a
+  // record only the database can see enforces nothing.
+  const rows = outputs.map((asset) => {
+    const from = provenanceOf.describeAsset(asset);
+    const madeBy = from.madeBy || "Not recorded";
+    // Three columns rather than one sentence, because a creator scanning a list
+    // of files is comparing them against each other.
+    return `<tr><td><a href="${escape(`${jobPath(job.id)}/outputs/${encodeURIComponent(asset.id)}`)}">Download</a></td><td>${escape(fileKind(asset))}</td><td>${escape(sizeText(asset.byte_size))}</td><td>${escape(whenText(asset.created_at))}</td><td>${escape(madeBy)}</td><td>${escape(from.rightsLabel)}</td><td>${escape(from.consentLabel)}</td><td>${from.checksumShort ? `<code title="${escape(from.checksum)}">${escape(from.checksumShort)}</code>` : escape("Not recorded")}</td></tr>`;
+  }).join("");
+  return `<article class="card"><h2>Your files</h2><div class="table-scroll"><table><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Made</th><th>Made by</th><th>Rights confirmed</th><th>Consent confirmed</th><th>Fingerprint</th></tr></thead><tbody>${rows}</tbody></table></div><p>Download links are private to your workspace and expire after a few minutes.</p><p>The fingerprint is a SHA-256 of the file as we stored it. Hover it for the full value; a copy that still matches it is the copy we made.</p></article>`;
 }
 
 function jobControlsCard(job, escape) {
@@ -986,7 +1008,7 @@ function jobControlsCard(job, escape) {
 function jobRequestCard(job, escape) {
   const prompt = clean(job.prompt, 5000);
   const negative = clean(job.negative_prompt, 2000);
-  return `<article class="card"><h2>What you asked for</h2><p>${escape(prompt || "No description was given.")}</p>${negative ? `<p><strong>Asked to avoid:</strong> ${escape(negative)}</p>` : ""}<p><strong>Rights confirmed:</strong> ${escape(job.rights_attested ? "Yes" : "No")}</p></article>`;
+  return `<article class="card"><h2>What you asked for</h2><p>${escape(prompt || "No description was given.")}</p>${negative ? `<p><strong>Asked to avoid:</strong> ${escape(negative)}</p>` : ""}<p><strong>Rights confirmed:</strong> ${escape(provenanceOf.attestationLabel(job.rights_attested))}</p><p><strong>Consent confirmed:</strong> ${escape(provenanceOf.attestationLabel(job.consent_attested))}</p></article>`;
 }
 
 function jobHistoryCard(events, escape) {

@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 264 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 265 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,79 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - The row knew what made the file; the page did not say
+
+`routes/creator-generation-routes.cjs` writes provenance onto every generated
+output at the moment the file is stored:
+
+    provenance: { provider_key: providerKey, generated: true,
+                  rights_attested: job.rights_attested,
+                  consent_attested: job.consent_attested }
+
+alongside a SHA-256 of the bytes. The job page then selects `*` -- so all of it
+arrives -- and rendered four columns: File, Type, Size, Made.
+
+**Being in the select is what made it look handled.** That is the third shape in
+`.claude/skills/checks-that-cannot-lie` and the sharpest one, and it is the same
+shape as `consent_scope`: a value fetched into a decision and compared to
+nothing. Here it is fetched into a page and printed nowhere.
+
+AGENTS.md asks for provenance to be **enforced**. A record only the database can
+read enforces nothing. A creator who cannot say what made a file, or prove the
+copy they hold is the copy we made, has no provenance however carefully the row
+was written.
+
+## What a creator sees now
+
+Four columns added to the outputs table -- Made by, Rights confirmed, Consent
+confirmed, Fingerprint -- and none of them is a new read.
+
+The fingerprint is the SHA-256 that was already being computed, shown as the
+first and last twelve characters with the whole value on hover. Sixty-four
+characters in a table cell is not something anybody checks.
+
+`lib/sonara-generation-provenance.cjs` refuses to print anything that is not a
+64-character hex digest. A truncated fingerprint is worse than none: somebody
+comparing a file against it gets a mismatch and concludes the file was altered.
+
+## Three states, and the two-state bug already on the page
+
+`rights_attested` and `consent_attested` are nullable, and the request card read
+them as
+
+    job.rights_attested ? "Yes" : "No"
+
+which tells a creator their rights were **not confirmed** when the truthful
+answer is that nobody was asked. Yes, no, and not recorded, everywhere.
+
+The same care applies to the provider. An unrecognised key renders as
+"An unrecognised service (gpt_sovits_x)" rather than being tidied into something
+that reads like a name, because a made-up label is worse than an admission --
+and a key the registry *does* know never reaches the page raw.
+
+## The download says what was collected
+
+The download route selected `bucket_id,object_path` and recorded
+`{ asset_id }`. The history could say a file left and not which service had made
+it or what its fingerprint was, which are the two facts anybody asking about a
+download afterwards wants. Its columns now come from `PROVENANCE_COLUMNS` in the
+module, so the select and the audit record are one list rather than two.
+
+## The layout consequence, since it is one
+
+Four more columns makes eight, and the stylesheet's own table scroller applies
+only below 680px -- a phone and nothing else. Eight columns overflow a tablet
+and a narrow laptop too, and AGENTS.md asks that layouts do not overflow. There
+is a real `.table-scroll` rule now, and the test asserts the class styles
+something: a class name that styles nothing is the same defect one layer down.
+
+## Verified by breaking it
+
+Six probes, each confirmed to fail by name: the outputs table back to four
+columns; `null` collapsing to "No"; the download route back to two columns; a
+truncated digest shown as a fingerprint; an unrecognised provider key rendered
+as though known; and `.table-scroll` used in the markup while styling nothing.
 
 ### 2026-09-02 - Two palettes on one page, in two different themes
 
