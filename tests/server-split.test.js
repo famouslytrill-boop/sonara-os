@@ -528,9 +528,25 @@ describe("the server.js split stays safe", () => {
     // where the sign-in handler is. Everything it does lives in the route
     // module; what is here is the four lines that make the difference between a
     // second factor and a decoration, and their reason.
+    //
+    // Then 3874 on 2 September 2026, by 1 -- the smallest exception here, and
+    // the only one that is a net figure rather than an addition. Counted from
+    // the diff: 24 added, 23 removed.
+    //
+    //   -23 lines  buildBusinessOffer, buildCreatorOffer and splitList left,
+    //              for lib/sonara-offer-drafts.cjs
+    //   +7 lines   the require that replaces them
+    //   +6 lines   the empty-list guard on both offer handlers, with its reason
+    //   +11 lines  sendEmptyListFailure, beside sendValidationFailure
+    //
+    // The guard is the reason this is not a pure removal. "Deliverables is
+    // required" tested the box for non-blankness, and the builders then split
+    // on commas and dropped the empty pieces -- so ", , ," passed and saved an
+    // offer that listed nothing. The check has to run between requireFields
+    // and the save, and both of those are in this file.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3873,
+      lines <= 3874,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

@@ -110,7 +110,8 @@ const NOT_A_CLAIM_ABOUT_RECORDS = [
   [/no reviews are published/i, "Proof and review publishing is owner-gated; a statement of policy."],
   [/nothing here has been sent/i, "Chase drafts, saying a draft is not a message. A statement about what the page does not do."],
   [/nothing here publishes anything on its own/i, "The release calendar, saying it schedules rather than publishes."],
-  [/nothing here says your database is empty/i, "The database console's caveat card, which exists to stop an owner concluding exactly the thing this check hunts for. It is the opposite of the claim -- flagged only because the pattern matches the words \"Nothing here\" wherever they appear. Found by the owner pass on its first run, on /admin/database, /admin/database-management and /admin/migrations, all rendering the same card."]
+  [/nothing here says your database is empty/i, "The database console's caveat card, which exists to stop an owner concluding exactly the thing this check hunts for. It is the opposite of the claim -- flagged only because the pattern matches the words \"Nothing here\" wherever they appear. Found by the owner pass on its first run, on /admin/database, /admin/database-management and /admin/migrations, all rendering the same card."],
+  [/nothing here is a secret/i, "The public status page at /readiness, describing its own disclosure posture: it reports which credentials are configured, never their values. A statement about what the page withholds, not about what a customer has stored. Flagged the moment /readiness entered the route registry, which is this crawl's population -- the page had rendered the sentence for months without being read by anything."]
 ];
 
 function excused(context) {

@@ -48,6 +48,13 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
+const {
+  splitList,
+  listFieldsWithNothingIn,
+  emptyListMessage,
+  buildBusinessOffer,
+  buildCreatorOffer
+} = require("./lib/sonara-offer-drafts.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
 const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
@@ -1394,6 +1401,10 @@ app.post("/business-builder/invite/accept", inviteAcceptRateLimiter, async (req,
 app.post("/api/business-builder/offers", async (req, res) => {
   const validation = requireFields(req.body, ["serviceType", "audience", "priceIdea", "deliverables"]);
   if (!validation.ok) return sendValidationFailure(req, res, validation, "/business-builder/offers/free");
+  // A required list field arriving as ", , ," passed the check above and split
+  // to nothing, so the saved offer listed no deliverables at all.
+  const emptyLists = listFieldsWithNothingIn(req.body, ["deliverables"]);
+  if (emptyLists.length) return sendEmptyListFailure(req, res, emptyLists, "/business-builder/offers/free");
   return requireWorkspaceAccess("business_builder")(req, res, async () => {
     const output = buildBusinessOffer(req.body);
     return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "business_builder", "offer_builder", req.body, output), "Business offer recorded", "/business-builder/offers/free");
@@ -1446,6 +1457,8 @@ app.post("/api/creator-studio/assets", async (req, res) => {
 app.post("/api/creator-studio/offers", async (req, res) => {
   const validation = requireFields(req.body, ["offerType", "audience", "deliverables", "priceIdea"]);
   if (!validation.ok) return sendValidationFailure(req, res, validation, "/creator-studio/offers/free");
+  const emptyLists = listFieldsWithNothingIn(req.body, ["deliverables"]);
+  if (emptyLists.length) return sendEmptyListFailure(req, res, emptyLists, "/creator-studio/offers/free");
   return requireWorkspaceAccess("creator_studio")(req, res, async () => {
     const output = buildCreatorOffer(req.body);
     return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "creator_studio", "creator_offers", req.body, output), "Creator offer recorded", "/creator-studio/offers/free");
@@ -2869,6 +2882,17 @@ function sendValidationFailure(req, res, validation, backHref) {
   );
 }
 
+// A list field that arrived carrying only separators. Its own refusal rather
+// than a reused "missing field" one: somebody who typed nothing and somebody
+// who typed ", , ," need different sentences to know what to do next.
+function sendEmptyListFailure(req, res, fields, backHref) {
+  const message = emptyListMessage(fields);
+  if (wantsJson(req)) return res.status(400).json({ ok: false, code: "empty_list", fields, message });
+  return res.status(400).type("html").send(
+    responsePage("Nothing in the list", message, [linkAction(backHref, "Return to form")])
+  );
+}
+
 function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json(result);
   const title = result.saved ? successTitle : "Your result is ready";
@@ -3129,27 +3153,7 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
-function buildBusinessOffer(input) {
-  return {
-    headline: `${input.serviceType} for ${input.audience}`,
-    pricePosition: String(input.priceIdea),
-    deliverables: splitList(input.deliverables),
-    proofPoints: splitList(input.proofPoints || ""),
-    buyerNextAction: "Submit an intake request and schedule owner review.",
-    caution: "Validate scope, refund terms, and payment readiness before selling."
-  };
-}
 
-function buildCreatorOffer(input) {
-  return {
-    offerType: String(input.offerType),
-    audience: String(input.audience),
-    deliverables: splitList(input.deliverables),
-    pricePosition: String(input.priceIdea),
-    rightsReminder: "Confirm ownership, license terms, and platform rules before monetization.",
-    buyerNextAction: "Review catalog details and support requirements."
-  };
-}
 
 function buildCampaignPlan(input) {
   return {
@@ -3168,9 +3172,6 @@ function buildCampaignPlan(input) {
   };
 }
 
-function splitList(value) {
-  return String(value).split(",").map((item) => item.trim()).filter(Boolean);
-}
 
 function getEnv(names) {
   const keys = Array.isArray(names) ? names : [names];

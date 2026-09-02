@@ -12,6 +12,11 @@ const {
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
 const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
+const {
+  ACCOUNTING_EXPORT_TYPES,
+  REFUSED_EXPORT_TYPES,
+  exportSourceFor
+} = require("../lib/sonara-accounting-export-sources.cjs");
 const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
 const { renderInvoicePdf } = require("../lib/sonara-invoice-pdf.cjs");
 const { settle } = require("../lib/sonara-invoice-settlement.cjs");
@@ -384,16 +389,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // is no worker here, and a status that only a worker could advance is how the
   // lie got written in the first place.
   //
-  // Only the three types whose meaning is unambiguous are served. payroll_summary
-  // and journal_entries are refused by name: both require accounting judgement
-  // this code has not been given -- what belongs in a journal line, and how gross
-  // pay reconciles to cost -- and inventing them would put wrong figures in front
-  // of an accountant, which is worse than putting none.
-  const EXPORT_SOURCES = Object.freeze({
-    bills: { table: "vendor_invoices", dateColumn: "created_at", columns: ["id", "created_at", "vendor_name", "invoice_number", "invoice_date", "due_date", "amount", "currency", "status", "notes"] },
-    sales: { table: "pos_sales_summaries", dateColumn: "created_at", columns: ["id", "created_at", "business_date", "gross_sales", "net_sales", "tax_total", "discount_total", "transaction_count", "currency"] },
-    inventory: { table: "inventory_items", dateColumn: "created_at", columns: ["id", "created_at", "item_name", "sku", "unit", "quantity_on_hand", "unit_cost", "reorder_point", "location_id"] }
-  });
+  // Which types have a source, and the reason the others do not, both live in
+  // lib/sonara-accounting-export-sources.cjs -- the same table the form on the
+  // page reads its options from, so the page cannot offer a type this route
+  // would then refuse.
 
   app.get("/business-builder/owner/accounting-exports/:recordId/download", requireBusinessManager, async (req, res) => {
     const config = getConfig(deps);
@@ -412,12 +411,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const record = found.rows[0];
     if (!record) return res.status(404).type("text").send("That export is not in your business, or it has been removed.");
 
-    const source = EXPORT_SOURCES[String(record.export_type || "")];
+    const source = exportSourceFor(record.export_type);
     if (!source) {
       // Named, not generic. "Not supported" tells somebody nothing about
       // whether to wait for it.
+      // A row can still carry one of these: the form offered them until 2
+      // September 2026, and narrowing the form does not rewrite history.
+      const reason = REFUSED_EXPORT_TYPES[String(record.export_type || "")]
+        || "That export type names nothing this system can read.";
       return res.status(422).type("text").send(
-        `A file for "${String(record.export_type || "unknown")}" exports is not built. Payroll summaries and journal entries need accounting decisions this system has not been given, and producing them from guesses would put wrong figures in front of your accountant. Bills, sales and inventory exports do download.`
+        `A file for "${String(record.export_type || "unknown")}" exports is not built. ${reason} Producing one from guesses would put wrong figures in front of your accountant. ` +
+          `These do download: ${ACCOUNTING_EXPORT_TYPES.join(", ")}.`
       );
     }
 

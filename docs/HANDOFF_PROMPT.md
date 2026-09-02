@@ -23,12 +23,12 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 
 ## How this codebase is built
 
-- One Express 4 CommonJS server (`server.js`, currently 3873 lines) served on Vercel through `api/index.js`.
+- One Express 4 CommonJS server (`server.js`, currently 3874 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
-- 36 public routes, 18 customer routes, 29 admin routes.
-- 262 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 37 public routes, 18 customer routes, 29 admin routes.
+- 264 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,114 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - Nineteen products came out of beta, and beta started meaning something
+
+The catalog carried a `lifecycleStatus` per product, and
+`lib/sonara-plain-language.cjs` renders `beta` to a customer as **"Early access
+-- usable now, still being refined."** That is a promise about the state of a
+product. It was a word typed into a table. Nothing derived it, nothing checked
+it, and nothing failed when it was wrong.
+
+It was wrong in both directions at once. Of 42 products, 19 were beta -- and
+`EXECUTABLE_LIFECYCLE_STATUSES` already includes `beta`, so every one of them
+executed. Beta was a label on the card, not a gate on the product. Meanwhile
+the label correlated with no quality signal in the repository; the first
+measurement of test coverage ran slightly the *other* way.
+
+So "take everything out of beta" could not honestly be a find-and-replace. The
+work was to make the label derivable, find what genuinely failed the bar, fix
+that, and then set the label from evidence.
+
+## The bar
+
+`scripts/verify-product-lifecycle-evidence.mjs` establishes four facts per
+product and requires all four of anything marked `active`:
+
+  * Express serves a GET for its route, read off `app._router.stack`.
+  * That route answers a live request with a page, or a redirect to a sign-in
+    surface. A 404, a 500 or a redirect somewhere unrelated is a catalog card
+    pointing at nothing.
+  * The route is in `ROUTE_REGISTRY` with a title and description.
+  * Some test file names the service key, the route, or the tool function
+    behind it.
+
+Two-sided, like `report-orphan-tables.mjs`. A **beta** product meeting every bar
+with nothing recorded against it fails too -- either promote it or write down
+what is holding it back -- and a `HELD_BACK` entry naming a product that is no
+longer beta fails, because a stale reason is what the next reader believes
+instead of checking. `HELD_BACK` is empty, which is the honest state rather than
+an omission.
+
+Eight probes, each confirmed to fail by name: a route Express does not serve; a
+route that 404s; a beta product with nothing holding it back; a `HELD_BACK`
+reason that has expired; a `HELD_BACK` entry naming nothing; an empty catalog;
+an empty tool index; and the matcher silently matching nothing.
+
+The first measurement was wrong twice before it was right, which is worth
+recording. It indexed `PLANNER_TOOLS` and not `MARKET_TOOLS`, so nine working
+tools read as untested; and a shell-escaped regex in a one-line probe reported
+`rotaCost` absent from a file that imports it on line 28. Both times the answer
+looked plausible. Neither was checked against the file until it disagreed with
+something else.
+
+## What actually failed the bar
+
+Three products, and two of the three were hiding a real defect.
+
+**`/readiness` was not tracked at all.** It has answered 200 to anonymous
+requests since it was written and is linked from the home page, the dashboard
+and support -- it was already public, just outside every registry rule. Adding
+it to `PUBLIC_ROUTES` was four lines and tripped three existing gates in a row,
+each correctly: the outage crawl read "Nothing here is a secret" as an
+empty-state claim about a customer's records; the marketing-surface rule
+demanded it be classified front door or document; and the handle reservation
+check pointed out somebody could now register `@readiness`. All three are the
+gates working.
+
+**The accounting export offered six types and could build three.** The form on
+`/business-builder/owner/accounting-exports` listed `bills`, `sales`,
+`inventory`, `payroll_summary`, `journal_entries` and `other`. The download
+route knew three tables and refused the rest by name, clearly and far too late:
+the choice had already been offered and made. Both now read
+`lib/sonara-accounting-export-sources.cjs`, so the options **are** the keys.
+
+Writing that file surfaced the worse bug. Every one of the three column lists
+named columns those tables do not have -- `vendor_name`, `amount`, `status` and
+`notes` on `vendor_invoices`, six of nine on `pos_sales_summaries`.
+`buildRecordCsv` writes a blank cell for a header the row does not carry rather
+than refusing, so a bills export downloaded by an accountant had an `amount`
+column that was empty on every line, no `total_cents` at all, and the correct
+number of rows. The file opened. The figures were gone. Found by an assertion
+that every declared column exists in `lib/sonara-migration-columns.cjs`, added
+because it was cheap, not because anything suggested it was needed.
+
+**"Deliverables is required" meant the box was not blank.** Both offer forms ran
+`requireFields`, which tests for a non-blank string, and then split on commas
+and dropped the empty pieces. `", , ,"` passed, produced `deliverables: []`, and
+saved a draft the page reported as recorded. `lib/sonara-offer-drafts.cjs` now
+holds `splitList` beside the check that a list field yields at least one item,
+with its own refusal sentence -- somebody who typed nothing and somebody who
+typed `", ,"` need different instructions.
+
+## Then the label
+
+With the three gaps closed, all 42 products meet all four facts, and all 42 are
+`active`. The catalog sync migration and the derived docs were regenerated from
+the code rather than edited.
+
+`server.js` grew by 1 line, to 3874, counted from the diff: 24 added, 23
+removed. The removals are three functions that left for `lib/`; the additions
+are the require, the empty-list guard on both offer handlers, and
+`sendEmptyListFailure` beside the sender it is modelled on. The guard has to run
+between `requireFields` and the save, and both of those are in this file.
+
+## What this does not claim
+
+`active` here means reachable, guarded, tracked and exercised. It does not mean
+a product is deep, and nothing in this check would notice a thin one. What it
+makes impossible is a catalog card that has quietly stopped pointing at
+anything -- which is the failure a catalog actually has.
 
 ### 2026-09-02 - The handoff counted a different population from the one it named
 
