@@ -109,7 +109,14 @@ html[data-theme="dark"]{
 }
 
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-padding-top:calc(var(--nx-header) + 20px);-webkit-text-size-adjust:100%;background:var(--nx-bg)}
+/* The two full-bleed decorations -- .sonara-stage::before (inset -12%) and
+   .sonara-hero-stage::before (inset -10%) -- deliberately paint past their
+   containers. Measured in Chromium: they made the document 424px wide in a
+   390px viewport, so every marketing page could be swiped 34px sideways into
+   empty space. body{overflow-x:clip} below did not stop it, because the
+   scrolling box is the documentElement. clip rather than hidden: hidden makes
+   html a scroll container and the sticky site header stops sticking. */
+html{scroll-padding-top:calc(var(--nx-header) + 20px);-webkit-text-size-adjust:100%;background:var(--nx-bg);overflow-x:clip}
 body{margin:0;min-width:0;max-width:100%;overflow-x:clip;background:linear-gradient(180deg,var(--nx-bg) 0,var(--nx-bg) 70%,var(--nx-bg-soft) 100%);color:var(--nx-text);font-family:var(--nx-font);font-size:15px;line-height:1.58;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body::before{content:"";position:fixed;inset:0 0 auto;height:560px;z-index:-2;background:radial-gradient(circle at 14% 8%,rgba(116,84,245,.13),transparent 34%),radial-gradient(circle at 86% 12%,rgba(20,184,212,.11),transparent 28%),radial-gradient(circle at 62% 42%,rgba(239,77,141,.07),transparent 32%);pointer-events:none}
 html[data-theme="dark"] body::before{background:radial-gradient(circle at 14% 8%,rgba(116,84,245,.22),transparent 35%),radial-gradient(circle at 86% 12%,rgba(20,184,212,.16),transparent 30%),radial-gradient(circle at 60% 42%,rgba(239,77,141,.10),transparent 34%)}
@@ -154,6 +161,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
 .sonara-mobile-menu{display:none;margin-left:auto}.sonara-mobile-menu>summary{min-width:44px;min-height:44px;padding:10px 12px;display:grid;place-items:center;border:1px solid var(--nx-line);border-radius:12px;background:var(--nx-surface);color:var(--nx-ink);font-weight:800;cursor:pointer;list-style:none}
 .sonara-mobile-menu>nav{position:absolute;top:100%;left:0;right:0;padding:12px max(12px,calc((100% - var(--nx-content))/2));display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border-bottom:1px solid var(--nx-line);background:color-mix(in srgb,var(--nx-bg) 96%,transparent);box-shadow:var(--nx-shadow);backdrop-filter:blur(18px)}
 .sonara-mobile-menu a{width:100%;justify-content:flex-start;white-space:normal}
+/* A closed <details> does not stop an absolutely positioned child being laid
+   out. Measured: ten menu links sitting at right=440 in a 390px viewport while
+   the menu was shut -- off-screen, but still in the tab order and still found
+   by find-in-page. */
+.sonara-mobile-menu:not([open])>nav{display:none}
 
 main,footer{width:min(var(--nx-content),calc(100% - 40px));margin-inline:auto}
 main{min-width:0}.sonara-standard-page main{padding-bottom:64px}

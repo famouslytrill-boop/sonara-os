@@ -2,6 +2,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - Every marketing page could be swiped sideways into empty space
+
+Measured in Chromium against the running application, at a 390px viewport:
+`window.scrollTo(9999, 0)` moved `scrollX` to **34**. The document was **424**
+wide inside a 390 viewport. Walking every element and pseudo-element found the
+two boxes that reached 424:
+
+    .sonara-stage::before        inset: -8rem -12% auto    left=-34 right=424
+    .sonara-hero-stage::before   inset: -20% -10% auto     left=-27 right=417
+
+Both are deliberate full-bleed decoration, documented as such where they are
+written, and neither is the thing to change. A customer swiping sideways got
+blank space. AGENTS.md: "Mobile layouts must avoid overflow."
+
+`body{overflow-x:clip}` was already there and did nothing, because **the
+scrolling box is the documentElement** and that was `overflow-x: visible`. The
+fix puts the clip where the scrolling actually happens. `clip` and not `hidden`:
+`hidden` would make `html` a scroll container, and the site header is
+`position: sticky` -- verified in Chromium that with `clip` the header still
+holds at top=0 through a 600px scroll.
+
+After: `sideways=0` at 390, 820 and 1440 across `/`, `/pricing` and `/products`,
+with both glows still painting (444px at phone, 1488px at desktop).
+
+A second finding from the same pass, and **not** a cause of the sideways scroll:
+a closed `<details>` does not stop an absolutely positioned child being laid
+out, so the shut mobile menu's ten links sat at `right=440` in a 390 viewport --
+off-screen, but still in the tab order and still found by find-in-page.
+`.sonara-mobile-menu:not([open])>nav{display:none}`. Re-checked open afterwards:
+10 visible links, panel 390 wide and inside the viewport, and a pixel behind it
+moved rgb(123,130,154) to rgb(13,16,24), so it paints over the page rather than
+through it.
+
+`tests/no-page-scrolls-sideways.test.js` guards the rule. It **says in its own
+header that it guards a rule and not a behaviour**, because the suite has no
+browser and adding one is a dependency decision rather than a test; a weaker
+check, honestly labelled, beats one that implies it measured something it did
+not.
+
+Two things that check found in itself, both worth carrying forward:
+
+- Its first draft asserted `.sonara-ds::before` and `section.hero::before`.
+  Those are **Chromium's element descriptions, not the selectors** -- the CSS
+  says `.sonara-stage::before` and `body.sonara-home-v3 .hero.sonara-hero-stage::before`,
+  and the first of them is in a different stylesheet. The check was matching a
+  note about the code instead of the code.
+- `.sonara-stage::before` is written **eight times** across the design system:
+  the bleeding rule plus media-query and per-product variants. A helper taking
+  the first textual match let "the glow still bleeds" be satisfied by a variant
+  that only restates colour. It now collects every block and asks whether *some*
+  block still positions the glow and *some* block still has a negative inset.
+
+The last assertion exists because a later "fix" that pulled the insets back to 0
+would also produce `sideways=0`, and would quietly delete the design.
+
+Probed, each failing by name: `html` loses the clip; `clip` becomes `hidden`;
+`body` loses its clip; the closed-menu rule is deleted; either glow loses
+`position: absolute`; the stage inset is cancelled to 0.
+
+Also learned, the hard way: **`git checkout -- <file>` to undo a probe throws
+away uncommitted work in that file.** A probe pass mid-session did exactly that
+and lost the first version of this fix, which had never been staged. Probe by
+copying the file aside and copying it back.
+
 ### 2026-09-02 - "Setup required", on a screen with no setting on it
 
 `getProviderReadiness` returns an engineering status, and both places that
