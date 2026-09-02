@@ -106,6 +106,34 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - Two Python suites nothing ran, one of them the consent gate
+
+`tools/` has six subprojects. Four were named by a CI job; two were not:
+
+    disposable-domains   44 pytest tests   no workflow named it
+    voice-clone          28 pytest tests   no workflow named it
+
+Both pass, and both were green by not being looked at. `voice-clone` is the one
+that matters: its tests are named after "every way somebody would get a clone
+they should not have", and AGENTS.md requires enforcing "provenance, consent,
+and anti-clone safety". A consent check nothing verifies is the exact shape this
+repository keeps finding.
+
+Added `tools-python-suites` to `dependency-scan.yml`, matrixed the same way the
+Node job is, with floors of 40 and 24 -- below today's 44 and 28 so adding a
+test does not fail the job, far above zero so a moved directory does.
+
+Probed locally against the real projects, all three ways:
+
+- tests directory renamed -> "no 'N passed' line; pytest did not report a
+  count", exit 1. (`pytest` exits 5 on an empty collection, so status alone
+  would catch this one -- the parse is for the next case.)
+- floor above the real count, standing in for tests silently vanishing ->
+  "only 28 tests ran, floor is 999; discovery has gone blind", exit 1.
+- one assertion broken -> the floor **passes** at 27 >= 24, and the status
+  check still fails the job. Worth stating because it is the ordering that
+  could have masked a real failure behind a satisfied floor, and does not.
+
 ### 2026-09-02 - CI red on three new advisories in express's own tree
 
 `pnpm audit --audit-level moderate` started failing, and it was failing on every

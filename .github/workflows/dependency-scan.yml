@@ -158,6 +158,58 @@ jobs:
   # -- the exact defect this repository keeps finding. Each floor is set below
   # today's count so adding a test does not fail the job, and far above zero so
   # a moved directory does.
+  # The two Python subprojects under tools/ that nothing ran. Both have real
+  # pytest suites -- 44 tests in disposable-domains, 28 in voice-clone -- and
+  # neither was named by any workflow, so both were green by not being looked
+  # at. voice-clone matters most: its tests are the consent gate, and AGENTS.md
+  # requires enforcing "provenance, consent, and anti-clone safety". A consent
+  # check nothing verifies is the shape of thing this repository keeps finding.
+  #
+  # Same reasoning as the Node job below on the floors. `pytest` over a
+  # directory that has moved exits 5 rather than 0, so exit status alone would
+  # catch total discovery failure -- but not collecting 2 tests where there were
+  # 44, which is the failure that still looks green enough to ignore. Each floor
+  # sits below today's count so adding a test does not fail the job, and far
+  # above zero so a moved directory does.
+  tools-python-suites:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: disposable-domains
+            floor: 40
+          - project: voice-clone
+            floor: 24
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install ${{ matrix.project }}
+        working-directory: tools/${{ matrix.project }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run the ${{ matrix.project }} tests
+        working-directory: tools/${{ matrix.project }}
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/ -q 2>&1 | tee /tmp/out.log
+          status=${PIPESTATUS[0]}
+          ran=$(grep -oE '[0-9]+ passed' /tmp/out.log | tail -n 1 | grep -oE '^[0-9]+')
+          if [ -z "$ran" ]; then
+            echo "::error::no 'N passed' line in the output; pytest did not report a count"
+            exit 1
+          fi
+          if [ "$ran" -lt "${{ matrix.floor }}" ]; then
+            echo "::error::only $ran tests ran in ${{ matrix.project }}, floor is ${{ matrix.floor }}; discovery has gone blind"
+            exit 1
+          fi
+          if [ "$status" -ne 0 ]; then exit "$status"; fi
+          echo "$ran tests passed in ${{ matrix.project }}."
+
   tools-node-suites:
     runs-on: ubuntu-latest
     strategy:
