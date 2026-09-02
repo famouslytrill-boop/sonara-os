@@ -167,7 +167,11 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // right one to have gone first. Its replacement is written out literally rather
 // than joined from a constant -- a computed list is readable to a person and
 // opaque to this script, which would have traded one blindness for the other.
-const STAR_SELECT_COUNT = 33;
+// 32 as of the second narrowing: /creator-studio/voice-permissions read the
+// whole consent row and renders eight fields. Named literally, like the
+// outputs read before it -- a list joined from a constant is readable to a
+// person and opaque to this script.
+const STAR_SELECT_COUNT = 32;
 const COMPUTED_SELECT_COUNT = 23;
 
 // A column named in a comment is a column discussed, not used. Same reasoning

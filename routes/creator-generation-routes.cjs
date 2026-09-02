@@ -377,7 +377,15 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
     else if (!config.ok) unavailable = "Your account database is not connected yet, so permissions cannot be listed.";
     else {
-      const listed = await rest(config, CONSENT_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
+      // Named rather than `select=*`, and written out literally so
+      // report-unused-selected-columns.mjs can read it. A star select is a read
+      // that script cannot audit, which is how the provenance on the outputs
+      // table sat loaded and unrendered for months.
+      //
+      // These eight are what voicePermissionsCard renders. `evidence_type` is
+      // the kind of evidence held, not the evidence: this page has never
+      // fetched the document itself and must not start.
+      const listed = await rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
       if (!listed.ok) unavailable = "We could not load your permissions just now. They are still there; try again shortly.";
       else consents = listed.rows;
     }

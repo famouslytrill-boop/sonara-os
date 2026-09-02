@@ -147,12 +147,31 @@ labels are in its visible text. The crawl read the page.
 
 It said nothing because `setup required` and `reference only` are not in
 `BANNED_ON_CUSTOMER_PAGES`. And they are not there for a reason worth recording:
-**"setup required" appears on twenty-two other pages**, including `/`, `/about`,
-`/dashboard` and all three launch checklists. Adding it to the list fails
-twenty-two pages, which is a copy project across the product rather than a list
-entry -- and a rule that fails twenty-two pages on the day it lands is a rule
-somebody switches off instead of following. Recorded as open rather than
-pretended to be solved.
+**"setup required" appears on twenty-two other pages**, including `/`, `/about`
+and all three launch checklists.
+
+**Corrected on a later reading, because the first version of this paragraph
+implied all twenty-two are defects and that is not what the pages say.** Read in
+context:
+
+  * `/about` carries *"An honest \u201csetup required\u201d beats fake success."*
+    -- the phrase in quotation marks, stating a value the product is built on.
+    Deliberate brand copy, and banning the words would break the sentence that
+    exists to say them.
+  * `/` renders it as a heading followed by *"A little setup first. Some setup
+    has to be finished first: a connected\u2026"* -- a status heading in plain
+    English, with the explanation beside it.
+
+So this is not twenty-two pages of leaked vocabulary. It is a deliberate phrase
+and a status heading, and the two surfaces fixed above were the ones showing a
+raw engineering status with no explanation. The list entry stays absent for a
+better reason than the first draft gave: adding it would fail copy that is
+correct.
+
+Worth recording as a method note rather than a finding. Three times in one day a
+cause was written down before it was traced, and each time the check took one
+command. The pages were never read for the first version of this paragraph --
+only grepped.
 
 One thing near the original claim is true and separate: the crawl walks **282**
 routes, renders **179**, and silently skips **103** -- redirects, 403s on
