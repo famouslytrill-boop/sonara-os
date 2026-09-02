@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 270 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 271 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,69 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - A cron that would have failed the next production deployment
+
+Checked against the Vercel account rather than assumed: the `sonara-os` project
+belongs to team `famouslytrill-1509's projects`, which reports `"plan": "hobby"`.
+Vercel's own documentation, verbatim:
+
+> **Daily execution limit**: Cron jobs can only run once per day. Expressions
+> like `0 * * * *` (per-hour) or `*/30 * * * *` (every 30 minutes) will fail
+> deployment with the error: *Hobby accounts are limited to daily cron jobs.*
+> -- <https://vercel.com/docs/cron-jobs/usage-and-pricing>
+
+`vercel.json` declared `"schedule": "0 * * * *"` -- the first expression they
+name -- for `/api/agents/schedule/tick`.
+
+**Why nothing had noticed.** All twenty most recent deployments are `READY`, so
+the first guess ("deployment is broken") was wrong and worth checking before
+writing down. Production is serving commit `eebc80c2` from **5 August**; the
+cron landed in `d315629` on **13 August**. The deployed `vercel.json` has no
+`crons` block at all. The configuration had never been deployed, so this is a
+**latent deployment blocker, not a current outage** -- and the next production
+deploy is what would have hit it, weeks after the change that caused it.
+
+**A correction to the entry below.** It says the schedule module "is reached
+from `vercel.json`'s hourly production cron". That describes the configuration,
+not production: the cron has never been deployed, so nothing has been calling
+that path on a timer. The module is still live -- `sonara-recurring-invoices`
+and `sonara-booking-availability` both require it, and the endpoint is
+reachable by POST -- and the bug found there is still a real bug. But "on an
+hourly production cron" overstated it, and the difference is exactly the kind
+this repository keeps having to correct.
+
+**A daily tick is not a smaller version of this feature.** A schedule is only
+due once the customer's local hour has reached its `hour_of_day`, so a single
+daily tick at some other hour finds every schedule "not yet" and never looks
+again. Hourly is the minimum at which hour-of-day means anything.
+
+So the scheduler moved to `.github/workflows/agent-schedule-tick.yml`. GitHub
+Actions cron is free here, two workflows already use `schedule:`, and the
+endpoint never depended on Vercel -- it authenticates with a shared secret
+header, so anything that can make an HTTPS request can drive it. Lateness is
+tolerable for the same reason Vercel documents +/-59 min on Hobby: `isDue` keys
+`last_run_at` to the period, so a late tick still runs the work once and an
+extra tick runs nothing.
+
+The workflow distinguishes the three failure modes rather than reporting one
+green: no secret in the repository is a **warning** naming what to set (an
+unconfigured scheduler is a documented state, and
+`sonara-environment-classification.cjs` says so); a 401 is a **failure**,
+because it means the deployment has a secret and this repository has a
+different one; a 503 is a **failure**, because it means the reverse.
+
+`tests/the-deployment-config-can-actually-deploy.test.js` stops a sub-daily cron
+reappearing. The plan is a named constant with the date it was checked, because
+on Pro the minimum interval is once per minute and this constraint would then
+simply be wrong -- a check that outlives the fact it was built on is worse than
+no check.
+
+Probed: the original `0 * * * *` restored -> named, with the plan and the quote;
+the workflow deleted -> "nothing runs customer schedules"; the workflow slowed
+to daily -> named; the secret header dropped -> named. And `0 9 * * *` **passes**,
+because a daily cron is allowed on this plan -- the check is about the limit,
+not about crons.
 
 ### 2026-09-02 - The least-tested file in the repository is on an hourly cron
 
