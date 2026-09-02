@@ -106,6 +106,29 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - CI red on three new advisories in express's own tree
+
+`pnpm audit --audit-level moderate` started failing, and it was failing on every
+SHA of this branch. Checked before assuming: the branch's only `package.json`
+change is to the `scripts` block, and its `pnpm-lock.yaml` was byte-identical to
+`main`. So the dependency tree had not moved -- the advisories were newly
+published against it.
+
+Two `qs` advisories (GHSA-4mjr-xmp4-gh2g, denial of service via
+attacker-controlled `isBuffer`, `>=2.2.5 <6.16.0`; and GHSA-x5fp-wj9c-mxmx,
+array-limit bypass via bracket-key comma parsing, `>=6.14.2 <=6.15.3`) and one
+in `body-parser` (`<1.20.6`, size enforcement silently disabled by an invalid
+`limit`). All three arrive through the single production dependency: `express`
+parses a query string on every request this application serves.
+
+Two pnpm workspace overrides, following the pattern already in
+`pnpm-workspace.yaml`. Both are moves inside ranges `express@^4.18.2` already
+accepts, so nothing needed upgrading. `pnpm install --frozen-lockfile` succeeds,
+the audit is clean at `--audit-level low` as well as `moderate`, and the chain
+passes -- including the route smoke, which is what actually exercises express's
+query and body parsing after the override. Recorded in `SECURITY_NOTES.md`; no
+threshold moved and no check was weakened.
+
 ### 2026-09-02 - Two controls in the header that both looked like a menu
 
 The experience settings button drew

@@ -21,6 +21,43 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 2 September 2026 -- `qs` and `body-parser`, reached through `express`
+
+`pnpm audit --audit-level moderate` began failing on three advisories, all of
+them in the one production dependency's own tree:
+
+- **GHSA-4mjr-xmp4-gh2g** -- `qs` denial of service via attacker-controlled
+  `isBuffer`, affecting `>=2.2.5 <6.16.0`. Reached by `express > qs`,
+  `express > body-parser > qs` and `supertest > superagent > qs`.
+- **GHSA-x5fp-wj9c-mxmx** -- `qs` array-limit bypass via bracket-key comma
+  parsing, affecting `>=6.14.2 <=6.15.3`. Same paths.
+- `body-parser` denial of service when an invalid `limit` value silently
+  disables size enforcement, affecting `<1.20.6`, via `express > body-parser`.
+
+The first two are the ones that matter here, because `express` parses query
+strings on every request this application serves, and `body-parser` reads every
+request body. The tree resolved `qs@6.15.2` and `qs@6.15.3` and
+`body-parser@1.20.5`.
+
+Fixed by pnpm workspace overrides, following the pattern already in
+`pnpm-workspace.yaml`:
+
+    "qs@<6.16.0": "6.16.0"
+    "body-parser@<1.20.6": "1.20.6"
+
+Both are patch and minor moves inside the ranges `express@^4.18.2` already
+accepts, which is why no dependency needed changing. Verified rather than
+assumed: `pnpm install --frozen-lockfile` succeeds, `pnpm audit` reports no
+known vulnerabilities at `--audit-level low` as well as `moderate`, and the
+whole release chain passes -- 3545 tests and the route smoke, which exercises
+express's own query and body parsing across 8 public and 5 protected routes.
+
+**No audit threshold moved and no check was weakened.** The versions in the
+tree changed. The advisories were newly published against a dependency tree
+this branch had not touched: the branch's only `package.json` change is to the
+`scripts` block, and its `pnpm-lock.yaml` was byte-identical to `main` before
+this fix.
+
 ## Permissions-Policy: microphone moved from `()` to `(self)`
 
 **Date:** 27 August 2026. **Header:** `server.js`, the same `app.use` as below.
