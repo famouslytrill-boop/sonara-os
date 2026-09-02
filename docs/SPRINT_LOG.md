@@ -28,14 +28,39 @@ status the registry can produce has wording, and every entry is either reachable
 or recorded as unreachable -- so an entry whose reason has expired fails the
 same way a missing one does.
 
-## Why the existing gate missed it
+## Why the existing gate said nothing, corrected
 
-`tests/plain-language.test.js` crawls pages that answer **200 to an anonymous
-request**. Generation sits behind a paid workspace, so it was never read. That
-is a limit on the gate's reach rather than a pass, and it is the second such
-limit found today -- `no-endpoint-reports-success-on-a-failed-read` crawls JSON
-GETs **without parameters**, which is why it missed the `:jobId` route. Both are
-worth knowing when deciding whether something is covered.
+The first version of this entry said `tests/plain-language.test.js` crawls only
+pages answering 200 to an **anonymous** request, and that generation sits behind
+a paid workspace so was never read. **Both halves were wrong**, and they were
+wrong in the way this repository keeps warning about: reasoned to, not checked,
+and then written into three files and a commit message where they read exactly
+like a verified fact.
+
+Checked: the crawl runs two passes, anonymous and signed in. Signed in,
+`/creator-studio/generation` returns **200**, and "Suno" and the availability
+labels are in its visible text. The crawl read the page.
+
+It said nothing because `setup required` and `reference only` are not in
+`BANNED_ON_CUSTOMER_PAGES`. And they are not there for a reason worth recording:
+**"setup required" appears on twenty-two other pages**, including `/`, `/about`,
+`/dashboard` and all three launch checklists. Adding it to the list fails
+twenty-two pages, which is a copy project across the product rather than a list
+entry -- and a rule that fails twenty-two pages on the day it lands is a rule
+somebody switches off instead of following. Recorded as open rather than
+pretended to be solved.
+
+One thing near the original claim is true and separate: the crawl walks **282**
+routes, renders **179**, and silently skips **103** -- redirects, 403s on
+owner-only pages, 503s on unconfigured ones. Its blindness guard is a floor on
+the rendered count and says nothing about the skipped set. That is the same
+shape as the `select=*` finding: a count that reads as coverage over a
+population a third of which is dropped without comment. Not fixed here; written
+down.
+
+`no-endpoint-reports-success-on-a-failed-read` crawling JSON GETs **without
+parameters** is unaffected by any of this and was verified separately -- it is
+why that gate missed the `:jobId` route.
 
 ## And a false positive in the outage crawl, seven characters wide
 

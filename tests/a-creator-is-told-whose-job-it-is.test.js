@@ -14,10 +14,13 @@
 // looking for a setting that is not on their screen is a worse failure than an
 // ugly one.
 //
-// tests/plain-language.test.js did not catch it. That crawl reads pages
-// answering 200 to an anonymous request, and generation sits behind a paid
-// workspace -- a limit on the gate's reach rather than a pass, and the reason
-// these survived.
+// tests/plain-language.test.js reads this page and said nothing, which is worth
+// stating accurately because the first draft of this comment guessed at the
+// reason and guessed wrong. Signed in, the page renders 200 and the words are
+// in the visible text -- the crawl saw them. It has nothing to say because
+// "setup required" and "reference only" are not in BANNED_ON_CUSTOMER_PAGES,
+// and they are not there because "setup required" is on twenty-two other pages
+// including the home page. That is a copy project, not a list entry.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
