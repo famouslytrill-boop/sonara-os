@@ -181,11 +181,48 @@ the build because its copy is no longer being read; a page that starts rendering
 fails it too, because a fall nobody records looks exactly like a crawl that has
 stopped walking.
 
-Worth noticing in that breakdown: **36 routes answer 503** under this crawl's
-own stub, which fails every data read on purpose. Their copy is checked in the
-unconfigured state and never in the working one. That is a real hole and a
-larger job than this; it is now visible rather than folded into a number that
-looked like coverage.
+## The 36 that answered 503, traced rather than assumed
+
+The first version of this section said those 36 answer 503 because the crawl's
+stub fails every data read, so their copy was "checked in the unconfigured state
+and never in the working one". **Wrong again, and the second time in one day
+that a cause was written down without being traced.** Making every read succeed
+and return nothing changed nothing: still 179 rendered, still 36 answering 503.
+
+The real cause, read off the page: **"We could not check your plan."** They are
+paid screens -- the Growth Studio automation and conversion pages, the staff
+screens, the three roadmap pages, `/business-builder/payments` -- and the stub
+never answered the entitlement query, so the plan check failed before any copy
+was rendered. Their copy was not checked in the wrong state; it was **never
+rendered at all**.
+
+Answering that one query the way `no-page-lies-when-the-database-is-down`
+already does takes rendered coverage from **179 of 282 to 250**, and found nine
+pieces of engineering vocabulary on six pages nothing had ever read:
+
+| page | word |
+| --- | --- |
+| `/growth-studio/automations` | "send webhook", offered as an automation action |
+| `/business-builder/payments` | "webhook delivery" |
+| the three `/*/product-lifecycle` pages | "lifecycle" ×3 and "readiness" each |
+| `/growth-studio/journey` | "schema" ×2 |
+
+All nine are fixed. Two are worth naming. The automation dropdown rendered its
+storage keys with the underscores swapped for spaces -- `send_webhook` became
+"send webhook" -- which is **the same defect as the generation page's readiness
+status, in a second renderer**; a choice field can carry labels now. And the
+roadmap pages called themselves "Product Lifecycle" while `PLAIN_ROUTE_TITLES`
+in the route registry already called them "Roadmap", so the card contradicted
+the link that reached it.
+
+A third crawl pass holds it. Two probes, each confirmed to fail by name: a
+banned word reintroduced on a paid page, and the entitlement no longer granted
+-- which drops coverage back to 179 and fails rather than quietly checking less.
+
+One incidental find: the pass first rendered 216 rather than 250, because the
+existing stub sets `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `"anon-placeholder"` and
+some paths check the key looks like a token before using it. JWT-shaped
+placeholders are worth thirty-four pages.
 
 Two probes, each confirmed to fail by name: a page that stops rendering, and the
 crawl walking fewer routes.

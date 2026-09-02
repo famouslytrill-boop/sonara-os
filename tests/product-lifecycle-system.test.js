@@ -131,7 +131,16 @@ describe("SONARA Product Lifecycle", () => {
       const result = await request(buildApp()).get(route);
       assert.equal(result.status, 200, route);
       assert.match(result.text, /evidence-backed products/i);
-      assert.match(result.text, /Create lifecycle initiative/i);
+      // The heading was "Create lifecycle initiative" until 2 September 2026.
+      // "lifecycle" is in BANNED_ON_CUSTOMER_PAGES and these are customer
+      // pages -- the route registry already calls them Roadmap in navigation,
+      // so the card contradicted the link that reached it.
+      //
+      // The form's action is asserted alongside the new heading, because a
+      // heading is copy and will be reworded again; where the form posts is the
+      // thing this test is actually protecting.
+      assert.match(result.text, /Start something new/i);
+      assert.match(result.text, /action="\/product-lifecycle\/initiatives"/);
     }
   });
 });

@@ -175,7 +175,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
     const data = loaded.body;
     const initiative = data.initiative;
     return res.status(200).type("html").send(ui.layout({
-      title: `${initiative.name} | Product Lifecycle`,
+      title: `${initiative.name} | Roadmap`,
       eyebrow: `${studioLabel(initiative.studio_key)} · ${stageLabel(initiative.lifecycle_stage)}`,
       heading: initiative.name,
       body: initiative.product_goal || initiative.problem_statement || "Add a Product Goal and evidence before advancing.",
@@ -420,13 +420,13 @@ async function renderLifecycleDashboard(req, res, deps, ui, studioKey) {
     ui.card("Evidence before expansion", "Do not build because an idea sounds exciting. Record the problem, audience, market evidence, alternatives, pricing evidence, assumptions, and decision rationale."),
     ui.card("MVP means hypothesis test", "Scope only the smallest coherent experience that tests the riskiest assumptions. Record non-goals and Won't Have items to prevent feature creep."),
     ui.card("Definition of Done", "Every increment includes tests, security, accessibility, privacy, operational ownership, support impact, and traces, metrics, and logs where applicable."),
-    ui.card("Stage gates", "Advance only when evidence reaches the readiness threshold and no critical blocker remains. Valid decisions are advance, hold, pivot, stop, or scale."),
+    ui.card("Moving to the next stage", "Move on only when the evidence for this stage is in and nothing critical is still open. The choices are advance, hold, pivot, stop, or scale."),
     initiativeForm(studioKey, ui.escape),
     ...initiatives.map((initiative) => initiativeCard(initiative, ui))
   ];
   return res.status(200).type("html").send(ui.layout({
-    title: `${studioLabel(studioKey)} Product Lifecycle`,
-    eyebrow: "SONARA Product Lifecycle",
+    title: `${studioLabel(studioKey)} Roadmap`,
+    eyebrow: "SONARA Roadmap",
     heading: `${studioLabel(studioKey)} discovery, MVP, beta, launch, and learning`,
     body: "Turn ideas into evidence-backed products through one tenant-scoped operating model shared across SONARA Industries, Business Builder, Creator Studio, and Growth Studio.",
     sections,
@@ -504,7 +504,7 @@ function scoreInitiative(bundle) {
 }
 
 function initiativeForm(studioKey, escape) {
-  return `<article class="card"><h2>Create lifecycle initiative</h2><form method="post" action="/product-lifecycle/initiatives"><input type="hidden" name="studio_key" value="${escape(studioKey)}"><label>Name<input name="name" required maxlength="240"></label><label>Problem statement<textarea name="problem_statement" required></textarea></label><label>Target audience<textarea name="target_audience" required></textarea></label><label>Initial value proposition<textarea name="value_proposition"></textarea></label><label>Product Goal<textarea name="product_goal"></textarea></label><label>Primary metric<input name="primary_metric"></label><button type="submit">Create initiative</button></form></article>`;
+  return `<article class="card"><h2>Start something new</h2><form method="post" action="/product-lifecycle/initiatives"><input type="hidden" name="studio_key" value="${escape(studioKey)}"><label>Name<input name="name" required maxlength="240"></label><label>Problem statement<textarea name="problem_statement" required></textarea></label><label>Target audience<textarea name="target_audience" required></textarea></label><label>Initial value proposition<textarea name="value_proposition"></textarea></label><label>Product Goal<textarea name="product_goal"></textarea></label><label>Primary metric<input name="primary_metric"></label><button type="submit">Create initiative</button></form></article>`;
 }
 
 function evidenceForm(id, escape) {

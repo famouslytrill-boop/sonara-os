@@ -1129,8 +1129,15 @@ function createFormCard(spec, escape) {
     const label = escape(options.label || column);
     const required = options.required ? " required" : "";
     if (kind === "choice") {
+      // `value.replace(/_/g, " ")` alone put storage keys in front of customers:
+      // the automation action list read "send webhook" and "sync provider". A
+      // spec can now carry `labels`, and the underscore swap is the fallback for
+      // values whose key already reads as English.
       const opts = (options.values || [])
-        .map((value) => `<option value="${escape(value)}"${value === options.fallback ? " selected" : ""}>${escape(value.replace(/_/g, " "))}</option>`)
+        .map((value) => {
+          const text = (options.labels && options.labels[value]) || value.replace(/_/g, " ");
+          return `<option value="${escape(value)}"${value === options.fallback ? " selected" : ""}>${escape(text)}</option>`;
+        })
         .join("");
       return `<label>${label}<select name="${escape(column)}"${required}>${opts}</select></label>`;
     }
