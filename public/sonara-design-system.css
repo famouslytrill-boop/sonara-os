@@ -3,7 +3,28 @@
  *
  * Replaces a situation where --accent was defined in seven different
  * stylesheets and load order decided the winner. Everything below is one
- * :root block. Nothing else should declare a design token.
+ * :root block.
+ *
+ * It used to end "Nothing else should declare a design token", which was not
+ * true and had not been true for some time. public/sonara-application-ui.css
+ * declares a second family, --nx-*, and that family is what most of the
+ * application actually renders with; scripts/verify-colour-contrast.mjs
+ * measures --nx-* and not these. A rule stated here and broken there is worse
+ * than no rule, because it is what the next reader believes instead of looking.
+ *
+ * The two are not redundant and must not be merged. --nx-* carries per-theme
+ * adjustments this file does not: --sonara-accent (#6E4BFF) on the dark card
+ * surface measures 3.51:1, below the 4.5:1 a link has to clear, so --nx-violet
+ * is lightened to #9878FF for dark and measures 5.51:1. Replacing one with the
+ * other would ship a WCAG failure that looks like a tidy-up.
+ *
+ * What they must share is a theme. Both families are read on the same page, and
+ * sonara-application-ui.css uses --sonara-* colours in 32 places. This file
+ * falls back on prefers-color-scheme when nothing is stamped; that one did not,
+ * so with JavaScript off on a dark-preferring device this file went dark and
+ * that one stayed light -- putting --sonara-text-2 (#BCC6E4) on --nx-surface
+ * (#ffffff) at 1.70:1. scripts/verify-theme-palettes-agree.mjs now measures all
+ * three theme states, including the un-stamped one nothing was checking.
  *
  * Constraints this file is built to respect:
  *   - CSP is script-src 'self' with no CDN allowance, and there is no bundler,

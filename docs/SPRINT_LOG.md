@@ -2,6 +2,75 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - Two palettes on one page, in two different themes
+
+`public/sonara-design-system.css` opened by calling itself the "single source of
+truth for tokens" and finished the thought with **"Nothing else should declare a
+design token."** `public/sonara-application-ui.css`, loaded immediately after it
+on every page, declares a second family of twenty: `--nx-*`. That family is what
+most of the application renders with, and it is the one
+`scripts/verify-colour-contrast.mjs` measures.
+
+A rule asserted in one file and broken in the next is worse than no rule,
+because it is what the next reader believes instead of looking.
+
+## They are not redundant, and nearly unifying them shipped a WCAG failure
+
+The obvious tidy-up is to make `--nx-*` alias `--sonara-*`. Measuring first
+stopped it. `--sonara-accent` is `#6E4BFF`; on the dark card surface that is
+**3.51:1**, below the 4.5:1 a link has to clear. `--nx-violet` in dark is
+`#9878FF` and measures **5.51:1**. The two purples differ because one of them
+was adjusted for contrast, not because anybody let them drift.
+
+That was one arithmetic step away from being written up as drift and "fixed".
+Worth recording as the exact shape the skill warns about: a reason reasoned to
+rather than verified reads identically to one that was checked.
+
+## The real defect was the theme, not the colour
+
+Both families are read on the same page, and `sonara-application-ui.css` uses
+`--sonara-*` colours in 32 places, eight of them as the `color` of some text.
+The families resolved their themes differently:
+
+  * `--sonara-*` treats dark as its base `:root` and falls back on
+    `prefers-color-scheme` when no theme is stamped.
+  * `--nx-*` treats **light** as its base `:root`, flipped only by
+    `html[data-theme="dark"]`. No `prefers-color-scheme` anywhere.
+
+`sonara-prepaint.js` is a blocking script that stamps `data-theme` on every
+load, so with JavaScript on the two always agreed and nothing showed. **With
+JavaScript off, on a device asking for dark**, the design system went dark and
+the application stylesheet stayed light -- on the same page, in the same rule.
+`--sonara-text-2` at its dark value `#BCC6E4` on `--nx-surface` at its light
+value `#ffffff` measures **1.70:1**. The same pair when the two agree is 9.49:1.
+
+Three states, not two: stamped dark, stamped light, and **not stamped at all**.
+The third is the one nothing was checking, and it is the default for every
+visitor who has never opened the appearance menu.
+
+## The fix and the gate
+
+`--nx-*` gets the `prefers-color-scheme: dark` fallback the other family already
+had, guarded `html:not([data-theme="light"])` so an explicit light choice on a
+dark device still wins. Nothing changes for a visitor with JavaScript.
+
+`scripts/verify-theme-palettes-agree.mjs` measures all three states. It reads the
+cross-family pairs out of the stylesheet rather than listing them, so a rule
+added later is covered; it requires the two dark blocks to be identical token for
+token, because two copies of a palette drift; and it fails when zero pairs were
+measured, since every comparison in it is satisfied by two empty objects.
+
+Six probes, each confirmed to fail by name: removing the fallback; drifting one
+colour between the two dark blocks; a fallback that exists but carries the light
+palette; a matcher that stops finding colour rules; a `--sonara-*` colour made
+unreadable on the `--nx-*` ground while both palettes stay consistent; and an
+empty set of theme-varying colours.
+
+One correction made during the writing: the first draft of the error message
+said fifteen rules set `color` from a `--sonara-*` token. Fifteen was the count
+of `var(--sonara-text` occurrences, and most of those are the type scale --
+`--sonara-text-xs`, `-lg`, `-2xl` -- not colours. The number is eight.
+
 ### 2026-09-02 - Nineteen products came out of beta, and beta started meaning something
 
 The catalog carried a `lifecycleStatus` per product, and

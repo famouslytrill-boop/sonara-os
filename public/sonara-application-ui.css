@@ -63,6 +63,51 @@ html[data-theme="dark"]{
   --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
 }
 
+/* The same values again, for a visitor whose device asks for dark and who
+ * has not chosen a theme.
+ *
+ * sonara-prepaint.js stamps data-theme on every load, so with JavaScript on
+ * this block changes nothing. With JavaScript off it is the difference
+ * between two palettes agreeing and two palettes disagreeing: the --sonara-*
+ * set in sonara-design-system.css falls back on prefers-color-scheme and
+ * this one did not, so on a dark-preferring device the design system went
+ * dark while this file stayed light. application-ui.css uses --sonara-*
+ * colours in 32 places, twelve of which vary by theme, and the result was
+ * --sonara-text-2 (#BCC6E4, the dark value) on --nx-surface (#ffffff, the
+ * light value): measured 1.70:1, against 9.49:1 when the two agree.
+ *
+ * :not([data-theme="light"]) so an explicit light choice still wins on a
+ * dark device. Placed after the block above, at equal specificity, so an
+ * explicit dark choice on a light device is unaffected either way -- both
+ * carry the same values. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+  color-scheme:dark;
+  --nx-bg:#080b12;
+  --nx-bg-soft:#0d1220;
+  --nx-surface:#111725;
+  --nx-surface-2:#171e2e;
+  --nx-ink:#f7f9ff;
+  --nx-text:#eef2fb;
+  --nx-muted:#aeb7c8;
+  --nx-faint:#818ba0;
+  --nx-line:#263044;
+  --nx-line-strong:#354158;
+  --nx-violet:#9878ff;
+  --nx-blue:#718aff;
+  --nx-pink:#ff619f;
+  --nx-orange:#ff9a59;
+  --nx-cyan:#31d2e7;
+  --nx-mint:#37c894;
+  --nx-success:#43d8a1;
+  --nx-warning:#f0b74e;
+  --nx-danger:#ff6a7c;
+  --nx-focus:#89a0ff;
+  --nx-shadow:0 20px 54px rgba(0,0,0,.30);
+  --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
+}
+}
+
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-padding-top:calc(var(--nx-header) + 20px);-webkit-text-size-adjust:100%;background:var(--nx-bg)}
 body{margin:0;min-width:0;max-width:100%;overflow-x:clip;background:linear-gradient(180deg,var(--nx-bg) 0,var(--nx-bg) 70%,var(--nx-bg-soft) 100%);color:var(--nx-text);font-family:var(--nx-font);font-size:15px;line-height:1.58;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
