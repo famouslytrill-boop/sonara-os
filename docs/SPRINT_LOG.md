@@ -341,6 +341,71 @@ columns; `null` collapsing to "No"; the download route back to two columns; a
 truncated digest shown as a fingerprint; an unrecognised provider key rendered
 as though known; and `.table-scroll` used in the markup while styling nothing.
 
+### 2026-09-02 - A record can sit in the register and be invisible to every number
+
+`data/open-source-tools.ts` is read as text -- the file is TypeScript and this
+runtime has no build step. The block pattern was
+
+    /\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g
+
+which requires an **unquoted** key. A record written
+
+    { "name": "…", "slug": "…" }
+
+-- valid TypeScript, identical meaning, and what any JSON-ish serializer
+produces -- matched nothing. Not an error: the record simply was not there, as
+far as the count, the release gate and `/research-lab/open-source` were
+concerned.
+
+**Measured, not reasoned about.** Appending one such record left
+`readOpenSourceTools()` reporting 171, unchanged, while `grep` found the record
+in the file. The most complete form of the defect this repository is organised
+against: the file says one thing and every number says another, with nothing
+raising a hand.
+
+## How it was found
+
+A second agent working on this repository reconciled its own register against
+ours and reported that its verification had stopped on "a format-contract issue
+rather than a registry-policy issue: the runtime parser intentionally reads
+TypeScript object keys, and the appended records were serialized with quoted
+keys." Its thirty-two records have not arrived here -- that branch has never
+been pushed, and it has since run out of usage until 7 September.
+
+Worth stating plainly: the finding was worth more than the records. Its
+verification stopped and said why, which is what made the defect visible from
+the outside. The claim was checked against our own code before being acted on
+rather than taken on trust.
+
+## Two halves, and the second is the one that matters
+
+Accepting quoted keys repairs **one** way of losing a record.
+`registryIntegrity()` refuses to lose one **quietly**, which repairs every way
+-- including whichever shape somebody writes next. It compares the parse against
+a deliberately dumber count of the same file: how many entries the array appears
+to open, `^ {2}\{$`, which parses nothing. If it agreed with the pattern by
+construction it would prove nothing, and a probe covers exactly that mutation.
+
+`verify-open-source-registry.mjs` now fails when the two disagree, naming how
+many records are in the file and unreadable.
+
+## Three copies of one pattern, now one
+
+`lib/sonara-open-source-registry.cjs`, `scripts/verify-open-source-registry.mjs`
+and `tests/no-dead-links.test.js` each held their own copy of that regex -- and
+the module's own header already said the duplication existed "because the
+alternative is two readers of one file disagreeing about what is in it". They
+disagreed the moment one of them learned to read a quoted key. One export now,
+imported by all three, the same way `lib/sonara-comment-stripping.cjs` exists
+because two scripts had a copy each and both copies had the same bug.
+
+## Verified by breaking it
+
+Four probes, each confirmed to fail by name: the pattern reverted to
+unquoted-only; the dumb count rewritten to use the pattern, so the guard becomes
+a tautology; a record the parser cannot read; and an inline object counted as an
+entry.
+
 ### 2026-09-02 - Two palettes on one page, in two different themes
 
 `public/sonara-design-system.css` opened by calling itself the "single source of
