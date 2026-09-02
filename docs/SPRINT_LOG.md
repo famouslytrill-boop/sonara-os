@@ -341,6 +341,67 @@ columns; `null` collapsing to "No"; the download route back to two columns; a
 truncated digest shown as a fingerprint; an unrecognised provider key rendered
 as though known; and `.table-scroll` used in the markup while styling nothing.
 
+### 2026-09-02 - The key that seals every second factor was invisible to the check that counts keys
+
+`scripts/verify-env.mjs` ends by printing **"N variables read by the code, all
+classified"**. It was 76. It is 78, and the two that were missing are not
+incidental:
+
+- **`SONARA_TOTP_KEY`** seals every TOTP secret, every recovery-code pepper and
+  every parked sign-in on the system.
+- **`SONARA_UPLOAD_BUCKET`** names the bucket customer files are written to.
+
+Both are read by the application. Neither was classified, and neither could be
+seen, while the check reported success.
+
+## The third time this hole has been closed, in the shape the first two missed
+
+That file already documents the pattern twice. Its generic string-literal pass
+records a literal **only if it is already classified** -- so, in its own words,
+a name it "has never heard of is skipped rather than flagged, which makes
+'every variable the code reads is classified' true by construction". Targeted
+passes were added for `env:` and for `getEnv("NAME")`, each closing one form.
+
+This is the third form, and the one neither covers: the name is bound to a
+constant and the read is by identifier.
+
+    const KEY_VARIABLE = "SONARA_TOTP_KEY";
+    process.env[KEY_VARIABLE]
+
+Both earlier forms carry the name at the point of use. This does not. The new
+pass resolves `const NAME = "SHOUTY"` per file -- per file, because two files
+may bind different names to the same identifier and a global map would
+attribute one to the other -- and it surfaced exactly two names, both of which
+had been sitting there.
+
+Guarded the way every population here is: if it ever resolves **zero**, it stops
+rather than reporting a clean scan, because a pass that has stopped matching and
+a shape that has left the codebase are indistinguishable from inside.
+
+## And the classification moved to lib/
+
+`docs/owner/PROVIDER-KEYS.md` needed to know which variables an owner must set,
+and the sets were un-exported constants inside the gate. Copying them into the
+generator would have created the drift this repository has now paid for three
+times, most recently in the register parser where three copies of one regex
+disagreed the moment one learned to read a quoted key.
+`lib/sonara-environment-classification.cjs` is the one copy; the gate and the
+generator both read it, comments and all, because the comments are the
+reasoning.
+
+## The guide is now the whole job, not the provider half
+
+It opened at the providers, which is the second thing an owner does. It now
+opens with the four accounts the application itself needs -- Supabase, Stripe,
+Resend, the domain -- plus the second-factor key, which is generated rather than
+bought. **Grouped by the account somebody opens**, because that is the unit of
+work: one Supabase signup yields five variables, and a list ordered by variable
+name makes one job look like five.
+
+Gated both ways. A variable the release gate calls required and the guide does
+not explain fails the build; so does a step asking for a variable nothing reads.
+Four probes in all, each confirmed to fail by name.
+
 ### 2026-09-02 - A record can sit in the register and be invisible to every number
 
 `data/open-source-tools.ts` is read as text -- the file is TypeScript and this

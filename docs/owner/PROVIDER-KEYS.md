@@ -15,6 +15,100 @@ Every credential below is issued to a person who accepts that provider's terms. 
 
 Then set the provider's `*_ENABLED` variable to `true`. Until you do, the adapter stays off and the product says the capability is unavailable rather than failing when somebody uses it.
 
+## Before any of the providers: the accounts the application itself needs
+
+10 variables are required to serve a paying customer, and they come from 4 accounts. Grouped by the account you open rather than by variable name: one signup yields several variables, and a list ordered by name makes one job look like five.
+
+### Supabase
+
+The database, sign-in, and file storage. Nothing works without it.
+
+**Where:** <https://supabase.com/dashboard>
+
+**Required to serve a paying customer.**
+
+1. Create a project. Any region; pick the one nearest your customers.
+2. Open **Project Settings -> API**.
+3. Copy the **Project URL** and the **anon public** key.
+4. Copy the **service_role** key from the same page. It bypasses every row-level security rule, so it is server-side only and never reaches a browser.
+5. Under **Authentication -> Providers**, turn on Email, and turn on **Leaked password protection**.
+
+| Variable | Required |
+| --- | --- |
+| `SUPABASE_URL` | Yes |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes |
+| `SUPABASE_ANON_KEY` | Yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes |
+
+### Stripe
+
+Taking payments and knowing who is on which plan.
+
+**Where:** <https://dashboard.stripe.com/apikeys>
+
+**Required to serve a paying customer.**
+
+1. Create an account and complete the business details Stripe asks for. Payouts do not start until it is done.
+2. From **Developers -> API keys**, copy the **Secret key**. Use the test key until you have run a real purchase through.
+3. From **Developers -> Webhooks**, add an endpoint at `https://YOUR-DOMAIN/api/stripe/webhook` and copy its **Signing secret**.
+4. Create a product and a recurring price for each plan you sell, and copy each price id into its `STRIPE_PRICE_*` variable.
+5. The webhook secret is what proves a message came from Stripe. Without it, anything that can reach the endpoint can claim somebody paid.
+
+| Variable | Required |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Yes |
+| `STRIPE_WEBHOOK_SECRET` | Yes |
+
+### Resend
+
+Sending email: sign-in links, receipts, notifications.
+
+**Where:** <https://resend.com/api-keys>
+
+**Required to serve a paying customer.**
+
+1. Create an account and add the domain you send from.
+2. Add the DNS records Resend gives you and wait for the domain to verify. Sending before it verifies puts your mail in spam folders and is hard to undo.
+3. Create an API key with send permission.
+4. Set the from-address to something at that verified domain.
+
+| Variable | Required |
+| --- | --- |
+| `RESEND_API_KEY` | Yes |
+| `RESEND_FROM_EMAIL` | Yes |
+
+### Your own domain
+
+Where the application lives. Used to build links in email and to sign webhooks against.
+
+**Where:** <https://vercel.com/docs/projects/domains>
+
+**Required to serve a paying customer.**
+
+1. Point your domain at the deployment.
+2. Set the site URL to the full address including `https://`, and no trailing slash.
+
+| Variable | Required |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Yes |
+
+### Nothing to buy: the second factor key
+
+Seals every TOTP secret, recovery-code pepper and parked sign-in on the system.
+
+**Where:** <https://www.rfc-editor.org/rfc/rfc6238>
+
+**Optional.** The feature it powers says so on the page when it is missing, rather than failing when somebody uses it.
+
+1. Generate it yourself: `openssl rand -hex 32`.
+2. Set it once and keep it. Changing it makes every enrolled second factor unreadable.
+3. Until it is set, two-factor authentication refuses to switch on and says so. It does not fall back to storing secrets in the clear.
+
+| Variable | Required |
+| --- | --- |
+| `SONARA_TOTP_KEY` | No |
+
 ## Creator Studio generation providers
 
 4 of 14 need a credential.
