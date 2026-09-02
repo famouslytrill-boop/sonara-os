@@ -2,7 +2,7 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
-### 2026-09-02 - A 35% coverage floor, with the twenty-one exceptions written down
+### 2026-09-02 - A 35% coverage floor, with its exceptions written down
 
 Node 22 writes V8's own coverage to `NODE_V8_COVERAGE`, so `verify:coverage-floor`
 needs no dependency: it runs the suite with that set and folds the byte ranges
@@ -14,9 +14,11 @@ would let a file pass on its punctuation. That makes these numbers **stricter**
 than a raw line count, and the population is printed so the figure can be
 checked rather than believed:
 
-    206 runtime files, 39087 countable lines, 65.8% covered overall
+    206 runtime files, 39094 countable lines, 91.1% covered overall
 
-Twenty-one files were already under 35%. A gate that simply failed would have
+**That figure is the corrected one.** The first version of this gate reported
+65.8% and twenty-one files under the floor; both were wrong, for the reason in
+the entry above this one. Three files are under 35%. A gate that simply failed would have
 had to be switched off the day it landed, which is how a check becomes
 decoration. So it is two-sided, the way `report-orphan-tables.mjs` is, and it
 fails four ways:
@@ -51,6 +53,55 @@ Probed five ways, each failing by name: an entry removed from the register; a
 well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
+
+### 2026-09-02 - The coverage figures were wrong, and the gate caught it
+
+`NODE_V8_COVERAGE` writes **one file per process**, and a whole-suite run leaves
+about twenty-five of them, because several tests spawn node. The first version
+of `verify-coverage-floor.mjs` concatenated every process's ranges for a file
+and painted them together, largest span first.
+
+That is right within one process, where nesting is what the ranges mean. Across
+processes it is wrong: a subprocess that only `require`s a module without
+calling into it reports the same ranges with count 0, and painting that
+all-zero outer range over the top erases the coverage from the process that
+actually ran the code.
+
+**What made it visible.** Ten new tests were driving the four
+`/api/infrastructure/*` routes and asserting on real 200s, and the file did not
+move: 16 of 55, every handler body reported uncovered. Two explanations were
+possible -- the tests were not reaching the handlers, or the measurement was
+wrong -- so it was checked rather than guessed: the routes are registered at
+`server.js:450`, nothing else serves those paths, and the tests were asserting
+on real payloads. That left the measurement.
+
+Each process is now painted on its own and the processes combined by taking the
+**highest** count for each byte: a line that ran anywhere ran.
+
+The scale of what it was hiding:
+
+    before the fix      65.8% overall,  21 files under the floor
+    after the fix       91.1% overall,   3 files under the floor
+
+Eighteen of the twenty-one register entries were artefacts of the bug, not
+untested files. Reintroducing the bug as a probe drops the repository to 40.1%
+and puts 118 files under the floor.
+
+**The gate caught its own measurement.** Fixing the merge did not silently
+improve a number -- it produced eighteen failures of the form "X is now N%
+covered and has reached the floor, but is still listed in BELOW_FLOOR". That
+half of the two-sided design existed for register entries whose reason had
+expired, and what it found was an entire measurement that had. A one-sided
+floor would have gone quietly greener and told nobody.
+
+Corrected figures now in the register: three files under 35% --
+`sonara-subsystem-routes` (30/177), `verify-member-read-access` (21/86) and
+`sonara-call-routes` (71/273).
+
+The two entries below have been corrected in place rather than left standing,
+because a wrong number in a log is read as a fact. What did **not** change is
+the defect found while writing those tests: `Number(null)` reading as hour 0 is
+a property of the code, demonstrated directly, and no measurement was involved.
 
 ### 2026-09-02 - A cron that would have failed the next production deployment
 
@@ -115,22 +166,17 @@ to daily -> named; the secret header dropped -> named. And `0 9 * * *` **passes*
 because a daily cron is allowed on this plan -- the check is about the limit,
 not about crons.
 
-### 2026-09-02 - The least-tested file in the repository is on an hourly cron
+### 2026-09-02 - A scheduler nothing tested, reading a blank hour as midnight
 
 Measured rather than guessed. Node 22 writes V8 coverage to `NODE_V8_COVERAGE`
 with no dependency added, so the whole mocha suite was run under it and folded
 into per-file line coverage:
 
-    area            files   lines  covered   pct
-    server.js           1    2877     1532   53.2%
-    lib/              145   20486    16287   79.5%
-    routes/            42   14162     6545   46.2%
-    scripts/            9     797      592   74.3%
-    data/               4     484      482   99.6%
-    TOTAL (non-test)  206   39082    25666   65.7%
-
-The lowest was `lib/sonara-agent-schedule.cjs` at **3 of 59 lines, 5.1%** -- the
-`require` and two constants, nothing else. No test file named it. It is reached
+**The figures first published here were wrong and are corrected below; see the
+2026-09-02 entry "The coverage figures were wrong, and the gate caught it".**
+The measurement merged coverage across processes incorrectly. Corrected, the
+repository is at **91.1%**, and `lib/sonara-agent-schedule.cjs` was at
+**11 of 64 lines, 17.2%** -- among the lowest, though not the single lowest. No test file named it. It is reached
 from `vercel.json`'s hourly production cron on `/api/agents/schedule/tick`, and
 from `sonara-recurring-invoices` and `sonara-booking-availability`. Its whole
 job is deciding whether a customer's scheduled work runs, and its own header
@@ -168,8 +214,7 @@ fix is the function refusing rather than guessing.
 checks compare against null instead of relying on `Number.isInteger`. The other
 side is tested too: a schedule genuinely set for midnight still fires.
 
-After: **5.1% -> 65.6%** (42/64), and the count of runtime files under 35% goes
-from 22 to 21.
+After, on the corrected measurement: **17.2% -> 98.4%** (11/64 -> 63/64).
 
 ### 2026-09-02 - Two Python suites nothing ran, one of them the consent gate
 

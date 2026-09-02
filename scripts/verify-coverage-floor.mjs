@@ -16,7 +16,21 @@
  * V8 gives ranges with hit counts, and the ranges nest -- an outer function
  * range says "this ran", an inner range with count 0 carves out a branch that
  * did not. Painting the largest span first and letting nested ranges overwrite
- * is what reproduces that.
+ * is what reproduces that, **within one process**.
+ *
+ * Across processes it must not. `NODE_V8_COVERAGE` writes one file per process,
+ * and a whole-suite run produces around twenty-five of them, because several
+ * tests spawn node. A subprocess that merely `require`s a module without
+ * calling into it reports the same ranges with count 0. Concatenating every
+ * process's ranges and painting them together lets that all-zero outer range
+ * overwrite the covered ranges from the process that actually ran the code.
+ *
+ * That was not theoretical: it is how this script was first written, and it
+ * reported `routes/sonara-infrastructure-routes.cjs` at 16/55 with every
+ * handler body uncovered, while ten tests were driving those four routes and
+ * asserting on real 200s. So each process is painted on its own and the
+ * processes are combined by taking the **highest** count seen for each byte --
+ * a line that ran anywhere ran.
  *
  * The denominator is lines with something on them: blank lines, comment lines
  * and lines holding only a closing brace are excluded, because counting them
@@ -27,10 +41,9 @@
  *
  * ## Why a register rather than a bare floor
  *
- * Twenty-one files were already under the floor when it was introduced. A gate
- * that simply failed would have had to be switched off on the day it landed,
- * which is how a check becomes decoration. So it is two-sided, the way
- * `report-orphan-tables.mjs` is:
+ * Three files are under the floor. A gate that simply failed on them would have
+ * had to be switched off on the day it landed, which is how a check becomes
+ * decoration. So it is two-sided, the way `report-orphan-tables.mjs` is:
  *
  *   - a file under the floor that is not in the register fails, and
  *   - a file in the register that has reached the floor **also** fails, because
@@ -42,11 +55,11 @@
  *     register is a record of where things stand rather than a place to put
  *     things to stop them being looked at.
  *
- * Each entry carries what was measured and how many test files name the module,
- * both of which are facts rather than judgements. `handlers` is recorded for the
- * four files no test names at all: they are `require`d by `server.js`, so their
- * route registration runs -- which is the coverage they do have -- and nothing
- * invokes the handlers they declare.
+ * Each entry carries what was measured, plus `namesModule`: how many files under
+ * `tests/` mention the module by name. That is a weaker fact than "is this
+ * tested" -- a test can drive a route through its path without ever writing the
+ * filename -- and the field is named for what it counts so the two are not
+ * conflated.
  *
  * Run-to-run stability was checked before choosing the regression tolerance:
  * two consecutive runs of the whole suite produced identical per-file figures
@@ -65,48 +78,12 @@ const FLOOR = 0.35;
 // Below the floor on 2 September 2026, with what was measured that day.
 // `namedBy` is how many files under tests/ mention the module by name.
 const BELOW_FLOOR = Object.freeze({
-  "routes/sonara-call-routes.cjs":
-    { covered: 45, total: 273, namedBy: 2, note: "the two tests that name it assert the call never routes through us; the handler bodies need a live Supabase" },
   "routes/sonara-subsystem-routes.cjs":
-    { covered: 30, total: 177, namedBy: 1, note: "reached only as one of many routes in the outage crawl, which renders the unconfigured state" },
+    { covered: 30, total: 177, namesModule: 1, note: "reached only as one of many routes in the outage crawl, which renders the unconfigured state rather than driving the handlers" },
   "scripts/verify-member-read-access.mjs":
-    { covered: 15, total: 86, namedBy: 1, note: "a release script that talks to Supabase; the suite loads it but cannot run it against a database" },
-  "lib/sonara-page-frame.cjs":
-    { covered: 65, total: 350, namedBy: 12, note: "twelve tests assert parts of the page shell; most of the file is per-page branches only some pages take" },
-  "lib/sonara-scroll-render.cjs":
-    { covered: 30, total: 158, namedBy: 1, note: "browser-side rendering, exercised by the one test that reads it rather than by running it" },
-  "routes/sonara-prompt-library-routes.cjs":
-    { covered: 125, total: 511, namedBy: 2, note: "handler bodies need a live Supabase" },
-  "routes/sonara-huggingface-routes.cjs":
-    { covered: 26, total: 95, namedBy: 0, handlers: 4, note: "no test names it; required by server.js so its registration runs, nothing drives its 4 handlers" },
-  "lib/sonara-langflow-adapter.cjs":
-    { covered: 8, total: 28, namedBy: 1, note: "an adapter for a service the owner runs; the test asserts its shape, not a call" },
-  "lib/sonara-open-webui-adapter.cjs":
-    { covered: 6, total: 21, namedBy: 1, note: "an adapter for a service the owner runs; the test asserts its shape, not a call" },
-  "routes/sonara-connected-payment-routes.cjs":
-    { covered: 43, total: 149, namedBy: 1, note: "handler bodies need a live Stripe and Supabase" },
-  "routes/sonara-infrastructure-routes.cjs":
-    { covered: 16, total: 55, namedBy: 0, handlers: 4, note: "no test names it; required by server.js so its registration runs, nothing drives its 4 handlers" },
-  "routes/market-intelligence-routes.cjs":
-    { covered: 141, total: 472, namedBy: 3, note: "handler bodies need a live Supabase" },
-  "routes/sonara-notification-routes.cjs":
-    { covered: 36, total: 117, namedBy: 3, note: "handler bodies need a live Supabase" },
-  "routes/product-lifecycle-routes.cjs":
-    { covered: 160, total: 507, namedBy: 1, note: "handler bodies need a live Supabase" },
-  "routes/sonara-model-safety-resilience-routes.cjs":
-    { covered: 24, total: 74, namedBy: 1, note: "handler bodies need a live Supabase" },
-  "routes/growth-studio-control-routes.cjs":
-    { covered: 284, total: 866, namedBy: 3, note: "the largest of these; handler bodies need a live Supabase" },
-  "lib/sonara-call-sessions.cjs":
-    { covered: 43, total: 131, namedBy: 1, note: "session bookkeeping for calls, driven from routes the suite does not drive" },
-  "routes/sonara-leadforge-routes.cjs":
-    { covered: 100, total: 301, namedBy: 2, note: "handler bodies need a live Supabase" },
-  "routes/creator-music-system-readonly.cjs":
-    { covered: 22, total: 65, namedBy: 0, handlers: 5, note: "no test names it; required by server.js so its registration runs, nothing drives its 5 handlers" },
-  "routes/sonara-formula-routes.cjs":
-    { covered: 58, total: 169, namedBy: 0, handlers: 6, note: "no test names it; required by server.js so its registration runs, nothing drives its 6 handlers" },
-  "routes/sonara-voice-studio-routes.cjs":
-    { covered: 36, total: 103, namedBy: 2, note: "34.95%, just under; handler bodies need a live Supabase" }
+    { covered: 21, total: 86, namesModule: 1, note: "a release script that talks to Supabase; the suite loads it but cannot run it against a database" },
+  "routes/sonara-call-routes.cjs":
+    { covered: 71, total: 273, namesModule: 2, note: "the two tests that name it assert a call never routes through us; the rest of the handlers need a live Supabase" }
 });
 
 // If a registered file loses more than this many percentage points it fails.
@@ -125,6 +102,8 @@ function fail(message) {
   process.exitCode = 1;
 }
 
+// path -> array of per-process range lists. Kept separate on purpose; see the
+// header on why merging them into one list loses coverage.
 function collect(covDir) {
   const perFile = new Map();
   for (const name of fs.readdirSync(covDir)) {
@@ -147,22 +126,35 @@ function collect(covDir) {
       const rel = path.relative(REPO, file).split(path.sep).join("/");
       if (rel.startsWith("node_modules/") || rel.includes("/node_modules/")) continue;
       if (rel.startsWith("archive/") || rel.startsWith("tests/")) continue;
-      if (!perFile.has(rel)) perFile.set(rel, []);
+      const ranges = [];
       for (const fn of script.functions || []) {
-        for (const range of fn.ranges || []) perFile.get(rel).push(range);
+        for (const range of fn.ranges || []) ranges.push(range);
       }
+      if (!ranges.length) continue;
+      if (!perFile.has(rel)) perFile.set(rel, []);
+      perFile.get(rel).push(ranges);
     }
   }
   return perFile;
 }
 
-function lineCoverage(rel, ranges) {
+function lineCoverage(rel, rangeLists) {
   const source = fs.readFileSync(path.join(REPO, rel));
-  const counts = new Int32Array(source.length).fill(-1);
-  ranges.sort((a, b) => (b.endOffset - b.startOffset) - (a.endOffset - a.startOffset));
-  for (const range of ranges) {
-    const end = Math.min(range.endOffset, source.length);
-    for (let i = range.startOffset; i < end; i += 1) counts[i] = range.count;
+  const counts = new Int32Array(source.length);            // 0 = not run anywhere
+  const perProcess = new Int32Array(source.length);
+  for (const ranges of rangeLists) {
+    perProcess.fill(0);
+    // Within one process, nesting decides: largest span first, smaller ranges
+    // overwrite it.
+    const sorted = [...ranges].sort((a, b) => (b.endOffset - b.startOffset) - (a.endOffset - a.startOffset));
+    for (const range of sorted) {
+      const end = Math.min(range.endOffset, source.length);
+      for (let i = range.startOffset; i < end; i += 1) perProcess[i] = range.count;
+    }
+    // Across processes, the highest count wins: a line that ran anywhere ran.
+    for (let i = 0; i < counts.length; i += 1) {
+      if (perProcess[i] > counts[i]) counts[i] = perProcess[i];
+    }
   }
 
   const text = source.toString("utf8");
@@ -206,8 +198,8 @@ try {
   }
 
   const measured = [];
-  for (const [rel, ranges] of collect(covDir)) {
-    const { covered, total } = lineCoverage(rel, ranges);
+  for (const [rel, rangeLists] of collect(covDir)) {
+    const { covered, total } = lineCoverage(rel, rangeLists);
     if (total > 0) measured.push({ rel, covered, total, ratio: covered / total });
   }
 
