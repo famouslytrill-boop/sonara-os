@@ -106,6 +106,56 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-02 - A 35% coverage floor, with the twenty-one exceptions written down
+
+Node 22 writes V8's own coverage to `NODE_V8_COVERAGE`, so `verify:coverage-floor`
+needs no dependency: it runs the suite with that set and folds the byte ranges
+into per-file line coverage. Same mechanism c8 uses, without c8.
+
+The denominator is lines with something on them -- blanks, comments and
+brace-only lines are excluded, because counting them inflates every figure and
+would let a file pass on its punctuation. That makes these numbers **stricter**
+than a raw line count, and the population is printed so the figure can be
+checked rather than believed:
+
+    206 runtime files, 39087 countable lines, 65.8% covered overall
+
+Twenty-one files were already under 35%. A gate that simply failed would have
+had to be switched off the day it landed, which is how a check becomes
+decoration. So it is two-sided, the way `report-orphan-tables.mjs` is, and it
+fails four ways:
+
+- a file under the floor that is not in the register;
+- **a file in the register that has reached the floor** -- a recorded reason
+  that no longer describes anything is what the next person reads instead of
+  checking;
+- a register entry naming a file nothing measured, so a rename cannot quietly
+  retire an exemption;
+- a registered file that gets more than 2 points worse, so the register records
+  where things stand rather than being somewhere to put a file to stop it being
+  looked at. The tolerance is slack for jitter that has not been seen: two
+  consecutive whole-suite runs produced identical per-file figures.
+
+Each entry carries what was measured and **how many test files name the module**,
+both facts rather than judgements. Four of the twenty-one are named by no test
+at all -- `sonara-huggingface-routes`, `sonara-infrastructure-routes`,
+`creator-music-system-readonly` and `sonara-formula-routes`. Each is `require`d
+by `server.js`, so its route registration runs, which is the coverage it has,
+and nothing invokes the 4 to 6 handlers it declares. That is recorded per entry
+rather than summarised.
+
+One thing the first version got wrong, found by probing it: on a failing run it
+printed the errors and then `Coverage floor verified: ...` underneath them. A
+success line over a list of failures is precisely the defect this repository
+keeps finding, so the word "verified" is now gated on the run having found
+nothing, and a failing run says `Coverage floor check FAILED` with the same
+population figures.
+
+Probed five ways, each failing by name: an entry removed from the register; a
+well-covered file wrongly listed; an entry naming a file nothing measured; a
+registered file recorded 6 points higher than it now measures; and the blindness
+guard raised above the real file count.
+
 ### 2026-09-02 - A cron that would have failed the next production deployment
 
 Checked against the Vercel account rather than assumed: the `sonara-os` project
