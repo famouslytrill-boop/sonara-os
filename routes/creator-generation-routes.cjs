@@ -12,6 +12,8 @@ const {
   generationStatus,
   generationStatusLabel,
   generationCapabilityLabel,
+  generationAvailability,
+  generationAvailabilityLabel,
   generationFailureText,
   voiceSubjectLabel,
   voiceScopeLabel,
@@ -422,7 +424,14 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
       ui.card("Provider execution", "ElevenLabs and Google Veo use server-side adapters when configured. Suno requires the exact account API contract. Higgsfield uses its official external MCP connector. Open-source models run only on an isolated GPU worker."),
       jobTable(jobs, ui.escape),
-      ...providers.map((item) => ui.card(`${item.label}: ${display(item.readiness.status)}`, `${item.capabilities.join(", ")}. ${item.license}`))
+      // Was `display(item.readiness.status)`, which put "setup required" and
+      // "reference only" on a creator's screen -- internal words, and three of
+      // them implying the creator should go and fix something none of them can.
+      // The detail says whose job it is, or that it is nobody's.
+      ...providers.map((item) => ui.card(
+        `${item.label}: ${generationAvailabilityLabel(item.readiness.status)}`,
+        `${generationAvailability(item.readiness.status).detail} ${item.capabilities.join(", ")}. ${item.license}`
+      ))
     ];
     return res.status(200).type("html").send(ui.layout({
       title: "Generation Studio",
@@ -898,7 +907,7 @@ function findOutputUrl(payload) {
 }
 
 function generationForm(providers, escape, consents = []) {
-  const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(display(item.readiness.status))}</option>`).join("");
+  const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(generationAvailabilityLabel(item.readiness.status))}</option>`).join("");
 
   // The five voice capabilities were missing from this list entirely, so the
   // only way to ask for voice work was to post to the API by hand. They are
@@ -1105,7 +1114,6 @@ function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => (
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
 function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }
-function display(value) { return String(value || "unknown").replaceAll("_", " "); }
 function clean(value, max = 500) { return String(value || "").trim().slice(0, max); }
 function nullable(value, max = 500) { const text = clean(value, max); return text || null; }
 function validUuid(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "")); }

@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 265 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 266 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,79 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-02 - "Setup required", on a screen with no setting on it
+
+`getProviderReadiness` returns an engineering status, and both places that
+showed one to a creator ran it through
+
+    function display(value) { return String(value || "unknown").replaceAll("_", " "); }
+
+so the provider list and the provider dropdown on `/creator-studio/generation`
+read **"setup required"**, **"reference only"** and **"external mcp required"**.
+
+The internal words are the smaller half. The larger half is that three of them
+tell a creator to go and do something, and **not one of these states is theirs
+to fix**: the account owner connects a service, and the rest are decisions this
+product has already made. A label that sends somebody looking for a setting that
+is not on their screen is a worse failure than an ugly one.
+
+`GENERATION_AVAILABILITY` in `lib/sonara-plain-language.cjs` gives all eight
+statuses a label and a detail that says whose job it is, or that it is nobody's.
+"Waiting on the account owner", "Switched off", "Not offered here".
+
+Two of the eight cannot occur with the registry as it stands and are recorded as
+such by name, with the reason. The test asserts **both directions**: every
+status the registry can produce has wording, and every entry is either reachable
+or recorded as unreachable -- so an entry whose reason has expired fails the
+same way a missing one does.
+
+## Why the existing gate missed it
+
+`tests/plain-language.test.js` crawls pages that answer **200 to an anonymous
+request**. Generation sits behind a paid workspace, so it was never read. That
+is a limit on the gate's reach rather than a pass, and it is the second such
+limit found today -- `no-endpoint-reports-success-on-a-failed-read` crawls JSON
+GETs **without parameters**, which is why it missed the `:jobId` route. Both are
+worth knowing when deciding whether something is covered.
+
+## And a false positive in the outage crawl, seven characters wide
+
+Changing the wording made `no-page-lies-when-the-database-is-down` fail:
+
+    /creator-studio/generation says "no Platform · Switched off Higgsfield · Not offered here"
+
+That is **Su·no** Platform -- a provider's name -- plus "here" from a label sixty
+characters later. The pattern was
+
+    /(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i
+
+with no word boundary, so "no " matched inside any word ending in those two
+letters. Casino, piano and domino do the same. The bug had been reachable the
+whole time and needed the right two strings the right distance apart.
+
+Tempting to write it off as a false positive and add an exemption. That would
+have put a substring of a brand name into the excuse list and left the pattern
+wrong. A `\b` fixes it properly, and was **checked against the claims it exists
+to catch before being applied**: "no customers yet", "Nothing here yet", "no
+records here" and "have not added anybody yet" all still match. Recall
+unchanged, precision better.
+
+`CLAIMS_ZERO` already had a "things it must not fire on" list and `CLAIMS_EMPTY`
+did not. It does now, with the verbatim string that found this.
+
+## Verified by breaking it
+
+Five probes, each confirmed to fail by name: a reachable status losing its
+wording; an unreachable-reason entry whose status became reachable; a label
+rewritten as an instruction the creator cannot follow; the word boundary removed
+again; and the pattern weakened until it stopped catching real claims.
+
+One correction while writing the test. Its first assertion searched the route
+source for `display(item.readiness.status)` and **failed against the fixed
+code**, because the comment recording what the line used to say still contained
+the string. It reads the source with `withoutComments` now -- the same shared
+implementation two scripts once had a copy of each, with the same bug in both.
 
 ### 2026-09-02 - The tool that hunts unused columns could not see 57 of the queries
 
