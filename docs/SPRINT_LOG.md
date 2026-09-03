@@ -54,6 +54,60 @@ well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
 
+### 2026-09-02 - A page that said it was read-only, above fifty Save buttons
+
+`routes/sonara-subsystem-routes.cjs` was 30 of 177 lines. One test named it, and
+only as one of many routes in the outage crawl, which renders the unconfigured
+state and drives no handler. Its one write endpoint was unexercised -- and that
+endpoint takes a **table name from the URL** and inserts into it.
+
+Admin-gated, so not an anonymous hole. Still the widest single parameter in the
+application: `customers`, `customer_invoices`, `agent_pending_actions` and every
+other table are one path segment away, and the insert goes out with the service
+role key, which bypasses row level security. The registry allowlist is the only
+thing between the two, and nothing had ever tested it.
+
+23 tests. The allowlist is checked against real table names from elsewhere in
+this schema rather than invented ones, against all 18 read-only tables the
+registry names, and in the other direction -- a check that refused everything
+would satisfy every one of those and would have deleted the feature.
+
+`organization_id` and `user_id` are the other half. Eight writable tables
+declare `organization_id` NOT NULL, no form offers it, and it comes from the
+signed-in admin. The test posts another organization's id and asserts the insert
+carries the admin's.
+
+**And the index page was lying about all of it.** It said:
+
+> Nothing here can be changed from these pages
+>
+> Every page under this one reads. ... offering a form would be inventing the
+> process rather than exposing it.
+
+while the detail pages render `<form method="post" action="/api/research-lab/subsystems/...">`
+with a Save button for every one of the fifty writable tables. It also said
+"Five designed subsystems" against nine, and "nothing in the application has
+ever read or written one of them" against the endpoint directly below it.
+
+That is the recurring defect in the worst possible place: **the sentence
+asserting the safety property is the one that stopped being true.** An operator
+reading "every page under this one reads" would not expect Save to insert.
+
+Rewritten, with every number derived from the registry rather than typed:
+`${writableTables} of these tables can be added to from here. ${readOnlyTables}
+cannot`, and the split explained -- a registry or a review is somebody deciding
+something and gets a form; a run or a log is a record that something happened
+and typing it in would not make it have happened.
+
+Two tests hold it: one asserts the four false sentences are gone, and one
+asserts the four counts are present and match the registry -- because deleting
+the sentences would satisfy the first while saying nothing.
+
+Probed, each failing by name: the allowlist removed (**seven** tests); the
+read-only split ignored; the organization taken from the body; the false copy
+restored; and the writable count hardcoded to the 38 the old comment quoted
+instead of derived.
+
 ### 2026-09-02 - The business end of every call was refused
 
 `routes/sonara-call-routes.cjs` was the lowest-covered file left in the register

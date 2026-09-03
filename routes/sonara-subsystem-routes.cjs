@@ -125,15 +125,24 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
     return respond(200, { ok: true, row: Array.isArray(rows) ? rows[0] : rows });
   });
 
+  // Counted from the registry rather than written down. The copy this replaced
+  // said "Five designed subsystems" against nine, and "Nothing here can be
+  // changed from these pages" against fifty tables with a Save button on them.
+  // A page telling an operator it is read-only while offering forms is the
+  // failure this repository keeps finding, and it was in the safety sentence.
+  const totalTables = SUBSYSTEMS.reduce((total, subsystem) => total + subsystem.tables.length, 0);
+  const writableTables = SUBSYSTEMS.flatMap((subsystem) => subsystem.tables).filter(isWritable).length;
+  const readOnlyTables = totalTables - writableTables;
+
   app.get("/research-lab/subsystems", requireAdmin, (req, res) => {
     const sections = [
       brandCard(
         "What these are",
-        `${SUBSYSTEMS.reduce((total, subsystem) => total + subsystem.tables.length, 0)} tables across ${SUBSYSTEMS.length} subsystems were created with row level security and indexes, and nothing in the application has ever read or written one of them. They are listed here so the design is visible rather than buried in migration files.`
+        `${totalTables} tables across ${SUBSYSTEMS.length} subsystems were created with row level security and indexes, and for a long time nothing in the application read or wrote one of them. These pages are what changed that: they are listed here so the design is visible rather than buried in migration files.`
       ),
       brandCard(
-        "Nothing here can be changed from these pages",
-        "Every page under this one reads. The data model for these subsystems was decided and the behaviour was not, so offering a form would be inventing the process rather than exposing it. Nothing in this product executes agents, and most of the agent tables are gated schema-only on every release -- the agent page names the four that gate does not cover."
+        `${writableTables} of these tables can be added to from here. ${readOnlyTables} cannot.`,
+        `A registry, a catalog, a watchlist, a review, a note, a setting: somebody deciding something, where typing it in is how the decision gets recorded. Those have a form. A run, an event, a log, a job, a deployment, an approval: a record that something happened, where typing it in does not make it have happened. Those have none, and the page says so where the form would be. Nothing here executes anything -- registering an agent tool records that it exists; no code in this product runs agents.`
       ),
       ...SUBSYSTEMS.map((subsystem) => brandCard(
         `${subsystem.title} — ${subsystem.tables.length} tables`,
@@ -145,7 +154,7 @@ module.exports = function registerSonaraSubsystemRoutes(app, deps = {}) {
       title: "Subsystems with no code",
       eyebrow: "Research Lab",
       heading: "Subsystems that exist as schema only",
-      body: "Five designed subsystems whose tables have never been read or written by the application. What each one is, and what is actually in it.",
+      body: `${SUBSYSTEMS.length} designed subsystems, ${totalTables} tables. What each one is, what is actually in it, and which of them you can add a row to.`,
       sections,
       actions: [
         ...SUBSYSTEMS.map((subsystem) => linkAction(`/research-lab/subsystems/${subsystem.slug}`, subsystem.title)),

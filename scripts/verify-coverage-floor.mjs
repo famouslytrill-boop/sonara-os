@@ -41,8 +41,8 @@
  *
  * ## Why a register rather than a bare floor
  *
- * Two files are under the floor. A gate that simply failed on them would have
- * had to be switched off on the day it landed, which is how a check becomes
+ * One file is under the floor. A gate that simply failed on it would have had
+ * to be switched off on the day it landed, which is how a check becomes
  * decoration. So it is two-sided, the way `report-orphan-tables.mjs` is:
  *
  *   - a file under the floor that is not in the register fails, and
@@ -62,8 +62,7 @@
  * conflated.
  *
  * Run-to-run stability was checked before choosing the regression tolerance:
- * two consecutive runs of the whole suite produced identical per-file figures
- * (21 files under the floor, 3395 uncovered lines inside them, both times).
+ * two consecutive runs of the whole suite produced identical per-file figures.
  */
 
 import { spawnSync } from "node:child_process";
@@ -76,10 +75,7 @@ const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FLOOR = 0.35;
 
 // Below the floor on 2 September 2026, with what was measured that day.
-// `namedBy` is how many files under tests/ mention the module by name.
 const BELOW_FLOOR = Object.freeze({
-  "routes/sonara-subsystem-routes.cjs":
-    { covered: 30, total: 177, namesModule: 1, note: "reached only as one of many routes in the outage crawl, which renders the unconfigured state rather than driving the handlers" },
   "scripts/verify-member-read-access.mjs":
     { covered: 21, total: 86, namesModule: 1, note: "a release script that talks to Supabase; the suite loads it but cannot run it against a database" }
 });
