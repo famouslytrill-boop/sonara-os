@@ -67,6 +67,14 @@ const MINIMUM_MIGRATIONS = 90;
 // doing nothing at all.
 const MUST_EXIST = ["organizations", "customers", "service_catalog_items", "customer_invoices"];
 
+// The migration that brings an already-existing table up to the declared shape.
+// Named once here because the probe below deliberately re-applies it.
+const SHAPE_REPAIR = "20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql";
+
+// The migration Controlled Production Deployment #125 died on, at statement 10,
+// creating a policy over a column public.customers did not have.
+const BLOCKED_BY_SHAPE = "20260819030000_member_read_policies_research_sources.sql";
+
 // What a hosted Supabase project provides and a bare PostgreSQL does not.
 //
 // Each entry says what supplies it in production. Nothing here is in `public`.
@@ -318,6 +326,63 @@ function main() {
         where provider_subscription_ref = 'sub_replay_probe';
       select 'unstamped_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
     `, ["stale_kept_active", "fresh_gave_canceled", "unstamped_gave_past_due"]);
+
+    // The shape repair, proved against the case it exists for.
+    //
+    // Replaying against an empty database makes every statement in
+    // 20260812000000 a no-op, because the migration one version earlier creates
+    // each table whole. So a clean replay says that file parses and nothing
+    // more -- and "it parses" was exactly what was true of the table repair
+    // that did not fix production.
+    //
+    // Production's shape is: the table is there, the column is not. That is
+    // reproduced here by dropping the column deployment #125 actually died on,
+    // re-running the migration, and asking whether it came back. Re-running it
+    // against a database it has already been applied to also proves it is
+    // idempotent, which is what makes it safe to slot in with --include-all.
+    // `cascade` because the member-read policy is defined on this column, and
+    // dropping both is what makes this production's shape rather than an
+    // artificial one: production has neither the column nor that policy.
+    const degraded = psql("alter table public.customers drop column organization_id cascade;");
+    if (degraded.status !== 0) {
+      stop(
+        "could not drop public.customers.organization_id to reproduce production's shape, so the shape-repair probe " +
+        `below would prove nothing:\n${degraded.stderr || degraded.stdout}`
+      );
+    }
+    behaves(psql, "the degraded database really is missing the column", `
+      select 'degraded_column_count_' || count(*)::text
+        from information_schema.columns
+        where table_schema = 'public' and table_name = 'customers' and column_name = 'organization_id';
+    `, ["degraded_column_count_0"]);
+
+    const reapplied = psql(null, { file: path.join(migrationsDir, SHAPE_REPAIR) });
+    if (reapplied.status !== 0) {
+      stop(`${SHAPE_REPAIR} would not re-apply to a database it has already run against:\n${reapplied.stderr}`);
+    }
+    behaves(psql, "a column missing from a table that already exists is added back", `
+      select 'customers_organization_id_' || count(*)::text
+        from information_schema.columns
+        where table_schema = 'public' and table_name = 'customers' and column_name = 'organization_id';
+    `, ["customers_organization_id_1"]);
+
+    // And then the thing that actually matters: the migration that killed
+    // deployment #125 has to run. Asserting the column exists says the repair
+    // did something; running the statement that failed says it did the right
+    // thing. Without this the probe above could pass while the deploy still
+    // died one line later.
+    const unblocked = psql(null, { file: path.join(migrationsDir, BLOCKED_BY_SHAPE) });
+    if (unblocked.status !== 0) {
+      stop(
+        `${BLOCKED_BY_SHAPE} still does not apply after the shape repair. This is the migration production died on, ` +
+        `so the repair has not unblocked the deployment:\n${unblocked.stderr || unblocked.stdout}`
+      );
+    }
+    behaves(psql, "the policy that could not be created now exists", `
+      select 'customers_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers' and policyname = 'customers_select_member';
+    `, ["customers_policy_1"]);
 
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
     // What this sentence must not be read as, and the reason is not hypothetical.
