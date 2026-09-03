@@ -30,7 +30,11 @@
 // works -- the page renders, the form posts, the row saves, the score computes.
 // Only the value is wrong, and nothing was comparing the two ends.
 //
-// This does the comparison, in two tiers.
+// This does the comparison, in two tiers: one general sweep for the broken
+// markup itself, and one that pairs every validated field in the runtime with
+// the dropdown that feeds it. Nine dropdowns across three route files land in
+// the second, both directions each, and none of them is named here -- the pairs
+// are read out of the source.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -93,27 +97,25 @@ describe("a dropdown offers values the server accepts", () => {
   // than that the markup is tidy: does every value a page offers survive the
   // check the server runs on that same field?
   //
-  // Nothing is listed here. The pairs are read out of the file -- every
-  // `oneOf(req.body.<field>, <set>, <fallback>)` call is found, its set is
-  // resolved whether it is a named constant or written inline, and the
-  // `<select name="<field>">` for it is looked up. A hand-written list of
-  // fields is a second copy, and a second copy is what drifts; worse, an entry
-  // in it that is skipped reads like coverage that is not there.
+  // Nothing is listed here, not even the files. Every source file holding both
+  // an `oneOf(req.body.<field>, <set>, <fallback>)` call and a
+  // `<select name="<field>">` is found, the set is resolved whether it is a
+  // named constant or written inline, and the two ends are compared. A
+  // hand-written list is a second copy, and a second copy is what drifts;
+  // worse, an entry in it that is skipped reads like coverage that is not
+  // there.
   describe("every offered value survives the server's own check", () => {
-    const rel = "routes/product-lifecycle-routes.cjs";
-    const source = fs.readFileSync(path.join(ROOT, rel), "utf8");
-
     function stringsIn(text) {
       return [...text.matchAll(/"([^"]*)"/g)].map((match) => match[1]);
     }
 
     /**
-     * `const NAME = ...` -> the strings the set holds, for the two forms this
-     * file uses. Anything else returns null rather than an empty list: a set
+     * `const NAME = ...` -> the strings the set holds, for the two forms these
+     * files use. Anything else returns null rather than an empty list: a set
      * this cannot read must fail the guard below, not quietly pass every option
      * in the field it governs.
      */
-    function namedSet(name) {
+    function namedSet(source, name) {
       const literal = new RegExp(`const ${name} = (?:Object\\.freeze\\()?new Set\\(\\[([^\\]]*)\\]`).exec(source);
       if (literal) return stringsIn(literal[1]);
 
@@ -128,68 +130,110 @@ describe("a dropdown offers values the server accepts", () => {
       return values.length ? values : null;
     }
 
-    /** The options inside `<select name="field">`, literal ones only. */
-    function selectOptions(field) {
-      const block = new RegExp(`<select name="${field}">([\\s\\S]*?)</select>`).exec(source);
+    /**
+     * The values a `<select name="field">` offers, where they are written out
+     * rather than generated from the set being validated against.
+     *
+     * Two spellings, because both are hand-written lists that can drift from
+     * the handler beside them: literal `<option>` tags, and
+     * `${options([["value", "Label"], ...])}` -- a helper several route files
+     * use. A select whose options are mapped from the validating set itself is
+     * excluded on purpose: it cannot disagree, so there is nothing to compare.
+     */
+    function selectOptions(source, field) {
+      const block = new RegExp(`<select name="${field}"[^>]*>([\\s\\S]*?)</select>`).exec(source);
       if (!block) return null;
-      return options(block[1]).filter((option) => !option.value.includes("${"));
+
+      const literal = options(block[1]).filter((option) => !option.value.includes("${"));
+      if (literal.length) return literal;
+
+      const helper = /\$\{options\(\[([\s\S]*?)\]\)\}/.exec(block[1]);
+      if (!helper) return null;
+      return [...helper[1].matchAll(/\["([^"]*)",\s*"([^"]*)"\]/g)]
+        .map((match) => ({ value: match[1], text: match[2], attributes: "" }));
     }
 
-    // Each `oneOf(req.body.X, Y, fallback)` in the file. `Y` is either a bare
-    // identifier or an inline `new Set([...])`; both are resolved.
-    const pairs = [...source.matchAll(/oneOf\(req\.body\.([a-z_]+)(?:\s*\|\|[^,]*)?,\s*(new Set\(\[[^\]]*\]\)|[A-Z_]+),/g)]
-      .map((match) => {
-        const [, field, setExpression] = match;
-        const values = setExpression.startsWith("new Set")
+    /**
+     * Each `oneOf(req.body.X, Y, fallback)` in a file. `Y` takes three forms
+     * across this repository -- a named constant, an inline `new Set([...])`,
+     * and a bare array literal -- and all three are resolved. A fourth form
+     * would resolve to null and fail the guard below rather than pass silently.
+     */
+    function validatedFields(source) {
+      const seen = new Map();
+      const call = /oneOf\(req\.body\.([a-z_]+)(?:\s*\|\|\s*req\.body\.[A-Za-z_]+)?,\s*(new Set\(\[[^\]]*\]\)|\[[^\]]*\]|[A-Z_]+),\s*([^)]*)\)/g;
+      for (const match of source.matchAll(call)) {
+        const [, field, setExpression, fallback] = match;
+        if (seen.has(field)) continue;
+        const values = setExpression.startsWith("[") || setExpression.startsWith("new Set")
           ? stringsIn(setExpression)
-          : namedSet(setExpression);
-        return { field, setExpression, values };
-      });
+          : namedSet(source, setExpression);
+        const offered = selectOptions(source, field);
+        seen.set(field, { field, setExpression, fallback: fallback.trim(), values, offered });
+      }
+      return [...seen.values()];
+    }
 
-    it("found the validated fields it is about to check", () => {
-      assert.ok(pairs.length >= 6, `only ${pairs.length} oneOf(req.body.*) calls found in ${rel}; this check has gone blind`);
-      const unresolved = pairs.filter((pair) => !pair.values || pair.values.length === 0);
-      assert.deepEqual(
-        unresolved.map((pair) => `${pair.field} -> ${pair.setExpression}`),
-        [],
-        "a validated field's allowed set could not be read out of the source, so this check would pass it by default"
-      );
-    });
+    const scanned = files
+      .map((rel) => ({ rel, fields: validatedFields(fs.readFileSync(path.join(ROOT, rel), "utf8")) }))
+      // A field whose options are generated from the set cannot disagree with
+      // it, so there is nothing to compare; the ones written out by hand are
+      // exactly where the two ends can drift, and are what this counts.
+      .map((entry) => ({ ...entry, fields: entry.fields.filter((field) => field.offered && field.offered.length > 0) }))
+      .filter((entry) => entry.fields.length > 0);
 
-    // A field whose options are generated from the set cannot disagree with it,
-    // so there is nothing to compare; the ones written out by hand are exactly
-    // where the two ends can drift, and are what this counts.
-    const handWritten = pairs.filter((pair) => (selectOptions(pair.field) || []).length > 0);
-
-    it("at least three fields spell their options out by hand", () => {
+    it("found the hand-written dropdowns it is about to check", () => {
+      const total = scanned.reduce((sum, entry) => sum + entry.fields.length, 0);
       assert.ok(
-        handWritten.length >= 3,
-        `only ${handWritten.length} of ${pairs.length} validated fields render literal options; this check has gone blind`
+        scanned.length >= 3,
+        `only ${scanned.length} files pair a validated field with a literal <select>; this check has gone blind`
       );
+      assert.ok(total >= 6, `only ${total} hand-written dropdowns found; this check has gone blind`);
     });
 
-    for (const pair of pairs) {
-      const offered = selectOptions(pair.field);
-      if (!offered || offered.length === 0) continue;
+    it("could read the allowed set behind every one of them", () => {
+      // Returning an empty set for one it cannot parse would pass every option
+      // in that field by default, which is the failure mode this whole file is
+      // about. It fails instead, naming the field.
+      const unresolved = scanned.flatMap((entry) =>
+        entry.fields.filter((field) => !field.values || field.values.length === 0)
+          .map((field) => `${entry.rel}: ${field.field} -> ${field.setExpression}`)
+      );
+      assert.deepEqual(unresolved, [], "a validated field's allowed set could not be read out of the source");
+    });
 
-      it(`every <select name="${pair.field}"> option is accepted by the handler`, () => {
-        for (const option of offered) {
-          assert.ok(
-            pair.values.includes(option.value),
-            `the ${pair.field} field offers "${option.value}" (labelled "${option.text.trim()}"), which ` +
-              `${pair.setExpression} does not contain -- oneOf() will silently replace it with the fallback, and the ` +
-              "person who chose it will never be told"
-          );
-        }
-      });
+    for (const { rel, fields } of scanned) {
+      describe(rel, () => {
+        for (const field of fields) {
+          it(`every <select name="${field.field}"> option is accepted by the handler`, () => {
+            for (const option of field.offered) {
+              assert.ok(
+                (field.values || []).includes(option.value),
+                `the ${field.field} field offers "${option.value}" (labelled "${option.text.trim()}"), which ` +
+                  `${field.setExpression} does not contain. oneOf() replaces it with ${field.fallback}` +
+                  (field.fallback === "null"
+                    // A null fallback is refused somewhere downstream, so the
+                    // person is at least told something went wrong.
+                    ? ", so the choice is thrown away"
+                    // A concrete fallback is the dangerous one: the row saves,
+                    // nothing errors, and it holds a value nobody picked.
+                    : ", so the row saves holding a value the person never chose and nothing says so")
+              );
+            }
+          });
 
-      it(`<select name="${pair.field}"> offers every value the handler accepts`, () => {
-        // The other direction. A select that quietly stops offering "could" is
-        // not a crash -- it is a MoSCoW board with no way to say "not this
-        // release", which is the category the method exists for.
-        const values = new Set(offered.map((option) => option.value));
-        for (const value of pair.values) {
-          assert.ok(values.has(value), `${pair.setExpression} accepts "${value}" but no ${pair.field} option offers it`);
+          it(`<select name="${field.field}"> offers every value the handler accepts`, () => {
+            // The other direction. A select that quietly stops offering "could"
+            // is not a crash -- it is a MoSCoW board with no way to say "not
+            // this release", which is the category the method exists for.
+            const offered = new Set(field.offered.map((option) => option.value));
+            for (const value of field.values || []) {
+              assert.ok(
+                offered.has(value),
+                `${field.setExpression} accepts "${value}" but no ${field.field} option offers it`
+              );
+            }
+          });
         }
       });
     }

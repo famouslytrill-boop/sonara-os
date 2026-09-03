@@ -144,29 +144,45 @@ closed early, and it is not something anybody writes on purpose. 100-option
 blindness guard. The sweep found exactly one instance, which is the reassuring
 answer.
 
-**Tier 2, this file.** Every `oneOf(req.body.<field>, <set>, <fallback>)` call is
-found in the source, its set resolved — named constant or written inline — and
-the `<select name="<field>">` for it looked up. Both directions: every option
-offered must be accepted, and every accepted value must be offered. Four fields
-land in it: `priority`, `severity`, `confidence`, `decision`.
+**Tier 2, everywhere.** Every `oneOf(req.body.<field>, <set>, <fallback>)` call
+in the runtime is found, its set resolved, and the `<select name="<field>">`
+that feeds it looked up. Both directions: every option offered must be accepted,
+and every accepted value must be offered. **Nine dropdowns across three route
+files** — `product-lifecycle`, `creator-generation`, `business-control-plane`.
 
-Nothing is listed by hand. The first draft *did* carry a pairs list, with
-`["severity", null]` in it and a `continue` — an entry that reads like coverage
-and is not, which is the fifth shape in `checks-that-cannot-lie` written by me
-while writing a test about that skill. Deriving the pairs removed the list and
-picked up two fields the list had never named.
+Nothing is listed by hand, not even the files. The first draft carried a pairs
+list with `["severity", null]` in it and a `continue` — an entry that reads like
+coverage and is not, which is the fifth shape in `checks-that-cannot-lie`,
+written by me while writing a test about that skill. Deriving the pairs removed
+the list and picked up eight fields it had never named.
+
+Three spellings had to be taught, and each was found by the guard rather than
+guessed at: the allowed set is written as a named constant, an inline
+`new Set([...])`, or a bare array; the options are written as literal `<option>`
+tags or through an `options([["value", "Label"], ...])` helper. Selects whose
+options are mapped from the validating set itself are excluded on purpose —
+they cannot disagree, so there is nothing to compare.
 
 A set the test cannot read returns `null`, never an empty list, and the guard
 fails on it — otherwise an unreadable set would pass every option in the field
 it governs. `STAGE_KEYS` is `new Set(STAGES.map((s) => s.key))`, so that path is
-live rather than theoretical.
+live rather than theoretical. Twice the guard failed on my own claim: "three
+files" when only one paired up, then two. Both times the fix was to read another
+spelling, not to lower the number.
 
-**Probed five times, each failing by its own name:** the original bug verbatim
-(3 tests red), `could` → `maybe` with well-formed markup, the `could` option
-deleted, and `STAGE_KEYS` moved behind a function so its values cannot be read.
-Baseline green before and after each.
+The failure message names the actual fallback, because the consequence turns on
+it. `priority` falls back to `"must"` — *the row saves holding a value the
+person never chose and nothing says so*. `consent_scope` falls back to `null` —
+*the choice is thrown away*, which is bad and at least visible.
 
-Suite 3,727 → 3,735.
+**Probed six times, each failing by its own name, in every file:** the original
+bug verbatim (3 tests red), `could` → `maybe` with well-formed markup, the
+`could` option deleted, a `consent_scope` option renamed in
+`creator-generation-routes`, a `business_type` option deleted in
+`business-control-plane-routes`, and `STAGE_KEYS` moved behind a function so its
+values cannot be read. Baseline green before and after each.
+
+Suite 3,727 → 3,745.
 
 ### 2026-09-03 - The health score disagreed with the sentence next to it
 
