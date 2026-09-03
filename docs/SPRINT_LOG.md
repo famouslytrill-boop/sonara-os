@@ -2,6 +2,70 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - 365 query filters, none exploitable, one of them checkable
+
+Every database query in this application is a string:
+
+```js
+`?select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`
+```
+
+PostgREST reads `&`, `=`, `,` and `.` as syntax, so an unencoded value in a
+filter does not error — it becomes **more query**. Same class as an
+unparameterised SQL string, and it matters more here than in most codebases for
+one specific reason: every one of these goes out with the service-role key,
+which bypasses row level security. `organization_id=eq.` is not a convenience on
+these paths. **It is the entire tenant boundary**, and a value that can append
+`&or=(...)` is a value that can widen it.
+
+A sweep found **365 filter interpolations** in `lib/`, `routes/` and
+`server.js`. Thirteen were not encoded at the point of use, and **not one of
+them was exploitable** — which is the finding, and the reason this ends in a
+gate rather than a patch:
+
+| sites | why it was safe |
+| --- | --- |
+| 4, prompt library | `context.organizationId`, read from the database for the signed-in user |
+| 4, `sonara-last9-routes` | `const employeeId = encodeURIComponent(me.profile.id)` — encoded once, reused |
+| 2, `sonara-owner-record-pages` | a date column sliced to ten characters |
+| 3, prompt library | `product_area`, a key from a fixed set |
+
+The property held **three different ways, and only one of them is checkable by
+reading the line.** That is the problem. A property maintained by reasoning has
+to be re-reasoned by everyone who touches it, and this repository's recurring
+defect is precisely the reasoning that reads correct and is not.
+
+## What changed
+
+The seven prompt-library sites are encoded now — it cost nothing and that file
+was the only place in the runtime spelling it that way. The `last9` sites are
+**deliberately left alone**: encoding an already-encoded value would
+double-encode it and break the query. That is the kind of thing a well-meaning
+sweep breaks, so it is written down rather than left to be rediscovered.
+
+`scripts/verify-postgrest-filter-encoding.mjs` is the fortieth command in
+`verify:launch`. 359 of 365 encoded where used; the remaining 6 carry a register
+entry naming the file, the variable, and a **regex the source must still match**
+for the reason to stand.
+
+Two-sided, like `report-orphan-tables.mjs`: an unaccounted site fails, *and* an
+entry that no longer describes anything fails. A stale exemption is what the
+next person reads instead of checking — the fifth shape in
+`checks-that-cannot-lie`, and the reason that shape exists.
+
+**Probed five times, each failing by its own name:** an unencoded
+`organization_id` put back; `employeeId`'s `encodeURIComponent` removed from its
+declaration, so the register's stated reason stops being true; and each of the
+two register entries made unnecessary by encoding its sites, so the register
+complains about itself. Baseline green before and after each.
+
+**Also audited, and clean:** all 27 `select=*` queries. Every one carries an
+`organization_id=eq.` filter, including the two that build their filter list at
+run time — `filters[0]` is always the organization, and the invoice `scope`
+string contains it. The advisory tier of `report:selected-columns` is about
+whether a fetched column gets used; this was the sharper question, and it has
+the better answer.
+
 ### 2026-09-03 - Choosing "Could Have" recorded "Must Have"
 
 One character of markup, on the page that decides what ships.

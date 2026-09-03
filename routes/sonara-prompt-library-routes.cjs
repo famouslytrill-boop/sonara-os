@@ -134,7 +134,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     if (!context.ok) return res.status(503).json(context);
     const visibility = promptVisibilityQuery(req.sonaraUser?.id, true);
     if (!visibility.ok) return res.status(401).json(visibility);
-    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&${visibility.query}&select=*&order=updated_at.desc&limit=100`;
+    const query = `?organization_id=eq.${encodeURIComponent(context.organizationId)}&product_area=eq.${encodeURIComponent(req.promptProductArea)}&${visibility.query}&select=*&order=updated_at.desc&limit=100`;
     const result = await restRequest(context, "sonara_prompt_templates", query);
     return res.status(result.ok ? 200 : 503).json(result.ok ? { ok: true, templates: result.rows } : result);
   });
@@ -270,7 +270,7 @@ module.exports = function registerSonaraPromptLibraryRoutes(app, deps = {}) {
     if (!context.ok) return res.status(503).json(context);
     const visibility = promptVisibilityQuery(req.sonaraUser?.id, false);
     if (!visibility.ok) return res.status(401).json(visibility);
-    const query = `?organization_id=eq.${context.organizationId}&product_area=eq.${req.promptProductArea}&${visibility.query}&select=*,sonara_prompt_collection_items(*)&order=updated_at.desc&limit=100`;
+    const query = `?organization_id=eq.${encodeURIComponent(context.organizationId)}&product_area=eq.${encodeURIComponent(req.promptProductArea)}&${visibility.query}&select=*,sonara_prompt_collection_items(*)&order=updated_at.desc&limit=100`;
     const result = await restRequest(context, "sonara_prompt_collections", query);
     return res.status(result.ok ? 200 : 503).json(result.ok ? { ok: true, collections: result.rows } : result);
   });
@@ -395,7 +395,7 @@ function registerWorkspacePage(app, productArea, deps) {
     const visibility = promptVisibilityQuery(req.sonaraUser?.id, false);
     if (!visibility.ok) return "";
 
-    const scope = `?organization_id=eq.${context.organizationId}&product_area=eq.${productArea}&${visibility.query}`;
+    const scope = `?organization_id=eq.${encodeURIComponent(context.organizationId)}&product_area=eq.${encodeURIComponent(productArea)}&${visibility.query}`;
     const [templates, collections] = await Promise.all([
       restRequest(context, "sonara_prompt_templates", `${scope}&select=id,title,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false })),
       restRequest(context, "sonara_prompt_collections", `${scope}&select=id,name,updated_at&order=updated_at.desc&limit=20`).catch(() => ({ ok: false }))
@@ -503,7 +503,7 @@ async function rpcRequest(context, functionName, body) {
 }
 
 async function getOwnedRecord(context, table, id, userId) {
-  const query = `?id=eq.${encodeURIComponent(id)}&organization_id=eq.${context.organizationId}&select=*&limit=1`;
+  const query = `?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&select=*&limit=1`;
   const result = await restRequest(context, table, query);
   if (!result.ok) return result;
   if (!result.rows.length) return { ok: false, code: "not_found", table };
