@@ -24,9 +24,15 @@ def stripe_audit_summary() -> dict[str, object]:
             "Confirm billing_webhook_events upserts on (provider, provider_event_id).",
             "Confirm every billing write stays an on_conflict upsert with merge-duplicates: "
             "the sync runs on every delivery, so that is what makes a Stripe retry a no-op.",
-            "Open question: Stripe does not guarantee event order, and merge-duplicates keyed on the "
-            "subscription reference has no version column, so a late customer.subscription.updated can "
-            "overwrite newer state.",
+            # Was an open question. Closed 3 September 2026 by migration
+            # 20260903120000: provider_event_at carries the stamp Stripe put on
+            # the event, and a before-update trigger discards a write carrying
+            # an older one. In the database rather than the application because
+            # read-then-write is a race, and the thing racing is two deliveries
+            # of the same subscription -- which is what Stripe's retries make.
+            "Confirm billing_subscriptions and billing_entitlements still carry provider_event_at, and that "
+            "sonara_reject_stale_provider_event is still the trigger on both: Stripe does not guarantee event "
+            "order, and without it a late customer.subscription.updated overwrites newer state.",
             "Confirm subscription writes use server-only Supabase service role.",
             "Confirm no Stripe secrets are committed or printed.",
         ],

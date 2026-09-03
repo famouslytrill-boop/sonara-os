@@ -37,13 +37,25 @@
 // duplicating subscription rows, silently, in the table the paid-access check
 // reads. These assertions are on the requests the application actually sends.
 //
-// One thing this deliberately does **not** claim: that out-of-order delivery is
-// handled. Stripe does not guarantee order, and `merge-duplicates` keyed on the
-// subscription reference with no version column means an older
-// `customer.subscription.updated` arriving late overwrites newer state. That is
-// recorded in docs/SPRINT_LOG.md as an open question for the owner rather than
-// asserted here as a defect, because nothing in this repository establishes how
-// often it happens or what it would cost.
+// Out-of-order delivery was recorded here as an open question, and is now
+// closed. Stripe does not guarantee order, so `merge-duplicates` keyed on the
+// subscription reference with no version column meant an older
+// `customer.subscription.updated` arriving late overwrote newer state -- a
+// cancelled subscription reinstated, or a paying customer locked out, silently
+// either way, in the column `lib/sonara-paid-access.cjs` reads.
+//
+// `provider_event_at` now carries the stamp Stripe put on the event, and a
+// `before update` trigger discards a write carrying an older one. The
+// comparison is in the database rather than here on purpose: reading the row
+// first and skipping the write is a read-then-write race, and the thing racing
+// is two deliveries of the same subscription arriving together, which is
+// precisely what Stripe's retries produce.
+//
+// This file asserts the application sends the stamp. That the trigger discards
+// on it is proved against a real PostgreSQL by
+// `scripts/verify-migration-replay.mjs`, which is the only thing in the release
+// chain that executes SQL -- an assertion here could only restate the migration
+// text back to itself.
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -170,6 +182,32 @@ describe("a replayed Stripe event changes nothing twice", () => {
 
     it("ignores event types it does not handle instead of half-applying them", () => {
       assert.match(region, /ignored: true/, "an unhandled event type no longer returns a stated no-op");
+    });
+
+    it("stamps each write with when Stripe made the event, not when it arrived", () => {
+      // The ordering guard is only as good as the value it compares. If this
+      // stops being sent, every write carries a null stamp, the trigger applies
+      // all of them, and the behaviour is silently back to last-delivery-wins
+      // -- with a migration, a column and a trigger all still in place looking
+      // like a guarantee.
+      assert.match(
+        region,
+        /const providerEventAt = Number\.isFinite\(event\.created\)/,
+        "the subscription sync no longer derives its stamp from event.created"
+      );
+      assert.doesNotMatch(
+        region,
+        /provider_event_at: (Date\.now|new Date\(\))/,
+        "the stamp is being taken from this server's clock rather than from the event. Arrival order is the thing " +
+          "that is not trustworthy, so stamping on arrival records exactly the wrong number"
+      );
+      for (const table of ["billing_subscriptions", "billing_entitlements"]) {
+        const write = region.slice(region.indexOf(table));
+        assert.ok(
+          write.slice(0, 900).includes("provider_event_at: providerEventAt"),
+          `the ${table} write no longer carries provider_event_at, so a late event overwrites newer state again`
+        );
+      }
     });
   });
 

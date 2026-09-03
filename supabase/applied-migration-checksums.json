@@ -104,5 +104,6 @@
   "20260901090000_record_change_log.sql": "4a13bffc2d83dccc1b16354d013e9b191145e470a4a76d0f1f2acdafd6481f2f",
   "20260901120000_two_factor_authentication.sql": "0f2be0005d7d1a27a0eee73bd4adef19367e35938e890a93ddb5bbda7d3e6ed3",
   "20260901150000_owner_records_can_be_archived.sql": "4bb83ecdd2669ea4e7b3197e03a1a9fb95e40e66050eef1515a3f61ae91a8e0a",
-  "20260811210000_repair_missing_platform_tables.sql": "3c5bf4a5f6fd4e6e3d010ed4289a31f1df59b4302dfb9178027fe53b19ca510a"
+  "20260811210000_repair_missing_platform_tables.sql": "3c5bf4a5f6fd4e6e3d010ed4289a31f1df59b4302dfb9178027fe53b19ca510a",
+  "20260903120000_stripe_events_cannot_arrive_backwards.sql": "fcacf37870f9a80afff54263a216a6d5cf65b12634f295cf8a86c170bc0628cb"
 }

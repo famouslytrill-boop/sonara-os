@@ -2,6 +2,88 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A late Stripe event could reinstate a cancelled subscription
+
+This was recorded on this branch as an **open question for the owner**, on the
+grounds that nothing established how often it happens or what it would cost.
+That was the wrong call twice over: the cost is describable without a frequency,
+and the fix turned out to be a column and a trigger.
+
+Stripe does not guarantee delivery order, and retries on any non-2xx or timeout.
+`synchronizeBillingFromStripeEvent` upserted `billing_subscriptions` on
+`(provider, provider_subscription_ref)` with `resolution=merge-duplicates` —
+`on conflict do update`, which always overwrites. No version column, no
+comparison. **The last request to land won, whatever it said.**
+
+A customer upgrades and cancels within the same minute, which people do. Two
+events fire. If the `updated` carrying `status=active` is delivered after the
+`deleted` carrying `status=canceled`, the row ends `active` — and
+`lib/sonara-paid-access.cjs` reads exactly that column, so a cancelled customer
+keeps paid access with nothing recording it. The reverse is worse to be on the
+receiving end of: a stale `updated` lands after a reactivation, the row says
+`canceled`, and somebody who has paid is locked out of their own business
+records.
+
+## Why the guard is in the database
+
+The obvious fix — read the row, skip the write if what we hold is newer — is a
+read-then-write race, and the thing racing is two deliveries of the same
+subscription arriving together, which is precisely what Stripe's retries
+produce. Both read the old row, both decide they are newer, both write.
+
+PostgREST cannot express a conditional upsert; `merge-duplicates` has no `where`
+to hang the comparison on. So the comparison goes where the row lock already is.
+A `before update` trigger sees OLD and NEW inside one statement under one lock,
+and a stale write is discarded whatever order requests arrive in and however
+many are in flight.
+
+`provider_event_at` carries `event.created` — when **Stripe** stamped it, not
+when it reached us, because arrival order is the thing that is not trustworthy.
+
+## The probe that had to be added to see it at all
+
+A trigger whose job is to *discard* a write is invisible to every check here.
+The column exists, the trigger exists, the migration applies, and the guard
+could be inverted or never fire — every check in this repository would stay
+green while a late event silently reinstated a subscription.
+
+`scripts/verify-migration-replay.mjs` is the only thing in the chain that
+executes SQL, and it already has PostgreSQL running, so proving it costs one
+statement. It now runs three cases against the replayed database and requires
+three markers back: `stale_kept_active`, `fresh_gave_canceled`,
+`unstamped_gave_past_due`.
+
+## What that probe caught, in my own migration
+
+Four probes on the trigger. Inverting `<` to `>` failed. Neutering the discard
+failed. **Deleting the null-handling branch passed** — and it should not have,
+if that branch were doing anything.
+
+It is not. `null < x` and `x < null` both evaluate to null in SQL, which is not
+true, so both null cases already fall through to `return new` with no branch at
+all. I had written a guard and a comment explaining a behaviour produced by
+something else — a reason reasoned to rather than verified, which
+`CLAUDE.md` warns about by name and which reads exactly like a verified one.
+
+The branch is kept, and the comment now says why honestly: the realistic way
+this breaks is not deletion but somebody folding the two ifs together and
+reaching for `coalesce(new.provider_event_at, '-infinity') < coalesce(old..., ...)`,
+which reads as a tidy-up and silently discards **every unstamped write**. That
+rewrite was applied here and the probe caught it by name
+(`unstamped_gave_past_due`). So the marker guards the outcome against the change
+that would really happen; it does not prove the branch is load-bearing, and
+saying so is the difference between this comment and the first one.
+
+## Also updated
+
+`tests/a-replayed-stripe-event-changes-nothing-twice.js` asserted this was *not*
+handled; it now asserts the application sends the stamp, from `event.created`
+rather than the server clock, on both writes. Probed three ways.
+`python/sonara_ops/stripe_audit.py` had the open question as a checklist item;
+it now asks an operator to confirm the column and the trigger are still there.
+
+110 migrations replay. Suite 3,753 → 3,754.
+
 ### 2026-09-03 - A guard used by one file, and a test that read like a guarantee
 
 `lib/sonara-tenant-data.cjs` refuses to build a query against a tenant-scoped
