@@ -36,7 +36,6 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const SCRIPT = path.join(__dirname, "..", "scripts", "audit-result-is-unusable.mjs");
-const WORKFLOW = path.join(__dirname, "..", ".github", "workflows", "dependency-scan.yml");
 
 /** Exit 0 means "could not ask". Exit 1 means "a real audit result". */
 function classify(contents) {
@@ -85,39 +84,82 @@ describe("an audit that did not happen is not a finding", () => {
     }
   });
 
-  describe("the workflow still fails either way", () => {
-    const yaml = fs.readFileSync(WORKFLOW, "utf8");
+  describe("every audit in the repository goes through it", () => {
+    // The reason this section is derived rather than a list of three files:
+    // the first version of this fix patched ONE of three call sites, which is
+    // the same shape as the migration repair that fixed the tables that were
+    // absent and ignored the ones that were present. A fourth workflow that
+    // calls `pnpm audit` bare must fail here rather than quietly reintroducing
+    // the defect.
+    const dir = path.join(__dirname, "..", ".github", "workflows");
+    const workflows = fs.readdirSync(dir).filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"));
 
-    it("does not turn an unreachable audit into a pass", () => {
-      const step = yaml.slice(yaml.indexOf("name: Audit root dependencies"));
-      const body = step.slice(0, step.indexOf("- name: Upload dependency audit diagnostics"));
-      assert.match(body, /exit \$status/, "the audit step no longer propagates pnpm's exit code");
-      assert.doesNotMatch(
-        body,
-        /exit 0\b/,
-        "the audit step exits 0 somewhere. An audit that could not run must not be a green tick -- the point of " +
-          "telling the two apart is the message, never the outcome"
+    /** Lines that invoke pnpm audit, ignoring prose about it. */
+    function invocations() {
+      const found = [];
+      for (const name of workflows) {
+        const text = fs.readFileSync(path.join(dir, name), "utf8");
+        text.split("\n").forEach((line, index) => {
+          const code = line.replace(/#.*$/, "");
+          if (/\bpnpm\s+audit\b/.test(code)) found.push({ name, line: index + 1, code: code.trim() });
+          if (/audit-dependencies\.mjs/.test(code)) found.push({ name, line: index + 1, code: code.trim(), viaScript: true });
+        });
+      }
+      return found;
+    }
+
+    const calls = invocations();
+
+    it("found the audit steps it is checking", () => {
+      assert.ok(workflows.length >= 5, `only ${workflows.length} workflows; this check has gone blind`);
+      assert.ok(
+        calls.length >= 3,
+        `only ${calls.length} audit invocations found across ${workflows.length} workflows; this check has gone blind`
       );
     });
 
-    it("says which of the two it was", () => {
-      assert.match(
-        yaml,
-        /NOTHING WAS AUDITED/,
-        "the distinct message for an unreachable audit is gone, so a timeout reads as a vulnerability report again"
+    it("has no workflow calling pnpm audit directly", () => {
+      const bare = calls.filter((call) => !call.viaScript);
+      assert.deepEqual(
+        bare.map((call) => `${call.name}:${call.line}  ${call.code}`),
+        [],
+        "a workflow invokes pnpm audit directly, so a timeout there is reported as a security finding again. " +
+          "Call scripts/audit-dependencies.mjs instead"
       );
     });
 
-    it("retries before giving up, since a transient failure is worth asking twice", () => {
-      assert.match(yaml, /for attempt in 1 2 3/, "the audit no longer retries a transport failure");
+    it("covers the production deployment, where a false finding blocks a release", () => {
+      assert.ok(
+        calls.some((call) => call.name === "controlled-production-deploy.yml" && call.viaScript),
+        "the production deployment no longer audits through the script. A network timeout there would block a " +
+          "release with a security finding that is not one"
+      );
     });
 
     it("still audits at the same level", () => {
       // The one thing this change must not have done.
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
       assert.match(
-        yaml,
-        /pnpm audit --audit-level moderate --json/,
+        script,
+        /const LEVEL = "moderate"/,
         "the audit level changed. Telling a timeout from a finding must not quietly relax what counts as a finding"
+      );
+    });
+
+    it("bounds the attempt, because pnpm audit hangs rather than failing fast", () => {
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
+      assert.match(script, /timeout -k/, "the audit is unbounded again; the observed hang was four minutes");
+      assert.match(script, /TIMEOUT_SECONDS = 90/, "the attempt bound is gone or changed without updating this test");
+    });
+
+    it("never turns an unreachable audit into a pass", () => {
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
+      const branch = script.slice(script.indexOf("if (couldNotAsk(OUTPUT))"));
+      assert.match(
+        branch.slice(0, 500),
+        /process\.exit\(1\)/,
+        "an audit that could not run no longer fails. The point of telling the two apart is the message, never " +
+          "the outcome"
       );
     });
   });

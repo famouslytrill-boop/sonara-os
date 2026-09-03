@@ -40,7 +40,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm audit --audit-level moderate
+      # Not a bare `pnpm audit`: a timeout there is reported as a security
+      # finding. See scripts/audit-dependencies.mjs and SECURITY_NOTES.md.
+      - run: node scripts/audit-dependencies.mjs
 
       - run: pnpm run typecheck
 

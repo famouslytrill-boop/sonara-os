@@ -196,11 +196,27 @@ waved through by somebody who has learned the red means nothing.
 
 Two changes, neither of which relaxes anything:
 
-1. **Retry** — three attempts with backoff. A transient failure is worth asking
-   again about; a sustained outage still fails.
-2. **Distinguish** — `scripts/audit-result-is-unusable.mjs` decides whether a
+1. **Distinguish** — `scripts/audit-result-is-unusable.mjs` decides whether a
    real audit result was obtained at all. When it was not, the job **still
    fails**, with its own message saying nothing was audited.
+2. **Bound it** — `pnpm audit` does not fail fast when that endpoint is
+   unresponsive, it hangs; each CI attempt sat for four minutes. It is now
+   capped at ninety seconds with `timeout -k`, so it fails *sooner* than before.
+
+**All three call sites**, through one `scripts/audit-dependencies.mjs`:
+`dependency-scan.yml`, `sonara-industries-ci.yml`, and — the consequential one —
+`controlled-production-deploy.yml`, where a false security finding blocks a
+production release. The first version of this fix patched only the first, which
+is the same shape as the migration repair that created the tables that were
+absent and ignored the ones that were present. The test derives the call sites
+rather than listing them, so a fourth workflow calling `pnpm audit` bare fails.
+
+**There is deliberately no retry.** The first version retried three times, and
+running it against the live outage showed that turns a four-minute failure into
+a twelve-minute one and risks pushing a job into its own timeout — the fix making
+CI worse than the bug. A second version bounded each attempt and still hung,
+because `spawnSync`'s own timeout kills `pnpm` while a grandchild holds the
+stdout pipe. Both were found by running it rather than reasoning about it.
 
 The rule that script encodes: **anything which is not a valid audit result means
 we could not ask** — no file, empty, unparseable, or carrying an `error` key.
