@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3876 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 109 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
 - 281 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
@@ -124,7 +124,7 @@ all failed. Not flaky, not intermittent: the same failure every time.
     Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
     ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
 
-28 migrations are pending and `supabase db push` stops on the first, because
+28 were pending at that run and `supabase db push` stops on the first, because
 `customer_invoices` has `quote_id uuid references public.quotes(id)` and
 **production has no `public.quotes`**.
 
@@ -148,8 +148,24 @@ Its success line now says so rather than leaving it to be inferred: the check
 "says the migrations agree with each other and nothing about whether
 production's schema agrees with them."
 
-Nothing here can reach the production database, and repairing a live schema is
-the owner's call regardless, so this is `docs/owner/OWNER-STEPS.md` step 8 with
+**The repair is written.** `20260811210000_repair_missing_platform_tables.sql`
+creates `public.customers` and `public.quotes`, copied column for column from
+`010`, both `create table if not exists`, versioned between the last migration
+production applied and the one that fails. Only those two: re-running `010`
+whole would have resurrected `billing_customers`, which
+`20260805120000_retire_superseded_tables.sql` deliberately retired -- the
+obvious fix was the wrong one.
+
+Proven on a throwaway PostgreSQL holding `organizations` but not `customers` or
+`quotes`. Without the repair, `20260811220000` stops on
+`relation "public.customers" does not exist` and `customer_invoices` is never
+created; with it, all three tables exist; applying it twice changes nothing and
+reports no error. (The reproduction still ends on `function auth.role() does not
+exist` -- a Supabase primitive the minimal fixture lacks and production has,
+which the full 109-migration replay supplies and passes on.)
+
+Applying it to a live database is still the owner's, so this is
+`docs/owner/OWNER-STEPS.md` step 8 with
 the two queries that confirm the gap and the instruction to re-run the gated
 workflow rather than the Vercel Redeploy button — which is what took the alias
 on 4 August and is why that workflow's header exists.

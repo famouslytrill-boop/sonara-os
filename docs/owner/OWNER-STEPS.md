@@ -496,10 +496,11 @@ ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
 
 That migration's `customer_invoices` table has
 `quote_id uuid references public.quotes(id)`, and **`public.quotes` is not in
-your production database**.
+your production database**. (28 were pending at that run; the repository has
+added more since.)
 
 It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
-and `pnpm run verify:migration-replay` applies all 108 migrations to an empty
+and `pnpm run verify:migration-replay` applies all 109 migrations to an empty
 PostgreSQL and gets a working schema every time. So the migration set is fine.
 What has gone wrong is that production's migration history says
 `010_sonara_platform_current_schema.sql` is already applied and the table it
@@ -509,10 +510,41 @@ adopted into the CLI and early migrations are marked applied rather than run.
 The file name is the clue: "current schema" is what somebody writes when they
 are describing a database that already exists.
 
+### The repair is written and waiting in this branch
+
+`supabase/migrations/20260811210000_repair_missing_platform_tables.sql` creates
+`public.customers` and `public.quotes`, copied column for column from `010`,
+both `create table if not exists`. Its version sits between the last migration
+production applied (`20260806090000`) and the one that fails
+(`20260811220000`), so `supabase db push` runs it first and the failing
+migration then finds its table.
+
+It creates **only** those two. Re-running `010` whole would have been the
+obvious move and would have been wrong: `010` also creates `billing_customers`,
+which `20260805120000_retire_superseded_tables.sql` deliberately retired, so a
+replay would resurrect a table somebody decided to remove.
+
+Proven rather than assumed. On a throwaway PostgreSQL holding `organizations`
+but not `customers` or `quotes` — production's shape:
+
+- without the repair, `20260811220000` stops with
+  `relation "public.customers" does not exist` and `customer_invoices` is never
+  created;
+- with the repair applied first, all three of `customers`, `quotes` and
+  `customer_invoices` exist;
+- applying the repair a second time, on a database that already has the tables,
+  changes nothing and reports no error.
+
+So on your database it is a no-op for anything already there.
+
+**What it cannot promise:** that there is no second gap further down the list.
+Nothing in this repository can read your schema. The queries below are what
+answer that, and they are worth running first.
+
 ### What only you can do
 
-Nothing here can reach your production database, and this is a schema change to
-a live system, so it is yours either way. In rough order:
+Nothing here can reach your production database, and applying a schema change to
+a live system is yours either way. In rough order:
 
 1. Confirm the gap. In the Supabase SQL editor:
 
@@ -534,14 +566,22 @@ a live system, so it is yours either way. In rough order:
 
    Anything marked applied whose tables are absent is the set to repair.
 
-3. Apply the missing objects, then re-run the deployment from
-   **Actions → Controlled Production Deployment → Run workflow**. Do not use the
-   Vercel dashboard's Redeploy button: that is what took the alias on 4 August
-   and is why the workflow header exists.
+3. Merge this branch. The repair migration then runs ahead of the failing one
+   on the next deployment. If you would rather not merge everything else at the
+   same time, the file stands alone — apply it in the SQL editor and nothing
+   else changes.
 
-Take a backup first. Everything in `010` is `create table if not exists`, so
-re-running that one file is additive rather than destructive, but the decision
-is yours and the checkpoint costs nothing.
+4. Re-run the deployment from **Actions → Controlled Production Deployment →
+   Run workflow**. Do not use the Vercel dashboard's Redeploy button: that is
+   what took the alias on 4 August and is why the workflow header exists.
+
+5. If it fails again on a different `does not exist`, that is the second gap,
+   and the same treatment applies — the table it names, copied from whichever
+   migration creates it, in a file versioned before the one that failed. Check
+   the retired list first.
+
+Take a backup first. The repair is additive and idempotent, but the decision is
+yours and the checkpoint costs nothing.
 
 ### Why no check caught it
 
