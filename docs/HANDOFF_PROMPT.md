@@ -106,6 +106,45 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - An eighth shape, and it is the one that cost a deployment
+
+`.claude/skills/checks-that-cannot-lie` gains **shape 8: verified in the one
+state where the code under test does nothing.**
+
+Every other shape in that file cost an hour. This one shipped, and took
+production with it.
+
+`verify:migration-replay` applies every migration to an **empty** PostgreSQL. For
+`20260811210000` — 42 `create table if not exists` — that is a full exercise, so
+a clean replay felt like proof. It was proof of the wrong thing. Production's
+tables were **present in an older shape**, which is precisely the state
+`if not exists` does nothing about, and deployment #125 died on a missing column
+the replay had no way to see.
+
+The successor migration made it starker: against an empty database every
+statement in the shape repair is a no-op, because the migration one version
+earlier creates each table whole. That check *could not have failed*.
+
+**The tell, written into the skill:** the fixture is the state the change
+assumes rather than the state that exists. An empty database is where a repair
+for a non-empty database is guaranteed to be a no-op.
+
+Three rules from the probe that replaced it, each already earning its place:
+
+- **Assert the degraded state before repairing it.** Without that middle
+  assertion the probe passes if the `drop` silently did nothing — a check that
+  proves the fixture rather than the fix.
+- **Re-run the statement that actually failed.** Asserting the column exists
+  says the repair did *something*; running the migration production died on says
+  it did the *right* thing. That was the only assertion that caught the column
+  being re-added with the wrong type.
+- **Re-applying to an already-repaired database proves idempotency for free**,
+  which is what makes it safe under `--include-all`.
+
+The older entries saying "six shapes" stay as they are, for the reason given
+where that was last said: they were true when written, and a log that edits
+itself to stay current is not a log.
+
 ### 2026-09-03 - CI tested Node 22, production ran Node 24, nothing said so
 
 This sat on the open list for weeks as "a decision with production behaviour
