@@ -2,6 +2,56 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A seventh shape, written down because I kept producing it
+
+`.claude/skills/checks-that-cannot-lie` had six shapes. Today produced a seventh
+five times, which is enough to call it a shape rather than a slip.
+
+**A pattern that matches prose as if it were code.** A check greps for a name
+and finds it in a comment, a filename, a docstring, or the very sentence
+explaining why the thing is absent — so it passes, or reports a defect that is
+not there:
+
+| the pattern | what it matched |
+| --- | --- |
+| `schedule\.([a-z_]+)` | `sonara-agent-schedule.cjs` in a comment; demanded a column called `cjs` |
+| `!sql.includes("billing_customers")` | the comment saying it is *not* created |
+| a leak check for `service_role` | `20260727024500_service_role_extension_grants.sql` |
+| `'([a-z_0-9]+)'` over a pairs array | both halves of every pair |
+| `AUDIT.match(/billing_webhook_events/)` | the comment explaining the change |
+
+The fourth is the expensive kind. It did not misfire — it produced a
+**confident wrong conclusion**: a live table removed from a health check because
+its name appeared in a list whose shape nobody had read. Everything else on this
+list wasted an hour; that one shipped.
+
+The guard is nearly always two lines — strip comments before matching, and
+anchor on syntax rather than the bare name — plus two rules that came out of the
+same day. Read the *shape* of a list before extracting from it, and assert the
+count the source itself claims: `assert.equal(retired.size, 13)` is what caught
+the pairs error on its first run. And treat negative assertions as the dangerous
+direction, because `assertNotIn` fails on prose mentioning the thing while
+`assertIn` usually does not.
+
+Two more sections went in beside it, both from mistakes rather than theory.
+
+**Probes should grep for the message the first assertion produces.** Twice today
+a probe reported `DID NOT FAIL` when the test had failed perfectly well, because
+an earlier assertion aborted the method before the message being grepped for was
+reached. Give every assertion its own message, and when a probe says nothing
+failed, look at the run before believing it.
+
+**Restoring after a probe: copy the file aside and copy it back, never
+`git checkout --`.** That line was already in the working notes. I used
+`git checkout --` anyway and reverted my own uncommitted fix. It is now in the
+skill, with the fact that it has cost work twice and that the second time was
+somebody who had read the warning.
+
+The older sprint entries that say "six shapes" are left as they are. They are
+dated records of what the skill was when they were written — the same entry
+calls it "the 24-command chain" — and editing a log to agree with today makes it
+useless as history.
+
 ### 2026-09-03 - Answering the Stripe idempotency question I left open
 
 The ops checklist asked *"Confirm stripe_events or billing_events stores
