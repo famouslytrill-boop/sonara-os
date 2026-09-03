@@ -45,9 +45,9 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 171 reviewed repositories, 23 carry a
+**Some of it cannot be built as stated.** Of 183 reviewed repositories, 23 carry a
 reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
-reaches a hosted product; 9 declare no licence at all — which is not a review
+reaches a hosted product; 11 declare no licence at all — which is not a review
 item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable
 Use Licence, which permits internal use but restricts offering it as a hosted
 service. "Install all repositories" has no completion state that is also legal.

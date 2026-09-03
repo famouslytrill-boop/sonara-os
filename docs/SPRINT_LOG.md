@@ -2,6 +2,88 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - Twelve repositories read, and three that are not what they look like
+
+Twelve arrived as social-media screenshots. Each was cloned and its licence file
+opened; `data/open-source-tools.ts` goes from 171 records to 183.
+
+**`kamranahmedse/developer-roadmap` is not open source.** It is one of the most
+starred repositories on GitHub and is spoken of everywhere as though it were.
+Its licence file says: *"Everything including text and images in this project
+are protected by the copyright laws. You are allowed to use this material for
+personal use but are not allowed to use it for any other purpose including
+publishing the images, the project files or the content in the images in any
+form."* Sharing links to the repository or roadmap.sh is permitted; taking
+content out of it needs prior written consent.
+
+Two details of *how* that was found are worth keeping, because both nearly
+produced the opposite answer. The file is `license`, lowercase and with no
+extension, so `raw.githubusercontent.com/.../LICENSE`, `.../LICENSE.md` and
+`.../license.md` all return 404 -- three 404s that read exactly like "there is
+no licence file", which is a different finding with a different consequence.
+`vercel/next.js` has the same shape: `license.md`, lowercase, and `LICENSE`
+404s. **A 404 on a guessed path is not a fact about the repository.** Clone it
+and list the directory.
+
+**Two repositories carry no licence at all**, which is all rights reserved:
+`cporter202/awesome-ai-tools` (4 files) and `cporter202/lovable-for-beginners`
+(20 markdown files). Checked twice each -- no LICENSE/LICENCE/COPYING file, and
+no licence section in the README either, because a licence stated only in prose
+would have been missed by the first check.
+
+**A repository named "Anthropic Cybersecurity Skills" is not Anthropic's.** It
+is `mukul975/Anthropic-Cybersecurity-Skills`, Apache-2.0, and line 35 of its own
+README says so: "Community Project -- This is an independent, community-created
+project. Not affiliated with Anthropic PBC." The disclaimer is inside the
+README; the name is what a screenshot shows. Its badge claims 818 skills and
+`find -name SKILL.md` returns exactly 818, so that number is real -- along with
+1,103 Python files, which is why it is recorded `research_only`: the decision
+not to run it is the substance of the review.
+
+**The affiliate catalogue has a third vertical.**
+`cporter202/job-data-apis-and-scrapers` is MIT and 1,161 of its 1,174 links
+carry an `?fpr=` parameter -- 98.9%. `settings/repo.config.json` names
+`cporter202/API-mega-list` as the upstream, the same source as the ecommerce and
+real-estate directories already on the register. Three separate recommendations,
+one artefact.
+
+The same author's `vibe-coding-with-base44` is recorded differently, and only
+because it was measured rather than assumed: 128 links, none with `?fpr=`, six
+affiliate links out of 121 Base44 links, and an `AFFILIATE-DISCLOSURE.md` naming
+the affiliate URL in full and stating that the reader need not use it. That is
+`reference_only`, not blocked. Measuring is the whole difference between the two
+verdicts.
+
+**`miuuyy/codex-chatgpt-web` is blocked on something its licence cannot
+settle.** MIT, 221 files, and it drives a real signed-in ChatGPT web session in
+an embedded browser so Codex can use ChatGPT Pro "beyond Codex usage limits".
+The repository is candid: its README says it "is unofficial; users remain
+responsible for complying with applicable OpenAI terms". The licence governs the
+tool; OpenAI's terms govern the account it automates. AGENTS.md settles it
+independently -- AI calls go through the Provider Gateway or an approved
+server-side adapter, and a browser impersonating a logged-in human is neither.
+
+The rest: `gridex/gridex` Apache-2.0 (744 files, Swift and C++ desktop app --
+recorded with a credential boundary, because a database client's value is
+holding a connection and ours bypasses RLS); `TidyFactor/Styler` Apache-2.0
+(the owner read off the screenshot, `alwkala/Styler`, does not exist);
+`owasp-noir/noir` MIT, 2,293 Crystal files, the one here with a real use --
+a second, independent derivation of this repository's own endpoint list;
+`vercel/next.js` and `facebook/react` both MIT, both recorded `research_only`
+with the architectural reason written down so "why is this not Next.js" is
+answered from a record rather than re-argued.
+
+`verify-doc-counts` caught both derived figures in `docs/owner/WHAT-IS-LEFT.md`
+by name -- 171 to 183 reviewed, 9 to 11 declaring no licence -- which is the
+check doing exactly what it is for.
+
+Also corrected here: the 2026-09-02 coverage entry still said three files were
+under the floor and named four route modules as covered by no test. Both were
+artefacts of the merge bug that entry itself describes, left in the prose after
+the figures above them were fixed. The gate now reports 207 runtime files,
+39,145 countable lines, 91.8% overall, one file under the floor against one
+register entry.
+
 ### 2026-09-02 - A 35% coverage floor, with its exceptions written down
 
 Node 22 writes V8's own coverage to `NODE_V8_COVERAGE`, so `verify:coverage-floor`
@@ -14,11 +96,11 @@ would let a file pass on its punctuation. That makes these numbers **stricter**
 than a raw line count, and the population is printed so the figure can be
 checked rather than believed:
 
-    206 runtime files, 39094 countable lines, 91.1% covered overall
+    207 runtime files, 39145 countable lines, 91.8% covered overall
 
 **That figure is the corrected one.** The first version of this gate reported
 65.8% and twenty-one files under the floor; both were wrong, for the reason in
-the entry above this one. Three files are under 35%. A gate that simply failed would have
+the entry above this one. One file is under 35%. A gate that simply failed would have
 had to be switched off the day it landed, which is how a check becomes
 decoration. So it is two-sided, the way `report-orphan-tables.mjs` is, and it
 fails four ways:
@@ -35,12 +117,15 @@ fails four ways:
   consecutive whole-suite runs produced identical per-file figures.
 
 Each entry carries what was measured and **how many test files name the module**,
-both facts rather than judgements. Four of the twenty-one are named by no test
-at all -- `sonara-huggingface-routes`, `sonara-infrastructure-routes`,
-`creator-music-system-readonly` and `sonara-formula-routes`. Each is `require`d
-by `server.js`, so its route registration runs, which is the coverage it has,
-and nothing invokes the 4 to 6 handlers it declares. That is recorded per entry
-rather than summarised.
+both facts rather than judgements. The single entry is
+`scripts/verify-member-read-access.mjs` at 21/86 -- a release script that talks
+to Supabase, which the suite loads but cannot run against a database. The four
+route modules the first version listed here as untested were artefacts of the
+merge bug: `sonara-huggingface-routes`, `sonara-infrastructure-routes`,
+`creator-music-system-readonly` and `sonara-formula-routes` are all well above
+the floor once each process is painted on its own. They are named here because
+this paragraph asserted the opposite for a day, and a wrong reason left in a
+document is what the next person reads instead of checking.
 
 One thing the first version got wrong, found by probing it: on a failing run it
 printed the errors and then `Coverage floor verified: ...` underneath them. A
