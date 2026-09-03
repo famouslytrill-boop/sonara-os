@@ -54,6 +54,69 @@ well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
 
+### 2026-09-03 - A cache with no writer, fetched by a star select, read by nobody
+
+`lib/sonara-connected-payments.cjs` exports `cacheAccountState`. It writes
+Stripe's answers onto the business's row: `charges_enabled`, `payouts_enabled`,
+`details_submitted`, `state_checked_at`.
+
+**Nothing called it.** Not a route, not another module, not a test -- checked
+across the whole repository. So those four columns were null on every row in
+production, `readAccount` fetched them anyway with `select=*`, and nothing read
+them either. `report-unreferenced-modules` cannot see this: it asks whether the
+*module* is referenced, and this one is.
+
+Found while auditing the 32 `select=*` queries that
+`report-unused-selected-columns` records as unauditable -- "neither names its
+columns in the source, so nothing here can say whether they are used". That is
+what a star select costs: the query looks like it is fetching thirteen columns
+for a reason.
+
+One thing checked and **not** a defect, worth recording because it looked like
+one: `account.requirements` is read in `liveAccountState`, and
+`business_payment_accounts` has no `requirements` column. That `account` is
+Stripe's API response, not the database row, and Stripe's Account object does
+carry `requirements`. Reading the surrounding lines took a minute and stopped a
+false finding.
+
+**What the columns were for, and what they now do.** The migration is explicit:
+
+    charges_enabled boolean,       -- "null means 'never asked', false means
+                                      'Stripe said no'."
+    state_checked_at timestamptz,  -- "A cached flag with no timestamp beside it
+                                      is a number with nothing saying how old
+                                      it is."
+
+The connected-payments page asks Stripe live on every load. When Stripe cannot
+be reached it said only "Could not check". It now adds what was true when Stripe
+was last asked, and when -- "When we last asked Stripe, on 2026-09-01 14:32,
+charges were enabled and payouts were not enabled. That is not the same as what
+is true now." Three states per flag: a null flag says nothing rather than
+reading as disabled, because null is "never asked" and false is "Stripe said no",
+and those send a business owner to different places.
+
+**Two lines this must never cross, both tested.** The cache does not decide
+whether money may be taken -- `canAcceptPayments` still asks Stripe every time,
+and refuses when it cannot, whatever the row says; a stale `charges_enabled:
+true` renders a pay button on an account that cannot take money. And the
+remembered answer is never presented as the current one: the heading still says
+the check did not happen, and the disconnect button is not offered.
+
+The write is placed on the page, not in `canAcceptPayments`, because that
+function is on the money path and a write per payment check is a cost per
+payment. It is not awaited for its result: a page that 500s because it could not
+remember something is worse than one that forgets.
+
+`select=*` narrowed to the six columns that now have readers. The star-select
+ratchet did its job -- it refused the fall until the reason was written down,
+"a fall nobody records looks exactly like a matcher that has stopped matching".
+32 to 31.
+
+Probed, each failing by name: the cache call removed again; `select=*` restored;
+a null payout flag rendered as "not enabled"; the remembered answer stripped of
+its date; a failed Stripe check cached anyway; and the cache allowed to decide a
+payment (**six** tests).
+
 ### 2026-09-03 - Two counts nobody could read, reported as proof
 
 The last file under the coverage floor was `scripts/verify-member-read-access.mjs`

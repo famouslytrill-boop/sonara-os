@@ -171,7 +171,15 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // whole consent row and renders eight fields. Named literally, like the
 // outputs read before it -- a list joined from a constant is readable to a
 // person and opaque to this script.
-const STAR_SELECT_COUNT = 32;
+// 31 on 3 September 2026: `readAccount` in lib/sonara-connected-payments.cjs
+// fetched all thirteen columns of business_payment_accounts to use one. The
+// other four it now names -- charges_enabled, payouts_enabled,
+// details_submitted, state_checked_at -- had no reader at all until the same
+// change: the function that writes them, `cacheAccountState`, was exported and
+// called from nowhere in the repository, so they were null on every row. The
+// connected-payments page writes them after Stripe answers and reads them back
+// when Stripe cannot be reached.
+const STAR_SELECT_COUNT = 31;
 const COMPUTED_SELECT_COUNT = 23;
 
 // A column named in a comment is a column discussed, not used. Same reasoning

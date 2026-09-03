@@ -163,6 +163,26 @@ module.exports = function registerConnectedPaymentRoutes(app, deps = {}) {
     );
   }
 
+  /**
+   * What was true when Stripe was last asked, and when that was.
+   *
+   * Three states per flag, not two: `true`, `false`, and null for never asked.
+   * The column comments in the migration say the same thing -- "null means
+   * never asked, false means Stripe said no" -- because "payouts disabled" and
+   * "we have not checked" lead a business owner to do completely different
+   * things.
+   */
+  function lastKnown(account) {
+    const when = String(account.state_checked_at || "").replace("T", " ").slice(0, 16);
+    const say = (value, yes, no) => (value === true ? yes : value === false ? no : null);
+    const parts = [
+      say(account.charges_enabled, "charges were enabled", "charges were not enabled"),
+      say(account.payouts_enabled, "payouts were enabled", "payouts were not enabled")
+    ].filter(Boolean);
+    if (!parts.length) return `We last asked Stripe on ${when}, and it did not say what this account can do.`;
+    return `When we last asked Stripe, on ${when}, ${parts.join(" and ")}. That is not the same as what is true now.`;
+  }
+
   app.get(PAGE, requireCustomer, async (req, res) => {
     const sections = [howMoneyMoves(), notAPayButton()];
 
@@ -188,6 +208,15 @@ module.exports = function registerConnectedPaymentRoutes(app, deps = {}) {
     }
 
     const answer = await payments.canAcceptPayments(mod, organizationId);
+
+    // Remember what Stripe just said, so the branch at the bottom of this
+    // handler has something to fall back on next time Stripe cannot be reached.
+    // Deliberately not awaited for its result: this is a page render, and a
+    // failed cache write must not turn a working page into an error. The page
+    // shows Stripe's live answer either way.
+    if (answer.state?.ok) {
+      await payments.cacheAccountState(mod, { organizationId, state: answer.state }).catch(() => undefined);
+    }
 
     if (answer.ok) {
       const payoutLine =
@@ -228,7 +257,14 @@ module.exports = function registerConnectedPaymentRoutes(app, deps = {}) {
     // Everything else: we could not tell. Said as not knowing rather than as a
     // negative answer, because "you cannot take payments" and "we could not
     // check" send a business owner to completely different places.
-    sections.unshift(brandCard("Could not check", escapeHtml(explain(answer.code))));
+    //
+    // Where there is a remembered answer, it is added -- with its date, because
+    // a cached flag with nothing saying how old it is asks somebody to trust a
+    // number they cannot date. It is never presented as the current state, and
+    // the heading still says the check did not happen.
+    const remembered = await payments.readAccount(mod, organizationId).catch(() => ({ ok: false }));
+    const cached = remembered.ok && remembered.account?.state_checked_at ? remembered.account : null;
+    sections.unshift(brandCard("Could not check", `${escapeHtml(explain(answer.code))}${cached ? ` ${escapeHtml(lastKnown(cached))}` : ""}`));
     return res.status(200).type("html").send(shell(sections));
   });
 
