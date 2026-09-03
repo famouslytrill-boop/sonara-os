@@ -61,6 +61,12 @@ const CALM = new Map([
   // called it customer-only. Somebody opening a support form is usually already
   // having a bad time; parallax is not what that moment needs.
   ["/support", "a form somebody fills in when something has gone wrong"],
+  // Joined the public list on 2 September 2026, having answered 200 to
+  // anonymous requests since it was written. The header comment above already
+  // decided this case in the abstract -- "someone opens a readiness checklist
+  // to see what is not set up yet" -- before there was a route on the list to
+  // apply it to.
+  ["/readiness", "the status page, read to find out what is not configured yet"],
   ["/business-builder/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/creator-studio/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/growth-studio/launch-readiness", "an operational checklist showing what is still setup required"]

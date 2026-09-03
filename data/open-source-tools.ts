@@ -2165,9 +2165,20 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "if it is ever wanted, the author has to be asked for a licence first",
     ],
     officialUrl: "https://github.com/deivid22srk/XenDroid",
-    repoUrl: "https://github.com/deivid22srk/XenDroid",
+    // The repository is gone from GitHub. Confirmed 1 September 2026 twice --
+    // the health workflow's API call answered 404, and `git ls-remote` through
+    // a separate path found nothing either, which is what distinguishes a
+    // deleted repository from a bad token or a rate limit.
+    //
+    // Sentinel rather than deletion, and rather than leaving a URL that 404s.
+    // Deleting the record would erase the finding: somebody would meet this
+    // project again and redo the licence check that already concluded. Leaving
+    // the live URL keeps external-repository-health red for everyone, on a
+    // repository nobody can fix. The record stays, the verdict stays, and the
+    // network check stops being asked a question with no answer.
+    repoUrl: "https://example.invalid/blocked",
     notes:
-      "An Android Xbox 360 emulator. **No LICENSE file exists in the repository**, checked across main, master and dev and across five common filenames. The absence of a licence is not permission: with nothing declared the work is all rights reserved, and nobody here can grant what its author has not. That alone settles it. Separately it has nothing to do with running a business, publishing creative work, or growing an audience, and console emulation carries its own legal questions about firmware and copied game images that this project has no reason to take on. Blocked on licence first, scope second.",
+      "An Android Xbox 360 emulator. **No LICENSE file exists in the repository**, checked across main, master and dev and across five common filenames. The absence of a licence is not permission: with nothing declared the work is all rights reserved, and nobody here can grant what its author has not. That alone settles it. Separately it has nothing to do with running a business, publishing creative work, or growing an audience, and console emulation carries its own legal questions about firmware and copied game images that this project has no reason to take on. Blocked on licence first, scope second. **The repository was removed from GitHub some time before 1 September 2026**, which changes nothing about the verdict and is recorded because a vanished repository is the one case where a register entry can quietly become a question nobody can answer.",
     safetyBoundaries: ["no unlicensed code enters this repository", "no console firmware or game images touched"],
     blockedUses: ["vendoring or adapting code with no declared licence", "treating an absent licence as a permissive one"],
     humanReviewRequired: true,
@@ -4484,6 +4495,578 @@ export const openSourceTools: OpenSourceToolRecord[] = [
       "any use that presents cloned audio as a genuine recording of the speaker",
     ],
     humanReviewRequired: true,
+  },
+  // ---------------------------------------------------------------------------
+  // Five repositories submitted as social-media screenshots, 27 August 2026.
+  //
+  // Every one was cloned and its LICENSE read, because a screenshot shows what
+  // a post claims and not what a repository grants. That is not a formality
+  // here: one of the five is advertised as a Claude skill library and is
+  // licensed CC BY-NC, which forbids exactly what this product does. See the
+  // Context Mode record above for the previous time a screenshot and a licence
+  // disagreed.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Agentic AI Starters",
+    slug: "agentic-ai-starters",
+    category: ["agent design references", "prompt patterns", "architecture sketches", "permissive licence"],
+    useCase: ["design reference when shaping a new agent; there is no code here to depend on"],
+    productFit: ["Business Builder", "Creator Studio", "Growth Studio", "Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the architecture and prompt sketches when designing an agent, and write our own",
+      "never quote a starter's stack recommendations as a costing -- each names third-party paid APIs whose price is a separate decision",
+      "keep lib/sonara-agent-authority.cjs as the authority on what an agent may do; nothing here changes the approval categories",
+    ],
+    officialUrl: "https://github.com/cporter202/agentic-ai-starters",
+    repoUrl: "https://github.com/cporter202/agentic-ai-starters",
+    notes:
+      "Cloned and LICENSE read 27 August 2026: MIT, Copyright (c) 2026 Chris Porter. 57 files and not one of them executes: twelve starters, each four markdown files (README, architecture, prompts, stack), plus docs/ and prompts/ index pages. That makes it genuinely reference-only rather than reference-only-for-now -- there is no dependency to take even if we wanted one. The starter list overlaps this product directly (customer-support, lead-gen, outreach, ecommerce-monitor, real-estate, competitor-intel), which is why it is worth reading and why its prompts must not be pasted in: an MIT grant permits copying, and a prompt written for somebody else's product is still the wrong prompt for ours.",
+    safetyBoundaries: [
+      "no starter prompt text copied verbatim into an agent this product ships",
+      "MIT attribution retained if any material is ever reproduced",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Ecommerce Intelligence APIs",
+    slug: "ecommerce-intelligence-apis",
+    category: ["API directory", "affiliate link catalogue", "web scraping vendors", "permissive licence"],
+    useCase: ["none -- the catalogue is an affiliate placement, not a provider evaluation"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not republish this catalogue, or any part of it, on a SONARA surface",
+      "if a provider listed here is ever wanted, reach it through its own site and evaluate it on its own terms",
+      "treat the star count as unrelated to quality: the substance is a synced copy of another repository's list",
+    ],
+    officialUrl: "https://github.com/cporter202/ecommerce-intelligence-apis",
+    repoUrl: "https://github.com/cporter202/ecommerce-intelligence-apis",
+    notes:
+      "Cloned and measured 27 August 2026. LICENSE is MIT, Copyright (c) 2026 Chris Porter, so the licence is not the problem. The content is: of 2,283 links in catalog/, 2,273 carry an `?fpr=` affiliate parameter -- two codes, `p2hrc6` and `chris69` -- and the file's own first line records that it is synced from cporter202/API-mega-list. Presented as a curated directory of ecommerce intelligence APIs, it is an affiliate placement list with 99.6% of its links monetised. Republishing it would put undisclosed affiliate links in front of customers, which is a disclosure problem before it is a licence one. Several listed products are bulk B2B email scrapers, which AGENTS.md rules out on consent grounds independently of any of this.",
+    safetyBoundaries: [
+      "no affiliate-tagged link reproduced on any SONARA surface",
+      "no bulk contact-email scraping tool adopted from this list, whatever its licence",
+    ],
+    blockedUses: [
+      "republishing the catalogue as SONARA's own provider directory",
+      "presenting any entry as an evaluated recommendation",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Real Estate Data APIs",
+    slug: "real-estate-data-apis",
+    category: ["API directory", "affiliate link catalogue", "property data vendors", "permissive licence"],
+    useCase: ["none -- same affiliate catalogue in a different vertical"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not republish this catalogue, or any part of it, on a SONARA surface",
+      "reach any wanted provider through its own site",
+    ],
+    officialUrl: "https://github.com/cporter202/real-estate-data-apis",
+    repoUrl: "https://github.com/cporter202/real-estate-data-apis",
+    notes:
+      "Cloned and measured 27 August 2026. MIT, Copyright (c) 2026 Chris Porter. Of 1,096 catalogue links, 1,090 carry an `?fpr=` affiliate parameter, and catalog/README.md records that it is synced from cporter202/API-mega-list. Structurally identical to the ecommerce directory above -- same layout, same sync workflow, same two affiliate codes -- which is worth recording because the two arrived as separate recommendations and are one artefact in two verticals.",
+    safetyBoundaries: ["no affiliate-tagged link reproduced on any SONARA surface"],
+    blockedUses: ["republishing the catalogue as SONARA's own provider directory"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Academic Research Skills",
+    slug: "academic-research-skills",
+    category: ["Claude Code skills", "agent skill packaging", "research pipeline", "NonCommercial licence"],
+    useCase: ["nothing shipped -- the licence forbids the only use this product would have for it"],
+    productFit: ["Internal Development"],
+    license: "Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)",
+    licenseRisk: "critical",
+    // Not reciprocal: it does not oblige releasing SONARA's source. It is
+    // stricter than reciprocal in the way that matters here -- it withholds
+    // commercial use altogether rather than pricing it in source.
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy any skill, prompt, agent definition or mode from this repository into SONARA",
+      "no internal review can unblock this -- only the author relicensing can, so treat 'blocked_until_review' as blocked",
+      "reading it to understand how a skill suite is organised is fine; ideas are not what CC BY-NC withholds",
+    ],
+    officialUrl: "https://github.com/Imbad0202/academic-research-skills",
+    repoUrl: "https://github.com/Imbad0202/academic-research-skills",
+    notes:
+      "Cloned and LICENSE read 27 August 2026: Creative Commons Attribution-NonCommercial 4.0 International, Copyright (c) 2026 Cheng-I Wu. The licence defines NonCommercial as 'not primarily intended for or directed towards commercial advantage or monetary compensation'. SONARA One is sold on paid plans, so every use this product would make of it is the use the licence withholds. This is the sharpest record in the register for a reason worth stating: it was submitted as a Claude skill library with 44.3k stars and a `.claude-plugin` directory, and star count, plugin format and popularity say nothing whatever about whether a licence permits commercial use. A permissive-looking repository is not a permissive repository. 2,581 files, none of which may be adapted here.",
+    safetyBoundaries: [
+      "no file, prompt, skill, agent or mode copied into this repository",
+      "no derivative of its skill structure shipped to a paying customer",
+      "never described internally as MIT or as open source -- CC BY-NC is neither",
+    ],
+    blockedUses: [
+      "incorporating any part of it into SONARA One",
+      "installing it as a plugin into a workflow that produces customer deliverables",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "book-to-skill",
+    slug: "book-to-skill",
+    category: ["agent skill packaging", "document distillation", "developer tooling", "permissive licence"],
+    useCase: ["a developer-side tool for turning our own documentation into an agent skill"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "if used, point it at documentation this project owns -- docs/, AGENTS.md, the runbooks -- and never at a purchased book",
+      "keep it a local developer tool: nothing it produces should reach a customer without being read first",
+      "check what it sends anywhere before running it on anything of ours",
+    ],
+    officialUrl: "https://github.com/virgiliojr94/book-to-skill",
+    repoUrl: "https://github.com/virgiliojr94/book-to-skill",
+    notes:
+      "Cloned and LICENSE.md read 27 August 2026: MIT, Copyright (c) 2025 virgiliojr94. A Python tool (107 files) that distils a document set into a single agent skill rather than pushing whole texts through a context window. The licence is clean and the idea is directly useful to this repository, which now has three hand-written skills and a lot of documentation. The caution is not about its licence at all: **the tool's licence says nothing about the rights in what you feed it.** Distilling a technical book somebody bought into a redistributable skill is a copyright question about that book, and it is the headline use the project advertises. Pointed at our own docs it raises no such question, which is the only use recorded here.",
+    safetyBoundaries: [
+      "never run it against third-party copyrighted material and keep the output",
+      "no generated skill committed without a person reading it",
+    ],
+    blockedUses: ["producing a shippable artefact from a book this project does not own the rights to"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Stratum",
+    slug: "stratum-authenticator-app",
+    category: ["two-factor authentication", "TOTP/HOTP authenticator", "Android application", "reciprocal licence"],
+    useCase: ["reference only for how a TOTP authenticator is structured; the standards it implements are the reusable part, not this code"],
+    productFit: ["Internal Development"],
+    license: "GPL-3.0-or-later",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not vendor, adapt or translate any of it into this repository",
+      "if two-factor authentication is wanted here, implement RFC 6238 (TOTP) and RFC 4226 (HOTP) from the specifications, which are open standards nobody owns and which this repository is one implementation of",
+      "treat a UI or data-model shape copied from reading it as derivation, not inspiration",
+    ],
+    officialUrl: "https://stratumauth.com",
+    repoUrl: "https://github.com/stratumauth/app",
+    notes:
+      "LICENSE read 1 September 2026: GNU GENERAL PUBLIC LICENSE Version 3, with the \"either version 3 of the License, or (at your option) any later version\" grant, so GPL-3.0-or-later. Two independent blockers, and the second is the one a licence check alone would miss. First, the licence is reciprocal: GPLv3 obligations trigger on conveying the program or a derivative, and the only way to use an Android authenticator is to ship it, which is conveying -- so adopting it would oblige releasing the derivative under the GPL, and this product's source is private. Second, there is nothing here this codebase could run: measured 1 September 2026, 7,182 files, of which 289 are C# and 6,207 are icon PNGs, targeting net10.0-android with a Wear OS companion project. SONARA One is an Express 4 CommonJS server with one production dependency and no mobile application, so every file would be a rewrite rather than a reuse. Recorded because the licence finding is worth keeping even though the technology fit already rules it out on its own.",
+    safetyBoundaries: [
+      "no Stratum source copied, translated or restructured into this repository",
+      "any two-factor work here is written from the RFCs, with the specification cited rather than this repository",
+    ],
+    blockedUses: [
+      "incorporating any Stratum source into this repository",
+      "shipping any derivative of it without offering its source under the GPL",
+    ],
+    humanReviewRequired: true,
+  },
+  // ---------------------------------------------------------------------------
+  // Twelve repositories arrived as social-media screenshots on 3 September 2026.
+  // Each was cloned and its licence file read; nothing below is taken from a
+  // badge. Three findings are worth naming up front, because in each case the
+  // screenshot and the licence disagreed:
+  //
+  //   - developer-roadmap, one of the most-starred repositories on GitHub, has
+  //     no open-source licence at all. Its `license` file grants personal use
+  //     and forbids republishing the content anywhere.
+  //   - Two of the four cporter202 repositories carry no licence file, which is
+  //     all rights reserved.
+  //   - A repository named "Anthropic Cybersecurity Skills" is not Anthropic's,
+  //     and says so in its own README.
+  // ---------------------------------------------------------------------------
+  {
+    name: "Job Data APIs and Scrapers",
+    slug: "job-data-apis-and-scrapers",
+    category: ["API directory", "affiliate link catalogue", "recruiting data vendors", "permissive licence"],
+    useCase: ["none -- the third copy of the same affiliate catalogue, in a third vertical"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not republish this catalogue, or any part of it, on a SONARA surface",
+      "reach any wanted provider through its own site and evaluate it on its own terms",
+      "treat any further cporter202 API directory as this same artefact until measured otherwise -- three have now been identical",
+    ],
+    officialUrl: "https://github.com/cporter202/job-data-apis-and-scrapers",
+    repoUrl: "https://github.com/cporter202/job-data-apis-and-scrapers",
+    notes:
+      "Cloned and measured 3 September 2026. LICENSE read: MIT, Copyright (c) 2026 Chris Porter -- the licence is not the problem. Of 1,174 links across its markdown, 1,161 carry an `?fpr=` affiliate parameter: 98.9%. settings/repo.config.json names the upstream outright, `megaListSource` pointing at cporter202/API-mega-list, the same source as the ecommerce and real-estate directories already recorded above, synced by settings/sync_catalog.js on a daily workflow. Seventeen files. This is the third vertical cut of one affiliate placement list, and it arrived as a separate recommendation like the other two did. Recorded so the fourth is recognised rather than re-measured.",
+    safetyBoundaries: ["no affiliate-tagged link reproduced on any SONARA surface"],
+    blockedUses: [
+      "republishing the catalogue as SONARA's own provider directory",
+      "presenting any entry as an evaluated recommendation",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Vibe Coding with Base44",
+    slug: "vibe-coding-with-base44",
+    category: ["prompt library", "no-code platform guide", "disclosed affiliate content", "permissive licence"],
+    useCase: ["reading only, and mainly as a worked example of how a vendor guide should disclose its own incentive"],
+    productFit: ["Business Builder", "Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not reproduce its Base44 links -- six are affiliate links, and reproducing them here would place an undisclosed incentive in front of a customer",
+      "do not treat its starter kits as runnable: 26 of its 36 files are markdown and none of the rest is application code",
+      "if the disclosure page is used as a model for our own, check the FTC guidance it cites rather than copying its wording",
+    ],
+    officialUrl: "https://github.com/cporter202/vibe-coding-with-base44",
+    repoUrl: "https://github.com/cporter202/vibe-coding-with-base44",
+    notes:
+      "Cloned and measured 3 September 2026. LICENSE read: MIT, Copyright (c) 2026 cporter202. Recorded separately from the same author's API directories because it is a materially different artefact and measuring it said so: 128 links, none carrying `?fpr=`, and of 121 Base44 links only 6 are affiliate links through base44.pxf.io. It also ships AFFILIATE-DISCLOSURE.md, which names the affiliate URL in full, states that the reader need not use it, says commission does not guarantee a positive review, and disclaims affiliation with Base44 and Wix. That is the disclosure the three directories do not have, and it is why this one is reference_only rather than blocked. 36 files: 26 markdown, 6 workflow YAML, one PNG, one JSON, one .gitignore. There is nothing here to depend on.",
+    safetyBoundaries: [
+      "no affiliate link reproduced on any SONARA surface, disclosed or not",
+      "no prompt text copied verbatim into anything this product ships",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Awesome AI Tools (cporter202)",
+    slug: "cporter202-awesome-ai-tools",
+    category: ["tool directory", "affiliate link list", "no licence declared", "all rights reserved"],
+    useCase: ["none -- there is no grant to use it, and the content is partly monetised"],
+    productFit: ["Internal Development"],
+    license: "None declared (all rights reserved)",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy any part of it -- with no licence file the default is all rights reserved, and no internal review can grant what the author has not",
+      "only the author adding a licence changes this, so read 'blocked_until_review' as blocked",
+      "if a tool listed here is wanted, find it through its own site: 21 of its 89 links are affiliate links",
+    ],
+    officialUrl: "https://github.com/cporter202/awesome-ai-tools",
+    repoUrl: "https://github.com/cporter202/awesome-ai-tools",
+    notes:
+      "Cloned 3 September 2026: four files, a README and three PNGs, and no LICENSE, LICENCE or COPYING file anywhere in the tree. The README has no licence section either -- checked, rather than assumed from the file listing. Absence is not permission. Measured while there: 89 links, 12 with an `?fpr=` affiliate parameter and 9 more with ref/via/utm affiliate parameters pointing at everbee.io, postiz.com and heygen.com, so roughly a quarter of the list is monetised and none of it is disclosed. Two separate reasons not to use it, and the licence one is sufficient on its own.",
+    safetyBoundaries: ["no content copied from a repository with no licence grant", "no affiliate-tagged link reproduced on any SONARA surface"],
+    blockedUses: ["copying, adapting or republishing any part of it"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Lovable for Beginners",
+    slug: "lovable-for-beginners",
+    category: ["course material", "no-code platform guide", "no licence declared", "all rights reserved"],
+    useCase: ["none -- a fifteen-module course with no licence grant"],
+    productFit: ["Internal Development"],
+    license: "None declared (all rights reserved)",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy, adapt or excerpt any module -- no licence file means all rights reserved",
+      "only the author adding a licence changes this; treat 'blocked_until_review' as blocked",
+      "reading it to understand how Lovable works is fine, and is all that is available",
+    ],
+    officialUrl: "https://github.com/cporter202/lovable-for-beginners",
+    repoUrl: "https://github.com/cporter202/lovable-for-beginners",
+    notes:
+      "Cloned 3 September 2026: 20 files, all markdown -- a README, fifteen numbered modules and four supplements. No LICENSE, LICENCE or COPYING file, and no licence section in the README; both checked rather than inferred. 155 links, none carrying an affiliate parameter, which is worth recording because the same author's API directories are 99% affiliate and this one is not. That changes nothing about the licence: course prose is exactly the kind of material a copyright default protects, and there is no grant here to rely on.",
+    safetyBoundaries: ["no content copied from a repository with no licence grant"],
+    blockedUses: ["copying, adapting or excerpting any module into SONARA material"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "developer-roadmap (roadmap.sh)",
+    slug: "developer-roadmap-roadmap-sh",
+    category: ["learning paths", "reference diagrams", "restrictive custom licence", "personal use only"],
+    useCase: ["personal reading only -- the licence permits that and forbids essentially everything else"],
+    productFit: ["Internal Development"],
+    license: "Custom: personal use only, no republication (all other rights reserved)",
+    licenseRisk: "critical",
+    // Not reciprocal -- it does not oblige releasing SONARA's source. It is
+    // stricter than reciprocal in the way that matters here: it withholds
+    // republication altogether. Same shape as the CC BY-NC record above.
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not reproduce a roadmap, an image, or roadmap content in SONARA docs, marketing, onboarding or any customer-facing surface",
+      "link to roadmap.sh instead -- sharing links is the one thing the licence explicitly allows",
+      "only written consent from the author changes this, so treat 'blocked_until_review' as blocked",
+    ],
+    officialUrl: "https://roadmap.sh",
+    repoUrl: "https://github.com/kamranahmedse/developer-roadmap",
+    notes:
+      "Cloned and the `license` file read 3 September 2026 -- lowercase, which is why raw.githubusercontent 404s on LICENSE and LICENSE.md and a quick check would conclude there is no licence at all. Its text: 'Everything including text and images in this project are protected by the copyright laws. You are allowed to use this material for personal use but are not allowed to use it for any other purpose including publishing the images, the project files or the content in the images in any form either digital, non-digital, textual, graphical or written formats.' Sharing links to the repository or roadmap.sh is allowed; taking content out of the repository requires prior consent. Copyright 2017-present, Kamran Ahmed. This is the clearest case yet of the rule this register exists for: one of the most-starred repositories on GitHub, universally spoken of as open source, is not open source and is not close to it.",
+    safetyBoundaries: ["no roadmap content reproduced on any SONARA surface", "links only"],
+    blockedUses: [
+      "reproducing any roadmap, diagram or image in product, docs or marketing",
+      "deriving a SONARA learning path from a roadmap's content",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Anthropic Cybersecurity Skills (community)",
+    slug: "mukul975-cybersecurity-skills",
+    category: ["Claude Code skills", "offensive and defensive security tooling", "permissive licence", "misleading name"],
+    useCase: ["reference when shaping a security review checklist; nothing executable adopted"],
+    productFit: ["Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not call it Anthropic's -- it is a community project and its own README says so; the repository name does not",
+      "do not install it as a skill suite: 1,103 Python files of security tooling is a supply-chain surface, and the licence permitting it is not the same as it being safe",
+      "if a specific check is wanted, read that one skill and write our own against the standard it cites",
+    ],
+    officialUrl: "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+    repoUrl: "https://github.com/mukul975/Anthropic-Cybersecurity-Skills",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: Apache-2.0. 4,532 files -- 2,588 markdown, 1,103 Python, plus workflow YAML, two PowerShell scripts and one YARA rule. The README badge claims 818 skills and `find -name SKILL.md` returns exactly 818, so that count is real. The name is the finding: it reads as an Anthropic repository, it is owned by mukul975, and line 35 of its own README says 'Community Project -- This is an independent, community-created project. Not affiliated with Anthropic PBC.' The disclaimer is there; the repository name is what a screenshot shows. Recorded research_only rather than reference_only because there is a great deal of executable code here and the decision not to run it is the substance of the review.",
+    safetyBoundaries: [
+      "no third-party security script executed against this repository's infrastructure or a customer's",
+      "no skill installed into a developer environment that holds service-role credentials",
+    ],
+    blockedUses: ["running any offensive tooling from it against a system this project does not own"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "TidyFactor Styler",
+    slug: "tidyfactor-styler",
+    category: ["Claude Code skill", "UI design tooling", "RTL layout", "permissive licence"],
+    useCase: ["reading how a design skill is structured; it writes into a codebase, which is the reason not to run it here"],
+    productFit: ["Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not point it at this repository -- it is a dispatcher that edits an existing codebase in place, and public/sonara-application-ui.css is reconciled against a token system it knows nothing about",
+      "its RTL handling is the part worth reading if Arabic support is ever wanted here",
+      "record the owner as TidyFactor: the screenshot showed only the name, and the obvious owner guess does not exist",
+    ],
+    officialUrl: "https://github.com/TidyFactor/Styler",
+    repoUrl: "https://github.com/TidyFactor/Styler",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: Apache-2.0. 91 files -- 52 markdown, 15 Python, 5 YAML, 3 JS, 5 PNG, 3 JSON -- with SKILL.md declaring `tidyfactor-styler`, a command dispatcher triggered on 'brief', 'component', 'section', 'page', 'redesign', 'typography', 'palette', 'layout', 'rtl', 'motion', 'styles'. Its own description: it 'never invents its own architecture -- it reads the target stack's existing conventions and produces output that belongs there', across React/Next.js, PHP, WordPress and vanilla HTML/CSS/JS. This repository is none of those, and its design tokens were deliberately reconciled into one system; a tool that rewrites UI in place is the wrong shape for that regardless of licence. Establishing the owner took a search: `alwkala/Styler` was read off the screenshot and does not exist.",
+    safetyBoundaries: ["no third-party skill given write access to this repository's stylesheets"],
+    humanReviewRequired: false,
+  },
+  {
+    name: "OWASP Noir",
+    slug: "owasp-noir-attack-surface-detector",
+    category: ["static analysis", "attack surface detection", "security tooling", "permissive licence"],
+    useCase: ["a developer-side check of what endpoints this repository actually exposes, run locally"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "if adopted, run it as a developer-side or CI check against this repository's own source, never against a system this project does not own",
+      "treat its endpoint list as a second opinion on scripts/verify-supabase-contract.mjs and the route inventory, not as a replacement -- an outside tool that disagrees with our own count is a question, not an answer",
+      "note the build cost before adopting: it is written in Crystal, which nothing in this toolchain has",
+    ],
+    officialUrl: "https://owasp.org/www-project-noir",
+    repoUrl: "https://github.com/owasp-noir/noir",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: 'The MIT License (MIT), Copyright (c) 2022 HAHWUL'. 5,025 files, 2,293 of them Crystal (.cr), with test fixtures in Python, Java, TypeScript and JavaScript -- the fixtures are the frameworks it can parse, not dependencies. Its AGENTS.md states the purpose: 'Crystal-based attack surface detector that identifies endpoints by static analysis of source code across multiple languages and frameworks.' Recorded optional_adapter_after_review rather than reference_only because there is a real use here -- this repository's own release chain derives a route count, and a second derivation from a different tool is exactly the kind of check CLAUDE.md asks for. What stands in the way is the Crystal toolchain, which is a cost rather than a licence question.",
+    safetyBoundaries: [
+      "static analysis of our own source only -- no scanning of a host this project does not own",
+      "no finding from it published as a security claim without being reproduced by hand",
+    ],
+    humanReviewRequired: false,
+  },
+  {
+    name: "Gridex",
+    slug: "gridex-database-ide",
+    category: ["database client", "desktop application", "MCP server", "permissive licence"],
+    useCase: ["a developer's own machine, if somebody wants a desktop Postgres client; nothing in the product"],
+    productFit: ["Internal Development"],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not connect it to the production Supabase project -- a desktop client holding a service-role connection is a service-role secret on a laptop, and AGENTS.md keeps those server-only",
+      "if used at all, point it at a local or branch database",
+      "there is nothing here to adapt: it is a Swift and C++ desktop application and this product is Express on Node",
+    ],
+    officialUrl: "https://gridex.app",
+    repoUrl: "https://github.com/gridex/gridex",
+    notes:
+      "Cloned 3 September 2026; LICENSE read: Apache License 2.0, and NOTICE names 'Gridex, Copyright 2026 Thinh Nguyen'. 744 files -- 235 C/C++ headers, 187 Swift, 185 C++, plus XAML and IDL for the Windows build. A cross-platform database IDE for PostgreSQL, MySQL, SQLite, Redis, MongoDB, SQL Server and ClickHouse with a built-in MCP server and AI chat. The licence permits commercial use and nothing about it is a problem; the reason it is research_only is that it is a desktop application in a language this project does not build, so there is no integration to make. The one thing worth writing down is the credential boundary: its value is connecting to a database, and the database here is reached with a key that bypasses row level security entirely.",
+    safetyBoundaries: [
+      "no service-role key in a desktop client",
+      "no connection from a developer machine to the production database",
+    ],
+    blockedUses: ["holding production Supabase credentials in a third-party desktop application"],
+    humanReviewRequired: true,
+  },
+  {
+    name: "codex-chatgpt-web",
+    slug: "codex-chatgpt-web-session-bridge",
+    category: ["browser automation", "AI provider bridge", "account credential handling", "permissive licence"],
+    useCase: ["none -- the licence is not what decides this one"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not use it to serve any SONARA feature -- AGENTS.md requires AI calls to go through the Provider Gateway or an approved server-side adapter, and a browser driving somebody's logged-in ChatGPT session is neither",
+      "do not treat the MIT grant as settling it: the licence governs the tool, and OpenAI's terms govern the account it automates, which is a question the tool's licence cannot answer",
+      "if more model capacity is wanted, buy it through a provider API where the terms permit what we are doing",
+    ],
+    officialUrl: "https://github.com/miuuyy/codex-chatgpt-web",
+    repoUrl: "https://github.com/miuuyy/codex-chatgpt-web",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: 'MIT License, Copyright (c) 2026 codex-chatgpt-web contributors'. 221 files, TypeScript with a Bun lockfile and an Electron-style launcher. It drives a real signed-in ChatGPT web session in an embedded browser so that the Codex app can use ChatGPT Pro as a model 'beyond Codex usage limits' -- the quoted purpose. The repository is candid about what that means: its README says it 'is unofficial; users remain responsible for complying with applicable OpenAI terms', that this is 'unofficial browser automation, not an OpenAI API', and that the work must be on 'your own account and in accordance with applicable Terms of Use'. That is the boundary this register exists to record: a permissive licence on a tool says nothing about the rights in what you feed it, which here is a logged-in account session. Blocked on the provider-terms and credential questions, not on the licence -- the licence is fine.",
+    safetyBoundaries: [
+      "no AI call from a browser session impersonating a signed-in human account",
+      "no account session cookie or browser profile treated as a service credential",
+      "Provider Gateway or an approved server-side adapter for every model call",
+    ],
+    blockedUses: [
+      "serving any customer-facing generation through an automated ChatGPT web session",
+      "circumventing a provider's usage limits by automating its consumer interface",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Next.js",
+    slug: "nextjs-react-framework",
+    category: ["web framework", "React", "server rendering", "permissive licence"],
+    useCase: ["nothing to adopt -- this application is Express and CommonJS by choice, and the choice has a reason"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not migrate to it as a side effect of any other piece of work -- that is a rewrite, and it is the owner's decision",
+      "keep the single production dependency: this application ships express ^4.18.2 and nothing else, and every page is server-rendered HTML with no build step",
+      "record it here so that 'why is this not Next.js' is answered from a record rather than re-argued",
+    ],
+    officialUrl: "https://nextjs.org",
+    repoUrl: "https://github.com/vercel/next.js",
+    notes:
+      "Licence read 3 September 2026 from the canary branch: `license.md` -- lowercase, which is why LICENSE and LICENSE.md both 404 -- 'The MIT License (MIT), Copyright (c) 2025 Vercel, Inc.' The same text sits at packages/next/license.md. Registered because it arrived as a recommendation and because the answer is architectural rather than legal: MIT permits everything, and this application deliberately has one production dependency, no build step and no client framework, which is what makes the Vercel function cold-start and the whole-suite run as cheap as they are. Adopting Next.js is a rewrite of every route in routes/, and nothing in this register can authorise that.",
+    safetyBoundaries: ["no framework migration undertaken as part of unrelated work"],
+    humanReviewRequired: false,
+  },
+  {
+    name: "React",
+    slug: "react-ui-library",
+    category: ["UI library", "component model", "client rendering", "permissive licence"],
+    useCase: ["nothing to adopt -- the work screens are server-rendered HTML and progressive enhancement, deliberately"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "do not introduce a client framework to solve a layout problem -- the recent ones were fixed in public/sonara-application-ui.css with `overflow-x: clip` and a `pointer: coarse` block",
+      "if a genuinely stateful screen ever needs one, that is a decision with a build step and a bundle attached, and it belongs to the owner",
+    ],
+    officialUrl: "https://react.dev",
+    repoUrl: "https://github.com/facebook/react",
+    notes:
+      "Licence read 3 September 2026: 'MIT License, Copyright (c) Meta Platforms, Inc. and affiliates.' Registered for the same reason as Next.js above: it arrived as a recommendation, the licence permits it, and the reason not to adopt it is that every page here renders on the server and degrades without JavaScript. Worth writing down rather than re-deciding, because the pull towards a client framework tends to arrive attached to a small UI problem and the cost lands somewhere else.",
+    safetyBoundaries: ["no client-side rendering requirement introduced into a page that works without JavaScript"],
+    humanReviewRequired: false,
+  },
+  // ---------------------------------------------------------------------------
+  // Two more from a feed on 3 September 2026. Both really are MIT -- the badges
+  // are right this time -- and one of them is still blocked, because a licence
+  // is not the only thing that decides. See camofox-browser above for the
+  // previous time the refusal was about what a repository is *for*.
+  // ---------------------------------------------------------------------------
+  {
+    name: "OSIRIS",
+    slug: "osiris-osint-intelligence-dashboard",
+    category: ["OSINT aggregation", "username enumeration", "platform scraping", "blocked on conduct"],
+    useCase: ["none -- recorded so the refusal is written down rather than re-argued"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt any part of it, and do not lift the username-enumeration module in particular",
+      "keep routes/market-intelligence-routes.cjs fetching only hosts an organization has recorded permission for -- this repository is the case that gate exists to refuse",
+      "if flight or seismic data is ever wanted, take it from the source's own API under that source's terms, which is a different thing from taking this",
+      "note that the refusal here is a judgement about conduct rather than a licence bar, so unlike the CC BY-NC record above a review could in principle reach a different answer -- it would have to answer the three findings below first",
+    ],
+    officialUrl: "https://osirisai.live",
+    repoUrl: "https://github.com/simplifaisoul/osiris",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: MIT, Copyright (c) 2026 simplifaisoul -- the badge in the post is accurate. 872 files, 238 TypeScript and 200 JavaScript, Next.js 16 and MapLibre GL. The post advertises flight tracking, earthquakes, fires, satellites, weather and news. Three things it does not mention, all found by opening the files. (1) `src/lib/sherlock.ts` is username enumeration across 481 social platforms -- its own header says so: a TypeScript reimplementation of the Sherlock Project's detection logic, pulling that project's site database from raw.githubusercontent.com at run time. That is people-search on named individuals, and it is invisible in a screenshot about earthquakes. (2) `src/app/api/news/route.ts` defines `parseTelegramHTML()` and fetches Telegram channel pages directly -- scraping the web interface rather than using an API. (3) It hard-codes several hundred third-party CCTV stream URLs -- government transport departments among them, ls.tkchopin.pl appearing 71 times -- and re-streams them. Cost is a separate question again: it wants OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET, AIS_API_KEY, ETHERSCAN_API_KEY, HELIUS_API_KEY and CLOUDFLARE_API_TOKEN, and depends on @google/generative-ai.",
+    safetyBoundaries: [
+      "no username or person enumeration in any code path",
+      "no scraping of a platform's web interface in place of its API",
+      "no fetch of a host outside the approved-source list",
+      "no re-streaming of a third party's camera feed",
+    ],
+    blockedUses: [
+      "any use in the product",
+      "adapting sherlock.ts or its detection rules into anything here",
+      "adapting the Telegram HTML parser or the CCTV stream list",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Claude SEO",
+    slug: "claude-seo-audit-skill",
+    category: ["developer workflow", "agent skills", "SEO auditing", "build-time tooling"],
+    useCase: ["auditing SONARA's own marketing pages while building them; nothing shipped to customers"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "if used at all, point it at this project's own pages -- it is a development-time tool like the superpowers record above, not something a customer is served",
+      "leave the Firecrawl extension alone unless somebody has costed it: Firecrawl is a hosted service, and a free tier is a price rather than a licence",
+      "register the public repository, not the private mirror -- the mirror requires a paid community membership and is therefore not a thing this project can depend on",
+      "do not let its recommendations reach a customer-facing page unread; Growth Studio copy is checked by scripts/check-growth-studio-copy.mjs and an SEO suggestion is not exempt from it",
+    ],
+    officialUrl: "https://github.com/AgriciDaniel/claude-seo",
+    repoUrl: "https://github.com/AgriciDaniel/claude-seo",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: MIT, Copyright (c) 2026 agricidaniel. 383 files -- 199 markdown, 98 Python, 18 agent definitions, 33 SKILL.md files and 37 test files. A Claude Code plugin that audits technical SEO, content quality, Schema.org markup and AI-search optimisation, citing Google's own published guidance. Measured rather than taken from the README: the only outbound host in its Python is oauth2.googleapis.com, for Search Console; everything else it fetches is the site it was pointed at, and four files handle robots.txt. It needs no API key of its own. Same category as the superpowers record above -- a tool used while building, with no runtime dependency to take. Two things worth knowing. It ships an optional Firecrawl extension, and Firecrawl is a paid hosted service. And the README offers two versions: this public MIT one, and a private mirror behind a Skool membership -- the public one is what is registered here, because a repository this project cannot reach without paying somebody is not a dependency it can have.",
+    safetyBoundaries: [
+      "audits this project's own pages only",
+      "no third-party site fetched without a recorded permission",
+      "no generated marketing claim published without the Growth Studio copy check passing",
+    ],
+    humanReviewRequired: false,
   },
 ];
 

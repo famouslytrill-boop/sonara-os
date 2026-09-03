@@ -26,6 +26,7 @@ const path = require("node:path");
 const express = require("express");
 const request = require("supertest");
 const registerRoutes = require("../routes/sonara-last9-routes.cjs");
+const { chainCommands } = require("../lib/sonara-release-chain.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
@@ -285,7 +286,14 @@ describe("the other legal pages describe real behaviour too", () => {
     assert.match(page, /fails the build/i);
     const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     assert.ok(packageJson.scripts["scan:client-secrets"], "the client-secret scan the policy describes does not exist");
-    assert.match(String(packageJson.scripts["verify:launch"] || ""), /scan:client-secrets/, "the scan is not in the release chain, so it does not fail a build");
+    // Chain membership is asked of lib/sonara-release-chain.cjs, not of the string.
+    //
+    // `verify:launch` used to be one flat line, so matching it for a command
+    // name worked. Everything after `verify:db` now sits in `verify:gates` so
+    // CI can run the whole gate in one step, and five checks reported commands
+    // as missing from a chain that runs them -- accurate about the string,
+    // wrong about the thing they named.
+    assert.ok(chainCommands(packageJson.scripts || {}).includes("scan:client-secrets"), "the scan is not in the release chain, so it does not fail a build");
   });
 
   it("only promises reduced motion because the stylesheet honours it", async () => {

@@ -12,6 +12,8 @@ const {
   generationStatus,
   generationStatusLabel,
   generationCapabilityLabel,
+  generationAvailability,
+  generationAvailabilityLabel,
   generationFailureText,
   voiceSubjectLabel,
   voiceScopeLabel,
@@ -20,6 +22,7 @@ const {
 
 const JOB_TABLE = "creator_generation_jobs";
 const ASSET_TABLE = "creator_generation_assets";
+const provenanceOf = require("../lib/sonara-generation-provenance.cjs");
 const CONSENT_TABLE = "creator_voice_consents";
 const ANALYSIS_TABLE = "creator_reference_analyses";
 const EVENT_TABLE = "creator_generation_events";
@@ -135,7 +138,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
-    const result = await rest(config, JOB_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
+    const result = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,provider_job_id,status,progress_percent,prompt,negative_prompt,parameters,input_assets,policy_status,policy_reasons,rights_attested,consent_attested,error_code,error_message,created_at,completed_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, jobs: result.rows, code: result.code });
   });
 
@@ -146,8 +149,20 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const job = await loadJob(config, context, req.params.jobId);
     if (!job.ok) return res.status(job.status).json(job);
-    const assets = await rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`);
-    return res.status(200).json({ ok: true, job: job.job, assets: assets.ok ? assets.rows : [] });
+    // The same seven columns the HTML page names, and for the same reason --
+    // plus one this endpoint was returning and nothing asked for: `bucket_id`
+    // and `object_path` are the file's location inside a private bucket. No
+    // caller uses them (checked across public/, tests/ and docs/), and the
+    // download route reads them itself in its own scoped query before signing
+    // a 300-second URL. Handing the storage path to the client as well is
+    // exposure that buys nothing.
+    const assets = await rest(config, ASSET_TABLE, `select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256&job_id=eq.${encodeURIComponent(job.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`);
+    // `assets.ok ? assets.rows : []` reported a failed read as a job with no
+    // files, and a caller cannot tell those apart from an empty array. The job
+    // read succeeded and the asset read did not, so this endpoint cannot answer
+    // the question it was asked -- which is a 502, not an empty success.
+    if (!assets.ok) return res.status(502).json({ ok: false, code: "generation_assets_unreadable" });
+    return res.status(200).json({ ok: true, job: job.job, assets: assets.rows });
   });
 
   app.post("/api/creator/generation/jobs", access, async (req, res) => {
@@ -252,7 +267,12 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
-    const result = await rest(config, CONSENT_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
+    // The eight columns the consent page names, plus created_at. Left out:
+    // `evidence_reference`, which points at where a signed release lives, and
+    // `metadata`. The HTML page decided not to render either; an endpoint over
+    // the same records should not quietly return more than the page that was
+    // designed.
+    const result = await rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, consents: result.rows, code: result.code });
   });
 
@@ -369,7 +389,15 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) unavailable = "We could not confirm your workspace. Sign in and try again.";
     else if (!config.ok) unavailable = "Your account database is not connected yet, so permissions cannot be listed.";
     else {
-      const listed = await rest(config, CONSENT_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
+      // Named rather than `select=*`, and written out literally so
+      // report-unused-selected-columns.mjs can read it. A star select is a read
+      // that script cannot audit, which is how the provenance on the outputs
+      // table sat loaded and unrendered for months.
+      //
+      // These eight are what voicePermissionsCard renders. `evidence_type` is
+      // the kind of evidence held, not the evidence: this page has never
+      // fetched the document itself and must not start.
+      const listed = await rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
       if (!listed.ok) unavailable = "We could not load your permissions just now. They are still there; try again shortly.";
       else consents = listed.rows;
     }
@@ -416,7 +444,14 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
       ui.card("Rights and consent boundary", "Only upload or generate from material you own or are authorized to use. Voice conversion requires an active consent record. Direct celebrity, artist, or identity imitation is held for review."),
       ui.card("Provider execution", "ElevenLabs and Google Veo use server-side adapters when configured. Suno requires the exact account API contract. Higgsfield uses its official external MCP connector. Open-source models run only on an isolated GPU worker."),
       jobTable(jobs, ui.escape),
-      ...providers.map((item) => ui.card(`${item.label}: ${display(item.readiness.status)}`, `${item.capabilities.join(", ")}. ${item.license}`))
+      // Was `display(item.readiness.status)`, which put "setup required" and
+      // "reference only" on a creator's screen -- internal words, and three of
+      // them implying the creator should go and fix something none of them can.
+      // The detail says whose job it is, or that it is nobody's.
+      ...providers.map((item) => ui.card(
+        `${item.label}: ${generationAvailabilityLabel(item.readiness.status)}`,
+        `${generationAvailability(item.readiness.status).detail} ${item.capabilities.join(", ")}. ${item.license}`
+      ))
     ];
     return res.status(200).type("html").send(ui.layout({
       title: "Generation Studio",
@@ -479,7 +514,14 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
 
     const job = loaded.job;
     const [assets, events] = await Promise.all([
-      rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
+      // Named rather than `select=*`, which is what hid the provenance: the row
+      // carried the provider, the attestations and the checksum, the page
+      // loaded all three and printed none of them, and
+      // report-unused-selected-columns.mjs could not see the query to say so.
+      // Written out literally on purpose -- a list joined from a constant is
+      // readable to a person and opaque to that script, which is the other
+      // half of the same blindness.
+      rest(config, ASSET_TABLE, `select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`),
       rest(config, EVENT_TABLE, `select=event_type,event_status,details,created_at&job_id=eq.${encodeURIComponent(job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.desc&limit=50`)
     ]);
 
@@ -511,12 +553,23 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     const loaded = await loadJob(config, context, req.params.jobId);
     if (!loaded.ok) return res.redirect(303, "/creator-studio/generation/jobs");
     if (!validUuid(req.params.assetId)) return res.redirect(303, jobPath(loaded.job.id));
-    const found = await rest(config, ASSET_TABLE, `select=bucket_id,object_path&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+    const found = await rest(config, ASSET_TABLE, `select=${provenanceOf.PROVENANCE_COLUMNS.join(",")}&id=eq.${encodeURIComponent(req.params.assetId)}&job_id=eq.${encodeURIComponent(loaded.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
     const asset = found.ok ? found.rows[0] : undefined;
     if (!asset) return res.redirect(303, jobPath(loaded.job.id));
     const signed = await signAsset(config, asset);
     if (!signed.ok) return res.redirect(303, jobPath(loaded.job.id));
-    await event(config, context, loaded.job.id, "generation.output_downloaded", "success", { asset_id: req.params.assetId });
+    // What was collected, not only that something was. The event used to carry
+    // the asset id alone, so the history could say a file left and not which
+    // service had made it or what its fingerprint was -- the two facts anybody
+    // asking about a download afterwards actually wants.
+    await event(
+      config,
+      context,
+      loaded.job.id,
+      "generation.output_downloaded",
+      "success",
+      provenanceOf.downloadEventDetails(req.params.assetId, provenanceOf.describeAsset(asset))
+    );
     return res.redirect(302, signed.url);
   });
 
@@ -800,7 +853,18 @@ async function storeOutput(config, context, job, bytes, mime, providerKey) {
 
 async function loadJob(config, context, jobId) {
   if (!validUuid(jobId)) return { ok: false, status: 400, code: "invalid_job_id" };
-  const result = await rest(config, JOB_TABLE, `select=*&id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+  // Named rather than `select=*`. The list is every field the job page and the
+  // JSON endpoint actually read, derived by grepping this file for `job.` and
+  // `job?.` rather than by eye -- `jobTitle()` reaches `title` through optional
+  // chaining, and a first pass that matched only `job.` missed it, which would
+  // have retitled every job page.
+  //
+  // What is deliberately not here: `provider_response`, the raw body an
+  // external provider sent back. Nothing reads it, and a JSON endpoint that
+  // returns a provider's whole reply is publishing whatever that provider
+  // decides to put in it, forever, to anybody who later gets hold of the
+  // response.
+  const result = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,provider_job_id,status,progress_percent,prompt,negative_prompt,parameters,input_assets,policy_status,policy_reasons,rights_attested,consent_attested,error_code,error_message,created_at,completed_at&id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
   if (!result.ok) return { ok: false, status: 502, code: result.code };
   if (!result.rows[0]) return { ok: false, status: 404, code: "generation_job_not_found" };
   return { ok: true, job: result.rows[0] };
@@ -874,7 +938,7 @@ function findOutputUrl(payload) {
 }
 
 function generationForm(providers, escape, consents = []) {
-  const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(display(item.readiness.status))}</option>`).join("");
+  const options = providers.filter((item) => item.adapterMode !== "reference_only").map((item) => `<option value="${escape(item.key)}">${escape(item.label)} · ${escape(generationAvailabilityLabel(item.readiness.status))}</option>`).join("");
 
   // The five voice capabilities were missing from this list entirely, so the
   // only way to ask for voice work was to post to the API by hand. They are
@@ -966,8 +1030,18 @@ function jobOutputsCard(job, assets, escape) {
       : "Nothing to collect yet. Files appear here as soon as they are made.";
     return `<article class="card"><h2>Your files</h2><p>${escape(waiting)}</p></article>`;
   }
-  const rows = outputs.map((asset) => `<tr><td><a href="${escape(`${jobPath(job.id)}/outputs/${encodeURIComponent(asset.id)}`)}">Download</a></td><td>${escape(fileKind(asset))}</td><td>${escape(sizeText(asset.byte_size))}</td><td>${escape(whenText(asset.created_at))}</td></tr>`).join("");
-  return `<article class="card"><h2>Your files</h2><table><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Made</th></tr></thead><tbody>${rows}</tbody></table><p>Download links are private to your workspace and expire after a few minutes.</p></article>`;
+  // Where each file came from, which the row has always carried and this table
+  // has never shown. The page selects `*`, so none of this is a new read -- it
+  // was loaded and dropped. AGENTS.md asks for provenance to be enforced, and a
+  // record only the database can see enforces nothing.
+  const rows = outputs.map((asset) => {
+    const from = provenanceOf.describeAsset(asset);
+    const madeBy = from.madeBy || "Not recorded";
+    // Three columns rather than one sentence, because a creator scanning a list
+    // of files is comparing them against each other.
+    return `<tr><td><a href="${escape(`${jobPath(job.id)}/outputs/${encodeURIComponent(asset.id)}`)}">Download</a></td><td>${escape(fileKind(asset))}</td><td>${escape(sizeText(asset.byte_size))}</td><td>${escape(whenText(asset.created_at))}</td><td>${escape(madeBy)}</td><td>${escape(from.rightsLabel)}</td><td>${escape(from.consentLabel)}</td><td>${from.checksumShort ? `<code title="${escape(from.checksum)}">${escape(from.checksumShort)}</code>` : escape("Not recorded")}</td></tr>`;
+  }).join("");
+  return `<article class="card"><h2>Your files</h2><div class="table-scroll"><table><thead><tr><th>File</th><th>Type</th><th>Size</th><th>Made</th><th>Made by</th><th>Rights confirmed</th><th>Consent confirmed</th><th>Fingerprint</th></tr></thead><tbody>${rows}</tbody></table></div><p>Download links are private to your workspace and expire after a few minutes.</p><p>The fingerprint is a SHA-256 of the file as we stored it. Hover it for the full value; a copy that still matches it is the copy we made.</p></article>`;
 }
 
 function jobControlsCard(job, escape) {
@@ -986,7 +1060,7 @@ function jobControlsCard(job, escape) {
 function jobRequestCard(job, escape) {
   const prompt = clean(job.prompt, 5000);
   const negative = clean(job.negative_prompt, 2000);
-  return `<article class="card"><h2>What you asked for</h2><p>${escape(prompt || "No description was given.")}</p>${negative ? `<p><strong>Asked to avoid:</strong> ${escape(negative)}</p>` : ""}<p><strong>Rights confirmed:</strong> ${escape(job.rights_attested ? "Yes" : "No")}</p></article>`;
+  return `<article class="card"><h2>What you asked for</h2><p>${escape(prompt || "No description was given.")}</p>${negative ? `<p><strong>Asked to avoid:</strong> ${escape(negative)}</p>` : ""}<p><strong>Rights confirmed:</strong> ${escape(provenanceOf.attestationLabel(job.rights_attested))}</p><p><strong>Consent confirmed:</strong> ${escape(provenanceOf.attestationLabel(job.consent_attested))}</p></article>`;
 }
 
 function jobHistoryCard(events, escape) {
@@ -1071,7 +1145,6 @@ function esc(value) { return String(value || "").replace(/[&<>\"]/g, (char) => (
 function card(title, body) { return `<article class="card"><h2>${esc(title)}</h2><p>${esc(body)}</p></article>`; }
 function link(href, label) { return `<a class="action" href="${esc(href)}">${esc(label)}</a>`; }
 function basicLayout(data) { return `<!doctype html><html><head><title>${esc(data.title)}</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main><p>${esc(data.eyebrow)}</p><h1>${esc(data.heading)}</h1><p>${esc(data.body)}</p><nav>${(data.actions || []).join("")}</nav><section>${(data.sections || []).join("")}</section></main></body></html>`; }
-function display(value) { return String(value || "unknown").replaceAll("_", " "); }
 function clean(value, max = 500) { return String(value || "").trim().slice(0, max); }
 function nullable(value, max = 500) { const text = clean(value, max); return text || null; }
 function validUuid(value) { return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || "")); }

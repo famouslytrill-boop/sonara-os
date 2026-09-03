@@ -1,0 +1,118 @@
+# Drives /api/agents/schedule/tick hourly.
+#
+# This used to be a Vercel cron in vercel.json:
+#
+#     "crons": [{ "path": "/api/agents/schedule/tick", "schedule": "0 * * * *" }]
+#
+# It could never have worked, and worse, it would have stopped the next
+# production deployment. The Vercel account this project deploys to is on the
+# Hobby plan, and Vercel's own documentation says:
+#
+#   "Daily execution limit: Cron jobs can only run once per day. Expressions
+#    like `0 * * * *` (per-hour) or `*/30 * * * *` (every 30 minutes) will fail
+#    deployment with the error: Hobby accounts are limited to daily cron jobs."
+#   -- https://vercel.com/docs/cron-jobs/usage-and-pricing
+#
+# That is the exact expression the file carried. It had not bitten yet only
+# because production is still on a commit from before the cron was added, so
+# the configuration had never been deployed.
+#
+# A once-a-day tick is not a smaller version of this feature, it is the absence
+# of it: a schedule set for 09:00 is only due once the customer's local hour has
+# reached 09:00, so a single daily tick at some other hour would find it "not
+# yet" and never look again. Hourly is the minimum that makes hour-of-day mean
+# anything.
+#
+# So the scheduler moved here. GitHub Actions cron is free on this repository,
+# the pattern is already used by production-connectivity and
+# external-repository-health, and the endpoint never depended on Vercel: it
+# authenticates with a shared secret header, so anything that can make an HTTPS
+# request can drive it.
+#
+# GitHub's scheduler is best-effort and can be late under load. That is fine
+# here and is the same property Vercel's own Hobby tier documents (+/-59 min):
+# the endpoint is idempotent by period -- lib/sonara-agent-schedule.cjs keys
+# `last_run_at` to the period the moment falls in -- so a late tick still runs
+# the work once, and an extra tick runs nothing.
+
+name: Agent schedule tick
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Seven minutes past, rather than on the hour, so this is not queued behind
+    # everything else on GitHub's scheduler at :00.
+    - cron: "7 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-schedule-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask production to run whatever is due
+        env:
+          BASE_URL: https://sonaraindustries.com
+          TICK_SECRET: ${{ secrets.SONARA_SCHEDULE_TICK_SECRET }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          # Without the secret this job cannot do its work, and it must say so
+          # rather than pass. It does not fail the run, because an unconfigured
+          # scheduler is a documented state -- lib/sonara-environment-classification.cjs
+          # records SONARA_SCHEDULE_TICK_SECRET as optional, "without it the
+          # endpoint answers 503 and no schedule runs, which is a product with
+          # no scheduled work rather than a broken one". But a silent green here
+          # would be a light over exactly that, so it is a warning that names
+          # what to do.
+          if [ -z "${TICK_SECRET}" ]; then
+            echo "::warning title=Scheduled agent runs are off::SONARA_SCHEDULE_TICK_SECRET is not set as a repository secret, so no customer schedule will run. Set it to the same value as the SONARA_SCHEDULE_TICK_SECRET environment variable on the deployment."
+            exit 0
+          fi
+
+          body=$(mktemp)
+          status=$(curl -sS --max-time 60 -o "$body" -w '%{http_code}' \
+            -X POST "${BASE_URL}/api/agents/schedule/tick" \
+            -H "x-sonara-schedule-secret: ${TICK_SECRET}" \
+            -H 'content-type: application/json' \
+            -d '{}') || {
+              echo "::error title=Scheduler unreachable::the request to ${BASE_URL}/api/agents/schedule/tick did not complete"
+              exit 1
+            }
+
+          # The body is printed because it names how many schedules were
+          # considered and run. It carries no secret: the endpoint returns
+          # counts and reasons, and the secret is only ever sent, never echoed.
+          echo "HTTP ${status}"
+          cat "$body"
+          echo
+
+          case "${status}" in
+            200)
+              # A 200 that ran nothing is normal -- most hours have nothing due.
+              # What would not be normal is a 200 that is not JSON, which is how
+              # a rewrite catching this path would look.
+              if ! grep -q '"ok"' "$body"; then
+                echo "::error title=Unexpected answer::200 without an ok field; something other than the scheduler answered this path"
+                exit 1
+              fi
+              ;;
+            401)
+              echo "::error title=Secret mismatch::the deployment has a SONARA_SCHEDULE_TICK_SECRET and it is not the one in this repository's secrets, so no schedule is running"
+              exit 1
+              ;;
+            503)
+              echo "::error title=Scheduler not configured on the deployment::this repository has the secret but the deployment does not, so the endpoint refuses every tick"
+              exit 1
+              ;;
+            *)
+              echo "::error title=Scheduler tick failed::HTTP ${status}"
+              exit 1
+              ;;
+          esac

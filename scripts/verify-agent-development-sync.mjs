@@ -70,10 +70,17 @@ assert.match(
   /"undici@<6\.28\.0": "6\.28\.0"/,
   "undici must stay pinned above GHSA-v3r7-h72x-cjcm"
 );
+// Moved on 2 September 2026, and this line is why it moved deliberately. The
+// pin was `>=3.0.0 <3.1.5: 3.1.5`, added for GHSA-7p8r-x3mc-p8w7. Three more
+// advisories then put 3.1.5 itself in range -- GHSA-f65p-4m7j-42xc and
+// GHSA-fph4-wmhf-6fwf (both SSRF) and GHSA-jqff-g426-hqxp (host confusion), all
+// patched in 3.1.6 -- so the override was pinning the tree *to* the vulnerable
+// version rather than away from it. The range form `<3.1.6` does not pin to a
+// version that can go stale the same way.
 assert.match(
   workspace,
-  /"fast-uri@>=3\.0\.0 <3\.1\.5": "3\.1\.5"/,
-  "fast-uri must stay pinned above GHSA-7p8r-x3mc-p8w7"
+  /"fast-uri@<3\.1\.6": "3\.1\.6"/,
+  "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp"
 );
 
 const currentState = read(".ai/shared/CURRENT_STATE.md");

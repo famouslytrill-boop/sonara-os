@@ -25,6 +25,29 @@ const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs"
 // distributes it, and this product ships JavaScript to browsers.
 const RECIPROCAL = /\b(agpl|gpl|osl|sspl|eupl)\b|affero|open software license/i;
 
+// Licences that permit use but withhold *commercial* use, and licences that
+// publish source while forbidding the one thing this product is.
+//
+// Neither is caught by RECIPROCAL, and both are strictly worse for us than a
+// reciprocal licence. Reciprocal has a price -- release the source. These have
+// no price: no term this project can accept unlocks them, only the author
+// relicensing.
+//
+// Both patterns exist because a record walked through the gap. A repository
+// submitted as a Claude skill library, with 44.3k stars and a `.claude-plugin`
+// directory, is CC BY-NC 4.0: "not primarily intended for or directed towards
+// commercial advantage or monetary compensation". SONARA One is sold on paid
+// plans. Popularity and plugin format say nothing about the licence, and until
+// this pattern existed nothing in the register's checks would have objected to
+// it being marked an adaptation source.
+const NONCOMMERCIAL = /\bnon-?commercial\b|\bCC[ -]BY[ -]NC\b|\bNC[ -]4\.0\b/i;
+
+// Source-available, not open source: the source is published and offering it
+// as a hosted or managed service is forbidden. SONARA One is a hosted service,
+// so this is the clause aimed at us. ELv2 and BUSL are the two that have
+// actually arrived here.
+const SOURCE_AVAILABLE = /elastic license|\bELv2\b|business source license|\bBUSL\b|\bSSPL\b|commons clause/i;
+
 // Licence text that says, in words, that nothing has been granted or confirmed.
 const NO_GRANT = /none declared|no licence declared|no license declared/i;
 const UNVERIFIED = /not verified|unverified|could not be (confirmed|verified)/i;
@@ -86,6 +109,44 @@ describe("open-source register licence terms", () => {
     );
   });
 
+  it("keeps NonCommercial licences out of the adoption path, and out of commercial use", () => {
+    // Stricter than the reciprocal check above, and deliberately so. A
+    // reciprocal licence can be adopted at a price this project could choose to
+    // pay. A NonCommercial licence cannot be adopted at any price, because the
+    // thing it withholds is what this product does for a living.
+    const adopting = records
+      .filter((record) => NONCOMMERCIAL.test(record.license))
+      .filter((record) => ADOPTION_STATUSES.has(record.integrationStatus));
+    assert.deepEqual(
+      adopting.map((record) => `${record.name} (${record.license})`),
+      [],
+      "a NonCommercial licence cannot be an adaptation source for a product sold on paid plans"
+    );
+
+    const cleared = records
+      .filter((record) => NONCOMMERCIAL.test(record.license))
+      .filter((record) => record.commercialUseStatus === "allowed_after_review" || record.commercialUseStatus === "allowed");
+    assert.deepEqual(
+      cleared.map((record) => `${record.name} (${record.commercialUseStatus})`),
+      [],
+      "no internal review can clear a NonCommercial licence for commercial use; only the author relicensing can"
+    );
+  });
+
+  it("keeps source-available licences out of the adoption path", () => {
+    // Published source is not permission. ELv2 and BUSL forbid offering the
+    // software as a hosted or managed service, which is precisely what this
+    // product is.
+    const wrong = records
+      .filter((record) => SOURCE_AVAILABLE.test(record.license))
+      .filter((record) => ADOPTION_STATUSES.has(record.integrationStatus));
+    assert.deepEqual(
+      wrong.map((record) => `${record.name} (${record.license})`),
+      [],
+      "a source-available licence forbids offering the software as a hosted service, which is what SONARA One is"
+    );
+  });
+
   it("names a settled licence on everything in the adoption path", () => {
     // The three checks above catch licences that say, in words, that nothing
     // was granted. They do not catch a licence field that says "review this
@@ -130,6 +191,19 @@ describe("open-source register licence terms", () => {
     assert.ok(
       undeclared.length >= 2,
       `expected the register to still contain records with no licence declared; found ${undeclared.length}`
+    );
+    // Same reasoning for the two patterns added above: they gate nothing if the
+    // register stops containing anything they can match, and a green check over
+    // an empty population is the failure this file exists to prevent.
+    const noncommercial = records.filter((record) => NONCOMMERCIAL.test(record.license));
+    const sourceAvailable = records.filter((record) => SOURCE_AVAILABLE.test(record.license));
+    assert.ok(
+      noncommercial.length >= 1,
+      `expected the register to still contain a NonCommercial record; found ${noncommercial.length}`
+    );
+    assert.ok(
+      sourceAvailable.length >= 1,
+      `expected the register to still contain a source-available record; found ${sourceAvailable.length}`
     );
   });
 });

@@ -12,6 +12,11 @@ const {
 const { locationAllowance, locationLimitMessage } = require("../lib/sonara-plan-limits.cjs");
 const { buildCalendarInvite, buildCalendarFeed } = require("../lib/sonara-calendar-invite.cjs");
 const { buildRecordCsv } = require("../lib/sonara-record-csv.cjs");
+const {
+  ACCOUNTING_EXPORT_TYPES,
+  REFUSED_EXPORT_TYPES,
+  exportSourceFor
+} = require("../lib/sonara-accounting-export-sources.cjs");
 const { buildContactCard, buildContactBook } = require("../lib/sonara-contact-card.cjs");
 const { renderInvoicePdf } = require("../lib/sonara-invoice-pdf.cjs");
 const { settle } = require("../lib/sonara-invoice-settlement.cjs");
@@ -19,6 +24,11 @@ const { GROWTH_RECORD_PAGES } = require("../lib/sonara-growth-record-pages.cjs")
 const { GROWTH_TABLES } = require("../lib/sonara-growth-tables.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const { finiteNumber, downloadsOf } = require("../lib/sonara-owner-record-pages.cjs");
+const recordStatus = require("../lib/sonara-record-status.cjs");
+const recordEdit = require("../lib/sonara-record-edit.cjs");
+const changeLog = require("../lib/sonara-record-change-log.cjs");
+const recordFilter = require("../lib/sonara-record-filter.cjs");
+const recordArchive = require("../lib/sonara-record-archive.cjs");
 const { announcePayment } = require("../lib/sonara-invoice-paid-notice.cjs");
 const { reduce: reducePosition, MODES: LOCATION_PRIVACY_MODES, DEFAULT_MODE: LOCATION_PRECISION_DEFAULT } = require("../public/sonara-location-precision.js");
 
@@ -379,16 +389,10 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
   // is no worker here, and a status that only a worker could advance is how the
   // lie got written in the first place.
   //
-  // Only the three types whose meaning is unambiguous are served. payroll_summary
-  // and journal_entries are refused by name: both require accounting judgement
-  // this code has not been given -- what belongs in a journal line, and how gross
-  // pay reconciles to cost -- and inventing them would put wrong figures in front
-  // of an accountant, which is worse than putting none.
-  const EXPORT_SOURCES = Object.freeze({
-    bills: { table: "vendor_invoices", dateColumn: "created_at", columns: ["id", "created_at", "vendor_name", "invoice_number", "invoice_date", "due_date", "amount", "currency", "status", "notes"] },
-    sales: { table: "pos_sales_summaries", dateColumn: "created_at", columns: ["id", "created_at", "business_date", "gross_sales", "net_sales", "tax_total", "discount_total", "transaction_count", "currency"] },
-    inventory: { table: "inventory_items", dateColumn: "created_at", columns: ["id", "created_at", "item_name", "sku", "unit", "quantity_on_hand", "unit_cost", "reorder_point", "location_id"] }
-  });
+  // Which types have a source, and the reason the others do not, both live in
+  // lib/sonara-accounting-export-sources.cjs -- the same table the form on the
+  // page reads its options from, so the page cannot offer a type this route
+  // would then refuse.
 
   app.get("/business-builder/owner/accounting-exports/:recordId/download", requireBusinessManager, async (req, res) => {
     const config = getConfig(deps);
@@ -407,12 +411,17 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
     const record = found.rows[0];
     if (!record) return res.status(404).type("text").send("That export is not in your business, or it has been removed.");
 
-    const source = EXPORT_SOURCES[String(record.export_type || "")];
+    const source = exportSourceFor(record.export_type);
     if (!source) {
       // Named, not generic. "Not supported" tells somebody nothing about
       // whether to wait for it.
+      // A row can still carry one of these: the form offered them until 2
+      // September 2026, and narrowing the form does not rewrite history.
+      const reason = REFUSED_EXPORT_TYPES[String(record.export_type || "")]
+        || "That export type names nothing this system can read.";
       return res.status(422).type("text").send(
-        `A file for "${String(record.export_type || "unknown")}" exports is not built. Payroll summaries and journal entries need accounting decisions this system has not been given, and producing them from guesses would put wrong figures in front of your accountant. Bills, sales and inventory exports do download.`
+        `A file for "${String(record.export_type || "unknown")}" exports is not built. ${reason} Producing one from guesses would put wrong figures in front of your accountant. ` +
+          `These do download: ${ACCOUNTING_EXPORT_TYPES.join(", ")}.`
       );
     }
 
@@ -528,17 +537,50 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
       let references = {};
       let loaded = null;
       let unavailable = null;
+      // What this page is filtering by, if anything. Read before the query
+      // because the read, the count and the pager all have to agree about it.
+      const wanted = recordFilter.termFrom(req.query.q);
+      const showingArchived = recordArchive.showingArchived(req.query.archived);
+      // Counted separately rather than inferred from the rows on screen: the
+      // page is a hundred rows of a longer list, so "how many did we hide" is
+      // not a number this page's own result can answer.
+      let archivedCount = null;
       if (!config.ok) unavailable = "Your account database is not connected yet, so there is nothing to show.";
       else if (!org.ok) unavailable = "We could not tell which business you are signed in to. Sign in again and this will fill up.";
       else {
-        const listed = await listRecordPage(config, page.table, org.organizationId, "created_at.desc", page.select || "*", pageNumber(req.query.page));
+        const listed = await listRecordPage(
+          config,
+          page.table,
+          org.organizationId,
+          "created_at.desc",
+          recordArchive.selectWith(page, page.select || "*"),
+          pageNumber(req.query.page),
+          `${recordFilter.clauseFor(page, wanted.term)}${recordArchive.hiddenClause(page, { including: showingArchived })}`
+        );
         if (!listed.ok) unavailable = "This part of your account has not been set up yet.";
         else { rows = listed.rows; loaded = listed; }
         references = await loadReferences(config, org.organizationId, page);
+        if (recordArchive.canArchive(page) && !showingArchived) {
+          const counted = await supabaseCount(config, page.table, org.organizationId, "&archived_at=not.is.null");
+          // Left null when the count did not happen. Saying "nothing is
+          // archived" on the strength of a failed request is how somebody
+          // concludes a record they archived has been deleted.
+          archivedCount = counted.ok ? counted.count : null;
+        }
       }
+      // What the last status change did, for the pages whose control is in the
+      // row. The change is a POST that redirects, so without this it looks
+      // exactly like a page reload -- including the case that matters most,
+      // where the record already had the status asked for and nothing changed.
+      const statusSaid = String(req.query.status_problem || req.query.status_done || req.query.edited || "").slice(0, 300);
       const sections = unavailable
         ? [ui.card("Not available right now", unavailable)]
-        : [recordsCard(page, rows, ui, loaded), ...(page.form ? [formCard(page, references, ui)] : [])];
+        : [
+            ...(statusSaid ? [ui.card(req.query.edited ? "Saved" : "Status", statusSaid)] : []),
+            filterCard(page, wanted, ui),
+            recordsCard(page, rows, ui, loaded, wanted.term, { showingArchived, archivedCount }),
+            ...(page.form ? [formCard(page, references, ui)] : [])
+          ];
       return res.status(200).type("html").send(ui.layout({
         title: page.title,
         eyebrow: "Business Builder operations",
@@ -548,6 +590,284 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
         actions: ownerActions(ui, page.path)
       }));
     });
+
+    // Correcting a record.
+    //
+    // Twenty-six of these pages could create a record and none could change
+    // one, so a phone number typed with a digit missing could only be fixed by
+    // creating a second customer and leaving the wrong one there. An address
+    // book with two entries for the same person, one unreachable, is worse than
+    // one with a single wrong entry: now nobody knows which is current.
+    //
+    // Two routes, and the edit form has a page of its own rather than sitting
+    // under the list. Only nine of the twenty-seven pages have a detail page,
+    // and a form reachable on nine of them is the gap the status control was
+    // just fixed for.
+    if (recordEdit.canEdit(page)) {
+      app.get(`${page.path}/:recordId/edit`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const notFound = (detail) => res.status(404).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: "Not found",
+          body: detail,
+          sections: [ui.card("Nothing to correct", "Go back to the list and choose a record from there.")],
+          actions: [ui.link(page.path, page.title), ui.link("/business-builder/owner", "Owner Dashboard")]
+        }));
+        if (!isUuid(recordId)) return notFound("That record reference is not one of ours.");
+
+        const config = getConfig(deps);
+        const org = await resolveOrganization(req, deps);
+        if (!config.ok) return res.status(503).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [ui.card("Not available right now", "Your account database is not connected yet, so there is nothing to correct.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+        if (!org.ok) return res.status(403).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [ui.card("Not available right now", "We could not tell which business you are signed in to. Sign in again and this will fill up.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+
+        // Scoped by organization as well as by id, because the service key
+        // bypasses row level security and a guessed id would otherwise open
+        // another business's record in an editable form.
+        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+        if (!found.ok) return res.status(502).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          // A read that failed is not a record that is missing, and offering an
+          // empty form for one would invite somebody to retype a record that is
+          // still there and then save the blanks over it.
+          sections: [ui.card("Not available right now", "We could not read that record just now. Nothing has been changed.")],
+          actions: [ui.link(page.path, page.title)]
+        }));
+        const row = found.rows[0];
+        if (!row) return notFound("That record is not in your business, or it has been removed.");
+
+        const references = await loadReferences(config, org.organizationId, page);
+        // Shown here rather than on a page of its own: somebody is on this page
+        // because they are about to change something, and "a manager changed the
+        // price an hour ago" matters at exactly that moment.
+        const history = await changeLog.historyOf(
+          (table, query) => supabaseList(config, table, query),
+          { organizationId: org.organizationId, table: page.table, recordId }
+        );
+        return res.status(200).type("html").send(ui.layout({
+          title: page.title,
+          eyebrow: "Business Builder operations",
+          heading: page.title,
+          body: page.body,
+          sections: [editFormCard(page, row, references, ui, req.query.edit_problem), historyCard(history, ui)],
+          actions: [
+            ui.link(page.path, `All ${page.title.toLowerCase()}`),
+            ui.link("/business-builder/owner", "Owner Dashboard"),
+            ui.link("/business-builder/dashboard", "Dashboard")
+          ]
+        }));
+      });
+
+      app.post(`${page.path}/:recordId`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const edit = `${page.path}/${encodeURIComponent(recordId)}/edit`;
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${edit}?edit_problem=${encodeURIComponent(detail || code)}`);
+        };
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Read first. The previous values are what turn "saved" into a sentence
+        // naming what actually changed, and they are also what stops an
+        // unchanged field being rewritten over somebody else's edit.
+        const found = await supabaseList(config, page.table, `?select=*&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`);
+        if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
+        const before = found.rows[0];
+        if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // Built from the page's own field declaration, so a body key the form
+        // never declared is not written whatever it is called. That is the
+        // point rather than a tidiness: the patch goes out with the service
+        // key, and a body carrying organization_id would otherwise be a way to
+        // move a record between businesses.
+        const wanted = recordEdit.changesFrom(page, req.body, before);
+        if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
+
+        const said = recordEdit.describeEdit(wanted.changed);
+        // Nothing differed. Sending an empty PATCH would ask the database to do
+        // nothing and then report it as a save.
+        if (!wanted.changed.length) {
+          if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: [], detail: said });
+          return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+        }
+
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, wanted.patch);
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // The column names rather than the labels, because the log is data and
+        // the labels are wording that will be rewritten.
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: Object.keys(wanted.patch) }
+        );
+        const told = logged.ok ? said : `${said} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, changed: wanted.changed, detail: told, recorded: logged.ok });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(told)}`);
+      });
+    }
+
+    // Taking a record off the list, and putting it back.
+    //
+    // Registered only where the page has no terminal status of its own, so no
+    // page offers two ways to retire one record. See
+    // lib/sonara-record-archive.cjs for why that set is derived rather than
+    // written down.
+    //
+    // This is not a delete and nothing here cascades. AGENTS.md puts
+    // destructive data changes behind owner approval; nothing is destroyed, and
+    // the owner pressing a button they can see is the owner.
+    if (recordArchive.canArchive(page)) {
+      app.post(`${page.path}/:recordId/archive`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${page.path}?status_problem=${encodeURIComponent(detail || code)}`);
+        };
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        const wanted = String(req.body?.archived ?? "") === "1";
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Scoped by organization on the write as well, for the same reason as
+        // every other write on these pages: the service key bypasses row level
+        // security, so the filter is the whole tenant boundary.
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, recordArchive.archivePatch(wanted));
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so nothing has been changed.");
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "fields", fields: ["archived_at"] }
+        );
+        const said = logged.ok
+          ? recordArchive.describeChange(wanted)
+          : `${recordArchive.describeChange(wanted)} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, archived: wanted, detail: said, recorded: logged.ok });
+        return res.redirect(303, `${page.path}?edited=${encodeURIComponent(said)}`);
+      });
+    }
+
+    // Changing a record's status.
+    //
+    // Registered only for pages that declare one, so a table with no status
+    // gets no endpoint rather than an endpoint that always refuses.
+    //
+    // Registered here, beside the list page, rather than beside the detail
+    // page below: only six of the twenty-seven pages have line items and so
+    // only six have a detail page, and the first version of this hung off that
+    // loop. Quotes and bookings -- the two records this whole change exists
+    // for -- were both among the five that got no endpoint at all. The list
+    // page is the one page every record kind has.
+    //
+    // This is the smallest thing that was missing and the one that mattered
+    // most: twenty-seven record pages could create and read, and none could
+    // change anything. Eleven of them declare a status, and quote -> invoice is
+    // gated on `accepted`, so invoices, payments, settlement, the receivables
+    // page and the invoice-paid notification were all downstream of a change
+    // nobody could make. Meanwhile lib/sonara-quote-conversion.cjs was telling
+    // people to "mark it accepted", and the public booking page was telling
+    // strangers the business would confirm their request.
+    //
+    // The owner acting, not an agent -- the same reading as the quote
+    // conversion above. lib/sonara-agent-authority.cjs governs what runs
+    // without a person; a person pressing a button they can see is the person.
+    if (recordStatus.hasStatus(page)) {
+      app.post(`${page.path}/:recordId/status`, requireBusinessManager, async (req, res) => {
+        const recordId = String(req.params.recordId || "");
+        const back = statusReturnPath(page, recordId);
+        const refuse = (status, code, detail) => {
+          if (!acceptsHtml(req)) return res.status(status).json({ ok: false, code, detail });
+          return res.redirect(303, `${back}?status_problem=${encodeURIComponent(detail || code)}`);
+        };
+
+        if (!isUuid(recordId)) return refuse(400, "record_required", "That record reference is not one of ours.");
+
+        // Validated against the page's own declaration before anything is read.
+        // A status the database would reject surfaces as a check-constraint
+        // violation nobody outside this file can read.
+        const wanted = recordStatus.validateStatus(page, req.body?.status);
+        if (!wanted.ok) return refuse(400, wanted.code, wanted.detail);
+
+        const config = getConfig(deps);
+        if (!config.ok) return refuse(503, "setup_required", "Your account database is not connected yet.");
+        const org = await resolveOrganization(req, deps);
+        if (!org.ok) return refuse(403, org.code || "no_organization", "We could not tell which business you are signed in to.");
+
+        // Read first, and scoped by organization as well as by id: the service
+        // key bypasses row level security, so without the filter a guessed id
+        // from another business would be changed. Reading also gives the
+        // previous value, which is what makes the confirmation say what
+        // actually happened rather than only what was asked for.
+        const found = await supabaseList(
+          config,
+          page.table,
+          `?select=id,status&id=eq.${encodeURIComponent(recordId)}&organization_id=eq.${encodeURIComponent(org.organizationId)}&limit=1`
+        );
+        if (!found.ok) return refuse(502, "unreadable", "We could not read that record just now. Nothing has been changed.");
+        const before = found.rows[0];
+        if (!before) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // Scoped by organization on the write as well as on the read above.
+        // The read already proved this record belongs to the business, so the
+        // second filter changes no outcome today -- it is here because the
+        // service key bypasses row level security, and the day somebody moves
+        // or shortens that read is the day the only tenant boundary on this
+        // write disappears silently. supabasePatch filters on id alone and is
+        // shared with callers that do not want an organization column, so this
+        // one writes its own request rather than widening that.
+        const saved = await supabasePatchScoped(config, page.table, recordId, org.organizationId, { status: wanted.status });
+        if (!saved.ok) return refuse(502, "unwritable", "That could not be saved, so the status is unchanged.");
+
+        // A PATCH that matched nothing answers 200 with an empty list. That is
+        // not a saved change, and reporting it as one is exactly the shape of
+        // lie this codebase keeps finding.
+        if (!saved.rows.length) return refuse(404, "not_yours", "That record is not in your business, or it has been removed.");
+
+        // Recorded after the change, because a log entry for a write that did
+        // not happen is worse than no entry. See lib/sonara-record-change-log.cjs
+        // for why a failed log is said out loud rather than swallowed: a log
+        // that silently drops what it could not write reads as complete, and
+        // somebody looking for a missing change concludes it never happened.
+        const logged = await changeLog.record(
+          (table, row) => supabaseInsert(config, table, row),
+          { organizationId: org.organizationId, table: page.table, recordId, changedBy: org.userId, kind: "status", fields: ["status"] }
+        );
+        const said = logged.ok
+          ? recordStatus.describeChange(before.status, wanted.status)
+          : `${recordStatus.describeChange(before.status, wanted.status)} We could not record who changed it.`;
+
+        if (!acceptsHtml(req)) return res.status(200).json({ ok: true, status: wanted.status, changed: said, recorded: logged.ok });
+        return res.redirect(303, `${back}?status_done=${encodeURIComponent(said)}`);
+      });
+    }
   });
 
   // The four pages whose records have line items: purchase orders, stock
@@ -657,6 +977,7 @@ module.exports = function registerLastNineHoursRoutes(app, deps = {}) {
             ...(page.shareableAs ? [shareCard(page, recordId, shareLink, ui)] : []),
             ...(page.publishHandle ? [publishCard(page, recordId, publishState, ui)] : []),
             ...(typeof page.derivedCard === "function" ? [page.derivedCard(parent, childRows, ui, extra)].filter(Boolean) : []),
+            ...(recordStatus.hasStatus(page) && parent ? [statusCard(page, parent, ui, req.query.status_problem, req.query.status_done)] : []),
             ...children.flatMap((spec, index) => [linesCard(spec, childRows[index], ui), lineFormCard(spec, recordId, ui, references)])
           ];
 
@@ -1733,8 +2054,49 @@ async function loadReferences(config, organizationId, page) {
 //   the read reached the end          -- the count is the count
 //   it did not, and the total is known -- say both, so the cap is visible
 //   it did not, and the count failed   -- "more than N", the honest floor
-function recordCountCaption(rows, loaded) {
+// The box that narrows the list.
+//
+// Rendered from lib/sonara-record-filter.cjs, which reads its columns from the
+// search module rather than holding a second list. A page whose records are not
+// found by text gets no box and says why, in the words already recorded for
+// that table -- "a shift is found by who and when, not by text" is a fact about
+// shifts, and a control that would find nothing is worse than its absence.
+function filterCard(page, wanted, ui) {
+  const reason = recordFilter.reasonWithoutFilter(page);
+  if (reason) return ui.card("Finding one of these", reason);
+  if (!recordFilter.canFilter(page)) return "";
+
+  const typed = wanted?.term || wanted?.typed || "";
+  const note = wanted?.tooShort
+    ? `<p class="fine" role="status">Type at least ${recordFilter.MINIMUM_TERM} characters. One letter matches almost everything, which is a list nobody can use.</p>`
+    : "";
+  const clear = wanted?.term ? ui.link(page.path, "Show all") : "";
+
+  return [
+    '<article class="card">',
+    `<form method="get" action="${ui.escape(page.path)}" role="search">`,
+    `<label>Find one<input type="search" name="q" value="${ui.escape(typed)}" minlength="${recordFilter.MINIMUM_TERM}" autocomplete="off"></label>`,
+    '<button class="action" type="submit">Find</button>',
+    clear,
+    "</form>",
+    note,
+    "</article>"
+  ].join("");
+}
+
+function recordCountCaption(rows, loaded, term = null) {
   const shown = rows.length;
+
+  // With a filter on, "3 records" is true and useless -- the reader cannot tell
+  // whether they have three customers or three matches. Everything below counts
+  // the filtered rows, so the sentence has to say so.
+  if (term) {
+    const total = loaded && typeof loaded.total === "number" ? loaded.total : (loaded?.loadedAll ? shown : null);
+    const said = recordFilter.describeFilter(term, loaded ? total : shown);
+    if (!loaded || loaded.loadedAll || shown === 0) return said;
+    const from = (loaded.offset || 0) + 1;
+    return `${said} Showing ${from} to ${(loaded.offset || 0) + shown}.`;
+  }
   const plural = (value) => (value === 1 ? "1 record" : `${value} records`);
 
   // No paging information at all: an older caller, or a page that never asked.
@@ -1763,16 +2125,30 @@ function recordCountCaption(rows, loaded) {
 //
 // Plain links, because the rest of these pages are plain forms and a customer
 // who has disabled JavaScript still has a business to run.
-function pagerLinks(page, loaded, ui) {
+function pagerLinks(page, loaded, ui, term = null) {
   if (!loaded || (!loaded.hasNext && !loaded.hasPrevious)) return "";
-  const at = (number) => `${page.path}?page=${number}`;
+  // Carrying the filter. `?page=2` alone drops it, so "Next" would take
+  // somebody from three matching customers to a hundred arbitrary ones with
+  // nothing on the page saying anything had changed.
+  const at = (number) => recordFilter.pathWith(page.path, { term, page: number });
   const links = [];
   if (loaded.hasPrevious) links.push(ui.link(at(loaded.page - 1), "Previous 100"));
   if (loaded.hasNext) links.push(ui.link(at(loaded.page + 1), "Next 100"));
   return `<nav class="card-actions" aria-label="More records">${links.join("")}</nav>`;
 }
 
-function recordsCard(page, rows, ui, loaded = null) {
+// Where a status change goes back to.
+//
+// A record with line items has a detail page and that is where the control is;
+// everything else only has the list. Sending somebody back to a detail page
+// that was never registered would answer 404 immediately after a change that
+// actually succeeded -- which reads as a failure and is not one.
+function statusReturnPath(page, recordId) {
+  const id = encodeURIComponent(String(recordId || ""));
+  return childrenOf(page).length > 0 ? `${page.path}/${id}` : page.path;
+}
+
+function recordsCard(page, rows, ui, loaded = null, term = null, archive = {}) {
   // A record with line items gets an extra column linking to them. Without it
   // the detail page exists and nothing points at it, which is the shape of
   // dead-end this codebase has shipped before.
@@ -1787,13 +2163,46 @@ function recordsCard(page, rows, ui, loaded = null) {
   // it renders it, and the row that cannot says why in the same column rather
   // than showing a button that will refuse.
   const action = page.rowAction || null;
-  const extraHeads = [...(opens ? ["<th>Details</th>"] : []), ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])];
+
+  // And, for the record kinds with no detail page, the status control itself.
+  //
+  // Eleven pages declare a status; only four of those have line items and so a
+  // detail page to put a card on. The other seven -- quotes, bookings,
+  // customers, services, areas, payments made, receivables -- have the list and
+  // nothing else, so the control lives in the row. Exactly one place per page:
+  // where there is a detail page the card is there and this column is not.
+  const rowStatus = recordStatus.hasStatus(page) && !opens ? recordStatus.statusOptionsFor(page) : null;
+
+  // And a way to correct it. Every row, on every page whose form is a create
+  // form -- without this the edit page is registered and nothing points at it,
+  // which is the shape of dead-end this codebase has shipped before.
+  const editable = recordEdit.canEdit(page);
+
+  // And a way to take it off the list. Only on the sixteen pages whose records
+  // have no terminal status of their own -- the rest already say "finished
+  // with" in their own vocabulary, and two ways to do one thing is worse than
+  // one way somebody has to learn.
+  const archivable = recordArchive.canArchive(page);
+
+  const extraHeads = [
+    ...(opens ? ["<th>Details</th>"] : []),
+    ...(editable ? ["<th>Correct</th>"] : []),
+    // "Change status", not "Status". Several of these pages already show the
+    // status as one of their own columns, and two headers reading Status is a
+    // table nobody can read at a glance.
+    ...(rowStatus ? ["<th>Change status</th>"] : []),
+    ...(archivable ? ["<th>On your list</th>"] : []),
+    ...(action ? [`<th>${ui.escape(action.columnLabel || "Action")}</th>`] : [])
+  ];
   const head = [...page.columns.map((column) => `<th>${ui.escape(column.label)}</th>`), ...extraHeads].join("");
   const width = page.columns.length + extraHeads.length;
   const body = rows.length
     ? rows.map((row) => {
       const cells = page.columns.map((column) => `<td>${ui.escape(safeCell(column, row))}</td>`);
       if (opens) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}`, "Open")}</td>`);
+      if (editable) cells.push(`<td>${ui.link(`${page.path}/${encodeURIComponent(String(row.id || ""))}/edit`, "Edit")}</td>`);
+      if (rowStatus) cells.push(`<td>${statusControl(page, row, rowStatus, ui)}</td>`);
+      if (archivable) cells.push(`<td>${archiveControl(page, row, ui)}</td>`);
       if (action) {
         const id = encodeURIComponent(String(row.id || ""));
         let reason = null;
@@ -1817,10 +2226,23 @@ function recordsCard(page, rows, ui, loaded = null) {
       }
       return `<tr>${cells.join("")}</tr>`;
     }).join("")
-    : `<tr><td colspan="${width}">${ui.escape(page.empty)}</td></tr>`;
-  const count = recordCountCaption(rows, loaded);
-  const pager = page.path ? pagerLinks(page, loaded, ui) : "";
-  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
+    // "You have no customers yet" is false when the business has eight hundred
+    // and none of them match what was typed.
+    : `<tr><td colspan="${width}">${ui.escape(term ? `None of your records match "${term}". Clear the filter to see them all.` : page.empty)}</td></tr>`;
+  const hidden = recordArchive.describeHidden(archive.archivedCount, { including: archive.showingArchived });
+  const said = recordCountCaption(rows, loaded, term);
+  // Appended rather than folded in: "12 records" stays the answer to how many
+  // there are, and the archived line is a separate fact about what is on screen.
+  // A single merged number would be a third thing that is neither.
+  const count = hidden ? `${said} ${hidden}` : said;
+  const toggle = archivable
+    ? ui.link(
+        recordFilter.pathWith(page.path, { term }) + (archive.showingArchived ? "" : (term ? "&" : "?") + "archived=1"),
+        archive.showingArchived ? "Hide archived" : "Show archived too"
+      )
+    : "";
+  const pager = page.path ? pagerLinks(page, loaded, ui, term) : "";
+  return `<article class="card"><h2>${ui.escape(page.title)}</h2><p>${ui.escape(count)}</p>${toggle ? `<nav class="card-actions">${toggle}</nav>` : ""}<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${pager}</article>`;
 }
 
 // One awkward value should cost its own cell, not the whole page.
@@ -1912,6 +2334,157 @@ function summaryCard(page, row, ui) {
     .map((column) => `<tr><th>${ui.escape(column.label)}</th><td>${ui.escape(safeCell(column, row))}</td></tr>`)
     .join("");
   return `<article class="card"><h2>${ui.escape(page.title)}</h2><table><tbody>${cells}</tbody></table></article>`;
+}
+
+// The control for the field whose whole purpose is to change.
+//
+// Rendered from the page's own declaration, so the options a person can pick
+// are exactly the ones the create form offers and the database allows. A
+// hand-written list here would be the third copy and the first to drift.
+// The create form again, with the record already in it.
+//
+// The same `formField` renderer, so a field type added to the create form is
+// editable the day it is added. A second renderer here would be the copy that
+// drifts, and the divergence would show up as an edit form quietly missing the
+// newest field -- which looks exactly like a field that has no value.
+function editFormCard(page, row, references, ui, problem) {
+  const fields = recordEdit
+    .editableFields(page)
+    .map((field) => formField(field, references, ui, recordEdit.currentValue(field, row)))
+    .join("");
+  const outcome = problem ? `<p class="fine" role="status">${ui.escape(String(problem).slice(0, 300))}</p>` : "";
+  return [
+    '<article class="card">',
+    `<h2>Correct this ${ui.escape(recordNoun(page))}</h2>`,
+    outcome,
+    `<form method="post" action="${ui.escape(`${page.path}/${encodeURIComponent(String(row?.id || ""))}`)}">`,
+    fields,
+    '<button class="action" type="submit">Save changes</button>',
+    "</form>",
+    "</article>"
+  ].join("");
+}
+
+// "Correct this customer" rather than "Correct this Customers". The page titles
+// are plural because they name lists, and a heading over one record should not
+// be.
+function recordNoun(page) {
+  const title = String(page?.title || "record").toLowerCase();
+  if (title.endsWith("ies")) return `${title.slice(0, -3)}y`;
+  if (title.endsWith("sses") || title.endsWith("ches") || title.endsWith("shes")) return title.slice(0, -2);
+  if (title.endsWith("s")) return title.slice(0, -1);
+  return title;
+}
+
+// What has happened to this record.
+//
+// Three states rather than two, like every other read on these pages: entries,
+// no entries, and **we could not tell**. A read that failed rendered as "nothing
+// has been changed" would tell somebody a definite thing about their own history
+// on the strength of a request that did not happen -- and this is the page where
+// they came to check exactly that before changing something themselves.
+function historyCard(history, ui) {
+  if (!history?.ok) {
+    return ui.card("Changes", "We could not read this record's history just now. That does not mean nothing has changed.");
+  }
+  const entries = history.entries || [];
+  if (!entries.length) {
+    return ui.card("Changes", "Nothing has been changed since this was created.");
+  }
+  const rows = entries
+    .map((entry) => {
+      const when = entry.when ? String(entry.when).slice(0, 16).replace("T", " ") : "at an unrecorded time";
+      return `<tr><td>${ui.escape(entry.what)}</td><td>${ui.escape(entry.who)}</td><td>${ui.escape(when)}</td></tr>`;
+    })
+    .join("");
+  return [
+    '<article class="card">',
+    "<h2>Changes</h2>",
+    // Said rather than left to be discovered. Somebody reading a history and
+    // finding no old value will otherwise assume it is missing rather than
+    // deliberately absent.
+    '<p class="fine">Which fields changed, and when. The values themselves are not kept here — these records hold contact details, and a second copy of them would be a second place erasure has to reach.</p>',
+    "<table><thead><tr><th>What</th><th>Who</th><th>When</th></tr></thead><tbody>",
+    rows,
+    "</tbody></table>",
+    "</article>"
+  ].join("");
+}
+
+// Off the list, or back on it.
+//
+// One button whose label is the action, not the state. "Archived / Current" as
+// a status word would leave somebody guessing whether pressing it sets that
+// state or leaves it.
+function archiveControl(page, row, ui) {
+  const archived = Boolean(row?.archived_at);
+  const id = encodeURIComponent(String(row?.id || ""));
+  return [
+    `<form method="post" action="${ui.escape(`${page.path}/${id}/archive`)}">`,
+    `<input type="hidden" name="archived" value="${archived ? "0" : "1"}">`,
+    `<button class="action" type="submit">${archived ? "Put back" : "Archive"}</button>`,
+    "</form>"
+  ].join("");
+}
+
+function statusControl(page, row, options, ui) {
+  const current = String(row?.status || "");
+  const id = String(row?.id || "");
+  const choices = options
+    .map((value) => `<option value="${ui.escape(value)}"${value === current ? " selected" : ""}>${ui.escape(readableStatus(value))}</option>`)
+    .join("");
+  return [
+    `<form method="post" action="${ui.escape(`${page.path}/${encodeURIComponent(id)}/status`)}">`,
+    // The column header already says Status, so the visible label would be the
+    // same word twice in every row. The select still needs a name for anybody
+    // arriving by keyboard or screen reader, and aria-label is that name.
+    `<select name="status" aria-label="Status">${choices}</select>`,
+    '<button class="action" type="submit">Save</button>',
+    "</form>"
+  ].join("");
+}
+
+// Underscores are how the database spells these; they are not how anybody
+// reads them.
+function readableStatus(value) {
+  return String(value || "").replaceAll("_", " ");
+}
+
+// What happened last time somebody pressed one of those buttons.
+//
+// Carried in the query string because the change is a POST that redirects, and
+// rendered wherever the control is. Without it a status change looks exactly
+// like a page reload -- including the case that matters most, where the record
+// already had the status asked for and genuinely nothing changed.
+function statusOutcome(ui, problem, done) {
+  const text = problem || done;
+  if (!text) return "";
+  return `<p class="fine" role="status">${ui.escape(String(text).slice(0, 300))}</p>`;
+}
+
+// The control for the field whose whole purpose is to change.
+//
+// Rendered from the page's own declaration, so the options a person can pick
+// are exactly the ones the create form offers and the database allows. A
+// hand-written list here would be the third copy and the first to drift.
+function statusCard(page, row, ui, problem, done) {
+  const options = recordStatus.statusOptionsFor(page);
+  const current = String(row?.status || "");
+
+  // Said above the control rather than only after it. Somebody arriving to
+  // change a status wants to know what it is now.
+  const note = current
+    ? `This is ${ui.escape(readableStatus(current))} at the moment.`
+    : "This has no status recorded yet.";
+
+  return [
+    '<article class="card">',
+    "<h2>Status</h2>",
+    `<p>${note}</p>`,
+    statusOutcome(ui, problem, done),
+    statusControl(page, row, options, ui),
+    "</article>"
+  ].join("");
 }
 
 function linesCard(spec, listed, ui) {
@@ -2039,8 +2612,12 @@ function formCard(page, references, ui) {
   return `<article class="card"><h2>${ui.escape(page.form.legend)}</h2><form method="post" action="${ui.escape(action)}">${fields}<button type="submit">${ui.escape(submit)}</button></form></article>`;
 }
 
-function formField(field, references, ui) {
+// `current` is the value already on the record, for the edit form. It defaults
+// to undefined so every create-form caller is unchanged: an input with no value
+// attribute is an empty input, which is what creating a record wants.
+function formField(field, references, ui, current = "") {
   const required = field.required ? " required" : "";
+  const now = String(current ?? "");
   const label = ui.escape(field.label);
   const hint = field.hint ? `<span class="fine">${ui.escape(field.hint)}</span>` : "";
   const name = ui.escape(field.name);
@@ -2049,12 +2626,25 @@ function formField(field, references, ui) {
     // one with nothing in it -- the first tells a customer to go and create a
     // record they may already have dozens of.
     const source = references[field.from];
-    const options = (source?.options || []).map((option) => `<option value="${ui.escape(option.id)}">${ui.escape(option.label)}</option>`).join("");
+    const listed = source?.options || [];
+    const options = listed.map((option) => `<option value="${ui.escape(option.id)}"${String(option.id) === now ? " selected" : ""}>${ui.escape(option.label)}</option>`).join("");
+
+    // The record already chosen, when the list does not contain it.
+    //
+    // This is the edit form's problem, not the create form's. A picker whose
+    // list failed to load -- or which is paged and does not reach this record
+    // -- would otherwise render a select with no current value, and saving that
+    // form would clear the reference somebody never touched. Keeping the
+    // current one as an option means blank is a choice rather than an accident.
+    const already = now && !listed.some((option) => String(option.id) === now)
+      ? `<option value="${ui.escape(now)}" selected>The one already chosen</option>`
+      : "";
+
     if (source && source.ok === false) {
-      return `<label>${label}<select name="${name}"${required}><option value="">We could not load these just now</option></select></label>${hint}`;
+      return `<label>${label}<select name="${name}"${required}>${already}<option value=""${already ? "" : " selected"}>We could not load these just now</option></select></label>${hint}`;
     }
-    if (!options) return `<label>${label}<select name="${name}"${required}><option value="">Nothing to choose yet — add one first</option></select></label>${hint}`;
-    return `<label>${label}<select name="${name}"${required}><option value="">Choose one</option>${options}</select></label>${hint}`;
+    if (!options) return `<label>${label}<select name="${name}"${required}>${already}<option value="">${already ? "Choose a different one once they load" : "Nothing to choose yet — add one first"}</option></select></label>${hint}`;
+    return `<label>${label}<select name="${name}"${required}>${already}<option value="">Choose one</option>${options}</select></label>${hint}`;
   }
   if (field.type === "select") {
     // A string option is its own label, which is right for a status column
@@ -2065,17 +2655,18 @@ function formField(field, references, ui) {
     const options = (field.options || []).map((option) => {
       const value = option && typeof option === "object" ? option.value : option;
       const shown = option && typeof option === "object" ? option.label : String(option).replaceAll("_", " ");
-      return `<option value="${ui.escape(value)}">${ui.escape(shown)}</option>`;
+      return `<option value="${ui.escape(value)}"${String(value) === now ? " selected" : ""}>${ui.escape(shown)}</option>`;
     }).join("");
     return `<label>${label}<select name="${name}"${required}>${options}</select></label>${hint}`;
   }
   if (field.type === "textarea") {
-    return `<label>${label}<textarea name="${name}" rows="4" maxlength="${Number(field.maxLength || 2000)}"${required}></textarea></label>${hint}`;
+    return `<label>${label}<textarea name="${name}" rows="4" maxlength="${Number(field.maxLength || 2000)}"${required}>${ui.escape(now)}</textarea></label>${hint}`;
   }
   const type = ui.escape(field.type || "text");
   const step = field.step ? ` step="${ui.escape(field.step)}"` : "";
   const maxLength = field.maxLength ? ` maxlength="${Number(field.maxLength)}"` : "";
-  return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${required}></label>${hint}`;
+  const value = now ? ` value="${ui.escape(now)}"` : "";
+  return `<label>${label}<input type="${type}" name="${name}"${step}${maxLength}${value}${required}></label>${hint}`;
 }
 
 function ownerActions(ui, currentPath) {
@@ -2215,10 +2806,10 @@ function pageNumber(value) {
   return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
 }
 
-async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1) {
+async function listRecordPage(config, table, organizationId, order = "created_at.desc", select = "*", page = 1, filterClause = "") {
   const offset = (page - 1) * PAGE_SIZE;
   const window = offset > 0 ? `&offset=${offset}` : "";
-  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
+  const query = `?select=${encodeURIComponent(select)}&organization_id=eq.${encodeURIComponent(organizationId)}${filterClause}&order=${order}&limit=${PAGE_SIZE + 1}${window}`;
   const listed = await supabaseList(config, table, query);
   if (!listed.ok) return listed;
 
@@ -2231,7 +2822,10 @@ async function listRecordPage(config, table, organizationId, order = "created_at
   // records, and forgetting that would report page 3 of 250 as "12 records".
   if (!more && page === 1) return { ...base, total: rows.length, loadedAll: true };
 
-  const counted = await supabaseCount(config, table, organizationId);
+  // Counted through the same filter as the list. An unfiltered count over a
+  // filtered list would say "812 records" above three rows, which is a bigger
+  // lie than no caption at all.
+  const counted = await supabaseCount(config, table, organizationId, filterClause);
   // A failed count is left null rather than guessed at, and the caption says
   // only what the read itself established.
   return { ...base, total: counted.ok ? counted.count : null, loadedAll: false };
@@ -2261,9 +2855,9 @@ async function supabaseList(config, table, query) {
   return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
 }
 
-async function supabaseCount(config, table, organizationId) {
+async function supabaseCount(config, table, organizationId, filterClause = "") {
   const scope = organizationId ? `&organization_id=eq.${encodeURIComponent(organizationId)}` : "";
-  const response = await fetch(`${config.url}/rest/v1/${table}?select=id${scope}&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
+  const response = await fetch(`${config.url}/rest/v1/${table}?select=id${scope}${filterClause}&limit=1`, { headers: headers(config, { Prefer: "count=exact" }) }).catch(() => undefined);
   if (!response?.ok) return { ok: false, count: null };
   const range = response.headers?.get?.("content-range") || "";
   const match = range.match(/\/(\d+)$/);
@@ -2275,6 +2869,23 @@ async function supabaseInsert(config, table, payload) {
   if (!response?.ok) return { ok: false, code: "insert_failed", table, status: response?.status || null };
   const rows = await response.json().catch(() => []);
   return { ok: true, table, rows };
+}
+
+// A PATCH filtered by organization as well as by id.
+//
+// supabasePatch above filters on id alone, which is right for the tables that
+// have no organization column. These do, and the service key bypasses row level
+// security, so the filter is the whole tenant boundary.
+async function supabasePatchScoped(config, table, id, organizationId, payload) {
+  const query = `?id=eq.${encodeURIComponent(id)}&organization_id=eq.${encodeURIComponent(organizationId)}`;
+  const response = await fetch(`${config.url}/rest/v1/${table}${query}`, {
+    method: "PATCH",
+    headers: headers(config, { Prefer: "return=representation" }),
+    body: JSON.stringify(payload)
+  }).catch(() => undefined);
+  if (!response?.ok) return { ok: false, code: "update_failed", table, status: response?.status || null, rows: [] };
+  const rows = await response.json().catch(() => []);
+  return { ok: true, table, rows: Array.isArray(rows) ? rows : [] };
 }
 
 async function supabasePatch(config, table, id, payload) {

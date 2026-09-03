@@ -21,7 +21,7 @@ away from what the code actually does.
   services the owner runs, why a serverless function cannot see their laptop,
   and the four rules an adapter must follow. Read it before adding one.
 - **`docs/owner/`** — `WHAT-IS-LEFT.md` is the derived count of remaining work,
-  and `OWNER-STEPS.md` is the four things only the owner can do, each written to
+  and `OWNER-STEPS.md` is the seven things only the owner can do, each written to
   be run rather than interpreted. Update both when one is closed.
 - **`docs/market/`** and **`docs/pricing/`** — what competing stacks cost and
   what we actually replace, each figure dated and sourced. Read these before

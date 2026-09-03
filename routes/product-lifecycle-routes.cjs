@@ -175,7 +175,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
     const data = loaded.body;
     const initiative = data.initiative;
     return res.status(200).type("html").send(ui.layout({
-      title: `${initiative.name} | Product Lifecycle`,
+      title: `${initiative.name} | Roadmap`,
       eyebrow: `${studioLabel(initiative.studio_key)} · ${stageLabel(initiative.lifecycle_stage)}`,
       heading: initiative.name,
       body: initiative.product_goal || initiative.problem_statement || "Add a Product Goal and evidence before advancing.",
@@ -189,7 +189,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
         evidenceForm(initiative.id, ui.escape),
         requirementForm(initiative.id, ui.escape),
         feedbackForm(initiative.id, ui.escape),
-        reviewForm(initiative.id, initiative.lifecycle_stage, data.readiness.score, ui.escape)
+        reviewForm(initiative.id, data.readiness.score, ui.escape)
       ],
       actions: [ui.link("/product-lifecycle", "Portfolio")]
     }));
@@ -420,13 +420,13 @@ async function renderLifecycleDashboard(req, res, deps, ui, studioKey) {
     ui.card("Evidence before expansion", "Do not build because an idea sounds exciting. Record the problem, audience, market evidence, alternatives, pricing evidence, assumptions, and decision rationale."),
     ui.card("MVP means hypothesis test", "Scope only the smallest coherent experience that tests the riskiest assumptions. Record non-goals and Won't Have items to prevent feature creep."),
     ui.card("Definition of Done", "Every increment includes tests, security, accessibility, privacy, operational ownership, support impact, and traces, metrics, and logs where applicable."),
-    ui.card("Stage gates", "Advance only when evidence reaches the readiness threshold and no critical blocker remains. Valid decisions are advance, hold, pivot, stop, or scale."),
+    ui.card("Moving to the next stage", "Move on only when the evidence for this stage is in and nothing critical is still open. The choices are advance, hold, pivot, stop, or scale."),
     initiativeForm(studioKey, ui.escape),
     ...initiatives.map((initiative) => initiativeCard(initiative, ui))
   ];
   return res.status(200).type("html").send(ui.layout({
-    title: `${studioLabel(studioKey)} Product Lifecycle`,
-    eyebrow: "SONARA Product Lifecycle",
+    title: `${studioLabel(studioKey)} Roadmap`,
+    eyebrow: "SONARA Roadmap",
     heading: `${studioLabel(studioKey)} discovery, MVP, beta, launch, and learning`,
     body: "Turn ideas into evidence-backed products through one tenant-scoped operating model shared across SONARA Industries, Business Builder, Creator Studio, and Growth Studio.",
     sections,
@@ -504,7 +504,7 @@ function scoreInitiative(bundle) {
 }
 
 function initiativeForm(studioKey, escape) {
-  return `<article class="card"><h2>Create lifecycle initiative</h2><form method="post" action="/product-lifecycle/initiatives"><input type="hidden" name="studio_key" value="${escape(studioKey)}"><label>Name<input name="name" required maxlength="240"></label><label>Problem statement<textarea name="problem_statement" required></textarea></label><label>Target audience<textarea name="target_audience" required></textarea></label><label>Initial value proposition<textarea name="value_proposition"></textarea></label><label>Product Goal<textarea name="product_goal"></textarea></label><label>Primary metric<input name="primary_metric"></label><button type="submit">Create initiative</button></form></article>`;
+  return `<article class="card"><h2>Start something new</h2><form method="post" action="/product-lifecycle/initiatives"><input type="hidden" name="studio_key" value="${escape(studioKey)}"><label>Name<input name="name" required maxlength="240"></label><label>Problem statement<textarea name="problem_statement" required></textarea></label><label>Target audience<textarea name="target_audience" required></textarea></label><label>Initial value proposition<textarea name="value_proposition"></textarea></label><label>Product Goal<textarea name="product_goal"></textarea></label><label>Primary metric<input name="primary_metric"></label><button type="submit">Create initiative</button></form></article>`;
 }
 
 function evidenceForm(id, escape) {
@@ -512,15 +512,26 @@ function evidenceForm(id, escape) {
 }
 
 function requirementForm(id, escape) {
-  return `<article class="card"><h2>Add scope or operating requirement</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/requirements"><label>Type<select name="requirement_type">${[...REQUIREMENT_TYPES].map((value) => `<option value="${value}">${value.replaceAll("_", " ")}</option>`).join("")}</select></label><label>Title<input name="title" required></label><label>Detail<textarea name="detail"></textarea></label><label>Priority<select name="priority"><option value="must">Must Have</option><option value="should">Should Have</option><option>value="could">Could Have</option><option value="wont">Won't Have</option></select></label><label>Acceptance criteria<textarea name="acceptance_criteria"></textarea></label><button type="submit">Add requirement</button></form></article>`;
+  return `<article class="card"><h2>Add scope or operating requirement</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/requirements"><label>Type<select name="requirement_type">${[...REQUIREMENT_TYPES].map((value) => `<option value="${value}">${value.replaceAll("_", " ")}</option>`).join("")}</select></label><label>Title<input name="title" required></label><label>Detail<textarea name="detail"></textarea></label><label>Priority<select name="priority"><option value="must">Must Have</option><option value="should">Should Have</option><option value="could">Could Have</option><option value="wont">Won't Have</option></select></label><label>Acceptance criteria<textarea name="acceptance_criteria"></textarea></label><button type="submit">Add requirement</button></form></article>`;
 }
 
 function feedbackForm(id, escape) {
   return `<article class="card"><h2>Record beta or customer feedback</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/feedback"><label>Category<select name="category">${[...FEEDBACK_CATEGORIES].map((value) => `<option value="${value}">${value}</option>`).join("")}</select></label><label>Severity<select name="severity"><option>low</option><option selected>medium</option><option>high</option><option>critical</option></select></label><label>Summary<textarea name="summary" required></textarea></label><label>Beta cohort<input name="beta_cohort"></label><button type="submit">Record feedback</button></form></article>`;
 }
 
-function reviewForm(id, stage, score, escape) {
-  return `<article class="card"><h2>Stage review</h2><p>Current readiness score: ${escape(String(score))}/100. Advance and scale decisions require at least 70 with no critical blocker.</p><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/reviews"><input type="hidden" name="stage" value="${escape(stage)}"><label>Decision<select name="decision"><option>hold</option><option>advance</option><option>pivot</option><option>stop</option><option>scale</option></select></label><label>Rationale<textarea name="rationale" required></textarea></label><label><input type="checkbox" name="approved" value="true"> Owner approval attested</label><button type="submit">Record review</button></form></article>`;
+// The stage is deliberately NOT a field here. `addStageReview` records
+// `bundle.body.initiative.lifecycle_stage` -- the stage the initiative is
+// actually in, read back from the database -- rather than whatever the form
+// says it was. This page posts to an endpoint reachable by anybody who can
+// reach the page, so a stage carried in the request is a stage the requester
+// chooses, and the readiness gate above it is graded against that stage.
+//
+// A hidden `stage` input sat here until 3 September 2026, submitted on every
+// review and ignored on every one. Harmless as it stood, and misleading: it
+// reads as though the stage travels with the review, which is the premise
+// somebody would act on when "fixing" the handler to use it.
+function reviewForm(id, score, escape) {
+  return `<article class="card"><h2>Stage review</h2><p>Current readiness score: ${escape(String(score))}/100. Advance and scale decisions require at least 70 with no critical blocker.</p><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/reviews"><label>Decision<select name="decision"><option>hold</option><option>advance</option><option>pivot</option><option>stop</option><option>scale</option></select></label><label>Rationale<textarea name="rationale" required></textarea></label><label><input type="checkbox" name="approved" value="true"> Owner approval attested</label><button type="submit">Record review</button></form></article>`;
 }
 
 function initiativeCard(initiative, ui) {

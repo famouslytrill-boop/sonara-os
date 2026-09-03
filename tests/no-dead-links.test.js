@@ -130,7 +130,11 @@ describe("no dead links", () => {
     const fs = require("node:fs");
     const path = require("node:path");
     const source = fs.readFileSync(path.join(__dirname, "..", "data", "open-source-tools.ts"), "utf8");
-    const gateBlocks = [...source.matchAll(/\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g)].length;
+    // The shared pattern, not a third copy of it. This file held its own until
+    // 2 September 2026, which is exactly how two readers of one file come to
+    // disagree about what is in it.
+    const { BLOCK } = require("../lib/sonara-open-source-registry.cjs");
+    const gateBlocks = [...source.matchAll(new RegExp(BLOCK.source, "g"))].length;
     const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
     assert.equal(readOpenSourceTools().length, gateBlocks, "the page and scripts/verify-open-source-registry.mjs disagree about how many records exist");
   });

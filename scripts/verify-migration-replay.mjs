@@ -254,6 +254,25 @@ function main() {
       statements += 1;
     }
 
+    // Run SQL against the replayed database and require every expected marker
+    // in its output. Each marker carries the value it is asserting -- so a
+    // failure says `stale_kept_canceled` rather than "expected true, got
+    // false", and names which of the three cases went wrong.
+    function behaves(run, what, sql, expected) {
+      const result = run(sql);
+      if (result.status !== 0) {
+        stop(`the behaviour probe "${what}" would not run against the replayed database:\n${result.stderr || result.stdout}`);
+      }
+      const output = String(result.stdout || "");
+      const absent = expected.filter((marker) => !output.includes(marker));
+      if (absent.length) {
+        stop(
+          `the schema applied but does not behave: ${what}. Expected ${absent.join(", ")} and did not get it.\n` +
+          `What the database actually said:\n${output.trim()}`
+        );
+      }
+    }
+
     // Proof the replay built something, rather than passing on a cluster where
     // every statement quietly did nothing.
     const missing = [];
@@ -265,10 +284,67 @@ function main() {
       stop(`the replay reported no errors and did not create ${missing.join(", ")}. It is not replaying what it claims to.`);
     }
 
+    // A schema that applies is not a schema that behaves.
+    //
+    // 20260903120000 adds a trigger whose whole job is to DISCARD a write --
+    // a Stripe event carrying an older stamp than the row already holds. That
+    // is invisible to everything else here: the column exists, the trigger
+    // exists, the migration applies, and the guard could still be inverted or
+    // never fire. Every other check in this repository would stay green while a
+    // late `customer.subscription.updated` silently reinstated a cancelled
+    // subscription.
+    //
+    // The database is already running at this point, so proving it costs one
+    // statement. This is the only place in the release chain that can.
+    behaves(psql, "a stale provider event is discarded and a newer one is not", `
+      insert into public.billing_subscriptions (provider, provider_subscription_ref, status, provider_event_at)
+        values ('stripe', 'sub_replay_probe', 'active', '2026-01-02T00:00:00Z');
+
+      -- older stamp: must be discarded, status stays active
+      update public.billing_subscriptions
+        set status = 'canceled', provider_event_at = '2026-01-01T00:00:00Z'
+        where provider_subscription_ref = 'sub_replay_probe';
+      select 'stale_kept_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
+
+      -- newer stamp: must apply
+      update public.billing_subscriptions
+        set status = 'canceled', provider_event_at = '2026-01-03T00:00:00Z'
+        where provider_subscription_ref = 'sub_replay_probe';
+      select 'fresh_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
+
+      -- no stamp on the incoming write: must apply, never silently do nothing
+      update public.billing_subscriptions
+        set status = 'past_due', provider_event_at = null
+        where provider_subscription_ref = 'sub_replay_probe';
+      select 'unstamped_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
+    `, ["stale_kept_active", "fresh_gave_canceled", "unstamped_gave_past_due"]);
+
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
+    // What this sentence must not be read as, and the reason is not hypothetical.
+    //
+    // The failure message above says production can be healthy while this is
+    // broken. **The converse is also true and was live for a month.** From
+    // 5 August to 3 September 2026 every Controlled Production Deployment
+    // failed -- fourteen consecutive runs, #111 to #124 -- on
+    //
+    //     Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+    //     ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+    //
+    // while this check was green on every one of them. It is green because
+    // `public.quotes` is created by 010_sonara_platform_current_schema.sql,
+    // which a replay onto an empty database runs. Production's migration
+    // history says that file is already applied; the table is not there. A
+    // replay cannot see that, because it never reads production's history --
+    // that is the whole point of replaying onto an empty cluster, and it is
+    // also the shape of what it cannot tell you.
+    //
+    // So: this proves the migration set is self-consistent. It proves nothing
+    // about whether production's schema matches it.
     console.log(
       `Migration replay verified: ${statements} migrations applied in order to an empty PostgreSQL, ` +
-      `${MUST_EXIST.length} expected tables present. This is the only check here that executes the SQL.`
+      `${MUST_EXIST.length} expected tables present. This is the only check here that executes the SQL -- ` +
+      `against an empty database, so it says the migrations agree with each other and nothing about ` +
+      `whether production's schema agrees with them.`
     );
   } finally {
     cleanUp();

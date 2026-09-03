@@ -37,24 +37,24 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| One Connected Account | Free | `beta` | `/dashboard` | Yes |
+| One Connected Account | Free | `active` | `/dashboard` | Yes |
 | Logins, Team & Permissions | Free | `active` | `/account` | Yes |
-| Plans & Billing | Free | `beta` | `/pricing` | Yes |
-| Your Records, And Taking Them With You | Free | `beta` | `/account/data` | Yes |
-| Connected Accounts | Free | `beta` | `/account/integrations` | Yes |
-| Security & Status Center | Free | `beta` | `/readiness` | Yes |
+| Plans & Billing | Free | `active` | `/pricing` | Yes |
+| Your Records, And Taking Them With You | Free | `active` | `/account/data` | Yes |
+| Connected Accounts | Free | `active` | `/account/integrations` | Yes |
+| Security & Status Center | Free | `active` | `/readiness` | Yes |
 | Research & Roadmap | Free | `active` | `/market-intelligence` | Yes |
 
 ## Business Builder products
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Business Plan & Setup Check | Free | `beta` | `/business-builder/tools/readiness` | Yes |
+| Business Plan & Setup Check | Free | `active` | `/business-builder/tools/readiness` | Yes |
 | Offer & Pricing Builder | Free | `active` | `/business-builder/tools/offer` | Yes |
 | Customer & Enquiry Tracker | Starter | `active` | `/business-builder/owner/customers` | Yes |
-| Quotes, Invoices & Getting Paid | Core | `beta` | `/business-builder/owner/invoices` | Yes |
-| Bookings, Staff & Day-to-Day | Core | `beta` | `/business-builder/owner` | Yes |
-| Records & Exports | Core | `beta` | `/business-builder/owner/accounting-exports` | Yes |
+| Quotes, Invoices & Getting Paid | Core | `active` | `/business-builder/owner/invoices` | Yes |
+| Bookings, Staff & Day-to-Day | Core | `active` | `/business-builder/owner` | Yes |
+| Records & Exports | Core | `active` | `/business-builder/owner/accounting-exports` | Yes |
 | Break-Even and Runway | Free | `active` | `/business-builder/tools/break-even` | Yes |
 | Shift Rota Cost Planner | Free | `active` | `/business-builder/tools/rota` | Yes |
 | Deposit and Payment Schedule | Free | `active` | `/business-builder/tools/payment-plan` | Yes |
@@ -66,10 +66,10 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Brand & Asset Library | Starter | `beta` | `/creator-studio/assets` | Yes |
-| Content Projects & Reuse | Starter | `beta` | `/creator-studio/tools/brief` | Yes |
-| Release Packager | Core | `beta` | `/creator-studio/music-system` | Yes |
-| Selling Your Work | Free | `beta` | `/creator-studio/offers/free` | Yes |
+| Brand & Asset Library | Starter | `active` | `/creator-studio/assets` | Yes |
+| Content Projects & Reuse | Starter | `active` | `/creator-studio/tools/brief` | Yes |
+| Release Packager | Core | `active` | `/creator-studio/music-system` | Yes |
+| Selling Your Work | Free | `active` | `/creator-studio/offers/free` | Yes |
 | Rate Card Builder | Free | `active` | `/creator-studio/tools/rate-card` | Yes |
 | Split Sheet and Credits | Free | `active` | `/creator-studio/tools/split-sheet` | Yes |
 | Repurposing Planner | Free | `active` | `/creator-studio/tools/repurpose` | Yes |
@@ -82,12 +82,12 @@ automatically an executable one.
 
 | Product | Plan | State | Route | Open |
 |---|---|---|---|---|
-| Customer History & Permissions | Core | `beta` | `/growth-studio/consent` | Yes |
-| Lead Capture & Lists | Core | `beta` | `/growth-studio/segments` | Yes |
-| Campaign Builder | Core | `beta` | `/growth-studio/your-campaigns` | Yes |
-| Landing Pages & Results | Core | `beta` | `/growth-studio/attribution` | Yes |
-| Did It Actually Work? | Pro | `beta` | `/growth-studio/experiments` | Yes |
-| Connection Health | Pro | `beta` | `/growth-studio/providers` | Yes |
+| Customer History & Permissions | Core | `active` | `/growth-studio/consent` | Yes |
+| Lead Capture & Lists | Core | `active` | `/growth-studio/segments` | Yes |
+| Campaign Builder | Core | `active` | `/growth-studio/your-campaigns` | Yes |
+| Landing Pages & Results | Core | `active` | `/growth-studio/attribution` | Yes |
+| Did It Actually Work? | Pro | `active` | `/growth-studio/experiments` | Yes |
+| Connection Health | Pro | `active` | `/growth-studio/providers` | Yes |
 | Campaign Budget Split | Free | `active` | `/growth-studio/tools/budget-split` | Yes |
 | Referral Reward Planner | Free | `active` | `/growth-studio/tools/referral` | Yes |
 | Follow-Up Schedule | Free | `active` | `/growth-studio/tools/follow-up-schedule` | Yes |

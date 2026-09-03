@@ -49,8 +49,19 @@ function isExcluded(file, text) {
 
 // The true numbers, read from the repository rather than remembered.
 const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
-const chain = String(packageJson.scripts?.["verify:launch"] || "");
-const commandCount = chain ? chain.split("&&").length : 0;
+// Counted by expanding the chain, not by splitting its string on `&&`.
+//
+// Those were the same number while verify:launch was one flat line. Then
+// everything after verify:db moved into verify:gates so CI could run the whole
+// gate as one step, and this check reported the chain as **7 commands** against
+// a document correctly saying 31. The check was accurate about the string and
+// wrong about the thing it named.
+//
+// lib/sonara-release-chain.cjs follows one script into another and drops pure
+// groupings, so the figure means "checks that run" and does not move when
+// somebody tidies the definition.
+const { chainCommands } = createRequire(path.join(root, "package.json"))("./lib/sonara-release-chain.cjs");
+const commandCount = chainCommands(packageJson.scripts || {}).length;
 const testFiles = fs.readdirSync(path.join(root, "tests")).filter((name) => /\.(test\.js|test\.mjs)$/.test(name)).length;
 
 // Three more figures the owner's documents state and nothing was checking.

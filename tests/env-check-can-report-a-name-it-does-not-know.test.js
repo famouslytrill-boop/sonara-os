@@ -53,9 +53,24 @@ describe("the environment check can report a name it has never heard of", () => 
     // Named individually rather than counted, because the count is what went
     // wrong last time: 58 classified names looked complete and was missing the
     // three that decide whether anything can be sold at all.
-    const source = fs.readFileSync(script, "utf8");
+    //
+    // Asserted against the classification itself rather than against the text
+    // of the gate. It used to grep scripts/verify-env.mjs, which passed for as
+    // long as the string sat anywhere in that file -- including in a comment --
+    // and broke when the sets moved to lib/ on 2 September 2026 without any of
+    // them becoming unclassified. Reading the sets tests the property; reading
+    // the file tested where the property happened to live.
+    const classification = require("../lib/sonara-environment-classification.cjs");
+    const classified = new Set([
+      ...classification.REQUIRED,
+      ...classification.PLATFORM_PROVIDED,
+      ...classification.OPTIONAL_CAPABILITY,
+      ...classification.RATCHET,
+      ...classification.DEVELOPMENT_ONLY
+    ]);
+    assert.ok(classified.size > 50, `only ${classified.size} names are classified; this check has gone blind`);
     for (const name of ["STRIPE_PRICE_STARTER_MONTHLY", "STRIPE_PRICE_CORE_MONTHLY", "STRIPE_PRICE_PRO_MONTHLY"]) {
-      assert.match(source, new RegExp(`["']${name}["']`), `${name} is read by the plan table and classified nowhere`);
+      assert.ok(classified.has(name), `${name} is read by the plan table and classified nowhere`);
     }
   });
 

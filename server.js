@@ -41,6 +41,7 @@ const registerCustomerReadyExperience = require("./routes/customer-ready-experie
 // writes here any more and the two bindings went with it.
 const { DATABASE_TABLES, STORAGE_BUCKETS } = require("./lib/sonara-database-contract.cjs");
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
@@ -48,6 +49,13 @@ const { createBilling } = require("./lib/sonara-billing.cjs");
 const { createModuleRecords } = require("./lib/sonara-module-records.cjs");
 const { createCustomerAuth, CUSTOMER_SESSION_COOKIE } = require("./lib/sonara-customer-auth.cjs");
 const plainLanguage = require("./lib/sonara-plain-language.cjs");
+const {
+  splitList,
+  listFieldsWithNothingIn,
+  emptyListMessage,
+  buildBusinessOffer,
+  buildCreatorOffer
+} = require("./lib/sonara-offer-drafts.cjs");
 const { createPageFrame } = require("./lib/sonara-page-frame.cjs");
 const { createModuleCrud, resourceForForm, renderRecordCards, renderSavedOutputCards, renderRecordsUnavailable } = require("./lib/sonara-module-crud.cjs");
 const { createBusinessEmployeeInvites } = require("./lib/sonara-business-employee-invites.cjs");
@@ -61,6 +69,7 @@ const registerAssetFileRoutes = require("./routes/sonara-asset-file-routes.cjs")
 const registerConnectedPaymentRoutes = require("./routes/sonara-connected-payment-routes.cjs");
 const registerNotificationRoutes = require("./routes/sonara-notification-routes.cjs");
 const registerCallRoutes = require("./routes/sonara-call-routes.cjs");
+const registerTwoFactorRoutes = require("./routes/sonara-two-factor-routes.cjs");
 const { installAsyncRouteSafety, createAsyncErrorHandler } = require("./lib/sonara-async-route-safety.cjs");
 const { createCustomerPrimaryOrganizationResolver } = require("./lib/sonara-customer-organization.cjs");
 const { supportRequestOutcome } = require("./lib/sonara-support-outcome.cjs");
@@ -385,6 +394,19 @@ const loginRateLimiter = createAuthRateLimiter("auth.login", {
   maxAttempts: 10,
   scopes: ["ip", "subject"],
   subjectFrom: emailFromBody
+});
+
+// Tighter than sign-in, and scoped by address only.
+//
+// There is no email in the body of a code submission -- the account is named by
+// the sealed challenge, not by the request -- so there is no subject to scope
+// by, which is why this differs from the sign-in and signup limiters above.
+// A challenge already caps itself at five wrong codes; this is what stops
+// somebody opening a fresh challenge for each new guess.
+const twoFactorRateLimiter = createAuthRateLimiter("auth.two_factor", {
+  windowSeconds: 15 * 60,
+  maxAttempts: 20,
+  scopes: ["ip"]
 });
 
 const signupRateLimiter = createAuthRateLimiter("auth.signup", {
@@ -1071,6 +1093,12 @@ app.get("/auth/login", (req, res) => {
 
 app.post("/auth/login", loginRateLimiter, async (req, res) => {
   const result = await handleEmailAuth("login", req.body);
+  // Between the password being accepted and the session cookie being set.
+  // Everything else about two-step sign-in is enrolment; this call is what
+  // makes it a second factor rather than a form somebody can navigate away
+  // from. It answers null when this account has none, and the line below runs.
+  const held = twoFactor.ok ? await twoFactor.holdForSecondFactor(result, req, res) : false;
+  if (held) return undefined;
   return sendEmailAuthResult(req, res, result, "/dashboard", "/login", ({ message }) =>
     loginPage(req, { email: req.body?.email, error: message }));
 });
@@ -1374,6 +1402,10 @@ app.post("/business-builder/invite/accept", inviteAcceptRateLimiter, async (req,
 app.post("/api/business-builder/offers", async (req, res) => {
   const validation = requireFields(req.body, ["serviceType", "audience", "priceIdea", "deliverables"]);
   if (!validation.ok) return sendValidationFailure(req, res, validation, "/business-builder/offers/free");
+  // A required list field arriving as ", , ," passed the check above and split
+  // to nothing, so the saved offer listed no deliverables at all.
+  const emptyLists = listFieldsWithNothingIn(req.body, ["deliverables"]);
+  if (emptyLists.length) return sendEmptyListFailure(req, res, emptyLists, "/business-builder/offers/free");
   return requireWorkspaceAccess("business_builder")(req, res, async () => {
     const output = buildBusinessOffer(req.body);
     return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "business_builder", "offer_builder", req.body, output), "Business offer recorded", "/business-builder/offers/free");
@@ -1426,6 +1458,8 @@ app.post("/api/creator-studio/assets", async (req, res) => {
 app.post("/api/creator-studio/offers", async (req, res) => {
   const validation = requireFields(req.body, ["offerType", "audience", "deliverables", "priceIdea"]);
   if (!validation.ok) return sendValidationFailure(req, res, validation, "/creator-studio/offers/free");
+  const emptyLists = listFieldsWithNothingIn(req.body, ["deliverables"]);
+  if (emptyLists.length) return sendEmptyListFailure(req, res, emptyLists, "/creator-studio/offers/free");
   return requireWorkspaceAccess("creator_studio")(req, res, async () => {
     const output = buildCreatorOffer(req.body);
     return sendWorkspacePostResult(req, res, await saveModuleOutput(req, "creator_studio", "creator_offers", req.body, output), "Creator offer recorded", "/creator-studio/offers/free");
@@ -1465,7 +1499,8 @@ registerModuleCrudRoutes(app, { moduleCrud, requireWorkspaceAccess, wantsJson, r
 registerAssetFileRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders });
 registerConnectedPaymentRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
 registerNotificationRoutes(app, { layout, brandCard, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
-registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+registerCallRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, resolveCustomerSession, getCustomerPrimaryOrganization, getSupabaseServerConfig, supabaseHeaders, getEnv });
+const twoFactor = registerTwoFactorRoutes(app, { layout, brandCard, linkAction, escapeHtml, requireCustomer, getSupabaseServerConfig, supabaseHeaders, getEnv, verifySupabaseAccessToken, sendEmailAuthResult, verifyRateLimiter: twoFactorRateLimiter });
 
 app.get("/api/health", (req, res) => res.status(200).json({
   ok: true,
@@ -2084,7 +2119,8 @@ async function workspaceRecordCards(req, page, config) {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
     if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
-    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path, freeTools: req.app?.locals?.sonaraFreeTools });
+    // origin may be ""; renderShareControl shows the path when it is.
+    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path, freeTools: req.app?.locals?.sonaraFreeTools, origin: siteOrigin(req, getEnv) });
   }
 
   const match = page.form ? resourceForForm(page.form) : null;
@@ -2848,6 +2884,17 @@ function sendValidationFailure(req, res, validation, backHref) {
   );
 }
 
+// A list field that arrived carrying only separators. Its own refusal rather
+// than a reused "missing field" one: somebody who typed nothing and somebody
+// who typed ", , ," need different sentences to know what to do next.
+function sendEmptyListFailure(req, res, fields, backHref) {
+  const message = emptyListMessage(fields);
+  if (wantsJson(req)) return res.status(400).json({ ok: false, code: "empty_list", fields, message });
+  return res.status(400).type("html").send(
+    responsePage("Nothing in the list", message, [linkAction(backHref, "Return to form")])
+  );
+}
+
 function sendWorkspacePostResult(req, res, result, successTitle, backHref) {
   if (wantsJson(req)) return res.status(result.saved ? 200 : 503).json(result);
   const title = result.saved ? successTitle : "Your result is ready";
@@ -3108,27 +3155,7 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ""));
 }
 
-function buildBusinessOffer(input) {
-  return {
-    headline: `${input.serviceType} for ${input.audience}`,
-    pricePosition: String(input.priceIdea),
-    deliverables: splitList(input.deliverables),
-    proofPoints: splitList(input.proofPoints || ""),
-    buyerNextAction: "Submit an intake request and schedule owner review.",
-    caution: "Validate scope, refund terms, and payment readiness before selling."
-  };
-}
 
-function buildCreatorOffer(input) {
-  return {
-    offerType: String(input.offerType),
-    audience: String(input.audience),
-    deliverables: splitList(input.deliverables),
-    pricePosition: String(input.priceIdea),
-    rightsReminder: "Confirm ownership, license terms, and platform rules before monetization.",
-    buyerNextAction: "Review catalog details and support requirements."
-  };
-}
 
 function buildCampaignPlan(input) {
   return {
@@ -3147,9 +3174,6 @@ function buildCampaignPlan(input) {
   };
 }
 
-function splitList(value) {
-  return String(value).split(",").map((item) => item.trim()).filter(Boolean);
-}
 
 function getEnv(names) {
   const keys = Array.isArray(names) ? names : [names];

@@ -2,7 +2,11 @@
 name = "sonara-ops"
 version = "0.1.0"
 description = "Local and CI operations tooling for SONARA One database, analytics, audits, and migration verification."
-requires-python = ">=3.13,<3.15"
+# 3.12, not 3.13. The >=3.13 floor was a claim nothing checked, and it made
+# this package uninstallable under the interpreter every workflow in
+# .github/workflows pins. Verified rather than relaxed by guess: every module
+# here imports and runs on 3.12, and the test suite passes on it.
+requires-python = ">=3.12,<3.15"
 dependencies = [
   "asyncpg>=0.30.0",
   "psycopg[binary]>=3.2.0",

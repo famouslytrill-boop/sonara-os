@@ -2,6 +2,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const registryRequire = createRequire(import.meta.url);
+const { BLOCK: REGISTRY_BLOCK, registryIntegrity } = registryRequire("../lib/sonara-open-source-registry.cjs");
 
 const root = process.cwd();
 const networkMode = process.argv.includes("--network");
@@ -96,7 +100,25 @@ for (const line of requirements.split(/\r?\n/).map((value) => value.trim()).filt
 }
 
 const toolsSource = read("data/open-source-tools.ts");
-const toolBlocks = [...toolsSource.matchAll(/\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g)].map((match) => match[0]);
+// The pattern comes from lib/sonara-open-source-registry.cjs rather than being
+// restated here. Two copies of it disagreed about what a record looks like the
+// moment one of them learned to read a quoted key.
+const toolBlocks = [...toolsSource.matchAll(new RegExp(REGISTRY_BLOCK.source, "g"))].map((match) => match[0]);
+
+// The parser and a dumber count of the same file must agree. A record this
+// pattern cannot read is not an error today -- it is simply absent, from the
+// count, from the gate and from the page, with nothing saying so. That is how a
+// record written with quoted keys sat in the file while every number stayed the
+// same.
+const integrity = registryIntegrity();
+if (!integrity.ok) {
+  console.error(
+    `ERROR: data/open-source-tools.ts opens ${integrity.candidates} records and only ${integrity.parsed} can be read.\n` +
+      `${integrity.candidates - integrity.parsed} record(s) are in the file and invisible to every count built on it.\n` +
+      "Check the shape of the entries that were added: the reader wants a `name` field first, quoted or not."
+  );
+  process.exit(1);
+}
 if (toolBlocks.length === 0) errors.push("No open-source tool records were parsed from data/open-source-tools.ts.");
 
 // The allowed statuses, read out of the type union in the same file the records

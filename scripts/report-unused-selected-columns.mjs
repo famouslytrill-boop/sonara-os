@@ -110,6 +110,96 @@ const EXTRA_FILES = ["server.js"];
 // column being unused there is the point rather than a defect.
 const SELECT = /select=([a-z0-9_,]{3,})(?=[&`"'])/gi;
 
+// The selects this script cannot audit, counted rather than ignored.
+//
+// The character class above excludes `*`, so `select=*` was invisible here --
+// and "101 multi-column selects across 181 runtime files" read as coverage
+// while thirty-five queries went unexamined. That is the second shape in
+// .claude/skills/checks-that-cannot-lie: measuring a different population from
+// the one claimed.
+//
+// It is not a hypothetical. /creator-studio/generation/jobs/:jobId selects `*`
+// on the asset table, loads each output's provenance -- the service that made
+// the file, the rights and consent attestations, the checksum -- and rendered
+// none of it. Exactly the defect this script exists to find, in exactly the
+// select style it could not see.
+//
+// A star select cannot be audited column by column, because the query does not
+// name its columns; the schema does. Listing every column of the table and
+// asking whether each is used would flag a row handed whole to a helper, which
+// is normal here and is why tier 2 exists. So this does the one honest thing
+// available: it counts them, says so in the summary, and holds a ratchet. The
+// blindness may shrink and may not grow.
+const STAR_SELECT = /select=\*/gi;
+
+// The other kind this script cannot read: a select whose column list is built
+// at run time. `select=${page.select}` and `select=${PROVENANCE_COLUMNS.join(",")}`
+// are both perfectly good code and both opaque to a regex over the source.
+//
+// Found while adding the star count, by noticing the audited total had dropped
+// by one: the provenance change earlier the same day replaced a literal
+// `select=bucket_id,object_path` with a computed list, which moved one query
+// out of the audited bucket without anybody deciding to. Twenty-three of these
+// exist. Most are fine -- the list is a frozen constant a test asserts against
+// the schema -- but "fine" is a judgement made per query, and the number being
+// visible is what makes anybody make it.
+const COMPUTED_SELECT = /select=\$\{/g;
+
+// Present on 2 September 2026, counted over stripped source.
+//
+// These are matched **exactly**, not as ceilings, and the reason is a probe.
+// The first draft failed only when a count rose. Breaking the star matcher then
+// dropped the count to zero and the check **passed**, printing "0 `select=*`
+// (ceiling 34)" -- a confident zero over thirty-four unaudited queries, which
+// is the whole defect this repository is organised against.
+//
+// A fall is good news and still has to be recorded: fix a query, lower the
+// number here, say which one. That makes a broken matcher indistinguishable
+// from an unrecorded improvement, and both stop the build.
+//
+// The star figure is 34 rather than the 35 a plain grep reports, because one
+// `select=*` sits inside a comment in routes/sonara-last9-routes.cjs explaining
+// why star selects were removed from the record pages. Comments are stripped
+// before counting, here as everywhere else in this script.
+// 34 on 2 September 2026, then 33 the same afternoon: the generation job page's
+// asset read was narrowed from `select=*` to the seven columns it actually
+// renders. That query is the one that hid the provenance defect, so it is the
+// right one to have gone first. Its replacement is written out literally rather
+// than joined from a constant -- a computed list is readable to a person and
+// opaque to this script, which would have traded one blindness for the other.
+// 32 as of the second narrowing: /creator-studio/voice-permissions read the
+// whole consent row and renders eight fields. Named literally, like the
+// outputs read before it -- a list joined from a constant is readable to a
+// person and opaque to this script.
+// 31 on 3 September 2026: `readAccount` in lib/sonara-connected-payments.cjs
+// fetched all thirteen columns of business_payment_accounts to use one. The
+// other four it now names -- charges_enabled, payouts_enabled,
+// details_submitted, state_checked_at -- had no reader at all until the same
+// change: the function that writes them, `cacheAccountState`, was exported and
+// called from nowhere in the repository, so they were null on every row. The
+// connected-payments page writes them after Stripe answers and reads them back
+// when Stripe cannot be reached.
+// 27 on 3 September 2026: the four remaining `select=*` reads in
+// routes/creator-generation-routes.cjs, which is the file AGENTS.md governs
+// most directly -- "enforce provenance, consent, and anti-clone safety". Its
+// HTML pages had already been narrowed; its JSON endpoints had not, so the
+// pages and the API over the same records disagreed about what may be
+// returned. Two of the four gave something away for nothing:
+//
+//   - the asset list returned `bucket_id` and `object_path`, a file's location
+//     inside a private bucket. Nothing used them -- checked across public/,
+//     tests/ and docs/ -- and the download route reads them itself in its own
+//     scoped query before signing a 300-second URL.
+//   - the job reads returned `provider_response`, the raw body an external
+//     provider sent back, which nothing reads either.
+//
+// The job column list was derived by grepping for `job.` and `job?.` rather
+// than by eye. The first pass matched only `job.` and missed `title`, which
+// `jobTitle()` reaches through optional chaining -- shipping that would have
+// retitled every job page to "Text to speech request".
+const STAR_SELECT_COUNT = 27;
+const COMPUTED_SELECT_COUNT = 23;
+
 // A column named in a comment is a column discussed, not used. Same reasoning
 // and the same expressions as scripts/report-orphan-tables.mjs.
 // One implementation, in lib/sonara-comment-stripping.cjs, because this script
@@ -233,6 +323,26 @@ if (!selectsExamined) {
   process.exit(1);
 }
 
+// Counted over the same file list, from the same stripped source, so the two
+// figures describe one population split in two rather than two populations.
+let starSelects = 0;
+let computedSelects = 0;
+const starFiles = new Set();
+const computedFiles = new Set();
+for (const file of files) {
+  const stripped = withoutComments(fs.readFileSync(path.join(root, file), "utf8"));
+  const stars = stripped.match(STAR_SELECT);
+  if (stars) {
+    starSelects += stars.length;
+    starFiles.add(file);
+  }
+  const computed = stripped.match(COMPUTED_SELECT);
+  if (computed) {
+    computedSelects += computed.length;
+    computedFiles.add(file);
+  }
+}
+
 function group(tier, keyOf) {
   const byKey = new Map();
   for (const finding of findings.filter((entry) => entry.tier === tier)) {
@@ -305,4 +415,49 @@ if (stale.length) {
   process.exit(1);
 }
 
-console.log(`Selected-column check passed: ${selectsExamined} multi-column selects across ${files.length} runtime files. Tier 1: ${tierOne.length}, all ruled on. Tier 2: ${tierTwo.length}, advisory.`);
+if (computedSelects !== COMPUTED_SELECT_COUNT) {
+  console.error(
+    `ERROR: ${computedSelects} selects build their column list at run time; this file records ${COMPUTED_SELECT_COUNT}.\n` +
+      `They are in: ${[...computedFiles].sort().join(", ")}\n`
+  );
+  console.error(
+    "Nothing here can read a computed list, so a column fetched and never used inside one is invisible.\n" +
+      "If the count rose, name the columns in the query instead. If it fell, lower COMPUTED_SELECT_COUNT and say\n" +
+      "which query was fixed -- a fall nobody records looks exactly like a matcher that has stopped matching."
+  );
+  process.exit(1);
+}
+
+if (starSelects !== STAR_SELECT_COUNT) {
+  console.error(
+    `ERROR: ${starSelects} \`select=*\` queries; this file records ${STAR_SELECT_COUNT}. Each one is a read this script cannot audit.\n` +
+      `They are in: ${[...starFiles].sort().join(", ")}\n`
+  );
+  console.error(
+    "If the count rose, name the columns the caller actually uses -- or, if the whole row really is handed on, raise\n" +
+      "STAR_SELECT_COUNT deliberately and say which query it was. If it fell, lower it and say which one was fixed:\n" +
+      "a fall nobody records looks exactly like a matcher that has stopped matching, which is how this guard was found."
+  );
+  process.exit(1);
+}
+
+console.log(
+  `Selected-column check passed: ${selectsExamined} multi-column selects across ${files.length} runtime files. ` +
+    `Tier 1: ${tierOne.length}, all ruled on. Tier 2: ${tierTwo.length}, advisory. ` +
+    `Not audited: ${starSelects} \`select=*\` (recorded ${STAR_SELECT_COUNT}) and ${computedSelects} built at run time ` +
+    `(recorded ${COMPUTED_SELECT_COUNT}), across ${new Set([...starFiles, ...computedFiles]).size} files -- ` +
+    "neither names its columns in the source, so nothing here can say whether they are used."
+);
+
+// The files, on a passing run and not only on a failing one.
+//
+// They were printed only inside the two count mismatches above, so a green run
+// said "31 queries this script cannot audit" and gave nobody a way to find
+// them. That is a population named by number and not by name, which is the
+// thing this script's own header asks for: `110 runtime files, 51 selects
+// examined` is checkable, "verified" is not. A count of unauditable reads that
+// you cannot locate is the same shape one level up.
+console.log(
+  `  \`select=*\` in: ${[...starFiles].sort().join(", ")}\n` +
+  `  built at run time in: ${[...computedFiles].sort().join(", ")}`
+);

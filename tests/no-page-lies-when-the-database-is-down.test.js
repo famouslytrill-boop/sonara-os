@@ -94,7 +94,22 @@ function stubFetch(asAdmin = false) {
 const CLAIMS_ZERO = /\b[A-Za-z][A-Za-z ]{2,30}:\s*0(?!\d)(?!\.\d)/;
 const CLAIMS_ZERO_ALL = new RegExp(CLAIMS_ZERO.source, "g");
 // A sentence claiming the customer has none of something.
-const CLAIMS_EMPTY = /(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i;
+// The leading \b is not tidiness. Without it "no " matched inside any word
+// ending in those two letters, and this crawl reported
+//
+//     /creator-studio/generation says "no Platform · Switched off Higgsfield · Not offered here"
+//
+// which is **Su-no** Platform, a provider's name, plus "here" from a label
+// sixty characters later. Casino, piano and domino do the same. Found when the
+// generation page's availability wording changed and moved "here" inside the
+// window; the false positive had been reachable the whole time and needed the
+// right two strings the right distance apart.
+//
+// Checked against the claims it exists to catch before being applied: "no
+// customers yet", "Nothing here yet", "no records here" and "have not added
+// anybody yet" all still match, and the three name-shaped false positives
+// stop. Recall unchanged, precision better.
+const CLAIMS_EMPTY = /\b(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i;
 const CLAIMS_EMPTY_ALL = new RegExp(CLAIMS_EMPTY.source, "gi");
 
 // Prose that matches the pattern and is not a claim about the customer's
@@ -110,7 +125,8 @@ const NOT_A_CLAIM_ABOUT_RECORDS = [
   [/no reviews are published/i, "Proof and review publishing is owner-gated; a statement of policy."],
   [/nothing here has been sent/i, "Chase drafts, saying a draft is not a message. A statement about what the page does not do."],
   [/nothing here publishes anything on its own/i, "The release calendar, saying it schedules rather than publishes."],
-  [/nothing here says your database is empty/i, "The database console's caveat card, which exists to stop an owner concluding exactly the thing this check hunts for. It is the opposite of the claim -- flagged only because the pattern matches the words \"Nothing here\" wherever they appear. Found by the owner pass on its first run, on /admin/database, /admin/database-management and /admin/migrations, all rendering the same card."]
+  [/nothing here says your database is empty/i, "The database console's caveat card, which exists to stop an owner concluding exactly the thing this check hunts for. It is the opposite of the claim -- flagged only because the pattern matches the words \"Nothing here\" wherever they appear. Found by the owner pass on its first run, on /admin/database, /admin/database-management and /admin/migrations, all rendering the same card."],
+  [/nothing here is a secret/i, "The public status page at /readiness, describing its own disclosure posture: it reports which credentials are configured, never their values. A statement about what the page withholds, not about what a customer has stored. Flagged the moment /readiness entered the route registry, which is this crawl's population -- the page had rendered the sentence for months without being read by anything."]
 ];
 
 function excused(context) {
@@ -403,6 +419,19 @@ const leaks = [];
   it("would recognise the claim it is looking for", () => {
     for (const sentence of ["No activity yet.", "You have not added anybody yet.", "Nothing here yet.", "No consent records yet"]) {
       assert.match(sentence, CLAIMS_EMPTY, `the pattern no longer recognises "${sentence}"`);
+    }
+    // And things it must not fire on, which this pattern lacked until the word
+    // boundary was added. Every one of these is a real string from this product
+    // or a name shaped like one: "no " sitting inside a longer word, with one of
+    // the trailing words within sixty characters. The first is verbatim from
+    // /creator-studio/generation, which is how it was found.
+    for (const fine of [
+      "Suno Platform \u00b7 Switched off Higgsfield \u00b7 Not offered here",
+      "The casino opens here",
+      "A piano is here",
+      "Domino effect explained here"
+    ]) {
+      assert.doesNotMatch(fine, CLAIMS_EMPTY, `the pattern wrongly reads "${fine}" as a claim about a customer's records`);
     }
     // And the numeric form, which the sentence pattern above cannot see.
     // The sentence-ending form is the one the first version missed.

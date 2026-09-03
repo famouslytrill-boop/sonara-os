@@ -877,7 +877,20 @@ function registerSonaraAgentActivityRoutes(app, deps = {}) {
     const listPath = buildTenantQuery(SCHEDULE_TABLE, {
       scope: "global",
       globalReason: "the scheduler runs every organisation's due work; each run is then scoped to the organization_id on its own schedule row",
-      select: "*",
+      // Named rather than `select=*`, and the list is not arbitrary: seven of
+      // these are what isDue() in lib/sonara-agent-schedule.cjs reads to decide
+      // whether a schedule is due, and five are what the loop below uses to run
+      // it. organization_id is the one that matters most -- it is what scopes
+      // every run underneath this deliberately unscoped read, and a query that
+      // dropped it would run every organisation's work against `undefined`.
+      //
+      // A column isDue starts reading and nobody adds here does not error: it
+      // arrives undefined, wholeNumber() reports it as "not recorded", and the
+      // schedule is quietly reported as not due. Nothing fires and nothing
+      // says why. tests/the-scheduler-asks-for-every-column-it-reads.test.js
+      // derives both column sets from the source and fails if this list stops
+      // covering them.
+      select: "id,organization_id,action_type,payload,label,cadence,hour_of_day,day_of_week,day_of_month,time_zone,enabled,last_run_at",
       eq: { enabled: true },
       order: "last_run_at.asc.nullsfirst",
       limit: 200

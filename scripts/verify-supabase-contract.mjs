@@ -72,6 +72,22 @@ const pushSubscriptionMigrationNames = ["20260826100000_push_subscriptions.sql"]
 // any. Reviewed rather than canonical: the canonical 145 are pinned by the
 // runtime contract migration and these postdate it.
 const callMigrationNames = ["20260827090000_call_sessions.sql"];
+// Who changed which owner record and when, added 1 September 2026. Arrived on
+// the day the owner record pages first gained a way to change a record at all:
+// before that there was nothing to log. Holds the names of the columns that
+// changed and no values, because these records carry contact details and a
+// second copy of them would be a second place erasure has to reach. Reviewed
+// rather than canonical: the canonical 145 are pinned by the runtime contract
+// migration and this table postdates it.
+const recordChangeLogMigrationNames = ["20260901090000_record_change_log.sql"];
+// A second factor, added 1 September 2026. Three tables: the enrolled factor,
+// the recovery codes, and the sign-in held back until a code proves who is
+// asking. Nothing in any of them is stored in the clear -- the TOTP secret and
+// the parked session are sealed under an environment key, the recovery codes
+// are peppered hashes, and the challenge id is stored as a digest. Reviewed
+// rather than canonical: the canonical 145 are pinned by the runtime contract
+// migration and these postdate it.
+const twoFactorMigrationNames = ["20260901120000_two_factor_authentication.sql"];
 const researchIntakeMigrationNames = [
   "20260528071500_sonara_platform_redesign_schema.sql",
   "20260819020000_research_source_permission_values.sql"
@@ -191,6 +207,8 @@ const SCROLL_SITE_TABLES = Object.freeze(["scroll_sites"]);
 const CONNECTED_PAYMENT_TABLES = Object.freeze(["business_payment_accounts"]);
 const PUSH_SUBSCRIPTION_TABLES = Object.freeze(["push_subscriptions"]);
 const CALL_TABLES = Object.freeze(["call_sessions", "call_signals"]);
+const RECORD_CHANGE_LOG_TABLES = Object.freeze(["record_change_log"]);
+const TWO_FACTOR_TABLES = Object.freeze(["user_auth_factors", "user_recovery_codes", "pending_auth_challenges"]);
 const GROWTH_STUDIO_TABLES = Object.freeze([
   "growth_provider_connections",
   "growth_audience_segments",
@@ -310,6 +328,8 @@ const scrollSiteSql = readExtension(scrollSiteMigrationNames, "cinematic scroll 
 const connectedPaymentSql = readExtension(connectedPaymentMigrationNames, "connected payment accounts");
 const pushSubscriptionSql = readExtension(pushSubscriptionMigrationNames, "push subscriptions");
 const callSql = readExtension(callMigrationNames, "calls");
+const recordChangeLogSql = readExtension(recordChangeLogMigrationNames, "record change log");
+const twoFactorSql = readExtension(twoFactorMigrationNames, "two-factor authentication");
 const productLifecycleSql = read(productLifecycleMigrationPath).toLowerCase();
 const marketIntelligenceSql = read(marketIntelligenceMigrationPath).toLowerCase();
 // Two migrations: the one that created the table, and the one that gave
@@ -388,6 +408,42 @@ verifyExtension(SCROLL_SITE_TABLES, scrollSiteSql, "Cinematic scroll sites");
 verifyExtension(CONNECTED_PAYMENT_TABLES, connectedPaymentSql, "Connected payment accounts");
 verifyExtension(PUSH_SUBSCRIPTION_TABLES, pushSubscriptionSql, "Push subscriptions");
 verifyExtension(CALL_TABLES, callSql, "Calls");
+verifyExtension(RECORD_CHANGE_LOG_TABLES, recordChangeLogSql, "Record change log");
+verifyExtension(TWO_FACTOR_TABLES, twoFactorSql, "Two-factor authentication");
+
+// Nothing in the second factor is stored in a form somebody could use.
+//
+// Checked here rather than left to the modules that write it, because a column
+// added straight to the migration would otherwise arrive with nothing
+// objecting -- and a table of TOTP shared secrets in the clear is every second
+// factor on the system, usable immediately by anyone who reads it.
+//
+// Matched as whole column names at the start of a line, not as substrings. The
+// first version of this listed "secret text not null," and fired on
+// `sealed_secret text not null,` -- a check that refused the very construction
+// it exists to require.
+for (const forbidden of ["secret", "totp_secret", "recovery_code", "plain_secret", "access_token", "refresh_token", "session_token"]) {
+  const declares = new RegExp(`^\\s*${forbidden}\\s+(text|bytea|jsonb)\\b`, "m");
+  if (declares.test(twoFactorSql)) {
+    fail(`the two-factor migration declares a column named ${forbidden}; secrets, recovery codes and parked sessions are stored sealed or hashed, never in the clear`);
+  }
+}
+for (const required of ["sealed_secret text not null", "sealed_session text not null", "token_hash text not null", "last_used_step"]) {
+  if (!twoFactorSql.includes(required)) {
+    fail(`the two-factor migration no longer declares ${required}, which is what keeps a secret, a session, a challenge id or a spent code out of reach`);
+  }
+}
+
+// The change log holds no values, and that is checked here rather than left to
+// the module that writes it. A column added straight to the migration would
+// otherwise arrive with nothing objecting -- and a log of who changed a
+// customer's phone number is a very different table from a log holding the
+// number.
+for (const forbidden of ["old_value", "new_value", "before_value", "after_value", "previous_value", "payload jsonb", "values jsonb"]) {
+  if (recordChangeLogSql.includes(forbidden)) {
+    fail(`record_change_log declares ${forbidden}; this table records which fields changed and must hold no values`);
+  }
+}
 for (const required of [
   "public.sonara_is_org_member(organization_id)",
   "auth.role() = ''service_role''",
@@ -520,7 +576,7 @@ for (const pattern of [
 ]) {
   for (const match of runtimeSource.matchAll(pattern)) runtimeTableReferences.add(match[1]);
 }
-const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
+const reviewedExtensionTables = new Set([...BUSINESS_OPERATIONS_TABLES, ...BUSINESS_CONTROL_TABLES, ...CREATOR_GENERATION_TABLES, ...CREATOR_ARTIST_SYSTEM_TABLES, ...AGENT_QUEUE_TABLES, ...GROWTH_STUDIO_TABLES, ...SCROLL_SITE_TABLES, ...CONNECTED_PAYMENT_TABLES, ...PUSH_SUBSCRIPTION_TABLES, ...CALL_TABLES, ...RECORD_CHANGE_LOG_TABLES, ...TWO_FACTOR_TABLES, ...PRODUCT_LIFECYCLE_TABLES, ...PROMPT_LIBRARY_TABLES, ...RESEARCH_INTAKE_TABLES]);
 for (const table of [...runtimeTableReferences].sort()) {
   if (table === "rpc") continue;
   if (!DATABASE_TABLES.includes(table) && !reviewedExtensionTables.has(table)) {
@@ -644,7 +700,7 @@ if (agentAuthority.decideExecution({ action: { id: "a", action_type: "issue_refu
 }
 
 if (!process.exitCode) {
-  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
+  console.log(`Supabase contract verified: ${DATABASE_SCHEMAS.length} schemas, ${DATABASE_TABLES.length} canonical tables, ${BUSINESS_CONTROL_TABLES.length} reviewed Business Builder extension tables, ${BUSINESS_OPERATIONS_TABLES.length} reviewed Business Builder operations tables, ${CREATOR_GENERATION_TABLES.length} reviewed Creator Studio generation tables, ${CREATOR_ARTIST_SYSTEM_TABLES.length} reviewed Creator Studio artist system tables, ${AGENT_QUEUE_TABLES.length} reviewed agent queue table(s), ${GROWTH_STUDIO_TABLES.length} reviewed Growth Studio extension tables, ${SCROLL_SITE_TABLES.length} reviewed scroll site table(s), ${CONNECTED_PAYMENT_TABLES.length} reviewed connected payment table(s), ${PUSH_SUBSCRIPTION_TABLES.length} reviewed push subscription table(s), ${CALL_TABLES.length} reviewed call table(s), ${RECORD_CHANGE_LOG_TABLES.length} reviewed record change log table(s), ${TWO_FACTOR_TABLES.length} reviewed two-factor tables, ${PRODUCT_LIFECYCLE_TABLES.length} reviewed Product Lifecycle tables, ${PROMPT_LIBRARY_TABLES.length} reviewed Prompt Library tables, ${RESEARCH_INTAKE_TABLES.length} reviewed research intake table(s), ${DATABASE_FUNCTIONS.length} functions, ${DATABASE_INDEXES.length} operational indexes, ${STORAGE_BUCKETS.length} private buckets.`);
   // "schema-only" stopped being true when /research-lab/subsystems gained
   // forms: an operator can now add a tool registration, a note, a bookmark or a
   // setting. Still true is that nothing executes -- there is no agent runtime

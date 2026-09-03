@@ -62,3 +62,13 @@ frontend/tsconfig.tsbuildinfo
 # Output from examples/qr-hello-world.js when run without an argument.
 examples/hello-world.png
 examples/hello-world.svg
+
+# Compiled Python bytecode. 26 of these were tracked under tools/agentkit until
+# 3 September 2026. They are build output: regenerated on import, named for the
+# interpreter that wrote them (cpython-311, and CI runs 3.12), and they go stale
+# the moment a .py beside them changes. CPython validates the source mtime and
+# size before using a cached .pyc, so a stale one is recompiled rather than
+# silently executed -- this is repository hygiene, not a correctness fix, and
+# the distinction is worth keeping straight.
+__pycache__/
+*.py[cod]

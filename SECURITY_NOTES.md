@@ -21,6 +21,79 @@ Additional moderate findings were resolved by:
   the tree changed, no threshold moved, and the audit is clean at moderate
   again.
 
+### 2 September 2026 -- `fast-uri`, and an override that had gone stale
+
+Four **high** advisories in `fast-uri@3.1.5`, all reached the same way --
+`.>@vercel/node>@vercel/static-config>ajv>fast-uri` -- and all patched in
+`3.1.6`:
+
+- **GHSA-f65p-4m7j-42xc**, server-side request forgery via malformed IPv6
+  normalization (`>=3.0.0 <3.1.6`)
+- **GHSA-fph4-wmhf-6fwf**, server-side request forgery via repeated hostname
+  percent-decoding (`>=3.1.2 <3.1.6`)
+- **GHSA-jqff-g426-hqxp**, host confusion via percent-encoded scheme
+  normalization (`>=3.0.0 <3.1.6`)
+- and a fourth on the same package in the same run.
+
+Every path is `dev: true`. `@vercel/node` is a development dependency and
+nothing in the served application parses URIs through it, so no customer
+request reached this code. It is still a real patch rather than an exemption:
+the version in the tree changed.
+
+**The override was the problem, not the absence of one.** The register already
+carried `"fast-uri@>=3.0.0 <3.1.5": "3.1.5"`, added for an earlier advisory.
+Pinning to the version that was current at the time is what makes an override
+go stale: the moment `3.1.5` is itself found vulnerable, the entry is pinning
+the tree **to** the vulnerable version rather than away from it. Raised to
+`"fast-uri@<3.1.6": "3.1.6"`.
+
+This is the same shape as the `js-yaml` note above -- an override pinned for one
+advisory sitting inside the range of the next -- and it is now the second time.
+Worth stating plainly for whoever hits the third: when an audit names a package
+this file already has an override for, check whether the override is the thing
+holding the tree on the vulnerable version.
+
+**No audit threshold moved and no check was weakened.** `pnpm audit` reports no
+known vulnerabilities at `--audit-level low` as well as `moderate`, and
+`pnpm install --frozen-lockfile` succeeds.
+
+### 2 September 2026 -- `qs` and `body-parser`, reached through `express`
+
+`pnpm audit --audit-level moderate` began failing on three advisories, all of
+them in the one production dependency's own tree:
+
+- **GHSA-4mjr-xmp4-gh2g** -- `qs` denial of service via attacker-controlled
+  `isBuffer`, affecting `>=2.2.5 <6.16.0`. Reached by `express > qs`,
+  `express > body-parser > qs` and `supertest > superagent > qs`.
+- **GHSA-x5fp-wj9c-mxmx** -- `qs` array-limit bypass via bracket-key comma
+  parsing, affecting `>=6.14.2 <=6.15.3`. Same paths.
+- `body-parser` denial of service when an invalid `limit` value silently
+  disables size enforcement, affecting `<1.20.6`, via `express > body-parser`.
+
+The first two are the ones that matter here, because `express` parses query
+strings on every request this application serves, and `body-parser` reads every
+request body. The tree resolved `qs@6.15.2` and `qs@6.15.3` and
+`body-parser@1.20.5`.
+
+Fixed by pnpm workspace overrides, following the pattern already in
+`pnpm-workspace.yaml`:
+
+    "qs@<6.16.0": "6.16.0"
+    "body-parser@<1.20.6": "1.20.6"
+
+Both are patch and minor moves inside the ranges `express@^4.18.2` already
+accepts, which is why no dependency needed changing. Verified rather than
+assumed: `pnpm install --frozen-lockfile` succeeds, `pnpm audit` reports no
+known vulnerabilities at `--audit-level low` as well as `moderate`, and the
+whole release chain passes -- 3545 tests and the route smoke, which exercises
+express's own query and body parsing across 8 public and 5 protected routes.
+
+**No audit threshold moved and no check was weakened.** The versions in the
+tree changed. The advisories were newly published against a dependency tree
+this branch had not touched: the branch's only `package.json` change is to the
+`scripts` block, and its `pnpm-lock.yaml` was byte-identical to `main` before
+this fix.
+
 ## Permissions-Policy: microphone moved from `()` to `(self)`
 
 **Date:** 27 August 2026. **Header:** `server.js`, the same `app.use` as below.

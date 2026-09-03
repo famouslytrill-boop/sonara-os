@@ -470,6 +470,137 @@ payment-redirection fraud — and that advice protects your customers only while
 it is always true. Connecting an account and collecting a payment are separate
 pieces of work; this is the first.
 
+## 8 — Production has been serving 5 August code, and the deploy is failing
+
+**This is the one that matters most, and it needs your database.**
+
+The last Controlled Production Deployment that succeeded was run **#110, on
+5 August 2026**, for pull request #191. Every run since has failed: **#111
+through #124**, covering pull requests #192 to #205. Nothing merged after
+5 August has ever reached production.
+
+What `sonaraindustries.com` is serving right now is deployment
+`dpl_4DK4UkJShM4NsWNqHprpFHsWeSmS`, which carries commit `eebc80c` — **252
+commits behind `main`**. The deployment is dated 19 August, but it is a
+redeploy of a redeploy of a redeploy of the 5 August build, so the code has not
+moved since 5 August.
+
+### Why it fails
+
+`supabase db push` stops on the first of 28 pending migrations:
+
+```
+Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+```
+
+That migration's `customer_invoices` table has
+`quote_id uuid references public.quotes(id)`, and **`public.quotes` is not in
+your production database**. (28 were pending at that run; the repository has
+added more since.)
+
+It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
+and `pnpm run verify:migration-replay` applies all 110 migrations to an empty
+PostgreSQL and gets a working schema every time. So the migration set is fine.
+What has gone wrong is that production's migration history says
+`010_sonara_platform_current_schema.sql` is already applied and the table it
+creates is not there — which is what happens when an existing database is
+adopted into the CLI and early migrations are marked applied rather than run.
+
+The file name is the clue: "current schema" is what somebody writes when they
+are describing a database that already exists.
+
+### The repair is written and waiting in this branch
+
+`supabase/migrations/20260811210000_repair_missing_platform_tables.sql` creates
+**42 tables**, copied column for column from the migrations that first defined
+them, all `create table if not exists`. Its version sits between the last
+migration production applied (`20260806090000`) and the one that fails
+(`20260811220000`), so `supabase db push` runs it first.
+
+Not two. `quotes` was the table the error named, and fixing only that would have
+shipped a repair that failed one migration later. Across the 32 pending
+migrations, 65 tables are referenced, altered, indexed or given a policy without
+being created — and **34 of them exist only in the pre-CLI numbered files, 010
+to 016**, the same family as the snapshot that demonstrably did not run on your
+database. Taking the transitive closure over their foreign keys gives 42.
+
+Every one is `create table if not exists`, so on a database that already has
+them this does nothing at all. Row level security is enabled on each, because a
+table that arrives without it is exposed through PostgREST.
+
+It creates **only** those two. Re-running `010` whole would have been the
+obvious move and would have been wrong: `010` also creates `billing_customers`,
+which `20260805120000_retire_superseded_tables.sql` deliberately retired, so a
+replay would resurrect a table somebody decided to remove.
+
+Proven rather than assumed, on a throwaway PostgreSQL:
+
+| | result |
+| --- | --- |
+| applied to a database with none of the 42 | all 42 created, row level security on every one |
+| applied a second time | no error, still 42 — a no-op where the tables exist |
+| then `20260811220000`, the failing migration | applies cleanly, `customer_invoices` created |
+
+And the full 109-migration replay onto an empty database still passes, so it
+does not disagree with the migrations around it.
+
+**What it cannot promise:** that there is no second gap further down the list.
+Nothing in this repository can read your schema. The queries below are what
+answer that, and they are worth running first.
+
+### What only you can do
+
+Nothing here can reach your production database, and applying a schema change to
+a live system is yours either way. In rough order:
+
+1. Confirm the gap. In the Supabase SQL editor:
+
+   ```sql
+   select table_name from information_schema.tables
+   where table_schema = 'public' and table_name in ('quotes', 'customers')
+   order by table_name;
+   ```
+
+   If `quotes` is missing, this is the whole story. If `customers` is missing
+   too, more of `010` never ran and the same will happen again further down the
+   list.
+
+2. Compare the history against the files:
+
+   ```sql
+   select version from supabase_migrations.schema_migrations order by version;
+   ```
+
+   Anything marked applied whose tables are absent is the set to repair.
+
+3. Merge this branch. The repair migration then runs ahead of the failing one
+   on the next deployment. If you would rather not merge everything else at the
+   same time, the file stands alone — apply it in the SQL editor and nothing
+   else changes.
+
+4. Re-run the deployment from **Actions → Controlled Production Deployment →
+   Run workflow**. Do not use the Vercel dashboard's Redeploy button: that is
+   what took the alias on 4 August and is why the workflow header exists.
+
+5. If it fails again on a different `does not exist`, that is the second gap,
+   and the same treatment applies — the table it names, copied from whichever
+   migration creates it, in a file versioned before the one that failed. Check
+   the retired list first.
+
+Take a backup first. The repair is additive and idempotent, but the decision is
+yours and the checkpoint costs nothing.
+
+### Why no check caught it
+
+`verify:migration-replay` runs against an **empty** database, which is what lets
+it prove the migrations agree with each other. It never reads production's
+history, so it cannot see a migration marked applied that did not run. That
+limit is now stated in the command's own output rather than left to be inferred.
+
+The deploy workflow was honestly red for fourteen consecutive runs. Nothing was
+watching it.
+
 ## Before any of the above: what has to be switched on
 
 `docs/owner/WHAT-MUST-BE-ON.md` lists the ten environment variables a paying

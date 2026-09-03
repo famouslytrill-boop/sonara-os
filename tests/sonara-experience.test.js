@@ -54,4 +54,30 @@ describe("SONARA One product experience", () => {
     assert.match(page.text, /aria-live="polite"/);
     assert.match(page.text, /aria-labelledby="sonara-settings-title"/);
   });
+
+  it("does not put two controls that look like a menu next to each other", async () => {
+    // The settings button drew `M5 7h14M8 12h8M6 17h12` -- three plain
+    // horizontal lines, which is the hamburger glyph -- and sat 77px from the
+    // actual Menu button in the mobile header, measured in Chromium at 390px.
+    // Two controls reading as the same thing is a navigation problem, not a
+    // cosmetic one. It is now a sliders icon: the same lines with knobs on
+    // them, which is what says "settings" rather than "menu".
+    const page = await request(app).get("/");
+    const button = page.text.match(/<button[^>]*data-sonara-settings[\s\S]*?<\/button>/);
+    assert.ok(button, "the experience settings button was not found, so nothing here was checked");
+    const svg = button[0].match(/<svg[\s\S]*?<\/svg>/);
+    assert.ok(svg, "the settings button has no icon");
+    assert.ok(
+      /<circle/.test(svg[0]),
+      "the settings icon has lost its knobs. Without them it is a stack of plain horizontal lines, " +
+        "which is the hamburger glyph, and it sits beside the real Menu button in the mobile header."
+    );
+
+    // And it must not simply match the other header icon either.
+    const command = page.text.match(/<button[^>]*data-sonara-command[\s\S]*?<\/button>/);
+    assert.ok(command, "the command button was not found");
+    const commandSvg = command[0].match(/<svg[\s\S]*?<\/svg>/);
+    assert.ok(commandSvg, "the command button has no icon");
+    assert.notEqual(svg[0], commandSvg[0], "the two header tool buttons draw the same icon");
+  });
 });

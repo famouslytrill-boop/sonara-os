@@ -63,9 +63,62 @@ const migrationCount = fs.existsSync(path.join(root, "supabase", "migrations"))
   ? fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length
   : 0;
 
-const testCount = fs.existsSync(path.join(root, "tests"))
-  ? fs.readdirSync(path.join(root, "tests")).filter((name) => name.endsWith(".test.js")).length
-  : 0;
+// How many test files mocha actually runs.
+//
+// This counted `tests/*.test.js` at the top level and called the result "test
+// files run under mocha". Mocha's own spec is `tests/**/*.js` and
+// `tests/**/*.mjs` -- recursive, and not limited to the `.test.js` suffix -- so
+// the sentence named one population and the number measured another. It read
+// 257 while mocha ran 261, and nothing objected because the two were never
+// compared.
+//
+// So the globs are read from `.mocharc.json` rather than restated here. The
+// day somebody adds a pattern, this follows; the day somebody removes the
+// config, this fails loudly instead of quietly counting nothing.
+function mochaSpecGlobs() {
+  const raw = read(".mocharc.json");
+  if (!raw) throw new Error(".mocharc.json is missing, so the number of test files mocha runs cannot be derived.");
+  const spec = JSON.parse(raw).spec;
+  const globs = Array.isArray(spec) ? spec : spec ? [spec] : [];
+  if (!globs.length) throw new Error(".mocharc.json declares no spec, so the number of test files mocha runs cannot be derived.");
+  return globs;
+}
+
+// A mocha glob as a regular expression. Only the two forms this repository
+// uses are supported -- `**` for any depth and `*` within one segment -- and
+// anything else throws rather than being silently mismatched.
+function globToRegExp(glob) {
+  if (/[?[\]{}!]/.test(glob)) throw new Error(`the spec glob ${glob} uses syntax this counter does not implement`);
+  const pattern = glob
+    .split("/")
+    .map((segment) => {
+      if (segment === "**") return "(?:.+/)?";
+      return `${segment.replace(/[.+^$()|\\]/g, "\\$&").replace(/\*/g, "[^/]*")}/`;
+    })
+    .join("")
+    .replace(/\/$/, "");
+  return new RegExp(`^${pattern}$`);
+}
+
+function countMochaFiles() {
+  const patterns = mochaSpecGlobs().map(globToRegExp);
+  const found = new Set();
+  const walk = (directory) => {
+    for (const entry of fs.readdirSync(path.join(root, directory), { withFileTypes: true })) {
+      const relative = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) walk(relative);
+      else if (patterns.some((pattern) => pattern.test(relative))) found.add(relative);
+    }
+  };
+  if (fs.existsSync(path.join(root, "tests"))) walk("tests");
+  // A count of zero means the globs stopped matching, not that the suite is
+  // empty. Reporting it would put a confident 0 into a document people read to
+  // decide whether this is shippable.
+  if (!found.size) throw new Error("no files matched the mocha spec; the counter has gone blind.");
+  return found.size;
+}
+
+const testCount = countMochaFiles();
 
 const serverLines = read("server.js").split("\n").length;
 

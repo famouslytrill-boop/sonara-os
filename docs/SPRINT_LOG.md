@@ -2,6 +2,3444 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A late Stripe event could reinstate a cancelled subscription
+
+This was recorded on this branch as an **open question for the owner**, on the
+grounds that nothing established how often it happens or what it would cost.
+That was the wrong call twice over: the cost is describable without a frequency,
+and the fix turned out to be a column and a trigger.
+
+Stripe does not guarantee delivery order, and retries on any non-2xx or timeout.
+`synchronizeBillingFromStripeEvent` upserted `billing_subscriptions` on
+`(provider, provider_subscription_ref)` with `resolution=merge-duplicates` —
+`on conflict do update`, which always overwrites. No version column, no
+comparison. **The last request to land won, whatever it said.**
+
+A customer upgrades and cancels within the same minute, which people do. Two
+events fire. If the `updated` carrying `status=active` is delivered after the
+`deleted` carrying `status=canceled`, the row ends `active` — and
+`lib/sonara-paid-access.cjs` reads exactly that column, so a cancelled customer
+keeps paid access with nothing recording it. The reverse is worse to be on the
+receiving end of: a stale `updated` lands after a reactivation, the row says
+`canceled`, and somebody who has paid is locked out of their own business
+records.
+
+## Why the guard is in the database
+
+The obvious fix — read the row, skip the write if what we hold is newer — is a
+read-then-write race, and the thing racing is two deliveries of the same
+subscription arriving together, which is precisely what Stripe's retries
+produce. Both read the old row, both decide they are newer, both write.
+
+PostgREST cannot express a conditional upsert; `merge-duplicates` has no `where`
+to hang the comparison on. So the comparison goes where the row lock already is.
+A `before update` trigger sees OLD and NEW inside one statement under one lock,
+and a stale write is discarded whatever order requests arrive in and however
+many are in flight.
+
+`provider_event_at` carries `event.created` — when **Stripe** stamped it, not
+when it reached us, because arrival order is the thing that is not trustworthy.
+
+## The probe that had to be added to see it at all
+
+A trigger whose job is to *discard* a write is invisible to every check here.
+The column exists, the trigger exists, the migration applies, and the guard
+could be inverted or never fire — every check in this repository would stay
+green while a late event silently reinstated a subscription.
+
+`scripts/verify-migration-replay.mjs` is the only thing in the chain that
+executes SQL, and it already has PostgreSQL running, so proving it costs one
+statement. It now runs three cases against the replayed database and requires
+three markers back: `stale_kept_active`, `fresh_gave_canceled`,
+`unstamped_gave_past_due`.
+
+## What that probe caught, in my own migration
+
+Four probes on the trigger. Inverting `<` to `>` failed. Neutering the discard
+failed. **Deleting the null-handling branch passed** — and it should not have,
+if that branch were doing anything.
+
+It is not. `null < x` and `x < null` both evaluate to null in SQL, which is not
+true, so both null cases already fall through to `return new` with no branch at
+all. I had written a guard and a comment explaining a behaviour produced by
+something else — a reason reasoned to rather than verified, which
+`CLAUDE.md` warns about by name and which reads exactly like a verified one.
+
+The branch is kept, and the comment now says why honestly: the realistic way
+this breaks is not deletion but somebody folding the two ifs together and
+reaching for `coalesce(new.provider_event_at, '-infinity') < coalesce(old..., ...)`,
+which reads as a tidy-up and silently discards **every unstamped write**. That
+rewrite was applied here and the probe caught it by name
+(`unstamped_gave_past_due`). So the marker guards the outcome against the change
+that would really happen; it does not prove the branch is load-bearing, and
+saying so is the difference between this comment and the first one.
+
+## Also updated
+
+`tests/a-replayed-stripe-event-changes-nothing-twice.js` asserted this was *not*
+handled; it now asserts the application sends the stamp, from `event.created`
+rather than the server clock, on both writes. Probed three ways.
+`python/sonara_ops/stripe_audit.py` had the open question as a checklist item;
+it now asks an operator to confirm the column and the trigger are still there.
+
+110 migrations replay. Suite 3,753 → 3,754.
+
+### 2026-09-03 - A guard used by one file, and a test that read like a guarantee
+
+`lib/sonara-tenant-data.cjs` refuses to build a query against a tenant-scoped
+table without an organization, or without a written reason for going global.
+`tests/tenant-isolation.test.js` proves it. Both are good.
+
+It is called from **one file and five call sites.** The runtime has **126**
+PostgREST call sites.
+
+Nothing said so. The module's header ended at "a guard against the next query
+somebody writes" — which reads as though new queries go through it. Six route
+files have been written since it was added and **none of them uses it**. And a
+file named `tenant-isolation.test.js` sitting green is about as strong a signal
+as this repository produces that tenant isolation is enforced somewhere other
+than in a developer's memory.
+
+The header also carried a dated fact presented in the present tense: *"An audit
+of all 69 PostgREST call sites on 2026-07-27 found no missing scope."* True on
+that date. There are 126 now.
+
+## The re-audit
+
+Done by hand, because there is no other way. Every read and write against a
+table in `TENANT_SCOPED_TABLES` (228 of them), classified by method:
+
+| | verdict |
+| --- | --- |
+| reads with a literal URL | 9, of which 3 unscoped |
+| PATCH | 3, of which 2 unscoped |
+| DELETE | 1, scoped |
+| POST | 22, all carrying the column in the body |
+
+**The finding still holds — no missing scope.** Each unscoped read survives
+being written down, which is the test of a real reason:
+
+- **`business_employee_invites`** is filtered on `token_hash`. The token *is*
+  the credential, and the invitee does not know their organization yet — the
+  invite is what tells them.
+- **`business_memberships`** is filtered on `user_id`. This is the query that
+  *determines* which organization you are in, so it cannot be filtered by one.
+- **`support_requests`** is genuinely global, behind `requireAdmin` at
+  `/admin/support`.
+
+Both unscoped PATCHes are the same shape: each targets a row the request already
+fetched and proved, by token or by admin gate.
+
+## Why there is no new gate here
+
+The obvious move is a release-chain command asserting every read carries the
+filter. It is not buildable honestly: **only 9 of the reads have a literal
+table name in their URL.** The rest pass the table as a variable to a helper, so
+a scan over literal URLs measures a small unrepresentative slice and reports it
+as "the runtime" — shape 2 in `checks-that-cannot-lie`, and worse than nothing
+because it would issue a clean bill over the 90% it never looked at.
+
+## What was built instead
+
+The header now says what the module is: **available, not enforced**, with the
+count, and with the re-audit's three reasons written out rather than summarised.
+
+`tests/tenant-isolation.test.js` gained a section that derives the numbers from
+the source and pins them as a **ratchet**:
+
+- the one adopter must still be an adopter — losing it would leave the module
+  used by nothing while every test above stayed green;
+- the call count may not drop below 5;
+- and the coverage ratio is asserted to still be small, with a failure message
+  saying that if adoption has genuinely improved, the *wording* in both files is
+  what needs updating, not the assertion — because "available rather than
+  enforced" would have stopped being true.
+
+**Probed twice:** the sole adopter switched off the guard, and one call site
+removed. `the guard is called 4 times, down from 5. Removing a call site removes
+the only enforcement there is; the tests above would stay green either way.`
+
+Suite 3,750 → 3,753.
+
+### 2026-09-03 - A sweep for the mirror of shape 3, and why it does not ship
+
+`report-unused-selected-columns.mjs` hunts shape 3: a value **fetched** into a
+decision and never used. The mirror had nothing watching it — a value
+**submitted** into a handler and never read. Somebody fills the field in,
+presses Save, sees "Saved", and what they typed is gone. Same shape, other
+direction.
+
+So: resolve every `<form method="post">` in the runtime to the `app.post`
+handler its `action` names, and check the handler reads each field.
+
+**62 forms. Zero real defects.** The honest breakdown of why that number is
+believable and the check still should not ship:
+
+| | forms |
+| --- | --- |
+| judgeable from the handler's own text | 34 |
+| hand the whole `req.body` or `req` to a helper | 20 |
+| `action` is computed, so no route can be resolved | 8 |
+
+Twenty-eight of sixty-two cannot be judged at all without following the value
+into a helper, and the two findings the sweep did produce — `/admin/login`
+`password` and `/admin/roles` `action` — are **both wrong**: `handleEmailAuth("login", req.body)`
+and `updateUserRole(req)` read them one frame down. Shipping this as a gate
+means a rule that abstains on 45% of its population and cries wolf on the rest,
+which is the sixth shape in `checks-that-cannot-lie`. Part 6 of this pull
+request declined a sweep for the same reason; the method is recorded here
+instead, same as that one.
+
+Three of my own heuristics were wrong in ways worth naming, because each is a
+way to get a comfortable answer:
+
+- matching the field name **anywhere in the file** returned zero unread fields.
+  The form markup contains `name="priority"`, so `"priority"` always matched —
+  a check passing on its own input;
+- `req.body?.customer_email` defeats a `body\.` pattern. Optional chaining is
+  the normal spelling on public endpoints, so this hid the ones most worth
+  checking;
+- the pass-through detector wanted `(req.body` and missed `, req.body)`, which
+  is how most helpers here are called.
+
+## The one thing it did find
+
+`reviewForm` carried `<input type="hidden" name="stage">`, submitted on every
+stage review and ignored on every one. `addStageReview` records
+`bundle.body.initiative.lifecycle_stage` — the row, read back from the database
+in the same request.
+
+**Not a bug. The safer choice, undocumented.** An `advance` or `scale` review is
+gated on a readiness score computed for the stage the initiative is in, and
+different stages have different criteria — so a stage carried in the request is
+the requester choosing which bar they are measured against.
+
+The danger was the premise the field implanted: it reads as though the stage
+travels with the review, which is what somebody would believe while "fixing" the
+handler to use the value the form so obviously supplies. That edit compiles,
+passes review, and opens the gate.
+
+Field removed, reason written above the function, and
+`tests/a-stage-review-grades-the-stage-the-record-is-in.js` holds both halves —
+the handler must read the stage from the row, and the form must not offer one.
+**Probed three times:** the handler taught to prefer `req.body.stage`, the
+hidden field put back, and the 70-point gate removed. Each failed by its own
+message.
+
+Suite 3,745 → 3,750.
+
+### 2026-09-03 - 365 query filters, none exploitable, one of them checkable
+
+Every database query in this application is a string:
+
+```js
+`?select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&limit=1`
+```
+
+PostgREST reads `&`, `=`, `,` and `.` as syntax, so an unencoded value in a
+filter does not error — it becomes **more query**. Same class as an
+unparameterised SQL string, and it matters more here than in most codebases for
+one specific reason: every one of these goes out with the service-role key,
+which bypasses row level security. `organization_id=eq.` is not a convenience on
+these paths. **It is the entire tenant boundary**, and a value that can append
+`&or=(...)` is a value that can widen it.
+
+A sweep found **365 filter interpolations** in `lib/`, `routes/` and
+`server.js`. Thirteen were not encoded at the point of use, and **not one of
+them was exploitable** — which is the finding, and the reason this ends in a
+gate rather than a patch:
+
+| sites | why it was safe |
+| --- | --- |
+| 4, prompt library | `context.organizationId`, read from the database for the signed-in user |
+| 4, `sonara-last9-routes` | `const employeeId = encodeURIComponent(me.profile.id)` — encoded once, reused |
+| 2, `sonara-owner-record-pages` | a date column sliced to ten characters |
+| 3, prompt library | `product_area`, a key from a fixed set |
+
+The property held **three different ways, and only one of them is checkable by
+reading the line.** That is the problem. A property maintained by reasoning has
+to be re-reasoned by everyone who touches it, and this repository's recurring
+defect is precisely the reasoning that reads correct and is not.
+
+## What changed
+
+The seven prompt-library sites are encoded now — it cost nothing and that file
+was the only place in the runtime spelling it that way. The `last9` sites are
+**deliberately left alone**: encoding an already-encoded value would
+double-encode it and break the query. That is the kind of thing a well-meaning
+sweep breaks, so it is written down rather than left to be rediscovered.
+
+`scripts/verify-postgrest-filter-encoding.mjs` is the fortieth command in
+`verify:launch`. 359 of 365 encoded where used; the remaining 6 carry a register
+entry naming the file, the variable, and a **regex the source must still match**
+for the reason to stand.
+
+Two-sided, like `report-orphan-tables.mjs`: an unaccounted site fails, *and* an
+entry that no longer describes anything fails. A stale exemption is what the
+next person reads instead of checking — the fifth shape in
+`checks-that-cannot-lie`, and the reason that shape exists.
+
+**Probed five times, each failing by its own name:** an unencoded
+`organization_id` put back; `employeeId`'s `encodeURIComponent` removed from its
+declaration, so the register's stated reason stops being true; and each of the
+two register entries made unnecessary by encoding its sites, so the register
+complains about itself. Baseline green before and after each.
+
+**Also audited, and clean:** all 27 `select=*` queries. Every one carries an
+`organization_id=eq.` filter, including the two that build their filter list at
+run time — `filters[0]` is always the organization, and the invoice `scope`
+string contains it. The advisory tier of `report:selected-columns` is about
+whether a fetched column gets used; this was the sharper question, and it has
+the better answer.
+
+### 2026-09-03 - Choosing "Could Have" recorded "Must Have"
+
+One character of markup, on the page that decides what ships.
+`routes/product-lifecycle-routes.cjs` rendered its MoSCoW priority field as:
+
+```html
+<option value="must">Must Have</option>
+<option value="should">Should Have</option>
+<option>value="could">Could Have</option>     <!-- the tag closes early -->
+<option value="wont">Won't Have</option>
+```
+
+The third `<option>` has no attributes. A browser parses `value="could">Could
+Have` as its **text**, and an option with no value attribute submits its text —
+so choosing "Could Have" posted the string `value="could">Could Have`.
+
+`oneOf(req.body.priority, PRIORITIES, "must")` does not recognise that, and
+returns the fallback. **The fallback is `"must"`.** Somebody marking a
+requirement as explicitly *not* needed for launch recorded it as *required for
+launch*, with no error anywhere.
+
+And it is worse than a wrong label. Line 464 grades `must_have_scope` on
+`requirements.some((row) => row.priority === "must")`, and that criterion feeds
+the readiness score the page prints. **Picking the lowest-commitment option
+raised the score for having scope defined.**
+
+It survived because every part of it works: the page renders, the form posts,
+the row saves, the constraint accepts it, the score computes. Only the value is
+wrong, and nothing compared the two ends.
+
+## `tests/a-dropdown-offers-values-the-server-accepts.js`, in two tiers
+
+**Tier 1, general.** No `<option>` anywhere in `lib/`, `routes/` or `server.js`
+may have `>` or `="` in its text content. That is the signature of a tag that
+closed early, and it is not something anybody writes on purpose. 100-option
+blindness guard. The sweep found exactly one instance, which is the reassuring
+answer.
+
+**Tier 2, everywhere.** Every `oneOf(req.body.<field>, <set>, <fallback>)` call
+in the runtime is found, its set resolved, and the `<select name="<field>">`
+that feeds it looked up. Both directions: every option offered must be accepted,
+and every accepted value must be offered. **Nine dropdowns across three route
+files** — `product-lifecycle`, `creator-generation`, `business-control-plane`.
+
+Nothing is listed by hand, not even the files. The first draft carried a pairs
+list with `["severity", null]` in it and a `continue` — an entry that reads like
+coverage and is not, which is the fifth shape in `checks-that-cannot-lie`,
+written by me while writing a test about that skill. Deriving the pairs removed
+the list and picked up eight fields it had never named.
+
+Three spellings had to be taught, and each was found by the guard rather than
+guessed at: the allowed set is written as a named constant, an inline
+`new Set([...])`, or a bare array; the options are written as literal `<option>`
+tags or through an `options([["value", "Label"], ...])` helper. Selects whose
+options are mapped from the validating set itself are excluded on purpose —
+they cannot disagree, so there is nothing to compare.
+
+A set the test cannot read returns `null`, never an empty list, and the guard
+fails on it — otherwise an unreadable set would pass every option in the field
+it governs. `STAGE_KEYS` is `new Set(STAGES.map((s) => s.key))`, so that path is
+live rather than theoretical. Twice the guard failed on my own claim: "three
+files" when only one paired up, then two. Both times the fix was to read another
+spelling, not to lower the number.
+
+The failure message names the actual fallback, because the consequence turns on
+it. `priority` falls back to `"must"` — *the row saves holding a value the
+person never chose and nothing says so*. `consent_scope` falls back to `null` —
+*the choice is thrown away*, which is bad and at least visible.
+
+**Probed six times, each failing by its own name, in every file:** the original
+bug verbatim (3 tests red), `could` → `maybe` with well-formed markup, the
+`could` option deleted, a `consent_scope` option renamed in
+`creator-generation-routes`, a `business_type` option deleted in
+`business-control-plane-routes`, and `STAGE_KEYS` moved behind a function so its
+values cannot be read. Baseline green before and after each.
+
+Suite 3,727 → 3,745.
+
+### 2026-09-03 - The health score disagreed with the sentence next to it
+
+`python/sonara_ops` was the last package below the 35% floor with any room to
+move. `db.py` sat at 18/62 and `healthcheck.py` at 8/36, both for the same
+recorded reason: the branches that matter need a live PostgreSQL, and the
+release chain has none.
+
+That reason was half right. The SQL needs a database. The **interpretation** of
+what comes back does not, and that is where the defects were. Replacing the
+three readers `healthcheck` calls with functions that return a known shape
+reaches every line of the graded branch with no server at all.
+
+`python/tests/test_health_grading.py` does that, and the first assertion it ran
+failed:
+
+    required_tables score = 1.14
+
+`run_health_checks` computed its **status** from `set(REQUIRED_TABLES) -
+existing_tables` and its **score** from `len(existing_tables) /
+len(REQUIRED_TABLES)` — the size of whatever the query handed back, over the
+length of a list that may repeat itself. Two populations, one check. Shape 2 in
+`checks-that-cannot-lie`, in a health check.
+
+Neither half is safe alone:
+
+- a row for a table nobody asked about scores **above 1.0**, which today only
+  the query's own `= any(:table_names)` filter prevents;
+- a name listed **twice** in `REQUIRED_TABLES` inflates the denominator while
+  the set difference stays empty, so a database with nothing wrong scores 0.88
+  beside the words "All required tables exist".
+
+The second is one ordinary edit away, and it is the worse one — a number that
+contradicts the sentence printed next to it teaches whoever reads the dashboard
+to stop trusting the number. Both now come from the same intersection.
+`RLS_TABLES` is deduplicated the same way.
+
+**Checked and not a defect**, recorded so it is not re-derived: `missing_rls`
+uses `rls_status.get(name)`, so "RLS is off" and "the table is not there"
+collapse into one list. That looks like shape 4 and is not — the message says
+`RLS missing/unknown` rather than claiming to know which, and every RLS table is
+also a required table, so an absent one has already been named by the check
+above. `test_an_absent_table_is_not_silently_called_rls_off` asserts both halves,
+so neither can quietly stop being true.
+
+**Probed, six times, each failing by its own name:**
+
+| broken | failed |
+| --- | --- |
+| score back to `len(existing_tables) / len(REQUIRED_TABLES)` | the over-1.0 and the duplicate-name tests, both |
+| `Missing tables: {names}` → `Some required tables are missing` | `test_a_missing_table_fails_and_is_named` |
+| `RLS missing/unknown` → `RLS disabled` | `test_an_absent_table_is_not_silently_called_rls_off` |
+| `order by created_at desc` → `order by id` | `test_platform_jobs_are_returned_newest_first_and_bounded` |
+| the empty-input short circuit deleted | `test_an_empty_request_asks_the_database_nothing` |
+
+Each restored by copying the file back, never `git checkout --`.
+
+`db.py` is now 47/62 (75.8%) and `healthcheck.py` 28/39 (71.8%). Both entries
+came off `BELOW_FLOOR` — and the register found them itself: it is two-sided, so
+a file that *clears* the floor while still listed is an error naming the entry to
+remove. Python overall: 57.3% → **59.1%**, register 12 → **10** entries, 196 →
+**210** tests. The `python-ops` discovery floor in `dependency-scan.yml` is
+ratcheted 20 → 35 against the real 41.
+
+### 2026-09-03 - A seventh shape, written down because I kept producing it
+
+`.claude/skills/checks-that-cannot-lie` had six shapes. Today produced a seventh
+five times, which is enough to call it a shape rather than a slip.
+
+**A pattern that matches prose as if it were code.** A check greps for a name
+and finds it in a comment, a filename, a docstring, or the very sentence
+explaining why the thing is absent — so it passes, or reports a defect that is
+not there:
+
+| the pattern | what it matched |
+| --- | --- |
+| `schedule\.([a-z_]+)` | `sonara-agent-schedule.cjs` in a comment; demanded a column called `cjs` |
+| `!sql.includes("billing_customers")` | the comment saying it is *not* created |
+| a leak check for `service_role` | `20260727024500_service_role_extension_grants.sql` |
+| `'([a-z_0-9]+)'` over a pairs array | both halves of every pair |
+| `AUDIT.match(/billing_webhook_events/)` | the comment explaining the change |
+
+The fourth is the expensive kind. It did not misfire — it produced a
+**confident wrong conclusion**: a live table removed from a health check because
+its name appeared in a list whose shape nobody had read. Everything else on this
+list wasted an hour; that one shipped.
+
+The guard is nearly always two lines — strip comments before matching, and
+anchor on syntax rather than the bare name — plus two rules that came out of the
+same day. Read the *shape* of a list before extracting from it, and assert the
+count the source itself claims: `assert.equal(retired.size, 13)` is what caught
+the pairs error on its first run. And treat negative assertions as the dangerous
+direction, because `assertNotIn` fails on prose mentioning the thing while
+`assertIn` usually does not.
+
+Two more sections went in beside it, both from mistakes rather than theory.
+
+**Probes should grep for the message the first assertion produces.** Twice today
+a probe reported `DID NOT FAIL` when the test had failed perfectly well, because
+an earlier assertion aborted the method before the message being grepped for was
+reached. Give every assertion its own message, and when a probe says nothing
+failed, look at the run before believing it.
+
+**Restoring after a probe: copy the file aside and copy it back, never
+`git checkout --`.** That line was already in the working notes. I used
+`git checkout --` anyway and reverted my own uncommitted fix. It is now in the
+skill, with the fact that it has cost work twice and that the second time was
+somebody who had read the warning.
+
+The older sprint entries that say "six shapes" are left as they are. They are
+dated records of what the skill was when they were written — the same entry
+calls it "the 24-command chain" — and editing a log to agree with today makes it
+useless as history.
+
+### 2026-09-03 - Answering the Stripe idempotency question I left open
+
+The ops checklist asked *"Confirm stripe_events or billing_events stores
+processed event IDs idempotently"*, and neither table exists. I recorded that as
+a question for the owner. It is answerable from the code, so here is the answer.
+
+**The real table is `billing_webhook_events`**, upserted on
+`(provider, provider_event_id)` with `resolution=ignore-duplicates`. So the audit
+trail holds one row per Stripe event id however many times it arrives.
+
+**But that check is not what makes a retry safe**, and this is the part worth
+having written down. `handleStripeWebhook` records the event and then calls
+`synchronizeBillingFromStripeEvent` **unconditionally** -- the duplicate is
+never used as a gate. `recordBillingWebhookEvent` returns `{ ok: true }`
+whether the row was new or ignored, so the caller could not gate on it if it
+wanted to.
+
+What makes replay safe is the *shape of the writes*. Every one is an upsert on a
+natural key with `resolution=merge-duplicates`: `billing_subscriptions` on
+`(provider, provider_subscription_ref)`, `billing_entitlements` on
+`(organization_id, entitlement_key)`, `purchases` on
+`stripe_checkout_session_id`. A second delivery writes the same state to the
+same row.
+
+That is a legitimate design -- arguably better than an event-id gate, because it
+also survives two deliveries racing. It is also one edit from not being: change
+any of those to a plain insert and a retried webhook starts duplicating
+subscription rows in the table the paid-access check reads, silently.
+`tests/a-replayed-stripe-event-changes-nothing-twice.test.js` asserts the
+requests the application actually sends, and the checklist now names the real
+table and the real mechanism rather than two tables that never existed.
+
+**One thing left as an open question rather than asserted as a defect.** Stripe
+does not guarantee event order, and `merge-duplicates` keyed on the subscription
+reference has no version column -- so a late `customer.subscription.updated`
+can overwrite newer state with older. Nothing here establishes how often that
+happens or what it would cost, so it is a checklist item for the owner, not a
+finding.
+
+Probed five ways, each failing by name: the subscription upsert turned into a
+plain insert; the audit write no longer keyed on the event id; `purchases` no
+longer keyed on the checkout session; the payload parsed before the signature is
+verified; and the checklist renamed back to a table that does not exist.
+
+That last probe **passed wrongly at first** -- the assertion matched
+`billing_webhook_events` in the comment explaining the change rather than in the
+checklist item an operator reads. Python comments are stripped before that check
+now. The fourth loose pattern in this session, and the same shape every time: a
+check reading prose as if it were the thing.
+
+### 2026-09-03 - A package that ran nowhere, and two checks that could only fail
+
+`python/sonara_ops` had **no tests and no workflow**. Eleven declared
+dependencies, a CLI entry point, and a health check that grades the production
+database — and nothing in `.github/workflows` installed it, imported it,
+compiled it or ran it. `backend/` at least has `backend-dependencies` proving it
+builds; this had nothing.
+
+**It could not have been installed anyway.** `pyproject.toml` declared
+`requires-python = ">=3.13,<3.15"` while every workflow pins **3.12**. That
+floor was a claim nothing checked. Verified rather than relaxed by guess: every
+module imports and runs on 3.12, and the suite passes there, so it is now
+`>=3.12`.
+
+**One entry in `REQUIRED_TABLES` could never have passed.** That list is what
+`run_health_checks()` uses to decide whether production is healthy:
+
+- `stripe_events` is created by **no migration** and named nowhere in `lib/`,
+  `routes/` or `server.js`. It is a name, not a table.
+
+**And I removed a second one wrongly, then caught it before merging.** The first
+version of this work also dropped `stripe_customers`, on the grounds that it
+appears in `20260805120000_retire_superseded_tables.sql`. It does -- as the
+*second* element of `['billing_customers', 'stripe_customers']`. That array is
+**pairs**: retired table, and what replaced it. A name in the second position is
+what makes a table live. Reading the list without reading its shape inverted the
+meaning and produced a confident removal of a table the health check should
+watch. Five names were affected the same way: `stripe_customers`,
+`growth_leads`, `user_preferences`, `customer_records` and
+`billing_subscriptions` are all live successors, not retirees.
+
+It was caught by a pre-merge sweep for a *second* schema gap -- widening the
+earlier foreign-key scan to `alter table`, policies and indexes across all 32
+pending migrations, and asking which tables they touch without creating.
+`growth_leads` came back flagged, with a bare unguarded `alter table` in
+20260812041500 that would have failed against production exactly as `quotes`
+did. It does not, because `growth_leads` was never retired -- and that is what
+exposed the parsing error rather than a production failure doing it.
+
+A required-table list naming something nothing creates does not report a problem
+with the database. It reports a problem with itself, for ever, in language that
+reads like a real finding — and because nothing ran the package, nobody saw it.
+`stripe_events` removed and `stripe_customers` restored, and the suite now
+cross-checks every name against the migrations and against a correctly parsed
+retired list -- with an assertion that the parse returns exactly the thirteen the
+migration's own comment claims, and that no successor is read as a retiree.
+
+Worth recording separately: `stripe_audit.py`'s own checklist says *"Confirm
+stripe_events or billing_events stores processed event IDs idempotently"*, and
+**neither table exists**. That is a checklist item for a person to answer rather
+than a defect proved here — Stripe webhook idempotency may be handled another
+way — but somebody should answer it.
+
+27 tests. Five of the eight files that were exempt now clear the floor;
+`config.py` went 34.5% → over by testing the two `has_*` properties, and
+`main.py` 0% → over by running all four CLI commands through typer's
+`CliRunner`. Three keep entries with real measurements: `db.py` at 18/62 and
+`healthcheck.py` at 8/36, whose remaining branches need a live PostgreSQL, and
+`__init__.py` at 0/4, which is import-time lines. Overall Python coverage
+53.6% → **57.3%**, files under the floor **17 → 12**.
+
+CI now installs `./python` in the release-gate job so the gate measures it, and
+`dependency-scan.yml` gains a `python-ops` job that installs, runs `pip check`
+and executes the suite with a discovery floor — installing it is itself the
+check that its pyproject is satisfiable, which is how the 3.13 floor surfaced.
+
+**Three mistakes of my own while writing this**, all recorded because two are
+the same shape as earlier today:
+
+- The secret-leak assertion listed `service_role`, which matched the migration
+  *filename* `20260727024500_service_role_extension_grants.sql` printed by
+  `schema-report`. A pattern loose enough to match a filename, reporting a leak
+  that was not there — the third time today.
+- One assertion read
+  `self.assertNotIn("pass", output.lower().split("score")[0][:400] if False else "", "")`,
+  which asserts `"pass" not in ""` — **vacuously true, testing nothing**. Written
+  by me, in a file about checks that cannot lie. Removed and replaced with the
+  real property: `health` must not print the word `connected` when no database
+  is configured.
+- A probe reported "DID NOT FAIL" for the redaction check when the test *had*
+  failed — the probe grepped for a message a later assertion produces, and the
+  first assertion had no custom message at all. Every assertion in that test now
+  carries one, which is what makes a probe's grep meaningful.
+
+**A fourth, caught by GitHub rather than by me.** The push was refused:
+`GH013 — Push cannot contain secrets`, naming a Stripe API Key at
+`python/tests/test_sonara_ops.py:148`. The redaction test used a realistic
+`sk_live_51…` fixture, which genuinely matches Stripe's live-key format. The
+protection was right, and the fix is the fixture rather than an allow-list
+click: AGENTS.md says do not commit secrets, and a fake one shaped exactly like
+a real one is the same problem with none of the value — it teaches the next
+person to click past that warning. The value is assembled at run time now, and
+the test proves exactly what it did before, because what it needs is a long
+opaque string and any long opaque string will do.
+
+A fifth and sixth mistake, both inside the fix for the fourth. The corrected
+parser first read `{pair[0] for pair in re.findall(...)}` -- and `re.findall`
+with one capture group returns **strings**, so that built a set of first
+*letters*: seven initials standing in for thirteen names. The count assertion
+caught it on the first run, which is exactly what a blindness guard is for. And
+restoring the file after a probe, I used `git checkout --` and reverted my own
+uncommitted fix -- the one thing this repository's notes say never to do. Probes
+copy the file aside and copy it back; I knew that and did it anyway.
+
+Probed eight ways, each failing by name: `stripe_events` restored; a genuinely
+retired table (`contact_records`) added; the pair parser broken back to every
+quoted string; the initials bug reintroduced; an RLS table that is not a
+required table; a
+negative event count allowed to drag the mean down; `job_success_rate` losing
+its zero guard; and `redact` returning a secret whole.
+
+### 2026-09-03 - Two more repositories, and one that is nothing like its post
+
+Both really are MIT this time -- the badges are accurate, which after
+developer-roadmap is worth saying. One is still blocked, because a licence is
+not the only thing that decides. 183 records to 185.
+
+**OSIRIS is advertised as flight tracking and earthquakes.** The post lists
+aviation, CCTV, seismic, fires, satellites, weather, news. What it does not
+mention, and what opening the files found:
+
+- `src/lib/sherlock.ts` is **username enumeration across 481 social
+  platforms**. Its own header says so: a TypeScript reimplementation of the
+  Sherlock Project's detection logic, pulling that project's site database from
+  raw.githubusercontent.com at run time. That is people-search on named
+  individuals, and nothing in a screenshot about earthquakes suggests it.
+- `src/app/api/news/route.ts` defines `parseTelegramHTML()` and fetches Telegram
+  channel pages directly -- scraping the web interface rather than using an API.
+- It hard-codes several hundred third-party CCTV stream URLs, government
+  transport departments among them, and re-streams them.
+
+Blocked on conduct, not licence -- the same shape as camofox-browser. And it is
+precisely the case `sourcePermission()` in
+`routes/market-intelligence-routes.cjs` was built to refuse: a tool whose value
+is fetching hosts nobody recorded permission for. The record says the refusal is
+a judgement rather than a licence bar, so unlike the CC BY-NC entry a review
+could in principle reach a different answer -- it would have to answer those
+three findings first.
+
+Cost, separately: OPENSKY_CLIENT_ID and SECRET, AIS_API_KEY, ETHERSCAN_API_KEY,
+HELIUS_API_KEY, CLOUDFLARE_API_TOKEN, plus `@google/generative-ai`.
+
+**Claude SEO is what it says**, and is registered `optional_adapter_after_review`
+-- the same category as superpowers, a tool used while building rather than
+something a customer is served. 383 files, 18 agents, 33 skills, 37 test files.
+Measured rather than read off the README: the only outbound host in its Python is
+`oauth2.googleapis.com`, for Search Console; everything else it fetches is the
+site it was pointed at, and four files handle robots.txt. No API key of its own.
+
+Two things recorded that a screenshot would not show. It ships an optional
+Firecrawl extension, and Firecrawl is a hosted service -- a free tier is a price,
+not a licence. And the README offers two versions: this public MIT one and a
+private mirror behind a paid Skool membership. The public one is what is
+registered, because a repository this project cannot reach without paying
+somebody is not a dependency it can have.
+
+### 2026-09-03 - Production has been serving 5 August code for a month
+
+The connectors were asked to say what is actually deployed. They said something
+worth stopping for.
+
+**`sonaraindustries.com` is 252 commits behind `main`.** It serves deployment
+`dpl_4DK4UkJShM4NsWNqHprpFHsWeSmS`, commit `eebc80c` — pull request #191, merged
+**5 August 2026**. Nothing merged since has ever reached production. The
+deployment is dated 19 August, but Vercel's own metadata shows it is a redeploy
+of a redeploy of a redeploy of the 5 August build, all carrying the same sha.
+
+**The last successful Controlled Production Deployment was run #110.** Runs
+**#111 through #124** — pull requests #192 to #205, fourteen consecutive runs —
+all failed. Not flaky, not intermittent: the same failure every time.
+
+    Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+    ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+
+28 were pending at that run and `supabase db push` stops on the first, because
+`customer_invoices` has `quote_id uuid references public.quotes(id)` and
+**production has no `public.quotes`**.
+
+The migration set is not wrong. `010_sonara_platform_current_schema.sql` creates
+that table, and `verify:migration-replay` applies all 108 files to an empty
+PostgreSQL and gets a working schema every run. What has diverged is production:
+its history says `010` is applied and the table it creates is absent — the shape
+you get when an existing database is adopted into the CLI and early migrations
+are marked applied rather than run. The file name says as much; "current schema"
+is what somebody writes to describe a database that already exists.
+
+**Why nothing caught it, which is the part that belongs in this file.**
+`verify-migration-replay` already documents one direction of its own blindness:
+"a database that migrated forward in real time never re-runs an old migration,
+so production can be healthy while this is broken." The converse was never
+written down, and the converse is what happened. A replay onto an empty database
+cannot read production's history, so it cannot see a migration marked applied
+that never ran. It was green on all fourteen failing deploys.
+
+Its success line now says so rather than leaving it to be inferred: the check
+"says the migrations agree with each other and nothing about whether
+production's schema agrees with them."
+
+**The repair is written, and it covers 42 tables rather than the two the error
+named.** `20260811210000_repair_missing_platform_tables.sql` is versioned
+between the last migration production applied and the one that fails.
+
+Fixing only `quotes` would have shipped a repair that failed one migration
+later. Widening the search -- across the 32 pending migrations, every table
+referenced, altered, indexed or given a policy without being created -- gives 65,
+and **34 of those exist only in the pre-CLI numbered files 010 to 016**, the
+same family as the snapshot that demonstrably did not run. The transitive
+closure over their foreign keys is 42.
+
+Re-running those files whole would have been the obvious move and would have
+been wrong: they also create `billing_customers`, which
+`20260805120000_retire_superseded_tables.sql` deliberately retired. The
+generator refuses to emit any name from that array's first column, and asserts
+it rather than trusting it.
+
+Proven on a throwaway PostgreSQL: applied to a database holding none of them it
+creates all 42 with row level security on every one; applied a second time it
+changes nothing and reports no error; and `20260811220000`, the migration that
+has been failing in production since 5 August, then applies cleanly. The full
+109-migration replay onto an empty database still passes.
+
+Two mistakes inside the generator, both caught by running it. It ordered tables
+by `(file, name)` -- alphabetically within each file -- which put
+`automation_rules` before the `sonara_platforms` it references; ordering is now
+by position in the file. And the header prose went in without `--` prefixes, so
+a backtick reached the parser as SQL.
+
+**The flag the fix rests on is now guarded.** `supabase db push --linked
+--include-all` is what makes the CLI apply a pending migration whose version is
+older than one already in the repository. Without `--include-all` the repair
+would be skipped and the deploy would fail with the same error as before --
+and removing that flag would look like tidying. Two tests in
+`supabase-deep-reconciliation.test.js` hold it: the flag on both the dry run and
+the real push, and the repair sorting before the migration it unblocks, creating
+both tables with `if not exists` and never `billing_customers`.
+
+Writing that second test reproduced today's other mistake immediately: the
+negative assertion read the raw file and failed on the migration's **own comment
+explaining why it does not create `billing_customers`**. A pattern loose enough
+to match prose, twice in one day. Comments are stripped before the negative
+check; the positive checks still read the raw text, because a `create table` line
+that has been commented out is not a create table.
+
+Applying it to a live database is still the owner's, so this is
+`docs/owner/OWNER-STEPS.md` step 8 with
+the two queries that confirm the gap and the instruction to re-run the gated
+workflow rather than the Vercel Redeploy button — which is what took the alias
+on 4 August and is why that workflow's header exists.
+
+Also corrected: `WHAT-IS-LEFT.md` said 5 owner steps and CLAUDE.md said four;
+there are seven open. And the sentence "the repository side is finished ... the
+chain is green across all 39 commands" now carries the fact that makes it
+readable — **green here does not mean shipped, and right now it does not.**
+
+Two smaller findings from the same sweep, neither a defect:
+
+- Resend has one verified sending domain, `sonaraindustries.com`, sending
+  enabled. `getEmailValueStatus` only checks the address is email-shaped, so
+  readiness would report "configured" for an unverified domain — but a send then
+  fails with a loud `resend_403` the caller reports, and
+  `docs/owner/PROVIDER-KEYS.md` already tells the owner to verify the domain.
+  Checked, not changed.
+- Vercel runs Node **24.x**; every workflow pins Node **22**, and `package.json`
+  declares no `engines`. Nothing reconciles them. Recorded rather than changed:
+  picking 22 or 24 for a live product is a decision with production behaviour
+  attached, and it is the owner's.
+
+### 2026-09-03 - A share link that was not a link, found by asking what is unreachable
+
+`cacheAccountState` was exported, looked finished and was called by nothing, and
+`report-unreferenced-modules` could not see it because it asks whether the
+*module* is referenced. So the obvious next question: how many more are there?
+
+**The scan I wrote for it is not good enough to ship, and that is worth saying
+rather than shipping it anyway.** Three passes:
+
+- exported names nothing outside their file mentions: **118**, mostly constants
+  exported for tests. No signal.
+- exported functions that *write* and nothing outside their file calls: **1**,
+  `consumeRateLimit`, which is a false positive -- it is called at line 142 of
+  its own file by `createRateLimiter`, which server.js uses. "Called outside its
+  own file" is the wrong question.
+- transitive reachability from entry points: **45**, of which the striking
+  cluster was six functions in `lib/sonara-two-factor.cjs`. Also false: 2FA is
+  wired at server.js:1502 and its handlers call all six. Route registration is
+  an entry point and my scan did not treat it as one, so everything inside a
+  handler closure reads as dead.
+
+A gate with that false-positive rate would be decoration, so there is no new
+release-chain command here. What the passes did establish, and what is worth not
+redoing: **after `cacheAccountState`, there is no second exported writer that
+nothing calls.**
+
+Two exports really are unreachable, and one of them mattered.
+`lib/sonara-shared-results.cjs` exports `shareUrl(origin, token)`, which builds
+the full address of a shared result, **and nothing in the repository called
+it**. The reason is in `renderShareControl`: it had its own copy,
+
+    const href = `/shared/${encodeURIComponent(live.token)}`;
+
+and printed that as the link text. So the Share button -- whose entire purpose
+is producing something you can paste into a message -- showed people
+`/shared/abc123`. The anchor worked when clicked, so nothing failed in a way a
+test asserting a 200 would notice; the feature simply did not do the thing it
+exists for.
+
+The second copy cost something else too. `sharePath()` returns null for anything
+that is not a share token; the hand-built string rendered a link for whatever it
+was handed.
+
+Both now come from the module that owns them, and the origin is derived by
+`lib/sonara-site-origin.cjs` -- one definition, because
+`routes/sonara-connected-payment-routes.cjs` already had `baseUrl()` and
+server.js was about to grow a second. Three states as usual: a full origin gives
+a sendable address, no origin gives the path, and a bad token gives no link at
+all. The origin is never defaulted, because an invented host **looks sendable
+and is not**, which is worse than a path that is obviously partial.
+
+The `href` stays relative on purpose -- the browser resolves it, and a
+hard-coded host breaks the day this is served from another. Only the text a
+person copies needs the origin.
+
+One process note. `server-split.test.js` caps server.js at 3874 lines and this
+added a `require`. The first attempt trimmed comments off the call site to
+squeeze under the number, which is a ratchet deciding what gets documented --
+the wrong way round. The ceiling is raised to 3876 with the reason, which is what
+the test's own message asks for, and the change is a net reduction anyway: -6
+lines in the payment routes for +2 here.
+
+Probed four ways, each failing by name: printing the path again; rebuilding
+`/shared/${token}` by hand, which the invalid-token cases catch; accepting an
+`http` NEXT_PUBLIC_SITE_URL; and inventing a default host.
+
+### 2026-09-03 - The generation pages were narrowed; its API was not
+
+`routes/creator-generation-routes.cjs` is the file AGENTS.md governs most
+directly -- "enforce provenance, consent, and anti-clone safety". Its HTML pages
+were narrowed to named columns on 2 September, for the reason written into the
+file: a `select=*` is what hid the provenance defect, because the row carried
+the provider, the attestations and the checksum, the page loaded all three and
+printed none, and nothing could see the query to say so.
+
+**Its four JSON endpoints were not narrowed at the same time**, so the pages and
+the API over the same records disagreed about what may be returned. Two of them
+gave something away for nothing:
+
+- the asset list returned `bucket_id` and `object_path` -- a file's location
+  inside a private bucket. Nothing used them; checked across `public/`, `tests/`
+  and `docs/`. The download route reads them itself in its own scoped query
+  before signing a 300-second URL, so a response body carrying them is exposure
+  that buys nothing.
+- the job reads returned `provider_response`, the raw body an external provider
+  sent back, which nothing reads either. An endpoint that returns a provider's
+  whole reply publishes whatever that provider decides to put in it.
+
+The consent list returned `evidence_reference` -- where a signed release lives --
+and `metadata`, both of which the consent page had deliberately decided not to
+render. An endpoint over the same records should not quietly return more than
+the page that was designed.
+
+**The near-miss is the part worth keeping.** The job column list was derived by
+grepping this file for `job.`, and the first pass missed `title`, because
+`jobTitle()` reaches it through `job?.title`. Shipping that would have renamed
+every job page to "Text to speech request" -- and nothing would have errored,
+nothing logged, and no test asserting a 200 would have noticed, because
+`jobTitle()` falls back to a capability label when the title is absent. The
+second pass matched `job.` and `job?.` both.
+
+`tests/a-generation-api-returns-what-its-page-shows.test.js` derives the field
+set from the source rather than restating it, for that reason, and asserts
+`title` separately because its absence is the silent one.
+
+`report-unused-selected-columns` behaved exactly as designed: it refused the
+change until the drop from 31 to 27 was recorded with which queries it was, and
+the file lists it now prints on a passing run are what located them.
+
+Probed five ways, each failing by name: dropping `title`; putting `bucket_id`
+and `object_path` back on the asset list; putting `evidence_reference` back on
+the consent list; reverting to `select=*`; and dropping `policy_reasons`, a
+field the page reads.
+
+### 2026-09-03 - A forbidden-column list is not a promise about what gets published
+
+`lib/sonara-shared-results.cjs` forbids two columns on the public read of a
+shared result:
+
+    forbidden: Object.freeze(["input_payload", "user_id"]),
+
+and `a-shared-link-is-a-link-not-a-leak.test.js` asserts the select against that
+list, so the columns are held. **That is a narrower guarantee than it reads
+as**, and two facts decide the difference:
+
+- `presentableLines()` publishes **every scalar key** in `output_payload`. Not a
+  declared subset -- whatever is in the blob.
+- A share link can be made for **any** `module_outputs` row in the caller's
+  organization, whatever its `module_key`. `owned()` checks ownership and
+  resource type, and `module_output` covers the whole table.
+
+So the row written by `POST /api/growth-studio/leads` -- whose input is a real
+person's name and email -- is shareable, and whatever its output payload holds
+becomes public. Today it is a fixed two-key object holding neither. **Nothing
+enforced that.** An edit adding `name: req.body.name` to make a workspace card
+read better would publish a lead's name through every existing share link, and
+the forbidden-column list would stay green: it guards columns, and this arrives
+inside `output_payload`.
+
+`tests/what-a-module-saves-is-what-a-stranger-can-read.test.js` drives the four
+real save endpoints with marked inputs, captures what is written to
+`module_outputs`, and runs it back through `presentableLines` -- the actual
+public renderer, not a restatement of it.
+
+**Writing it changed what the rule should be.** The first version asserted that
+nothing the caller typed may be published, and it failed on `creator_offers` and
+`campaign_workspace`, which copy `audience` and `offer` into their output. That
+is not a leak: an offer page that does not say what the offer is or who it is for
+has no reason to exist, and the owner pressed Share on it. The rule that survives
+is **no third party's personal data may be published** -- and the one module
+whose input carries a third party echoes nothing at all. Both builders were
+opened to list the permitted echoes (`buildCreatorOffer` in
+lib/sonara-offer-drafts.cjs, `buildCampaignPlan` in server.js) rather than
+loosening the assertion until it passed.
+
+`lead_follow_up` is asserted separately, against every marked value rather than
+just name and email, and the test fails if anybody gives it a permitted-echo
+list at all -- the escape hatch is the thing that would quietly undo this.
+
+Probed three ways, each failing by name: adding `name: req.body.name` to the
+lead output (caught twice, by the general check and the named one); giving
+`lead_follow_up` a permitted-echo list; and sending an unmarked "Alex" instead
+of a distinctive value, which the vacuous-harness guard catches -- "the secret
+did not appear" is otherwise true because the secret was never sent.
+
+### 2026-09-03 - The one read that crosses tenants now names its columns
+
+`report-unused-selected-columns` records 31 `select=*` queries and 23 built at
+run time as unauditable -- "neither names its columns in the source, so nothing
+here can say whether they are used". **It printed those file lists only on a
+failing run.** A green run gave a count and no way to find them, which is a
+population named by number and not by name: the thing the script's own header
+asks for, one level up. They are now printed on a passing run too, and that is
+how the query below was found.
+
+**The schedule tick was one of them.** It is the single read in this
+application that deliberately crosses tenants -- a scheduler has to see every
+organisation's due work, and `buildTenantQuery` makes it say so rather than let
+an unscoped query slip past. Every run underneath is then scoped to the
+`organization_id` on the row. It asked for `select=*`.
+
+The failure that hides behind that has no symptom. `isDue()` reads seven
+columns. If one stops arriving, nothing errors: `wholeNumber()` reports it as
+"not recorded" -- correctly, that was the fix on 2 September -- `isDue` returns
+not-due, and the schedule joins `skipped`. The tick answers **200 with an empty
+`ran` list**. Every customer's weekly job stops and the response says everything
+is fine.
+
+Twelve columns are now named: the seven `isDue` reads and the five the loop
+uses, `organization_id` among them, which is what would otherwise scope every
+run to `undefined`.
+
+Naming them creates the usual problem -- a hand-written list that has to keep
+matching two other files -- so `tests/the-scheduler-asks-for-every-column-it-reads.test.js`
+writes neither list by hand. It derives the columns `lib/sonara-agent-schedule.cjs`
+reads and the columns the tick reads from their source, derives the table's real
+columns from migration 20260813180000, and asserts the select covers the first
+two and stays inside the third. A pasted list agrees with itself.
+
+Two things went wrong while writing it, both worth keeping:
+
+- The first `schedule\.([a-z_]+)` matched `sonara-agent-schedule.cjs` inside a
+  comment and reported a missing column called `cjs`. A pattern loose enough to
+  match prose reports a defect that is not there, which spends exactly the
+  attention the file is asking for. Comments are stripped first now.
+- `selectList()` ran once at describe time, so putting the query back to
+  `select=*` made the whole file error out before the test written for that case
+  could run and name it. A check that cannot report the bug it was written for
+  is the shape this repository keeps finding. It is called inside each test now.
+
+Probed five ways, each failing by name: dropping `time_zone`, which `isDue`
+reads; dropping `organization_id`; going back to `select=*`; selecting a column
+`agent_schedules` does not have; and truncating the list to two columns, which
+the blindness guard catches.
+
+### 2026-09-03 - The 35% floor reaches Python, and the stdlib tracer that lies
+
+The owner's rule is that every language here meets 35%, new and old. JavaScript
+was done first; `verify:python-coverage-floor` closes the other half and is the
+39th command in `verify:launch`.
+
+**What was already there is not this, and the distinction matters.**
+`dependency-scan.yml` runs four Python jobs and each asserts a number, which
+reads like a coverage gate. Every one of those numbers is a **test count** --
+"only $ran tests ran in voice-clone, floor is 24; discovery has gone blind". A
+real guarantee, and a different one: a suite of 97 tests that never imports half
+its package satisfies a test-count floor and covers nothing.
+
+**`trace.Trace` reported four well-tested files at 0%.** This is the finding
+worth keeping. The stdlib's `trace` module caches its ignore decisions **by bare
+module name** -- `_modname()` reduces a path to its basename, and the first file
+with that basename decides for every later one. `sys.prefix` is on the ignore
+list, so the moment the run touched `/usr/lib/python3.11/unittest/runner.py`,
+the name `runner` was marked ignored, and `agentkit/runner.py` was dropped
+silently for the rest of the run. Nothing errored. It reported 0/204 while
+thirteen tests drove it.
+
+Demonstrated rather than reasoned about:
+
+    stdlib basenames now permanently ignored: ['runner', 'config', 'tool']
+    agentkit/runner.py   ->ignored: 1
+    sonara_ops/config.py ->ignored: 1
+
+Every stdlib basename this repository reuses is hit the same way, `__init__`
+for every package included. Had that version been trusted green, the register
+would now hold a dozen entries recording well-covered files as untested -- a
+wrong reason inside an exemption, which the skill file names as worse than no
+exemption at all. Fixing it moved the overall figure from 18.9% to 47.4%. The
+gate now uses `sys.settrace` directly, keyed on `co_filename`, plus
+`threading.settrace` so a suite that starts a thread is not read as untested
+code.
+
+**The denominator comes from the compiler, not a regex.** `compile()` the
+source, walk every nested code object's `co_lines()`, take the lines it emits
+code for. A `def` counts, its docstring does not. That is stricter and more
+honest than the JavaScript gate's text matching -- if the compiler emits no code
+for a line, the line cannot be covered and is not counted against the file.
+
+**Three states, not two.** A file whose suite could not run is **not measured**,
+not 0% covered. pytest, fastapi, httpx and python-multipart are not installed
+here and this chain installs nothing, so eleven files across two suites have no
+figure -- and calling them 0% would be a definite claim on a run that did not
+happen. `UNMEASURED` records those suites and names the missing import;
+`BELOW_FLOOR` records files that were measured and are under. CI installs both
+requirements files and sets `SONARA_PYTHON_COVERAGE_COMPLETE=1`, which turns an
+unmeasured suite into a failure -- the same shape as
+`SONARA_MIGRATION_REPLAY_REQUIRED`, and for the same reason.
+
+The register's seventeen entries were measured, not estimated: a throwaway venv
+was built outside the repository so the two pytest suites could be run for real.
+Three entries came out of that which no amount of reasoning would have produced
+-- `disposable_domains/cli.py` at 0/163 (the suite tests the validator directly
+and never through argv), its four-line `__main__.py`, and
+`voiceclone/openvoice_engine.py` at 34.1%, nine tenths of a point under, whose
+own first line says it has never been run.
+
+One false alarm worth recording, because it looked like a defect in the consent
+gate: the voice-clone suite failed with five failures and nine errors, and the
+cause was my venv missing `python-multipart` -- fastapi raises for it at request
+time rather than import time, so a missing package reads as a broken consent
+gate. The suite passes 28/28 with it installed, and the script now checks for
+`multipart` up front so the message names the cause.
+
+**The denominator turned out to be interpreter-dependent**, which was worth
+measuring rather than assuming. Comparing `co_lines()` across 3.11, 3.12 and
+3.13 over these 34 files: 3.12 and 3.13 agree exactly, and 8 files differ from
+3.11 -- `credits.py` 220 executable lines against 237, `consent.py` 91 against
+97. As percentages that moves `credits.py` 5.2 points, further than the 2-point
+regression tolerance, so a registered file could be reported as having got worse
+purely because somebody ran a different `python3`.
+
+None of the seventeen register figures move; checked file by file on both, and
+the drift falls entirely on well-covered files that are not registered. What
+follows is that the regression comparison only means something on the
+interpreter the figures came from. The floor is absolute and always applies; the
+regression comparison applies only on 3.12, which CI pins, and the population
+line names the interpreter either way so a green local run is not read as more
+than it is.
+
+CI pins 3.12 with `actions/setup-python` so the regression comparison stays
+meaningful. **The reason first written into that step was wrong**, and is worth
+recording rather than quietly fixing: it said the `sonara-industries` job's pip
+step would fail because Ubuntu's interpreter is externally-managed (PEP 668).
+The step had already run green without it, installing into
+`/home/runner/.local/lib/python3.12` -- a user install, which is not what PEP
+668 refuses. A plausible reason that turned out not to describe the run, written
+into a comment in the same session as a sprint entry warning about exactly that.
+The action stays, for the version-pinning reason, which is real.
+
+For the record, the gate's first CI run reported the same figures as the local
+3.12 measurement, which is the check on both:
+
+    Python coverage floor verified: 34 files, 2671 executable lines, 53.6%
+    covered overall, 17 under the 35% floor against 17 register entries,
+    from 169 tests -- every Python source file was measured.
+
+Probed nine ways, each failing by name: a register entry removed; a well-covered
+file wrongly listed; an entry naming a file nothing measured; an entry recorded
+3 points high; both blindness guards raised above the real population; an
+UNMEASURED suite renamed away; an UNMEASURED entry naming no directory; and the
+completeness flag set without the packages. Plus one on the code rather than the
+register -- gutting `test_credits.py` dropped `credits.py` from 59% to 0/220 and
+failed by name.
+
+Also: 26 `.pyc` files under `tools/agentkit` were tracked and are now ignored.
+CPython validates a cached bytecode file's source mtime and size before using
+it, so a stale one is recompiled rather than silently executed -- this is
+repository hygiene, not a correctness fix, and the distinction is worth keeping
+straight rather than overclaiming.
+
+### 2026-09-03 - Twelve repositories read, and three that are not what they look like
+
+Twelve arrived as social-media screenshots. Each was cloned and its licence file
+opened; `data/open-source-tools.ts` goes from 171 records to 183.
+
+**`kamranahmedse/developer-roadmap` is not open source.** It is one of the most
+starred repositories on GitHub and is spoken of everywhere as though it were.
+Its licence file says: *"Everything including text and images in this project
+are protected by the copyright laws. You are allowed to use this material for
+personal use but are not allowed to use it for any other purpose including
+publishing the images, the project files or the content in the images in any
+form."* Sharing links to the repository or roadmap.sh is permitted; taking
+content out of it needs prior written consent.
+
+Two details of *how* that was found are worth keeping, because both nearly
+produced the opposite answer. The file is `license`, lowercase and with no
+extension, so `raw.githubusercontent.com/.../LICENSE`, `.../LICENSE.md` and
+`.../license.md` all return 404 -- three 404s that read exactly like "there is
+no licence file", which is a different finding with a different consequence.
+`vercel/next.js` has the same shape: `license.md`, lowercase, and `LICENSE`
+404s. **A 404 on a guessed path is not a fact about the repository.** Clone it
+and list the directory.
+
+**Two repositories carry no licence at all**, which is all rights reserved:
+`cporter202/awesome-ai-tools` (4 files) and `cporter202/lovable-for-beginners`
+(20 markdown files). Checked twice each -- no LICENSE/LICENCE/COPYING file, and
+no licence section in the README either, because a licence stated only in prose
+would have been missed by the first check.
+
+**A repository named "Anthropic Cybersecurity Skills" is not Anthropic's.** It
+is `mukul975/Anthropic-Cybersecurity-Skills`, Apache-2.0, and line 35 of its own
+README says so: "Community Project -- This is an independent, community-created
+project. Not affiliated with Anthropic PBC." The disclaimer is inside the
+README; the name is what a screenshot shows. Its badge claims 818 skills and
+`find -name SKILL.md` returns exactly 818, so that number is real -- along with
+1,103 Python files, which is why it is recorded `research_only`: the decision
+not to run it is the substance of the review.
+
+**The affiliate catalogue has a third vertical.**
+`cporter202/job-data-apis-and-scrapers` is MIT and 1,161 of its 1,174 links
+carry an `?fpr=` parameter -- 98.9%. `settings/repo.config.json` names
+`cporter202/API-mega-list` as the upstream, the same source as the ecommerce and
+real-estate directories already on the register. Three separate recommendations,
+one artefact.
+
+The same author's `vibe-coding-with-base44` is recorded differently, and only
+because it was measured rather than assumed: 128 links, none with `?fpr=`, six
+affiliate links out of 121 Base44 links, and an `AFFILIATE-DISCLOSURE.md` naming
+the affiliate URL in full and stating that the reader need not use it. That is
+`reference_only`, not blocked. Measuring is the whole difference between the two
+verdicts.
+
+**`miuuyy/codex-chatgpt-web` is blocked on something its licence cannot
+settle.** MIT, 221 files, and it drives a real signed-in ChatGPT web session in
+an embedded browser so Codex can use ChatGPT Pro "beyond Codex usage limits".
+The repository is candid: its README says it "is unofficial; users remain
+responsible for complying with applicable OpenAI terms". The licence governs the
+tool; OpenAI's terms govern the account it automates. AGENTS.md settles it
+independently -- AI calls go through the Provider Gateway or an approved
+server-side adapter, and a browser impersonating a logged-in human is neither.
+
+The rest: `gridex/gridex` Apache-2.0 (744 files, Swift and C++ desktop app --
+recorded with a credential boundary, because a database client's value is
+holding a connection and ours bypasses RLS); `TidyFactor/Styler` Apache-2.0
+(the owner read off the screenshot, `alwkala/Styler`, does not exist);
+`owasp-noir/noir` MIT, 2,293 Crystal files, the one here with a real use --
+a second, independent derivation of this repository's own endpoint list;
+`vercel/next.js` and `facebook/react` both MIT, both recorded `research_only`
+with the architectural reason written down so "why is this not Next.js" is
+answered from a record rather than re-argued.
+
+`verify-doc-counts` caught both derived figures in `docs/owner/WHAT-IS-LEFT.md`
+by name -- 171 to 183 reviewed, 9 to 11 declaring no licence -- which is the
+check doing exactly what it is for.
+
+Also corrected here: the 2026-09-02 coverage entry still said three files were
+under the floor and named four route modules as covered by no test. Both were
+artefacts of the merge bug that entry itself describes, left in the prose after
+the figures above them were fixed. The gate now reports 207 runtime files,
+39,145 countable lines, 91.8% overall, one file under the floor against one
+register entry.
+
+### 2026-09-02 - A 35% coverage floor, with its exceptions written down
+
+Node 22 writes V8's own coverage to `NODE_V8_COVERAGE`, so `verify:coverage-floor`
+needs no dependency: it runs the suite with that set and folds the byte ranges
+into per-file line coverage. Same mechanism c8 uses, without c8.
+
+The denominator is lines with something on them -- blanks, comments and
+brace-only lines are excluded, because counting them inflates every figure and
+would let a file pass on its punctuation. That makes these numbers **stricter**
+than a raw line count, and the population is printed so the figure can be
+checked rather than believed:
+
+    207 runtime files, 39145 countable lines, 91.8% covered overall
+
+**That figure is the corrected one.** The first version of this gate reported
+65.8% and twenty-one files under the floor; both were wrong, for the reason in
+the entry above this one. One file is under 35%. A gate that simply failed would have
+had to be switched off the day it landed, which is how a check becomes
+decoration. So it is two-sided, the way `report-orphan-tables.mjs` is, and it
+fails four ways:
+
+- a file under the floor that is not in the register;
+- **a file in the register that has reached the floor** -- a recorded reason
+  that no longer describes anything is what the next person reads instead of
+  checking;
+- a register entry naming a file nothing measured, so a rename cannot quietly
+  retire an exemption;
+- a registered file that gets more than 2 points worse, so the register records
+  where things stand rather than being somewhere to put a file to stop it being
+  looked at. The tolerance is slack for jitter that has not been seen: two
+  consecutive whole-suite runs produced identical per-file figures.
+
+Each entry carries what was measured and **how many test files name the module**,
+both facts rather than judgements. The single entry is
+`scripts/verify-member-read-access.mjs` at 21/86 -- a release script that talks
+to Supabase, which the suite loads but cannot run against a database. The four
+route modules the first version listed here as untested were artefacts of the
+merge bug: `sonara-huggingface-routes`, `sonara-infrastructure-routes`,
+`creator-music-system-readonly` and `sonara-formula-routes` are all well above
+the floor once each process is painted on its own. They are named here because
+this paragraph asserted the opposite for a day, and a wrong reason left in a
+document is what the next person reads instead of checking.
+
+One thing the first version got wrong, found by probing it: on a failing run it
+printed the errors and then `Coverage floor verified: ...` underneath them. A
+success line over a list of failures is precisely the defect this repository
+keeps finding, so the word "verified" is now gated on the run having found
+nothing, and a failing run says `Coverage floor check FAILED` with the same
+population figures.
+
+Probed five ways, each failing by name: an entry removed from the register; a
+well-covered file wrongly listed; an entry naming a file nothing measured; a
+registered file recorded 6 points higher than it now measures; and the blindness
+guard raised above the real file count.
+
+### 2026-09-03 - A cache with no writer, fetched by a star select, read by nobody
+
+`lib/sonara-connected-payments.cjs` exports `cacheAccountState`. It writes
+Stripe's answers onto the business's row: `charges_enabled`, `payouts_enabled`,
+`details_submitted`, `state_checked_at`.
+
+**Nothing called it.** Not a route, not another module, not a test -- checked
+across the whole repository. So those four columns were null on every row in
+production, `readAccount` fetched them anyway with `select=*`, and nothing read
+them either. `report-unreferenced-modules` cannot see this: it asks whether the
+*module* is referenced, and this one is.
+
+Found while auditing the 32 `select=*` queries that
+`report-unused-selected-columns` records as unauditable -- "neither names its
+columns in the source, so nothing here can say whether they are used". That is
+what a star select costs: the query looks like it is fetching thirteen columns
+for a reason.
+
+One thing checked and **not** a defect, worth recording because it looked like
+one: `account.requirements` is read in `liveAccountState`, and
+`business_payment_accounts` has no `requirements` column. That `account` is
+Stripe's API response, not the database row, and Stripe's Account object does
+carry `requirements`. Reading the surrounding lines took a minute and stopped a
+false finding.
+
+**What the columns were for, and what they now do.** The migration is explicit:
+
+    charges_enabled boolean,       -- "null means 'never asked', false means
+                                      'Stripe said no'."
+    state_checked_at timestamptz,  -- "A cached flag with no timestamp beside it
+                                      is a number with nothing saying how old
+                                      it is."
+
+The connected-payments page asks Stripe live on every load. When Stripe cannot
+be reached it said only "Could not check". It now adds what was true when Stripe
+was last asked, and when -- "When we last asked Stripe, on 2026-09-01 14:32,
+charges were enabled and payouts were not enabled. That is not the same as what
+is true now." Three states per flag: a null flag says nothing rather than
+reading as disabled, because null is "never asked" and false is "Stripe said no",
+and those send a business owner to different places.
+
+**Two lines this must never cross, both tested.** The cache does not decide
+whether money may be taken -- `canAcceptPayments` still asks Stripe every time,
+and refuses when it cannot, whatever the row says; a stale `charges_enabled:
+true` renders a pay button on an account that cannot take money. And the
+remembered answer is never presented as the current one: the heading still says
+the check did not happen, and the disconnect button is not offered.
+
+The write is placed on the page, not in `canAcceptPayments`, because that
+function is on the money path and a write per payment check is a cost per
+payment. It is not awaited for its result: a page that 500s because it could not
+remember something is worse than one that forgets.
+
+`select=*` narrowed to the six columns that now have readers. The star-select
+ratchet did its job -- it refused the fall until the reason was written down,
+"a fall nobody records looks exactly like a matcher that has stopped matching".
+32 to 31.
+
+Probed, each failing by name: the cache call removed again; `select=*` restored;
+a null payout flag rendered as "not enabled"; the remembered answer stripped of
+its date; a failed Stripe check cached anyway; and the cache allowed to decide a
+payment (**six** tests).
+
+### 2026-09-03 - Two counts nobody could read, reported as proof
+
+The last file under the coverage floor was `scripts/verify-member-read-access.mjs`
+at 21 of 86 lines. Its register entry said "a release script that talks to
+Supabase; the suite loads it but cannot run it against a database", and that was
+true -- top-level `await`, `process.exit`, and no way to run without a real
+database. It was also the wrong conclusion, because the script contains one
+function that **decides** something and does not need a database to do it.
+
+That function is `verdict`. It grades each table ready / partial / blocked /
+no-evidence / unknown by comparing what service_role sees against what the
+organization's own member sees, and **that grade is what somebody acts on when
+switching a user-facing read from the service-role key to the caller's JWT.**
+The whole point is catching the quiet failure the script's header describes: a
+policy that does not match returns zero rows and HTTP 200, nothing errors, and
+the workspace renders empty.
+
+It had the defect it exists to prevent.
+
+The count comes from PostgREST's `Content-Range`, parsed as
+`Number(range.split("/")[1])`, and a missing or malformed header becomes `null`.
+The comparison had no case for that:
+
+    asService.count === 0             ->  null === 0     ->  false
+    asUser.count === 0                ->  null === 0     ->  false
+    asUser.count !== asService.count  ->  null !== null  ->  false
+    -> { state: "ready", why: "member sees all null rows" }
+
+and the script prints that table under **"Safe to add to the user-scoped read
+list, on this evidence"**. Two counts it could not read, reported as proof, by
+the tool whose job is to stop a page silently blanking. A proxy that strips the
+header looks exactly like this.
+
+`scripts/member-read-verdict.cjs` now holds the decision, the script imports it,
+and an unread count on either side is `unknown` with a reason naming which side
+and where the count comes from. `counted()` requires a non-negative integer
+rather than trusting the caller to have turned non-finite into null.
+
+Two things the script gained alongside: a fallback mark, because a state with no
+entry in its marks table printed `undefined` beside a table name; and a guard
+that every graded table landed in one of the five states the summary counts,
+exiting 2 otherwise -- the summary would otherwise add up to less than the list
+printed beneath it.
+
+14 tests, including all 100 combinations of both sides' ok-ness and five count
+values, asserting every one lands in a counted state with a reason.
+
+Probed, each failing by name: the unread-count guard removed (**three** tests);
+`counted` relaxed to `typeof value === "number"`; an empty table graded ready;
+a grade outside the counted set; and the script growing its own copy of
+`verdict` back.
+
+**And one flaw in the test itself, found by probing it.** The message read
+``${JSON.stringify(value)} was treated as a real count``, and
+`JSON.stringify(NaN)` is the string `"null"` -- so the NaN case reported "null
+was treated as a real count" and would have sent the next person to the wrong
+value. `String()` now.
+
+The script stays in the register: it is still a command-line tool that cannot run
+here, and its coverage is still low. What changed is that the part of it capable
+of being wrong is no longer the part that cannot be tested.
+
+### 2026-09-02 - A page that said it was read-only, above fifty Save buttons
+
+`routes/sonara-subsystem-routes.cjs` was 30 of 177 lines. One test named it, and
+only as one of many routes in the outage crawl, which renders the unconfigured
+state and drives no handler. Its one write endpoint was unexercised -- and that
+endpoint takes a **table name from the URL** and inserts into it.
+
+Admin-gated, so not an anonymous hole. Still the widest single parameter in the
+application: `customers`, `customer_invoices`, `agent_pending_actions` and every
+other table are one path segment away, and the insert goes out with the service
+role key, which bypasses row level security. The registry allowlist is the only
+thing between the two, and nothing had ever tested it.
+
+23 tests. The allowlist is checked against real table names from elsewhere in
+this schema rather than invented ones, against all 18 read-only tables the
+registry names, and in the other direction -- a check that refused everything
+would satisfy every one of those and would have deleted the feature.
+
+`organization_id` and `user_id` are the other half. Eight writable tables
+declare `organization_id` NOT NULL, no form offers it, and it comes from the
+signed-in admin. The test posts another organization's id and asserts the insert
+carries the admin's.
+
+**And the index page was lying about all of it.** It said:
+
+> Nothing here can be changed from these pages
+>
+> Every page under this one reads. ... offering a form would be inventing the
+> process rather than exposing it.
+
+while the detail pages render `<form method="post" action="/api/research-lab/subsystems/...">`
+with a Save button for every one of the fifty writable tables. It also said
+"Five designed subsystems" against nine, and "nothing in the application has
+ever read or written one of them" against the endpoint directly below it.
+
+That is the recurring defect in the worst possible place: **the sentence
+asserting the safety property is the one that stopped being true.** An operator
+reading "every page under this one reads" would not expect Save to insert.
+
+Rewritten, with every number derived from the registry rather than typed:
+`${writableTables} of these tables can be added to from here. ${readOnlyTables}
+cannot`, and the split explained -- a registry or a review is somebody deciding
+something and gets a form; a run or a log is a record that something happened
+and typing it in would not make it have happened.
+
+Two tests hold it: one asserts the four false sentences are gone, and one
+asserts the four counts are present and match the registry -- because deleting
+the sentences would satisfy the first while saying nothing.
+
+Probed, each failing by name: the allowlist removed (**seven** tests); the
+read-only split ignored; the organization taken from the body; the false copy
+restored; and the writable count hardcoded to the 38 the old comment quoted
+instead of derived.
+
+### 2026-09-02 - The business end of every call was refused
+
+`routes/sonara-call-routes.cjs` was the lowest-covered file left in the register
+-- 71 of 273 lines. Two tests named it and neither drove a handler: one asserts
+registration throws when a dependency is missing, the other reads the source for
+hardcoded STUN addresses. Everything the four endpoints decide was unexercised.
+
+Writing tests for it found that **no call could ever connect from the business
+side.**
+
+The chain, each link read rather than assumed:
+
+1. The three signalling endpoints -- `GET`/`POST /api/calls/:callId/signals` and
+   `POST /api/calls/:callId/status` -- carry **no authentication middleware**.
+   That is deliberate and documented: the customer end is a person holding a
+   link and no account, and "requiring an account before somebody can answer
+   their builder's call is a product nobody would use."
+2. `req.sonaraUser` is set **only** by route-level middleware. Five assignment
+   sites in `server.js`, all inside `requireCustomer`, `requireAppAccess`,
+   `requireWorkspaceAccess` and `requirePaidOrOwnerAccess`.
+3. Nothing is mounted on `/api/calls` -- no `app.use` for that path exists.
+4. So `organizationFor` found no user, `resolveCall` returned `no_organization`,
+   and every business poll and every business offer got **403**.
+5. And the business browser had no token to fall back on: the business page's
+   client config passes `role`, `createEndpoint`, `customerId`, `joinBase`,
+   `iceServers` and `relay` -- no token -- and `sonara-call.js` sets `token`
+   once from that config and never reassigns it.
+
+The session cookie was on the request the whole time. `sonara-call.js` fetches
+with `credentials: "same-origin"`. **Nothing read it.**
+
+`organizationFor` now resolves the session itself when no middleware has
+attached one, using `resolveCustomerSession` -- the same function
+`requireCustomer` uses, with failing allowed, because a request with no session
+is the customer end and must get `null` rather than a refusal. The dependency is
+**required**, so a server that forgets to pass it fails at startup rather than
+serving a calling feature that refuses every business request, which is exactly
+how this went unnoticed.
+
+25 tests, driving the real routes and the real store with only `fetch` replaced
+by a stub that answers like PostgREST and records every URL and body -- so the
+assertions are about the query the application would really send. The boundary
+lives in those queries: `from_role=eq.<the other end>` and
+`organization_id=eq.<this business>`.
+
+Probed, each failing by name: the session resolution removed (**three** tests,
+including the one named for this bug); the role taken from the request body;
+the path/callId match dropped; `otherRole` replaced by `role` so each end reads
+its own signals back; and the organization filter removed from the customer
+ownership check.
+
+Worth stating for the next person: the module's header already said "The role is
+derived, never accepted", and it was true. What no comment said, because nobody
+had run it, was that the end which derives its role from a session could not get
+one.
+
+### 2026-09-02 - CI red again, and this time the override was the cause
+
+Four high advisories in `fast-uri@3.1.5`, dev-only, through
+`@vercel/node > ajv`. Checked before assuming: the failure appeared on
+`6fd0a5d`, whose diff is a workflow file and documentation, and the audit had
+been clean locally twenty minutes earlier. Newly published, not caused by the
+change it landed next to.
+
+What makes this one worth writing down is that **the override was holding the
+tree on the vulnerable version**. `pnpm-workspace.yaml` already carried
+`"fast-uri@>=3.0.0 <3.1.5": "3.1.5"` from an earlier advisory. Pinning to
+whatever was current at the time is what makes an override go stale: once
+`3.1.5` is itself in the vulnerable range, that entry pins the tree **to** the
+problem. Raised to `"fast-uri@<3.1.6": "3.1.6"`.
+
+Second time this shape has appeared -- `SECURITY_NOTES.md` records the same
+thing happening to `js-yaml` -- so it is now written there as the first place to
+look when an audit names a package the override register already mentions.
+
+### 2026-09-02 - The coverage figures were wrong, and the gate caught it
+
+`NODE_V8_COVERAGE` writes **one file per process**, and a whole-suite run leaves
+about twenty-five of them, because several tests spawn node. The first version
+of `verify-coverage-floor.mjs` concatenated every process's ranges for a file
+and painted them together, largest span first.
+
+That is right within one process, where nesting is what the ranges mean. Across
+processes it is wrong: a subprocess that only `require`s a module without
+calling into it reports the same ranges with count 0, and painting that
+all-zero outer range over the top erases the coverage from the process that
+actually ran the code.
+
+**What made it visible.** Ten new tests were driving the four
+`/api/infrastructure/*` routes and asserting on real 200s, and the file did not
+move: 16 of 55, every handler body reported uncovered. Two explanations were
+possible -- the tests were not reaching the handlers, or the measurement was
+wrong -- so it was checked rather than guessed: the routes are registered at
+`server.js:450`, nothing else serves those paths, and the tests were asserting
+on real payloads. That left the measurement.
+
+Each process is now painted on its own and the processes combined by taking the
+**highest** count for each byte: a line that ran anywhere ran.
+
+The scale of what it was hiding:
+
+    before the fix      65.8% overall,  21 files under the floor
+    after the fix       91.1% overall,   3 files under the floor
+
+Eighteen of the twenty-one register entries were artefacts of the bug, not
+untested files. Reintroducing the bug as a probe drops the repository to 40.1%
+and puts 118 files under the floor.
+
+**The gate caught its own measurement.** Fixing the merge did not silently
+improve a number -- it produced eighteen failures of the form "X is now N%
+covered and has reached the floor, but is still listed in BELOW_FLOOR". That
+half of the two-sided design existed for register entries whose reason had
+expired, and what it found was an entire measurement that had. A one-sided
+floor would have gone quietly greener and told nobody.
+
+Corrected figures now in the register: three files under 35% --
+`sonara-subsystem-routes` (30/177), `verify-member-read-access` (21/86) and
+`sonara-call-routes` (71/273).
+
+The two entries below have been corrected in place rather than left standing,
+because a wrong number in a log is read as a fact. What did **not** change is
+the defect found while writing those tests: `Number(null)` reading as hour 0 is
+a property of the code, demonstrated directly, and no measurement was involved.
+
+### 2026-09-02 - A cron that would have failed the next production deployment
+
+Checked against the Vercel account rather than assumed: the `sonara-os` project
+belongs to team `famouslytrill-1509's projects`, which reports `"plan": "hobby"`.
+Vercel's own documentation, verbatim:
+
+> **Daily execution limit**: Cron jobs can only run once per day. Expressions
+> like `0 * * * *` (per-hour) or `*/30 * * * *` (every 30 minutes) will fail
+> deployment with the error: *Hobby accounts are limited to daily cron jobs.*
+> -- <https://vercel.com/docs/cron-jobs/usage-and-pricing>
+
+`vercel.json` declared `"schedule": "0 * * * *"` -- the first expression they
+name -- for `/api/agents/schedule/tick`.
+
+**Why nothing had noticed.** All twenty most recent deployments are `READY`, so
+the first guess ("deployment is broken") was wrong and worth checking before
+writing down. Production is serving commit `eebc80c2` from **5 August**; the
+cron landed in `d315629` on **13 August**. The deployed `vercel.json` has no
+`crons` block at all. The configuration had never been deployed, so this is a
+**latent deployment blocker, not a current outage** -- and the next production
+deploy is what would have hit it, weeks after the change that caused it.
+
+**A correction to the entry below.** It says the schedule module "is reached
+from `vercel.json`'s hourly production cron". That describes the configuration,
+not production: the cron has never been deployed, so nothing has been calling
+that path on a timer. The module is still live -- `sonara-recurring-invoices`
+and `sonara-booking-availability` both require it, and the endpoint is
+reachable by POST -- and the bug found there is still a real bug. But "on an
+hourly production cron" overstated it, and the difference is exactly the kind
+this repository keeps having to correct.
+
+**A daily tick is not a smaller version of this feature.** A schedule is only
+due once the customer's local hour has reached its `hour_of_day`, so a single
+daily tick at some other hour finds every schedule "not yet" and never looks
+again. Hourly is the minimum at which hour-of-day means anything.
+
+So the scheduler moved to `.github/workflows/agent-schedule-tick.yml`. GitHub
+Actions cron is free here, two workflows already use `schedule:`, and the
+endpoint never depended on Vercel -- it authenticates with a shared secret
+header, so anything that can make an HTTPS request can drive it. Lateness is
+tolerable for the same reason Vercel documents +/-59 min on Hobby: `isDue` keys
+`last_run_at` to the period, so a late tick still runs the work once and an
+extra tick runs nothing.
+
+The workflow distinguishes the three failure modes rather than reporting one
+green: no secret in the repository is a **warning** naming what to set (an
+unconfigured scheduler is a documented state, and
+`sonara-environment-classification.cjs` says so); a 401 is a **failure**,
+because it means the deployment has a secret and this repository has a
+different one; a 503 is a **failure**, because it means the reverse.
+
+`tests/the-deployment-config-can-actually-deploy.test.js` stops a sub-daily cron
+reappearing. The plan is a named constant with the date it was checked, because
+on Pro the minimum interval is once per minute and this constraint would then
+simply be wrong -- a check that outlives the fact it was built on is worse than
+no check.
+
+Probed: the original `0 * * * *` restored -> named, with the plan and the quote;
+the workflow deleted -> "nothing runs customer schedules"; the workflow slowed
+to daily -> named; the secret header dropped -> named. And `0 9 * * *` **passes**,
+because a daily cron is allowed on this plan -- the check is about the limit,
+not about crons.
+
+### 2026-09-02 - A scheduler nothing tested, reading a blank hour as midnight
+
+Measured rather than guessed. Node 22 writes V8 coverage to `NODE_V8_COVERAGE`
+with no dependency added, so the whole mocha suite was run under it and folded
+into per-file line coverage:
+
+**The figures first published here were wrong and are corrected below; see the
+2026-09-02 entry "The coverage figures were wrong, and the gate caught it".**
+The measurement merged coverage across processes incorrectly. Corrected, the
+repository is at **91.1%**, and `lib/sonara-agent-schedule.cjs` was at
+**11 of 64 lines, 17.2%** -- among the lowest, though not the single lowest. No test file named it. It is reached
+from `vercel.json`'s hourly production cron on `/api/agents/schedule/tick`, and
+from `sonara-recurring-invoices` and `sonara-booking-availability`. Its whole
+job is deciding whether a customer's scheduled work runs, and its own header
+says why that is dangerous: "a schedule that fires twice looks like an eager
+product, and one that never fires looks like nothing at all."
+
+Every function in it is pure. There was nothing stopping it being tested.
+
+29 tests, named after the three properties the header claims rather than after
+the functions. Two run the property rather than reasoning about it: 96 ticks
+across a day produce exactly one run, and a three-day outage produces one run on
+return rather than three.
+
+**Writing them found a bug, which is the point of writing them.** The hour was
+read with `Number.isInteger(Number(schedule.hour_of_day))`. `Number(null)` is 0,
+and so are `Number("")` and `Number([])` -- so all three were accepted as hour
+0, and an hour of 0 is due at *every* hour, because `parts.hour < 0` is never
+true. A schedule with no hour recorded fired on the next tick whatever the time.
+`undefined` was refused, so the three states were already collapsed into two
+inconsistently. `day_of_week` had it too, where 0 means Sunday.
+
+This is the defect CLAUDE.md already names -- "`Number(null)` is `0` and finite,
+which made unpriced services read as free across twenty-three columns" -- in a
+second place.
+
+**Not a live incident, and worth saying so precisely.** `agent_schedules.hour_of_day`
+is `not null default 9`, and the only insert in the repository clamps both
+fields with `clampInt`. What is true is that `day_of_week` is nullable in the
+schema (`day_of_week is null or day_of_week between 0 and 6`), so the database
+permits a weekly row this would have read as "every Sunday", and `isDue` is
+exported to three callers rather than reachable only through that insert. The
+fix is the function refusing rather than guessing.
+
+`wholeNumber` returns null for null, `""`, arrays and booleans, and the three
+checks compare against null instead of relying on `Number.isInteger`. The other
+side is tested too: a schedule genuinely set for midnight still fires.
+
+After, on the corrected measurement: **17.2% -> 98.4%** (11/64 -> 63/64).
+
+### 2026-09-02 - Two Python suites nothing ran, one of them the consent gate
+
+`tools/` has six subprojects. Four were named by a CI job; two were not:
+
+    disposable-domains   44 pytest tests   no workflow named it
+    voice-clone          28 pytest tests   no workflow named it
+
+Both pass, and both were green by not being looked at. `voice-clone` is the one
+that matters: its tests are named after "every way somebody would get a clone
+they should not have", and AGENTS.md requires enforcing "provenance, consent,
+and anti-clone safety". A consent check nothing verifies is the exact shape this
+repository keeps finding.
+
+Added `tools-python-suites` to `dependency-scan.yml`, matrixed the same way the
+Node job is, with floors of 40 and 24 -- below today's 44 and 28 so adding a
+test does not fail the job, far above zero so a moved directory does.
+
+Probed locally against the real projects, all three ways:
+
+- tests directory renamed -> "no 'N passed' line; pytest did not report a
+  count", exit 1. (`pytest` exits 5 on an empty collection, so status alone
+  would catch this one -- the parse is for the next case.)
+- floor above the real count, standing in for tests silently vanishing ->
+  "only 28 tests ran, floor is 999; discovery has gone blind", exit 1.
+- one assertion broken -> the floor **passes** at 27 >= 24, and the status
+  check still fails the job. Worth stating because it is the ordering that
+  could have masked a real failure behind a satisfied floor, and does not.
+
+### 2026-09-02 - CI red on three new advisories in express's own tree
+
+`pnpm audit --audit-level moderate` started failing, and it was failing on every
+SHA of this branch. Checked before assuming: the branch's only `package.json`
+change is to the `scripts` block, and its `pnpm-lock.yaml` was byte-identical to
+`main`. So the dependency tree had not moved -- the advisories were newly
+published against it.
+
+Two `qs` advisories (GHSA-4mjr-xmp4-gh2g, denial of service via
+attacker-controlled `isBuffer`, `>=2.2.5 <6.16.0`; and GHSA-x5fp-wj9c-mxmx,
+array-limit bypass via bracket-key comma parsing, `>=6.14.2 <=6.15.3`) and one
+in `body-parser` (`<1.20.6`, size enforcement silently disabled by an invalid
+`limit`). All three arrive through the single production dependency: `express`
+parses a query string on every request this application serves.
+
+Two pnpm workspace overrides, following the pattern already in
+`pnpm-workspace.yaml`. Both are moves inside ranges `express@^4.18.2` already
+accepts, so nothing needed upgrading. `pnpm install --frozen-lockfile` succeeds,
+the audit is clean at `--audit-level low` as well as `moderate`, and the chain
+passes -- including the route smoke, which is what actually exercises express's
+query and body parsing after the override. Recorded in `SECURITY_NOTES.md`; no
+threshold moved and no check was weakened.
+
+### 2026-09-02 - Two controls in the header that both looked like a menu
+
+The experience settings button drew
+
+    <path d="M5 7h14M8 12h8M6 17h12" />
+
+which is three plain horizontal lines -- the hamburger glyph. Measured in the
+mobile header at 390px, it sat 77px from the actual Menu button, so the header
+offered two controls that read as the same thing and one of them was not
+navigation at all. The third, a magnifier for the command palette, was never
+ambiguous.
+
+It is now the same lines with knobs on them, which is what says "settings"
+rather than "menu", drawn at the stroke width and cap style the sibling icon
+already used. Checked at 4x against the rendered header rather than only in the
+markup.
+
+Guarded in `tests/sonara-experience.test.js`, which already covered this button,
+rather than in a new file. Two assertions, both probed: restoring the hamburger
+path fails on the missing knobs, and giving both header tool buttons the same
+icon fails on their being equal.
+
+### 2026-09-02 - Thirty footer links a finger could not reliably hit
+
+Same measurement pass as the sideways-scroll fix, at a 390px viewport with
+touch emulation on, across all 13 public routes:
+
+    30 footer links   20.5px tall, no padding, wrapping flex row, 9px row gap
+    a.brand           36px tall
+    summary (menu)    42px wide
+    a.sonara-skip     43.7px tall
+
+The footer is the one that matters. Twenty-two of those links are legal
+documents stacked 29.5px apart, so a mis-tap does not miss -- it opens the
+wrong policy. AGENTS.md: "Mobile layouts must ... use large enough tap targets."
+
+Scoped to `@media (pointer: coarse)`, not to a width, because the rule is about
+fingers rather than screens: a 1024px tablet needs it and a 700px browser window
+on a laptop does not. Measured both ways at 390px -- coarse block suppressed:
+footer 467px tall, 23 links under 44px. Applied: footer 605px, none. The header
+is 67px either way, so the brand rule fits inside the header height rather than
+growing it, and at 1440 with a mouse the footer keeps its 9px row gap and the
+brand its 40px. The touch rule is a touch rule, not a redesign.
+
+Two details worth keeping:
+
+- `min-height` does nothing on an inline box. The footer links had to become
+  `inline-flex` for the 44px to apply at all, and the test asserts that
+  separately -- a rule that sets a height on a box that cannot have one is the
+  shape of thing that reads as fixed and is not.
+- Height alone left "About" at 35x44. 6px of padding either side of a 6px
+  column gap keeps the 18px of visible space the row already had while taking
+  the narrowest link to 47px.
+
+After: 0 tap targets under 44px on all 13 routes, with sideways scroll and
+in-flow overflow still 0 across 39 page/width pairs.
+
+`tests/a-finger-can-hit-what-a-mouse-can.test.js`. Probed, each failing by
+name: the coarse block deleted; the footer min-height dropped; `inline-flex`
+reverted to `inline`; the padding dropped; the row-gap zeroing removed; the
+brand height removed; the menu button back at 42px; the skip link's min-height
+removed; its `border-box` removed; the mouse footer's own gap deleted.
+
+**The menu-button probe did not fail the first time, and that is the finding.**
+`.sonara-mobile-menu>summary` is written twice -- a base rule already saying
+44px, and a narrow-screen override saying 42px. Chromium measured 42 because the
+override wins. The check took the first block with a `min-width`, found the base
+rule, and never read the one that decides. It now checks every block.
+
+The same weakness was then looked for in the sideways-scroll check, and was
+there: `html` is written twice in this stylesheet and `body` three times. No
+later rule sets `overflow-x` today, so reading only the first was right by luck,
+and a later `html{overflow-x:visible}` is precisely the edit that check exists
+to catch. Both now read every block and take the last declared value. Probed
+with a later rule un-clipping it, which the previous version passed.
+
+### 2026-09-02 - Every marketing page could be swiped sideways into empty space
+
+Measured in Chromium against the running application, at a 390px viewport:
+`window.scrollTo(9999, 0)` moved `scrollX` to **34**. The document was **424**
+wide inside a 390 viewport. Walking every element and pseudo-element found the
+two boxes that reached 424:
+
+    .sonara-stage::before        inset: -8rem -12% auto    left=-34 right=424
+    .sonara-hero-stage::before   inset: -20% -10% auto     left=-27 right=417
+
+Both are deliberate full-bleed decoration, documented as such where they are
+written, and neither is the thing to change. A customer swiping sideways got
+blank space. AGENTS.md: "Mobile layouts must avoid overflow."
+
+`body{overflow-x:clip}` was already there and did nothing, because **the
+scrolling box is the documentElement** and that was `overflow-x: visible`. The
+fix puts the clip where the scrolling actually happens. `clip` and not `hidden`:
+`hidden` would make `html` a scroll container, and the site header is
+`position: sticky` -- verified in Chromium that with `clip` the header still
+holds at top=0 through a 600px scroll.
+
+After: `sideways=0` at 390, 820 and 1440 across `/`, `/pricing` and `/products`,
+with both glows still painting (444px at phone, 1488px at desktop).
+
+A second finding from the same pass, and **not** a cause of the sideways scroll:
+a closed `<details>` does not stop an absolutely positioned child being laid
+out, so the shut mobile menu's ten links sat at `right=440` in a 390 viewport --
+off-screen, but still in the tab order and still found by find-in-page.
+`.sonara-mobile-menu:not([open])>nav{display:none}`. Re-checked open afterwards:
+10 visible links, panel 390 wide and inside the viewport, and a pixel behind it
+moved rgb(123,130,154) to rgb(13,16,24), so it paints over the page rather than
+through it.
+
+`tests/no-page-scrolls-sideways.test.js` guards the rule. It **says in its own
+header that it guards a rule and not a behaviour**, because the suite has no
+browser and adding one is a dependency decision rather than a test; a weaker
+check, honestly labelled, beats one that implies it measured something it did
+not.
+
+Two things that check found in itself, both worth carrying forward:
+
+- Its first draft asserted `.sonara-ds::before` and `section.hero::before`.
+  Those are **Chromium's element descriptions, not the selectors** -- the CSS
+  says `.sonara-stage::before` and `body.sonara-home-v3 .hero.sonara-hero-stage::before`,
+  and the first of them is in a different stylesheet. The check was matching a
+  note about the code instead of the code.
+- `.sonara-stage::before` is written **eight times** across the design system:
+  the bleeding rule plus media-query and per-product variants. A helper taking
+  the first textual match let "the glow still bleeds" be satisfied by a variant
+  that only restates colour. It now collects every block and asks whether *some*
+  block still positions the glow and *some* block still has a negative inset.
+
+The last assertion exists because a later "fix" that pulled the insets back to 0
+would also produce `sideways=0`, and would quietly delete the design.
+
+Probed, each failing by name: `html` loses the clip; `clip` becomes `hidden`;
+`body` loses its clip; the closed-menu rule is deleted; either glow loses
+`position: absolute`; the stage inset is cancelled to 0.
+
+Also learned, the hard way: **`git checkout -- <file>` to undo a probe throws
+away uncommitted work in that file.** A probe pass mid-session did exactly that
+and lost the first version of this fix, which had never been staged. Probe by
+copying the file aside and copying it back.
+
+### 2026-09-02 - "Setup required", on a screen with no setting on it
+
+`getProviderReadiness` returns an engineering status, and both places that
+showed one to a creator ran it through
+
+    function display(value) { return String(value || "unknown").replaceAll("_", " "); }
+
+so the provider list and the provider dropdown on `/creator-studio/generation`
+read **"setup required"**, **"reference only"** and **"external mcp required"**.
+
+The internal words are the smaller half. The larger half is that three of them
+tell a creator to go and do something, and **not one of these states is theirs
+to fix**: the account owner connects a service, and the rest are decisions this
+product has already made. A label that sends somebody looking for a setting that
+is not on their screen is a worse failure than an ugly one.
+
+`GENERATION_AVAILABILITY` in `lib/sonara-plain-language.cjs` gives all eight
+statuses a label and a detail that says whose job it is, or that it is nobody's.
+"Waiting on the account owner", "Switched off", "Not offered here".
+
+Two of the eight cannot occur with the registry as it stands and are recorded as
+such by name, with the reason. The test asserts **both directions**: every
+status the registry can produce has wording, and every entry is either reachable
+or recorded as unreachable -- so an entry whose reason has expired fails the
+same way a missing one does.
+
+## Why the existing gate said nothing, corrected
+
+The first version of this entry said `tests/plain-language.test.js` crawls only
+pages answering 200 to an **anonymous** request, and that generation sits behind
+a paid workspace so was never read. **Both halves were wrong**, and they were
+wrong in the way this repository keeps warning about: reasoned to, not checked,
+and then written into three files and a commit message where they read exactly
+like a verified fact.
+
+Checked: the crawl runs two passes, anonymous and signed in. Signed in,
+`/creator-studio/generation` returns **200**, and "Suno" and the availability
+labels are in its visible text. The crawl read the page.
+
+It said nothing because `setup required` and `reference only` are not in
+`BANNED_ON_CUSTOMER_PAGES`. And they are not there for a reason worth recording:
+**"setup required" appears on twenty-two other pages**, including `/`, `/about`
+and all three launch checklists.
+
+**Corrected on a later reading, because the first version of this paragraph
+implied all twenty-two are defects and that is not what the pages say.** Read in
+context:
+
+  * `/about` carries *"An honest \u201csetup required\u201d beats fake success."*
+    -- the phrase in quotation marks, stating a value the product is built on.
+    Deliberate brand copy, and banning the words would break the sentence that
+    exists to say them.
+  * `/` renders it as a heading followed by *"A little setup first. Some setup
+    has to be finished first: a connected\u2026"* -- a status heading in plain
+    English, with the explanation beside it.
+
+So this is not twenty-two pages of leaked vocabulary. It is a deliberate phrase
+and a status heading, and the two surfaces fixed above were the ones showing a
+raw engineering status with no explanation. The list entry stays absent for a
+better reason than the first draft gave: adding it would fail copy that is
+correct.
+
+Worth recording as a method note rather than a finding. Three times in one day a
+cause was written down before it was traced, and each time the check took one
+command. The pages were never read for the first version of this paragraph --
+only grepped.
+
+One thing near the original claim is true and separate: the crawl walks **282**
+routes, renders **179**, and silently skips **103** -- redirects, 403s on
+owner-only pages, 503s on unconfigured ones. Its blindness guard is a floor on
+the rendered count and says nothing about the skipped set. That is the same
+shape as the `select=*` finding: a count that reads as coverage over a
+population a third of which is dropped without comment. Not fixed here; written
+down.
+
+`no-endpoint-reports-success-on-a-failed-read` crawling JSON GETs **without
+parameters** is unaffected by any of this and was verified separately -- it is
+why that gate missed the `:jobId` route.
+
+## And then the skipped set was made to say its own size
+
+The 103 needed no decision after all: the repository already has the pattern,
+from `report-unused-selected-columns.mjs` earlier the same day. The crawl now
+carries what it skipped out of `scan()` and holds the number **exactly**, with
+the breakdown in the failure message:
+
+    104 of 282 routes were skipped rather than read
+    (45 answered 303, 36 answered 503, 15 answered 302, 4 answered 409, 2 answered not html)
+
+No exemption list, no 103 entries to write. A page that stops rendering fails
+the build because its copy is no longer being read; a page that starts rendering
+fails it too, because a fall nobody records looks exactly like a crawl that has
+stopped walking.
+
+## The 36 that answered 503, traced rather than assumed
+
+The first version of this section said those 36 answer 503 because the crawl's
+stub fails every data read, so their copy was "checked in the unconfigured state
+and never in the working one". **Wrong again, and the second time in one day
+that a cause was written down without being traced.** Making every read succeed
+and return nothing changed nothing: still 179 rendered, still 36 answering 503.
+
+The real cause, read off the page: **"We could not check your plan."** They are
+paid screens -- the Growth Studio automation and conversion pages, the staff
+screens, the three roadmap pages, `/business-builder/payments` -- and the stub
+never answered the entitlement query, so the plan check failed before any copy
+was rendered. Their copy was not checked in the wrong state; it was **never
+rendered at all**.
+
+Answering that one query the way `no-page-lies-when-the-database-is-down`
+already does takes rendered coverage from **179 of 282 to 250**, and found nine
+pieces of engineering vocabulary on six pages nothing had ever read:
+
+| page | word |
+| --- | --- |
+| `/growth-studio/automations` | "send webhook", offered as an automation action |
+| `/business-builder/payments` | "webhook delivery" |
+| the three `/*/product-lifecycle` pages | "lifecycle" ×3 and "readiness" each |
+| `/growth-studio/journey` | "schema" ×2 |
+
+All nine are fixed. Two are worth naming. The automation dropdown rendered its
+storage keys with the underscores swapped for spaces -- `send_webhook` became
+"send webhook" -- which is **the same defect as the generation page's readiness
+status, in a second renderer**; a choice field can carry labels now. And the
+roadmap pages called themselves "Product Lifecycle" while `PLAIN_ROUTE_TITLES`
+in the route registry already called them "Roadmap", so the card contradicted
+the link that reached it.
+
+A third crawl pass holds it. Two probes, each confirmed to fail by name: a
+banned word reintroduced on a paid page, and the entitlement no longer granted
+-- which drops coverage back to 179 and fails rather than quietly checking less.
+
+One incidental find: the pass first rendered 216 rather than 250, because the
+existing stub sets `NEXT_PUBLIC_SUPABASE_ANON_KEY` to `"anon-placeholder"` and
+some paths check the key looks like a token before using it. JWT-shaped
+placeholders are worth thirty-four pages.
+
+Two probes, each confirmed to fail by name: a page that stops rendering, and the
+crawl walking fewer routes.
+
+## And a false positive in the outage crawl, seven characters wide
+
+Changing the wording made `no-page-lies-when-the-database-is-down` fail:
+
+    /creator-studio/generation says "no Platform · Switched off Higgsfield · Not offered here"
+
+That is **Su·no** Platform -- a provider's name -- plus "here" from a label sixty
+characters later. The pattern was
+
+    /(no |nothing |not added |have not )[^.]{0,60}(yet|here|anybody|any )/i
+
+with no word boundary, so "no " matched inside any word ending in those two
+letters. Casino, piano and domino do the same. The bug had been reachable the
+whole time and needed the right two strings the right distance apart.
+
+Tempting to write it off as a false positive and add an exemption. That would
+have put a substring of a brand name into the excuse list and left the pattern
+wrong. A `\b` fixes it properly, and was **checked against the claims it exists
+to catch before being applied**: "no customers yet", "Nothing here yet", "no
+records here" and "have not added anybody yet" all still match. Recall
+unchanged, precision better.
+
+`CLAIMS_ZERO` already had a "things it must not fire on" list and `CLAIMS_EMPTY`
+did not. It does now, with the verbatim string that found this.
+
+## Verified by breaking it
+
+Five probes, each confirmed to fail by name: a reachable status losing its
+wording; an unreachable-reason entry whose status became reachable; a label
+rewritten as an instruction the creator cannot follow; the word boundary removed
+again; and the pattern weakened until it stopped catching real claims.
+
+One correction while writing the test. Its first assertion searched the route
+source for `display(item.readiness.status)` and **failed against the fixed
+code**, because the comment recording what the line used to say still contained
+the string. It reads the source with `withoutComments` now -- the same shared
+implementation two scripts once had a copy of each, with the same bug in both.
+
+### 2026-09-02 - The tool that hunts unused columns could not see 57 of the queries
+
+`report-unused-selected-columns.mjs` is the script written to find the third
+shape: a value fetched into a decision and never used. Its summary read
+
+    101 multi-column selects across 181 runtime files
+
+which reads as coverage. Its pattern is
+
+    /select=([a-z0-9_,]{3,})(?=[&`"'])/gi
+
+and the character class excludes `*`. **Thirty-four `select=*` queries were
+invisible to it** -- the second shape, measuring a different population from the
+one named, in the script written to catch the third.
+
+Not hypothetical. The provenance defect fixed earlier the same day is a
+`select=*` on the generation asset table that loads each output's provider,
+attestations and checksum and rendered none of them. Exactly the defect this
+script exists to find, in exactly the select style it could not see.
+
+## A third kind, found by an inconsistency rather than by looking
+
+Adding the star count dropped the audited total from 101 to 100. That was the
+provenance change itself: it had replaced a literal `select=bucket_id,object_path`
+with `select=${provenanceOf.PROVENANCE_COLUMNS.join(",")}`, moving one query out
+of the auditable bucket without anybody deciding to.
+
+**Twenty-three** selects build their column list at run time. Most are fine --
+the list is a frozen constant a test asserts against the schema -- but "fine" is
+a judgement made per query, and the number being visible is what makes anybody
+make it.
+
+So the honest population is three numbers, not one: **100 audited, 34 star, 23
+computed.** More than a third of the queries in this codebase are outside what
+this script can read, and now it says so.
+
+## The probe that found the hole in the fix
+
+The first draft held both numbers as ceilings, failing only when a count rose.
+Breaking the star matcher dropped the count to zero and **the check passed**,
+printing `0 select=* (ceiling 34)` -- a confident zero over thirty-four
+unaudited queries. The guard against a check going blind had exactly the defect
+it was written to prevent.
+
+Both are matched **exactly** now. A fall is good news and still has to be
+recorded: fix a query, lower the number, say which one. That makes a broken
+matcher indistinguishable from an unrecorded improvement, and both stop the
+build.
+
+Worth keeping as a general rule: **a ratchet that only fails in one direction
+cannot tell an improvement from a measurement that stopped working.**
+
+## Verified by breaking it
+
+Five probes, each confirmed to fail by name: a new `select=*`; a new computed
+select; the star matcher stopping (which passed against the first draft and
+fails now); the computed matcher stopping; and a star select genuinely narrowed
+without the recorded number being lowered.
+
+One count worth explaining, because it looks like an error. A plain grep finds
+thirty-five `select=*`; this script records thirty-four. The difference is a
+`select=*` inside a comment in `routes/sonara-last9-routes.cjs` explaining why
+star selects were removed from the record pages. Comments are stripped before
+counting, here as everywhere else in this script.
+
+## Then the first one was actually narrowed, and the ratchet worked
+
+Recording blindness is not the same as reducing it, so the query that caused all
+of this went first. The generation job page's asset read is now
+
+    select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256
+
+rather than `select=*`. Audited selects went 100 to 101 and star selects 34 to
+33: the query moved out of the blind bucket into the audited one, which is the
+whole shape of the thing working.
+
+**Written out literally on purpose.** The obvious tidy is
+`select=${OUTPUT_COLUMNS.join(",")}`, which is more readable to a person and
+completely opaque to the script auditing it -- that would have moved the query
+from one blind bucket to the other and reported it as an improvement. A probe
+covers exactly that mutation.
+
+The exact-match guard then did its job in the good direction: narrowing the
+query made the check **fail**, saying 33 were found where 34 were recorded, and
+telling whoever did it to lower the number and say which query was fixed. A
+ratchet that stayed silent on an improvement would have been the same ratchet
+that stays silent on a broken matcher.
+
+## And one more failed read reported as an empty list
+
+`/api/creator/generation/jobs/:jobId` answered
+
+    assets: assets.ok ? assets.rows : []
+
+so a caller got an empty array whether the job had no outputs or the read had
+failed, with nothing in the response telling them apart. The job read succeeded
+and the asset read did not, so the endpoint cannot answer the question it was
+asked: it is a 502 with `generation_assets_unreadable`, not an empty success.
+
+`tests/no-endpoint-reports-success-on-a-failed-read.test.js` did not catch this
+because it crawls JSON GETs without parameters and this route carries a `:jobId`.
+Worth knowing about that gate's reach.
+
+Three further probes, each confirmed to fail by name: the read back to
+`select=*`; the column list built at run time instead of written out; and the
+failed read back to an empty list.
+
+### 2026-09-02 - The row knew what made the file; the page did not say
+
+`routes/creator-generation-routes.cjs` writes provenance onto every generated
+output at the moment the file is stored:
+
+    provenance: { provider_key: providerKey, generated: true,
+                  rights_attested: job.rights_attested,
+                  consent_attested: job.consent_attested }
+
+alongside a SHA-256 of the bytes. The job page then selects `*` -- so all of it
+arrives -- and rendered four columns: File, Type, Size, Made.
+
+**Being in the select is what made it look handled.** That is the third shape in
+`.claude/skills/checks-that-cannot-lie` and the sharpest one, and it is the same
+shape as `consent_scope`: a value fetched into a decision and compared to
+nothing. Here it is fetched into a page and printed nowhere.
+
+AGENTS.md asks for provenance to be **enforced**. A record only the database can
+read enforces nothing. A creator who cannot say what made a file, or prove the
+copy they hold is the copy we made, has no provenance however carefully the row
+was written.
+
+## What a creator sees now
+
+Four columns added to the outputs table -- Made by, Rights confirmed, Consent
+confirmed, Fingerprint -- and none of them is a new read.
+
+The fingerprint is the SHA-256 that was already being computed, shown as the
+first and last twelve characters with the whole value on hover. Sixty-four
+characters in a table cell is not something anybody checks.
+
+`lib/sonara-generation-provenance.cjs` refuses to print anything that is not a
+64-character hex digest. A truncated fingerprint is worse than none: somebody
+comparing a file against it gets a mismatch and concludes the file was altered.
+
+## Three states, and the two-state bug already on the page
+
+`rights_attested` and `consent_attested` are nullable, and the request card read
+them as
+
+    job.rights_attested ? "Yes" : "No"
+
+which tells a creator their rights were **not confirmed** when the truthful
+answer is that nobody was asked. Yes, no, and not recorded, everywhere.
+
+The same care applies to the provider. An unrecognised key renders as
+"An unrecognised service (gpt_sovits_x)" rather than being tidied into something
+that reads like a name, because a made-up label is worse than an admission --
+and a key the registry *does* know never reaches the page raw.
+
+## The download says what was collected
+
+The download route selected `bucket_id,object_path` and recorded
+`{ asset_id }`. The history could say a file left and not which service had made
+it or what its fingerprint was, which are the two facts anybody asking about a
+download afterwards wants. Its columns now come from `PROVENANCE_COLUMNS` in the
+module, so the select and the audit record are one list rather than two.
+
+## The layout consequence, since it is one
+
+Four more columns makes eight, and the stylesheet's own table scroller applies
+only below 680px -- a phone and nothing else. Eight columns overflow a tablet
+and a narrow laptop too, and AGENTS.md asks that layouts do not overflow. There
+is a real `.table-scroll` rule now, and the test asserts the class styles
+something: a class name that styles nothing is the same defect one layer down.
+
+## Verified by breaking it
+
+Six probes, each confirmed to fail by name: the outputs table back to four
+columns; `null` collapsing to "No"; the download route back to two columns; a
+truncated digest shown as a fingerprint; an unrecognised provider key rendered
+as though known; and `.table-scroll` used in the markup while styling nothing.
+
+### 2026-09-02 - The key that seals every second factor was invisible to the check that counts keys
+
+`scripts/verify-env.mjs` ends by printing **"N variables read by the code, all
+classified"**. It was 76. It is 78, and the two that were missing are not
+incidental:
+
+- **`SONARA_TOTP_KEY`** seals every TOTP secret, every recovery-code pepper and
+  every parked sign-in on the system.
+- **`SONARA_UPLOAD_BUCKET`** names the bucket customer files are written to.
+
+Both are read by the application. Neither was classified, and neither could be
+seen, while the check reported success.
+
+## The third time this hole has been closed, in the shape the first two missed
+
+That file already documents the pattern twice. Its generic string-literal pass
+records a literal **only if it is already classified** -- so, in its own words,
+a name it "has never heard of is skipped rather than flagged, which makes
+'every variable the code reads is classified' true by construction". Targeted
+passes were added for `env:` and for `getEnv("NAME")`, each closing one form.
+
+This is the third form, and the one neither covers: the name is bound to a
+constant and the read is by identifier.
+
+    const KEY_VARIABLE = "SONARA_TOTP_KEY";
+    process.env[KEY_VARIABLE]
+
+Both earlier forms carry the name at the point of use. This does not. The new
+pass resolves `const NAME = "SHOUTY"` per file -- per file, because two files
+may bind different names to the same identifier and a global map would
+attribute one to the other -- and it surfaced exactly two names, both of which
+had been sitting there.
+
+Guarded the way every population here is: if it ever resolves **zero**, it stops
+rather than reporting a clean scan, because a pass that has stopped matching and
+a shape that has left the codebase are indistinguishable from inside.
+
+## And the classification moved to lib/
+
+`docs/owner/PROVIDER-KEYS.md` needed to know which variables an owner must set,
+and the sets were un-exported constants inside the gate. Copying them into the
+generator would have created the drift this repository has now paid for three
+times, most recently in the register parser where three copies of one regex
+disagreed the moment one learned to read a quoted key.
+`lib/sonara-environment-classification.cjs` is the one copy; the gate and the
+generator both read it, comments and all, because the comments are the
+reasoning.
+
+## The guide is now the whole job, not the provider half
+
+It opened at the providers, which is the second thing an owner does. It now
+opens with the four accounts the application itself needs -- Supabase, Stripe,
+Resend, the domain -- plus the second-factor key, which is generated rather than
+bought. **Grouped by the account somebody opens**, because that is the unit of
+work: one Supabase signup yields five variables, and a list ordered by variable
+name makes one job look like five.
+
+Gated both ways. A variable the release gate calls required and the guide does
+not explain fails the build; so does a step asking for a variable nothing reads.
+Four probes in all, each confirmed to fail by name.
+
+### 2026-09-02 - A record can sit in the register and be invisible to every number
+
+`data/open-source-tools.ts` is read as text -- the file is TypeScript and this
+runtime has no build step. The block pattern was
+
+    /\{\s*\n\s*name:\s*"[^"]+"[\s\S]*?\n\s*\},/g
+
+which requires an **unquoted** key. A record written
+
+    { "name": "…", "slug": "…" }
+
+-- valid TypeScript, identical meaning, and what any JSON-ish serializer
+produces -- matched nothing. Not an error: the record simply was not there, as
+far as the count, the release gate and `/research-lab/open-source` were
+concerned.
+
+**Measured, not reasoned about.** Appending one such record left
+`readOpenSourceTools()` reporting 171, unchanged, while `grep` found the record
+in the file. The most complete form of the defect this repository is organised
+against: the file says one thing and every number says another, with nothing
+raising a hand.
+
+## How it was found
+
+A second agent working on this repository reconciled its own register against
+ours and reported that its verification had stopped on "a format-contract issue
+rather than a registry-policy issue: the runtime parser intentionally reads
+TypeScript object keys, and the appended records were serialized with quoted
+keys." Its thirty-two records have not arrived here -- that branch has never
+been pushed, and it has since run out of usage until 7 September.
+
+Worth stating plainly: the finding was worth more than the records. Its
+verification stopped and said why, which is what made the defect visible from
+the outside. The claim was checked against our own code before being acted on
+rather than taken on trust.
+
+## Two halves, and the second is the one that matters
+
+Accepting quoted keys repairs **one** way of losing a record.
+`registryIntegrity()` refuses to lose one **quietly**, which repairs every way
+-- including whichever shape somebody writes next. It compares the parse against
+a deliberately dumber count of the same file: how many entries the array appears
+to open, `^ {2}\{$`, which parses nothing. If it agreed with the pattern by
+construction it would prove nothing, and a probe covers exactly that mutation.
+
+`verify-open-source-registry.mjs` now fails when the two disagree, naming how
+many records are in the file and unreadable.
+
+## Three copies of one pattern, now one
+
+`lib/sonara-open-source-registry.cjs`, `scripts/verify-open-source-registry.mjs`
+and `tests/no-dead-links.test.js` each held their own copy of that regex -- and
+the module's own header already said the duplication existed "because the
+alternative is two readers of one file disagreeing about what is in it". They
+disagreed the moment one of them learned to read a quoted key. One export now,
+imported by all three, the same way `lib/sonara-comment-stripping.cjs` exists
+because two scripts had a copy each and both copies had the same bug.
+
+## Verified by breaking it
+
+Four probes, each confirmed to fail by name: the pattern reverted to
+unquoted-only; the dumb count rewritten to use the pattern, so the guard becomes
+a tautology; a record the parser cannot read; and an inline object counted as an
+entry.
+
+### 2026-09-02 - Two palettes on one page, in two different themes
+
+`public/sonara-design-system.css` opened by calling itself the "single source of
+truth for tokens" and finished the thought with **"Nothing else should declare a
+design token."** `public/sonara-application-ui.css`, loaded immediately after it
+on every page, declares a second family of twenty: `--nx-*`. That family is what
+most of the application renders with, and it is the one
+`scripts/verify-colour-contrast.mjs` measures.
+
+A rule asserted in one file and broken in the next is worse than no rule,
+because it is what the next reader believes instead of looking.
+
+## They are not redundant, and nearly unifying them shipped a WCAG failure
+
+The obvious tidy-up is to make `--nx-*` alias `--sonara-*`. Measuring first
+stopped it. `--sonara-accent` is `#6E4BFF`; on the dark card surface that is
+**3.51:1**, below the 4.5:1 a link has to clear. `--nx-violet` in dark is
+`#9878FF` and measures **5.51:1**. The two purples differ because one of them
+was adjusted for contrast, not because anybody let them drift.
+
+That was one arithmetic step away from being written up as drift and "fixed".
+Worth recording as the exact shape the skill warns about: a reason reasoned to
+rather than verified reads identically to one that was checked.
+
+## The real defect was the theme, not the colour
+
+Both families are read on the same page, and `sonara-application-ui.css` uses
+`--sonara-*` colours in 32 places, eight of them as the `color` of some text.
+The families resolved their themes differently:
+
+  * `--sonara-*` treats dark as its base `:root` and falls back on
+    `prefers-color-scheme` when no theme is stamped.
+  * `--nx-*` treats **light** as its base `:root`, flipped only by
+    `html[data-theme="dark"]`. No `prefers-color-scheme` anywhere.
+
+`sonara-prepaint.js` is a blocking script that stamps `data-theme` on every
+load, so with JavaScript on the two always agreed and nothing showed. **With
+JavaScript off, on a device asking for dark**, the design system went dark and
+the application stylesheet stayed light -- on the same page, in the same rule.
+`--sonara-text-2` at its dark value `#BCC6E4` on `--nx-surface` at its light
+value `#ffffff` measures **1.70:1**. The same pair when the two agree is 9.49:1.
+
+Three states, not two: stamped dark, stamped light, and **not stamped at all**.
+The third is the one nothing was checking, and it is the default for every
+visitor who has never opened the appearance menu.
+
+## The fix and the gate
+
+`--nx-*` gets the `prefers-color-scheme: dark` fallback the other family already
+had, guarded `html:not([data-theme="light"])` so an explicit light choice on a
+dark device still wins. Nothing changes for a visitor with JavaScript.
+
+`scripts/verify-theme-palettes-agree.mjs` measures all three states. It reads the
+cross-family pairs out of the stylesheet rather than listing them, so a rule
+added later is covered; it requires the two dark blocks to be identical token for
+token, because two copies of a palette drift; and it fails when zero pairs were
+measured, since every comparison in it is satisfied by two empty objects.
+
+Six probes, each confirmed to fail by name: removing the fallback; drifting one
+colour between the two dark blocks; a fallback that exists but carries the light
+palette; a matcher that stops finding colour rules; a `--sonara-*` colour made
+unreadable on the `--nx-*` ground while both palettes stay consistent; and an
+empty set of theme-varying colours.
+
+One correction made during the writing: the first draft of the error message
+said fifteen rules set `color` from a `--sonara-*` token. Fifteen was the count
+of `var(--sonara-text` occurrences, and most of those are the type scale --
+`--sonara-text-xs`, `-lg`, `-2xl` -- not colours. The number is eight.
+
+### 2026-09-02 - Nineteen products came out of beta, and beta started meaning something
+
+The catalog carried a `lifecycleStatus` per product, and
+`lib/sonara-plain-language.cjs` renders `beta` to a customer as **"Early access
+-- usable now, still being refined."** That is a promise about the state of a
+product. It was a word typed into a table. Nothing derived it, nothing checked
+it, and nothing failed when it was wrong.
+
+It was wrong in both directions at once. Of 42 products, 19 were beta -- and
+`EXECUTABLE_LIFECYCLE_STATUSES` already includes `beta`, so every one of them
+executed. Beta was a label on the card, not a gate on the product. Meanwhile
+the label correlated with no quality signal in the repository; the first
+measurement of test coverage ran slightly the *other* way.
+
+So "take everything out of beta" could not honestly be a find-and-replace. The
+work was to make the label derivable, find what genuinely failed the bar, fix
+that, and then set the label from evidence.
+
+## The bar
+
+`scripts/verify-product-lifecycle-evidence.mjs` establishes four facts per
+product and requires all four of anything marked `active`:
+
+  * Express serves a GET for its route, read off `app._router.stack`.
+  * That route answers a live request with a page, or a redirect to a sign-in
+    surface. A 404, a 500 or a redirect somewhere unrelated is a catalog card
+    pointing at nothing.
+  * The route is in `ROUTE_REGISTRY` with a title and description.
+  * Some test file names the service key, the route, or the tool function
+    behind it.
+
+Two-sided, like `report-orphan-tables.mjs`. A **beta** product meeting every bar
+with nothing recorded against it fails too -- either promote it or write down
+what is holding it back -- and a `HELD_BACK` entry naming a product that is no
+longer beta fails, because a stale reason is what the next reader believes
+instead of checking. `HELD_BACK` is empty, which is the honest state rather than
+an omission.
+
+Eight probes, each confirmed to fail by name: a route Express does not serve; a
+route that 404s; a beta product with nothing holding it back; a `HELD_BACK`
+reason that has expired; a `HELD_BACK` entry naming nothing; an empty catalog;
+an empty tool index; and the matcher silently matching nothing.
+
+The first measurement was wrong twice before it was right, which is worth
+recording. It indexed `PLANNER_TOOLS` and not `MARKET_TOOLS`, so nine working
+tools read as untested; and a shell-escaped regex in a one-line probe reported
+`rotaCost` absent from a file that imports it on line 28. Both times the answer
+looked plausible. Neither was checked against the file until it disagreed with
+something else.
+
+## What actually failed the bar
+
+Three products, and two of the three were hiding a real defect.
+
+**`/readiness` was not tracked at all.** It has answered 200 to anonymous
+requests since it was written and is linked from the home page, the dashboard
+and support -- it was already public, just outside every registry rule. Adding
+it to `PUBLIC_ROUTES` was four lines and tripped three existing gates in a row,
+each correctly: the outage crawl read "Nothing here is a secret" as an
+empty-state claim about a customer's records; the marketing-surface rule
+demanded it be classified front door or document; and the handle reservation
+check pointed out somebody could now register `@readiness`. All three are the
+gates working.
+
+**The accounting export offered six types and could build three.** The form on
+`/business-builder/owner/accounting-exports` listed `bills`, `sales`,
+`inventory`, `payroll_summary`, `journal_entries` and `other`. The download
+route knew three tables and refused the rest by name, clearly and far too late:
+the choice had already been offered and made. Both now read
+`lib/sonara-accounting-export-sources.cjs`, so the options **are** the keys.
+
+Writing that file surfaced the worse bug. Every one of the three column lists
+named columns those tables do not have -- `vendor_name`, `amount`, `status` and
+`notes` on `vendor_invoices`, six of nine on `pos_sales_summaries`.
+`buildRecordCsv` writes a blank cell for a header the row does not carry rather
+than refusing, so a bills export downloaded by an accountant had an `amount`
+column that was empty on every line, no `total_cents` at all, and the correct
+number of rows. The file opened. The figures were gone. Found by an assertion
+that every declared column exists in `lib/sonara-migration-columns.cjs`, added
+because it was cheap, not because anything suggested it was needed.
+
+**"Deliverables is required" meant the box was not blank.** Both offer forms ran
+`requireFields`, which tests for a non-blank string, and then split on commas
+and dropped the empty pieces. `", , ,"` passed, produced `deliverables: []`, and
+saved a draft the page reported as recorded. `lib/sonara-offer-drafts.cjs` now
+holds `splitList` beside the check that a list field yields at least one item,
+with its own refusal sentence -- somebody who typed nothing and somebody who
+typed `", ,"` need different instructions.
+
+## Then the label
+
+With the three gaps closed, all 42 products meet all four facts, and all 42 are
+`active`. The catalog sync migration and the derived docs were regenerated from
+the code rather than edited.
+
+`server.js` grew by 1 line, to 3874, counted from the diff: 24 added, 23
+removed. The removals are three functions that left for `lib/`; the additions
+are the require, the empty-list guard on both offer handlers, and
+`sendEmptyListFailure` beside the sender it is modelled on. The guard has to run
+between `requireFields` and the save, and both of those are in this file.
+
+## What this does not claim
+
+`active` here means reachable, guarded, tracked and exercised. It does not mean
+a product is deep, and nothing in this check would notice a thin one. What it
+makes impossible is a catalog card that has quietly stopped pointing at
+anything -- which is the failure a catalog actually has.
+
+### 2026-09-02 - The handoff counted a different population from the one it named
+
+`docs/HANDOFF_PROMPT.md` said **"257 test files run under mocha"**. Mocha ran
+**261**.
+
+The generator counted `tests/*.test.js` at the top level. Mocha's spec, in
+`.mocharc.json`, is `tests/**/*.js` and `tests/**/*.mjs` — recursive, and not
+limited to the `.test.js` suffix. Four `.mjs` suites ran and were never counted.
+
+Small in size, and exactly the shape this repository is organised against: a
+derived number measuring one thing while its sentence names another. It went
+unnoticed because the generator and the runner were never compared to each
+other — each was internally consistent.
+
+Found while writing a capability summary from the handoff, by counting the
+files a second way and getting a different answer.
+
+## The globs now come from the runner
+
+`countMochaFiles()` reads `spec` out of `.mocharc.json` and converts each glob
+to a regular expression, rather than restating the patterns. A pattern added
+there is followed here; a config that goes missing throws rather than counting
+nothing. An empty match throws too — a confident **0** in a document people read
+to decide whether this is shippable is worse than a failure.
+
+## Two implementations that must agree
+
+`tests/the-handoff-counts-what-mocha-runs.test.js` derives the count a second
+time, independently, from the same config, and compares it to the number in the
+generated document. A shared helper would make them one implementation and the
+test would prove nothing.
+
+It also asserts every extension the spec asks for contributes at least one
+counted file — which is the original bug stated as a property: `.mjs` files ran
+and were invisible.
+
+## Verified by breaking it
+
+Four probes, each confirmed to fail the test **by name**: reverting to the
+top-level `*.test.js` count; counting only the first extension; reporting zero
+when the globs stop matching; and restating the globs instead of reading the
+config.
+
+The last one is worth recording. Its first assertion matched `.mocharc.json`
+anywhere in the generator's source, and the mutation **still passed** — the
+error messages under the read name the file, so the string was there whether or
+not anything read it. The assertion now requires the filename inside a `read(`
+or `readFileSync(` call. A check for a mention is not a check for a behaviour.
+
+### 2026-09-01 - Archived is off the list, not out of the books
+
+Sixteen of the twenty-seven owner record pages had **no terminal status at all**.
+A customer entered twice, a vehicle sold, a supplier no longer used, stayed on
+the list for ever and there was nothing anybody could do about it. The other
+eleven already say "finished with" in their own vocabulary — a quote goes
+`declined`, an invoice goes `void`, a booking goes `cancelled`.
+
+This was deferred once, on 1 September, with the reason recorded: *"39 files read
+those tables, and a half-done version means a business's invoice silently
+vanishing from a page that computes money."* That reason was right, and it is
+what the design answers rather than what the design ignores.
+
+## The property that makes it safe
+
+**Exactly one read filters on `archived_at`** — the owner list page — and
+nothing that computes money looks at it. An archived vendor invoice is still in
+the payables total, an archived time entry is still in the labour cost of its
+day, an archived sales summary is still in the revenue figure, and every
+accounting export still contains all of them.
+
+The alternative — hiding archived rows from the totals too — is how a business
+ends up with a figure on screen that does not match its books, discovered at the
+end of a tax year. Somebody who archives a supplier they stopped using in March
+must not thereby change what March cost.
+
+That is not a claim in a comment. The last test in the file walks every runtime
+file under `lib/`, `routes/` and `server.js`, greps for a PostgREST filter on the
+column in any shape this codebase writes one, and asserts the result is **exactly
+two entries**, both belonging to the list page. A money read that started
+filtering on it goes red immediately — verified by making `supabaseCount` do it.
+
+## Which pages get it is derived, not listed
+
+A hand-written list of sixteen table names would be the copy that drifts: a page
+gaining a status later would offer two ways to retire one record, with nothing
+reporting it. So `canArchive` asks the page whether its own status vocabulary
+already contains a terminal value.
+
+The migration is written by hand, and those two must agree — so the test parses
+the `alter table` lines out of the SQL and asserts they equal the derived set,
+**in both directions**. A table dropped from the migration and a page gaining a
+button both go red.
+
+## The bug this shipped with for about ten minutes
+
+Sixteen page declarations name their columns explicitly, and **not one listed
+`archived_at`** — there was no such column when they were written. So the row
+reached the renderer without it, the button read it as absent, and every
+archived record still showed **"Archive"** rather than "Put back": a control
+reporting the opposite of the state it is in.
+
+Fixed in one place rather than sixteen declarations: `selectWith(page)` appends
+the column for the pages that need it, so a page added tomorrow cannot forget.
+
+## Three states, and a sentence people need
+
+The count of what is hidden is read separately, and a count that failed stays
+`null` rather than becoming zero — *"nothing is archived"* on the strength of a
+request that did not happen is how somebody concludes a record they archived has
+been deleted.
+
+And the confirmation says the thing the whole design rests on, because
+**"archive" reads like "delete" to most people**: *"Archived. It is off your list
+and still counted in every total it was part of."*
+
+One wording bug caught on the way: seven of the eleven excluded pages have
+`archived` as their terminal status, and the first draft told those *"retired by
+setting their status to archived, rather than archived"*.
+
+## Verified by breaking it
+
+Thirteen probes, each confirmed to fail a test **by name**: offering archiving
+where a terminal status exists; not selecting the column the button reads;
+not hiding archived rows; hiding them even when asked to show them; calling a
+failed count zero; the circular wording; dropping the "still counted" sentence;
+writing more than the archive column; dropping the organization filter;
+archiving without recording who; not saying how many are hidden; making a money
+read filter on the column; and removing one table from the migration.
+
+### 2026-09-01 - A password was the whole of the credential
+
+Until today this application had **no second factor of any kind**. Nothing under
+`lib/`, `routes/` or `server.js` mentioned TOTP, 2FA or MFA. A password was the
+entire credential protecting an account holding a business's customer records,
+invoices and payment settings.
+
+Built from the specifications rather than from a package, for a reason that is
+checkable rather than stylistic: **RFC 4226 and RFC 6238 publish their own test
+vectors**, so a wrong implementation cannot pass, and a right one agrees with
+every authenticator app in the world.
+
+| checked against | vectors | result |
+| --- | --- | --- |
+| RFC 4226 Appendix D | 10 counters | all match |
+| RFC 6238 Appendix B | 6 times × SHA-1, SHA-256, SHA-512 | all 18 match |
+| RFC 4648 section 10 | 7 base32 strings | all match |
+
+The SHA-256 and SHA-512 rows are the ones that matter most: they come out right
+only if the truncation offset is read from the **last byte** of the digest
+rather than from byte 19. For SHA-1 those are the same byte and the mistake
+never shows.
+
+## The bug that made the whole thing decorative
+
+`holdForSecondFactor` sits between Supabase accepting the password and this
+application setting the session cookie. Its first version ended:
+
+```js
+return res.redirect(303, "/login/verify");
+```
+
+**`res.redirect()` returns `undefined`.** So the caller saw a falsy value, fell
+through, and set the session cookie — while the browser was being redirected to
+the code prompt. The hold looked like it worked from the outside and did
+nothing: the person landed on the prompt already signed in, and closing it was
+enough.
+
+The JSON path did not have the bug, because `res.json()` does return the
+response. That is exactly the sort of half-working that survives a demo. It now
+returns a boolean, and the test asserts on the session cookie rather than on the
+redirect — which is what caught it.
+
+## What is stored, and in what form
+
+| | stored as | why |
+| --- | --- | --- |
+| TOTP shared secret | AES-256-GCM, key from the environment | a readable table would otherwise be every second factor on the system, usable at once |
+| Recovery codes | HMAC-SHA-256 under a pepper, per-code salt | 96 bits each; the pepper lives outside the database |
+| The parked session | sealed the same way | an unfinished challenge grants nothing |
+| The challenge id | SHA-256 digest | the table is not a way to continue somebody's sign-in |
+
+`verify-supabase-contract` fails the build if the migration ever declares a
+column named `secret`, `access_token`, `refresh_token` or five other names, and
+also if it stops declaring `sealed_secret`, `sealed_session`, `token_hash` or
+`last_used_step`. Both directions were verified by breaking the migration.
+
+## Three corrections made while building it, each found by checking
+
+**Recovery codes were drawn from the base32 alphabet**, with a comment saying
+the confusable characters "are not in the set at all". Checking took one line:
+base32 is A–Z plus 2–7, so it has no 0, 1, 8 or 9 — but **O, I and L are all in
+it**. There is now a separate 28-character alphabet with I, L, O and U removed.
+
+**They were hashed with scrypt.** Measured at **500ms per verification attempt**
+— ten codes, hashed one after another to keep the timing flat — and it bought
+nothing: nobody enumerates 2^96 however slow the hash is. Slow hashing is for
+secrets people choose. HMAC under a pepper is 1ms and defeats the realistic
+threat, which is a database read on its own.
+
+**The server.js line comment counted its own change wrong**, claiming 7 and 8
+lines for what was a 6 and 13 line change. The numbers now come from the diff.
+
+## What RFC 6238 requires that is not the maths
+
+Section 5.2 asks for two things a validator must do, and both are here with the
+column that makes them possible:
+
+- **A window of one step either side**, because clocks drift and people take
+  four seconds to type. Two steps is refused, and the test asserts exactly two
+  rather than three — the first version used three and stayed green when the
+  window was widened, which is the change it exists to catch.
+- **Never accept a code twice.** `last_used_step` is written *before* the caller
+  is told yes, because a step recorded after the session is granted is a step
+  that is not recorded at all if the request dies in between.
+
+## Verified by breaking it
+
+**45 probes**, each confirmed to fail a test by name before being reverted: 22
+on the algorithm and its storage, 23 on the routes and the hold. Among them:
+dropping the `& 0x7f`, reading the offset from byte 19, a little-endian counter,
+widening the drift window, accepting a spent code, waving a sign-in through when
+the factor read fails, putting the access token in the challenge cookie, storing
+the parked session in the clear, and returning `res.redirect()` — the bug above,
+now permanently caught.
+
+Three probes were written wrong rather than the tests being weak, and one found
+a genuine redundancy: the attempt cap is enforced twice, so removing either half
+alone was invisible. The test now asserts the stronger half — that a capped
+challenge is *consumed* rather than merely refused — so the remaining minutes
+are not five more minutes of guessing.
+
+## What it costs to turn on
+
+One environment variable, `SONARA_TOTP_KEY`, and `openssl rand -hex 32` makes
+it. Without it the feature refuses to switch on and says so on the page; it does
+not fall back to storing secrets in the clear.
+
+### 2026-09-01 - Fifty-one links, one repository
+
+A message arrived carrying fifty-one URLs and asking for all of them to be added
+as repositories, routed into products, modules, systems and skills.
+
+**Fifty of them are Facebook.** Three `/share/v/` videos, forty-five `/share/r/`
+reels, two `/share/p/` posts. A reel is not a repository. There is no licence to
+read, no file count to take, nothing to add to `data/open-source-tools.ts` and
+nothing to integrate — and the links are behind Facebook's authentication, so
+their contents cannot be established from here either. Saying so is the only
+honest answer available; inventing fifty register records would be exactly the
+defect this repository is organised against.
+
+**One is a repository**, and it was reviewed properly.
+
+## `stratumauth/app` — blocked twice over
+
+`LICENSE` read 1 September 2026: **GNU General Public License version 3**, with
+the "or (at your option) any later version" grant, so GPL-3.0-or-later.
+
+Two independent blockers, and the second is the one a licence check alone would
+miss.
+
+**The licence.** GPLv3 obligations trigger on conveying the program or a
+derivative. The only way to use an Android authenticator is to ship it, and
+shipping is conveying — so adopting it would oblige releasing the derivative
+under the GPL, and this product's source is private.
+
+**The technology.** Measured rather than described: **7,182 files, of which 289
+are C# and 6,207 are icon PNGs**, targeting `net10.0-android` with a Wear OS
+companion project. SONARA One is an Express 4 CommonJS server with one
+production dependency and no mobile application. Every file would be a rewrite
+rather than a reuse, so the fit rules it out on its own before the licence does.
+
+The record is kept anyway, because the licence finding is worth having the next
+time somebody meets this project.
+
+## The buildable thing underneath
+
+The repository implements **RFC 6238 (TOTP)** and **RFC 4226 (HOTP)** — open
+standards nobody owns, of which this is one implementation among many. This
+application has **no two-factor authentication of any kind** today: nothing under
+`lib/`, `routes/` or `server.js` mentions TOTP, 2FA or MFA. That is a real gap,
+and it is reachable from the specifications with no dependency on this
+repository. Recorded in the register's `recommendedAction` so the next person
+finds the standard rather than the code.
+
+### 2026-09-01 - A test that asserted something about the recorder
+
+`sonara-industries` went red on #206 at `c4eaa44` — and `c4eaa44`'s tree is
+**byte-identical** to `5486d90`, which had passed the same job eight minutes
+earlier. Same tree, opposite result: nondeterminism, not a code difference.
+
+`tests/frames-come-out-of-a-real-video.test.js` records a real clip of a square
+moving left to right, seeks to four points, and asserted all four showed the
+square in four different places. It saw three.
+
+## Why it could fail without anything being broken
+
+The clip is captured in **real time**: a drawing loop with `setTimeout(35)`
+feeding `captureStream(25)`. On a loaded runner one of those sleeps overruns,
+the canvas holds one position across several captured frames, and the video
+genuinely contains a run of identical pictures. Sampling twice inside that run
+returns the same picture **correctly**.
+
+So "all four differ" was an assertion about the recorder, not about seeking —
+the thing the file exists to test. It was also measuring each frame by a single
+number: the column of the first white pixel, which two different pictures can
+share.
+
+## What it asserts now
+
+Three things, none of which a stalled capture can break:
+
+- The square has moved between the first sample and the last. **This is the
+  motivating bug**: a seek that silently does nothing hands back frame one every
+  time, and then it has not moved.
+- The positions are non-decreasing across all four, so it moved the way the
+  timestamps asked the whole way rather than only end to end.
+- The number of distinct **whole-frame signatures** equals the number of
+  distinct positions. Two samples are the same picture only if they are also the
+  same position — which catches a seek landing on a neighbour that happens to
+  share a first-white column, and is true whatever the recorder did.
+
+## Verified in both directions
+
+| applied to | old test | new test |
+| --- | --- | --- |
+| a seek that silently does nothing | red | **red** |
+| a stalled capture, two samples on one picture | **red** | green |
+
+The second row is the point: the flake was reproduced against the old assertion
+before the fix and against the new one after. The first row is the point of the
+file, and it still holds.
+
+### 2026-09-01 - Where is Ada? Keep clicking.
+
+The twenty-seven owner record pages list a hundred rows at a time with
+"Previous" and "Next" and nothing else. A business with eight hundred customers
+looking for one of them pages through eight screens, reading a hundred names
+each time. The product's answer to *where is Ada* was **keep clicking**.
+
+`/search` exists and covers twenty of these tables, and it is not the same
+thing: a different page reached from a different link, returning ten rows per
+table across every table at once. It answers "is this person anywhere in my
+records". It does not answer "show me the customers whose name has Ada in it",
+which is the question somebody standing on the customers page is asking.
+
+## The columns come from the search module
+
+`lib/sonara-record-filter.cjs` reads `SEARCHABLE` rather than holding a second
+list, because a second list would be the copy that drifts — and the drift would
+show up as a filter box quietly matching fewer columns than the search page over
+the same records, which nobody notices because both return rows. The test
+asserts column-for-column equality on all twenty.
+
+The seven tables that cannot be filtered get **no box and a reason**, taken from
+`NOT_SEARCHABLE` where it was already written: *"A shift is found by who and
+when, not by text."* That is a fact about shifts rather than a limitation of the
+product, and a control that would find nothing is worse than its absence.
+
+## Two things that fail silently once a filter exists
+
+**The count.** The caption comes from a separate `count=exact` request. Left
+unfiltered it says "812 records" above three rows — a bigger lie than no caption.
+`supabaseCount` now takes the same clause as the list, and the caption says
+*"3 records match "ada""* rather than "3 records", because the second is true and
+useless: the reader cannot tell whether they have three customers or three
+matches.
+
+**The pager.** `?page=2` without the term drops it, so "Next" takes somebody from
+three matching customers to a hundred arbitrary ones with nothing on the page
+saying anything changed.
+
+And the empty row: *"You have no customers yet"* is false when the business has
+eight hundred and none match what was typed.
+
+A one-letter term is treated as no filter and the page says why — one letter
+matches almost everything — while keeping what was typed in the box, so it does
+not look like the request never happened. The term is escaped through the search
+module's own escaper: a bare `,` or `)` would close the `or=(...)` list early and
+silently change which columns are matched.
+
+## A duplicate header this exposed
+
+The customers table was rendering two columns headed **Status** — its own, and
+the status control added earlier today. The control's header is now "Change
+status". Found by reading the HTML in a failing assertion rather than by looking
+for it.
+
+## Verified by breaking it
+
+Ten probes, each confirmed to fail the test **by name**: never sending the filter
+to the query; counting the whole table while showing a filtered list; dropping
+the filter from the pager; saying the business has no records when none match;
+removing the box; offering a box on a page whose records are not found by text;
+accepting a one-letter term; not escaping the term; holding a second column list;
+and calling a count that could not be read a count of zero.
+
+### 2026-09-01 - Who changed it, now that anybody can
+
+The two changes above created something this schema had never needed. Until
+today nothing on the owner record pages could change a saved record, so there
+was nothing to log and the absence of a change log was not a gap. A status
+control on eleven pages and an edit form on twenty-five ended that — both behind
+`requireBusinessManager`, which is owners **and managers**. A business with two
+people can now have a price changed with no way to find out by whom.
+
+`record_change_log` is that record. It arrives now, because of those two
+changes, rather than having sat in the schema in anticipation of them.
+
+## It holds field names and no values
+
+That costs a real answer — "the price was 4500 and is now 450" is better than
+"somebody changed the price" — and it is refused for two reasons.
+
+These records hold people's contact details. A log with before-and-after values
+is a **second copy** of every customer's phone number and email, in a table with
+different retention and a different read path. `/account/data` says erasure here
+is a request a person handles rather than an automated wipe, so a second copy is
+a second place that person has to remember to clear, and the one they will not
+think of.
+
+And the question a business actually asks is *who changed this and when*. What
+it was before is answered by asking them; the log is what tells you who to ask.
+
+The property is enforced rather than intended. `record()` builds the row from a
+fixed list of six columns rather than spreading its argument, so a caller that
+starts handing it the record — the obvious way somebody adds "just the old
+value" later — writes nothing extra. The test asserts the exact key set, and the
+migration has no value column of any name.
+
+## A failed log is said out loud
+
+`record()` returns `{ ok }` and the route says so: *"Name updated. We could not
+record who changed it."* The change is already saved by then and must not be
+undone, so the only honest option left is to say both things. **A log that
+quietly drops the writes it could not make is worse than no log**, because it
+reads as complete — somebody looking for a change that is missing concludes it
+never happened.
+
+The history is on the edit page rather than a page of its own: somebody is there
+because they are about to change something, and "a manager changed the price an
+hour ago" matters at exactly that moment. It renders three states, not two — a
+read that failed says *"That does not mean nothing has changed"* rather than
+"nothing has been changed since this was created", which is a definite claim
+about their own history on the strength of a request that did not happen.
+
+## Verified by breaking it
+
+Eleven probes, each confirmed to fail the test **by name** before being reverted:
+saving an edit without recording it; saving a status change without recording it;
+swallowing a failed log; rendering a failed history read as an empty one;
+removing the history from the edit page; logging the field name with the value it
+was set to; letting an empty change be recorded; naming somebody for a change
+nobody was attributed to; dropping the array-length constraint; dropping row
+level security; and spreading the caller's argument into the row.
+
+One probe was written wrong and is worth recording: the first attempt at "put the
+values in the log" added a key the module ignores, so nothing leaked and the test
+correctly reported no leak. The probe was fixed rather than the test, and the
+property it was reaching for became its own assertion.
+
+### 2026-09-01 - Two checks that had stopped being able to fail
+
+A sweep of all 252 test files for the first shape in
+`.claude/skills/checks-that-cannot-lie`: a loop over a derived collection with
+nothing asserting the collection is non-empty. 371 such loops; the great
+majority are already guarded, several with the exact "this check has gone blind"
+wording. **Two were not, and both are the sharpest sub-shape — a parser that
+would silently stop matching.**
+
+**`stripe-checks-agree-with-each-other`** parses the two summary lines out of
+`scripts/verify-stripe-env.mjs` and asserts each says which half of the check
+ran. Rewording "Stripe configuration verified" to anything else drops the match
+count to zero and the loop then asserts nothing — green, over precisely the
+defect the test was written for: a summary printed unconditionally that claims
+work which was skipped.
+
+**`dashboard-setup-doc`** scans the checklist for Price IDs and asserts none
+carries the capital-I-for-lowercase-l transcription error that actually
+happened. A checklist with no Price IDs in it satisfied that loop while proving
+nothing.
+
+Both now assert the population first. Verified the way this file asks: the two
+mutations above were applied against the **old** tests and both stayed green,
+then against the new ones and both went red naming the test and saying the check
+had gone blind.
+
+## Why no new release-chain command came out of this
+
+The sweep is a heuristic, and shipping it as a gate would have meant either a
+green light that tolerates 42 unguarded `matchAll` loops or a rule with dozens of
+exemptions. Most of those 42 are false positives: the collection is accumulated
+across files inside a helper and the guard sits on the accumulated total under a
+different name. A check too weak to catch the bug it was written for is the sixth
+shape in that skill, so it was not shipped. The method is recorded here instead —
+scan `tests/` for `for (const x of <name>)` and `<name>.forEach(`, then look for
+`<name>.length` anywhere in the same file — and is worth rerunning by hand.
+
+### 2026-09-01 - A record you cannot correct is a record you cannot trust
+
+Twenty-six of the twenty-seven owner record pages declare a create form. **None
+of them could change a saved record.**
+
+A customer's phone number entered with a digit missing, a quote priced at 450
+instead of 4500, a booking put against the wrong service — the only recourse in
+the product was to create a second record and leave the wrong one sitting there.
+An address book with two entries for the same person, one of which cannot be
+reached, is **worse** than one with a single wrong entry, because now nobody
+knows which is current.
+
+Twenty-five pages now have `GET {path}/:recordId/edit` and `POST {path}/:recordId`,
+and every row links to its own edit page. The two that do not are recorded rather
+than forgotten: `/business-builder/owner/costs` declares no form, and
+`/business-builder/owner/time` names its own action — clocking in is not "create
+a time entry with these values", because the server stamps the time.
+
+## The patch is built from the declaration, not filtered from the body
+
+`lib/sonara-record-edit.cjs` reads the page's own field declaration and writes
+only what it names. That is the security property rather than a tidiness one:
+the patch goes out with the service role key, which bypasses row level security,
+so a body carrying `organization_id` would otherwise be a way to move a record
+between businesses. Building from a fixed list means a new attack name has
+nothing to land on. The test posts `organization_id`, `id` and `created_at` and
+asserts the patch keys are exactly `["name"]`.
+
+Only fields that **differ from the row as read** are sent. A patch of everything
+declared would overwrite a column somebody else edited in the seconds since the
+form loaded, with a value the person saving never looked at.
+
+## Three bugs found while building it, each the same shape
+
+**Comparing by prefix.** `same()` treated a stored value starting with the
+submitted one as unchanged, to cope with a timestamp read back carrying a zone
+the input never showed. That made shortening any text a no-op: correcting
+"Ada L" to "Ada" was reported as saved and wrote nothing. The prefix rule is now
+restricted to `date` and `datetime-local`.
+
+**A reference whose picker did not load.** The select rendered with no current
+value, so saving the form would clear a reference nobody touched. The record's
+existing choice is now always an option, labelled "The one already chosen", so
+blank is a decision rather than an accident.
+
+**An empty form over a failed read.** A read that failed is not a record that is
+missing, and an empty form invites somebody to retype a record that is still
+there and save the blanks over it. The edit page answers 502 and renders no form.
+
+Blank clears a column rather than writing `""`, because "" and "not recorded"
+are different answers. Nothing different sends no PATCH at all and says
+"Nothing was different, so nothing was changed" — the third outcome, neither
+failure nor save.
+
+## Verified by breaking it
+
+Twelve probes, each confirmed to fail the test **by name** before being reverted:
+registering the edit page only for pages with line items; rendering the form
+empty; unlinking it from the row; rendering a form over a failed read; patching
+every declared field; comparing text by prefix; writing a blank as `""`; building
+the patch from the body; letting a required field be emptied; accepting a select
+value the form does not offer; sending an empty patch and calling it a save;
+dropping the current reference when its picker did not load.
+
+### 2026-09-01 - Twenty-seven record pages could create and read. None could change.
+
+Business Builder has twenty-seven owner record pages. Every one of them could
+create a record and read it back, and **not one of them could change anything.**
+
+Eleven declare a `status` select in their create form — draft, sent, accepted,
+confirmed, received, partially_received, no_show — and every one of those values
+was fixed at the moment the record was typed in.
+
+That is not a missing convenience, because three places in this product tell
+somebody to do the thing the product does not offer:
+
+- `lib/sonara-quote-conversion.cjs`, refusing to make an invoice: *"Mark it
+  accepted once the customer says yes, and it can become an invoice."*
+- The public booking page, to a stranger who has just booked: *"A request is not
+  an appointment until the business accepts it."*
+- `lib/sonara-booking-notice.cjs`, to the business: *"Not confirmed until you
+  accept it."*
+
+The first matters most. Quote → invoice is gated on `accepted`, so invoices, the
+payments recorded against them, the settlement, the receivables page and the
+invoice-paid notification wired two days ago were **all downstream of a change
+nobody could make**.
+
+## The options come from the page, not from a list here
+
+Each table has its own check constraint and its own vocabulary. The create form
+already declares exactly those values and the database enforces them, so
+`lib/sonara-record-status.cjs` reads the page's own declaration and validates
+against it. A hand-written list would be the third copy and the first to drift.
+
+It deliberately does not decide whether a transition makes sense — `paid` back to
+`draft` is a business correcting a mistake, and a workflow engine that has to be
+argued with is how people end up keeping the real records somewhere else. And it
+does not touch money: marking an invoice `paid` changes a label, writes no
+payment, and `lib/sonara-invoice-settlement.cjs` still computes what is owed from
+`customer_invoice_payments` alone. The two are independent on purpose.
+
+## The bug this shipped with for about an hour
+
+The first version registered the endpoint inside the loop over pages that *have
+line items*. That is six pages. **Quotes and bookings — the two records the whole
+change exists for — were among the five that got no endpoint at all.**
+
+It was found by asking the running app which routes it had, and that is now what
+the test does: `tests/a-record-status-can-be-changed.test.js` iterates every page
+where `recordStatus.hasStatus(page)` is true, rather than the two it was written
+for, and asserts there are at least eight of them so it cannot pass by measuring
+an empty list.
+
+The control now lives in exactly one place per page: the card on the detail page
+where a detail page exists, the row on the list page where it does not.
+
+## Verified by breaking it
+
+Six probes, each confirmed to fail the test **by name** before being reverted:
+
+| broken | test that went red |
+| --- | --- |
+| register the route only for pages with line items (the original bug) | gives every page that declares a status somewhere to change it |
+| render no control on the list page | renders the control on a page an owner can actually open |
+| drop the organization filter from the write | filters the read and the write by organization, not by id alone |
+| accept any status the caller types | refuses a status the page does not offer, and writes nothing |
+| skip the read, so another business's record is written to | will not change a record belonging to another business |
+| call an empty PATCH result a saved change | does not report a change when the write matched nothing |
+
+The last one is the shape this repository keeps finding: PostgREST answers a
+PATCH that matched no row with `200` and an empty list. Reporting that as a saved
+change is a green light over a write that did not happen, so the route refuses
+`404` when the returned list is empty.
+
+`supabasePatchScoped` filters on `organization_id` as well as `id`. The read
+above it already proved ownership, so the second filter changes no outcome today
+— it is there because the service key bypasses row level security, and the day
+somebody shortens that read is the day the only tenant boundary on the write
+disappears silently.
+
+The owner pressing a button they can see is the owner acting, not an agent, so
+`lib/sonara-agent-authority.cjs` is not involved. It governs what runs without a
+person.
+
+### 2026-09-01 - Two thirds of the release gate never ran in CI
+
+`verify:launch` is what this repository calls its gate, and
+`docs/owner/WHAT-IS-LEFT.md` quotes its length at whoever is deciding whether
+this is shippable. **Twenty-one of its thirty-one commands ran in no workflow at
+all.**
+
+Among them `verify:doc-counts`, `verify:source-licence`, `verify:csp`,
+`verify:margins`, `verify:orphan-tables`, `verify:stale-claims`,
+`verify:contrast`, `verify:env` and thirteen more. A pull request could be green
+on every check GitHub displayed while two thirds of the gate had never executed.
+
+This is the recurring defect at the largest scale it comes in, and it had
+already cost something: on 27 August two green pull requests merged into a main
+that was red on `verify:doc-counts`, and CI did not notice **because CI does not
+run it**. It surfaced only because the chain was run by hand afterwards.
+
+## One definition, one CI step
+
+`verify:gates` is now everything after `verify:db`, and `verify:launch` is
+defined *in terms of it* rather than repeating it. CI runs `verify:gates` as a
+single step, replacing four commands it used to name by hand. The workflow and
+the chain cannot drift into disagreeing about what a gate is, because there is
+one list.
+
+`tests/the-release-gate-is-the-gate.test.js` fails when a chain command runs in
+no workflow, resolving what a workflow runs *through package.json* so a step
+running one script that runs another counts the inner one.
+
+## Five checks that measured the shape of the definition
+
+Nesting the chain broke five checks at once, and every one of them reported
+something that looked like a real finding:
+
+- `verify-launch-config.mjs` — `verify:config` missing from a chain that runs it
+- `verify-doc-counts.mjs` — the chain as **7 commands**, against a document
+  correctly saying 31
+- `an-applied-migration-cannot-be-edited`, `dated-claims-say-when-to-recheck`,
+  `the-small-print-can-be-read` — each "the check is not in verify:launch"
+- `no-check-claims-more-than-it-ran` — *"only 3 scripts parsed out of
+  verify:launch; this check has gone blind"*
+
+None was wrong about the string. All were **measuring the shape of the
+definition rather than what it does** — this repository's recurring defect in
+its least obvious disguise, where the check is accurate and the thing it
+measures is not the thing it names.
+
+The last one is worth keeping: its blindness guard is what turned a silent hole
+into a two-minute fix. It refused to check three scripts and pass.
+
+`lib/sonara-release-chain.cjs` is the one implementation now — six call sites
+had grown their own, and a seventh would have been the seventh to break. Pure
+groupings are excluded from the count by construction, so `verify:gates` does
+not inflate a figure that is supposed to mean "checks that run": **34**, up from
+31, because expanding the nesting also reached `verify:supabase-contract`,
+`verify:agent-sync` and `verify:customer-ready`, which always ran and were never
+counted.
+
+Three falsification probes, each failing by name: CI running something other
+than the gates; the gates inlined back into the chain; and CI dropping
+`SONARA_MIGRATION_REPLAY_REQUIRED`.
+
+Suite 3,336 -> 3,341. `verify:launch` green end to end.
+
+### 2026-09-01 - Five ticks that did nothing, and one that does something now
+
+`/account/notifications` offered six notification topics as six identical
+ticked boxes. **One of them was wired.** A person could tick "A job is marked
+finished", grant permission, and wait for ever.
+
+`job_finished` was the sharpest of the five, because **this application has no
+jobs.** No jobs table, no job record page, nowhere a job could be marked
+finished. The topic named a feature that does not exist. `booking_reminder`
+needs a scheduler nothing runs, `payment_failed` has no handler, and
+`quote_accepted` changes through the generic record editor with nothing
+watching it.
+
+## `booking_made`, wired
+
+`POST /book/:slug` is the one place in this application where a **stranger**
+writes a row, and the one nobody is watching when it happens: the request sits
+at `requested` until a person opens the page. That makes it the event a booking
+notification exists for, and it is now sent.
+
+Simpler than the invoice notice on purpose. That one computes a settlement twice
+because "the invoice is paid" is a state that stays true and would re-announce
+itself; **a booking request is not a state, the insert is the event**, so there
+is no before-and-after here and adding one would be ceremony.
+
+Three rules carried over unchanged, each for the same reason as before: awaited,
+because an un-awaited fetch in a serverless function silently never leaves; its
+result dropped, because the booking is saved either way; and it cannot throw,
+which matters more here than anywhere else — the person waiting on that response
+is a stranger who did nothing wrong.
+
+**No contact details in the payload.** A push is decrypted by the browser and
+rendered by the operating system: notification history, lock screen, whatever
+the OS syncs. The name and the service, because without them the notification
+says only that something happened; the email and phone stay behind the session,
+one tap away, which is where somebody would act on them anyway.
+
+## Two lists, because one was a promise the product did not keep
+
+`TOPICS` is what a subscription may **store** — narrowing it would silently
+invalidate subscriptions people already made. `SENDING_TOPICS` is what a page may
+honestly **offer**. A topic nothing sends now renders disabled with a sentence
+saying so, rather than as a tick that does nothing.
+
+Listed rather than hidden, deliberately: a greyed row with a reason tells
+somebody what this product does and does not do yet; an absent row tells them
+nothing.
+
+Two hand-maintained lists is how the first one came to be wrong, so
+`tests/a-notification-topic-cannot-be-offered-with-nothing-to-send-it.test.js`
+**derives the second from the source** — every entry must appear as a `topic:`
+argument to a `notify()` call in `lib/` or `routes/`, with comments stripped
+first so a topic named in a sentence explaining why it is *not* wired cannot
+count as wiring it. It gates both directions: claiming a topic is sent when
+nothing sends it, and wiring one without offering it.
+
+## What lint caught that would have reached a customer
+
+The first draft passed a bare `organizationId` into the announcement. There is
+no such variable in that handler — it is `page.organization_id`. `no-undef`
+caught it. Without that, **every public booking would have thrown after the row
+was already written**, and a stranger would have seen an error page for a
+booking that saved. Guarded by a test now, both directions.
+
+Worth recording that my own `&&` chain hid it for one commit: `pnpm run lint |
+tail -4 && git commit` takes `tail`'s exit status, not eslint's, so a failing
+lint still ran the commit.
+
+Eight falsification probes, each failing by name: a dead topic claimed as
+sending; a wired topic dropped from what is offered; the page offering a dead
+topic as a live tick; contact details in the payload; the announcement
+un-awaited; the bare `organizationId` restored; a broken date printed rather
+than omitted; and one shared tag collapsing two bookings into one.
+
+Suite 3,313 -> 3,336. `verify:launch` green end to end.
+
+### 2026-09-01 - A registered repository that stopped existing
+
+`external-repository-health` went red on #207 naming two records, and **neither
+was one of the five that PR adds**. Both predate the branch and are present on
+`main`.
+
+`deivid22srk/XenDroid` has been removed from GitHub. Confirmed twice, because
+one 404 is not a fact here: the workflow's API call answered 404, and
+`git ls-remote` through a separate path found nothing either. That pair is what
+distinguishes a deleted repository from a rate limit or a scoped token, and this
+session gets a 404 from `api.github.com` for every repository outside its own
+scope. `BryanTheLai/RestaurantProject` is only a warning — archived, still
+there.
+
+Fixed with the sentinel the check already understands: `repoUrl` becomes
+`https://example.invalid/blocked`, which requires `integrationStatus: "blocked"`
+and which XenDroid already was. `officialUrl` still points at where the
+repository was.
+
+**The record stays.** Deleting it would erase the finding — that the project had
+no licence file across three branches and five filenames, so it was all rights
+reserved — and the next person to meet it would redo a check somebody already
+did. Leaving the live URL would keep the health workflow red for everyone, on a
+repository nobody can fix. The verdict is worth keeping; the unanswerable
+question is not.
+
+Written into `.claude/skills/reviewing-an-outside-repository/` under "When a
+registered repository disappears", including the second-path confirmation,
+because the tempting move on a red health run is to delete the row.
+
+### 2026-08-27 - Five repositories from a feed, and the licence class nobody was watching
+
+Five GitHub repositories arrived as social-media screenshots. All five are now
+in `data/open-source-tools.ts`, 165 records to 170. Every one was **cloned and
+its LICENSE read**, because a screenshot shows what a post claims and not what a
+repository grants.
+
+Three of the five turned out to be something other than advertised.
+
+**`Imbad0202/academic-research-skills` is CC BY-NC 4.0, not MIT.** It was
+submitted as a Claude skill library — 44.3k stars, 3.5k forks, a
+`.claude-plugin` directory, 2,581 files. NonCommercial means "not primarily
+intended for or directed towards commercial advantage or monetary
+compensation". SONARA One is sold on paid plans, so every use this product would
+make of it is the use the licence withholds. Blocked, and the record says
+plainly that no internal review can unblock it — only the author relicensing
+can.
+
+**Two "curated API directories" are affiliate placement lists.**
+`ecommerce-intelligence-apis`: 2,273 of 2,283 catalogue links carry an `?fpr=`
+parameter. `real-estate-data-apis`: 1,090 of 1,096. Two codes, `p2hrc6` and
+`chris69`, and both files record in their own first line that they are synced
+from `cporter202/API-mega-list`. The licences are clean MIT; the problem is
+disclosure, and it is invisible in a screenshot. Several listed products are
+bulk B2B email scrapers, which AGENTS.md rules out on consent grounds
+independently.
+
+The other two are what they say. `agentic-ai-starters` is MIT and contains no
+executable code at all — 57 markdown files, twelve starters of README /
+architecture / prompts / stack — which makes it reference-only as a fact rather
+than as a caution. `virgiliojr94/book-to-skill` is MIT and genuinely useful, with
+one boundary worth recording: **a tool's licence says nothing about the rights in
+what you feed it**, and distilling a purchased book into a redistributable skill
+is a copyright question about the book.
+
+## The gap in the register's own checks
+
+`tests/open-source-licence-terms.test.js` gated reciprocal licences and
+undeclared ones. It had nothing for **NonCommercial** or **source-available**,
+and both are strictly worse for this product than reciprocal. Reciprocal has a
+price: release the source. These have no price at all — no term this project can
+accept unlocks them.
+
+So the CC BY-NC repository could have been marked an adaptation source and every
+existing check would have stayed green. Two patterns added, three assertions,
+and the blindness guard extended so they cannot pass over a register that stops
+containing anything they match.
+
+Probes, each failing by name: the CC BY-NC record marked
+`optional_adapter_after_review`; the same record marked
+`allowed_after_review` for commercial use; and the existing ELv2 record marked
+`adapter_built`.
+
+## A skill for the thing that keeps happening
+
+`.claude/skills/reviewing-an-outside-repository/` is the procedure, written down
+because this is the second time a screenshot and a licence have disagreed — the
+Context Mode record was the first, advertised as open source and actually
+Elastic License 2.0.
+
+It carries the parts that are easy to get wrong: `api.github.com` answers 403
+for repositories outside this session's scope and that is not the repository
+being missing; handles are misread from screenshots (`Imbad0202` was read as
+`lmbad0202`, capital I against lowercase l, and every probe failed until it was
+searched for); and the two grep commands that turn "curated directory" into
+2,273 of 2,283.
+
+Suite 3,311 -> 3,313. Register 165 -> 170. `verify:launch` green end to end.
+
+### 2026-08-27 - Two green pull requests that merged into a red main
+
+`verify:doc-counts` failed on `main` immediately after #205 and #204 were
+merged in sequence. `docs/SHIP_READINESS.md` and `docs/owner/INSTALL.md` both
+said "104 migrations"; the tree held 105.
+
+Neither pull request was wrong. #204 counted 104 and was right on its own base:
+103 migrations plus `call_sessions`. #205 added
+`20260827100000_published_catalog_is_complete.sql`, which made 105 the moment
+both landed. **Each branch's CI measured a tree that stopped existing when the
+other merged**, and no check anywhere ran against the combination.
+
+That is a semantic merge conflict, and it is worth naming because none of the
+usual defences see it: the merge was clean, both diffs were correct, and both
+heads were green. The two things that would have caught it are a repository
+setting rather than code -- requiring a branch to be up to date with `main`
+before merging -- and a derived figure that no human has to retype. The counts
+in those two documents are the second kind waiting to happen: this is the third
+time in one session they have been hand-edited to match a number a script
+already knows.
+
+Fixed by correcting both figures. Recorded rather than only fixed, because the
+lesson is about when a check runs, not about what it checks.
+
 ### 2026-08-27 - Calling a customer, with nothing passing through us
 
 `/business-builder/owner/customers/:recordId/call` places a browser-to-browser

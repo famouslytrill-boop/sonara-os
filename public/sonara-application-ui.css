@@ -63,8 +63,60 @@ html[data-theme="dark"]{
   --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
 }
 
+/* The same values again, for a visitor whose device asks for dark and who
+ * has not chosen a theme.
+ *
+ * sonara-prepaint.js stamps data-theme on every load, so with JavaScript on
+ * this block changes nothing. With JavaScript off it is the difference
+ * between two palettes agreeing and two palettes disagreeing: the --sonara-*
+ * set in sonara-design-system.css falls back on prefers-color-scheme and
+ * this one did not, so on a dark-preferring device the design system went
+ * dark while this file stayed light. application-ui.css uses --sonara-*
+ * colours in 32 places, twelve of which vary by theme, and the result was
+ * --sonara-text-2 (#BCC6E4, the dark value) on --nx-surface (#ffffff, the
+ * light value): measured 1.70:1, against 9.49:1 when the two agree.
+ *
+ * :not([data-theme="light"]) so an explicit light choice still wins on a
+ * dark device. Placed after the block above, at equal specificity, so an
+ * explicit dark choice on a light device is unaffected either way -- both
+ * carry the same values. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+  color-scheme:dark;
+  --nx-bg:#080b12;
+  --nx-bg-soft:#0d1220;
+  --nx-surface:#111725;
+  --nx-surface-2:#171e2e;
+  --nx-ink:#f7f9ff;
+  --nx-text:#eef2fb;
+  --nx-muted:#aeb7c8;
+  --nx-faint:#818ba0;
+  --nx-line:#263044;
+  --nx-line-strong:#354158;
+  --nx-violet:#9878ff;
+  --nx-blue:#718aff;
+  --nx-pink:#ff619f;
+  --nx-orange:#ff9a59;
+  --nx-cyan:#31d2e7;
+  --nx-mint:#37c894;
+  --nx-success:#43d8a1;
+  --nx-warning:#f0b74e;
+  --nx-danger:#ff6a7c;
+  --nx-focus:#89a0ff;
+  --nx-shadow:0 20px 54px rgba(0,0,0,.30);
+  --nx-shadow-high:0 38px 110px rgba(0,0,0,.44);
+}
+}
+
 *,*::before,*::after{box-sizing:border-box}
-html{scroll-padding-top:calc(var(--nx-header) + 20px);-webkit-text-size-adjust:100%;background:var(--nx-bg)}
+/* The two full-bleed decorations -- .sonara-stage::before (inset -12%) and
+   .sonara-hero-stage::before (inset -10%) -- deliberately paint past their
+   containers. Measured in Chromium: they made the document 424px wide in a
+   390px viewport, so every marketing page could be swiped 34px sideways into
+   empty space. body{overflow-x:clip} below did not stop it, because the
+   scrolling box is the documentElement. clip rather than hidden: hidden makes
+   html a scroll container and the sticky site header stops sticking. */
+html{scroll-padding-top:calc(var(--nx-header) + 20px);-webkit-text-size-adjust:100%;background:var(--nx-bg);overflow-x:clip}
 body{margin:0;min-width:0;max-width:100%;overflow-x:clip;background:linear-gradient(180deg,var(--nx-bg) 0,var(--nx-bg) 70%,var(--nx-bg-soft) 100%);color:var(--nx-text);font-family:var(--nx-font);font-size:15px;line-height:1.58;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 body::before{content:"";position:fixed;inset:0 0 auto;height:560px;z-index:-2;background:radial-gradient(circle at 14% 8%,rgba(116,84,245,.13),transparent 34%),radial-gradient(circle at 86% 12%,rgba(20,184,212,.11),transparent 28%),radial-gradient(circle at 62% 42%,rgba(239,77,141,.07),transparent 32%);pointer-events:none}
 html[data-theme="dark"] body::before{background:radial-gradient(circle at 14% 8%,rgba(116,84,245,.22),transparent 35%),radial-gradient(circle at 86% 12%,rgba(20,184,212,.16),transparent 30%),radial-gradient(circle at 60% 42%,rgba(239,77,141,.10),transparent 34%)}
@@ -109,6 +161,11 @@ a:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visible,t
 .sonara-mobile-menu{display:none;margin-left:auto}.sonara-mobile-menu>summary{min-width:44px;min-height:44px;padding:10px 12px;display:grid;place-items:center;border:1px solid var(--nx-line);border-radius:12px;background:var(--nx-surface);color:var(--nx-ink);font-weight:800;cursor:pointer;list-style:none}
 .sonara-mobile-menu>nav{position:absolute;top:100%;left:0;right:0;padding:12px max(12px,calc((100% - var(--nx-content))/2));display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;border-bottom:1px solid var(--nx-line);background:color-mix(in srgb,var(--nx-bg) 96%,transparent);box-shadow:var(--nx-shadow);backdrop-filter:blur(18px)}
 .sonara-mobile-menu a{width:100%;justify-content:flex-start;white-space:normal}
+/* A closed <details> does not stop an absolutely positioned child being laid
+   out. Measured: ten menu links sitting at right=440 in a 390px viewport while
+   the menu was shut -- off-screen, but still in the tab order and still found
+   by find-in-page. */
+.sonara-mobile-menu:not([open])>nav{display:none}
 
 main,footer{width:min(var(--nx-content),calc(100% - 40px));margin-inline:auto}
 main{min-width:0}.sonara-standard-page main{padding-bottom:64px}
@@ -174,6 +231,15 @@ label{display:grid;gap:7px;color:var(--nx-text);font-weight:700}
 input,textarea,select{width:100%;max-width:100%;min-height:46px;padding:11px 13px;border:1px solid var(--nx-line-strong);border-radius:var(--nx-radius-sm);background:var(--nx-surface);color:var(--nx-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.45)}
 textarea{min-height:130px;resize:vertical}input::placeholder,textarea::placeholder{color:var(--nx-faint)}
 table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--nx-line);border-radius:14px;overflow:hidden;background:var(--nx-surface)}
+/* A table with more columns than the viewport has room for, at any width.
+ * The rule at the bottom of this file turns every table into a scroller below
+ * 680px, which covers a phone and nothing else: an eight-column table -- the
+ * generated-file list, with its provenance columns -- overflows a tablet and a
+ * narrow laptop too, and AGENTS.md asks that layouts do not overflow. Wrapping
+ * rather than making the table itself scroll keeps the border radius and the
+ * background on the table where they already are. */
+.table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.table-scroll>table{min-width:max-content}
 th,td{padding:13px 14px;border-bottom:1px solid var(--nx-line);text-align:left;vertical-align:top;overflow-wrap:anywhere}th{background:var(--nx-surface-2);color:var(--nx-ink);font-size:12px}tr:last-child td{border-bottom:0}
 code,pre{font-family:var(--nx-mono)}pre{max-width:100%;overflow:auto;padding:16px;border:1px solid var(--nx-line);border-radius:12px;background:var(--nx-surface-2)}
 
@@ -183,6 +249,24 @@ code,pre{font-family:var(--nx-mono)}pre{max-width:100%;overflow:auto;padding:16p
 .setup-required,[data-state="setup-required"]{border-color:color-mix(in srgb,var(--nx-warning) 35%,var(--nx-line));background:color-mix(in srgb,var(--nx-warning) 7%,var(--nx-surface))}
 
 footer{padding:44px 0 64px;border-top:1px solid var(--nx-line)}footer nav{display:flex;flex-wrap:wrap;gap:9px 18px;margin-top:16px}footer nav a{color:var(--nx-muted);font-size:13px;text-decoration:none}
+/* Measured at a 390px viewport: every one of the 22 legal links and 8 footer
+   links was 20.5px tall with no padding, laid out in a wrapping flex row with a
+   9px row gap. Stacked that closely, a mis-tap opens the wrong legal document.
+   AGENTS.md: "Mobile layouts must ... use large enough tap targets."
+
+   Scoped to `pointer: coarse` rather than to a width, because the rule is about
+   fingers and not about screens -- a 1024px tablet needs it and a 700px browser
+   window on a laptop does not. The row gap goes to 0 in that block because the
+   min-height now supplies the separation; leaving it at 9px would space the
+   footer twice. */
+@media (pointer: coarse) {
+  footer nav { row-gap: 0; column-gap: 6px }
+  /* 6px of padding either side of a 6px column gap keeps the 18px of visible
+     space the row had, while widening the narrowest link ("About", measured at
+     35px) to a size a finger can find. */
+  footer nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 6px }
+  .brand { min-height: 44px }
+}
 
 .sonara-loader{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;background:var(--nx-bg);opacity:1;visibility:visible;transition:opacity .22s var(--nx-ease),visibility .22s var(--nx-ease)}
 .sonara-loader.is-ready{opacity:0;visibility:hidden}.sonara-loader__core{display:grid;place-items:center;gap:16px}.sonara-loader__mark{width:74px;height:74px;filter:drop-shadow(0 16px 30px rgba(79,111,255,.22));animation:nxPulse 1.15s var(--nx-ease) infinite alternate}.sonara-loader__track{width:152px;height:3px;overflow:hidden;border-radius:999px;background:var(--nx-line)}.sonara-loader__track::after{content:"";display:block;width:42%;height:100%;background:linear-gradient(90deg,var(--nx-pink),var(--nx-violet),var(--nx-cyan));animation:nxLoad .95s var(--nx-ease) infinite}.sonara-loader__label{color:var(--nx-muted);font:800 10px var(--nx-mono);letter-spacing:.17em}
@@ -227,7 +311,7 @@ html.sonara-leaving main{opacity:.88;transition:opacity .12s ease}
   .sonara-site-header,body>header{min-height:var(--nx-header);padding:9px 12px;gap:8px}
   .sonara-brand-mark{width:36px;height:36px}.sonara-brand-copy strong{font-size:13px}.sonara-brand-copy small{font-size:8px}
   .sonara-header-tools{gap:5px}.sonara-icon-button{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}.sonara-account-menu summary{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}
-  .sonara-mobile-menu>summary{width:42px;min-width:42px;height:42px;min-height:42px;padding:0}
+  .sonara-mobile-menu>summary{width:44px;min-width:44px;height:44px;min-height:44px;padding:0}
   .sonara-mobile-menu>nav{grid-template-columns:1fr;padding:10px 12px 14px}
   .hero{padding:48px 0 38px;gap:28px}.eyebrow{margin-bottom:14px}
   h1,.sonara-home-v3 .sonara-hero-copy h1{font-size:clamp(36px,11.5vw,48px);line-height:.98;letter-spacing:-.048em}
