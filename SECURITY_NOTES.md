@@ -161,6 +161,58 @@ needs it, the line does not change.
 still denies camera and microphone, still scopes geolocation to `self` rather
 than `*`, and that no page starts a position watch.
 
+## An Unreachable Audit Is Not A Passing Audit, And Not A Finding Either
+
+**No audit threshold was lowered.** `--audit-level moderate` is unchanged, and an
+audit that cannot run still fails the job. Recorded here because
+`AGENTS.md` requires any change to an audit check to state its exact reason.
+
+On 3 September 2026 `frontend-dependencies` went red on four job runs across two
+commits — one of which touched only markdown — each carrying:
+
+```json
+{ "error": { "code": 23, "message": "The operation was aborted due to timeout" } }
+```
+
+`pnpm audit` had not found an advisory. It could not reach npm's advisory bulk
+endpoint to ask. `https://registry.npmjs.org/` itself answered 200 in under two
+seconds at the same moment, and the timeout reproduced from an unrelated network,
+so the outage was that endpoint rather than the registry or GitHub.
+
+The step could not tell the two apart, because both exit non-zero:
+
+```bash
+pnpm audit --audit-level moderate --json > pnpm-audit.json
+status=$?
+exit $status
+```
+
+**A network failure was therefore reported as a security finding.** That is a
+security problem rather than a cosmetic one, and it runs in the direction this
+repository normally worries about backwards: a signal reporting *failure* without
+being true. A check that cries wolf teaches people to re-run it until it goes
+green and then stop reading it, and that is how a real advisory eventually gets
+waved through by somebody who has learned the red means nothing.
+
+Two changes, neither of which relaxes anything:
+
+1. **Retry** — three attempts with backoff. A transient failure is worth asking
+   again about; a sustained outage still fails.
+2. **Distinguish** — `scripts/audit-result-is-unusable.mjs` decides whether a
+   real audit result was obtained at all. When it was not, the job **still
+   fails**, with its own message saying nothing was audited.
+
+The rule that script encodes: **anything which is not a valid audit result means
+we could not ask** — no file, empty, unparseable, or carrying an `error` key.
+That rule exists because the first version, written inline in the workflow,
+classified an empty and an unparseable file as *real results* — so a crashed
+audit would have been reported as a security finding by the very code written to
+stop a timeout being reported as one. `tests/an-audit-that-did-not-happen-is-not-a-finding.js`
+drives all eight cases.
+
+What this deliberately does **not** do: treat an unreachable audit as a pass. The
+outcome is identical to before. Only the message changed.
+
 ## Package Manager Boundary
 
 The repo uses pnpm only. `package-lock.json` files were removed, and CI installs from `pnpm-lock.yaml` with `pnpm install --frozen-lockfile`.
