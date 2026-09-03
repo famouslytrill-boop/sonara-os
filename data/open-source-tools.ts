@@ -5000,6 +5000,74 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     safetyBoundaries: ["no client-side rendering requirement introduced into a page that works without JavaScript"],
     humanReviewRequired: false,
   },
+  // ---------------------------------------------------------------------------
+  // Two more from a feed on 3 September 2026. Both really are MIT -- the badges
+  // are right this time -- and one of them is still blocked, because a licence
+  // is not the only thing that decides. See camofox-browser above for the
+  // previous time the refusal was about what a repository is *for*.
+  // ---------------------------------------------------------------------------
+  {
+    name: "OSIRIS",
+    slug: "osiris-osint-intelligence-dashboard",
+    category: ["OSINT aggregation", "username enumeration", "platform scraping", "blocked on conduct"],
+    useCase: ["none -- recorded so the refusal is written down rather than re-argued"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not adopt any part of it, and do not lift the username-enumeration module in particular",
+      "keep routes/market-intelligence-routes.cjs fetching only hosts an organization has recorded permission for -- this repository is the case that gate exists to refuse",
+      "if flight or seismic data is ever wanted, take it from the source's own API under that source's terms, which is a different thing from taking this",
+      "note that the refusal here is a judgement about conduct rather than a licence bar, so unlike the CC BY-NC record above a review could in principle reach a different answer -- it would have to answer the three findings below first",
+    ],
+    officialUrl: "https://osirisai.live",
+    repoUrl: "https://github.com/simplifaisoul/osiris",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: MIT, Copyright (c) 2026 simplifaisoul -- the badge in the post is accurate. 872 files, 238 TypeScript and 200 JavaScript, Next.js 16 and MapLibre GL. The post advertises flight tracking, earthquakes, fires, satellites, weather and news. Three things it does not mention, all found by opening the files. (1) `src/lib/sherlock.ts` is username enumeration across 481 social platforms -- its own header says so: a TypeScript reimplementation of the Sherlock Project's detection logic, pulling that project's site database from raw.githubusercontent.com at run time. That is people-search on named individuals, and it is invisible in a screenshot about earthquakes. (2) `src/app/api/news/route.ts` defines `parseTelegramHTML()` and fetches Telegram channel pages directly -- scraping the web interface rather than using an API. (3) It hard-codes several hundred third-party CCTV stream URLs -- government transport departments among them, ls.tkchopin.pl appearing 71 times -- and re-streams them. Cost is a separate question again: it wants OPENSKY_CLIENT_ID and OPENSKY_CLIENT_SECRET, AIS_API_KEY, ETHERSCAN_API_KEY, HELIUS_API_KEY and CLOUDFLARE_API_TOKEN, and depends on @google/generative-ai.",
+    safetyBoundaries: [
+      "no username or person enumeration in any code path",
+      "no scraping of a platform's web interface in place of its API",
+      "no fetch of a host outside the approved-source list",
+      "no re-streaming of a third party's camera feed",
+    ],
+    blockedUses: [
+      "any use in the product",
+      "adapting sherlock.ts or its detection rules into anything here",
+      "adapting the Telegram HTML parser or the CCTV stream list",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Claude SEO",
+    slug: "claude-seo-audit-skill",
+    category: ["developer workflow", "agent skills", "SEO auditing", "build-time tooling"],
+    useCase: ["auditing SONARA's own marketing pages while building them; nothing shipped to customers"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "if used at all, point it at this project's own pages -- it is a development-time tool like the superpowers record above, not something a customer is served",
+      "leave the Firecrawl extension alone unless somebody has costed it: Firecrawl is a hosted service, and a free tier is a price rather than a licence",
+      "register the public repository, not the private mirror -- the mirror requires a paid community membership and is therefore not a thing this project can depend on",
+      "do not let its recommendations reach a customer-facing page unread; Growth Studio copy is checked by scripts/check-growth-studio-copy.mjs and an SEO suggestion is not exempt from it",
+    ],
+    officialUrl: "https://github.com/AgriciDaniel/claude-seo",
+    repoUrl: "https://github.com/AgriciDaniel/claude-seo",
+    notes:
+      "Cloned and LICENSE read 3 September 2026: MIT, Copyright (c) 2026 agricidaniel. 383 files -- 199 markdown, 98 Python, 18 agent definitions, 33 SKILL.md files and 37 test files. A Claude Code plugin that audits technical SEO, content quality, Schema.org markup and AI-search optimisation, citing Google's own published guidance. Measured rather than taken from the README: the only outbound host in its Python is oauth2.googleapis.com, for Search Console; everything else it fetches is the site it was pointed at, and four files handle robots.txt. It needs no API key of its own. Same category as the superpowers record above -- a tool used while building, with no runtime dependency to take. Two things worth knowing. It ships an optional Firecrawl extension, and Firecrawl is a paid hosted service. And the README offers two versions: this public MIT one, and a private mirror behind a Skool membership -- the public one is what is registered here, because a repository this project cannot reach without paying somebody is not a dependency it can have.",
+    safetyBoundaries: [
+      "audits this project's own pages only",
+      "no third-party site fetched without a recorded permission",
+      "no generated marketing claim published without the Growth Studio copy check passing",
+    ],
+    humanReviewRequired: false,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

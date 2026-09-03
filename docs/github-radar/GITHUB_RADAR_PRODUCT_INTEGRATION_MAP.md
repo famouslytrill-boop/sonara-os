@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-183 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 183.
+185 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 185.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -166,7 +166,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-93 repositories.
+95 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -191,6 +191,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | component library |
 | [Chatwoot customer support reference](https://github.com/chatwoot/chatwoot) | License, hosting, and security review required before self-hosti | Read only | customer support |
 | [Claude Code](https://github.com/anthropics/claude-code) | Anthropic product terms; not treated as a redistributable open-s | Read only | developer CLI |
+| [Claude SEO](https://github.com/AgriciDaniel/claude-seo) | MIT | Adapt after review | developer workflow |
 | [Clone Wars](https://github.com/GorvGoyl/Clone-Wars) | CC0-1.0 | Read only | index of open-source clones |
 | [Cloudflare Agents](https://github.com/cloudflare/agents) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | agent framework |
 | [Cloudflare OS](https://github.com/cloudflare/cloudflare-os) | Apache-2.0 | Adapt after review | agent workspace |
@@ -236,6 +237,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [OpenClaw](https://github.com/openclaw/openclaw) | MIT | Adapt after review | personal agent gateway |
 | [OpenNews MCP](https://github.com/6551Team/opennews-mcp) | MIT | Read only | MCP server |
 | [Ory Kratos](https://github.com/ory/kratos) | Apache-2.0 | Research only | identity provider |
+| [OSIRIS](https://github.com/simplifaisoul/osiris) | MIT | Blocked | OSINT aggregation |
 | [OWASP Noir](https://github.com/owasp-noir/noir) | MIT | Adapt after review | static analysis |
 | [PostgREST](https://github.com/PostgREST/postgrest) | PostgreSQL | Read only | database access layer |
 | [PostHog](https://github.com/PostHog/posthog) | NOASSERTION: GitHub cannot classify it because the repository ca | Licence unresolved | product analytics |

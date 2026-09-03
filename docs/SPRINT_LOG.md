@@ -2,6 +2,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - Two more repositories, and one that is nothing like its post
+
+Both really are MIT this time -- the badges are accurate, which after
+developer-roadmap is worth saying. One is still blocked, because a licence is
+not the only thing that decides. 183 records to 185.
+
+**OSIRIS is advertised as flight tracking and earthquakes.** The post lists
+aviation, CCTV, seismic, fires, satellites, weather, news. What it does not
+mention, and what opening the files found:
+
+- `src/lib/sherlock.ts` is **username enumeration across 481 social
+  platforms**. Its own header says so: a TypeScript reimplementation of the
+  Sherlock Project's detection logic, pulling that project's site database from
+  raw.githubusercontent.com at run time. That is people-search on named
+  individuals, and nothing in a screenshot about earthquakes suggests it.
+- `src/app/api/news/route.ts` defines `parseTelegramHTML()` and fetches Telegram
+  channel pages directly -- scraping the web interface rather than using an API.
+- It hard-codes several hundred third-party CCTV stream URLs, government
+  transport departments among them, and re-streams them.
+
+Blocked on conduct, not licence -- the same shape as camofox-browser. And it is
+precisely the case `sourcePermission()` in
+`routes/market-intelligence-routes.cjs` was built to refuse: a tool whose value
+is fetching hosts nobody recorded permission for. The record says the refusal is
+a judgement rather than a licence bar, so unlike the CC BY-NC entry a review
+could in principle reach a different answer -- it would have to answer those
+three findings first.
+
+Cost, separately: OPENSKY_CLIENT_ID and SECRET, AIS_API_KEY, ETHERSCAN_API_KEY,
+HELIUS_API_KEY, CLOUDFLARE_API_TOKEN, plus `@google/generative-ai`.
+
+**Claude SEO is what it says**, and is registered `optional_adapter_after_review`
+-- the same category as superpowers, a tool used while building rather than
+something a customer is served. 383 files, 18 agents, 33 skills, 37 test files.
+Measured rather than read off the README: the only outbound host in its Python is
+`oauth2.googleapis.com`, for Search Console; everything else it fetches is the
+site it was pointed at, and four files handle robots.txt. No API key of its own.
+
+Two things recorded that a screenshot would not show. It ships an optional
+Firecrawl extension, and Firecrawl is a hosted service -- a free tier is a price,
+not a licence. And the README offers two versions: this public MIT one and a
+private mirror behind a paid Skool membership. The public one is what is
+registered, because a repository this project cannot reach without paying
+somebody is not a dependency it can have.
+
 ### 2026-09-03 - Production has been serving 5 August code for a month
 
 The connectors were asked to say what is actually deployed. They said something
