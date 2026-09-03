@@ -17,6 +17,17 @@ const { execFileSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
 const script = path.join(root, "scripts", "verify-member-read-access.mjs");
+// The grading moved into its own module on 3 September so it could be tested --
+// the script has top-level `await` and `process.exit` and cannot run without a
+// database, so the one function in it that decided anything was never
+// exercised, and it graded two unreadable counts as "ready".
+//
+// The assertions below are about properties of the check, not about which file
+// holds them, so the ones that follow the decision read both. Narrowing them to
+// the script would have quietly stopped checking the thing they were written
+// for the moment the code moved.
+const verdictModule = path.join(root, "scripts", "member-read-verdict.cjs");
+const bothSources = () => fs.readFileSync(script, "utf8") + "\n" + fs.readFileSync(verdictModule, "utf8");
 
 function run(env) {
   try {
@@ -74,28 +85,28 @@ describe("the member read access check", () => {
   it("compares against service-role rather than just checking the read succeeded", () => {
     // A member read that returns 200 and zero rows is exactly what a broken
     // policy looks like. Only the comparison tells it apart from an empty table.
-    const source = fs.readFileSync(script, "utf8");
+    const source = bothSources();
     assert.match(source, /asService/);
-    assert.match(source, /count=exact/, "row counts must be exact, not inferred from a page of results");
+    assert.match(fs.readFileSync(script, "utf8"), /count=exact/, "row counts must be exact, not inferred from a page of results");
     assert.match(source, /the member sees 0 -- switching this read would blank the page/);
   });
 
   it("distinguishes an empty table from a blocked one", () => {
     // Treating "no rows anywhere" as failure would make the script cry wolf on
     // a fresh workspace, and a check people learn to ignore catches nothing.
-    const source = fs.readFileSync(script, "utf8");
+    const source = bothSources();
     assert.match(source, /no-evidence/);
     assert.match(source, /proves nothing/);
   });
 
   it("only writes reads", () => {
     // It runs against production. Nothing here may modify a row.
-    const source = fs.readFileSync(script, "utf8");
+    const source = bothSources();
     assert.doesNotMatch(source, /method:\s*["'](POST|PATCH|PUT|DELETE)["']/i);
   });
 
   it("prints no secret", () => {
-    const source = fs.readFileSync(script, "utf8");
+    const source = bothSources();
     for (const secret of ["serviceRoleKey", "userJwt", "anonKey"]) {
       const logged = new RegExp(`console\\.(log|error)\\([^)]*\\b${secret}\\b`);
       assert.doesNotMatch(source, logged, `${secret} must never reach stdout`);

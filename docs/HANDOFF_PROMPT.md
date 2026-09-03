@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 275 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 276 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -157,6 +157,68 @@ Probed five ways, each failing by name: an entry removed from the register; a
 well-covered file wrongly listed; an entry naming a file nothing measured; a
 registered file recorded 6 points higher than it now measures; and the blindness
 guard raised above the real file count.
+
+### 2026-09-03 - Two counts nobody could read, reported as proof
+
+The last file under the coverage floor was `scripts/verify-member-read-access.mjs`
+at 21 of 86 lines. Its register entry said "a release script that talks to
+Supabase; the suite loads it but cannot run it against a database", and that was
+true -- top-level `await`, `process.exit`, and no way to run without a real
+database. It was also the wrong conclusion, because the script contains one
+function that **decides** something and does not need a database to do it.
+
+That function is `verdict`. It grades each table ready / partial / blocked /
+no-evidence / unknown by comparing what service_role sees against what the
+organization's own member sees, and **that grade is what somebody acts on when
+switching a user-facing read from the service-role key to the caller's JWT.**
+The whole point is catching the quiet failure the script's header describes: a
+policy that does not match returns zero rows and HTTP 200, nothing errors, and
+the workspace renders empty.
+
+It had the defect it exists to prevent.
+
+The count comes from PostgREST's `Content-Range`, parsed as
+`Number(range.split("/")[1])`, and a missing or malformed header becomes `null`.
+The comparison had no case for that:
+
+    asService.count === 0             ->  null === 0     ->  false
+    asUser.count === 0                ->  null === 0     ->  false
+    asUser.count !== asService.count  ->  null !== null  ->  false
+    -> { state: "ready", why: "member sees all null rows" }
+
+and the script prints that table under **"Safe to add to the user-scoped read
+list, on this evidence"**. Two counts it could not read, reported as proof, by
+the tool whose job is to stop a page silently blanking. A proxy that strips the
+header looks exactly like this.
+
+`scripts/member-read-verdict.cjs` now holds the decision, the script imports it,
+and an unread count on either side is `unknown` with a reason naming which side
+and where the count comes from. `counted()` requires a non-negative integer
+rather than trusting the caller to have turned non-finite into null.
+
+Two things the script gained alongside: a fallback mark, because a state with no
+entry in its marks table printed `undefined` beside a table name; and a guard
+that every graded table landed in one of the five states the summary counts,
+exiting 2 otherwise -- the summary would otherwise add up to less than the list
+printed beneath it.
+
+14 tests, including all 100 combinations of both sides' ok-ness and five count
+values, asserting every one lands in a counted state with a reason.
+
+Probed, each failing by name: the unread-count guard removed (**three** tests);
+`counted` relaxed to `typeof value === "number"`; an empty table graded ready;
+a grade outside the counted set; and the script growing its own copy of
+`verdict` back.
+
+**And one flaw in the test itself, found by probing it.** The message read
+``${JSON.stringify(value)} was treated as a real count``, and
+`JSON.stringify(NaN)` is the string `"null"` -- so the NaN case reported "null
+was treated as a real count" and would have sent the next person to the wrong
+value. `String()` now.
+
+The script stays in the register: it is still a command-line tool that cannot run
+here, and its coverage is still low. What changed is that the part of it capable
+of being wrong is no longer the part that cannot be tested.
 
 ### 2026-09-02 - A page that said it was read-only, above fifty Save buttons
 

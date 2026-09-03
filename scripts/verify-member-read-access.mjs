@@ -31,6 +31,11 @@ import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { ORGANIZATION_READ_TABLES, PERSONAL_READ_TABLES } = require("./generate-member-read-policies.cjs");
+// The decision lives in its own module so it can be tested. This script cannot
+// run without a real database, so the one function in it that decides anything
+// was never exercised -- and it reported a table "ready" when neither count
+// could be read. See scripts/member-read-verdict.cjs.
+const { verdict, STATES } = require("./member-read-verdict.cjs");
 
 const url = String(process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || "").replace(/\/$/, "");
 const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || "").trim();
@@ -119,26 +124,28 @@ for (const table of PERSONAL_READ_TABLES) {
   results.push({ table, scope: "person", asService, asUser });
 }
 
-function verdict(row) {
-  if (!row.asService.ok) return { state: "unknown", why: `service-role read failed (HTTP ${row.asService.status}); the table may not exist` };
-  if (!row.asUser.ok) return { state: "blocked", why: `member read failed (HTTP ${row.asUser.status}); the role lacks a grant, not just a policy` };
-  if (row.asService.count === 0) return { state: "no-evidence", why: "this organization has no rows here, so an empty member read proves nothing" };
-  if (row.asUser.count === 0) return { state: "blocked", why: `service-role sees ${row.asService.count} rows, the member sees 0 -- switching this read would blank the page` };
-  if (row.asUser.count !== row.asService.count) return { state: "partial", why: `member sees ${row.asUser.count} of ${row.asService.count} rows` };
-  return { state: "ready", why: `member sees all ${row.asService.count} rows` };
-}
-
 const graded = results.map((row) => ({ ...row, ...verdict(row) }));
 const by = (state) => graded.filter((row) => row.state === state);
 
 console.log(`\nMember read access, organization ${organizationId.slice(0, 8)}…\n`);
 for (const row of graded) {
-  const mark = { ready: "  ok    ", partial: "  PARTIAL", blocked: "  BLOCKED", "no-evidence": "  --    ", unknown: "  ?     " }[row.state];
+  const marks = { ready: "  ok    ", partial: "  PARTIAL", blocked: "  BLOCKED", "no-evidence": "  --    ", unknown: "  ?     " };
+  // A state with no mark would print `undefined` beside a table name, which
+  // reads as a rendering glitch rather than as a state nobody handled.
+  const mark = marks[row.state] || `  ${row.state.toUpperCase().padEnd(6)}`;
   console.log(`${mark} ${row.table.padEnd(34)} ${row.why}`);
 }
 
 const ready = by("ready");
 console.log(`\n${ready.length} ready, ${by("partial").length} partial, ${by("blocked").length} blocked, ${by("no-evidence").length} without evidence, ${by("unknown").length} unknown.`);
+
+// Every table has to land in one of the states the summary counts, or the
+// numbers above add up to less than the list printed beneath them.
+const unaccounted = graded.filter((row) => !STATES.includes(row.state));
+if (unaccounted.length) {
+  console.error(`\n${unaccounted.length} table(s) came back in a state this script does not count: ${[...new Set(unaccounted.map((row) => row.state))].join(", ")}`);
+  process.exit(2);
+}
 
 if (ready.length) {
   console.log("\nSafe to add to the user-scoped read list, on this evidence:");
