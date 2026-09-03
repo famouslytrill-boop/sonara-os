@@ -182,19 +182,6 @@ BELOW_FLOOR = {
         "covered": 0, "total": 4,
         "note": "a version string and an __all__; the lines run at import time, before the tracer attaches",
     },
-    "python/sonara_ops/db.py": {
-        "covered": 18, "total": 62,
-        "note": "was 0. The suite covers get_engine, connect and test_connection with nothing configured -- "
-                "which is the state every CI job is in. fetch_existing_tables, fetch_rls_status and "
-                "fetch_platform_jobs need a live PostgreSQL to reach, and this chain has none",
-    },
-    "python/sonara_ops/healthcheck.py": {
-        "covered": 8, "total": 36,
-        "note": "was 0. The suite drives run_health_checks with no database, which is the branch that returns "
-                "three warnings; the connected branch that counts tables and reads RLS needs a live database. "
-                "Its REQUIRED_TABLES list is cross-checked against the migrations either way, which is where "
-                "the two names that could never pass were found",
-    },
     "python/scripts/db_healthcheck.py": {
         "covered": 0, "total": 4, "note": "a four-line entry point that calls into sonara_ops",
     },

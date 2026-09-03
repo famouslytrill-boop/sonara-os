@@ -2,6 +2,69 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - The health score disagreed with the sentence next to it
+
+`python/sonara_ops` was the last package below the 35% floor with any room to
+move. `db.py` sat at 18/62 and `healthcheck.py` at 8/36, both for the same
+recorded reason: the branches that matter need a live PostgreSQL, and the
+release chain has none.
+
+That reason was half right. The SQL needs a database. The **interpretation** of
+what comes back does not, and that is where the defects were. Replacing the
+three readers `healthcheck` calls with functions that return a known shape
+reaches every line of the graded branch with no server at all.
+
+`python/tests/test_health_grading.py` does that, and the first assertion it ran
+failed:
+
+    required_tables score = 1.14
+
+`run_health_checks` computed its **status** from `set(REQUIRED_TABLES) -
+existing_tables` and its **score** from `len(existing_tables) /
+len(REQUIRED_TABLES)` — the size of whatever the query handed back, over the
+length of a list that may repeat itself. Two populations, one check. Shape 2 in
+`checks-that-cannot-lie`, in a health check.
+
+Neither half is safe alone:
+
+- a row for a table nobody asked about scores **above 1.0**, which today only
+  the query's own `= any(:table_names)` filter prevents;
+- a name listed **twice** in `REQUIRED_TABLES` inflates the denominator while
+  the set difference stays empty, so a database with nothing wrong scores 0.88
+  beside the words "All required tables exist".
+
+The second is one ordinary edit away, and it is the worse one — a number that
+contradicts the sentence printed next to it teaches whoever reads the dashboard
+to stop trusting the number. Both now come from the same intersection.
+`RLS_TABLES` is deduplicated the same way.
+
+**Checked and not a defect**, recorded so it is not re-derived: `missing_rls`
+uses `rls_status.get(name)`, so "RLS is off" and "the table is not there"
+collapse into one list. That looks like shape 4 and is not — the message says
+`RLS missing/unknown` rather than claiming to know which, and every RLS table is
+also a required table, so an absent one has already been named by the check
+above. `test_an_absent_table_is_not_silently_called_rls_off` asserts both halves,
+so neither can quietly stop being true.
+
+**Probed, six times, each failing by its own name:**
+
+| broken | failed |
+| --- | --- |
+| score back to `len(existing_tables) / len(REQUIRED_TABLES)` | the over-1.0 and the duplicate-name tests, both |
+| `Missing tables: {names}` → `Some required tables are missing` | `test_a_missing_table_fails_and_is_named` |
+| `RLS missing/unknown` → `RLS disabled` | `test_an_absent_table_is_not_silently_called_rls_off` |
+| `order by created_at desc` → `order by id` | `test_platform_jobs_are_returned_newest_first_and_bounded` |
+| the empty-input short circuit deleted | `test_an_empty_request_asks_the_database_nothing` |
+
+Each restored by copying the file back, never `git checkout --`.
+
+`db.py` is now 47/62 (75.8%) and `healthcheck.py` 28/39 (71.8%). Both entries
+came off `BELOW_FLOOR` — and the register found them itself: it is two-sided, so
+a file that *clears* the floor while still listed is an error naming the entry to
+remove. Python overall: 57.3% → **59.1%**, register 12 → **10** entries, 196 →
+**210** tests. The `python-ops` discovery floor in `dependency-scan.yml` is
+ratcheted 20 → 35 against the real 41.
+
 ### 2026-09-03 - A seventh shape, written down because I kept producing it
 
 `.claude/skills/checks-that-cannot-lie` had six shapes. Today produced a seventh

@@ -143,7 +143,12 @@ jobs:
           suite = unittest.defaultTestLoader.discover(start_dir="tests", top_level_dir=".")
           result = unittest.TextTestRunner(verbosity=2).run(suite)
 
-          if result.testsRun < 20:
+          # 41 tests as of 3 September 2026, across two files: the suite that
+          # runs with nothing configured, and the one that grades a connected
+          # database through mocked readers. Ratcheted to 35 -- low enough that
+          # deleting a test is a decision rather than a build break, high enough
+          # that losing a whole file is not silent.
+          if result.testsRun < 35:
               sys.exit(f"only {result.testsRun} tests ran; discovery has gone blind")
           if not result.wasSuccessful():
               sys.exit(1)
