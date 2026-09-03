@@ -2,6 +2,72 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A share link that was not a link, found by asking what is unreachable
+
+`cacheAccountState` was exported, looked finished and was called by nothing, and
+`report-unreferenced-modules` could not see it because it asks whether the
+*module* is referenced. So the obvious next question: how many more are there?
+
+**The scan I wrote for it is not good enough to ship, and that is worth saying
+rather than shipping it anyway.** Three passes:
+
+- exported names nothing outside their file mentions: **118**, mostly constants
+  exported for tests. No signal.
+- exported functions that *write* and nothing outside their file calls: **1**,
+  `consumeRateLimit`, which is a false positive -- it is called at line 142 of
+  its own file by `createRateLimiter`, which server.js uses. "Called outside its
+  own file" is the wrong question.
+- transitive reachability from entry points: **45**, of which the striking
+  cluster was six functions in `lib/sonara-two-factor.cjs`. Also false: 2FA is
+  wired at server.js:1502 and its handlers call all six. Route registration is
+  an entry point and my scan did not treat it as one, so everything inside a
+  handler closure reads as dead.
+
+A gate with that false-positive rate would be decoration, so there is no new
+release-chain command here. What the passes did establish, and what is worth not
+redoing: **after `cacheAccountState`, there is no second exported writer that
+nothing calls.**
+
+Two exports really are unreachable, and one of them mattered.
+`lib/sonara-shared-results.cjs` exports `shareUrl(origin, token)`, which builds
+the full address of a shared result, **and nothing in the repository called
+it**. The reason is in `renderShareControl`: it had its own copy,
+
+    const href = `/shared/${encodeURIComponent(live.token)}`;
+
+and printed that as the link text. So the Share button -- whose entire purpose
+is producing something you can paste into a message -- showed people
+`/shared/abc123`. The anchor worked when clicked, so nothing failed in a way a
+test asserting a 200 would notice; the feature simply did not do the thing it
+exists for.
+
+The second copy cost something else too. `sharePath()` returns null for anything
+that is not a share token; the hand-built string rendered a link for whatever it
+was handed.
+
+Both now come from the module that owns them, and the origin is derived by
+`lib/sonara-site-origin.cjs` -- one definition, because
+`routes/sonara-connected-payment-routes.cjs` already had `baseUrl()` and
+server.js was about to grow a second. Three states as usual: a full origin gives
+a sendable address, no origin gives the path, and a bad token gives no link at
+all. The origin is never defaulted, because an invented host **looks sendable
+and is not**, which is worse than a path that is obviously partial.
+
+The `href` stays relative on purpose -- the browser resolves it, and a
+hard-coded host breaks the day this is served from another. Only the text a
+person copies needs the origin.
+
+One process note. `server-split.test.js` caps server.js at 3874 lines and this
+added a `require`. The first attempt trimmed comments off the call site to
+squeeze under the number, which is a ratchet deciding what gets documented --
+the wrong way round. The ceiling is raised to 3876 with the reason, which is what
+the test's own message asks for, and the change is a net reduction anyway: -6
+lines in the payment routes for +2 here.
+
+Probed four ways, each failing by name: printing the path again; rebuilding
+`/shared/${token}` by hand, which the invalid-token cases catch; accepting an
+`http` NEXT_PUBLIC_SITE_URL; and inventing a default host.
+
 ### 2026-09-03 - The generation pages were narrowed; its API was not
 
 `routes/creator-generation-routes.cjs` is the file AGENTS.md governs most

@@ -41,6 +41,7 @@ const registerCustomerReadyExperience = require("./routes/customer-ready-experie
 // writes here any more and the two bindings went with it.
 const { DATABASE_TABLES, STORAGE_BUCKETS } = require("./lib/sonara-database-contract.cjs");
 const { createRateLimiter } = require("./lib/sonara-rate-limit.cjs");
+const { siteOrigin } = require("./lib/sonara-site-origin.cjs");
 const tenantGuard = require("./lib/sonara-tenant-guard.cjs");
 const { createProductPages } = require("./lib/sonara-product-pages.cjs");
 const { createReadiness } = require("./lib/sonara-readiness.cjs");
@@ -2118,7 +2119,8 @@ async function workspaceRecordCards(req, page, config) {
     const productKey = String(page.api || "").split("/")[2]?.replace(/-/g, "_") || "";
     const result = await readModuleRecords(req, productKey).catch(() => undefined);
     if (!result?.saved) return renderRecordsUnavailable({ code: result?.code || "read_failed" });
-    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path, freeTools: req.app?.locals?.sonaraFreeTools });
+    // origin may be ""; renderShareControl shows the path when it is.
+    return renderSavedOutputCards({ records: result.records || [], shared: result.shared, productLabel: config?.name || "workspace", backHref: page.path, freeTools: req.app?.locals?.sonaraFreeTools, origin: siteOrigin(req, getEnv) });
   }
 
   const match = page.form ? resourceForForm(page.form) : null;

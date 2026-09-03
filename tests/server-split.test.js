@@ -544,9 +544,22 @@ describe("the server.js split stays safe", () => {
     // on commas and dropped the empty pieces -- so ", , ," passed and saved an
     // offer that listed nothing. The check has to run between requireFields
     // and the save, and both of those are in this file.
+    // 3874 -> 3876 on 3 September 2026: a `require` and a one-line comment.
+    //
+    // The share control printed "/shared/abc123" -- a path, where the whole
+    // point of a share link is something you can paste into a message. Fixing
+    // it needs the site's origin, and server.js was about to grow a second copy
+    // of the rule for deriving one; routes/sonara-connected-payment-routes.cjs
+    // already had `baseUrl()`. Two definitions of "where does this site live"
+    // is one more than a deployment can keep consistent, so both now call
+    // lib/sonara-site-origin.cjs: -6 lines there, +2 here.
+    //
+    // Raised rather than worked around. The first attempt trimmed comments off
+    // the call site to squeeze under the old number, which is the ratchet
+    // deciding what gets documented -- the wrong way round.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3874,
+      lines <= 3876,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

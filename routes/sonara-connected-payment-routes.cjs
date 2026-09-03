@@ -41,6 +41,7 @@
 // That advice only protects anybody while it is always true.
 
 const payments = require("../lib/sonara-connected-payments.cjs");
+const { siteOrigin } = require("../lib/sonara-site-origin.cjs");
 
 const REQUIRED = [
   "layout", "brandCard", "escapeHtml",
@@ -106,13 +107,11 @@ module.exports = function registerConnectedPaymentRoutes(app, deps = {}) {
     return organization.organizationId;
   }
 
-  function baseUrl(req) {
-    const configured = getEnv("NEXT_PUBLIC_SITE_URL");
-    if (configured && /^https:\/\//.test(configured)) return String(configured).replace(/\/+$/, "");
-    // Falls back to the request's own host rather than to a guess. Used only to
-    // build the return address Stripe sends the owner back to.
-    return `${req.protocol}://${req.get("host")}`;
-  }
+  // One definition of "where does this site live", in lib/sonara-site-origin.cjs.
+  // This had its own copy and server.js grew a second one; two are one more
+  // than a deployment can keep consistent. Used only to build the return
+  // address Stripe sends the owner back to.
+  const baseUrl = (req) => siteOrigin(req, getEnv);
 
   // `actions` is not optional.
   //
