@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 278 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 279 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-03 - A forbidden-column list is not a promise about what gets published
+
+`lib/sonara-shared-results.cjs` forbids two columns on the public read of a
+shared result:
+
+    forbidden: Object.freeze(["input_payload", "user_id"]),
+
+and `a-shared-link-is-a-link-not-a-leak.test.js` asserts the select against that
+list, so the columns are held. **That is a narrower guarantee than it reads
+as**, and two facts decide the difference:
+
+- `presentableLines()` publishes **every scalar key** in `output_payload`. Not a
+  declared subset -- whatever is in the blob.
+- A share link can be made for **any** `module_outputs` row in the caller's
+  organization, whatever its `module_key`. `owned()` checks ownership and
+  resource type, and `module_output` covers the whole table.
+
+So the row written by `POST /api/growth-studio/leads` -- whose input is a real
+person's name and email -- is shareable, and whatever its output payload holds
+becomes public. Today it is a fixed two-key object holding neither. **Nothing
+enforced that.** An edit adding `name: req.body.name` to make a workspace card
+read better would publish a lead's name through every existing share link, and
+the forbidden-column list would stay green: it guards columns, and this arrives
+inside `output_payload`.
+
+`tests/what-a-module-saves-is-what-a-stranger-can-read.test.js` drives the four
+real save endpoints with marked inputs, captures what is written to
+`module_outputs`, and runs it back through `presentableLines` -- the actual
+public renderer, not a restatement of it.
+
+**Writing it changed what the rule should be.** The first version asserted that
+nothing the caller typed may be published, and it failed on `creator_offers` and
+`campaign_workspace`, which copy `audience` and `offer` into their output. That
+is not a leak: an offer page that does not say what the offer is or who it is for
+has no reason to exist, and the owner pressed Share on it. The rule that survives
+is **no third party's personal data may be published** -- and the one module
+whose input carries a third party echoes nothing at all. Both builders were
+opened to list the permitted echoes (`buildCreatorOffer` in
+lib/sonara-offer-drafts.cjs, `buildCampaignPlan` in server.js) rather than
+loosening the assertion until it passed.
+
+`lead_follow_up` is asserted separately, against every marked value rather than
+just name and email, and the test fails if anybody gives it a permitted-echo
+list at all -- the escape hatch is the thing that would quietly undo this.
+
+Probed three ways, each failing by name: adding `name: req.body.name` to the
+lead output (caught twice, by the general check and the named one); giving
+`lead_follow_up` a permitted-echo list; and sending an unmarked "Alex" instead
+of a distinctive value, which the vacuous-harness guard catches -- "the secret
+did not appear" is otherwise true because the secret was never sent.
 
 ### 2026-09-03 - The one read that crosses tenants now names its columns
 
