@@ -106,6 +106,88 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - The 35% floor reaches Python, and the stdlib tracer that lies
+
+The owner's rule is that every language here meets 35%, new and old. JavaScript
+was done first; `verify:python-coverage-floor` closes the other half and is the
+39th command in `verify:launch`.
+
+**What was already there is not this, and the distinction matters.**
+`dependency-scan.yml` runs four Python jobs and each asserts a number, which
+reads like a coverage gate. Every one of those numbers is a **test count** --
+"only $ran tests ran in voice-clone, floor is 24; discovery has gone blind". A
+real guarantee, and a different one: a suite of 97 tests that never imports half
+its package satisfies a test-count floor and covers nothing.
+
+**`trace.Trace` reported four well-tested files at 0%.** This is the finding
+worth keeping. The stdlib's `trace` module caches its ignore decisions **by bare
+module name** -- `_modname()` reduces a path to its basename, and the first file
+with that basename decides for every later one. `sys.prefix` is on the ignore
+list, so the moment the run touched `/usr/lib/python3.11/unittest/runner.py`,
+the name `runner` was marked ignored, and `agentkit/runner.py` was dropped
+silently for the rest of the run. Nothing errored. It reported 0/204 while
+thirteen tests drove it.
+
+Demonstrated rather than reasoned about:
+
+    stdlib basenames now permanently ignored: ['runner', 'config', 'tool']
+    agentkit/runner.py   ->ignored: 1
+    sonara_ops/config.py ->ignored: 1
+
+Every stdlib basename this repository reuses is hit the same way, `__init__`
+for every package included. Had that version been trusted green, the register
+would now hold a dozen entries recording well-covered files as untested -- a
+wrong reason inside an exemption, which the skill file names as worse than no
+exemption at all. Fixing it moved the overall figure from 18.9% to 47.4%. The
+gate now uses `sys.settrace` directly, keyed on `co_filename`, plus
+`threading.settrace` so a suite that starts a thread is not read as untested
+code.
+
+**The denominator comes from the compiler, not a regex.** `compile()` the
+source, walk every nested code object's `co_lines()`, take the lines it emits
+code for. A `def` counts, its docstring does not. That is stricter and more
+honest than the JavaScript gate's text matching -- if the compiler emits no code
+for a line, the line cannot be covered and is not counted against the file.
+
+**Three states, not two.** A file whose suite could not run is **not measured**,
+not 0% covered. pytest, fastapi, httpx and python-multipart are not installed
+here and this chain installs nothing, so eleven files across two suites have no
+figure -- and calling them 0% would be a definite claim on a run that did not
+happen. `UNMEASURED` records those suites and names the missing import;
+`BELOW_FLOOR` records files that were measured and are under. CI installs both
+requirements files and sets `SONARA_PYTHON_COVERAGE_COMPLETE=1`, which turns an
+unmeasured suite into a failure -- the same shape as
+`SONARA_MIGRATION_REPLAY_REQUIRED`, and for the same reason.
+
+The register's seventeen entries were measured, not estimated: a throwaway venv
+was built outside the repository so the two pytest suites could be run for real.
+Three entries came out of that which no amount of reasoning would have produced
+-- `disposable_domains/cli.py` at 0/163 (the suite tests the validator directly
+and never through argv), its four-line `__main__.py`, and
+`voiceclone/openvoice_engine.py` at 34.1%, nine tenths of a point under, whose
+own first line says it has never been run.
+
+One false alarm worth recording, because it looked like a defect in the consent
+gate: the voice-clone suite failed with five failures and nine errors, and the
+cause was my venv missing `python-multipart` -- fastapi raises for it at request
+time rather than import time, so a missing package reads as a broken consent
+gate. The suite passes 28/28 with it installed, and the script now checks for
+`multipart` up front so the message names the cause.
+
+Probed nine ways, each failing by name: a register entry removed; a well-covered
+file wrongly listed; an entry naming a file nothing measured; an entry recorded
+3 points high; both blindness guards raised above the real population; an
+UNMEASURED suite renamed away; an UNMEASURED entry naming no directory; and the
+completeness flag set without the packages. Plus one on the code rather than the
+register -- gutting `test_credits.py` dropped `credits.py` from 59% to 0/220 and
+failed by name.
+
+Also: 26 `.pyc` files under `tools/agentkit` were tracked and are now ignored.
+CPython validates a cached bytecode file's source mtime and size before using
+it, so a stale one is recompiled rather than silently executed -- this is
+repository hygiene, not a correctness fix, and the distinction is worth keeping
+straight rather than overclaiming.
+
 ### 2026-09-03 - Twelve repositories read, and three that are not what they look like
 
 Twelve arrived as social-media screenshots. Each was cloned and its licence file

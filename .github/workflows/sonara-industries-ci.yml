@@ -106,9 +106,23 @@ jobs:
       # is the one that always runs is not a check, and CI is where that has to
       # be impossible. ubuntu-latest ships PostgreSQL 16; the script starts its
       # own throwaway cluster and removes it, so no service container is needed.
+      # The two pytest suites under tools/ so verify:python-coverage-floor can
+      # actually grade the eleven files they cover. Without these installed the
+      # gate records both suites as "not measured" and excuses their files --
+      # which is the honest answer on a machine with no pytest, and the wrong
+      # one here. SONARA_PYTHON_COVERAGE_COMPLETE turns that excuse into a
+      # failure, for the same reason SONARA_MIGRATION_REPLAY_REQUIRED exists: a
+      # check whose skip path is the one that always runs is not a check.
+      - name: Install the Python test dependencies the coverage floor needs
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r tools/disposable-domains/requirements.txt
+          python3 -m pip install -r tools/voice-clone/requirements.txt
+
       - name: Run every release gate
         env:
           SONARA_MIGRATION_REPLAY_REQUIRED: "1"
+          SONARA_PYTHON_COVERAGE_COMPLETE: "1"
         run: pnpm run verify:gates
 
       - name: Verify documentation links
