@@ -512,7 +512,7 @@ function evidenceForm(id, escape) {
 }
 
 function requirementForm(id, escape) {
-  return `<article class="card"><h2>Add scope or operating requirement</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/requirements"><label>Type<select name="requirement_type">${[...REQUIREMENT_TYPES].map((value) => `<option value="${value}">${value.replaceAll("_", " ")}</option>`).join("")}</select></label><label>Title<input name="title" required></label><label>Detail<textarea name="detail"></textarea></label><label>Priority<select name="priority"><option value="must">Must Have</option><option value="should">Should Have</option><option>value="could">Could Have</option><option value="wont">Won't Have</option></select></label><label>Acceptance criteria<textarea name="acceptance_criteria"></textarea></label><button type="submit">Add requirement</button></form></article>`;
+  return `<article class="card"><h2>Add scope or operating requirement</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/requirements"><label>Type<select name="requirement_type">${[...REQUIREMENT_TYPES].map((value) => `<option value="${value}">${value.replaceAll("_", " ")}</option>`).join("")}</select></label><label>Title<input name="title" required></label><label>Detail<textarea name="detail"></textarea></label><label>Priority<select name="priority"><option value="must">Must Have</option><option value="should">Should Have</option><option value="could">Could Have</option><option value="wont">Won't Have</option></select></label><label>Acceptance criteria<textarea name="acceptance_criteria"></textarea></label><button type="submit">Add requirement</button></form></article>`;
 }
 
 function feedbackForm(id, escape) {

@@ -2,6 +2,68 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - Choosing "Could Have" recorded "Must Have"
+
+One character of markup, on the page that decides what ships.
+`routes/product-lifecycle-routes.cjs` rendered its MoSCoW priority field as:
+
+```html
+<option value="must">Must Have</option>
+<option value="should">Should Have</option>
+<option>value="could">Could Have</option>     <!-- the tag closes early -->
+<option value="wont">Won't Have</option>
+```
+
+The third `<option>` has no attributes. A browser parses `value="could">Could
+Have` as its **text**, and an option with no value attribute submits its text —
+so choosing "Could Have" posted the string `value="could">Could Have`.
+
+`oneOf(req.body.priority, PRIORITIES, "must")` does not recognise that, and
+returns the fallback. **The fallback is `"must"`.** Somebody marking a
+requirement as explicitly *not* needed for launch recorded it as *required for
+launch*, with no error anywhere.
+
+And it is worse than a wrong label. Line 464 grades `must_have_scope` on
+`requirements.some((row) => row.priority === "must")`, and that criterion feeds
+the readiness score the page prints. **Picking the lowest-commitment option
+raised the score for having scope defined.**
+
+It survived because every part of it works: the page renders, the form posts,
+the row saves, the constraint accepts it, the score computes. Only the value is
+wrong, and nothing compared the two ends.
+
+## `tests/a-dropdown-offers-values-the-server-accepts.js`, in two tiers
+
+**Tier 1, general.** No `<option>` anywhere in `lib/`, `routes/` or `server.js`
+may have `>` or `="` in its text content. That is the signature of a tag that
+closed early, and it is not something anybody writes on purpose. 100-option
+blindness guard. The sweep found exactly one instance, which is the reassuring
+answer.
+
+**Tier 2, this file.** Every `oneOf(req.body.<field>, <set>, <fallback>)` call is
+found in the source, its set resolved — named constant or written inline — and
+the `<select name="<field>">` for it looked up. Both directions: every option
+offered must be accepted, and every accepted value must be offered. Four fields
+land in it: `priority`, `severity`, `confidence`, `decision`.
+
+Nothing is listed by hand. The first draft *did* carry a pairs list, with
+`["severity", null]` in it and a `continue` — an entry that reads like coverage
+and is not, which is the fifth shape in `checks-that-cannot-lie` written by me
+while writing a test about that skill. Deriving the pairs removed the list and
+picked up two fields the list had never named.
+
+A set the test cannot read returns `null`, never an empty list, and the guard
+fails on it — otherwise an unreadable set would pass every option in the field
+it governs. `STAGE_KEYS` is `new Set(STAGES.map((s) => s.key))`, so that path is
+live rather than theoretical.
+
+**Probed five times, each failing by its own name:** the original bug verbatim
+(3 tests red), `could` → `maybe` with well-formed markup, the `could` option
+deleted, and `STAGE_KEYS` moved behind a function so its values cannot be read.
+Baseline green before and after each.
+
+Suite 3,727 → 3,735.
+
 ### 2026-09-03 - The health score disagreed with the sentence next to it
 
 `python/sonara_ops` was the last package below the 35% floor with any room to
