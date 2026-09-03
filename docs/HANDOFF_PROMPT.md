@@ -164,6 +164,22 @@ reports no error. (The reproduction still ends on `function auth.role() does not
 exist` -- a Supabase primitive the minimal fixture lacks and production has,
 which the full 109-migration replay supplies and passes on.)
 
+**The flag the fix rests on is now guarded.** `supabase db push --linked
+--include-all` is what makes the CLI apply a pending migration whose version is
+older than one already in the repository. Without `--include-all` the repair
+would be skipped and the deploy would fail with the same error as before --
+and removing that flag would look like tidying. Two tests in
+`supabase-deep-reconciliation.test.js` hold it: the flag on both the dry run and
+the real push, and the repair sorting before the migration it unblocks, creating
+both tables with `if not exists` and never `billing_customers`.
+
+Writing that second test reproduced today's other mistake immediately: the
+negative assertion read the raw file and failed on the migration's **own comment
+explaining why it does not create `billing_customers`**. A pattern loose enough
+to match prose, twice in one day. Comments are stripped before the negative
+check; the positive checks still read the raw text, because a `create table` line
+that has been commented out is not a create table.
+
 Applying it to a live database is still the owner's, so this is
 `docs/owner/OWNER-STEPS.md` step 8 with
 the two queries that confirm the gap and the instruction to re-run the gated

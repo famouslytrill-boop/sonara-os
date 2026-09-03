@@ -68,6 +68,61 @@ describe("Supabase deep database reconciliation", () => {
     assert.match(productionWorkflow, /SUPABASE_SERVICE_ROLE_KEY: \$\{\{ secrets\.SUPABASE_SERVICE_ROLE_KEY \}\}/);
   });
 
+  it("pushes migrations with --include-all, which a repair migration depends on", () => {
+    // `--include-all` is what makes `supabase db push` apply a pending
+    // migration whose version is older than one already in the repository.
+    //
+    // That is not a detail. Production stopped deploying on 5 August 2026 --
+    // fourteen consecutive failed runs -- because
+    // 20260811220000_customer_invoices_accounts_receivable.sql references
+    // public.quotes and production does not have it. The fix is
+    // 20260811210000_repair_missing_platform_tables.sql, versioned deliberately
+    // *between* the last migration production applied and the one that fails,
+    // so it runs first.
+    //
+    // Without this flag the CLI treats an out-of-order pending migration as
+    // something to skip rather than apply, and the repair would be silently
+    // left out while the deploy failed with the same error as before. Removing
+    // the flag would look like tidying and would undo the fix.
+    for (const command of [/supabase db push --linked --include-all --dry-run/, /supabase db push --linked --include-all --password/]) {
+      assert.match(productionWorkflow, command, "supabase db push no longer passes --include-all");
+    }
+  });
+
+  it("keeps the repair migration ahead of the one it unblocks", () => {
+    // Ordering is the whole mechanism, and it is a filename, which is the
+    // easiest thing in a repository to rename without thinking about it.
+    const dir = path.join(__dirname, "..", "supabase", "migrations");
+    const names = fs.readdirSync(dir).filter((name) => name.endsWith(".sql"));
+    const repair = names.find((name) => name.includes("repair_missing_platform_tables"));
+    const blocked = names.find((name) => name.includes("customer_invoices_accounts_receivable"));
+    assert.ok(repair, "the repair migration is gone; production's deploy depends on it");
+    assert.ok(blocked, "the migration the repair exists for is gone; the repair may no longer be needed");
+    assert.ok(repair < blocked, `${repair} must sort before ${blocked} or db push applies them the wrong way round`);
+
+    // And it must create the table the failure named, not merely exist.
+    //
+    // SQL comments are stripped before the negative check. The first version of
+    // this asserted against the raw file and failed on the migration's own
+    // comment explaining *why* it does not create billing_customers -- a
+    // pattern loose enough to match prose, which is the second time that shape
+    // has come up today. The positive checks read the raw text on purpose: a
+    // `create table` line commented out is not a create table.
+    const raw = fs.readFileSync(path.join(dir, repair), "utf8");
+    const sql = raw.split("\n").map((line) => line.replace(/--.*$/, "")).join("\n");
+    for (const table of ["public.customers", "public.quotes"]) {
+      assert.ok(
+        sql.includes(`create table if not exists ${table}`),
+        `the repair no longer creates ${table} with if-not-exists; it must be a no-op where the table is already there`
+      );
+    }
+    assert.ok(
+      !sql.includes("billing_customers"),
+      "the repair creates billing_customers, which 20260805120000_retire_superseded_tables.sql retired on purpose"
+    );
+    assert.match(raw, /billing_customers/, "the note explaining why billing_customers is excluded has gone");
+  });
+
   it("registers a direct operator command", () => {
     assert.equal(packageJson.scripts["verify:production-supabase"], "node scripts/verify-production-supabase.mjs");
   });
