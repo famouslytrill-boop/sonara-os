@@ -22,10 +22,17 @@
 //
 // ## What it adds: a bound, and a distinct message
 //
-// `pnpm audit` does **not** fail fast when that endpoint is unresponsive — it
+// `pnpm audit` does **not** fail fast when that endpoint is misbehaving — it
 // hangs. Each CI attempt on 3 September sat for **four minutes** before giving
 // up. So this bounds it with `timeout(1)` and fails in ninety seconds instead,
 // which is an improvement on the behaviour it replaces rather than a cost.
+//
+// **The bound is not only for an endpoint that never answers.** Later the same
+// evening the endpoint began returning `503` in about a second — up, and
+// refusing — and `pnpm audit` still ran past ninety seconds, because it retries
+// internally. So "the endpoint is answering again" is not a reason to remove
+// this; the hang comes from pnpm's own retry loop, and the only thing that
+// reliably ends it is a bound out here.
 //
 // **There is deliberately no retry.** The first version retried three times,
 // and running it against the live outage showed that turns a four-minute
@@ -80,8 +87,10 @@ if (fs.existsSync(OUTPUT)) process.stdout.write(`${fs.readFileSync(OUTPUT, "utf8
 
 if (couldNotAsk(OUTPUT)) {
   process.stdout.write(
-    "::error::pnpm audit could not reach npm's advisory endpoint, so NOTHING WAS AUDITED. " +
-    "This is not a vulnerability report, and it is not a pass. Re-run the job once the endpoint is answering.\n"
+    "::error::pnpm audit did not obtain a result from npm's advisory service, so NOTHING WAS AUDITED. " +
+    "This is not a vulnerability report, and it is not a pass. Re-run the job once that service is healthy -- " +
+    "note that it answering at all is not the same as it working, since pnpm retries a 5xx internally until this " +
+    "bound stops it.\n"
   );
   process.exit(1);
 }
