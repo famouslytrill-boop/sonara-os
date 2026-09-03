@@ -2,6 +2,73 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A sweep for the mirror of shape 3, and why it does not ship
+
+`report-unused-selected-columns.mjs` hunts shape 3: a value **fetched** into a
+decision and never used. The mirror had nothing watching it — a value
+**submitted** into a handler and never read. Somebody fills the field in,
+presses Save, sees "Saved", and what they typed is gone. Same shape, other
+direction.
+
+So: resolve every `<form method="post">` in the runtime to the `app.post`
+handler its `action` names, and check the handler reads each field.
+
+**62 forms. Zero real defects.** The honest breakdown of why that number is
+believable and the check still should not ship:
+
+| | forms |
+| --- | --- |
+| judgeable from the handler's own text | 34 |
+| hand the whole `req.body` or `req` to a helper | 20 |
+| `action` is computed, so no route can be resolved | 8 |
+
+Twenty-eight of sixty-two cannot be judged at all without following the value
+into a helper, and the two findings the sweep did produce — `/admin/login`
+`password` and `/admin/roles` `action` — are **both wrong**: `handleEmailAuth("login", req.body)`
+and `updateUserRole(req)` read them one frame down. Shipping this as a gate
+means a rule that abstains on 45% of its population and cries wolf on the rest,
+which is the sixth shape in `checks-that-cannot-lie`. Part 6 of this pull
+request declined a sweep for the same reason; the method is recorded here
+instead, same as that one.
+
+Three of my own heuristics were wrong in ways worth naming, because each is a
+way to get a comfortable answer:
+
+- matching the field name **anywhere in the file** returned zero unread fields.
+  The form markup contains `name="priority"`, so `"priority"` always matched —
+  a check passing on its own input;
+- `req.body?.customer_email` defeats a `body\.` pattern. Optional chaining is
+  the normal spelling on public endpoints, so this hid the ones most worth
+  checking;
+- the pass-through detector wanted `(req.body` and missed `, req.body)`, which
+  is how most helpers here are called.
+
+## The one thing it did find
+
+`reviewForm` carried `<input type="hidden" name="stage">`, submitted on every
+stage review and ignored on every one. `addStageReview` records
+`bundle.body.initiative.lifecycle_stage` — the row, read back from the database
+in the same request.
+
+**Not a bug. The safer choice, undocumented.** An `advance` or `scale` review is
+gated on a readiness score computed for the stage the initiative is in, and
+different stages have different criteria — so a stage carried in the request is
+the requester choosing which bar they are measured against.
+
+The danger was the premise the field implanted: it reads as though the stage
+travels with the review, which is what somebody would believe while "fixing" the
+handler to use the value the form so obviously supplies. That edit compiles,
+passes review, and opens the gate.
+
+Field removed, reason written above the function, and
+`tests/a-stage-review-grades-the-stage-the-record-is-in.js` holds both halves —
+the handler must read the stage from the row, and the form must not offer one.
+**Probed three times:** the handler taught to prefer `req.body.stage`, the
+hidden field put back, and the 70-point gate removed. Each failed by its own
+message.
+
+Suite 3,745 → 3,750.
+
 ### 2026-09-03 - 365 query filters, none exploitable, one of them checkable
 
 Every database query in this application is a string:

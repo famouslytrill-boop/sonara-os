@@ -189,7 +189,7 @@ module.exports = function registerProductLifecycleRoutes(app, deps = {}) {
         evidenceForm(initiative.id, ui.escape),
         requirementForm(initiative.id, ui.escape),
         feedbackForm(initiative.id, ui.escape),
-        reviewForm(initiative.id, initiative.lifecycle_stage, data.readiness.score, ui.escape)
+        reviewForm(initiative.id, data.readiness.score, ui.escape)
       ],
       actions: [ui.link("/product-lifecycle", "Portfolio")]
     }));
@@ -519,8 +519,19 @@ function feedbackForm(id, escape) {
   return `<article class="card"><h2>Record beta or customer feedback</h2><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/feedback"><label>Category<select name="category">${[...FEEDBACK_CATEGORIES].map((value) => `<option value="${value}">${value}</option>`).join("")}</select></label><label>Severity<select name="severity"><option>low</option><option selected>medium</option><option>high</option><option>critical</option></select></label><label>Summary<textarea name="summary" required></textarea></label><label>Beta cohort<input name="beta_cohort"></label><button type="submit">Record feedback</button></form></article>`;
 }
 
-function reviewForm(id, stage, score, escape) {
-  return `<article class="card"><h2>Stage review</h2><p>Current readiness score: ${escape(String(score))}/100. Advance and scale decisions require at least 70 with no critical blocker.</p><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/reviews"><input type="hidden" name="stage" value="${escape(stage)}"><label>Decision<select name="decision"><option>hold</option><option>advance</option><option>pivot</option><option>stop</option><option>scale</option></select></label><label>Rationale<textarea name="rationale" required></textarea></label><label><input type="checkbox" name="approved" value="true"> Owner approval attested</label><button type="submit">Record review</button></form></article>`;
+// The stage is deliberately NOT a field here. `addStageReview` records
+// `bundle.body.initiative.lifecycle_stage` -- the stage the initiative is
+// actually in, read back from the database -- rather than whatever the form
+// says it was. This page posts to an endpoint reachable by anybody who can
+// reach the page, so a stage carried in the request is a stage the requester
+// chooses, and the readiness gate above it is graded against that stage.
+//
+// A hidden `stage` input sat here until 3 September 2026, submitted on every
+// review and ignored on every one. Harmless as it stood, and misleading: it
+// reads as though the stage travels with the review, which is the premise
+// somebody would act on when "fixing" the handler to use it.
+function reviewForm(id, score, escape) {
+  return `<article class="card"><h2>Stage review</h2><p>Current readiness score: ${escape(String(score))}/100. Advance and scale decisions require at least 70 with no critical blocker.</p><form method="post" action="/product-lifecycle/initiatives/${escape(id)}/reviews"><label>Decision<select name="decision"><option>hold</option><option>advance</option><option>pivot</option><option>stop</option><option>scale</option></select></label><label>Rationale<textarea name="rationale" required></textarea></label><label><input type="checkbox" name="approved" value="true"> Owner approval attested</label><button type="submit">Record review</button></form></article>`;
 }
 
 function initiativeCard(initiative, ui) {
