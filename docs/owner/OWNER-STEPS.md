@@ -513,29 +513,37 @@ are describing a database that already exists.
 ### The repair is written and waiting in this branch
 
 `supabase/migrations/20260811210000_repair_missing_platform_tables.sql` creates
-`public.customers` and `public.quotes`, copied column for column from `010`,
-both `create table if not exists`. Its version sits between the last migration
-production applied (`20260806090000`) and the one that fails
-(`20260811220000`), so `supabase db push` runs it first and the failing
-migration then finds its table.
+**42 tables**, copied column for column from the migrations that first defined
+them, all `create table if not exists`. Its version sits between the last
+migration production applied (`20260806090000`) and the one that fails
+(`20260811220000`), so `supabase db push` runs it first.
+
+Not two. `quotes` was the table the error named, and fixing only that would have
+shipped a repair that failed one migration later. Across the 32 pending
+migrations, 65 tables are referenced, altered, indexed or given a policy without
+being created — and **34 of them exist only in the pre-CLI numbered files, 010
+to 016**, the same family as the snapshot that demonstrably did not run on your
+database. Taking the transitive closure over their foreign keys gives 42.
+
+Every one is `create table if not exists`, so on a database that already has
+them this does nothing at all. Row level security is enabled on each, because a
+table that arrives without it is exposed through PostgREST.
 
 It creates **only** those two. Re-running `010` whole would have been the
 obvious move and would have been wrong: `010` also creates `billing_customers`,
 which `20260805120000_retire_superseded_tables.sql` deliberately retired, so a
 replay would resurrect a table somebody decided to remove.
 
-Proven rather than assumed. On a throwaway PostgreSQL holding `organizations`
-but not `customers` or `quotes` — production's shape:
+Proven rather than assumed, on a throwaway PostgreSQL:
 
-- without the repair, `20260811220000` stops with
-  `relation "public.customers" does not exist` and `customer_invoices` is never
-  created;
-- with the repair applied first, all three of `customers`, `quotes` and
-  `customer_invoices` exist;
-- applying the repair a second time, on a database that already has the tables,
-  changes nothing and reports no error.
+| | result |
+| --- | --- |
+| applied to a database with none of the 42 | all 42 created, row level security on every one |
+| applied a second time | no error, still 42 — a no-op where the tables exist |
+| then `20260811220000`, the failing migration | applies cleanly, `customer_invoices` created |
 
-So on your database it is a no-op for anything already there.
+And the full 109-migration replay onto an empty database still passes, so it
+does not disagree with the migrations around it.
 
 **What it cannot promise:** that there is no second gap further down the list.
 Nothing in this repository can read your schema. The queries below are what

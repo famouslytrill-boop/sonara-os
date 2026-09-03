@@ -304,21 +304,34 @@ Its success line now says so rather than leaving it to be inferred: the check
 "says the migrations agree with each other and nothing about whether
 production's schema agrees with them."
 
-**The repair is written.** `20260811210000_repair_missing_platform_tables.sql`
-creates `public.customers` and `public.quotes`, copied column for column from
-`010`, both `create table if not exists`, versioned between the last migration
-production applied and the one that fails. Only those two: re-running `010`
-whole would have resurrected `billing_customers`, which
-`20260805120000_retire_superseded_tables.sql` deliberately retired -- the
-obvious fix was the wrong one.
+**The repair is written, and it covers 42 tables rather than the two the error
+named.** `20260811210000_repair_missing_platform_tables.sql` is versioned
+between the last migration production applied and the one that fails.
 
-Proven on a throwaway PostgreSQL holding `organizations` but not `customers` or
-`quotes`. Without the repair, `20260811220000` stops on
-`relation "public.customers" does not exist` and `customer_invoices` is never
-created; with it, all three tables exist; applying it twice changes nothing and
-reports no error. (The reproduction still ends on `function auth.role() does not
-exist` -- a Supabase primitive the minimal fixture lacks and production has,
-which the full 109-migration replay supplies and passes on.)
+Fixing only `quotes` would have shipped a repair that failed one migration
+later. Widening the search -- across the 32 pending migrations, every table
+referenced, altered, indexed or given a policy without being created -- gives 65,
+and **34 of those exist only in the pre-CLI numbered files 010 to 016**, the
+same family as the snapshot that demonstrably did not run. The transitive
+closure over their foreign keys is 42.
+
+Re-running those files whole would have been the obvious move and would have
+been wrong: they also create `billing_customers`, which
+`20260805120000_retire_superseded_tables.sql` deliberately retired. The
+generator refuses to emit any name from that array's first column, and asserts
+it rather than trusting it.
+
+Proven on a throwaway PostgreSQL: applied to a database holding none of them it
+creates all 42 with row level security on every one; applied a second time it
+changes nothing and reports no error; and `20260811220000`, the migration that
+has been failing in production since 5 August, then applies cleanly. The full
+109-migration replay onto an empty database still passes.
+
+Two mistakes inside the generator, both caught by running it. It ordered tables
+by `(file, name)` -- alphabetically within each file -- which put
+`automation_rules` before the `sonara_platforms` it references; ordering is now
+by position in the file. And the header prose went in without `--` prefixes, so
+a backtick reached the parser as SQL.
 
 **The flag the fix rests on is now guarded.** `supabase db push --linked
 --include-all` is what makes the CLI apply a pending migration whose version is
