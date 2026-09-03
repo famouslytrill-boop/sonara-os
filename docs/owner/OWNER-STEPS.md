@@ -474,6 +474,13 @@ pieces of work; this is the first.
 
 **This is the one that matters most, and it needs your database.**
 
+> **Updated 3 September 2026, after run #125 actually tried it.** The repair
+> described below was merged and the deployment ran. It got further and failed
+> again, on something this section did not anticipate: **a missing column, not
+> a missing table.** Read "What run #125 proved" near the end before acting on
+> the rest — two of the claims below are now known to be incomplete, and the
+> diagnostic queries have been changed to ask the question that is now blocking.
+
 The last Controlled Production Deployment that succeeded was run **#110, on
 5 August 2026**, for pull request #191. Every run since has failed: **#111
 through #124**, covering pull requests #192 to #205. Nothing merged after
@@ -549,22 +556,80 @@ does not disagree with the migrations around it.
 Nothing in this repository can read your schema. The queries below are what
 answer that, and they are worth running first.
 
+### What run #125 proved, on 3 September 2026
+
+The repair was merged and **Controlled Production Deployment #125 ran**. It
+reached further into the list than any run since 5 August, and failed here:
+
+```
+Applying migration 20260819030000_member_read_policies_research_sources.sql...
+NOTICE: skipping shared_links: table not present
+ERROR: column "organization_id" does not exist (SQLSTATE 42703)
+At statement: 10
+  create policy "customers_select_member" on public.customers
+    for select to authenticated using (public.is_org_member(organization_id))
+```
+
+Three things follow, and two of them correct this section.
+
+**Your `public.customers` exists and has no `organization_id` column.** That is
+a different disease from a missing table. The 42-table repair is entirely
+`create table if not exists`, which repairs a table that is *absent* and is a
+**no-op for a table that is present in an older shape**. It could never have
+fixed `customers`. `public.shared_links`, by contrast, is genuinely absent — the
+NOTICE above is its guard skipping it.
+
+**Point 5 above anticipated a second gap and guessed the wrong kind.** It said
+to look for another `relation does not exist`. What is actually blocking is a
+column. The fix for that is not another table — it is
+`20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql`,
+generated from the repair migration's own table definitions, which adds any
+declared column a live table is missing (42 tables, 530 columns, all
+`add column if not exists`, all nullable so a table holding rows can take them).
+That is pull request **#213**.
+
+**Nothing from run #125 landed.** `20260819030000` was first in the pending list
+and migrations run in a transaction, so its failure rolled back. Steps 23 to 29
+were skipped, so the application never deployed either. Production is exactly
+where it was.
+
+One thing that is **not** claimed: that the 42-table repair is what let the run
+get this far. Run #125's dry-run, before anything was applied, already listed
+the pending set starting at `20260819030000` — so your migration history had
+both `20260811` migrations recorded as applied *before that run started*.
+Something moved it between 27 August and 3 September and it was not this
+deployment. Nobody here knows what, and guessing would be the same mistake as
+assuming absent tables were the whole story.
+
 ### What only you can do
 
 Nothing here can reach your production database, and applying a schema change to
 a live system is yours either way. In rough order:
 
-1. Confirm the gap. In the Supabase SQL editor:
+1. **Get the real schema, once, instead of inferring it a third time.** Two
+   guesses have now been made from error messages. The actual answer is already
+   sitting in GitHub: run #125 took a schema-only dump before touching anything,
+   and uploaded it as the artifact **`rollback-checkpoint-33807980211`**
+   (Actions → the #125 run → Artifacts; expires 3 October 2026). It contains
+   `pre-migration-schema.sql`. Attach it here and the remaining gaps can be
+   derived rather than guessed.
+
+   Failing that, this asks the question that is now blocking — which columns are
+   missing, not just which tables:
 
    ```sql
-   select table_name from information_schema.tables
-   where table_schema = 'public' and table_name in ('quotes', 'customers')
-   order by table_name;
+   select c.relname as table_name, a.attname as column_name
+   from pg_class c
+   join pg_namespace n on n.oid = c.relnamespace
+   left join pg_attribute a
+     on a.attrelid = c.oid and a.attname = 'organization_id' and a.attnum > 0 and not a.attisdropped
+   where n.nspname = 'public' and c.relkind = 'r' and a.attname is null
+   order by c.relname;
    ```
 
-   If `quotes` is missing, this is the whole story. If `customers` is missing
-   too, more of `010` never ran and the same will happen again further down the
-   list.
+   Every row is a table with no `organization_id`. Some of those are global by
+   design; the ones that also appear in `lib/sonara-tenant-scoped-tables.cjs`
+   are the gaps.
 
 2. Compare the history against the files:
 
@@ -572,24 +637,32 @@ a live system is yours either way. In rough order:
    select version from supabase_migrations.schema_migrations order by version;
    ```
 
-   Anything marked applied whose tables are absent is the set to repair.
+   Anything marked applied whose tables *or columns* are absent is the set to
+   repair. This is also what would explain how the `20260811` versions came to
+   be recorded.
 
-3. Merge this branch. The repair migration then runs ahead of the failing one
-   on the next deployment. If you would rather not merge everything else at the
-   same time, the file stands alone — apply it in the SQL editor and nothing
-   else changes.
+3. Merge **#213**. Both repair migrations then run ahead of the failing one on
+   the next deployment. If you would rather not merge everything at once, each
+   file stands alone — apply it in the SQL editor and nothing else changes.
 
 4. Re-run the deployment from **Actions → Controlled Production Deployment →
    Run workflow**. Do not use the Vercel dashboard's Redeploy button: that is
    what took the alias on 4 August and is why the workflow header exists.
 
-5. If it fails again on a different `does not exist`, that is the second gap,
-   and the same treatment applies — the table it names, copied from whichever
-   migration creates it, in a file versioned before the one that failed. Check
-   the retired list first.
+5. If it fails again, read *which kind* of error it is before acting:
+   `relation ... does not exist` is a missing table and belongs in the 42-table
+   repair; `column ... does not exist` is a missing column and belongs in the
+   shape repair. Both files are generated — regenerate them, do not hand-edit.
 
-Take a backup first. The repair is additive and idempotent, but the decision is
-yours and the checkpoint costs nothing.
+Take a backup first. Both repairs are additive and idempotent, but the decision
+is yours and the checkpoint costs nothing.
+
+**What the shape repair deliberately does not do:** it adds columns nullable and
+without their primary key, unique or foreign key clauses, because a table that
+already holds rows cannot take those. So it gives production the columns later
+migrations need and *not* full referential parity with a fresh replay. That
+divergence is real and stated rather than hidden; closing it needs the dump in
+step 1.
 
 ### Why no check caught it
 
