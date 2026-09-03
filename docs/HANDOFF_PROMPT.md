@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 109 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 281 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 282 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,56 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-03 - Answering the Stripe idempotency question I left open
+
+The ops checklist asked *"Confirm stripe_events or billing_events stores
+processed event IDs idempotently"*, and neither table exists. I recorded that as
+a question for the owner. It is answerable from the code, so here is the answer.
+
+**The real table is `billing_webhook_events`**, upserted on
+`(provider, provider_event_id)` with `resolution=ignore-duplicates`. So the audit
+trail holds one row per Stripe event id however many times it arrives.
+
+**But that check is not what makes a retry safe**, and this is the part worth
+having written down. `handleStripeWebhook` records the event and then calls
+`synchronizeBillingFromStripeEvent` **unconditionally** -- the duplicate is
+never used as a gate. `recordBillingWebhookEvent` returns `{ ok: true }`
+whether the row was new or ignored, so the caller could not gate on it if it
+wanted to.
+
+What makes replay safe is the *shape of the writes*. Every one is an upsert on a
+natural key with `resolution=merge-duplicates`: `billing_subscriptions` on
+`(provider, provider_subscription_ref)`, `billing_entitlements` on
+`(organization_id, entitlement_key)`, `purchases` on
+`stripe_checkout_session_id`. A second delivery writes the same state to the
+same row.
+
+That is a legitimate design -- arguably better than an event-id gate, because it
+also survives two deliveries racing. It is also one edit from not being: change
+any of those to a plain insert and a retried webhook starts duplicating
+subscription rows in the table the paid-access check reads, silently.
+`tests/a-replayed-stripe-event-changes-nothing-twice.test.js` asserts the
+requests the application actually sends, and the checklist now names the real
+table and the real mechanism rather than two tables that never existed.
+
+**One thing left as an open question rather than asserted as a defect.** Stripe
+does not guarantee event order, and `merge-duplicates` keyed on the subscription
+reference has no version column -- so a late `customer.subscription.updated`
+can overwrite newer state with older. Nothing here establishes how often that
+happens or what it would cost, so it is a checklist item for the owner, not a
+finding.
+
+Probed five ways, each failing by name: the subscription upsert turned into a
+plain insert; the audit write no longer keyed on the event id; `purchases` no
+longer keyed on the checkout session; the payload parsed before the signature is
+verified; and the checklist renamed back to a table that does not exist.
+
+That last probe **passed wrongly at first** -- the assertion matched
+`billing_webhook_events` in the comment explaining the change rather than in the
+checklist item an operator reads. Python comments are stripped before that check
+now. The fourth loose pattern in this session, and the same shape every time: a
+check reading prose as if it were the thing.
 
 ### 2026-09-03 - A package that ran nowhere, and two checks that could only fail
 
