@@ -2,6 +2,72 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - Production has been serving 5 August code for a month
+
+The connectors were asked to say what is actually deployed. They said something
+worth stopping for.
+
+**`sonaraindustries.com` is 252 commits behind `main`.** It serves deployment
+`dpl_4DK4UkJShM4NsWNqHprpFHsWeSmS`, commit `eebc80c` — pull request #191, merged
+**5 August 2026**. Nothing merged since has ever reached production. The
+deployment is dated 19 August, but Vercel's own metadata shows it is a redeploy
+of a redeploy of a redeploy of the 5 August build, all carrying the same sha.
+
+**The last successful Controlled Production Deployment was run #110.** Runs
+**#111 through #124** — pull requests #192 to #205, fourteen consecutive runs —
+all failed. Not flaky, not intermittent: the same failure every time.
+
+    Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+    ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+
+28 migrations are pending and `supabase db push` stops on the first, because
+`customer_invoices` has `quote_id uuid references public.quotes(id)` and
+**production has no `public.quotes`**.
+
+The migration set is not wrong. `010_sonara_platform_current_schema.sql` creates
+that table, and `verify:migration-replay` applies all 108 files to an empty
+PostgreSQL and gets a working schema every run. What has diverged is production:
+its history says `010` is applied and the table it creates is absent — the shape
+you get when an existing database is adopted into the CLI and early migrations
+are marked applied rather than run. The file name says as much; "current schema"
+is what somebody writes to describe a database that already exists.
+
+**Why nothing caught it, which is the part that belongs in this file.**
+`verify-migration-replay` already documents one direction of its own blindness:
+"a database that migrated forward in real time never re-runs an old migration,
+so production can be healthy while this is broken." The converse was never
+written down, and the converse is what happened. A replay onto an empty database
+cannot read production's history, so it cannot see a migration marked applied
+that never ran. It was green on all fourteen failing deploys.
+
+Its success line now says so rather than leaving it to be inferred: the check
+"says the migrations agree with each other and nothing about whether
+production's schema agrees with them."
+
+Nothing here can reach the production database, and repairing a live schema is
+the owner's call regardless, so this is `docs/owner/OWNER-STEPS.md` step 8 with
+the two queries that confirm the gap and the instruction to re-run the gated
+workflow rather than the Vercel Redeploy button — which is what took the alias
+on 4 August and is why that workflow's header exists.
+
+Also corrected: `WHAT-IS-LEFT.md` said 5 owner steps and CLAUDE.md said four;
+there are seven open. And the sentence "the repository side is finished ... the
+chain is green across all 39 commands" now carries the fact that makes it
+readable — **green here does not mean shipped, and right now it does not.**
+
+Two smaller findings from the same sweep, neither a defect:
+
+- Resend has one verified sending domain, `sonaraindustries.com`, sending
+  enabled. `getEmailValueStatus` only checks the address is email-shaped, so
+  readiness would report "configured" for an unverified domain — but a send then
+  fails with a loud `resend_403` the caller reports, and
+  `docs/owner/PROVIDER-KEYS.md` already tells the owner to verify the domain.
+  Checked, not changed.
+- Vercel runs Node **24.x**; every workflow pins Node **22**, and `package.json`
+  declares no `engines`. Nothing reconciles them. Recorded rather than changed:
+  picking 22 or 24 for a live product is a decision with production behaviour
+  attached, and it is the owner's.
+
 ### 2026-09-03 - A share link that was not a link, found by asking what is unreachable
 
 `cacheAccountState` was exported, looked finished and was called by nothing, and

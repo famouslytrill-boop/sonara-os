@@ -266,9 +266,31 @@ function main() {
     }
 
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
+    // What this sentence must not be read as, and the reason is not hypothetical.
+    //
+    // The failure message above says production can be healthy while this is
+    // broken. **The converse is also true and was live for a month.** From
+    // 5 August to 3 September 2026 every Controlled Production Deployment
+    // failed -- fourteen consecutive runs, #111 to #124 -- on
+    //
+    //     Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+    //     ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+    //
+    // while this check was green on every one of them. It is green because
+    // `public.quotes` is created by 010_sonara_platform_current_schema.sql,
+    // which a replay onto an empty database runs. Production's migration
+    // history says that file is already applied; the table is not there. A
+    // replay cannot see that, because it never reads production's history --
+    // that is the whole point of replaying onto an empty cluster, and it is
+    // also the shape of what it cannot tell you.
+    //
+    // So: this proves the migration set is self-consistent. It proves nothing
+    // about whether production's schema matches it.
     console.log(
       `Migration replay verified: ${statements} migrations applied in order to an empty PostgreSQL, ` +
-      `${MUST_EXIST.length} expected tables present. This is the only check here that executes the SQL.`
+      `${MUST_EXIST.length} expected tables present. This is the only check here that executes the SQL -- ` +
+      `against an empty database, so it says the migrations agree with each other and nothing about ` +
+      `whether production's schema agrees with them.`
     );
   } finally {
     cleanUp();

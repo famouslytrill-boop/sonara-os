@@ -470,6 +470,89 @@ payment-redirection fraud — and that advice protects your customers only while
 it is always true. Connecting an account and collecting a payment are separate
 pieces of work; this is the first.
 
+## 8 — Production has been serving 5 August code, and the deploy is failing
+
+**This is the one that matters most, and it needs your database.**
+
+The last Controlled Production Deployment that succeeded was run **#110, on
+5 August 2026**, for pull request #191. Every run since has failed: **#111
+through #124**, covering pull requests #192 to #205. Nothing merged after
+5 August has ever reached production.
+
+What `sonaraindustries.com` is serving right now is deployment
+`dpl_4DK4UkJShM4NsWNqHprpFHsWeSmS`, which carries commit `eebc80c` — **252
+commits behind `main`**. The deployment is dated 19 August, but it is a
+redeploy of a redeploy of a redeploy of the 5 August build, so the code has not
+moved since 5 August.
+
+### Why it fails
+
+`supabase db push` stops on the first of 28 pending migrations:
+
+```
+Applying migration 20260811220000_customer_invoices_accounts_receivable.sql...
+ERROR: relation "public.quotes" does not exist (SQLSTATE 42P01)
+```
+
+That migration's `customer_invoices` table has
+`quote_id uuid references public.quotes(id)`, and **`public.quotes` is not in
+your production database**.
+
+It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
+and `pnpm run verify:migration-replay` applies all 108 migrations to an empty
+PostgreSQL and gets a working schema every time. So the migration set is fine.
+What has gone wrong is that production's migration history says
+`010_sonara_platform_current_schema.sql` is already applied and the table it
+creates is not there — which is what happens when an existing database is
+adopted into the CLI and early migrations are marked applied rather than run.
+
+The file name is the clue: "current schema" is what somebody writes when they
+are describing a database that already exists.
+
+### What only you can do
+
+Nothing here can reach your production database, and this is a schema change to
+a live system, so it is yours either way. In rough order:
+
+1. Confirm the gap. In the Supabase SQL editor:
+
+   ```sql
+   select table_name from information_schema.tables
+   where table_schema = 'public' and table_name in ('quotes', 'customers')
+   order by table_name;
+   ```
+
+   If `quotes` is missing, this is the whole story. If `customers` is missing
+   too, more of `010` never ran and the same will happen again further down the
+   list.
+
+2. Compare the history against the files:
+
+   ```sql
+   select version from supabase_migrations.schema_migrations order by version;
+   ```
+
+   Anything marked applied whose tables are absent is the set to repair.
+
+3. Apply the missing objects, then re-run the deployment from
+   **Actions → Controlled Production Deployment → Run workflow**. Do not use the
+   Vercel dashboard's Redeploy button: that is what took the alias on 4 August
+   and is why the workflow header exists.
+
+Take a backup first. Everything in `010` is `create table if not exists`, so
+re-running that one file is additive rather than destructive, but the decision
+is yours and the checkpoint costs nothing.
+
+### Why no check caught it
+
+`verify:migration-replay` runs against an **empty** database, which is what lets
+it prove the migrations agree with each other. It never reads production's
+history, so it cannot see a migration marked applied that did not run. That
+limit is now stated in the command's own output rather than left to be inferred.
+
+The deploy workflow was honestly red for fourteen consecutive runs. Nothing was
+watching it.
+
 ## Before any of the above: what has to be switched on
 
 `docs/owner/WHAT-MUST-BE-ON.md` lists the ten environment variables a paying
