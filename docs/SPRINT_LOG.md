@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - CI tested Node 22, production ran Node 24, nothing said so
+
+This sat on the open list for weeks as "a decision with production behaviour
+attached, and the owner's". It was decidable by measurement, and nobody had
+measured.
+
+`package.json` declared **no `engines` field at all**. Seven workflows pin
+`node-version: "22"`. Vercel runs 24. So the version the deployed function runs
+was whatever the host picks by default — a number nobody here chose, that moves
+when the host moves it, and that no check compared against the seven pins. The
+two runtimes diverged silently because **there was no field to disagree with**.
+
+## Measured rather than reasoned about
+
+Node **24.20.0** installed alongside the **22.22.2** the workflows pin, and the
+repository run against it:
+
+| | on 24.20.0 |
+| --- | --- |
+| `pnpm test` | **3,754 passing**, identical to 22 |
+| `pnpm run build` | OK |
+| `smoke:routes` | OK |
+| `verify:api` | OK |
+| `verify:config` | OK |
+| `verify:db` | OK |
+
+So "does this break on 24" is **no**, from running it rather than from reading a
+changelog.
+
+## Why `>=22` and not `22.x`
+
+Pinning to 22 would change what production runs — on a deployment that has not
+succeeded since 5 August — to fix a problem measurement says is not there. That
+is the wrong trade twice over. `>=22` admits both what CI pins and what
+production already runs, so it states what is true and changes nothing.
+
+The point was never to force a version. It was that the relationship was
+**invisible**: two numbers with no declared connection, drifting apart with
+nothing watching. `tests/the-runtime-ci-tests-is-one-production-may-run.js`
+makes it checkable — `engines.node` must exist, and every workflow pin must
+satisfy it. Deliberately one-directional: a repository may reasonably test on
+the oldest supported runtime while production runs the newest. What it refuses
+is a pin the declaration does not admit.
+
+A range the parser cannot read **fails** rather than being treated as satisfied
+by every pin, which is the shape that would otherwise let this go quietly blind
+again.
+
+**Probed five times, each failing by its own name:** `engines` deleted (3 red),
+the range narrowed to `20.x` so CI's pin falls outside it, a workflow moved to
+Node 18, and a range written as `^22 || ^24` that the parser cannot interpret
+(2 red — it refuses rather than passing everything).
+
+Suite 3,754 → 3,759.
+
 ### 2026-09-03 - Read the dump the deployment already takes
 
 Two schema repairs have now been built by reading **one error message** and
