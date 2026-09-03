@@ -430,3 +430,16 @@ console.log(
     `(recorded ${COMPUTED_SELECT_COUNT}), across ${new Set([...starFiles, ...computedFiles]).size} files -- ` +
     "neither names its columns in the source, so nothing here can say whether they are used."
 );
+
+// The files, on a passing run and not only on a failing one.
+//
+// They were printed only inside the two count mismatches above, so a green run
+// said "31 queries this script cannot audit" and gave nobody a way to find
+// them. That is a population named by number and not by name, which is the
+// thing this script's own header asks for: `110 runtime files, 51 selects
+// examined` is checkable, "verified" is not. A count of unauditable reads that
+// you cannot locate is the same shape one level up.
+console.log(
+  `  \`select=*\` in: ${[...starFiles].sort().join(", ")}\n` +
+  `  built at run time in: ${[...computedFiles].sort().join(", ")}`
+);

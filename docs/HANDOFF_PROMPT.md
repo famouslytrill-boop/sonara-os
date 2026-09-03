@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 108 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 277 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 278 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,56 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-03 - The one read that crosses tenants now names its columns
+
+`report-unused-selected-columns` records 31 `select=*` queries and 23 built at
+run time as unauditable -- "neither names its columns in the source, so nothing
+here can say whether they are used". **It printed those file lists only on a
+failing run.** A green run gave a count and no way to find them, which is a
+population named by number and not by name: the thing the script's own header
+asks for, one level up. They are now printed on a passing run too, and that is
+how the query below was found.
+
+**The schedule tick was one of them.** It is the single read in this
+application that deliberately crosses tenants -- a scheduler has to see every
+organisation's due work, and `buildTenantQuery` makes it say so rather than let
+an unscoped query slip past. Every run underneath is then scoped to the
+`organization_id` on the row. It asked for `select=*`.
+
+The failure that hides behind that has no symptom. `isDue()` reads seven
+columns. If one stops arriving, nothing errors: `wholeNumber()` reports it as
+"not recorded" -- correctly, that was the fix on 2 September -- `isDue` returns
+not-due, and the schedule joins `skipped`. The tick answers **200 with an empty
+`ran` list**. Every customer's weekly job stops and the response says everything
+is fine.
+
+Twelve columns are now named: the seven `isDue` reads and the five the loop
+uses, `organization_id` among them, which is what would otherwise scope every
+run to `undefined`.
+
+Naming them creates the usual problem -- a hand-written list that has to keep
+matching two other files -- so `tests/the-scheduler-asks-for-every-column-it-reads.test.js`
+writes neither list by hand. It derives the columns `lib/sonara-agent-schedule.cjs`
+reads and the columns the tick reads from their source, derives the table's real
+columns from migration 20260813180000, and asserts the select covers the first
+two and stays inside the third. A pasted list agrees with itself.
+
+Two things went wrong while writing it, both worth keeping:
+
+- The first `schedule\.([a-z_]+)` matched `sonara-agent-schedule.cjs` inside a
+  comment and reported a missing column called `cjs`. A pattern loose enough to
+  match prose reports a defect that is not there, which spends exactly the
+  attention the file is asking for. Comments are stripped first now.
+- `selectList()` ran once at describe time, so putting the query back to
+  `select=*` made the whole file error out before the test written for that case
+  could run and name it. A check that cannot report the bug it was written for
+  is the shape this repository keeps finding. It is called inside each test now.
+
+Probed five ways, each failing by name: dropping `time_zone`, which `isDue`
+reads; dropping `organization_id`; going back to `select=*`; selecting a column
+`agent_schedules` does not have; and truncating the list to two columns, which
+the blindness guard catches.
 
 ### 2026-09-03 - The 35% floor reaches Python, and the stdlib tracer that lies
 
