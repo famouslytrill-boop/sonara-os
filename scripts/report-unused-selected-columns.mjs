@@ -179,7 +179,25 @@ const COMPUTED_SELECT = /select=\$\{/g;
 // called from nowhere in the repository, so they were null on every row. The
 // connected-payments page writes them after Stripe answers and reads them back
 // when Stripe cannot be reached.
-const STAR_SELECT_COUNT = 31;
+// 27 on 3 September 2026: the four remaining `select=*` reads in
+// routes/creator-generation-routes.cjs, which is the file AGENTS.md governs
+// most directly -- "enforce provenance, consent, and anti-clone safety". Its
+// HTML pages had already been narrowed; its JSON endpoints had not, so the
+// pages and the API over the same records disagreed about what may be
+// returned. Two of the four gave something away for nothing:
+//
+//   - the asset list returned `bucket_id` and `object_path`, a file's location
+//     inside a private bucket. Nothing used them -- checked across public/,
+//     tests/ and docs/ -- and the download route reads them itself in its own
+//     scoped query before signing a 300-second URL.
+//   - the job reads returned `provider_response`, the raw body an external
+//     provider sent back, which nothing reads either.
+//
+// The job column list was derived by grepping for `job.` and `job?.` rather
+// than by eye. The first pass matched only `job.` and missed `title`, which
+// `jobTitle()` reaches through optional chaining -- shipping that would have
+// retitled every job page to "Text to speech request".
+const STAR_SELECT_COUNT = 27;
 const COMPUTED_SELECT_COUNT = 23;
 
 // A column named in a comment is a column discussed, not used. Same reasoning

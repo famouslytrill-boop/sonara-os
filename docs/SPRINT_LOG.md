@@ -2,6 +2,54 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - The generation pages were narrowed; its API was not
+
+`routes/creator-generation-routes.cjs` is the file AGENTS.md governs most
+directly -- "enforce provenance, consent, and anti-clone safety". Its HTML pages
+were narrowed to named columns on 2 September, for the reason written into the
+file: a `select=*` is what hid the provenance defect, because the row carried
+the provider, the attestations and the checksum, the page loaded all three and
+printed none, and nothing could see the query to say so.
+
+**Its four JSON endpoints were not narrowed at the same time**, so the pages and
+the API over the same records disagreed about what may be returned. Two of them
+gave something away for nothing:
+
+- the asset list returned `bucket_id` and `object_path` -- a file's location
+  inside a private bucket. Nothing used them; checked across `public/`, `tests/`
+  and `docs/`. The download route reads them itself in its own scoped query
+  before signing a 300-second URL, so a response body carrying them is exposure
+  that buys nothing.
+- the job reads returned `provider_response`, the raw body an external provider
+  sent back, which nothing reads either. An endpoint that returns a provider's
+  whole reply publishes whatever that provider decides to put in it.
+
+The consent list returned `evidence_reference` -- where a signed release lives --
+and `metadata`, both of which the consent page had deliberately decided not to
+render. An endpoint over the same records should not quietly return more than
+the page that was designed.
+
+**The near-miss is the part worth keeping.** The job column list was derived by
+grepping this file for `job.`, and the first pass missed `title`, because
+`jobTitle()` reaches it through `job?.title`. Shipping that would have renamed
+every job page to "Text to speech request" -- and nothing would have errored,
+nothing logged, and no test asserting a 200 would have noticed, because
+`jobTitle()` falls back to a capability label when the title is absent. The
+second pass matched `job.` and `job?.` both.
+
+`tests/a-generation-api-returns-what-its-page-shows.test.js` derives the field
+set from the source rather than restating it, for that reason, and asserts
+`title` separately because its absence is the silent one.
+
+`report-unused-selected-columns` behaved exactly as designed: it refused the
+change until the drop from 31 to 27 was recorded with which queries it was, and
+the file lists it now prints on a passing run are what located them.
+
+Probed five ways, each failing by name: dropping `title`; putting `bucket_id`
+and `object_path` back on the asset list; putting `evidence_reference` back on
+the consent list; reverting to `select=*`; and dropping `policy_reasons`, a
+field the page reads.
+
 ### 2026-09-03 - A forbidden-column list is not a promise about what gets published
 
 `lib/sonara-shared-results.cjs` forbids two columns on the public read of a

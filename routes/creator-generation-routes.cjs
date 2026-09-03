@@ -138,7 +138,7 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
-    const result = await rest(config, JOB_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
+    const result = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,provider_job_id,status,progress_percent,prompt,negative_prompt,parameters,input_assets,policy_status,policy_reasons,rights_attested,consent_attested,error_code,error_message,created_at,completed_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=${clamp(req.query.limit, 1, 100, 50)}`);
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, jobs: result.rows, code: result.code });
   });
 
@@ -149,7 +149,14 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
     const job = await loadJob(config, context, req.params.jobId);
     if (!job.ok) return res.status(job.status).json(job);
-    const assets = await rest(config, ASSET_TABLE, `select=*&job_id=eq.${encodeURIComponent(job.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`);
+    // The same seven columns the HTML page names, and for the same reason --
+    // plus one this endpoint was returning and nothing asked for: `bucket_id`
+    // and `object_path` are the file's location inside a private bucket. No
+    // caller uses them (checked across public/, tests/ and docs/), and the
+    // download route reads them itself in its own scoped query before signing
+    // a 300-second URL. Handing the storage path to the client as well is
+    // exposure that buys nothing.
+    const assets = await rest(config, ASSET_TABLE, `select=id,asset_role,media_type,byte_size,created_at,provenance,checksum_sha256&job_id=eq.${encodeURIComponent(job.job.id)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&order=created_at.asc`);
     // `assets.ok ? assets.rows : []` reported a failed read as a job with no
     // files, and a caller cannot tell those apart from an empty array. The job
     // read succeeded and the asset read did not, so this endpoint cannot answer
@@ -260,7 +267,12 @@ module.exports = function registerCreatorGenerationRoutes(app, deps = {}) {
     if (!context.ok) return res.status(context.status).json(context);
     const config = getConfig(deps);
     if (!config.ok) return res.status(503).json({ ok: false, code: "supabase_setup_required" });
-    const result = await rest(config, CONSENT_TABLE, `select=*&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
+    // The eight columns the consent page names, plus created_at. Left out:
+    // `evidence_reference`, which points at where a signed release lives, and
+    // `metadata`. The HTML page decided not to render either; an endpoint over
+    // the same records should not quietly return more than the page that was
+    // designed.
+    const result = await rest(config, CONSENT_TABLE, `select=id,subject_name,subject_type,consent_scope,evidence_type,consent_attested,expires_at,revoked_at,created_at&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&order=created_at.desc&limit=100`);
     return res.status(result.ok ? 200 : 502).json({ ok: result.ok, consents: result.rows, code: result.code });
   });
 
@@ -841,7 +853,18 @@ async function storeOutput(config, context, job, bytes, mime, providerKey) {
 
 async function loadJob(config, context, jobId) {
   if (!validUuid(jobId)) return { ok: false, status: 400, code: "invalid_job_id" };
-  const result = await rest(config, JOB_TABLE, `select=*&id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
+  // Named rather than `select=*`. The list is every field the job page and the
+  // JSON endpoint actually read, derived by grepping this file for `job.` and
+  // `job?.` rather than by eye -- `jobTitle()` reaches `title` through optional
+  // chaining, and a first pass that matched only `job.` missed it, which would
+  // have retitled every job page.
+  //
+  // What is deliberately not here: `provider_response`, the raw body an
+  // external provider sent back. Nothing reads it, and a JSON endpoint that
+  // returns a provider's whole reply is publishing whatever that provider
+  // decides to put in it, forever, to anybody who later gets hold of the
+  // response.
+  const result = await rest(config, JOB_TABLE, `select=id,title,capability,provider_key,provider_job_id,status,progress_percent,prompt,negative_prompt,parameters,input_assets,policy_status,policy_reasons,rights_attested,consent_attested,error_code,error_message,created_at,completed_at&id=eq.${encodeURIComponent(jobId)}&organization_id=eq.${encodeURIComponent(context.organizationId)}&user_id=eq.${encodeURIComponent(context.userId)}&limit=1`);
   if (!result.ok) return { ok: false, status: 502, code: result.code };
   if (!result.rows[0]) return { ok: false, status: 404, code: "generation_job_not_found" };
   return { ok: true, job: result.rows[0] };
