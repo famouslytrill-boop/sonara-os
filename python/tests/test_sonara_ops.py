@@ -48,9 +48,32 @@ def tables_created_by_migrations() -> set[str]:
 
 
 def tables_retired() -> set[str]:
+    """The tables 20260805120000 actually retired.
+
+    Its `superseded` array is **pairs** -- `['contact_import_batches',
+    'growth_leads']` reads "this was retired, that replaced it" -- so only the
+    first element of each pair is retired, and a name appearing as the second is
+    what makes that table *live*.
+
+    The first version pulled every quoted string out of the file and called them
+    all retired. That reported `stripe_customers`, `growth_leads`,
+    `user_preferences`, `customer_records` and `billing_subscriptions` as
+    removed when all five are the live replacements -- and it is what caused
+    `stripe_customers` to be dropped from REQUIRED_TABLES on the strength of a
+    name appearing in a list nobody had read the shape of.
+
+    `re.findall` with one capture group returns strings, not tuples. The fix's
+    own first draft wrote `{pair[0] for pair in ...}` and built a set of first
+    *letters* -- seven initials from thirteen names. The count assertion in
+    TestTheFixtureCanFail caught that on the first run, which is what it is for.
+    """
     if not RETIRE_FILE.exists():
         return set()
-    return set(re.findall(r"'([a-z_0-9]+)'", RETIRE_FILE.read_text(encoding="utf8", errors="replace")))
+    text = RETIRE_FILE.read_text(encoding="utf8", errors="replace")
+    block = re.search(r"superseded constant text\[\]\[\] := array\[(.*?)\];", text, re.S)
+    if not block:
+        return set()
+    return set(re.findall(r"\['([a-z_0-9]+)',\s*'[^']+'\]", block.group(1)))
 
 
 class TestTheFixtureCanFail(unittest.TestCase):
@@ -60,7 +83,20 @@ class TestTheFixtureCanFail(unittest.TestCase):
         self.assertTrue(MIGRATIONS.is_dir(), "the migrations directory moved; every cross-check below is vacuous")
         created = tables_created_by_migrations()
         self.assertGreater(len(created), 60, f"only {len(created)} tables parsed from the migrations; this check has gone blind")
-        self.assertGreater(len(tables_retired()), 10, "the retired list parsed as almost nothing; the negative check below proves little")
+        retired = tables_retired()
+        self.assertEqual(
+            len(retired), 13,
+            f"parsed {len(retired)} retired tables; the migration's own comment says thirteen, so the pair "
+            "parsing has drifted and the negative check below proves nothing",
+        )
+        # The successors must NOT be in it. This is the assertion that would
+        # have stopped stripe_customers being removed from REQUIRED_TABLES.
+        for successor in ("stripe_customers", "growth_leads", "user_preferences", "customer_records"):
+            self.assertNotIn(
+                successor, retired,
+                f"{successor} was read as retired. It is the second element of a pair in `superseded`, which "
+                "is what replaced a retired table -- reading the list without its shape inverts the meaning",
+            )
 
     def test_the_required_list_is_not_empty(self):
         self.assertGreaterEqual(len(healthcheck.REQUIRED_TABLES), 5, "REQUIRED_TABLES has shrunk to almost nothing")

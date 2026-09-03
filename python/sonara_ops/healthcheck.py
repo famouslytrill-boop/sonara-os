@@ -9,17 +9,23 @@ from sonara_ops.db import fetch_existing_tables, fetch_rls_status, test_connecti
 # and nothing had noticed -- this package runs in no workflow, so
 # `run_health_checks()` had never been executed anywhere automated.
 #
-#   stripe_customers  is on the retired list in
-#                     20260805120000_retire_superseded_tables.sql. The health
-#                     check demanded a table the repository deliberately removed.
 #   stripe_events     is created by no migration and referenced nowhere in
 #                     lib/, routes/ or server.js. It is a name, not a table.
 #
 # A required-table list that names something nothing creates does not report a
 # problem with the database; it reports a problem with itself, permanently, in
-# language that reads like a real finding. tests/test_health_tables_exist.py
-# cross-checks every name here against the migrations so it cannot drift again.
+# language that reads like a real finding. The tests cross-check every name here
+# against the migrations so it cannot drift again.
+#
+# `stripe_customers` was removed here too, on 3 September, and put back the same
+# day. The reason given was that it appears in
+# 20260805120000_retire_superseded_tables.sql -- which it does, as the **second**
+# element of `['billing_customers', 'stripe_customers']`. That array is pairs of
+# retired-table and what-replaced-it, so the name appearing in it is what makes
+# stripe_customers *live*. Reading the list without reading its shape produced a
+# confident, wrong removal of a table the health check should watch.
 REQUIRED_TABLES = [
+    "stripe_customers",
     "subscriptions",
     "sonara_user_subscriptions",
     "platform_jobs",

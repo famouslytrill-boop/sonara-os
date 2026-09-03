@@ -16,20 +16,38 @@ floor was a claim nothing checked. Verified rather than relaxed by guess: every
 module imports and runs on 3.12, and the suite passes there, so it is now
 `>=3.12`.
 
-**Two entries in `REQUIRED_TABLES` could never have passed.** That list is what
+**One entry in `REQUIRED_TABLES` could never have passed.** That list is what
 `run_health_checks()` uses to decide whether production is healthy:
 
-- `stripe_customers` is on the retired list in
-  `20260805120000_retire_superseded_tables.sql`. The health check demanded a
-  table the repository deliberately removed.
 - `stripe_events` is created by **no migration** and named nowhere in `lib/`,
   `routes/` or `server.js`. It is a name, not a table.
+
+**And I removed a second one wrongly, then caught it before merging.** The first
+version of this work also dropped `stripe_customers`, on the grounds that it
+appears in `20260805120000_retire_superseded_tables.sql`. It does -- as the
+*second* element of `['billing_customers', 'stripe_customers']`. That array is
+**pairs**: retired table, and what replaced it. A name in the second position is
+what makes a table live. Reading the list without reading its shape inverted the
+meaning and produced a confident removal of a table the health check should
+watch. Five names were affected the same way: `stripe_customers`,
+`growth_leads`, `user_preferences`, `customer_records` and
+`billing_subscriptions` are all live successors, not retirees.
+
+It was caught by a pre-merge sweep for a *second* schema gap -- widening the
+earlier foreign-key scan to `alter table`, policies and indexes across all 32
+pending migrations, and asking which tables they touch without creating.
+`growth_leads` came back flagged, with a bare unguarded `alter table` in
+20260812041500 that would have failed against production exactly as `quotes`
+did. It does not, because `growth_leads` was never retired -- and that is what
+exposed the parsing error rather than a production failure doing it.
 
 A required-table list naming something nothing creates does not report a problem
 with the database. It reports a problem with itself, for ever, in language that
 reads like a real finding — and because nothing ran the package, nobody saw it.
-Both removed, and the suite now cross-checks every name against the migrations
-and against the retired list, so the next one to stop existing fails there.
+`stripe_events` removed and `stripe_customers` restored, and the suite now
+cross-checks every name against the migrations and against a correctly parsed
+retired list -- with an assertion that the parse returns exactly the thirteen the
+migration's own comment claims, and that no successor is read as a retiree.
 
 Worth recording separately: `stripe_audit.py`'s own checklist says *"Confirm
 stripe_events or billing_events stores processed event IDs idempotently"*, and
@@ -79,8 +97,19 @@ person to click past that warning. The value is assembled at run time now, and
 the test proves exactly what it did before, because what it needs is a long
 opaque string and any long opaque string will do.
 
-Probed six ways, each failing by name: `stripe_events` restored;
-`stripe_customers` restored; an RLS table that is not a required table; a
+A fifth and sixth mistake, both inside the fix for the fourth. The corrected
+parser first read `{pair[0] for pair in re.findall(...)}` -- and `re.findall`
+with one capture group returns **strings**, so that built a set of first
+*letters*: seven initials standing in for thirteen names. The count assertion
+caught it on the first run, which is exactly what a blindness guard is for. And
+restoring the file after a probe, I used `git checkout --` and reverted my own
+uncommitted fix -- the one thing this repository's notes say never to do. Probes
+copy the file aside and copy it back; I knew that and did it anyway.
+
+Probed eight ways, each failing by name: `stripe_events` restored; a genuinely
+retired table (`contact_records`) added; the pair parser broken back to every
+quoted string; the initials bug reintroduced; an RLS table that is not a
+required table; a
 negative event count allowed to drag the mean down; `job_success_rate` losing
 its zero guard; and `redact` returning a secret whole.
 
