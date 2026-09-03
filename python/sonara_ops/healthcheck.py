@@ -3,10 +3,24 @@ from dataclasses import dataclass
 from sonara_ops.db import fetch_existing_tables, fetch_rls_status, test_connection
 
 
+# The tables a health check may demand production has.
+#
+# Two names were removed on 3 September 2026 because neither could ever pass,
+# and nothing had noticed -- this package runs in no workflow, so
+# `run_health_checks()` had never been executed anywhere automated.
+#
+#   stripe_customers  is on the retired list in
+#                     20260805120000_retire_superseded_tables.sql. The health
+#                     check demanded a table the repository deliberately removed.
+#   stripe_events     is created by no migration and referenced nowhere in
+#                     lib/, routes/ or server.js. It is a name, not a table.
+#
+# A required-table list that names something nothing creates does not report a
+# problem with the database; it reports a problem with itself, permanently, in
+# language that reads like a real finding. tests/test_health_tables_exist.py
+# cross-checks every name here against the migrations so it cannot drift again.
 REQUIRED_TABLES = [
-    "stripe_customers",
     "subscriptions",
-    "stripe_events",
     "sonara_user_subscriptions",
     "platform_jobs",
     "system_audit_events",

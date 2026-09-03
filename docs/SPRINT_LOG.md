@@ -2,6 +2,88 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A package that ran nowhere, and two checks that could only fail
+
+`python/sonara_ops` had **no tests and no workflow**. Eleven declared
+dependencies, a CLI entry point, and a health check that grades the production
+database — and nothing in `.github/workflows` installed it, imported it,
+compiled it or ran it. `backend/` at least has `backend-dependencies` proving it
+builds; this had nothing.
+
+**It could not have been installed anyway.** `pyproject.toml` declared
+`requires-python = ">=3.13,<3.15"` while every workflow pins **3.12**. That
+floor was a claim nothing checked. Verified rather than relaxed by guess: every
+module imports and runs on 3.12, and the suite passes there, so it is now
+`>=3.12`.
+
+**Two entries in `REQUIRED_TABLES` could never have passed.** That list is what
+`run_health_checks()` uses to decide whether production is healthy:
+
+- `stripe_customers` is on the retired list in
+  `20260805120000_retire_superseded_tables.sql`. The health check demanded a
+  table the repository deliberately removed.
+- `stripe_events` is created by **no migration** and named nowhere in `lib/`,
+  `routes/` or `server.js`. It is a name, not a table.
+
+A required-table list naming something nothing creates does not report a problem
+with the database. It reports a problem with itself, for ever, in language that
+reads like a real finding — and because nothing ran the package, nobody saw it.
+Both removed, and the suite now cross-checks every name against the migrations
+and against the retired list, so the next one to stop existing fails there.
+
+Worth recording separately: `stripe_audit.py`'s own checklist says *"Confirm
+stripe_events or billing_events stores processed event IDs idempotently"*, and
+**neither table exists**. That is a checklist item for a person to answer rather
+than a defect proved here — Stripe webhook idempotency may be handled another
+way — but somebody should answer it.
+
+27 tests. Five of the eight files that were exempt now clear the floor;
+`config.py` went 34.5% → over by testing the two `has_*` properties, and
+`main.py` 0% → over by running all four CLI commands through typer's
+`CliRunner`. Three keep entries with real measurements: `db.py` at 18/62 and
+`healthcheck.py` at 8/36, whose remaining branches need a live PostgreSQL, and
+`__init__.py` at 0/4, which is import-time lines. Overall Python coverage
+53.6% → **57.3%**, files under the floor **17 → 12**.
+
+CI now installs `./python` in the release-gate job so the gate measures it, and
+`dependency-scan.yml` gains a `python-ops` job that installs, runs `pip check`
+and executes the suite with a discovery floor — installing it is itself the
+check that its pyproject is satisfiable, which is how the 3.13 floor surfaced.
+
+**Three mistakes of my own while writing this**, all recorded because two are
+the same shape as earlier today:
+
+- The secret-leak assertion listed `service_role`, which matched the migration
+  *filename* `20260727024500_service_role_extension_grants.sql` printed by
+  `schema-report`. A pattern loose enough to match a filename, reporting a leak
+  that was not there — the third time today.
+- One assertion read
+  `self.assertNotIn("pass", output.lower().split("score")[0][:400] if False else "", "")`,
+  which asserts `"pass" not in ""` — **vacuously true, testing nothing**. Written
+  by me, in a file about checks that cannot lie. Removed and replaced with the
+  real property: `health` must not print the word `connected` when no database
+  is configured.
+- A probe reported "DID NOT FAIL" for the redaction check when the test *had*
+  failed — the probe grepped for a message a later assertion produces, and the
+  first assertion had no custom message at all. Every assertion in that test now
+  carries one, which is what makes a probe's grep meaningful.
+
+**A fourth, caught by GitHub rather than by me.** The push was refused:
+`GH013 — Push cannot contain secrets`, naming a Stripe API Key at
+`python/tests/test_sonara_ops.py:148`. The redaction test used a realistic
+`sk_live_51…` fixture, which genuinely matches Stripe's live-key format. The
+protection was right, and the fix is the fixture rather than an allow-list
+click: AGENTS.md says do not commit secrets, and a fake one shaped exactly like
+a real one is the same problem with none of the value — it teaches the next
+person to click past that warning. The value is assembled at run time now, and
+the test proves exactly what it did before, because what it needs is a long
+opaque string and any long opaque string will do.
+
+Probed six ways, each failing by name: `stripe_events` restored;
+`stripe_customers` restored; an RLS table that is not a required table; a
+negative event count allowed to drag the mean down; `job_success_rate` losing
+its zero guard; and `redact` returning a secret whole.
+
 ### 2026-09-03 - Two more repositories, and one that is nothing like its post
 
 Both really are MIT this time -- the badges are accurate, which after

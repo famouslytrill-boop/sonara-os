@@ -141,6 +141,15 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r tools/disposable-domains/requirements.txt
           python -m pip install -r tools/voice-clone/requirements.txt
+          # python/sonara_ops ran in no workflow at all until 3 September 2026:
+          # eleven declared dependencies, a CLI entry point and a health check
+          # grading the production database, none of it exercised anywhere
+          # automated. Installed here so verify:python-coverage-floor measures
+          # it rather than excusing it -- and installing it is itself the check
+          # that its pyproject is satisfiable, which is how the >=3.13 floor
+          # came to light: it made the package uninstallable under the 3.12
+          # every job here pins.
+          python -m pip install ./python
 
       - name: Run every release gate
         env:

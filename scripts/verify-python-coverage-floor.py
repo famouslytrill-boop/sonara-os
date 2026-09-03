@@ -135,6 +135,17 @@ SUITES = (
         "requires": (),
     },
     {
+        # python/sonara_ops had no suite and no workflow at all until
+        # 3 September 2026 -- eleven declared dependencies, a CLI entry point,
+        # and a health check grading the production database, none of it ever
+        # run anywhere automated. Writing the suite found two names in
+        # REQUIRED_TABLES that could never have passed.
+        "root": "python",
+        "tests": "tests",
+        "runner": "unittest",
+        "requires": ("pydantic", "pydantic_settings", "sqlalchemy", "typer", "rich"),
+    },
+    {
         "root": "tools/disposable-domains",
         "tests": "tests",
         "runner": "pytest",
@@ -168,28 +179,21 @@ BELOW_FLOOR = {
         "note": "the event records the devui streams; the suite builds two of the seven kinds",
     },
     "python/sonara_ops/__init__.py": {
-        "covered": 0, "total": 4, "note": "no suite exists for python/sonara_ops",
-    },
-    "python/sonara_ops/analytics.py": {
-        "covered": 0, "total": 11, "note": "no suite exists for python/sonara_ops",
-    },
-    "python/sonara_ops/config.py": {
-        "covered": 0, "total": 29, "note": "no suite exists for python/sonara_ops",
+        "covered": 0, "total": 4,
+        "note": "a version string and an __all__; the lines run at import time, before the tracer attaches",
     },
     "python/sonara_ops/db.py": {
-        "covered": 0, "total": 62, "note": "no suite exists for python/sonara_ops",
+        "covered": 18, "total": 62,
+        "note": "was 0. The suite covers get_engine, connect and test_connection with nothing configured -- "
+                "which is the state every CI job is in. fetch_existing_tables, fetch_rls_status and "
+                "fetch_platform_jobs need a live PostgreSQL to reach, and this chain has none",
     },
     "python/sonara_ops/healthcheck.py": {
-        "covered": 0, "total": 36, "note": "no suite exists for python/sonara_ops",
-    },
-    "python/sonara_ops/main.py": {
-        "covered": 0, "total": 41, "note": "no suite exists for python/sonara_ops",
-    },
-    "python/sonara_ops/migrations.py": {
-        "covered": 0, "total": 16, "note": "no suite exists for python/sonara_ops",
-    },
-    "python/sonara_ops/stripe_audit.py": {
-        "covered": 0, "total": 7, "note": "no suite exists for python/sonara_ops",
+        "covered": 8, "total": 36,
+        "note": "was 0. The suite drives run_health_checks with no database, which is the branch that returns "
+                "three warnings; the connected branch that counts tables and reads RLS needs a live database. "
+                "Its REQUIRED_TABLES list is cross-checked against the migrations either way, which is where "
+                "the two names that could never pass were found",
     },
     "python/scripts/db_healthcheck.py": {
         "covered": 0, "total": 4, "note": "a four-line entry point that calls into sonara_ops",
@@ -232,6 +236,11 @@ UNMEASURED = {
         "missing": "pytest",
         "note": "a pytest suite of 44 tests that CI installs and runs (tools-python-suites); "
                 "the release chain here installs no Python packages",
+    },
+    "python": {
+        "missing": "pydantic",
+        "note": "sonara_ops needs pydantic, pydantic-settings, sqlalchemy, typer and rich; the release chain "
+                "here installs no Python packages. CI installs python/pyproject.toml and runs it",
     },
     "tools/voice-clone": {
         "missing": "pytest",

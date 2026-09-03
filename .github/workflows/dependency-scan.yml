@@ -111,6 +111,45 @@ jobs:
           print(f"{result.testsRun} agentkit tests passed.")
           RUNNER
 
+  # python/sonara_ops is the operations CLI, and until 3 September 2026 nothing
+  # ran it. Same argument as the agentkit job above: a package nothing installs
+  # is a package whose pyproject nobody has checked is satisfiable, and this one
+  # declared requires-python >=3.13 while every job here pins 3.12 -- so it
+  # could not have been installed by any of them.
+  python-ops:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install sonara-ops
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .
+      - name: Verify installed dependency compatibility
+        run: python -m pip check
+      - name: Run the sonara_ops tests
+        run: |
+          python - <<'RUNNER'
+          import sys, unittest
+
+          # Not `python -m unittest discover`, for the reason the agentkit job
+          # gives: discover exits 0 when it finds nothing, so a moved directory
+          # would be green.
+          suite = unittest.defaultTestLoader.discover(start_dir="tests", top_level_dir=".")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+
+          if result.testsRun < 20:
+              sys.exit(f"only {result.testsRun} tests ran; discovery has gone blind")
+          if not result.wasSuccessful():
+              sys.exit(1)
+          print(f"{result.testsRun} sonara_ops tests passed.")
+          RUNNER
+
   # backend/ is a real second application, and this is the only thing that says
   # so. It is a 370-line Python FastAPI service that CI installs, compiles,
   # imports and asserts two routes on -- so unlike the Next.js tree deleted on
