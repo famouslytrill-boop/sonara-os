@@ -99,6 +99,27 @@ REPO = Path(__file__).resolve().parent.parent
 FLOOR = 0.35
 REGRESSION_TOLERANCE_POINTS = 2.0
 
+# The interpreter the register's figures were taken on, and the one CI pins.
+#
+# The denominator is interpreter-dependent, which is not obvious and was worth
+# measuring rather than assuming. Comparing `co_lines()` across 3.11, 3.12 and
+# 3.13 over these 34 files: 3.12 and 3.13 agree exactly, and 8 files differ from
+# 3.11 -- credits.py 220 executable lines against 237, models.py 241 against
+# 255, consent.py 91 against 97. As percentages that moves credits.py 5.2 points
+# and models.py 2.9, both further than REGRESSION_TOLERANCE_POINTS. So a
+# registered file could be reported as having got worse purely because somebody
+# ran a different python3.
+#
+# None of the seventeen registered figures move -- checked file by file on both
+# interpreters, and the drift falls entirely on well-covered files that are not
+# in the register -- so nothing is wrong today. What follows from it is that the
+# regression comparison only means something on the interpreter the figures came
+# from. On any other, the floor is still enforced (it is an absolute threshold
+# and does not care) and the regression comparison is not applied, and the
+# report says so rather than leaving a green run looking like more than it is.
+MEASURED_ON = (3, 12)
+RUNNING_ON = sys.version_info[:2]
+
 # Every Python suite in this repository, read off the jobs in
 # .github/workflows/dependency-scan.yml that actually run them.
 #
@@ -483,7 +504,7 @@ def main():
                  "BELOW_FLOOR. Remove its entry -- a recorded reason that no longer describes anything is "
                  "what the next person reads instead of checking."
                  % (row["rel"], percent, row["covered"], row["total"]))
-        if entry:
+        if entry and RUNNING_ON == MEASURED_ON:
             was = entry["covered"] / entry["total"] * 100
             if was - percent > REGRESSION_TOLERANCE_POINTS:
                 fail("%s was %.1f%% when it was recorded and is %.1f%% now, %.1f points worse. The register "
@@ -510,10 +531,14 @@ def report(measured, skipped, total_tests):
     under = sum(1 for row in measured if row["ratio"] < FLOOR)
     unmeasured = (" -- %d files went unmeasured, their suites needing packages this environment does not "
                   "have" % len(skipped)) if skipped else " -- every Python source file was measured"
+    interpreter = "on Python %d.%d" % RUNNING_ON
+    if RUNNING_ON != MEASURED_ON:
+        interpreter += (", not the %d.%d the register was measured on -- the floor still applies, the "
+                        "regression comparison does not" % MEASURED_ON)
     population = ("%d files, %d executable lines, %.1f%% covered overall, %d under the %g%% floor against "
-                  "%d register entries, from %d tests%s"
+                  "%d register entries, from %d tests, %s%s"
                   % (len(measured), sum(row["total"] for row in measured), covered_lines / total_lines * 100,
-                     under, FLOOR * 100, len(BELOW_FLOOR), total_tests, unmeasured))
+                     under, FLOOR * 100, len(BELOW_FLOOR), total_tests, interpreter, unmeasured))
 
     # The word "verified" belongs only on a run that found nothing. Printing it
     # beneath a list of errors is the defect this repository keeps finding.

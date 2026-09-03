@@ -174,6 +174,27 @@ time rather than import time, so a missing package reads as a broken consent
 gate. The suite passes 28/28 with it installed, and the script now checks for
 `multipart` up front so the message names the cause.
 
+**The denominator turned out to be interpreter-dependent**, which was worth
+measuring rather than assuming. Comparing `co_lines()` across 3.11, 3.12 and
+3.13 over these 34 files: 3.12 and 3.13 agree exactly, and 8 files differ from
+3.11 -- `credits.py` 220 executable lines against 237, `consent.py` 91 against
+97. As percentages that moves `credits.py` 5.2 points, further than the 2-point
+regression tolerance, so a registered file could be reported as having got worse
+purely because somebody ran a different `python3`.
+
+None of the seventeen register figures move; checked file by file on both, and
+the drift falls entirely on well-covered files that are not registered. What
+follows is that the regression comparison only means something on the
+interpreter the figures came from. The floor is absolute and always applies; the
+regression comparison applies only on 3.12, which CI pins, and the population
+line names the interpreter either way so a green local run is not read as more
+than it is.
+
+CI needed `actions/setup-python` before the pip step -- the `sonara-industries`
+job had none, and Ubuntu's system interpreter is externally-managed (PEP 668),
+so `pip install` would have failed on the install rather than on anything it is
+meant to check.
+
 Probed nine ways, each failing by name: a register entry removed; a well-covered
 file wrongly listed; an entry naming a file nothing measured; an entry recorded
 3 points high; both blindness guards raised above the real population; an

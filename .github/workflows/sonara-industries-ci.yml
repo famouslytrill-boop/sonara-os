@@ -113,11 +113,25 @@ jobs:
       # one here. SONARA_PYTHON_COVERAGE_COMPLETE turns that excuse into a
       # failure, for the same reason SONARA_MIGRATION_REPLAY_REQUIRED exists: a
       # check whose skip path is the one that always runs is not a check.
+      # actions/setup-python before the pip step, not the runner's own python3.
+      # Ubuntu's system interpreter is marked externally-managed (PEP 668) and
+      # refuses `pip install` outright, so the step would fail on the install
+      # rather than on anything it is meant to check. setup-python puts the
+      # interpreter in its own prefix where pip behaves normally, which is what
+      # every other Python job in dependency-scan.yml already does.
+      #
+      # 3.12 matches those jobs. The version matters for more than consistency:
+      # the coverage gate reads executable lines out of `co_lines()`, and which
+      # lines the compiler emits code for is a property of the interpreter.
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
       - name: Install the Python test dependencies the coverage floor needs
         run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install -r tools/disposable-domains/requirements.txt
-          python3 -m pip install -r tools/voice-clone/requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r tools/disposable-domains/requirements.txt
+          python -m pip install -r tools/voice-clone/requirements.txt
 
       - name: Run every release gate
         env:
