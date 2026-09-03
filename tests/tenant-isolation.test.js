@@ -220,3 +220,81 @@ describe("an unrecognised table does not pass quietly", () => {
     assert.equal(guard.install({ global: scope }), false, "installing twice on one target must stay a no-op");
   });
 });
+
+// What this file proves, and what it does not.
+//
+// Everything above is a statement about `lib/sonara-tenant-data.cjs`: given a
+// tenant-scoped table and no organization, it throws. That is true and worth
+// keeping. It is **not** a statement about the application, and a file called
+// `tenant-isolation.test.js` sitting green is easy to read as one.
+//
+// The module is available, not enforced. It is called from one file and five
+// call sites; the runtime has 126 PostgREST call sites. On the other 121 the
+// boundary is a developer remembering to append `&organization_id=eq.<id>`,
+// which was re-audited by hand on 3 September 2026 and found intact -- and by
+// hand is the only way it has ever been checked.
+//
+// So the numbers are pinned here, derived from the source rather than typed in,
+// for two reasons. A count that drops means somebody removed the guard from the
+// one place using it. A count that rises means somebody migrated a file, and
+// the test says so out loud instead of letting the improvement go unrecorded.
+describe("how far the tenant guard actually reaches", () => {
+  const fsx = require("node:fs");
+  const pathx = require("node:path");
+  const ROOT = pathx.join(__dirname, "..");
+
+  function runtimeFiles() {
+    const found = [];
+    for (const dir of ["lib", "routes"]) {
+      for (const name of fsx.readdirSync(pathx.join(ROOT, dir))) {
+        if (name.endsWith(".cjs")) found.push(pathx.join(dir, name));
+      }
+    }
+    found.push("server.js");
+    return found;
+  }
+
+  const files = runtimeFiles();
+  const sources = new Map(files.map((rel) => [rel, fsx.readFileSync(pathx.join(ROOT, rel), "utf8")]));
+
+  let callSites = 0;
+  const adopters = [];
+  let guardCalls = 0;
+  for (const [rel, source] of sources) {
+    callSites += (source.match(/rest\/v1\//g) || []).length;
+    if (rel.endsWith("sonara-tenant-data.cjs")) continue;
+    const calls = (source.match(/\b(buildTenantQuery|fetchTenantRows)\s*\(/g) || []).length;
+    if (calls) { adopters.push(rel); guardCalls += calls; }
+  }
+
+  it("counted a runtime worth counting", () => {
+    assert.ok(files.length >= 100, `only ${files.length} runtime files; this check has gone blind`);
+    assert.ok(callSites >= 80, `only ${callSites} PostgREST call sites found; this check has gone blind`);
+  });
+
+  it("is still used by the one file that uses it", () => {
+    // A ratchet in the honest direction: this may only grow.
+    assert.ok(
+      adopters.includes("routes/sonara-agent-activity-routes.cjs"),
+      "the agent activity routes no longer build their queries through the tenant guard, so the module is now used " +
+        "by nothing at all while its tests still pass"
+    );
+    assert.ok(
+      guardCalls >= 5,
+      `the guard is called ${guardCalls} times, down from 5. Removing a call site removes the only enforcement ` +
+        "there is; the tests above would stay green either way"
+    );
+  });
+
+  it("says how little of the runtime that is", () => {
+    // Not an aspiration and not a failure -- a fact this file is responsible
+    // for keeping current, because it is the fact that stops the green tick
+    // above from being read as a guarantee about the application.
+    assert.ok(
+      callSites > guardCalls * 5,
+      `the guard now covers ${guardCalls} of ${callSites} call sites. If adoption has really reached this level, ` +
+        "update the header of lib/sonara-tenant-data.cjs and this test rather than relaxing the assertion -- the " +
+        "wording in both says the module is available rather than enforced, and that would no longer be true"
+    );
+  });
+});

@@ -2,6 +2,83 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - A guard used by one file, and a test that read like a guarantee
+
+`lib/sonara-tenant-data.cjs` refuses to build a query against a tenant-scoped
+table without an organization, or without a written reason for going global.
+`tests/tenant-isolation.test.js` proves it. Both are good.
+
+It is called from **one file and five call sites.** The runtime has **126**
+PostgREST call sites.
+
+Nothing said so. The module's header ended at "a guard against the next query
+somebody writes" — which reads as though new queries go through it. Six route
+files have been written since it was added and **none of them uses it**. And a
+file named `tenant-isolation.test.js` sitting green is about as strong a signal
+as this repository produces that tenant isolation is enforced somewhere other
+than in a developer's memory.
+
+The header also carried a dated fact presented in the present tense: *"An audit
+of all 69 PostgREST call sites on 2026-07-27 found no missing scope."* True on
+that date. There are 126 now.
+
+## The re-audit
+
+Done by hand, because there is no other way. Every read and write against a
+table in `TENANT_SCOPED_TABLES` (228 of them), classified by method:
+
+| | verdict |
+| --- | --- |
+| reads with a literal URL | 9, of which 3 unscoped |
+| PATCH | 3, of which 2 unscoped |
+| DELETE | 1, scoped |
+| POST | 22, all carrying the column in the body |
+
+**The finding still holds — no missing scope.** Each unscoped read survives
+being written down, which is the test of a real reason:
+
+- **`business_employee_invites`** is filtered on `token_hash`. The token *is*
+  the credential, and the invitee does not know their organization yet — the
+  invite is what tells them.
+- **`business_memberships`** is filtered on `user_id`. This is the query that
+  *determines* which organization you are in, so it cannot be filtered by one.
+- **`support_requests`** is genuinely global, behind `requireAdmin` at
+  `/admin/support`.
+
+Both unscoped PATCHes are the same shape: each targets a row the request already
+fetched and proved, by token or by admin gate.
+
+## Why there is no new gate here
+
+The obvious move is a release-chain command asserting every read carries the
+filter. It is not buildable honestly: **only 9 of the reads have a literal
+table name in their URL.** The rest pass the table as a variable to a helper, so
+a scan over literal URLs measures a small unrepresentative slice and reports it
+as "the runtime" — shape 2 in `checks-that-cannot-lie`, and worse than nothing
+because it would issue a clean bill over the 90% it never looked at.
+
+## What was built instead
+
+The header now says what the module is: **available, not enforced**, with the
+count, and with the re-audit's three reasons written out rather than summarised.
+
+`tests/tenant-isolation.test.js` gained a section that derives the numbers from
+the source and pins them as a **ratchet**:
+
+- the one adopter must still be an adopter — losing it would leave the module
+  used by nothing while every test above stayed green;
+- the call count may not drop below 5;
+- and the coverage ratio is asserted to still be small, with a failure message
+  saying that if adoption has genuinely improved, the *wording* in both files is
+  what needs updating, not the assertion — because "available rather than
+  enforced" would have stopped being true.
+
+**Probed twice:** the sole adopter switched off the guard, and one call site
+removed. `the guard is called 4 times, down from 5. Removing a call site removes
+the only enforcement there is; the tests above would stay green either way.`
+
+Suite 3,750 → 3,753.
+
 ### 2026-09-03 - A sweep for the mirror of shape 3, and why it does not ship
 
 `report-unused-selected-columns.mjs` hunts shape 3: a value **fetched** into a
