@@ -113,16 +113,25 @@ jobs:
       # one here. SONARA_PYTHON_COVERAGE_COMPLETE turns that excuse into a
       # failure, for the same reason SONARA_MIGRATION_REPLAY_REQUIRED exists: a
       # check whose skip path is the one that always runs is not a check.
-      # actions/setup-python before the pip step, not the runner's own python3.
-      # Ubuntu's system interpreter is marked externally-managed (PEP 668) and
-      # refuses `pip install` outright, so the step would fail on the install
-      # rather than on anything it is meant to check. setup-python puts the
-      # interpreter in its own prefix where pip behaves normally, which is what
-      # every other Python job in dependency-scan.yml already does.
+      # actions/setup-python pins the interpreter rather than inheriting whichever
+      # python3 the runner image happens to ship.
       #
-      # 3.12 matches those jobs. The version matters for more than consistency:
-      # the coverage gate reads executable lines out of `co_lines()`, and which
-      # lines the compiler emits code for is a property of the interpreter.
+      # That version is load-bearing, which is not obvious. The coverage gate
+      # takes its denominator from `co_lines()`, and which lines the compiler
+      # emits code for differs between releases: over the 34 files it measures,
+      # 3.12 and 3.13 agree exactly and 8 files differ from 3.11, moving
+      # credits.py 5.2 percentage points -- further than the gate's own
+      # regression tolerance. MEASURED_ON in the script is 3.12, so pinning 3.12
+      # here is what keeps its regression comparison meaningful. It also matches
+      # every Python job in dependency-scan.yml.
+      #
+      # What this is *not* for, recorded because it is what I first wrote here:
+      # the pip step below does not need it. The step ran green before this
+      # action was added, installing into /home/runner/.local/lib/python3.12 --
+      # a user install, which is not what PEP 668 refuses. "Ubuntu's interpreter
+      # is externally-managed so this would fail" was a plausible reason that
+      # turned out not to describe the run, and a wrong reason in a comment is
+      # what the next person reads instead of checking.
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

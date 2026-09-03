@@ -190,10 +190,22 @@ regression comparison applies only on 3.12, which CI pins, and the population
 line names the interpreter either way so a green local run is not read as more
 than it is.
 
-CI needed `actions/setup-python` before the pip step -- the `sonara-industries`
-job had none, and Ubuntu's system interpreter is externally-managed (PEP 668),
-so `pip install` would have failed on the install rather than on anything it is
-meant to check.
+CI pins 3.12 with `actions/setup-python` so the regression comparison stays
+meaningful. **The reason first written into that step was wrong**, and is worth
+recording rather than quietly fixing: it said the `sonara-industries` job's pip
+step would fail because Ubuntu's interpreter is externally-managed (PEP 668).
+The step had already run green without it, installing into
+`/home/runner/.local/lib/python3.12` -- a user install, which is not what PEP
+668 refuses. A plausible reason that turned out not to describe the run, written
+into a comment in the same session as a sprint entry warning about exactly that.
+The action stays, for the version-pinning reason, which is real.
+
+For the record, the gate's first CI run reported the same figures as the local
+3.12 measurement, which is the check on both:
+
+    Python coverage floor verified: 34 files, 2671 executable lines, 53.6%
+    covered overall, 17 under the 35% floor against 17 register entries,
+    from 169 tests -- every Python source file was measured.
 
 Probed nine ways, each failing by name: a register entry removed; a well-covered
 file wrongly listed; an entry naming a file nothing measured; an entry recorded
