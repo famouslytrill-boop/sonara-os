@@ -185,6 +185,26 @@ jobs:
             echo "- Runbook: docs/PRODUCTION_ROLLBACK_RUNBOOK.md"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Read the dump that was just taken, instead of discovering production's
+      # gaps one deployment at a time.
+      #
+      # `supabase db push` stops at the first failure, so a database missing
+      # fifty columns reports them at one per run -- which is how this repository
+      # spent 27 August fixing a missing table and 3 September fixing a missing
+      # column. The dump above is the only honest description of that database
+      # and nothing had ever read it.
+      #
+      # continue-on-error, deliberately: a schema gap is not a reason to refuse
+      # to deploy the fix for it, and a diagnostic that can block the thing it
+      # diagnoses is a diagnostic somebody deletes. It reports; the apply step
+      # below still decides.
+      - name: Report what production's schema is missing
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          node scripts/report-production-schema-gaps.mjs pre-migration-schema.sql
+
       - name: Upload rollback checkpoint
         uses: actions/upload-artifact@v4
         with:

@@ -576,8 +576,13 @@ Three things follow, and two of them correct this section.
 a different disease from a missing table. The 42-table repair is entirely
 `create table if not exists`, which repairs a table that is *absent* and is a
 **no-op for a table that is present in an older shape**. It could never have
-fixed `customers`. `public.shared_links`, by contrast, is genuinely absent — the
-NOTICE above is its guard skipping it.
+fixed `customers`.
+
+The `shared_links` NOTICE in that output is **not** a second problem, and saying
+so here because it reads like one: `shared_links` is created by
+`20260819070000_shared_links.sql`, which is still further down the same pending
+list. It is absent because its own migration has not run yet, which is exactly
+what should happen, and the policy migration skipping it is the guard working.
 
 **Point 5 above anticipated a second gap and guessed the wrong kind.** It said
 to look for another `relation does not exist`. What is actually blocking is a

@@ -106,6 +106,59 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-03 - Read the dump the deployment already takes
+
+Two schema repairs have now been built by reading **one error message** and
+inferring the rest. `supabase db push` stops at the first failure, so a database
+missing fifty columns reports them at one per deployment:
+
+    run #124   ERROR: relation "public.quotes" does not exist
+    run #125   ERROR: column "organization_id" does not exist
+
+The first inference — that absent tables were the whole story — was wrong, and
+the second is an inference too.
+
+The answer has been sitting in the workflow the whole time. Controlled
+Production Deployment dumps production's schema before it applies anything
+(`supabase db dump -f pre-migration-schema.sql`, uploaded as the rollback
+checkpoint). **Nothing had ever read it.**
+
+`scripts/report-production-schema-gaps.mjs` reads it against the two repair
+migrations and prints every gap at once — absent tables and missing columns, to
+the job log and the step summary. `continue-on-error: true` on purpose: a schema
+gap is not a reason to refuse to deploy the fix for it, and a diagnostic that can
+block the thing it diagnoses is a diagnostic somebody deletes the first time it
+is inconvenient. It reports; the apply step still decides.
+
+The failure mode it has to defend against is its own: **a dump it cannot parse
+looks exactly like a database with nothing missing.** So under 20 parsed tables
+it prints `FAILED TO PARSE`, names the file and its byte count, and exits
+non-zero rather than issuing a clean bill. Probed with a two-line file that is
+not a dump; it said so.
+
+Tested against a synthetic dump built from the repair migration with production's
+two known conditions applied — `customers` without `organization_id`, and a
+whole table removed. It named both.
+
+## And a correction it produced immediately
+
+Building the fixture surfaced that I had been wrong about `shared_links`. I
+reported it twice as evidence of a mixed, damaged schema, on the strength of one
+NOTICE:
+
+    NOTICE: skipping shared_links: table not present
+
+It is created by `20260819070000_shared_links.sql`, which is **still further
+down the same pending list**. It is absent because its own migration has not run
+yet — which is precisely what should happen — and the policy migration skipping
+it is the guard working, not a symptom. Corrected in `OWNER-STEPS.md` step 8,
+where it had been written up as a finding.
+
+That is the same shape as everything else here: a reason arrived at by
+reasoning, which reads exactly like a reason arrived at by checking. The
+difference this time is that building a tool to check surfaced it within
+minutes.
+
 ### 2026-09-03 - The repair created absent tables and ignored present ones
 
 PR #206 merged and Controlled Production Deployment **#125** ran — the first
