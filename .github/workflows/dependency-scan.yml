@@ -40,16 +40,65 @@ jobs:
       - name: Install root dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm audit` exits non-zero for two entirely different things: it found a
+      # moderate-or-worse advisory, or it could not reach npm's advisory
+      # endpoint to ask. Until 3 September 2026 this step could not tell them
+      # apart, so a network timeout was reported as a security finding.
+      #
+      # That is this repository's recurring defect running backwards -- a signal
+      # reporting FAILURE without being true -- and it is the more corrosive
+      # direction. A check that cries wolf teaches people to re-run it until it
+      # goes green and then stop reading it, which is how a real advisory gets
+      # waved through by somebody who has learned the red means nothing.
+      #
+      # It happened on that date and is what prompted this: four job runs across
+      # two commits, one of which touched only markdown, all reporting
+      #
+      #     { "error": { "code": 23, "message": "The operation was aborted due to timeout" } }
+      #
+      # while https://registry.npmjs.org/ itself answered 200 in under two
+      # seconds. The advisory bulk endpoint alone was unresponsive, reproducibly,
+      # from GitHub's runners and from an unrelated network.
+      #
+      # Two changes, neither of which weakens the audit:
+      #
+      #   1. Retry. A transient network failure is worth asking again about;
+      #      three attempts with backoff cost seconds and remove the whole class
+      #      of one-off flake. A sustained outage still fails.
+      # `scripts/audit-result-is-unusable.mjs` decides which of the two it was,
+      # and is a file rather than an inline one-liner because the inline version
+      # got two of its five cases wrong -- see the header there.
+      #
+      #   2. Say which it was. An audit that could not run STILL FAILS -- an
+      #      audit that did not happen must never be a green tick -- but it fails
+      #      with its own message, so nobody has to open the artifact to learn
+      #      that no vulnerability was found because none was looked for.
+      #
+      # The audit-level and the failing behaviour are untouched. See
+      # SECURITY_NOTES.md.
+      # `pnpm audit` exits non-zero for two entirely different things: it found a
+      # moderate-or-worse advisory, or it could not reach npm's advisory endpoint
+      # to ask. Until 3 September 2026 none of this repository's three audit
+      # steps could tell them apart, so a network timeout was reported as a
+      # security finding.
+      #
+      # That is the recurring defect running backwards -- a signal reporting
+      # FAILURE without being true -- and it is the more corrosive direction. A
+      # check that cries wolf teaches people to re-run it until it goes green
+      # and then stop reading it, which is how a real advisory gets waved
+      # through by somebody who has learned the red means nothing.
+      #
+      # scripts/audit-dependencies.mjs is one implementation for all three call
+      # sites, because fixing one of three is the shape this repository got
+      # wrong the same day elsewhere. Nothing is relaxed: the level is still
+      # moderate and an audit that could not run still fails, with its own
+      # message -- and it now fails in ninety seconds rather than four minutes,
+      # because pnpm audit hangs rather than failing fast. See SECURITY_NOTES.md.
       - name: Audit root dependencies
         id: root-audit
         continue-on-error: true
         shell: bash
-        run: |
-          set +e
-          pnpm audit --audit-level moderate --json > pnpm-audit.json
-          status=$?
-          cat pnpm-audit.json
-          exit $status
+        run: node scripts/audit-dependencies.mjs
 
       - name: Upload dependency audit diagnostics
         if: always()

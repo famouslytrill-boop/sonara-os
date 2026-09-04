@@ -1,0 +1,166 @@
+"use strict";
+
+// `pnpm audit` exits non-zero for two entirely different things: it found an
+// advisory, or it could not reach npm's advisory endpoint to ask. The CI step
+// could not tell them apart, so on 3 September 2026 a network timeout was
+// reported as a security finding — four job runs across two commits, one of
+// which touched only markdown, each carrying
+//
+//     { "error": { "code": 23, "message": "The operation was aborted due to timeout" } }
+//
+// while https://registry.npmjs.org/ itself answered 200 in under two seconds.
+// The advisory bulk endpoint alone was unresponsive, reproducibly, from
+// GitHub's runners and from an unrelated network.
+//
+// This is the recurring defect running backwards: a signal reporting **failure**
+// without being true. That direction is the more corrosive one. A check that
+// cries wolf teaches people to re-run it until it goes green and then stop
+// reading it, which is how a real advisory eventually gets waved through by
+// somebody who has learned the red means nothing.
+//
+// `scripts/audit-result-is-unusable.mjs` separates the two. Its rule is that
+// **anything which is not a valid audit result means we could not ask** — and
+// that rule exists because the first version of it, written inline in the
+// workflow, got two of these five cases wrong. An empty file and an
+// unparseable one were both classified as real results, so a crashed audit
+// would have been reported as a security finding by the very code written to
+// stop a timeout being reported as one. The same shape, one case over.
+//
+// The caller still fails on both. An audit that did not happen must never be a
+// green tick. What changes is that it says which of the two it was.
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+
+const SCRIPT = path.join(__dirname, "..", "scripts", "audit-result-is-unusable.mjs");
+
+/** Exit 0 means "could not ask". Exit 1 means "a real audit result". */
+function classify(contents) {
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "audit-")), "pnpm-audit.json");
+  if (contents !== null) fs.writeFileSync(file, contents);
+  const run = spawnSync(process.execPath, [SCRIPT, file], { encoding: "utf8" });
+  assert.ok(run.status === 0 || run.status === 1, `unexpected exit ${run.status}: ${run.stderr}`);
+  return run.status === 0 ? "could-not-ask" : "real-result";
+}
+
+describe("an audit that did not happen is not a finding", () => {
+  describe("the harness is capable of failing", () => {
+    it("is running the script it means to", () => {
+      assert.ok(fs.existsSync(SCRIPT), "scripts/audit-result-is-unusable.mjs is gone");
+      // If both answers were the same the table below would prove nothing.
+      assert.notEqual(
+        classify('{"error":{"code":23}}'),
+        classify('{"advisories":{},"metadata":{}}'),
+        "the classifier gives the same answer to a transport error and a clean audit; it is deciding nothing"
+      );
+    });
+  });
+
+  describe("what counts as having asked", () => {
+    const cases = [
+      ['{ "error": { "code": 23, "message": "The operation was aborted due to timeout" } }', "could-not-ask", "the real timeout that caused this"],
+      ['{ "error": { "code": 1, "message": "something else entirely" } }', "could-not-ask", "any error key, not just code 23"],
+      ["", "could-not-ask", "an empty file — pnpm wrote nothing"],
+      ["   \n  ", "could-not-ask", "whitespace only"],
+      ["not json at all", "could-not-ask", "output that cannot be parsed"],
+      [null, "could-not-ask", "no file at all"],
+      ['{"advisories":{"1234":{"severity":"high","module_name":"lodash"}},"metadata":{"vulnerabilities":{"high":1}}}', "real-result", "a genuine advisory"],
+      ['{"advisories":{},"metadata":{"vulnerabilities":{"moderate":0}}}', "real-result", "a clean audit"]
+    ];
+
+    for (const [contents, expected, why] of cases) {
+      it(`treats ${why} as ${expected}`, () => {
+        assert.equal(
+          classify(contents),
+          expected,
+          expected === "could-not-ask"
+            ? "this would be reported as a security finding, which it is not"
+            : "this would be reported as 'we could not ask', hiding a real audit result"
+        );
+      });
+    }
+  });
+
+  describe("every audit in the repository goes through it", () => {
+    // The reason this section is derived rather than a list of three files:
+    // the first version of this fix patched ONE of three call sites, which is
+    // the same shape as the migration repair that fixed the tables that were
+    // absent and ignored the ones that were present. A fourth workflow that
+    // calls `pnpm audit` bare must fail here rather than quietly reintroducing
+    // the defect.
+    const dir = path.join(__dirname, "..", ".github", "workflows");
+    const workflows = fs.readdirSync(dir).filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"));
+
+    /** Lines that invoke pnpm audit, ignoring prose about it. */
+    function invocations() {
+      const found = [];
+      for (const name of workflows) {
+        const text = fs.readFileSync(path.join(dir, name), "utf8");
+        text.split("\n").forEach((line, index) => {
+          const code = line.replace(/#.*$/, "");
+          if (/\bpnpm\s+audit\b/.test(code)) found.push({ name, line: index + 1, code: code.trim() });
+          if (/audit-dependencies\.mjs/.test(code)) found.push({ name, line: index + 1, code: code.trim(), viaScript: true });
+        });
+      }
+      return found;
+    }
+
+    const calls = invocations();
+
+    it("found the audit steps it is checking", () => {
+      assert.ok(workflows.length >= 5, `only ${workflows.length} workflows; this check has gone blind`);
+      assert.ok(
+        calls.length >= 3,
+        `only ${calls.length} audit invocations found across ${workflows.length} workflows; this check has gone blind`
+      );
+    });
+
+    it("has no workflow calling pnpm audit directly", () => {
+      const bare = calls.filter((call) => !call.viaScript);
+      assert.deepEqual(
+        bare.map((call) => `${call.name}:${call.line}  ${call.code}`),
+        [],
+        "a workflow invokes pnpm audit directly, so a timeout there is reported as a security finding again. " +
+          "Call scripts/audit-dependencies.mjs instead"
+      );
+    });
+
+    it("covers the production deployment, where a false finding blocks a release", () => {
+      assert.ok(
+        calls.some((call) => call.name === "controlled-production-deploy.yml" && call.viaScript),
+        "the production deployment no longer audits through the script. A network timeout there would block a " +
+          "release with a security finding that is not one"
+      );
+    });
+
+    it("still audits at the same level", () => {
+      // The one thing this change must not have done.
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
+      assert.match(
+        script,
+        /const LEVEL = "moderate"/,
+        "the audit level changed. Telling a timeout from a finding must not quietly relax what counts as a finding"
+      );
+    });
+
+    it("bounds the attempt, because pnpm audit hangs rather than failing fast", () => {
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
+      assert.match(script, /timeout -k/, "the audit is unbounded again; the observed hang was four minutes");
+      assert.match(script, /TIMEOUT_SECONDS = 90/, "the attempt bound is gone or changed without updating this test");
+    });
+
+    it("never turns an unreachable audit into a pass", () => {
+      const script = fs.readFileSync(path.join(__dirname, "..", "scripts", "audit-dependencies.mjs"), "utf8");
+      const branch = script.slice(script.indexOf("if (couldNotAsk(OUTPUT))"));
+      assert.match(
+        branch.slice(0, 500),
+        /process\.exit\(1\)/,
+        "an audit that could not run no longer fails. The point of telling the two apart is the message, never " +
+          "the outcome"
+      );
+    });
+  });
+});
