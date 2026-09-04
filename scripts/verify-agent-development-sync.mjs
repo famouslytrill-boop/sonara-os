@@ -118,24 +118,72 @@ assert.ok(
 );
 const [, baselineSha] = baseline;
 
-// The commit has to be real. A baseline nobody can resolve is a baseline nobody
-// checked, and it would satisfy every line below while meaning nothing.
-const knownCommit = spawnSync("git", ["cat-file", "-e", `${baselineSha}^{commit}`], { cwd: root, encoding: "utf8" });
-assert.equal(
-  knownCommit.status,
-  0,
-  `.ai/shared/CURRENT_STATE.md names baseline ${baselineSha}, which is not a commit in this repository.`
-);
+function git(...args) {
+  return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+}
 
 function resolveRef(ref) {
-  const result = spawnSync("git", ["rev-parse", "--verify", "--quiet", ref], { cwd: root, encoding: "utf8" });
+  const result = git("rev-parse", "--verify", "--quiet", ref);
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
-// A shallow CI checkout may carry neither ref. That is not a reason to pass:
-// an unresolvable tip takes the same branch as a stale baseline, so the pointer
-// is then required unconditionally. Erring towards requiring it keeps the
-// failure in the safe direction -- the alternative is a check that quietly
+// Is the baseline a real commit? A baseline nobody can resolve is a baseline
+// nobody checked, and it would satisfy every line below while meaning nothing.
+//
+// The catch is that `actions/checkout` clones at depth 1 unless a workflow asks
+// for more, and only two here do. In that clone the July baseline is simply not
+// present, and `cat-file` cannot tell "this SHA is fiction" from "this SHA was
+// never fetched" -- both are exit 128.
+//
+// The first version asserted the commit existed unconditionally and turned
+// three CI jobs red on a document that was correct. The shallow case was
+// reasoned about one line further down, for resolving the tip, and not applied
+// here: the same hazard, seen once and handled once.
+//
+// So: verify whenever the history is there to answer. Only when the object is
+// missing *and* the repository is truncated is that treated as "cannot prove"
+// rather than "is fiction" -- and it says so on stdout, because a check that
+// quietly stops checking is what this command was rewritten to stop.
+//
+// Both branches are reached by a real environment, checked rather than assumed
+// by grepping the workflows that run `verify:config`:
+//
+//   controlled-production-deploy.yml   fetch-depth: 0  -> strict branch
+//   sonara-industries-ci.yml           default depth 1 -> exemption branch
+//
+// The higher-stakes of the two is the one that verifies.
+//
+// **What that does not cover, stated plainly:** in a shallow clone a fabricated
+// SHA is indistinguishable from an unfetched one, so this cannot reject it
+// there -- and that includes most development containers, whose clone carries a
+// `.git/shallow` file even after being deepened enough to hold the baseline.
+// The null OID is the exception: it is git's own sentinel for "no object",
+// never a commit at any depth, so it is rejected everywhere. The guarantee that
+// survives truncation is the pointer requirement below, which does not depend
+// on history at all.
+assert.notEqual(
+  baselineSha,
+  "0".repeat(40),
+  ".ai/shared/CURRENT_STATE.md names the null commit as its baseline, which is git's way of saying no object."
+);
+
+if (git("cat-file", "-e", `${baselineSha}^{commit}`).status !== 0) {
+  assert.equal(
+    git("rev-parse", "--is-shallow-repository").stdout.trim(),
+    "true",
+    `.ai/shared/CURRENT_STATE.md names baseline ${baselineSha}, which is not a commit in this repository.`
+  );
+  process.stdout.write(
+    `Shared state: baseline ${baselineSha} is not in this checkout and the clone is truncated, so whether it is a ` +
+      "real commit was NOT verified. The superseded-by pointer below is required regardless.\n"
+  );
+}
+
+// A shallow CI checkout carries neither ref -- confirmed by cloning this
+// repository at depth 1 and running this command in it. That is not a reason to
+// pass: an unresolvable tip takes the same branch as a stale baseline, so the
+// pointer is then required unconditionally. Erring towards requiring it keeps
+// the failure in the safe direction -- the alternative is a check that quietly
 // stops checking on exactly the machines it runs on most.
 const mainTip = resolveRef("refs/remotes/origin/main") || resolveRef("refs/heads/main");
 

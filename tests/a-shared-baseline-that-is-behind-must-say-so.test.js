@@ -77,9 +77,22 @@ function gateWith(rewrite) {
 it("the shared baseline names the commit it describes", () => {
   const baseline = /<!--\s*baseline:\s*([0-9a-f]{40})\s*-->/.exec(source);
   assert.ok(baseline, "CURRENT_STATE.md must carry a `baseline:` comment naming a 40-character commit");
+  assert.notEqual(baseline[1], "0".repeat(40), "the null OID is git's way of saying no object, not a baseline");
 
+  // Only assertable where the history is present. `actions/checkout` clones at
+  // depth 1 unless asked otherwise, and in that clone a July commit is absent
+  // whether or not it is real -- `cat-file` returns 128 either way. The first
+  // version of this asserted unconditionally and turned three CI jobs red on a
+  // document that was correct.
   const known = spawnSync("git", ["cat-file", "-e", `${baseline[1]}^{commit}`], { cwd: root, encoding: "utf8" });
-  assert.equal(known.status, 0, `baseline ${baseline[1]} is not a commit in this repository`);
+  if (known.status === 0) return;
+
+  const shallow = spawnSync("git", ["rev-parse", "--is-shallow-repository"], { cwd: root, encoding: "utf8" });
+  assert.equal(
+    shallow.stdout.trim(),
+    "true",
+    `baseline ${baseline[1]} is not a commit in this repository, and this checkout has the history to know it`
+  );
 });
 
 it("a baseline that is behind main points at what is current instead", () => {
@@ -134,8 +147,30 @@ it("the gate fails when the pointer names a file that does not exist", () => {
   assert.match(result.output, /A pointer to nothing is worse than no pointer/);
 });
 
-it("the gate fails when the baseline is not a commit in this repository", () => {
+it("the gate rejects the null OID as a baseline, at any clone depth", () => {
+  // The one fabricated value rejectable everywhere: git's own sentinel for "no
+  // object". A shallow clone cannot tell any *other* invented SHA from one it
+  // simply never fetched, which is why the strict check below is conditional
+  // and this one is not.
   const result = gateWith((text) => text.replace(/baseline: [0-9a-f]{40}/, `baseline: ${"0".repeat(40)}`));
+  assert.notEqual(result.status, 0);
+  assert.match(result.output, /null commit as its baseline/);
+});
+
+it("the gate rejects an invented baseline wherever it has the history to tell", () => {
+  const shallow = spawnSync("git", ["rev-parse", "--is-shallow-repository"], { cwd: root, encoding: "utf8" });
+  const result = gateWith((text) => text.replace(/baseline: [0-9a-f]{40}/, "baseline: dead0000beef0000dead0000beef0000dead0000"));
+
+  if (shallow.stdout.trim() === "true") {
+    // Not a pass by omission: the run must SAY it could not check, and the
+    // pointer requirement must still have been enforced.
+    assert.match(
+      result.output,
+      /whether it is a real commit was NOT verified/,
+      "a truncated clone must announce that it skipped the check rather than passing silently"
+    );
+    return;
+  }
   assert.notEqual(result.status, 0);
   assert.match(result.output, /is not a commit in this repository/);
 });

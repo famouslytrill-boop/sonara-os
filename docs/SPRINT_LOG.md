@@ -94,8 +94,46 @@ and asserting nothing; a register entry removed while its file still asserts; an
 entry naming a file that does register cases; an entry naming a file with no
 top-level assert.
 
-285 test files -> 287; the two new files add 14 cases, and `pnpm test` runs
-**3,783 passing** on this branch. Recorded as shape 8 in the skill.
+## The shallow-checkout hole, found by CI on the first push
+
+The first push turned three jobs red, and one of them was mine rather than the
+npm outage: `baseline fa9402a8... is not a commit in this repository`.
+
+`actions/checkout` clones at depth 1 unless a workflow asks otherwise, and only
+two here do. In that clone the July baseline is simply absent, and `cat-file`
+cannot tell *"this SHA is fiction"* from *"this SHA was never fetched"* -- both
+are exit 128. The gate had asserted the commit existed unconditionally.
+
+The uncomfortable part: the shallow case was reasoned about **one line further
+down**, for resolving the tip of `main`, and not applied to the call above it.
+The same hazard, seen once and handled once.
+
+Reproduced by cloning this repository at depth 1 and running the command in it,
+rather than by reading the workflow. The fix verifies whenever the history is
+there and treats a missing object in a truncated clone as *"cannot prove"*, said
+out loud on stdout, never silently. Both branches are reached by a real
+environment -- checked by grepping the workflows that run `verify:config`:
+
+    controlled-production-deploy.yml   fetch-depth: 0   -> strict branch
+    sonara-industries-ci.yml           default depth 1  -> exemption branch
+
+Two things worth writing down. A **plain `git clone` of a shallow repository is
+itself shallow**, so this container cannot produce a full clone to test against;
+the strict branch was exercised by deleting `.git/shallow` from a clone whose
+baseline was genuinely absent. And this container's own checkout carries
+`.git/shallow` *while still holding the baseline* -- deepened, not complete --
+so `--is-shallow-repository` being true does not mean the object is missing.
+That is why the check tries `cat-file` first and only then asks about depth.
+
+What a truncated clone cannot enforce is stated in the comment rather than
+implied: an invented SHA is indistinguishable from an unfetched one there. The
+null OID is the exception, being git's own sentinel for "no object", so it is
+rejected at any depth. The guarantee that survives truncation is the pointer
+requirement, which does not read history at all.
+
+285 test files -> 287; the two new files add 15 cases, and `pnpm test` runs
+**3,784 passing** -- verified both here and inside a depth-1 clone, which is the
+condition that failed. Recorded as shape 8 in the skill.
 
 ### 2026-09-03 - A late Stripe event could reinstate a cancelled subscription
 
