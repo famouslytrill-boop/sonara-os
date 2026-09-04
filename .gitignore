@@ -13,6 +13,12 @@ pids
 
 # Coverage and tool caches
 coverage/
+
+# coverage.py's binary database, written wherever it is run. Committed by
+# accident on 4 September 2026 while measuring tools/disposable-domains -- the
+# same shape as the pnpm-audit.json slip below, an hour apart.
+.coverage
+.coverage.*
 .nyc_output/
 .grunt/
 .npm/
