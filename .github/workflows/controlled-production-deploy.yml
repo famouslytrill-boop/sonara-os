@@ -78,7 +78,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        run: pnpm audit --audit-level moderate
+        # A false security finding here blocks a production release. See
+        # scripts/audit-dependencies.mjs and SECURITY_NOTES.md.
+        run: node scripts/audit-dependencies.mjs
 
 
       - name: Build release candidate
