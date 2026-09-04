@@ -2,6 +2,65 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-04 - One outage was hiding forty checks
+
+Chasing why the Python coverage floor reported 13 files locally when there are
+34, the answer turned out to be fine -- CI sets `SONARA_PYTHON_COVERAGE_COMPLETE`
+and fails on any unmeasured suite, so the floor really is enforced across all of
+them there. But checking *where* CI does that found something else.
+
+`node scripts/audit-dependencies.mjs` was **step five** of the
+`sonara-industries` job. npm's advisory service broke at ~22:06 UTC on 3
+September. Every run of that job since aborted at step five -- so `typecheck`,
+`lint`, the whole 3,791-case test suite, the build, the client-secret scan, the
+route-behaviour and database-contract checks, the Python coverage floor and all
+twenty `verify:gates` commands **went unrun on every pull request for six
+hours**.
+
+Twenty of twenty-three checks read green throughout, because they are other
+jobs. This one verified nothing past installing dependencies, and its red tick
+said "dependency audit failed", which is true and is not what had happened.
+
+## Moving it last weakens nothing, and that was checked
+
+It still runs on every push, it still fails the job, the audit level is
+unchanged, and a real advisory still blocks the merge. Only the position moves.
+
+Fail-fast on a genuine finding is not lost either -- verified rather than
+assumed: `dependency-scan.yml` runs `frontend-dependencies` and
+`backend-dependencies` as their own parallel jobs, each calling the same script,
+so an actual advisory still surfaces in about a minute. That is why this is a
+reordering and not a trade.
+
+What changes is that a third-party outage now costs the audit result instead of
+costing every other check in the job.
+
+## The check that keeps it there, and two mistakes it caught in itself
+
+`tests/an-audit-that-did-not-happen-is-not-a-finding.test.js` gained a suite
+naming each gated step individually -- typecheck, lint, build, verify:gates,
+test:docs -- rather than asking "is the audit last", so the failure message says
+*which* check an earlier audit would take down.
+
+Its first version filtered the workflow to lines opening a step, which meant a
+step written as `- name:` with its command on an indented `run:` underneath was
+invisible: it reported that the job no longer ran `verify:gates`, which it
+plainly did. Fixed by reading whole step blocks.
+
+Its second version then reported that `test:docs` ran *after* the audit and that
+the audit was called twice. Both false. The audit step carries a long comment
+explaining its position, that comment names `audit-dependencies.mjs`, and the
+comment sits at the tail of the previous step's block -- so the matcher found
+prose. **Shape 7, hit for the third time in one day**, and worth recording
+because each time it looked like a different problem.
+
+Three probes, each red by name: the audit moved back to step five, which is the
+original bug; the audit deleted, caught by the derived call-site count from
+2 September ("only 2 audit invocations found across 9 workflows"); and the audit
+given `continue-on-error: true`.
+
+Suite 3,788 -> 3,791.
+
 ### 2026-09-04 - A finished page nobody can reach, and nothing to notice it
 
 Shape 8 in `.claude/skills/checks-that-cannot-lie` was written this morning as
