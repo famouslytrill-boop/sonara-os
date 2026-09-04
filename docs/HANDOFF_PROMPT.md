@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 111 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 285 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 286 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,70 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-04 - A stranger could put a megabyte in your lead list
+
+`/chat/:slug` is one of two endpoints here a person with no account can write
+through. The other, `/book/:slug`, has clamped every field since it was written:
+`slice(0, 120)` on a name, `320` on an email, `40` on a phone, `1000` on notes.
+
+The chat path did not. Visitor answers funnel through `recordAnswer`, which used
+`cleanText` — trim, reject empty, nothing else.
+
+`express.urlencoded({ limit: "1mb" })` and the chat rate limiter meant this was
+never a way to fill a database. It was a way for a stranger to put **a megabyte
+in the `name` field** of a lead, which then renders on the owner's list page.
+The owner is who suffers, and they did nothing.
+
+## Where the bound belongs
+
+Not in `cleanText`. Most of its callers read the **owner's own** profile
+configuration — industries, regions, disqualifiers — and silently truncating
+what a business typed about itself is a different defect. The bound goes where
+untrusted input enters, which is `recordAnswer`.
+
+## Truncating is right for text and wrong for an identifier
+
+This is the half the first version of the fix got wrong, and it is the part
+worth keeping.
+
+A name or a free-text answer can be cut: the tail is lost and nothing else
+changes. An email address or a phone number cannot. **Truncating one does not
+shorten it — it makes it point somewhere else.**
+`someone@example.com.attacker.tld` cut at the wrong byte is
+`someone@example.com`: a different, real person's address, stored as though the
+visitor had typed it, and then emailed by whatever the business does with a lead.
+
+Landing that byte exactly is fiddly. That is not the standard to apply to
+somebody else's contact details. Identifiers are **refused** when over-long, with
+a message, because "we could not accept that" beats quietly recording a value
+nobody gave.
+
+## How it was found, and two mistakes in my own test
+
+Looking for the inverse of the dropdown defect: not what the form offers versus
+what the server accepts, but **what a form lets you type versus what the column
+will hold**. That first search found nothing — there are no `varchar(N)` columns
+at all, every text column is unbounded `text` — which inverted the question into
+the useful one: if the column is unbounded, the server-side clamp is the only
+limit there is.
+
+Both test failures on the first run were mine:
+
+- the free-text fixture invented a `questions` array, but `questionsFor` builds
+  questions from the profile's own fields, so it was ignored. Rewritten to use
+  the real path a visitor reaches: the "something else" box on a choice question.
+- the assertion that `cleanText` stays unbounded sliced the source from
+  `function cleanText` to `function textList` — a span that now includes
+  `visitorText`, which truncates on purpose. It was reading the wrong region and
+  reporting it as the right one. Bounded to the function's own body.
+
+**Probed five times, each failing by its own name:** the name bound removed (the
+original defect), identifiers truncated instead of refused (the attack),
+`>` made `>=` so the bound is off by one, and `cleanText` taught to truncate,
+which fails five tests including the one guarding the owner's configuration.
+
+Suite 3,759 → 3,768.
 
 ### 2026-09-03 - An eighth shape, and it is the one that cost a deployment
 
