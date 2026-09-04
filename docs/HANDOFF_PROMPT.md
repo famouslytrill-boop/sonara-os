@@ -106,6 +106,74 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-04 - The command line had no tests, and the reason for that had run out
+
+Moving the audit last made CI run `verify:gates` again for the first time in six
+hours, and its output answered the question that started the whole detour:
+
+    Python coverage floor verified: 34 files, 2674 executable lines, 59.1%
+    covered overall, 10 under the 35% floor against 10 register entries, from
+    210 tests, on Python 3.12 -- every Python source file was measured.
+
+So the 35% floor really is enforced across every Python file in CI. Ten were
+under it, each with a recorded reason, and most of those reasons are permanent:
+`__init__.py` files whose re-export lines run at import time before the tracer
+attaches, three- and five-line entry points that call into a library tested
+elsewhere, and one engine 0.9 points under whose own first line says it has
+never been run for want of a GPU and checkpoints.
+
+**One was not permanent.**
+`tools/disposable-domains/disposable_domains/cli.py` was **0% of 163 lines** --
+by far the largest -- with the reason: "the suite tests the validator and the
+public-suffix logic underneath them directly, and never through argv". True, and
+not a good place to stop. `main()` takes an argv list. Nothing was in the way.
+
+## What is worth testing in a command line
+
+Not that argparse works. The claims the module makes about itself:
+
+- **A file `fix` produced always passes `check`.** Stated in the module
+  docstring and enforced by `cmd_fix` re-running `check` and returning 3 if it
+  fails. One case per fixable problem code -- unsorted, duplicate, blank line,
+  uppercase, comment, missing trailing newline.
+- **Shared options mean the same thing before and after the subcommand.**
+  `_shared_parser` exists because the obvious `parents=` approach parses a
+  shared option twice and lets the subcommand's default silently overwrite a
+  value given earlier -- the command then runs against the wrong file and
+  reports success about it. Caught only by passing it in *both* positions, and
+  the sharpest case uses a file that is **not** clean, because a dropped
+  `--blocklist` falls back to the default list and would satisfy a naive
+  "exit 0".
+- **An unfixable line writes nothing.** Deleting `not a domain!!` is a decision
+  about somebody's blocklist, not a tidy-up.
+- **Exit codes are the interface.** 0 clean, 1 problems, 2 no file, 3 fix is
+  broken; `match` inverts 0 and 1 on purpose, which looks like a bug until you
+  read it.
+
+## The test that was wrong, and the code that was right
+
+One case asserted that `check` on a clean file with no cached public suffix list
+exits 0. It exits **1**: with no list it reports `suffixes_unchecked` and
+refuses to call the file clean, because the rule it could not evaluate is the
+one that would block an entire country.
+
+The assumption was wrong and the behaviour is better than the assumption. It is
+the distinction this repository keeps having to make -- **not knowing is its own
+answer, and it is not "fine"** -- so it is now pinned, along with the fact that
+only an explicit `--allow-unchecked-suffixes` moves that exit code, never the
+tool deciding the gap did not matter.
+
+## Result
+
+cli.py **0% -> 79%**. The disposable-domains suite 44 -> 67 tests. The Python
+floor 59.1% -> **64.3%**, ten under the floor -> nine, and the register entry
+removed because it had stopped describing anything.
+
+Both sides of that register were probed and fail by name: keeping the entry for
+a file now above the floor ("has reached the floor, but is still listed in
+BELOW_FLOOR"), and deleting the new tests so the file drops back with no entry
+("under the 35% floor, and is not in BELOW_FLOOR").
+
 ### 2026-09-04 - One outage was hiding forty checks, in two workflows
 
 Chasing why the Python coverage floor reported 13 files locally when there are
