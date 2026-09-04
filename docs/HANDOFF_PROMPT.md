@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 110 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 37 public routes, 18 customer routes, 29 admin routes.
-- 287 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 288 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,62 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-04 - A finished page nobody can reach, and nothing to notice it
+
+Shape 8 in `.claude/skills/checks-that-cannot-lie` was written this morning as
+*"registering something with a system that is not the one in use produces no
+error and no effect"*, with three examples guessed at the end of it: a route on
+a router nobody mounts, a listener on an emitter nobody fires, a migration in a
+directory the tool does not read. Those were reasoned, not observed, so they
+were worth checking.
+
+**One of the three is real here.** `routes/free-launch-stack-routes.cjs` is 34
+lines of complete markup registering `GET /free-launch-stack`. Asking the real
+Express app for that path returns **404**. It has never been mounted in
+`server.js` on this branch's history, no test names it, and no document or
+registry claims it works. What exists instead is
+`scripts/wire-free-launch-stack-local.cjs`, a script that string-replaces
+`server.js` to add the mount -- a manual wiring step somebody wrote down and
+nobody ran.
+
+Nothing was lying about it. That is the whole problem: nothing would have
+noticed, and nothing would notice the next one.
+
+The other two guesses were checked and are **not** present: the only `.sql`
+outside `supabase/migrations` is under `archive/`, and the 110 files there are
+the 110 the replay applies.
+
+## What the check has to model to be worth running
+
+Three of the 43 route modules are not named in `server.js`. Only one is an
+orphan. `sonara-shared-result-routes` is registered from
+`sonara-service-lifecycle-routes`, and `sonara-sub-app-routes` from
+`sonara-last9-routes` -- mounted transitively. A check that missed that would
+report two false orphans on its first run and be deleted by the end of the week,
+so reachability is the transitive closure from `server.js`, not a substring
+search. That distinction was found by looking, after a first crude pass named
+all three.
+
+The register is two-sided and its reason is **verified rather than trusted**:
+the last case asks the running application for every path the recorded module
+declares and requires a 404. A module reachable by some route the require graph
+does not model would answer 200 and fail, instead of sitting in the list looking
+accounted for.
+
+## What this deliberately does not do
+
+Mount it. Publishing a public page is the owner's decision and `AGENTS.md` sets
+a bar for what those have to be. A passing check should make a choice visible,
+not take it. Recorded in `docs/SHIP_READINESS.md` under "Known and deliberate"
+with the three options.
+
+Four probes, each red by name: a newly written module never mounted -- which is
+the case this exists for -- the known orphan removed from the register, a
+register entry naming a module that *is* mounted, and an entry naming a module
+that registers no path to check.
+
+Suite 3,784 -> 3,788.
 
 ### 2026-09-04 - Two checks that reported success without being true
 
