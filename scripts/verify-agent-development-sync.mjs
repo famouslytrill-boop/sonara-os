@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 
@@ -83,9 +84,74 @@ assert.match(
   "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp"
 );
 
+// `.ai/shared/CURRENT_STATE.md` is the baseline two different assistants read
+// before deciding what to do. It is hand-written, so it drifts. The question
+// worth asking is therefore not "is it fresh" -- nothing here can keep a
+// hand-written file fresh -- but "does it still claim to be fresh once it is
+// not".
+//
+// What this replaces asserted that "PR #100", "PR #101", "PR #103", "PR #104"
+// and "production lag" each appeared somewhere in the file, and then printed
+// "shared state are aligned". On 4 September 2026 all five were still present
+// while the file's two opening claims had been false for six weeks: it said
+// `main` was `fa9402a8...` when it was `ccaea37...`, and that no live
+// `claude/*` branch existed when origin carried eight. Every substring matched,
+// so the chain stayed green over it. A check that cannot fail on the thing it
+// names is the defect `CLAUDE.md` describes.
+//
+// Two halves now, and both must hold.
 const currentState = read(".ai/shared/CURRENT_STATE.md");
+
+// Half one, unchanged in intent: the audit record must survive. Deleting it
+// erases findings somebody actually made, and this is what stops that.
 for (const marker of ["PR #100", "PR #101", "PR #103", "PR #104", "production lag"]) {
   assert.match(currentState, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+}
+
+// Half two: the file must name the commit it describes, and while that commit
+// is not the tip of `main` it must point at what is current instead.
+const baseline = /<!--\s*baseline:\s*([0-9a-f]{40})\s*-->/.exec(currentState);
+assert.ok(
+  baseline,
+  ".ai/shared/CURRENT_STATE.md must carry `<!-- baseline: <40-char sha> -->` naming the commit it describes. " +
+    "Without it there is no way to tell a current document from a stale one, which is how it went six weeks out of date."
+);
+const [, baselineSha] = baseline;
+
+// The commit has to be real. A baseline nobody can resolve is a baseline nobody
+// checked, and it would satisfy every line below while meaning nothing.
+const knownCommit = spawnSync("git", ["cat-file", "-e", `${baselineSha}^{commit}`], { cwd: root, encoding: "utf8" });
+assert.equal(
+  knownCommit.status,
+  0,
+  `.ai/shared/CURRENT_STATE.md names baseline ${baselineSha}, which is not a commit in this repository.`
+);
+
+function resolveRef(ref) {
+  const result = spawnSync("git", ["rev-parse", "--verify", "--quiet", ref], { cwd: root, encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+// A shallow CI checkout may carry neither ref. That is not a reason to pass:
+// an unresolvable tip takes the same branch as a stale baseline, so the pointer
+// is then required unconditionally. Erring towards requiring it keeps the
+// failure in the safe direction -- the alternative is a check that quietly
+// stops checking on exactly the machines it runs on most.
+const mainTip = resolveRef("refs/remotes/origin/main") || resolveRef("refs/heads/main");
+
+if (mainTip !== baselineSha) {
+  const superseded = /<!--\s*superseded-by:\s*(\S+)\s*-->/.exec(currentState);
+  assert.ok(
+    superseded,
+    `.ai/shared/CURRENT_STATE.md describes ${baselineSha}, which is ${mainTip ? `not the tip of main (${mainTip})` : "not provably the tip of main from this checkout"}. ` +
+      "A document that is behind must say where the current picture is: add `<!-- superseded-by: <path> -->`, " +
+      "or refresh the file and move the baseline forward."
+  );
+  const target = path.join(root, superseded[1]);
+  assert.ok(
+    fs.existsSync(target),
+    `.ai/shared/CURRENT_STATE.md points at ${superseded[1]}, which does not exist. A pointer to nothing is worse than no pointer.`
+  );
 }
 
 const claudeSync = read(".ai/shared/CLAUDE_SYNC_2026-07-26.md");

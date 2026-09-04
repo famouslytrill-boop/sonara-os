@@ -2,15 +2,42 @@
 
 Updated: 2026-07-26 UTC after complete Claude/Codex reconciliation.
 
+<!-- baseline: fa9402a8671bae7934925c5c64f147a221bf4e16 -->
+<!-- superseded-by: docs/HANDOFF_PROMPT.md -->
+
+**This is a dated audit record, not a live description of the repository.**
+Everything below was true on 26 July 2026, and is written in the past tense for
+that reason. The live picture is `docs/HANDOFF_PROMPT.md`, which is generated
+from the repository by `scripts/generate-handoff-prompt.mjs` and therefore
+cannot drift. Read that first; read this for what was decided in July and why.
+
+The two HTML comments above are read by
+`scripts/verify-agent-development-sync.mjs`. `baseline` names the commit this
+document describes; while that commit is not the tip of `main`, the
+`superseded-by` pointer is required. Refreshing this file to the current tip is
+what allows the pointer to be dropped.
+
+## Why this notice exists
+
+Until 4 September 2026 this file opened with two present-tense claims that had
+stopped being true: that `main` was `fa9402a8...`, and that no live `claude/*`
+branch or open Claude pull request existed. By then `main` was `ccaea37...` and
+origin carried eight `claude/*` branches. The release-chain command that reads
+this file asserted five substrings were present and printed "shared state are
+aligned" -- and all five were still present, so six weeks of drift never
+surfaced as a failure. A check that cannot fail on the thing it names is the
+defect `CLAUDE.md` describes, and this is a shared baseline two different
+assistants read before deciding what to do.
+
 ## Source baseline
 
-- Current audited `main` is `fa9402a8671bae7934925c5c64f147a221bf4e16`, the merge of PR #104.
+- The audited `main` on 26 July 2026 was `fa9402a8671bae7934925c5c64f147a221bf4e16`, the merge of PR #104.
 - PR #104 added the v3 SONARA SVG identity family, light/dark startup and loading experience, reduced-motion behavior, PWA updates, and regression coverage.
 - PR #103 added the premium conversion homepage, mobile conversion behavior, truthful proof policy, and visible lifecycle restrictions.
 - PR #102 clarified the remaining production boundary for the 34-product recommended catalog.
 - PR #100 repaired the recommended-product-catalog runtime transform so repeated apply/build/verification passes remain idempotent.
 - PR #101 merged Claude branch `claude/fix-deploy-service-role-secret`; its head `375a2ef1b3809be76ccd4f3a00a107d8d9f788a9` is an ancestor of current `main`, which is 45 commits ahead.
-- No open Claude-generated pull request or live `claude/*` branch was found. Merged Claude branches have been deleted, but their commits remain in repository history.
+- No open Claude-generated pull request or live `claude/*` branch was found **on that date**. That has since changed -- this line is kept as the record of what the July audit saw, not as a statement about now. Merged Claude branches had been deleted, but their commits remain in repository history.
 
 ## Deployment and secret boundary
 
@@ -19,7 +46,7 @@ Updated: 2026-07-26 UTC after complete Claude/Codex reconciliation.
 - Dependency installation, builds, tests, Supabase CLI migration steps, and dynamically fetched Vercel CLI steps do not receive the service-role key.
 - The temporary Vercel environment file is removed before deployment.
 - GitHub does not expose protected secret values through this integration; secret existence must be proven by a successful workflow run.
-- **Production lag:** the latest READY Vercel production deployment found reports commit `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`, while current source `main` is `fa9402a8671bae7934925c5c64f147a221bf4e16`.
+- **Production lag, as measured on 26 July 2026:** the latest READY Vercel production deployment found reported commit `f730d51c4b7f18aa594685e3e38e09e43a9e2eac`, while source `main` was `fa9402a8671bae7934925c5c64f147a221bf4e16`.
 - No READY production deployment matching current `main` was found during this audit. Production must not be described as current until the controlled workflow completes exact-SHA alias verification.
 
 ## Catalog and entitlement boundary

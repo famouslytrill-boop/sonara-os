@@ -2,6 +2,101 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-04 - Two checks that reported success without being true
+
+Both found while looking for something else, and both the same shape.
+
+## A shared baseline six weeks out of date, under a green check
+
+`.ai/shared/CURRENT_STATE.md` is what a Claude or Codex session reads before
+deciding what to do here. It opened with two present-tense claims:
+
+- "Current audited `main` is `fa9402a8...`" -- `main` was `ccaea37...`.
+- "No open Claude-generated pull request or live `claude/*` branch was found" --
+  origin carried eight.
+
+Both were written on 26 July and never revisited. The release-chain command over
+the file, `scripts/verify-agent-development-sync.mjs`, asserted that five
+substrings appeared in it -- "PR #100", "PR #101", "PR #103", "PR #104",
+"production lag" -- and then printed *"shared state are aligned"*. All five were
+still there, because nothing had been deleted; only the truth had moved. So the
+chain went green over the drift on every run for six weeks.
+
+The loop was measuring that somebody had not deleted the file. The message it
+printed described something else entirely.
+
+### What replaced it, and what it deliberately does not attempt
+
+Nothing can keep a hand-written file fresh, and a gate that fails until somebody
+retypes a SHA into markdown is a gate that gets deleted. So the check does not
+ask *"is this current"*. It asks **"does this still claim to be current once it
+is not"** -- which is answerable, and is the half that caused harm.
+
+The document now carries `<!-- baseline: <sha> -->` naming the commit it
+describes. While that commit is not the tip of `main`, `<!-- superseded-by:
+<path> -->` is required, and the path must exist. Refreshing the document is
+what lets the pointer go away. The anti-deletion half is kept unchanged, because
+it was protecting something real -- the July audit holds findings somebody made.
+
+An unresolvable tip -- a shallow CI checkout carrying neither
+`refs/remotes/origin/main` nor `refs/heads/main` -- takes the same branch as a
+stale baseline rather than passing. A check that quietly stops checking on the
+machines it runs on most is the thing being fixed, not a property to preserve.
+
+The prose was corrected too: both sentences now carry the date they were
+observed, and the file says at the top that it is a dated audit record, naming
+the generated `docs/HANDOFF_PROMPT.md` as the live picture.
+
+Broken and confirmed red first, each failing by name: pointer removed (it named
+the stale baseline and the real tip), baseline removed, pointer aimed at a file
+that does not exist, baseline set to `0000...`, and the `PR #104` line deleted.
+The first reproduces the original bug exactly.
+
+## Nine assertions that could not fail anything
+
+Writing the test for the above, the file used `node:test`:
+
+    const test = require("node:test");
+    test("the gate fails when ...", () => { ... });
+
+Green under `node --test`. Under `pnpm test`, mocha loaded it, the calls
+registered nine cases with **node's** runner, node's runner never ran, and the
+suite total did not move. Nine assertions written specifically to prove a gate
+could fail were themselves incapable of failing anything.
+
+It was caught only because the total did not move. Nothing here would have
+caught it: `the-handoff-counts-what-mocha-runs.test.js` counts the files mocha
+*loads*, and it was one of them.
+
+`tests/every-test-file-can-fail-the-suite.test.js` closes that. Every file under
+`tests/` must be able to turn the suite red, and there are two honest ways:
+
+- **register cases** with `describe`/`it` -- what almost every file does.
+- **assert at load time** -- four `.mjs` files. Mocha runs top-level code when it
+  loads a file, so a failed assert aborts the load. That was *measured*, not
+  assumed: `platform-prep.test.mjs` was pointed at a document that does not
+  exist, and `pnpm test` went red.
+
+Registering with `node:test` is neither, and is now prohibited outright. The
+four load-time files sit in a two-sided register: a fifth file appearing there
+fails, an entry whose file was rewritten into `describe`/`it` fails, and an
+entry whose file holds no top-level `assert` fails -- so being listed is not
+what makes a file look checked.
+
+Its first version flagged **itself**, because the paragraph above quotes the
+offending line. It scans source with comments stripped now. A check that cannot
+tell prose from code is shape 7 in
+`.claude/skills/checks-that-cannot-lie`, and this is the second time it has
+happened.
+
+Five probes, each red by name: a file importing `node:test`; a file registering
+and asserting nothing; a register entry removed while its file still asserts; an
+entry naming a file that does register cases; an entry naming a file with no
+top-level assert.
+
+285 test files -> 287; the two new files add 14 cases, and `pnpm test` runs
+**3,783 passing** on this branch. Recorded as shape 8 in the skill.
+
 ### 2026-09-03 - A late Stripe event could reinstate a cancelled subscription
 
 This was recorded on this branch as an **open question for the owner**, on the
