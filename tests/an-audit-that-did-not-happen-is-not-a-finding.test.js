@@ -249,3 +249,62 @@ describe("an outage in npm's advisory service does not blind the rest of CI", ()
   });
 });
 
+describe("the dependency scan enforces its audit after the checks beside it", () => {
+  // The same shape as the sonara-industries job, one workflow over.
+  // `frontend-dependencies` runs the audit with `continue-on-error`, uploads
+  // its diagnostics, and then a separate step turns a failed audit into a
+  // failed job. That enforcement step sat before `verify:open-source`,
+  // `typecheck` and `build`, so the npm outage stopped those three running here
+  // too.
+  //
+  // Only the abort moved. The audit runs where it always did and its
+  // diagnostics still upload, so nothing about auditing changed.
+  //
+  // `backend-dependencies` is deliberately not covered: it audits pinned Python
+  // packages, never reaches npm's advisory service, and stayed green through
+  // the whole outage -- checked against its check runs on three heads, not
+  // assumed.
+  const workflow = fs
+    .readFileSync(path.join(__dirname, "..", ".github", "workflows", "dependency-scan.yml"), "utf8")
+    .split("\n")
+    .filter((line) => !/^\s*#/.test(line))
+    .join("\n");
+
+  const steps = (() => {
+    const lines = workflow.split("\n");
+    const starts = [];
+    lines.forEach((line, index) => {
+      if (/^      - /.test(line)) starts.push(index);
+    });
+    return starts.map((start, position) =>
+      lines.slice(start, position + 1 < starts.length ? starts[position + 1] : lines.length).join("\n")
+    );
+  })();
+
+  it("found the workflow's steps, so this is not passing on an empty file", () => {
+    assert.ok(steps.length >= 15, `only ${steps.length} steps parsed; this check has gone blind`);
+  });
+
+  it("enforces the audit after open-source policy, typecheck and build", () => {
+    const enforceAt = steps.findIndex((step) => step.includes("Enforce dependency audit"));
+    assert.notEqual(enforceAt, -1, "dependency-scan.yml no longer enforces the root audit");
+
+    for (const gated of ["pnpm run verify:open-source", "pnpm run typecheck", "pnpm run build"]) {
+      const at = steps.findIndex((step) => step.includes(gated));
+      assert.notEqual(at, -1, `dependency-scan.yml no longer runs ${gated}`);
+      assert.ok(
+        at < enforceAt,
+        `${gated} runs after the audit is enforced, so an npm advisory outage takes it down too.`
+      );
+    }
+  });
+
+  it("still turns a failed audit into a failed job", () => {
+    // The move must not become a removal. Same condition, same effect.
+    const enforce = steps.find((step) => step.includes("Enforce dependency audit"));
+    assert.match(enforce, /if: steps\.root-audit\.outcome == 'failure'/);
+    assert.match(enforce, /run: exit 1/);
+  });
+});
+
+

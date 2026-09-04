@@ -106,7 +106,7 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
-### 2026-09-04 - One outage was hiding forty checks
+### 2026-09-04 - One outage was hiding forty checks, in two workflows
 
 Chasing why the Python coverage floor reported 13 files locally when there are
 34, the answer turned out to be fine -- CI sets `SONARA_PYTHON_COVERAGE_COMPLETE`
@@ -163,7 +163,28 @@ original bug; the audit deleted, caught by the derived call-site count from
 2 September ("only 2 audit invocations found across 9 workflows"); and the audit
 given `continue-on-error: true`.
 
-Suite 3,788 -> 3,791.
+## The same shape one workflow over
+
+Having found it once, the obvious question is whether the other jobs calling the
+same script do the same thing. `frontend-dependencies` in `dependency-scan.yml`
+does, and more plainly: it runs the audit with `continue-on-error`, uploads the
+diagnostics, and then a separate **Enforce dependency audit** step turns a
+failed audit into a failed job. That enforcement sat immediately after the
+upload -- ahead of `verify:open-source`, `typecheck` and `build`, all three of
+which therefore stopped running here too.
+
+Cleaner to fix than the first one, because only the abort moves: the audit still
+runs exactly where it did and its diagnostics still upload, so nothing about
+auditing changes at all. Same condition, same message, same failed job.
+
+`backend-dependencies` is deliberately left alone, and that is a checked reason
+rather than an assumed one -- it audits pinned *Python* packages, never reaches
+npm's advisory service, and was green on all three heads through the outage.
+
+Three more probes, red by name: the enforcement moved back ahead of the other
+checks; its condition weakened to `if: false`; and the step deleted.
+
+Suite 3,788 -> 3,794.
 
 ### 2026-09-04 - A finished page nobody can reach, and nothing to notice it
 
