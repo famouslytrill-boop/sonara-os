@@ -112,6 +112,45 @@ if (reciprocalFlags.length !== repositoryCount) {
   );
   process.exit(1);
 }
+// How many tables end up with RLS enabled and no policy at all -- readable by
+// nobody but the service role.
+//
+// Read from the set `scripts/verify-migration-replay.mjs` pins, which is not a
+// hand-written list: the replay asserts it against a real PostgreSQL with all
+// migrations applied, and fails if a table joins or leaves. So the chain is
+// database -> replay -> here -> the document, and every link is checked.
+//
+// This exists because `docs/SHIP_READINESS.md` said **thirteen** while the true
+// figure was twenty-five, having nearly doubled with nothing watching. The
+// sentence also claimed "the deep verification reports it every run", and that
+// verification needs the service-role key and had not run since 5 August.
+//
+// It was spelled as a word, which is precisely the blind spot the comment on
+// the register patterns below records: "eight" is invisible to every pattern
+// here. The replacement is a digit for that reason, and this pattern is what
+// makes the digit worth writing.
+const replaySource = fs.readFileSync(path.join(root, "scripts", "verify-migration-replay.mjs"), "utf8");
+const closedSetMatch = /closed_set_([a-z0-9_,]+)/.exec(replaySource);
+const closedCountMatch = /closed_count_(\d+)/.exec(replaySource);
+if (!closedSetMatch || !closedCountMatch) {
+  console.error(
+    "ERROR: could not read the service-role-only table set out of scripts/verify-migration-replay.mjs. " +
+      "That probe is where this figure comes from, so without it the document claim below is unguarded."
+  );
+  process.exit(1);
+}
+const serviceRoleOnlyTables = closedSetMatch[1].split(",").filter(Boolean);
+const serviceRoleOnlyCount = serviceRoleOnlyTables.length;
+// The probe states the figure twice, as a count and as a list. If they disagree
+// the probe itself is wrong, and a document agreeing with either would be
+// agreeing with something untrue.
+if (Number(closedCountMatch[1]) !== serviceRoleOnlyCount) {
+  console.error(
+    `ERROR: verify-migration-replay.mjs expects closed_count_${closedCountMatch[1]} but lists ` +
+      `${serviceRoleOnlyCount} tables. Fix that probe before trusting any document that quotes it.`
+  );
+  process.exit(1);
+}
 const migrationCount = fs.readdirSync(path.join(root, "supabase", "migrations")).filter((name) => name.endsWith(".sql")).length;
 // Read as a module rather than parsed: the generated file holds Sets, and
 // counting quoted strings in it would count the header comment too.
@@ -125,7 +164,8 @@ for (const [label, value, floor] of [
   ["registered repositories carrying a reciprocal licence", reciprocalLicenceCount, 1],
   ["migrations", migrationCount, 50],
   ["tables created by the migrations", createdTableCount, 100],
-  ["organization-scoped tables", scopedTableCount, 80]
+  ["organization-scoped tables", scopedTableCount, 80],
+  ["tables closed to everyone but the service role", serviceRoleOnlyCount, 10]
 ]) {
   if (!Number.isFinite(value) || value < floor) {
     // A figure this check cannot establish is one it must not vouch for. The
@@ -165,6 +205,13 @@ let claimsChecked = 0;
 // document improving, and it should stop the release rather than go unnoticed.
 const REGISTER_CLAIM = "repositories on the open-source register";
 let registerClaimsSeen = 0;
+// The same guard for the service-role-only table count, and it is here because
+// the hole was demonstrated rather than imagined. Rewriting the figure as a
+// word -- "Twenty-five" for "25" -- drops it out of every pattern in this file,
+// and the check then passes having quietly stopped watching it. That is exactly
+// how the previous figure survived being wrong: it was written as "thirteen".
+const SERVICE_ROLE_CLAIM = "tables closed to everyone but the service role";
+let serviceRoleClaimsSeen = 0;
 
 for (const file of walk("docs")) {
   const raw = fs.readFileSync(path.join(root, file), "utf8");
@@ -215,13 +262,19 @@ for (const file of walk("docs")) {
     [/\b(\d[\d,]{0,4})\s+reciprocal\s+repositories\b/gi, reciprocalLicenceCount, "registered repositories carrying a reciprocal licence"],
     [/\b(\d[\d,]{0,4})\s+migrations\b/gi, migrationCount, "migration files"],
     [/\b(\d[\d,]{0,4})\s+tables\s+created\s+by\s+the\s+migrations\b/gi, createdTableCount, "tables created by the migrations"],
-    [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"]
+    [/\b(\d[\d,]{0,4})\s+of\s+them\s+organization-scoped\b/gi, scopedTableCount, "organization-scoped tables"],
+    [
+      /\b(\d[\d,]{0,4})\s+tables\s+have\s+RLS\s+enabled\s+with\s+no\s+explicit\s+policy\b/gi,
+      serviceRoleOnlyCount,
+      "tables closed to everyone but the service role"
+    ]
   ]) {
     for (const match of text.matchAll(pattern)) {
       const claimed = Number(String(match[1]).replace(/,/g, ""));
       if (!Number.isFinite(claimed)) continue;
       claimsChecked += 1;
       if (what === REGISTER_CLAIM) registerClaimsSeen += 1;
+      if (what === SERVICE_ROLE_CLAIM) serviceRoleClaimsSeen += 1;
       if (claimed !== actual) problems.push(`${file}: says "${match[0].trim()}"; the true figure is ${actual} (${what})`);
     }
   }
@@ -244,6 +297,15 @@ if (!registerClaimsSeen) {
     `ERROR: no document states the reviewed-repository count, so the pattern for it checked nothing. ` +
       "Either a live document lost the claim, or the pattern stopped matching how it is written -- " +
       "both are the check going quiet rather than the documents getting better."
+  );
+  process.exit(1);
+}
+
+if (!serviceRoleClaimsSeen) {
+  console.error(
+    "ERROR: no document states how many tables are closed to everyone but the service role, so the pattern for it " +
+      "checked nothing. The most likely cause is the figure being spelled as a word again -- a word is invisible to " +
+      "every pattern in this file, and that is how the previous one stayed wrong at thirteen while the truth was 25."
   );
   process.exit(1);
 }

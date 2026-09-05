@@ -98,13 +98,39 @@ jobs:
               # A 200 that ran nothing is normal -- most hours have nothing due.
               # What would not be normal is a 200 that is not JSON, which is how
               # a rewrite catching this path would look.
-              if ! grep -q '"ok"' "$body"; then
-                echo "::error title=Unexpected answer::200 without an ok field; something other than the scheduler answered this path"
+              #
+              # `"ok":true` rather than `"ok"`. The earlier form asked whether
+              # the field was *present*, which `{"ok":false,...}` satisfies --
+              # and that is the shape this application's own error bodies use,
+              # so a 200 carrying a refusal would have been read as a successful
+              # tick. Checking the value is the difference between "the
+              # scheduler answered" and "the scheduler worked".
+              if ! grep -qE '"ok"[[:space:]]*:[[:space:]]*true' "$body"; then
+                echo "::error title=Unexpected answer::200 whose body does not say ok:true; something other than a healthy scheduler answered this path"
                 exit 1
               fi
               ;;
             401)
               echo "::error title=Secret mismatch::the deployment has a SONARA_SCHEDULE_TICK_SECRET and it is not the one in this repository's secrets, so no schedule is running"
+              exit 1
+              ;;
+            404)
+              # The state production is actually in, measured on 5 September
+              # 2026 rather than assumed:
+              #
+              #     POST https://sonaraindustries.com/api/agents/schedule/tick
+              #     404 {"ok":false,"code":"not_found","message":"Unknown route."}
+              #     /api/health -> commitSha eebc80c2cae6ed6ec108aef503cb9ea1cf607625
+              #
+              # `eebc80c` has served production since 5 August and contains no
+              # occurrence of this path -- the endpoint arrived after it. So
+              # setting the secret alone would not start scheduled runs; the
+              # deployment has to carry the route as well.
+              #
+              # Without this branch the generic case below says only
+              # "HTTP 404", which is true and sends the reader looking for a
+              # broken route rather than an old deployment.
+              echo "::error title=Deployment predates this endpoint::${BASE_URL} answered 404 for the tick path. The running deployment does not contain /api/agents/schedule/tick, so no schedule can run until production is deployed from a commit that has it. Setting the secret alone will not help."
               exit 1
               ;;
             503)

@@ -4,6 +4,9 @@
   "private": true,
   "packageManager": "pnpm@11.1.1",
   "main": "server.js",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "vercel-build": "pnpm run build",
     "gen:tenant-tables": "node scripts/generate-tenant-scoped-tables.cjs",
@@ -43,10 +46,11 @@
     "report:orphan-tables": "node scripts/report-orphan-tables.mjs",
     "verify:orphan-tables": "node scripts/report-orphan-tables.mjs --check",
     "verify:filter-encoding": "node scripts/verify-postgrest-filter-encoding.mjs",
+    "verify:shape-repair": "node scripts/generate-existing-table-shape-repair.cjs --check",
     "verify:selected-columns": "node scripts/report-unused-selected-columns.mjs --check",
     "report:selected-columns": "node scripts/report-unused-selected-columns.mjs",
     "verify:open-source:network": "node scripts/verify-open-source-registry.mjs --network",
-    "verify:gates": "pnpm run verify:env && pnpm run verify:config && pnpm run verify:api && pnpm run verify:stripe && pnpm run verify:tenant-tables && pnpm run verify:member-policies && pnpm run verify:applied-migrations && pnpm run verify:catalog-sync && pnpm run verify:catalog-doc && pnpm run verify:open-source && pnpm run verify:product-map && pnpm run verify:handoff && pnpm run verify:definer-exposure && pnpm run verify:unreferenced-modules && pnpm run verify:orphan-tables && pnpm run verify:filter-encoding && pnpm run verify:selected-columns && pnpm run verify:stale-claims && pnpm run verify:doc-counts && pnpm run verify:research-copy && pnpm run verify:contrast && pnpm run verify:theme-palettes && pnpm run verify:source-licence && pnpm run verify:growth-copy && pnpm run verify:csp && pnpm run verify:margins && pnpm run verify:lifecycle-evidence && pnpm run verify:provider-keys && pnpm run verify:migration-replay && pnpm run verify:coverage-floor && pnpm run verify:python-coverage-floor",
+    "verify:gates": "pnpm run verify:env && pnpm run verify:config && pnpm run verify:api && pnpm run verify:stripe && pnpm run verify:tenant-tables && pnpm run verify:member-policies && pnpm run verify:applied-migrations && pnpm run verify:shape-repair && pnpm run verify:catalog-sync && pnpm run verify:catalog-doc && pnpm run verify:open-source && pnpm run verify:product-map && pnpm run verify:handoff && pnpm run verify:definer-exposure && pnpm run verify:unreferenced-modules && pnpm run verify:orphan-tables && pnpm run verify:filter-encoding && pnpm run verify:selected-columns && pnpm run verify:stale-claims && pnpm run verify:doc-counts && pnpm run verify:research-copy && pnpm run verify:contrast && pnpm run verify:theme-palettes && pnpm run verify:source-licence && pnpm run verify:growth-copy && pnpm run verify:csp && pnpm run verify:margins && pnpm run verify:lifecycle-evidence && pnpm run verify:provider-keys && pnpm run verify:migration-replay && pnpm run verify:coverage-floor && pnpm run verify:python-coverage-floor",
     "verify:launch": "pnpm run build && pnpm run test:coverage && pnpm run scan:client-secrets && pnpm run lint && pnpm run smoke:routes && pnpm run verify:db && pnpm run verify:gates",
     "verify:all": "pnpm run verify:launch",
     "verify:postdeploy": "node scripts/verify-postdeploy.mjs",

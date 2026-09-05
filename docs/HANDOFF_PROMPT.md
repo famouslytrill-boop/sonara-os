@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3876 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 110 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 111 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 291 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 293 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,357 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-05 - A gate's most important property was a comment, not a test
+
+Last surface in the sweep: automation elevation — the path where an agent action
+the rules refuse becomes a row in `agent_pending_actions`, and an owner approving
+it re-runs the action with the approval attached.
+
+The module is careful and its comments say the right things. One of them is the
+whole security posture:
+
+> **The classification is never read from the row.** `category` is stored so the
+> queue can be listed without re-classifying, and it is re-derived from
+> `action_type` on every decision.
+
+That is true — `approveAndRun` calls `classifyAction(action.action_type)`.
+**Fourteen tests covered this module and not one proved it.** So it was a reason
+somebody reasoned their way to rather than one anybody verified, which is the
+failure mode `CLAUDE.md` names in its own words.
+
+## Why this particular comment needed a test under it
+
+`agent_pending_actions` rows carry a `category` column, and a row is data
+somebody could write. If any decision read that column instead of re-deriving,
+a row claiming `self_serve` while its `action_type` is `issue_refund` would be
+approved under the wrong rules — **privilege escalation through a stored
+string**, and the one shape a gate like this must not have.
+
+The fixture therefore lies on purpose: the row states the least-privileged
+category the system has, alongside an action type that is one of the seven
+requiring an owner. The assertion is that the lie is ignored. A second case does
+the same one column over, for `requires_approval: false`, which the module also
+says it does not trust.
+
+## Broken, and confirmed red
+
+- **The escalation itself.** `approveAndRun` changed to prefer the row's stored
+  category: *"the approval took the category off the row instead of deriving it
+  from the action type"*.
+- **Blindness.** `classifyAction` stubbed to answer `self_serve` for everything,
+  so the test cannot pass by comparing two identical wrong answers.
+
+A third case pins that `issue_refund` really does derive to a gated category, so
+the first two are not two `undefined`s agreeing.
+
+Suite 3,825 -> 3,828. `verify:launch` exit 0.
+
+### 2026-09-05 - The number I wrote to replace a stale one had the same defect
+
+Having corrected "thirteen" to twenty-five, `verify-doc-counts.mjs` turned out
+to carry the diagnosis of why it went stale, written months ago against a
+different claim:
+
+> It also has to be written as a **DIGIT**. "eight" is invisible to every
+> pattern here, so a derived count spelled as a word cannot be checked at all --
+> which is worth knowing before writing one.
+
+The claim that drifted was "**Thirteen** tables have RLS enabled…", spelled as a
+word. And the replacement I had just written was "**Twenty-five** tables…" — the
+same blind spot, one hour old.
+
+## Making the figure checkable rather than merely correct
+
+The doc now says **25**, as a digit, and `verify-doc-counts.mjs` derives the
+truth from the set `verify-migration-replay.mjs` pins — which is not hand-written
+either: the replay asserts it against a real PostgreSQL with all 111 migrations
+applied and fails if a table joins or leaves.
+
+    database -> replay probe -> verify-doc-counts -> the document
+
+Every link checked. Two guards inside it: the probe states the figure twice, as
+a count and a list, and disagreement between them stops the run before any
+document is trusted; and a set that cannot be parsed out of the probe at all is
+an error rather than a zero.
+
+## The hole that was demonstrated, not imagined
+
+Probing the word-revert showed the check going **quiet** rather than red: claims
+checked dropped 14 -> 13 and it passed. A pattern that stops matching stops
+measuring, and nothing noticed — which is precisely how "thirteen" survived.
+
+The file already had that guard for one claim (`registerClaimsSeen`). It now has
+it for this one, and the message names the likely cause, because the next person
+to hit it will have done exactly what I did.
+
+Four probes: the number drifted back to 13, the number respelled as a word, the
+probe's own count and list disagreeing, and the pinned set made unreadable. Each
+fails by name.
+
+Suite unchanged at 3,825; countable claims 13 -> 14.
+
+### 2026-09-05 - Thirteen was twenty-five, and nothing had looked in a month
+
+`docs/SHIP_READINESS.md` carried this under "Known and deliberate":
+
+> **Thirteen tables have RLS enabled with no explicit policy**, which closes them
+> to everything except the service role. That is the intent, and the deep
+> verification reports it every run.
+
+Both halves were wrong.
+
+**The number.** Measured in the replay — all 111 migrations against an empty
+database — it is **twenty-five**, out of 307 tables with RLS enabled. Written by
+hand, derived by nothing, and nearly doubled since somebody counted.
+
+**The reassurance.** "The deep verification reports it every run" points at
+`scripts/verify-production-supabase.mjs`, which needs the service-role key and
+runs **only** inside Controlled Production Deployment. That workflow has not
+succeeded since 5 August. It had reported nothing for a month, which is the more
+serious half: the sentence told a reader the set was being watched.
+
+## What this is not
+
+A claim that 25 tables are wrongly closed. This application reads Supabase with
+the service-role key, which bypasses RLS, so RLS-with-no-policy is the posture
+you *want* for a server-only table — it is what stops a leaked anon key reading
+`user_recovery_codes` or `user_auth_factors`. Several of the 25 are plainly
+meant to be there.
+
+Which of them are correctly closed and which are customer data that should be
+reachable is a separate audit, and it needs production's real shape rather than
+the replay's. Saying so beats implying an answer I have not measured.
+
+## Pinned as a set, not a count
+
+`verify-migration-replay.mjs` now asserts the exact 25 names, two-sided. A table
+**joining** the set has just become unreadable by every customer; a table
+**leaving** it has just become readable. Neither is a decision to make by
+accident, and both now turn the release chain red with the name in the message.
+
+Probed both directions: dropping `user_preferences`' policies gave
+`closed_count_26`, and adding a policy to `leads` failed the set comparison.
+
+## The check that caught my own documentation
+
+Listing the 25 names made `report-orphan-tables.mjs` fail: `db_health_snapshots`
+is a genuine orphan, and naming it in the probe's SQL string made it read as
+queried. That script already strips comments for exactly this reason — "the
+difference between measuring usage and measuring mentions" — but a name in a
+SQL string is not a comment.
+
+The fix is the mechanism already there: `verify-migration-replay.mjs` joins
+`INVENTORIES`, the list of files that *enumerate* tables rather than query them.
+Narrow rather than blinding, and proved so — a real `.from("db_health_snapshots")`
+added to a scanned file is still caught.
+
+Suite 3,824 -> 3,825. `verify:launch` exit 0.
+
+### 2026-09-05 - The drift alarm was right for a month and said the wrong reason
+
+Following the scheduler finding to its root: four workflows talk to production,
+and **Production Commit Drift** runs every two hours. It has **288 runs** and
+the recent ones are all `failure`.
+
+So this alarm has been correct the whole time. It is not lying — it is being
+ignored, which a permanently red scheduled workflow eventually earns.
+
+## What it said, and why that was the problem
+
+Its failure message asserted one cause:
+
+> Something took the production alias away from the deployed commit.
+
+That is the scenario it was built for, on 4 August: a manual redeploy overtook a
+commit that had already passed the deploy gate, and production served a stale
+build for three and a half hours while everything was green.
+
+**It is not the current cause.** No deployment has *succeeded* since 5 August —
+fourteen consecutive failures, then #125 — so nothing took the alias. It was
+never handed over. A message that names the wrong cause is worse than one that
+names none, because it is what the next person reads instead of looking.
+
+## The distance is what tells the two apart
+
+Neither cause can be derived from git. The magnitude can, and it separates them
+cleanly: hours behind means a deploy was overtaken; weeks behind means none has
+landed. Measured from this checkout:
+
+    commits behind main: 339
+    live commit age:     30 days
+
+That is the fact "drift detected" has been hiding for a month, and reporting it
+costs `fetch-depth: 0` and two git commands. The message now offers both causes
+with the distance attached and points at Controlled Production Deployment's run
+history before assuming the first.
+
+The unresolvable case is handled rather than papered over: a live commit this
+clone cannot resolve (a force-push, a deleted branch) says so instead of
+printing a distance computed from nothing.
+
+Three probes, each red by name: the counting removed, `fetch-depth` back to 2,
+and the single-cause message restored.
+
+Suite 3,824 -> 3,825.
+
+### 2026-09-05 - The scheduler has reported success hourly while never running
+
+Sweeping the automation and scheduling surface, the agent schedule tick is the
+one piece with moving parts outside this repository: an hourly GitHub Actions
+cron that POSTs to `/api/agents/schedule/tick` on production.
+
+Ten runs, every one green. Each about **one second** — far too fast for a call
+with `--max-time 60`, which is the tell. The job takes its first branch: the
+secret is unset, so it warns and exits 0.
+
+That much is deliberate and the workflow says so: an unconfigured scheduler is
+"a product with no scheduled work rather than a broken one". Defensible. What it
+does not say is that there is a **second, independent blocker**, and this one is
+not a configuration choice.
+
+## Measured against production, not inferred
+
+    POST https://sonaraindustries.com/api/agents/schedule/tick
+    404 {"ok":false,"code":"not_found","message":"Unknown route."}
+
+    GET /api/health
+    commitSha eebc80c2cae6ed6ec108aef503cb9ea1cf607625
+
+`eebc80c` has served production since 5 August and contains **no occurrence** of
+that path — the endpoint arrived after it. So setting the secret would not start
+scheduled runs; it would convert a quiet green no-op into an hourly red 404.
+**Deploy first, then set the secret.** The other order is strictly worse.
+
+## Two fixes to the workflow
+
+**A 404 branch that names the cause.** The generic case said only
+`Scheduler tick failed::HTTP 404`, which is true and sends the reader looking
+for a broken route rather than an old deployment.
+
+**`"ok":true` instead of `"ok"`.** The 200 branch asked whether the field was
+*present*. This application's own error bodies are `{"ok":false,...}` — the 404
+above is one — so a 200 carrying a refusal would have been read as a successful
+tick. Presence is not the value, and the distance between them is the whole
+defect this repository keeps finding.
+
+Both probed: the 404 branch deleted, and the grep loosened back to presence.
+Each fails by name.
+
+Recorded in `docs/SHIP_READINESS.md` with the closing order, because a green
+hourly workflow over "nothing has ever run" is exactly the kind of state that
+stays invisible until somebody asks why no schedule fired.
+
+Suite 3,822 -> 3,824. `verify:launch` exit 0.
+
+### 2026-09-05 - What a skipped table costs, measured
+
+#217 landed on `main` while this branch was open, from
+`codex/production-member-policy-compat-20260905`. It attacks the same failure
+deployment #125 died on, from the other side: instead of adding the missing
+column, it makes the member-policy generator skip a table whose tenant column
+is absent, with a notice, rather than failing the migration.
+
+That is the right call, and its comment gives the right reason -- checking
+"before enabling RLS prevents a generated policy from either failing the
+deployment or changing access on a table it cannot scope." A migration that
+half-applies a security posture is worse than one that declines to start.
+
+It is also a claim about runtime behaviour that nothing executed. The replay
+harness is the only thing here that runs the SQL, and it already has the
+database degraded to production's exact shape at that point -- `customers`
+present, `organization_id` gone -- so measuring it cost one more invocation of a
+file already on disk.
+
+## What the database actually said
+
+    rls=true  total_policies=1  member_policy=0
+    policy_names=service role can manage customers
+
+**Row level security was already enabled on that table by an earlier
+migration**, and the only policy on it is the service-role one. So a skipped
+table is not left untouched. It is left with RLS on and nothing an organization
+member can read through.
+
+The guard prevents a failed deployment. It does **not** prevent members being
+locked out, because they already are. With #217 alone, deployment #126 would go
+green while `customers` stays unreadable by the people it belongs to -- a
+successful deployment shipping a silently missing feature, which is this
+repository's recurring defect wearing a deployment's clothes.
+
+That is the argument for the shape repair one version earlier, and it is now
+evidence rather than assertion. The two changes compose rather than compete: the
+repair puts the column back so the migration finds it and writes the policy, and
+the guard catches anything the repair did not anticipate without taking
+production down for it.
+
+## The first version of the probe was too weak to catch its own case
+
+It asked whether the table had **any** policy, and got "access_unchanged" every
+time -- because the service-role policy is always there. Moving the guard to
+*after* `enable row level security`, which reproduces the exact danger the
+comment names, left it green.
+
+Shape 6 in `.claude/skills/checks-that-cannot-lie`, in a check written twenty
+minutes earlier, and caught only by running the falsification rather than
+trusting the pass. The rewrite reports the three numbers separately -- RLS
+state, member policy count, service policy count -- so a wrong answer is visible
+instead of averaged into one verdict word.
+
+## Then the same question asked of all 54, not just the one that broke
+
+The probe above checks `customers`, because that is the table deployment #125
+died on. It is one of **54** organization-scoped tables, and a repair that fixed
+the one named in the error message while leaving the other 53 skipped would pass
+it -- the same shape as the table repair that created the absent tables and did
+nothing for the present ones.
+
+So the final assertion now reads the list out of the generator at run time and
+asks the database for all of them. Two failure modes told apart on purpose:
+**absent** (the table is not there, `to_regclass` skipped it) and **no policy**
+(the table is there and the member policy is not). The second is the silent one.
+
+**Measured: all 54 present, all 54 policied, none absent.** That includes
+`shared_links`, whose own creating migration runs *after* this one -- so the
+ordering resolves rather than leaving it unpolicied. I had assumed the opposite
+and was wrong; the replay said so.
+
+### The fact that made the first falsification useless
+
+**51 of the 54 are also policied by an earlier migration.** Six files create
+`*_select_member` policies, and only three tables -- `shared_links`,
+`service_comments`, `research_sources` -- depend on this one alone.
+
+The first attempt to break the probe removed `bookings` from the generator and
+the probe stayed green. That looked like a weak check and was not: `bookings`
+gets its policy from `20260729233000` as well, so the end state was still
+correct and green was the right answer. Repeating it with `service_comments`
+gave `policied_53`, `unpolicied_service_comments`.
+
+Worth writing down because it is the second time in this piece of work that a
+result which looked like a defect turned out to be a badly chosen question, and
+the difference was only visible by reading what the database said rather than
+what the number implied.
+
+## Probes
+
+- The guard removed entirely -> `failed against a table missing its tenant
+  column`, naming the generator and saying the guard is not firing or fires too
+  late.
+- The shape repair silently stopped restoring the column -> `Expected
+  customers_organization_id_1 and did not get it`.
+
+### What this does not say
+
+The replay runs against an **empty** database, so "all 54 policied" is a
+statement that the migrations agree with each other. Production's shape is still
+unread, and 30 of the 54 are covered by neither repair migration -- not because
+they are broken, but because they were never part of the 42-table gap and their
+own migrations create them whole. Which of those exist in production, and in
+what shape, is exactly what `rollback-checkpoint-33807980211` would answer.
+
+Suite 3,821 -> 3,822 (a `supabase-clients` case arrived with #217).
+`verify:launch` exit 0, 111 migrations replayed.
 
 ### 2026-09-04 - The command line had no tests, and the reason for that had run out
 
@@ -442,6 +793,303 @@ requirement, which does not read history at all.
 285 test files -> 287; the two new files add 15 cases, and `pnpm test` runs
 **3,784 passing** -- verified both here and inside a depth-1 clone, which is the
 condition that failed. Recorded as shape 8 in the skill.
+### 2026-09-04 - A stranger could put a megabyte in your lead list
+
+`/chat/:slug` is one of two endpoints here a person with no account can write
+through. The other, `/book/:slug`, has clamped every field since it was written:
+`slice(0, 120)` on a name, `320` on an email, `40` on a phone, `1000` on notes.
+
+The chat path did not. Visitor answers funnel through `recordAnswer`, which used
+`cleanText` — trim, reject empty, nothing else.
+
+`express.urlencoded({ limit: "1mb" })` and the chat rate limiter meant this was
+never a way to fill a database. It was a way for a stranger to put **a megabyte
+in the `name` field** of a lead, which then renders on the owner's list page.
+The owner is who suffers, and they did nothing.
+
+## Where the bound belongs
+
+Not in `cleanText`. Most of its callers read the **owner's own** profile
+configuration — industries, regions, disqualifiers — and silently truncating
+what a business typed about itself is a different defect. The bound goes where
+untrusted input enters, which is `recordAnswer`.
+
+## Truncating is right for text and wrong for an identifier
+
+This is the half the first version of the fix got wrong, and it is the part
+worth keeping.
+
+A name or a free-text answer can be cut: the tail is lost and nothing else
+changes. An email address or a phone number cannot. **Truncating one does not
+shorten it — it makes it point somewhere else.**
+`someone@example.com.attacker.tld` cut at the wrong byte is
+`someone@example.com`: a different, real person's address, stored as though the
+visitor had typed it, and then emailed by whatever the business does with a lead.
+
+Landing that byte exactly is fiddly. That is not the standard to apply to
+somebody else's contact details. Identifiers are **refused** when over-long, with
+a message, because "we could not accept that" beats quietly recording a value
+nobody gave.
+
+## How it was found, and two mistakes in my own test
+
+Looking for the inverse of the dropdown defect: not what the form offers versus
+what the server accepts, but **what a form lets you type versus what the column
+will hold**. That first search found nothing — there are no `varchar(N)` columns
+at all, every text column is unbounded `text` — which inverted the question into
+the useful one: if the column is unbounded, the server-side clamp is the only
+limit there is.
+
+Both test failures on the first run were mine:
+
+- the free-text fixture invented a `questions` array, but `questionsFor` builds
+  questions from the profile's own fields, so it was ignored. Rewritten to use
+  the real path a visitor reaches: the "something else" box on a choice question.
+- the assertion that `cleanText` stays unbounded sliced the source from
+  `function cleanText` to `function textList` — a span that now includes
+  `visitorText`, which truncates on purpose. It was reading the wrong region and
+  reporting it as the right one. Bounded to the function's own body.
+
+**Probed five times, each failing by its own name:** the name bound removed (the
+original defect), identifiers truncated instead of refused (the attack),
+`>` made `>=` so the bound is off by one, and `cleanText` taught to truncate,
+which fails five tests including the one guarding the owner's configuration.
+
+Suite 3,759 → 3,768.
+
+### 2026-09-03 - An eighth shape, and it is the one that cost a deployment
+
+`.claude/skills/checks-that-cannot-lie` gains **shape 8: verified in the one
+state where the code under test does nothing.**
+
+Every other shape in that file cost an hour. This one shipped, and took
+production with it.
+
+`verify:migration-replay` applies every migration to an **empty** PostgreSQL. For
+`20260811210000` — 42 `create table if not exists` — that is a full exercise, so
+a clean replay felt like proof. It was proof of the wrong thing. Production's
+tables were **present in an older shape**, which is precisely the state
+`if not exists` does nothing about, and deployment #125 died on a missing column
+the replay had no way to see.
+
+The successor migration made it starker: against an empty database every
+statement in the shape repair is a no-op, because the migration one version
+earlier creates each table whole. That check *could not have failed*.
+
+**The tell, written into the skill:** the fixture is the state the change
+assumes rather than the state that exists. An empty database is where a repair
+for a non-empty database is guaranteed to be a no-op.
+
+Three rules from the probe that replaced it, each already earning its place:
+
+- **Assert the degraded state before repairing it.** Without that middle
+  assertion the probe passes if the `drop` silently did nothing — a check that
+  proves the fixture rather than the fix.
+- **Re-run the statement that actually failed.** Asserting the column exists
+  says the repair did *something*; running the migration production died on says
+  it did the *right* thing. That was the only assertion that caught the column
+  being re-added with the wrong type.
+- **Re-applying to an already-repaired database proves idempotency for free**,
+  which is what makes it safe under `--include-all`.
+
+The older entries saying "six shapes" stay as they are, for the reason given
+where that was last said: they were true when written, and a log that edits
+itself to stay current is not a log.
+
+### 2026-09-03 - CI tested Node 22, production ran Node 24, nothing said so
+
+This sat on the open list for weeks as "a decision with production behaviour
+attached, and the owner's". It was decidable by measurement, and nobody had
+measured.
+
+`package.json` declared **no `engines` field at all**. Seven workflows pin
+`node-version: "22"`. Vercel runs 24. So the version the deployed function runs
+was whatever the host picks by default — a number nobody here chose, that moves
+when the host moves it, and that no check compared against the seven pins. The
+two runtimes diverged silently because **there was no field to disagree with**.
+
+## Measured rather than reasoned about
+
+Node **24.20.0** installed alongside the **22.22.2** the workflows pin, and the
+repository run against it:
+
+| | on 24.20.0 |
+| --- | --- |
+| `pnpm test` | **3,754 passing**, identical to 22 |
+| `pnpm run build` | OK |
+| `smoke:routes` | OK |
+| `verify:api` | OK |
+| `verify:config` | OK |
+| `verify:db` | OK |
+
+So "does this break on 24" is **no**, from running it rather than from reading a
+changelog.
+
+## Why `>=22` and not `22.x`
+
+Pinning to 22 would change what production runs — on a deployment that has not
+succeeded since 5 August — to fix a problem measurement says is not there. That
+is the wrong trade twice over. `>=22` admits both what CI pins and what
+production already runs, so it states what is true and changes nothing.
+
+The point was never to force a version. It was that the relationship was
+**invisible**: two numbers with no declared connection, drifting apart with
+nothing watching. `tests/the-runtime-ci-tests-is-one-production-may-run.js`
+makes it checkable — `engines.node` must exist, and every workflow pin must
+satisfy it. Deliberately one-directional: a repository may reasonably test on
+the oldest supported runtime while production runs the newest. What it refuses
+is a pin the declaration does not admit.
+
+A range the parser cannot read **fails** rather than being treated as satisfied
+by every pin, which is the shape that would otherwise let this go quietly blind
+again.
+
+**Probed five times, each failing by its own name:** `engines` deleted (3 red),
+the range narrowed to `20.x` so CI's pin falls outside it, a workflow moved to
+Node 18, and a range written as `^22 || ^24` that the parser cannot interpret
+(2 red — it refuses rather than passing everything).
+
+Suite 3,754 → 3,759.
+
+### 2026-09-03 - Read the dump the deployment already takes
+
+Two schema repairs have now been built by reading **one error message** and
+inferring the rest. `supabase db push` stops at the first failure, so a database
+missing fifty columns reports them at one per deployment:
+
+    run #124   ERROR: relation "public.quotes" does not exist
+    run #125   ERROR: column "organization_id" does not exist
+
+The first inference — that absent tables were the whole story — was wrong, and
+the second is an inference too.
+
+The answer has been sitting in the workflow the whole time. Controlled
+Production Deployment dumps production's schema before it applies anything
+(`supabase db dump -f pre-migration-schema.sql`, uploaded as the rollback
+checkpoint). **Nothing had ever read it.**
+
+`scripts/report-production-schema-gaps.mjs` reads it against the two repair
+migrations and prints every gap at once — absent tables and missing columns, to
+the job log and the step summary. `continue-on-error: true` on purpose: a schema
+gap is not a reason to refuse to deploy the fix for it, and a diagnostic that can
+block the thing it diagnoses is a diagnostic somebody deletes the first time it
+is inconvenient. It reports; the apply step still decides.
+
+The failure mode it has to defend against is its own: **a dump it cannot parse
+looks exactly like a database with nothing missing.** So under 20 parsed tables
+it prints `FAILED TO PARSE`, names the file and its byte count, and exits
+non-zero rather than issuing a clean bill. Probed with a two-line file that is
+not a dump; it said so.
+
+Tested against a synthetic dump built from the repair migration with production's
+two known conditions applied — `customers` without `organization_id`, and a
+whole table removed. It named both.
+
+## And a correction it produced immediately
+
+Building the fixture surfaced that I had been wrong about `shared_links`. I
+reported it twice as evidence of a mixed, damaged schema, on the strength of one
+NOTICE:
+
+    NOTICE: skipping shared_links: table not present
+
+It is created by `20260819070000_shared_links.sql`, which is **still further
+down the same pending list**. It is absent because its own migration has not run
+yet — which is precisely what should happen — and the policy migration skipping
+it is the guard working, not a symptom. Corrected in `OWNER-STEPS.md` step 8,
+where it had been written up as a finding.
+
+That is the same shape as everything else here: a reason arrived at by
+reasoning, which reads exactly like a reason arrived at by checking. The
+difference this time is that building a tool to check surfaced it within
+minutes.
+
+### 2026-09-03 - The repair created absent tables and ignored present ones
+
+PR #206 merged and Controlled Production Deployment **#125** ran — the first
+attempt since #110 with the 42-table repair migration in it. It failed, and what
+it failed on is more useful than what was expected.
+
+## Read both logs, not the inherited diagnosis
+
+| run | applying | error |
+| --- | --- | --- |
+| #124, 27 Aug | `20260811220000` | `relation "public.quotes" does not exist` |
+| #125, 3 Sep | `20260819030000` | `column "organization_id" does not exist` at statement 10 |
+
+The failing statement is the member-read policy on `public.customers`, over a
+column that table does not have. Two more facts from the same log:
+
+    NOTICE: skipping shared_links: table not present
+
+`public.shared_links` is absent. `public.customers` is **present without
+`organization_id`**. Production's schema is mixed, not uniformly behind.
+
+## What I got wrong, stated plainly
+
+I said the repair migration was what would unblock this. That is not supportable
+and I am not going to dress it up. The **dry-run at step 19 — before anything
+applied in run #125 — already listed pending starting at `20260819030000`**,
+which means production's history recorded both `20260811` migrations as applied
+before that run began. Something moved that history between 27 August and today
+and it was not this deployment. I do not know what, and inventing a cause here
+would be the same class of mistake as the one below.
+
+Nothing from #125 landed: `20260819030000` was first in the pending list and
+migrations are transactional, so its failure rolled back. Steps 23-29 skipped,
+so the application never deployed either — production still serves `eebc80c`.
+
+## The actual structural defect, which is mine
+
+`20260811210000_repair_missing_platform_tables.sql` is 42 statements and every
+one is `create table if not exists`. That repairs a table that is **absent**. It
+does **nothing** for a table that is **present in an older shape** — the `if not
+exists` is precisely what makes it a no-op there.
+
+`customers` is the second kind. The repair could never have fixed it, and the
+same is true of any of the other 41 that already exist.
+
+## `20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql`
+
+The other half, generated by `scripts/generate-existing-table-shape-repair.cjs`
+from the repair migration's own table bodies — **42 tables, 530 column
+repairs** — so the two halves cannot drift. Versioned between the repair and the
+migration that fails, because `--include-all` is what slots an out-of-order
+version in.
+
+Each column is added **nullable, without its primary key, unique or foreign key
+clause**. A table holding rows cannot take those, and a constraint failure here
+would fail the whole deployment for something that is not blocking it. **So
+production gets the columns later migrations need and not full referential
+parity with a fresh replay.** That divergence is real, is stated in the
+generated file's header, and closing it needs a dump of what production actually
+holds — the last time this was guessed at, the guess was that creating absent
+tables would be enough.
+
+## Why a clean replay proves nothing here, and what does
+
+Replayed against an empty database every statement in the new migration is a
+no-op, because the migration one version earlier creates each table whole. "It
+parses" was exactly what was true of the repair that did not fix production.
+
+So `verify-migration-replay.mjs` now reproduces production's shape and checks the
+thing that matters: drop `customers.organization_id` (`cascade`, because
+production has neither the column nor the policy on it), assert it is really
+gone, re-apply the shape repair, assert the column is back — **and then re-apply
+`20260819030000`, the migration production died on, and assert the policy it
+could not create now exists.** Asserting the column says the repair did
+something; running the failed statement says it did the right thing.
+
+**Probed four times, each failing by its own name:**
+
+| broken | caught by |
+| --- | --- |
+| the `customers.organization_id` repair deleted | `Expected customers_organization_id_1` |
+| the column re-added as `text` instead of `uuid` | `20260819030000 still does not apply after the shape repair` |
+| `add column if not exists` weakened to `add column` | the replay itself, naming the file and `column "name" of relation "organizations" already exists` |
+| (the degraded-state assertion) | fires before the repair runs, so the probe cannot pass by never having removed anything |
+
+`verify:shape-repair` is the 41st chain command. 111 migrations replay.
 
 ### 2026-09-03 - A late Stripe event could reinstate a cancelled subscription
 

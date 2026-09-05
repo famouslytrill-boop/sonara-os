@@ -247,3 +247,83 @@ describe("an approved agent action actually runs", () => {
     assert.equal(stateAfterRun({ status: "unimplemented" }).state, "unimplemented");
   });
 });
+
+describe("an approval reads the action type, never the row's own claim about itself", () => {
+  // `lib/sonara-agent-queue.cjs` says, in a comment:
+  //
+  //   **The classification is never read from the row.** `category` is stored
+  //   so the queue can be listed without re-classifying, and it is re-derived
+  //   from action_type on every decision.
+  //
+  // That is true -- `approveAndRun` calls `classifyAction(action.action_type)`.
+  // Fourteen cases covered this module and none of them proved it, so it was a
+  // reason somebody reasoned their way to rather than one anybody had verified,
+  // which `CLAUDE.md` names as its own failure mode.
+  //
+  // Why it matters: `agent_pending_actions` rows carry a `category` column. If
+  // a decision ever read that column instead of re-deriving, a row claiming
+  // `self_serve` while its `action_type` is `issue_refund` would be approved
+  // under the wrong rules -- a privilege escalation through a stored string,
+  // and the one shape a gate like this must not have.
+  //
+  // So the fixture lies on purpose: the row says the least-privileged category
+  // the system has, and the action type is one of the seven that require an
+  // owner. The assertion is that the lie is ignored.
+  const queue = require("../lib/sonara-agent-queue.cjs");
+  const { classifyAction } = require("../lib/sonara-agent-authority.cjs");
+
+  const forged = {
+    id: "pending-forged",
+    organization_id: "11111111-1111-4111-8111-111111111111",
+    action_type: "issue_refund",
+    // The lie. A row is data somebody could write; it is not a verdict.
+    category: "self_serve",
+    requires_approval: false,
+    requested_by: "22222222-2222-4222-8222-222222222222",
+    payload: {}
+  };
+
+  it("classifies a forged row by its action type, not its stored category", async () => {
+    const result = await queue.approveAndRun({
+      pending: forged,
+      decidedBy: "33333333-3333-4333-8333-333333333333",
+      runner: { run: async () => ({ status: "completed", classification: classifyAction("issue_refund") }) }
+    });
+
+    assert.equal(
+      result.classification.category,
+      classifyAction("issue_refund").category,
+      "the approval took the category off the row instead of deriving it from the action type"
+    );
+    assert.notEqual(
+      result.classification.category,
+      "self_serve",
+      "a row claiming self_serve was believed, which is a privilege escalation through a stored string"
+    );
+  });
+
+  it("does not believe a row that says it needs no approval", async () => {
+    // The same shape one column over. `requires_approval: false` on the row must
+    // not turn a gated action into an ungated one; the module's own comment
+    // says it "does not trust requires_approval for exactly that reason".
+    const result = await queue.approveAndRun({
+      pending: forged,
+      decidedBy: "33333333-3333-4333-8333-333333333333",
+      runner: { run: async () => ({ status: "completed" }) }
+    });
+    assert.equal(
+      result.classification.requiresApproval ?? result.classification.category !== "self_serve",
+      true,
+      "a row asserting requires_approval:false was believed over the action type"
+    );
+  });
+
+  it("has something to compare against, so this is not two undefineds agreeing", () => {
+    // Both assertions above compare against classifyAction's own answer. If that
+    // returned undefined for an unknown type, they would pass by agreeing about
+    // nothing -- so pin that the fixture's action type really is a gated one.
+    const derived = classifyAction("issue_refund");
+    assert.ok(derived && derived.category, "classifyAction returned no category for issue_refund");
+    assert.notEqual(derived.category, "self_serve", "issue_refund is not supposed to be self-serve");
+  });
+});

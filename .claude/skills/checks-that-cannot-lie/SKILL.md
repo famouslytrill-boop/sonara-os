@@ -21,7 +21,7 @@ green light over the problem.
 Every check added this way should be recorded in `docs/SPRINT_LOG.md` with what
 was broken to prove it works.
 
-## The eight shapes, each with the case that produced it
+## The nine shapes, each with the case that produced it
 
 ### 1. Passing by measuring nothing
 
@@ -91,6 +91,55 @@ was thrown away and rewritten per-function rather than shipped.
 
 **Guard:** the failure test is not optional. Reproduce the motivating bug and
 confirm the new check catches *that*.
+
+### 9. Verified in the one state where the code under test does nothing
+
+The most expensive of these so far, because it cost a production deployment
+rather than an hour.
+
+`20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql`
+adds columns that a live table is missing. `verify-migration-replay.mjs` applies
+every migration to an **empty** PostgreSQL and reported it green.
+
+It was green because the migration one version earlier creates each of those
+tables **whole**. Against an empty database every statement in the file is a
+no-op. The check proved the SQL parses. It could not have failed.
+
+That is exactly what happened one migration earlier, too, and there it shipped:
+`20260811210000` is 42 `create table if not exists`, and against an empty
+database that is a full exercise — so a clean replay felt like proof. It was
+proof of the wrong thing. Production's tables were **present in an older shape**,
+which is the one state `if not exists` does nothing about, and the deployment
+died on a missing column the replay had no way to see.
+
+**The tell:** the fixture is the state the change assumes rather than the state
+that exists. An empty database is where a repair for a non-empty database is
+guaranteed to be a no-op.
+
+**Guard: build the broken state, then run the thing.** Not "does it apply" —
+*does it repair*:
+
+```js
+psql("alter table public.customers drop column organization_id cascade;");
+behaves(psql, "the degraded database really is missing the column",
+  "select 'degraded_' || count(*) from information_schema.columns where …", ["degraded_0"]);
+psql(null, { file: theRepairMigration });
+behaves(psql, "the column is added back", …, ["customers_organization_id_1"]);
+psql(null, { file: theMigrationThatFailedInProduction });   // the part that matters
+behaves(psql, "the statement that failed now runs", …, ["customers_policy_1"]);
+```
+
+Three things that pair of probes taught, each worth copying:
+
+- **Assert the degraded state before repairing it.** Without the middle
+  assertion the probe passes if the `drop` silently did nothing, which is a
+  check that proves the fixture rather than the fix.
+- **Re-run the statement that actually failed.** Asserting the column exists
+  says the repair did *something*. Only running the migration production died on
+  says it did the *right* thing — and that assertion was the only one that
+  caught the column being re-added with the wrong type.
+- **Re-applying to an already-repaired database proves idempotency for free**,
+  which is what makes it safe to slot in under `--include-all`.
 
 ### 7. A pattern that matches prose as if it were code
 

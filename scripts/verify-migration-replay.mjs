@@ -67,6 +67,14 @@ const MINIMUM_MIGRATIONS = 90;
 // doing nothing at all.
 const MUST_EXIST = ["organizations", "customers", "service_catalog_items", "customer_invoices"];
 
+// The migration that brings an already-existing table up to the declared shape.
+// Named once here because the probe below deliberately re-applies it.
+const SHAPE_REPAIR = "20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql";
+
+// The migration Controlled Production Deployment #125 died on, at statement 10,
+// creating a policy over a column public.customers did not have.
+const BLOCKED_BY_SHAPE = "20260819030000_member_read_policies_research_sources.sql";
+
 // What a hosted Supabase project provides and a bare PostgreSQL does not.
 //
 // Each entry says what supplies it in production. Nothing here is in `public`.
@@ -318,6 +326,233 @@ function main() {
         where provider_subscription_ref = 'sub_replay_probe';
       select 'unstamped_gave_' || status from public.billing_subscriptions where provider_subscription_ref = 'sub_replay_probe';
     `, ["stale_kept_active", "fresh_gave_canceled", "unstamped_gave_past_due"]);
+
+    // The shape repair, proved against the case it exists for.
+    //
+    // Replaying against an empty database makes every statement in
+    // 20260812000000 a no-op, because the migration one version earlier creates
+    // each table whole. So a clean replay says that file parses and nothing
+    // more -- and "it parses" was exactly what was true of the table repair
+    // that did not fix production.
+    //
+    // Production's shape is: the table is there, the column is not. That is
+    // reproduced here by dropping the column deployment #125 actually died on,
+    // re-running the migration, and asking whether it came back. Re-running it
+    // against a database it has already been applied to also proves it is
+    // idempotent, which is what makes it safe to slot in with --include-all.
+    // `cascade` because the member-read policy is defined on this column, and
+    // dropping both is what makes this production's shape rather than an
+    // artificial one: production has neither the column nor that policy.
+    const degraded = psql("alter table public.customers drop column organization_id cascade;");
+    if (degraded.status !== 0) {
+      stop(
+        "could not drop public.customers.organization_id to reproduce production's shape, so the shape-repair probe " +
+        `below would prove nothing:\n${degraded.stderr || degraded.stdout}`
+      );
+    }
+    behaves(psql, "the degraded database really is missing the column", `
+      select 'degraded_column_count_' || count(*)::text
+        from information_schema.columns
+        where table_schema = 'public' and table_name = 'customers' and column_name = 'organization_id';
+    `, ["degraded_column_count_0"]);
+
+    // What a skip costs, measured. This is the argument for the shape repair.
+    //
+    // `scripts/generate-member-read-policies.cjs` gained a column-existence
+    // guard on 5 September 2026: a table whose tenant column is missing is
+    // skipped with a notice instead of failing the migration. That is the right
+    // call -- a migration that stops halfway through applying a security
+    // posture is worse than one that declines to start.
+    //
+    // But "the deployment no longer fails" and "the tables are readable" are
+    // different claims, and only the first is obvious. Measured here rather
+    // than reasoned about, in the degraded state the probe has already set up
+    // (`customers` present, `organization_id` gone -- production's shape):
+    //
+    //     rls=true  total_policies=1  member_policy=0
+    //     policy_names=service role can manage customers
+    //
+    // Row level security was **already enabled** on this table by an earlier
+    // migration, and the only policy on it is the service-role one. So a
+    // skipped table is not left untouched: it is left with RLS on and nothing
+    // an organization member can read through. The guard prevents a failed
+    // deployment. It does not prevent members being locked out, because they
+    // already are.
+    //
+    // That is what the shape repair one version earlier is for, and it is why
+    // the two changes compose rather than compete: the repair puts the column
+    // back so this migration finds it and writes the policy, and the guard
+    // catches anything the repair did not anticipate without taking production
+    // down for it.
+    //
+    // **This probe asserts the lock-out.** A future change that makes a skip
+    // look harmless -- or a repair that quietly stops running -- turns this red,
+    // and the message says a green deployment would ship a table members
+    // cannot read.
+    const skipped = psql(null, { file: path.join(migrationsDir, BLOCKED_BY_SHAPE) });
+    if (skipped.status !== 0) {
+      stop(
+        `${BLOCKED_BY_SHAPE} failed against a table missing its tenant column. The column-existence guard in ` +
+        "scripts/generate-member-read-policies.cjs exists so this skips rather than stops, so either the guard is " +
+        `not firing or it fires too late:\n${skipped.stderr || skipped.stdout}`
+      );
+    }
+
+    // Named per-value rather than collapsed into one verdict word. The first
+    // version of this asked whether the table had *any* policy and got
+    // "access_unchanged" every time, because the service-role policy is always
+    // there -- a check too weak to catch the case it was written for, which is
+    // shape 6 in `.claude/skills/checks-that-cannot-lie`. Reporting the three
+    // numbers means a wrong answer is visible instead of averaged away.
+    behaves(psql, "a skipped table is left with RLS on and no member policy", `
+      select 'skipped_rls_' || c.relrowsecurity::text
+        from pg_class c where c.oid = 'public.customers'::regclass;
+
+      select 'skipped_member_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers'
+          and policyname = 'customers_select_member';
+
+      select 'skipped_service_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers'
+          and policyname = 'service role can manage customers';
+    `, ["skipped_rls_true", "skipped_member_policy_0", "skipped_service_policy_1"]);
+
+    const reapplied = psql(null, { file: path.join(migrationsDir, SHAPE_REPAIR) });
+    if (reapplied.status !== 0) {
+      stop(`${SHAPE_REPAIR} would not re-apply to a database it has already run against:\n${reapplied.stderr}`);
+    }
+    behaves(psql, "a column missing from a table that already exists is added back", `
+      select 'customers_organization_id_' || count(*)::text
+        from information_schema.columns
+        where table_schema = 'public' and table_name = 'customers' and column_name = 'organization_id';
+    `, ["customers_organization_id_1"]);
+
+    // And then the thing that actually matters: the migration that killed
+    // deployment #125 has to run. Asserting the column exists says the repair
+    // did something; running the statement that failed says it did the right
+    // thing. Without this the probe above could pass while the deploy still
+    // died one line later.
+    const unblocked = psql(null, { file: path.join(migrationsDir, BLOCKED_BY_SHAPE) });
+    if (unblocked.status !== 0) {
+      stop(
+        `${BLOCKED_BY_SHAPE} still does not apply after the shape repair. This is the migration production died on, ` +
+        `so the repair has not unblocked the deployment:\n${unblocked.stderr || unblocked.stdout}`
+      );
+    }
+    // Every table the generator declares, not just the one that broke.
+    //
+    // The probe below checks `customers`, because that is the table deployment
+    // #125 died on. That is one of **54** organization-scoped tables, and a
+    // repair that fixed the one in the error message while leaving the other 53
+    // skipped would pass it -- which is the same shape as the table repair that
+    // created the absent tables and did nothing for the present ones.
+    //
+    // The list is read from `scripts/generate-member-read-policies.cjs` at run
+    // time rather than copied, so a table added there is covered here without
+    // anybody remembering to.
+    //
+    // Two failure modes, told apart on purpose:
+    //   absent      the table does not exist at all, so `to_regclass` skipped it
+    //   no policy   the table is there and the member policy is not
+    // The second is the silent one -- RLS is already on from an earlier
+    // migration, so a table in that state is readable by nobody but the service
+    // role while the deployment reports success.
+    //
+    // Measured on 5 September 2026: all 54 present, all 54 policied, none
+    // absent. That includes `shared_links`, whose own migration runs *after*
+    // this one -- so the ordering resolves rather than leaving it unpolicied,
+    // which is worth having pinned because it is not obvious from reading the
+    // migrations in order.
+    //
+    // One more measured fact, because it changes how this migration should be
+    // read: **51 of the 54 are also policied by an earlier migration.** Six
+    // files create `*_select_member` policies, and only three tables --
+    // `shared_links`, `service_comments`, `research_sources` -- depend on this
+    // one alone. So a falsification that removes a table from the generator
+    // proves nothing unless it picks one of those three: drop `bookings` and
+    // the end state stays correct, because 20260729233000 already created it.
+    // That was tried first and correctly did not fail.
+    const declared = (() => {
+      const source = fs.readFileSync(path.join(root, "scripts", "generate-member-read-policies.cjs"), "utf8");
+      const list = /const ORGANIZATION_READ_TABLES = \[([\s\S]*?)\];/.exec(source);
+      if (!list) stop("could not read ORGANIZATION_READ_TABLES out of the member-policy generator");
+      const tables = list[1].split("\n").map((line) => (/"([a-z_0-9]+)"/.exec(line) || [])[1]).filter(Boolean);
+      if (tables.length < 40) {
+        stop(`only ${tables.length} organization-scoped tables parsed out of the generator; this probe has gone blind`);
+      }
+      return tables;
+    })();
+
+    const asArray = `array[${declared.map((table) => `'${table}'`).join(",")}]`;
+    behaves(psql, "every organization-scoped table the generator declares ends with its member policy", `
+      select 'declared_${declared.length}';
+
+      select 'policied_' || count(*)::text from (
+        select t from unnest(${asArray}) t
+        where exists (
+          select 1 from pg_policies p
+          where p.schemaname = 'public' and p.tablename = t and p.policyname = t || '_select_member')) q;
+
+      select 'absent_' || coalesce(string_agg(t, ',' order by t), 'none') from (
+        select t from unnest(${asArray}) t where to_regclass('public.' || t) is null) q;
+
+      select 'unpolicied_' || coalesce(string_agg(t, ',' order by t), 'none') from (
+        select t from unnest(${asArray}) t
+        where to_regclass('public.' || t) is not null
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = t and p.policyname = t || '_select_member')) q;
+    `, [`declared_${declared.length}`, `policied_${declared.length}`, "absent_none", "unpolicied_none"]);
+
+    // Which tables end up readable by nobody but the service role.
+    //
+    // Row level security with **no policy at all** closes a table to every
+    // authenticated user. For this application that is often correct rather
+    // than broken: the server reads Supabase with the service-role key, which
+    // bypasses RLS, so a server-only table wants exactly this posture -- it is
+    // what stops a leaked anon key reading `user_recovery_codes`.
+    //
+    // What is not correct is not knowing which tables are in that set.
+    // `docs/SHIP_READINESS.md` said **thirteen** and claimed "the deep
+    // verification reports it every run". Measured here on 5 September 2026:
+    // **twenty-five**, out of 307 tables with RLS enabled. And the deep
+    // verification is `scripts/verify-production-supabase.mjs`, which needs the
+    // service-role key and runs only inside Controlled Production Deployment --
+    // a workflow that has not succeeded since 5 August. So it had reported
+    // nothing for a month, and the number nobody derived had nearly doubled.
+    //
+    // Pinned as an exact set rather than a count, and two-sided on purpose. A
+    // table joining this list is a table that just became unreadable by every
+    // customer; a table leaving it is one that just became readable. Both are
+    // decisions somebody should make deliberately, and both turn this red with
+    // the name in the message.
+    //
+    // This is the intended end state of the migrations, not production's. The
+    // replay runs against an empty database.
+    behaves(psql, "the set of tables closed to everyone but the service role is the set we decided on", `
+      select 'closed_count_' || count(*)::text from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = c.relname);
+
+      select 'closed_set_' || coalesce(string_agg(c.relname, ',' order by c.relname), 'none')
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = c.relname);
+    `, ["closed_count_25", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,user_auth_factors,user_recovery_codes"]);
+
+    behaves(psql, "the policy that could not be created now exists", `
+      select 'customers_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers' and policyname = 'customers_select_member';
+    `, ["customers_policy_1"]);
 
     console.log(`Shim applied (Supabase primitives only, nothing in public): ${SHIM.map(([name]) => name).join(", ")}.`);
     // What this sentence must not be read as, and the reason is not hypothetical.
