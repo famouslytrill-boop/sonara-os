@@ -254,6 +254,8 @@ describe("how far the tenant guard actually reaches", () => {
     return found;
   }
 
+  const portablePath = (value) => value.split(pathx.sep).join("/");
+
   const files = runtimeFiles();
   const sources = new Map(files.map((rel) => [rel, fsx.readFileSync(pathx.join(ROOT, rel), "utf8")]));
 
@@ -264,7 +266,7 @@ describe("how far the tenant guard actually reaches", () => {
     callSites += (source.match(/rest\/v1\//g) || []).length;
     if (rel.endsWith("sonara-tenant-data.cjs")) continue;
     const calls = (source.match(/\b(buildTenantQuery|fetchTenantRows)\s*\(/g) || []).length;
-    if (calls) { adopters.push(rel); guardCalls += calls; }
+    if (calls) { adopters.push(portablePath(rel)); guardCalls += calls; }
   }
 
   it("counted a runtime worth counting", () => {

@@ -12,6 +12,8 @@ const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
+const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
+const { getPlacementCounts } = require("../lib/sonara-social-repository-product-routing.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
 const registerSharedResultRoutes = require("./sonara-shared-result-routes.cjs");
 
@@ -1501,7 +1503,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     const rows = requests.map((entry) => {
       const when = entry.created_at ? new Date(entry.created_at) : null;
       const raised = when && !Number.isNaN(when.getTime())
-        ? when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+        ? when.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })
         : "recently";
       const status = String(entry.status || "open").replace(/_/g, " ");
       const reference = String(entry.reference_id || "").slice(0, 8);
@@ -1587,9 +1589,15 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
     app.get(`/${product.slug}/tools`, (req, res) => {
       const definitions = getProductPageDefinitions(product.slug);
       const existingFree = definitions.free.filter((page) => !page.path.includes("/records/") && page.module !== "help");
+      const technologyCount = getPlacementCounts(readOpenSourceTools())[product.productKey] || 0;
       const sections = [
         ...productTools.map((tool) => actionCard(tool.title, tool.description, [linkAction(tool.path, "Open tool")])),
         ...existingFree.map((page) => actionCard(page.title, page.body, [linkAction(page.path, "Open")])),
+        actionCard(
+          "Reviewed technology references",
+          `${technologyCount} recently researched technologies are routed to ${product.name}. They are clearly labelled as references, research, or unavailable - not presented as connected features.`,
+          [linkAction(`/${product.slug}/technology`, "Review technology references"), linkAction("/technology-radar", "All references")]
+        ),
         actionCard("Paid tools", `Paid ${product.name} tools unlock with a confirmed plan or owner/admin access: ${definitions.paid.map((page) => page.label).join(", ")}.`, [linkAction("/pricing", "View pricing"), linkAction(`/${product.slug}/dashboard`, "Dashboard")])
       ];
       res.status(200).type("html").send(
@@ -1599,7 +1607,7 @@ module.exports = function registerServiceLifecycleRoutes(app, deps) {
           heading: `${product.name} tools`,
           body: "Free tools are available once you're signed in, and give you a real result even before your workspace is fully set up.",
           sections,
-          actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
+          actions: [linkAction(`/${product.slug}/start`, "Start guide"), linkAction(`/${product.slug}/technology`, "Technology references"), linkAction(`/${product.slug}`, product.name), linkAction("/login", "Login"), linkAction("/signup", "Create account")]
         })
       );
     });

@@ -48,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm test > test-output.log 2>&1
+          pnpm run test:coverage > test-output.log 2>&1
           status=$?
           cat test-output.log
           exit $status

@@ -40,6 +40,7 @@ const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 
 const root = path.join(__dirname, "..");
+const portablePath = (value) => value.split(path.sep).join("/");
 
 // The four files that assert at load time rather than registering cases. This
 // is deliberately a register and not a threshold: a fifth file appearing here
@@ -106,7 +107,7 @@ function filesRegisteringCases() {
     report.stats.tests >= 3000,
     `mocha --dry-run reported only ${report.stats.tests} cases; this check has gone blind`
   );
-  return new Set(report.tests.map((entry) => path.relative(root, entry.file)));
+  return new Set(report.tests.map((entry) => portablePath(path.relative(root, entry.file))));
 }
 
 describe("every test file can fail the suite", () => {

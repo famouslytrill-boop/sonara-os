@@ -70,6 +70,10 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  COVERAGE_DIR,
+  hasCurrentSuccessfulCoverage
+} from "./test-coverage-cache.mjs";
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const FLOOR = 0.35;
@@ -170,25 +174,33 @@ function lineCoverage(rel, rangeLists) {
   return { covered, total };
 }
 
-const covDir = fs.mkdtempSync(path.join(os.tmpdir(), "sonara-coverage-"));
+const cachedCoverageIsCurrent = hasCurrentSuccessfulCoverage();
+const covDir = cachedCoverageIsCurrent
+  ? COVERAGE_DIR
+  : fs.mkdtempSync(path.join(os.tmpdir(), "sonara-coverage-"));
 try {
-  // Run the suite here rather than reading whatever a previous command left
-  // behind. Coverage from an older tree would be a figure that reports success
-  // about code it never saw.
+  // verify:launch records coverage while running its one authoritative test
+  // suite. Reuse it only when a content fingerprint proves it came from this
+  // exact tree. A direct invocation still runs the suite itself.
   // The suite's stderr is captured rather than passed through: several tests
   // deliberately provoke the error paths they are testing, so a clean run
   // prints stack traces that are not problems. It is printed in full if the
   // run fails, which is the only time it means anything.
-  const run = spawnSync("npx", ["mocha"], {
-    cwd: REPO,
-    env: { ...process.env, NODE_V8_COVERAGE: covDir },
-    stdio: ["ignore", "ignore", "pipe"],
-    encoding: "utf8"
-  });
-  if (run.status !== 0) {
-    process.stderr.write(run.stderr || "");
-    fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
-    process.exit(1);
+  if (cachedCoverageIsCurrent) {
+    process.stdout.write("Using V8 coverage from the current successful release-gate test run.\n");
+  } else {
+    const mochaBin = path.join(REPO, "node_modules", "mocha", "bin", "mocha.js");
+    const run = spawnSync(process.execPath, [mochaBin, "--pass-with-no-tests"], {
+      cwd: REPO,
+      env: { ...process.env, NODE_V8_COVERAGE: covDir },
+      stdio: ["ignore", "ignore", "pipe"],
+      encoding: "utf8"
+    });
+    if (run.status !== 0) {
+      process.stderr.write(run.stderr || "");
+      fail("the test suite did not pass, so its coverage says nothing. Fix the suite first.");
+      process.exit(1);
+    }
   }
 
   const measured = [];
@@ -264,5 +276,5 @@ try {
   }
   process.stdout.write(`Coverage floor verified: ${population}.\n`);
 } finally {
-  fs.rmSync(covDir, { recursive: true, force: true });
+  if (!cachedCoverageIsCurrent) fs.rmSync(covDir, { recursive: true, force: true });
 }

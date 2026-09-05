@@ -83,7 +83,7 @@ function sourceFiles() {
   const files = [];
   for (const dir of ["lib", "routes"]) {
     for (const name of fs.readdirSync(path.join(ROOT, dir))) {
-      if (name.endsWith(".cjs") || name.endsWith(".js")) files.push(path.join(dir, name));
+      if (name.endsWith(".cjs") || name.endsWith(".js")) files.push(`${dir}/${name}`);
     }
   }
   files.push("server.js");

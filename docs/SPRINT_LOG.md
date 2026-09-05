@@ -14793,3 +14793,37 @@ return an empty array": **an empty list is only a lie when something reads it as
 a fact about the customer.** A table that renders no rows is fine. A sentence
 saying "you have never made anything", a count, an instruction, or a money total
 is not.
+
+### 2026-09-03 - Routing reviewed repositories without pretending they are products
+
+The latest branch had 171 governed repository records. Thirty-two reviewed,
+non-duplicate records from the structural-hardening branch had not reached that
+baseline, so they were carried forward without replacing newer records or
+reviving retired repository URLs. A later reconciliation preserved 14 newer
+records from the shared development baseline as well. The register now has 217
+records covering 213 unique GitHub targets.
+
+A source manifest preserves all 50 social links that prompted the review. It
+maps the 35 repository identities the evidence actually supports and leaves 17
+unresolved or service-only links unguessed. Those 35 records now have governed
+product homes: 21 in Shared Platform, 9 in Creator Studio, 4 in Business Builder,
+and 1 in Growth Studio.
+
+The customer-visible implementation is deliberately a reference layer. A
+public `/technology-radar` explains the governance posture; signed-in customers
+can open the matching technology module in each product. Nothing is installed,
+executed, or described as connected. A blocked record stays unavailable, and a
+record with no approved product fit stays in Shared Platform governance rather
+than being forced into a product.
+
+The full test run exposed Windows assumptions that had hidden behind Linux CI:
+the tests required an `unzip` binary, compared slash direction, formatted dates
+in local time, and treated CRLF checkout conversion as an applied migration
+edit. The fixes preserve the assertions while making them platform-independent.
+The reconciled result is 3,801 passing tests and 6 explicit pending tests, with
+lint, typecheck, build, route smoke, client-secret scan, database contract, and
+local governance gates passing. The launch gate records V8 coverage during that
+one successful suite and accepts the cache only for the identical source-tree
+fingerprint, avoiding a second loopback-heavy Windows run without weakening the
+coverage floor. Migration replay remains visibly skipped without local
+PostgreSQL binaries and remains mandatory in CI.

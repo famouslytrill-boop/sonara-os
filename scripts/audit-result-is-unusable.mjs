@@ -30,6 +30,8 @@
 // had. An audit that did not happen is never a green tick.
 
 import fs from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const target = process.argv[2] || "pnpm-audit.json";
 
@@ -60,6 +62,6 @@ export function couldNotAsk(path) {
 }
 
 // Only act as a command when run directly, so the test can import it.
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   process.exit(couldNotAsk(target) ? 0 : 1);
 }

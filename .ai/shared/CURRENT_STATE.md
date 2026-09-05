@@ -1,5 +1,15 @@
 # Current State
 
+## 2026-09-05 latest-branch release reconciliation
+
+- Active work is on `codex/latest-content-hardening-20260902`, rebased onto remote commit `fc2b151b` from `origin/claude/sonara-engineering-handoff-b6ui1t`.
+- The governed open-source register now contains 217 records and 213 unique GitHub targets. The latest branch's 14 records remain authoritative, and 32 non-duplicate reviewed records were carried forward.
+- A public read-only `/technology-radar` and protected product modules at `/business-builder/technology`, `/creator-studio/technology`, and `/growth-studio/technology` route records without installing or enabling third-party code.
+- The customer software catalog remains 42 active products. Repository references are not additional executable products.
+- The complete local release gate passes on the reconciled branch: 3,801 tests pass with 6 explicitly pending, followed by build, lint, client-secret, route, database, policy, catalog, registry, coverage, and documentation checks. Push, review, merge, and controlled deployment remain next.
+- Local migration replay is explicitly skipped because PostgreSQL binaries are unavailable. CI sets `SONARA_MIGRATION_REPLAY_REQUIRED=1`; production database proof remains owner/provider dependent.
+- `.cjs` and `.sql` now use LF through `.gitattributes`, and applied-migration checks normalize CRLF so Windows checkout behavior cannot imitate a migration edit. The launch gate records V8 coverage during its one authoritative test run and reuses it only when a source fingerprint matches, avoiding a second Windows loopback-heavy test run without weakening coverage proof.
+
 Updated: 2026-07-26 UTC after complete Claude/Codex reconciliation.
 
 <!-- baseline: fa9402a8671bae7934925c5c64f147a221bf4e16 -->

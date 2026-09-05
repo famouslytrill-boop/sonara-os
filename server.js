@@ -495,7 +495,8 @@ registerSonaraOpenSourceRoutes(app, {
   layout,
   brandCard,
   linkAction,
-  escapeHtml
+  escapeHtml,
+  requireCustomer
 });
 
 // The five subsystems that exist as schema and had no code. Read-only and
@@ -3871,5 +3872,4 @@ function supabaseHeaders(config, options = {}) {
   if (options.prefer) headers.Prefer = options.prefer;
   return headers;
 }
-
 

@@ -247,7 +247,7 @@ describe("an archived record is off the list, not out of the books", () => {
       // body, in the select list and in the change-log field name, and none of
       // those hides a row from anybody.
       for (const match of source.matchAll(/archived_at=(?:is|not|eq|neq|gt|lt)\./g)) {
-        filtering.push(`${path.relative(root, file)} :: ${match[0]}`);
+        filtering.push(`${path.relative(root, file).split(path.sep).join("/")} :: ${match[0]}`);
       }
     }
 
