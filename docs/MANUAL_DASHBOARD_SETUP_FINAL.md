@@ -29,6 +29,19 @@ are not set up with no indication of why.
 | One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | `price_1U47yP0dKtlEU3lAvkakKNgm` | $19/mo |
 | All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | `price_1U47yd0dKtlEU3lAeTBQ8o3D` | $39/mo |
 | Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | `price_1U47yp0dKtlEU3lAhPqsCS7r` | $79/mo |
+| One workspace, yearly | `STRIPE_PRICE_WORKSPACE_ANNUAL` | *not created yet* | $190/yr |
+| All three, yearly | `STRIPE_PRICE_ALL_THREE_ANNUAL` | *not created yet* | $390/yr |
+| Team, yearly | `STRIPE_PRICE_TEAM_ANNUAL` | *not created yet* | $790/yr |
+
+The last three are annual billing, added 5 September 2026 — two months free
+against the monthly price. **Their Stripe prices do not exist yet**, unlike the
+breadth ladder above them, so these are two steps rather than one: create a
+recurring yearly price at each amount (lookup keys `sonara_workspace_annual`,
+`sonara_all_three_annual`, `sonara_team_annual` keep them findable without this
+table), then set the variables. Until then those plans are not shown at all —
+the monthly twin already sells the same product, so an unbuyable yearly card
+would tell a customer nothing. See `docs/pricing/2026-09-05-PRICING-STRATEGY.md`
+for why two months free rather than a deeper discount.
 
 The bottom three are the breadth ladder, and their prices now exist in the live
 account — created 13 August 2026, with lookup keys `sonara_workspace_monthly`,

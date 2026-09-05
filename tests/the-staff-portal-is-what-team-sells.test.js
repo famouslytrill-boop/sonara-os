@@ -34,7 +34,7 @@ const original = Object.fromEntries(Object.keys(SUPABASE_ENV).map((key) => [key,
 const app = require("../server");
 const { CUSTOMER_SESSION_COOKIE } = require("../lib/sonara-customer-auth.cjs");
 const { FEATURE_ENTITLEMENT_KEYS, getPaidEntitlementKeys } = require("../lib/sonara-paid-access.cjs");
-const { STRIPE_PLANS } = require("../lib/sonara-stripe-plans.cjs");
+const { STRIPE_PLANS, ANNUAL_TWINS } = require("../lib/sonara-stripe-plans.cjs");
 
 const USER = { id: "41414141-4141-4141-8141-414141414141", email: "staff@example.com" };
 const OURS = "42424242-4242-4242-8242-424242424242";
@@ -113,8 +113,24 @@ describe("the staff portal is what Team sells", () => {
   });
 
   it("sells the staff portal under Team and nothing cheaper", () => {
-    assert.deepEqual(FEATURE_ENTITLEMENT_KEYS.staff_portal, ["team_monthly"]);
-    assert.deepEqual(getPaidEntitlementKeys("staff_portal"), ["team_monthly"]);
+    // Team on any billing period, and nothing else. This was pinned to the
+    // single string "team_monthly" until annual billing was added on
+    // 5 September 2026; the intent was never "one key", it was "no plan
+    // cheaper than Team", so it is now written as that. team_annual is Team.
+    const teamPlans = ["team_monthly", ...Object.keys(ANNUAL_TWINS).filter((key) => ANNUAL_TWINS[key] === "team_monthly")];
+    assert.ok(teamPlans.length >= 2, `only ${teamPlans.length} Team plans found; this check has gone blind`);
+    assert.deepEqual(FEATURE_ENTITLEMENT_KEYS.staff_portal, teamPlans);
+    assert.deepEqual(getPaidEntitlementKeys("staff_portal"), teamPlans);
+    // The bite the deepEqual above used to carry, said outright: no plan that
+    // is not Team opens the staff portal.
+    for (const key of FEATURE_ENTITLEMENT_KEYS.staff_portal) {
+      const covers = STRIPE_PLANS[key];
+      assert.ok(covers, `${key} gates the staff portal and is not a plan`);
+      assert.ok(
+        covers.amountCents >= STRIPE_PLANS.team_monthly.amountCents,
+        `${key} opens the staff portal and costs less than Team`
+      );
+    }
     // If the description ever stops mentioning staff, this pairing is stale and
     // somebody should notice here rather than on the pricing page.
     assert.match(STRIPE_PLANS.team_monthly.description, /staff/i, "Team no longer describes itself as the staff plan");

@@ -26,9 +26,9 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3876 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 111 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 113 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 293 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 294 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,178 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-05 - Annual billing, and three checks that could not express a yearly price
+
+The market was re-surveyed against live sources and the stack we compare
+against has moved: **$107 a month, not $87.** Jobber's monthly Core is $49 (was
+$39) and Podia's Mover is $49 monthly (the $42 everyone quotes is its annual
+rate). All three workspaces at $39 is now 36% of the stack rather than 45%. The
+argument got stronger without anybody doing anything, and it is written down
+with dates and URLs in `docs/pricing/2026-09-05-PRICING-STRATEGY.md`.
+
+## The gap worth acting on
+
+**No annual billing at all.** Every competitor discounts annually; we were being
+compared monthly-to-annual and losing a comparison we win on the absolute
+number. Added at **two months free** -- $190, $390, $790 -- rather than matching
+Jobber's 41% drop, because a percentage match here gives away margin to win a
+comparison already won.
+
+Entitlements and allowances for the three annual plans are **derived** from the
+monthly twin, never listed again. Four lists had to agree for a plan to work,
+and the last time they did not, seven products advertised plans that would have
+answered a paying customer with a 402.
+
+## What deriving them broke, which is the interesting part
+
+`PAID_ACCESS_RUNTIME_MARKERS` renders the entitlement lists back into the exact
+text they have in `lib/sonara-paid-access.cjs`, and the production deploy gate
+greps the shipped runtime for that text as proof the fail-closed path deployed.
+Expanding the lists in place made the rendered marker appear **nowhere in the
+source**, so the gate went looking for a string that no longer existed.
+
+A marker is only proof while it is something the source really says. So the
+literals stay literal in `BASE_ENTITLEMENT_KEYS`, the expansion happens to a
+copy, and `withAnnualTwins(BASE_ENTITLEMENT_KEYS.business_builder)` is itself a
+marker -- otherwise the three lines would ship and an annual subscriber would be
+refused by a bundle that passed every marker.
+
+## Three checks that made a correct yearly price impossible to write
+
+Each asserted "/mo" for every plan, so the only string they accepted for $190 a
+year was `$190/mo`:
+
+- `tests/pricing.test.js`
+- `scripts/verify-stripe-env.mjs`, twice -- the advertised-string comparison,
+  **and** a check that Stripe's recurring interval is `month` for every
+  subscription. That second one would have fired the first time the owner
+  created a yearly price, on a Stripe price that was right.
+
+## A stale bound nobody moved
+
+`tests/pricing.test.js` pinned Pro under "the ~$77 competitor stack". $77 was
+corrected to $87 on **12 August** -- it had compared Jobber's annual price with
+Podia's monthly one -- and the test never moved with it. Now `4900 + 4900 + 900`
+with the source named, so the arithmetic is in the file rather than a remembered
+total, and annual plans are compared against a *year* of the stack.
+
+## A correction to this work's own document
+
+The strategy document first said none of the six Stripe prices exist. Wrong:
+`docs/MANUAL_DASHBOARD_SETUP_FINAL.md` records the three breadth prices as
+created in the live account on **13 August**, with lookup keys. What is missing
+for those three is the three Vercel variables, not the prices -- so the
+restructure is one step from live, not four.
+
+## Broken, and confirmed red
+
+- `staff_portal` back to `["team_monthly"]`: *"opens team_monthly but not
+  team_annual. Somebody paying yearly for the same product is refused."*
+- `withAnnualAllowances` bypassed: *"INCLUDED_LOCATIONS has no entry for
+  workspace_annual, so it silently takes the free allowance."*
+- All three priced at $460 instead of $390: *"all_three_annual is not ten months
+  of all_three_monthly, but its description promises two months free."*
+
+3,838 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That any of it takes money. The three annual Stripe prices do not exist, and the
+three monthly ones exist behind unset variables -- so the page still shows the
+old Starter/Core/Pro ladder, which is `offeredPlanKeys` working rather than
+failing. And no paid signup has completed in production, so there is still no
+conversion data behind any price here.
+
+**Two decisions were left to the owner, not taken:** what happens to
+`business_builder_one_time` ("We quote you" is the only line in the price list
+that needs a person), and whether to build the usage layer -- six capabilities
+are priced in `lib/sonara-paid-capabilities.cjs` and that module is required by
+exactly two files, its own release check and its own test. It charges nobody.
+
+### 2026-09-05 - The free tier is 5 per studio, and the migration that carries it had been dead for weeks
+
+The owner asked for five free tools in each studio instead of twenty-nine free
+overall. Seven products move behind a plan: `shift-rota-cost-planner`,
+`deposit-payment-schedule`, `price-rise-planner`, `late-payment-escalation`,
+`usage-rights-expiry`, `storyboard-builder` to **starter**, and
+`review-recency-score` to **core**.
+
+`review-recency-score` is the one that is not like the others.
+`planFloorOpensProduct("growth_studio", "starter")` is **false** -- Growth Studio
+enforces `core_monthly` and `pro_monthly` and nothing below. Advertising Starter
+there would have answered a customer who bought the advertised plan with a 402,
+which is the failure `lib/sonara-recommended-product-catalog.cjs` already carries
+a long comment about. Core is the lowest plan that opens it.
+
+The seven account-level tools stay free and are outside the count. Gating
+`/pricing` means paying to reach the page where you pay, and `/account/data`
+tells customers "Leave whenever you want, with everything you put in" -- a
+paywall on an export would contradict published copy.
+
+## What the change ran into, which is the larger half
+
+Deployment #129 -- the first since #110 to get past the migrations, and it did
+get past them: **step 23, "Apply production database migrations", succeeded.**
+The shape repair worked. It failed one step later:
+
+```
+AssertionError: break-even-runway-planner entitlement verification mismatch
+false !== true
+```
+
+`entitlement_integration_verified` and `execution_enabled` are
+`not null default false`, and exactly one migration ever sets them: the
+generated catalog sync at `20260812120000`. Three migrations dated **after** it
+-- `20260818060000` (9 rows), `20260818070000` (9), `20260818080000` (1) --
+insert **nineteen** products and set neither column. The sync that would have
+corrected them sits six days earlier in history and never runs again.
+
+**The generator had been rewriting an applied migration.** Its own comment says
+"Add a filename here once its migration reaches main, and point `migrationName`
+at a new one", and the prose above the list names `20260812120000` as applied.
+It was never added to the list. So every release regenerated a file
+`supabase db push` skips by filename: a change that passes every local check and
+reaches no customer. That is this repository's recurring defect wearing a
+migration's clothes -- and it is why the owner's pricing change would have
+shipped green and never been seen.
+
+## What was done about it
+
+- `20260905190000_sync_catalog_plan_floors.sql` -- a new, pending sync carrying
+  the seven plan floors **and** both flags for all 42 products, which repairs the
+  nineteen rows as a side effect of being the first sync production will run
+  since 12 August.
+- `20260812120000` and `20260827100000` move into `APPLIED_MIGRATIONS`, and the
+  assertions move to `20260905193000` so they still run last -- the rule that
+  file states about itself.
+- **The list is no longer what the guard trusts.** `migrationsProductionHasRunPast`
+  reads `supabase/applied-migration-checksums.json`, takes the newest frozen
+  migration, and fails on any generated file older than it: a frozen migration
+  newer than the generator's output means the generator's output reached main
+  first and production has run past it. A hand-maintained list of things you must
+  not forget is the thing you forget; this one cannot go stale by omission,
+  because adding any migration moves the frontier on its own. It runs on
+  `--check`, not only on write, and refuses a manifest under 50 entries rather
+  than clearing every name against an empty list.
+
+## Broken, and confirmed red
+
+- `migrationName` pointed back at `20260812120000`: *"this generator writes into
+  migrations production has already applied ... older than the newest frozen
+  migration, 20260903120000"*, on `--check`.
+- The manifest emptied to `{}`: *"the frozen-migration manifest lists only 0
+  names; this check has gone blind"* -- not a pass.
+
+3,828 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the nineteen rows are fixed. The migration that fixes them is written and
+verified against a replayed database; **production has not run it**, because
+#129 failed before deploying and the fix is what makes the next run different.
+Whether `/service-catalog` was actually showing those nineteen as unavailable to
+customers was not measured -- the site serves a commit from before they existed.
 
 ### 2026-09-05 - A gate's most important property was a comment, not a test
 
