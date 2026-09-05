@@ -356,6 +356,69 @@ function main() {
         where table_schema = 'public' and table_name = 'customers' and column_name = 'organization_id';
     `, ["degraded_column_count_0"]);
 
+    // What a skip costs, measured. This is the argument for the shape repair.
+    //
+    // `scripts/generate-member-read-policies.cjs` gained a column-existence
+    // guard on 5 September 2026: a table whose tenant column is missing is
+    // skipped with a notice instead of failing the migration. That is the right
+    // call -- a migration that stops halfway through applying a security
+    // posture is worse than one that declines to start.
+    //
+    // But "the deployment no longer fails" and "the tables are readable" are
+    // different claims, and only the first is obvious. Measured here rather
+    // than reasoned about, in the degraded state the probe has already set up
+    // (`customers` present, `organization_id` gone -- production's shape):
+    //
+    //     rls=true  total_policies=1  member_policy=0
+    //     policy_names=service role can manage customers
+    //
+    // Row level security was **already enabled** on this table by an earlier
+    // migration, and the only policy on it is the service-role one. So a
+    // skipped table is not left untouched: it is left with RLS on and nothing
+    // an organization member can read through. The guard prevents a failed
+    // deployment. It does not prevent members being locked out, because they
+    // already are.
+    //
+    // That is what the shape repair one version earlier is for, and it is why
+    // the two changes compose rather than compete: the repair puts the column
+    // back so this migration finds it and writes the policy, and the guard
+    // catches anything the repair did not anticipate without taking production
+    // down for it.
+    //
+    // **This probe asserts the lock-out.** A future change that makes a skip
+    // look harmless -- or a repair that quietly stops running -- turns this red,
+    // and the message says a green deployment would ship a table members
+    // cannot read.
+    const skipped = psql(null, { file: path.join(migrationsDir, BLOCKED_BY_SHAPE) });
+    if (skipped.status !== 0) {
+      stop(
+        `${BLOCKED_BY_SHAPE} failed against a table missing its tenant column. The column-existence guard in ` +
+        "scripts/generate-member-read-policies.cjs exists so this skips rather than stops, so either the guard is " +
+        `not firing or it fires too late:\n${skipped.stderr || skipped.stdout}`
+      );
+    }
+
+    // Named per-value rather than collapsed into one verdict word. The first
+    // version of this asked whether the table had *any* policy and got
+    // "access_unchanged" every time, because the service-role policy is always
+    // there -- a check too weak to catch the case it was written for, which is
+    // shape 6 in `.claude/skills/checks-that-cannot-lie`. Reporting the three
+    // numbers means a wrong answer is visible instead of averaged away.
+    behaves(psql, "a skipped table is left with RLS on and no member policy", `
+      select 'skipped_rls_' || c.relrowsecurity::text
+        from pg_class c where c.oid = 'public.customers'::regclass;
+
+      select 'skipped_member_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers'
+          and policyname = 'customers_select_member';
+
+      select 'skipped_service_policy_' || count(*)::text
+        from pg_policies
+        where schemaname = 'public' and tablename = 'customers'
+          and policyname = 'service role can manage customers';
+    `, ["skipped_rls_true", "skipped_member_policy_0", "skipped_service_policy_1"]);
+
     const reapplied = psql(null, { file: path.join(migrationsDir, SHAPE_REPAIR) });
     if (reapplied.status !== 0) {
       stop(`${SHAPE_REPAIR} would not re-apply to a database it has already run against:\n${reapplied.stderr}`);

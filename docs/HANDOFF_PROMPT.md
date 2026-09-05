@@ -106,6 +106,71 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - What a skipped table costs, measured
+
+#217 landed on `main` while this branch was open, from
+`codex/production-member-policy-compat-20260905`. It attacks the same failure
+deployment #125 died on, from the other side: instead of adding the missing
+column, it makes the member-policy generator skip a table whose tenant column
+is absent, with a notice, rather than failing the migration.
+
+That is the right call, and its comment gives the right reason -- checking
+"before enabling RLS prevents a generated policy from either failing the
+deployment or changing access on a table it cannot scope." A migration that
+half-applies a security posture is worse than one that declines to start.
+
+It is also a claim about runtime behaviour that nothing executed. The replay
+harness is the only thing here that runs the SQL, and it already has the
+database degraded to production's exact shape at that point -- `customers`
+present, `organization_id` gone -- so measuring it cost one more invocation of a
+file already on disk.
+
+## What the database actually said
+
+    rls=true  total_policies=1  member_policy=0
+    policy_names=service role can manage customers
+
+**Row level security was already enabled on that table by an earlier
+migration**, and the only policy on it is the service-role one. So a skipped
+table is not left untouched. It is left with RLS on and nothing an organization
+member can read through.
+
+The guard prevents a failed deployment. It does **not** prevent members being
+locked out, because they already are. With #217 alone, deployment #126 would go
+green while `customers` stays unreadable by the people it belongs to -- a
+successful deployment shipping a silently missing feature, which is this
+repository's recurring defect wearing a deployment's clothes.
+
+That is the argument for the shape repair one version earlier, and it is now
+evidence rather than assertion. The two changes compose rather than compete: the
+repair puts the column back so the migration finds it and writes the policy, and
+the guard catches anything the repair did not anticipate without taking
+production down for it.
+
+## The first version of the probe was too weak to catch its own case
+
+It asked whether the table had **any** policy, and got "access_unchanged" every
+time -- because the service-role policy is always there. Moving the guard to
+*after* `enable row level security`, which reproduces the exact danger the
+comment names, left it green.
+
+Shape 6 in `.claude/skills/checks-that-cannot-lie`, in a check written twenty
+minutes earlier, and caught only by running the falsification rather than
+trusting the pass. The rewrite reports the three numbers separately -- RLS
+state, member policy count, service policy count -- so a wrong answer is visible
+instead of averaged into one verdict word.
+
+## Probes
+
+- The guard removed entirely -> `failed against a table missing its tenant
+  column`, naming the generator and saying the guard is not firing or fires too
+  late.
+- The shape repair silently stopped restoring the column -> `Expected
+  customers_organization_id_1 and did not get it`.
+
+Suite 3,821 -> 3,822 (a `supabase-clients` case arrived with #217).
+`verify:launch` exit 0, 111 migrations replayed.
+
 ### 2026-09-04 - The command line had no tests, and the reason for that had run out
 
 Moving the audit last made CI run `verify:gates` again for the first time in six
