@@ -24,6 +24,7 @@ const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 
 const { createZip } = require("../lib/sonara-zip.cjs");
+const { extractZip, listZip, verifyZip } = require("./helpers/system-zip.cjs");
 
 function scratch() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "sonara-zip-"));
@@ -39,11 +40,11 @@ describe("a zip is a real zip", () => {
         { name: "assets/styles.css", data: "body{margin:0}\n" }
       ]));
 
-      const listing = execFileSync("unzip", ["-l", zipPath], { encoding: "utf8" });
+      const listing = listZip(zipPath);
       assert.match(listing, /index\.html/);
       assert.match(listing, /assets\/styles\.css/, "a nested path did not survive");
 
-      execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+      extractZip(zipPath, path.join(dir, "out"));
       assert.equal(
         fs.readFileSync(path.join(dir, "out", "index.html"), "utf8"),
         "<!doctype html><title>A site</title>\n",
@@ -62,8 +63,8 @@ describe("a zip is a real zip", () => {
       // over something other than a stored copy.
       fs.writeFileSync(zipPath, createZip([{ name: "frames/0001.txt", data: "x".repeat(20000) }]));
       assert.match(
-        execFileSync("unzip", ["-t", zipPath], { encoding: "utf8" }),
-        /No errors detected/,
+        verifyZip(zipPath),
+        /(?:No errors detected|without errors)/,
         "unzip found the archive corrupt, so the CRCs or the offsets are wrong"
       );
     } finally {
@@ -79,7 +80,7 @@ describe("a zip is a real zip", () => {
       const bytes = crypto.randomBytes(4096);
       const zipPath = path.join(dir, "b.zip");
       fs.writeFileSync(zipPath, createZip([{ name: "audio/track.bin", data: bytes }]));
-      execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+      extractZip(zipPath, path.join(dir, "out"));
       assert.ok(
         fs.readFileSync(path.join(dir, "out", "audio", "track.bin")).equals(bytes),
         "binary content did not survive the round trip"
@@ -117,7 +118,7 @@ describe("a zip is a real zip", () => {
     try {
       const zipPath = path.join(dir, "b.zip");
       fs.writeFileSync(zipPath, createZip([{ name: "index.html", data: "<p>hi</p>" }]));
-      execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+      extractZip(zipPath, path.join(dir, "out"));
       const mode = fs.statSync(path.join(dir, "out", "index.html")).mode & 0o777;
       assert.ok(mode & 0o400, `the unpacked file has mode ${mode.toString(8)}, which nothing can read`);
     } finally {
@@ -133,7 +134,7 @@ describe("a zip is a real zip", () => {
         { name: "empty.txt", data: "" },
         { name: "utf8.txt", data: "// café — über\n" }
       ]));
-      execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+      extractZip(zipPath, path.join(dir, "out"));
       assert.equal(fs.readFileSync(path.join(dir, "out", "empty.txt"), "utf8"), "");
       assert.equal(fs.readFileSync(path.join(dir, "out", "utf8.txt"), "utf8"), "// café — über\n");
     } finally {

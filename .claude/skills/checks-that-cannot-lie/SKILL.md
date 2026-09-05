@@ -21,7 +21,7 @@ green light over the problem.
 Every check added this way should be recorded in `docs/SPRINT_LOG.md` with what
 was broken to prove it works.
 
-## The eight shapes, each with the case that produced it
+## The nine shapes, each with the case that produced it
 
 ### 1. Passing by measuring nothing
 
@@ -92,7 +92,7 @@ was thrown away and rewritten per-function rather than shipped.
 **Guard:** the failure test is not optional. Reproduce the motivating bug and
 confirm the new check catches *that*.
 
-### 8. Verified in the one state where the code under test does nothing
+### 9. Verified in the one state where the code under test does nothing
 
 The most expensive of these so far, because it cost a production deployment
 rather than an hour.
@@ -198,6 +198,34 @@ Copy the file aside and copy it back. **Never `git checkout --`.** It reverts to
 the last commit, which silently discards any uncommitted work in that file —
 including the fix you are in the middle of probing. This is written down because
 it has now cost work twice, the second time by somebody who had read this line.
+
+### 8. Written for a runner that never runs
+
+A test file added on 4 September 2026 used `node:test`:
+
+```js
+const test = require("node:test");
+test("the gate fails when ...", () => { ... });
+```
+
+It was green under `node --test`. Under `pnpm test` mocha loaded the file, the
+`test()` calls registered nine cases with **node's** runner, node's runner never
+ran, and the suite total did not move. Nine assertions written specifically to
+prove a gate *could fail* were themselves incapable of failing anything. Only
+the unchanged total gave it away.
+
+`.mocharc.json` makes mocha the runner here. Cases registered anywhere else are
+discarded in silence -- no error, no skip, no count.
+
+**Guard:** `tests/every-test-file-can-fail-the-suite.test.js` asks mocha itself,
+via `--dry-run --reporter json`, which files contribute a case, and prohibits
+`node:test` outright. Files that assert at load time instead sit in a two-sided
+register.
+
+The general form is worth carrying beyond tests: **registering something with a
+system that is not the one in use produces no error and no effect.** A route on
+a router nobody mounts, a listener on an emitter nobody fires, a migration in a
+directory the tool does not read.
 
 ## Writing a new release-chain command
 

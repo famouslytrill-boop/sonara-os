@@ -21,7 +21,6 @@
 const assert = require("node:assert/strict");
 const express = require("express");
 const request = require("supertest");
-const { execFileSync } = require("node:child_process");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -29,6 +28,7 @@ const path = require("node:path");
 const registerScrollRoutes = require("../routes/sonara-scroll-routes.cjs");
 const { siteFromTemplate } = require("../lib/sonara-scroll-templates.cjs");
 const { buildSite } = require("../lib/sonara-scroll-site.cjs");
+const { extractZip } = require("./helpers/system-zip.cjs");
 
 const ORGANIZATION_ID = "11111111-1111-4111-8111-111111111111";
 const OTHER_ORGANIZATION = "99999999-9999-4999-8999-999999999999";
@@ -231,7 +231,7 @@ describe("a published site is published, not leaked", () => {
         const zipPath = path.join(dir, "site.zip");
         fs.writeFileSync(zipPath, response.body);
         // The downloaded bytes, opened by something this project did not write.
-        execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+        extractZip(zipPath, path.join(dir, "out"));
         const index = fs.readFileSync(path.join(dir, "out", "index.html"), "utf8");
         assert.match(index, /A published heading/, "the downloaded page does not contain the site");
         assert.ok(fs.existsSync(path.join(dir, "out", "scroll.js")), "the page loads a script the folder does not contain");

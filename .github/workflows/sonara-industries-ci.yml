@@ -40,10 +40,6 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Not a bare `pnpm audit`: a timeout there is reported as a security
-      # finding. See scripts/audit-dependencies.mjs and SECURITY_NOTES.md.
-      - run: node scripts/audit-dependencies.mjs
-
       - run: pnpm run typecheck
 
       - run: pnpm run lint
@@ -52,7 +48,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          pnpm test > test-output.log 2>&1
+          pnpm run test:coverage > test-output.log 2>&1
           status=$?
           cat test-output.log
           exit $status
@@ -161,6 +157,32 @@ jobs:
 
       - name: Verify documentation links
         run: pnpm run test:docs
+
+      # Last, not first, and the position is the whole point.
+      #
+      # This ran as step five until 4 September 2026. `pnpm audit` reaches
+      # npm's advisory service, that service broke at ~22:06 UTC on 3
+      # September, and every run since aborted here -- so typecheck, lint, the
+      # full test suite, the build, the client-secret scan, the route and
+      # database contract checks, the Python coverage floor and all twenty
+      # release gates went unrun on every pull request for six hours. Twenty of
+      # twenty-three checks read green while this job verified nothing past
+      # installing dependencies.
+      #
+      # Nothing is weakened by moving it. It still runs on every push, it still
+      # fails this job, and the audit level is unchanged -- a real advisory
+      # still blocks the merge. What changes is that a third-party outage now
+      # costs the audit result instead of costing every other check in the job.
+      #
+      # Fail-fast on an advisory is not lost either, and that was checked rather
+      # than assumed: `dependency-scan.yml` runs `frontend-dependencies` and
+      # `backend-dependencies` as their own parallel jobs, each calling the same
+      # script. A genuine finding surfaces there within a minute regardless of
+      # where this sits.
+      #
+      # Not a bare `pnpm audit`: a timeout there is reported as a security
+      # finding. See scripts/audit-dependencies.mjs and SECURITY_NOTES.md.
+      - run: node scripts/audit-dependencies.mjs
 
   supabase-preview:
     runs-on: ubuntu-latest

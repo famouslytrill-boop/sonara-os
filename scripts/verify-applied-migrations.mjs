@@ -71,7 +71,9 @@ for (const generator of GENERATORS) {
 
 const write = process.argv.includes("--write");
 const problems = [];
-const digest = (file) => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+const digest = (file) => createHash("sha256")
+  .update(fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"))
+  .digest("hex");
 
 const migrations = fs.readdirSync(migrationsDirectory).filter((name) => name.endsWith(".sql")).sort();
 if (migrations.length < 50) {

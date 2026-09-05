@@ -151,7 +151,7 @@ describe("the redaction boundary", () => {
     it("routes every console call that prints an error through the boundary", () => {
       const offenders = [];
       for (const file of runtimeFiles()) {
-        const relative = path.relative(root, file);
+        const relative = path.relative(root, file).split(path.sep).join("/");
         if (ALLOWED.has(relative)) continue;
         const source = withoutComments(fs.readFileSync(file, "utf8"));
         for (const match of source.matchAll(/console\.(?:log|warn|error|info|debug)\(([^;]*)/g)) {
@@ -188,7 +188,7 @@ describe("the redaction boundary", () => {
       // appears, the two drift and the newer secret shape is only in one.
       const copies = [];
       for (const file of runtimeFiles()) {
-        const relative = path.relative(root, file);
+        const relative = path.relative(root, file).split(path.sep).join("/");
         if (relative === "lib/sonara-redaction.cjs") continue;
         const source = fs.readFileSync(file, "utf8");
         if (/function\s+redactSensitiveText\s*\(/.test(source)) copies.push(relative);

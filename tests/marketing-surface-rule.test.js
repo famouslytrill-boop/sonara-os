@@ -67,6 +67,7 @@ const CALM = new Map([
   // to see what is not set up yet" -- before there was a route on the list to
   // apply it to.
   ["/readiness", "the status page, read to find out what is not configured yet"],
+  ["/technology-radar", "a governance reference showing reviewed and blocked external technologies"],
   ["/business-builder/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/creator-studio/launch-readiness", "an operational checklist showing what is still setup required"],
   ["/growth-studio/launch-readiness", "an operational checklist showing what is still setup required"]

@@ -192,11 +192,6 @@ BELOW_FLOOR = {
         "covered": 0, "total": 3,
         "note": "a three-line uvicorn entry point for the FastAPI service under backend/",
     },
-    "tools/disposable-domains/disposable_domains/cli.py": {
-        "covered": 0, "total": 163,
-        "note": "the four blocklist subcommands (check, fix, update, match). The suite tests the "
-                "validator and the public-suffix logic underneath them directly, and never through argv",
-    },
     "tools/disposable-domains/disposable_domains/__main__.py": {
         "covered": 0, "total": 4,
         "note": "four lines that call cli.main() and exit with its status",

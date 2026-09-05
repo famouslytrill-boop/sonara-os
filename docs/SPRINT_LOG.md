@@ -2,6 +2,342 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-04 - The command line had no tests, and the reason for that had run out
+
+Moving the audit last made CI run `verify:gates` again for the first time in six
+hours, and its output answered the question that started the whole detour:
+
+    Python coverage floor verified: 34 files, 2674 executable lines, 59.1%
+    covered overall, 10 under the 35% floor against 10 register entries, from
+    210 tests, on Python 3.12 -- every Python source file was measured.
+
+So the 35% floor really is enforced across every Python file in CI. Ten were
+under it, each with a recorded reason, and most of those reasons are permanent:
+`__init__.py` files whose re-export lines run at import time before the tracer
+attaches, three- and five-line entry points that call into a library tested
+elsewhere, and one engine 0.9 points under whose own first line says it has
+never been run for want of a GPU and checkpoints.
+
+**One was not permanent.**
+`tools/disposable-domains/disposable_domains/cli.py` was **0% of 163 lines** --
+by far the largest -- with the reason: "the suite tests the validator and the
+public-suffix logic underneath them directly, and never through argv". True, and
+not a good place to stop. `main()` takes an argv list. Nothing was in the way.
+
+## What is worth testing in a command line
+
+Not that argparse works. The claims the module makes about itself:
+
+- **A file `fix` produced always passes `check`.** Stated in the module
+  docstring and enforced by `cmd_fix` re-running `check` and returning 3 if it
+  fails. One case per fixable problem code -- unsorted, duplicate, blank line,
+  uppercase, comment, missing trailing newline.
+- **Shared options mean the same thing before and after the subcommand.**
+  `_shared_parser` exists because the obvious `parents=` approach parses a
+  shared option twice and lets the subcommand's default silently overwrite a
+  value given earlier -- the command then runs against the wrong file and
+  reports success about it. Caught only by passing it in *both* positions, and
+  the sharpest case uses a file that is **not** clean, because a dropped
+  `--blocklist` falls back to the default list and would satisfy a naive
+  "exit 0".
+- **An unfixable line writes nothing.** Deleting `not a domain!!` is a decision
+  about somebody's blocklist, not a tidy-up.
+- **Exit codes are the interface.** 0 clean, 1 problems, 2 no file, 3 fix is
+  broken; `match` inverts 0 and 1 on purpose, which looks like a bug until you
+  read it.
+
+## The test that was wrong, and the code that was right
+
+One case asserted that `check` on a clean file with no cached public suffix list
+exits 0. It exits **1**: with no list it reports `suffixes_unchecked` and
+refuses to call the file clean, because the rule it could not evaluate is the
+one that would block an entire country.
+
+The assumption was wrong and the behaviour is better than the assumption. It is
+the distinction this repository keeps having to make -- **not knowing is its own
+answer, and it is not "fine"** -- so it is now pinned, along with the fact that
+only an explicit `--allow-unchecked-suffixes` moves that exit code, never the
+tool deciding the gap did not matter.
+
+## Result
+
+cli.py **0% -> 79%**. The disposable-domains suite 44 -> 67 tests. The Python
+floor 59.1% -> **64.3%**, ten under the floor -> nine, and the register entry
+removed because it had stopped describing anything.
+
+Both sides of that register were probed and fail by name: keeping the entry for
+a file now above the floor ("has reached the floor, but is still listed in
+BELOW_FLOOR"), and deleting the new tests so the file drops back with no entry
+("under the 35% floor, and is not in BELOW_FLOOR").
+
+### 2026-09-04 - One outage was hiding forty checks, in two workflows
+
+Chasing why the Python coverage floor reported 13 files locally when there are
+34, the answer turned out to be fine -- CI sets `SONARA_PYTHON_COVERAGE_COMPLETE`
+and fails on any unmeasured suite, so the floor really is enforced across all of
+them there. But checking *where* CI does that found something else.
+
+`node scripts/audit-dependencies.mjs` was **step five** of the
+`sonara-industries` job. npm's advisory service broke at ~22:06 UTC on 3
+September. Every run of that job since aborted at step five -- so `typecheck`,
+`lint`, the whole 3,791-case test suite, the build, the client-secret scan, the
+route-behaviour and database-contract checks, the Python coverage floor and all
+twenty `verify:gates` commands **went unrun on every pull request for six
+hours**.
+
+Twenty of twenty-three checks read green throughout, because they are other
+jobs. This one verified nothing past installing dependencies, and its red tick
+said "dependency audit failed", which is true and is not what had happened.
+
+## Moving it last weakens nothing, and that was checked
+
+It still runs on every push, it still fails the job, the audit level is
+unchanged, and a real advisory still blocks the merge. Only the position moves.
+
+Fail-fast on a genuine finding is not lost either -- verified rather than
+assumed: `dependency-scan.yml` runs `frontend-dependencies` and
+`backend-dependencies` as their own parallel jobs, each calling the same script,
+so an actual advisory still surfaces in about a minute. That is why this is a
+reordering and not a trade.
+
+What changes is that a third-party outage now costs the audit result instead of
+costing every other check in the job.
+
+## The check that keeps it there, and two mistakes it caught in itself
+
+`tests/an-audit-that-did-not-happen-is-not-a-finding.test.js` gained a suite
+naming each gated step individually -- typecheck, lint, build, verify:gates,
+test:docs -- rather than asking "is the audit last", so the failure message says
+*which* check an earlier audit would take down.
+
+Its first version filtered the workflow to lines opening a step, which meant a
+step written as `- name:` with its command on an indented `run:` underneath was
+invisible: it reported that the job no longer ran `verify:gates`, which it
+plainly did. Fixed by reading whole step blocks.
+
+Its second version then reported that `test:docs` ran *after* the audit and that
+the audit was called twice. Both false. The audit step carries a long comment
+explaining its position, that comment names `audit-dependencies.mjs`, and the
+comment sits at the tail of the previous step's block -- so the matcher found
+prose. **Shape 7, hit for the third time in one day**, and worth recording
+because each time it looked like a different problem.
+
+Three probes, each red by name: the audit moved back to step five, which is the
+original bug; the audit deleted, caught by the derived call-site count from
+2 September ("only 2 audit invocations found across 9 workflows"); and the audit
+given `continue-on-error: true`.
+
+## The same shape one workflow over
+
+Having found it once, the obvious question is whether the other jobs calling the
+same script do the same thing. `frontend-dependencies` in `dependency-scan.yml`
+does, and more plainly: it runs the audit with `continue-on-error`, uploads the
+diagnostics, and then a separate **Enforce dependency audit** step turns a
+failed audit into a failed job. That enforcement sat immediately after the
+upload -- ahead of `verify:open-source`, `typecheck` and `build`, all three of
+which therefore stopped running here too.
+
+Cleaner to fix than the first one, because only the abort moves: the audit still
+runs exactly where it did and its diagnostics still upload, so nothing about
+auditing changes at all. Same condition, same message, same failed job.
+
+`backend-dependencies` is deliberately left alone, and that is a checked reason
+rather than an assumed one -- it audits pinned *Python* packages, never reaches
+npm's advisory service, and was green on all three heads through the outage.
+
+Three more probes, red by name: the enforcement moved back ahead of the other
+checks; its condition weakened to `if: false`; and the step deleted.
+
+Suite 3,788 -> 3,794.
+
+### 2026-09-04 - A finished page nobody can reach, and nothing to notice it
+
+Shape 8 in `.claude/skills/checks-that-cannot-lie` was written this morning as
+*"registering something with a system that is not the one in use produces no
+error and no effect"*, with three examples guessed at the end of it: a route on
+a router nobody mounts, a listener on an emitter nobody fires, a migration in a
+directory the tool does not read. Those were reasoned, not observed, so they
+were worth checking.
+
+**One of the three is real here.** `routes/free-launch-stack-routes.cjs` is 34
+lines of complete markup registering `GET /free-launch-stack`. Asking the real
+Express app for that path returns **404**. It has never been mounted in
+`server.js` on this branch's history, no test names it, and no document or
+registry claims it works. What exists instead is
+`scripts/wire-free-launch-stack-local.cjs`, a script that string-replaces
+`server.js` to add the mount -- a manual wiring step somebody wrote down and
+nobody ran.
+
+Nothing was lying about it. That is the whole problem: nothing would have
+noticed, and nothing would notice the next one.
+
+The other two guesses were checked and are **not** present: the only `.sql`
+outside `supabase/migrations` is under `archive/`, and the 110 files there are
+the 110 the replay applies.
+
+## What the check has to model to be worth running
+
+Three of the 43 route modules are not named in `server.js`. Only one is an
+orphan. `sonara-shared-result-routes` is registered from
+`sonara-service-lifecycle-routes`, and `sonara-sub-app-routes` from
+`sonara-last9-routes` -- mounted transitively. A check that missed that would
+report two false orphans on its first run and be deleted by the end of the week,
+so reachability is the transitive closure from `server.js`, not a substring
+search. That distinction was found by looking, after a first crude pass named
+all three.
+
+The register is two-sided and its reason is **verified rather than trusted**:
+the last case asks the running application for every path the recorded module
+declares and requires a 404. A module reachable by some route the require graph
+does not model would answer 200 and fail, instead of sitting in the list looking
+accounted for.
+
+## What this deliberately does not do
+
+Mount it. Publishing a public page is the owner's decision and `AGENTS.md` sets
+a bar for what those have to be. A passing check should make a choice visible,
+not take it. Recorded in `docs/SHIP_READINESS.md` under "Known and deliberate"
+with the three options.
+
+Four probes, each red by name: a newly written module never mounted -- which is
+the case this exists for -- the known orphan removed from the register, a
+register entry naming a module that *is* mounted, and an entry naming a module
+that registers no path to check.
+
+Suite 3,784 -> 3,788.
+
+### 2026-09-04 - Two checks that reported success without being true
+
+Both found while looking for something else, and both the same shape.
+
+## A shared baseline six weeks out of date, under a green check
+
+`.ai/shared/CURRENT_STATE.md` is what a Claude or Codex session reads before
+deciding what to do here. It opened with two present-tense claims:
+
+- "Current audited `main` is `fa9402a8...`" -- `main` was `ccaea37...`.
+- "No open Claude-generated pull request or live `claude/*` branch was found" --
+  origin carried eight.
+
+Both were written on 26 July and never revisited. The release-chain command over
+the file, `scripts/verify-agent-development-sync.mjs`, asserted that five
+substrings appeared in it -- "PR #100", "PR #101", "PR #103", "PR #104",
+"production lag" -- and then printed *"shared state are aligned"*. All five were
+still there, because nothing had been deleted; only the truth had moved. So the
+chain went green over the drift on every run for six weeks.
+
+The loop was measuring that somebody had not deleted the file. The message it
+printed described something else entirely.
+
+### What replaced it, and what it deliberately does not attempt
+
+Nothing can keep a hand-written file fresh, and a gate that fails until somebody
+retypes a SHA into markdown is a gate that gets deleted. So the check does not
+ask *"is this current"*. It asks **"does this still claim to be current once it
+is not"** -- which is answerable, and is the half that caused harm.
+
+The document now carries `<!-- baseline: <sha> -->` naming the commit it
+describes. While that commit is not the tip of `main`, `<!-- superseded-by:
+<path> -->` is required, and the path must exist. Refreshing the document is
+what lets the pointer go away. The anti-deletion half is kept unchanged, because
+it was protecting something real -- the July audit holds findings somebody made.
+
+An unresolvable tip -- a shallow CI checkout carrying neither
+`refs/remotes/origin/main` nor `refs/heads/main` -- takes the same branch as a
+stale baseline rather than passing. A check that quietly stops checking on the
+machines it runs on most is the thing being fixed, not a property to preserve.
+
+The prose was corrected too: both sentences now carry the date they were
+observed, and the file says at the top that it is a dated audit record, naming
+the generated `docs/HANDOFF_PROMPT.md` as the live picture.
+
+Broken and confirmed red first, each failing by name: pointer removed (it named
+the stale baseline and the real tip), baseline removed, pointer aimed at a file
+that does not exist, baseline set to `0000...`, and the `PR #104` line deleted.
+The first reproduces the original bug exactly.
+
+## Nine assertions that could not fail anything
+
+Writing the test for the above, the file used `node:test`:
+
+    const test = require("node:test");
+    test("the gate fails when ...", () => { ... });
+
+Green under `node --test`. Under `pnpm test`, mocha loaded it, the calls
+registered nine cases with **node's** runner, node's runner never ran, and the
+suite total did not move. Nine assertions written specifically to prove a gate
+could fail were themselves incapable of failing anything.
+
+It was caught only because the total did not move. Nothing here would have
+caught it: `the-handoff-counts-what-mocha-runs.test.js` counts the files mocha
+*loads*, and it was one of them.
+
+`tests/every-test-file-can-fail-the-suite.test.js` closes that. Every file under
+`tests/` must be able to turn the suite red, and there are two honest ways:
+
+- **register cases** with `describe`/`it` -- what almost every file does.
+- **assert at load time** -- four `.mjs` files. Mocha runs top-level code when it
+  loads a file, so a failed assert aborts the load. That was *measured*, not
+  assumed: `platform-prep.test.mjs` was pointed at a document that does not
+  exist, and `pnpm test` went red.
+
+Registering with `node:test` is neither, and is now prohibited outright. The
+four load-time files sit in a two-sided register: a fifth file appearing there
+fails, an entry whose file was rewritten into `describe`/`it` fails, and an
+entry whose file holds no top-level `assert` fails -- so being listed is not
+what makes a file look checked.
+
+Its first version flagged **itself**, because the paragraph above quotes the
+offending line. It scans source with comments stripped now. A check that cannot
+tell prose from code is shape 7 in
+`.claude/skills/checks-that-cannot-lie`, and this is the second time it has
+happened.
+
+Five probes, each red by name: a file importing `node:test`; a file registering
+and asserting nothing; a register entry removed while its file still asserts; an
+entry naming a file that does register cases; an entry naming a file with no
+top-level assert.
+
+## The shallow-checkout hole, found by CI on the first push
+
+The first push turned three jobs red, and one of them was mine rather than the
+npm outage: `baseline fa9402a8... is not a commit in this repository`.
+
+`actions/checkout` clones at depth 1 unless a workflow asks otherwise, and only
+two here do. In that clone the July baseline is simply absent, and `cat-file`
+cannot tell *"this SHA is fiction"* from *"this SHA was never fetched"* -- both
+are exit 128. The gate had asserted the commit existed unconditionally.
+
+The uncomfortable part: the shallow case was reasoned about **one line further
+down**, for resolving the tip of `main`, and not applied to the call above it.
+The same hazard, seen once and handled once.
+
+Reproduced by cloning this repository at depth 1 and running the command in it,
+rather than by reading the workflow. The fix verifies whenever the history is
+there and treats a missing object in a truncated clone as *"cannot prove"*, said
+out loud on stdout, never silently. Both branches are reached by a real
+environment -- checked by grepping the workflows that run `verify:config`:
+
+    controlled-production-deploy.yml   fetch-depth: 0   -> strict branch
+    sonara-industries-ci.yml           default depth 1  -> exemption branch
+
+Two things worth writing down. A **plain `git clone` of a shallow repository is
+itself shallow**, so this container cannot produce a full clone to test against;
+the strict branch was exercised by deleting `.git/shallow` from a clone whose
+baseline was genuinely absent. And this container's own checkout carries
+`.git/shallow` *while still holding the baseline* -- deepened, not complete --
+so `--is-shallow-repository` being true does not mean the object is missing.
+That is why the check tries `cat-file` first and only then asks about depth.
+
+What a truncated clone cannot enforce is stated in the comment rather than
+implied: an invented SHA is indistinguishable from an unfetched one there. The
+null OID is the exception, being git's own sentinel for "no object", so it is
+rejected at any depth. The guarantee that survives truncation is the pointer
+requirement, which does not read history at all.
+
+285 test files -> 287; the two new files add 15 cases, and `pnpm test` runs
+**3,784 passing** -- verified both here and inside a depth-1 clone, which is the
+condition that failed. Recorded as shape 8 in the skill.
 ### 2026-09-04 - A stranger could put a megabyte in your lead list
 
 `/chat/:slug` is one of two endpoints here a person with no account can write
@@ -14754,3 +15090,37 @@ return an empty array": **an empty list is only a lie when something reads it as
 a fact about the customer.** A table that renders no rows is fine. A sentence
 saying "you have never made anything", a count, an instruction, or a money total
 is not.
+
+### 2026-09-03 - Routing reviewed repositories without pretending they are products
+
+The latest branch had 171 governed repository records. Thirty-two reviewed,
+non-duplicate records from the structural-hardening branch had not reached that
+baseline, so they were carried forward without replacing newer records or
+reviving retired repository URLs. A later reconciliation preserved 14 newer
+records from the shared development baseline as well. The register now has 217
+records covering 213 unique GitHub targets.
+
+A source manifest preserves all 50 social links that prompted the review. It
+maps the 35 repository identities the evidence actually supports and leaves 17
+unresolved or service-only links unguessed. Those 35 records now have governed
+product homes: 21 in Shared Platform, 9 in Creator Studio, 4 in Business Builder,
+and 1 in Growth Studio.
+
+The customer-visible implementation is deliberately a reference layer. A
+public `/technology-radar` explains the governance posture; signed-in customers
+can open the matching technology module in each product. Nothing is installed,
+executed, or described as connected. A blocked record stays unavailable, and a
+record with no approved product fit stays in Shared Platform governance rather
+than being forced into a product.
+
+The full test run exposed Windows assumptions that had hidden behind Linux CI:
+the tests required an `unzip` binary, compared slash direction, formatted dates
+in local time, and treated CRLF checkout conversion as an applied migration
+edit. The fixes preserve the assertions while making them platform-independent.
+The reconciled result is 3,801 passing tests and 6 explicit pending tests, with
+lint, typecheck, build, route smoke, client-secret scan, database contract, and
+local governance gates passing. The launch gate records V8 coverage during that
+one successful suite and accepts the cache only for the identical source-tree
+fingerprint, avoiding a second loopback-heavy Windows run without weakening the
+coverage floor. Migration replay remains visibly skipped without local
+PostgreSQL binaries and remains mandatory in CI.

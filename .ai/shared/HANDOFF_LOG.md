@@ -1,5 +1,25 @@
 # Handoff Log
 
+## 2026-09-05 UTC - Latest-branch release reconciliation
+
+- Rebased the routing work onto `fc2b151b`, preserving all 14 newer registry records and adding 32 non-duplicate reviewed records for a 217-record, 213-unique-GitHub-target register.
+- Regenerated the product integration map and handoff prompt from the reconciled registry instead of hand-merging derived output.
+- Passed the complete local release gate with 3,801 tests passing and 6 explicitly pending, followed by build, lint, client-secret, route, database, policy, catalog, registry, JavaScript coverage, Python coverage, and documentation checks.
+- Removed Windows-only gate failures without weakening checks: portable paths and line endings, cross-platform Python discovery, and fingerprint-bound reuse of V8 coverage from the successful release test run.
+- Pull-request checks, merge, and controlled production deployment are the remaining steps in this session.
+
+## 2026-09-03 UTC - Latest registry routing and Windows gate hardening
+
+- Continued from the newest available remote development baseline, commit `8ce041a9`, in `codex/latest-content-hardening-20260902`.
+- Added 32 non-duplicate governed records to the then-current register. That intermediate result was 203 records and 199 unique GitHub targets; the 2026-09-05 reconciliation above supersedes those totals.
+- Preserved a 50-source social evidence manifest: 35 repository identities verified, 31 new register entries, 4 existing entries, and 17 unresolved or service-only sources left unguessed.
+- Added `/technology-radar` as a public read-only governance page and protected technology-reference modules under Business Builder, Creator Studio, and Growth Studio.
+- Kept blocked or restricted records unavailable and presented every repository as a reference, research item, or unavailable record rather than a connected integration.
+- Fixed Windows-only false failures without weakening checks: system ZIP validation falls back from `unzip` to `tar`, path assertions normalize separators, saved dates use UTC, and migration checks normalize CRLF while `.gitattributes` pins `.cjs` and `.sql` to LF.
+- Verification passed: 3,492 tests, lint, typecheck, build, route smoke, client-secret scan, 108-migration/145-table database contract, and all local governance gates.
+- Local migration replay was not executed because PostgreSQL binaries were unavailable. CI remains fail-closed through `SONARA_MIGRATION_REPLAY_REQUIRED=1`.
+- No external repository was installed or copied. No provider was enabled. No secret, deployment, merge, or production data change was made.
+
 ## 2026-07-26 UTC - Claude development reconciliation and deployment boundary
 
 - Searched every accessible SONARA GitHub repository; only `famouslytrill-boop/sonara-os` is connected.

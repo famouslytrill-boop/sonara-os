@@ -109,7 +109,7 @@ describe("Supabase deep database reconciliation", () => {
     // has come up today. The positive checks read the raw text on purpose: a
     // `create table` line commented out is not a create table.
     const raw = fs.readFileSync(path.join(dir, repair), "utf8");
-    const sql = raw.split("\n").map((line) => line.replace(/--.*$/, "")).join("\n");
+    const sql = raw.split(/\r?\n/).map((line) => line.replace(/--.*$/, "")).join("\n");
     for (const table of ["public.customers", "public.quotes"]) {
       assert.ok(
         sql.includes(`create table if not exists ${table}`),

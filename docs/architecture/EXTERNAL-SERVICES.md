@@ -142,7 +142,7 @@ from here, and it needs the service itself to be network-isolated.
 
 Licence, mostly. An adapter calls a service over HTTP; it does not copy anyone's
 code, which is why Apache and MIT services need nothing beyond attribution. The
-23 reciprocal repositories were a separate decision, and it has now been taken
+30 reciprocal repositories were a separate decision, and it has now been taken
 — see below.
 
 Cost. Every one of these is free because it runs on hardware you already pay
@@ -155,7 +155,7 @@ changes what may depend on it.
 
 Asked on 18 August 2026, decided the same day: **install what can be installed
 without changing SONARA's own licence, and install nothing that would change
-it.** The 23 reciprocal repositories in `data/open-source-tools.ts` were
+it.** The 30 reciprocal repositories in `data/open-source-tools.ts` were
 enumerated and worked through against that rule. Three things came out of it,
 and two were surprises.
 

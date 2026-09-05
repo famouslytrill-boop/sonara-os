@@ -437,6 +437,22 @@ reports these tables as used.
 - **The language control translates roughly 12% of a page** — navigation,
   buttons and headings. It now says so before you choose. Full translation needs
   human translators.
+- **A finished page nobody can reach: `/free-launch-stack`.**
+  `routes/free-launch-stack-routes.cjs` is 34 lines of complete markup for a
+  free-tools directory. It has never been mounted in `server.js` on this
+  branch's history, no test named it, and nothing claimed it worked -- so
+  requesting the path returns 404 and nothing was wrong, which is exactly why
+  nobody noticed. `scripts/wire-free-launch-stack-local.cjs` exists to patch
+  `server.js` and add the mount; it was never run.
+
+  **This is an owner decision, not a bug to fix on the way past.** Mounting it
+  publishes a public page, and `AGENTS.md` sets a bar for what those have to
+  be -- polished, dark-first, marketable. The three options are: mount it after
+  reviewing the copy, delete it and the wiring script, or leave it recorded.
+  `tests/a-route-module-nobody-mounts-serves-nobody.test.js` holds it in a
+  two-sided register meanwhile, and would fail the day a *second* route module
+  is written and never wired.
+
 - **Thirteen tables have RLS enabled with no explicit policy**, which closes them
   to everything except the service role. That is the intent, and the deep
   verification reports it every run.

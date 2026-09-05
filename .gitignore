@@ -13,6 +13,12 @@ pids
 
 # Coverage and tool caches
 coverage/
+
+# coverage.py's binary database, written wherever it is run. Committed by
+# accident on 4 September 2026 while measuring tools/disposable-domains -- the
+# same shape as the pnpm-audit.json slip below, an hour apart.
+.coverage
+.coverage.*
 .nyc_output/
 .grunt/
 .npm/
@@ -72,3 +78,13 @@ examples/hello-world.svg
 # the distinction is worth keeping straight.
 __pycache__/
 *.py[cod]
+
+# Written by scripts/audit-dependencies.mjs on every run, and uploaded by
+# dependency-scan.yml as a CI artifact. Nothing reads it out of the repository.
+#
+# It was committed by accident on 3 September 2026, during the npm advisory
+# outage, so the tracked copy was an EMPTY file -- which is the "could not ask"
+# state that scripts/audit-result-is-unusable.mjs exists to detect, frozen into
+# a fresh checkout. Harmless, because the audit overwrites it before that check
+# reads it, but a build artifact in source is noise at best.
+pnpm-audit.json

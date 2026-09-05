@@ -109,10 +109,6 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-      - name: Enforce dependency audit
-        if: steps.root-audit.outcome == 'failure'
-        run: exit 1
-
       - name: Validate open-source dependency and repository policy
         run: pnpm run verify:open-source
 
@@ -121,6 +117,27 @@ jobs:
 
       - name: Build root app
         run: pnpm run build
+
+      # Enforced last, and the position is the point.
+      #
+      # The audit above already ran, and its diagnostics are already uploaded --
+      # only the abort moves. Until 4 September 2026 this step sat immediately
+      # after the upload, so when npm's advisory service broke at ~22:06 UTC on
+      # 3 September, `verify:open-source`, `typecheck` and `build` stopped
+      # running in this job on every pull request.
+      #
+      # Nothing is weakened: the same failed audit still fails this job, on the
+      # same condition, with the same message. What changes is that a
+      # third-party outage costs the audit result rather than three checks that
+      # have nothing to do with it.
+      #
+      # The same move was made in sonara-industries-ci.yml, where it was hiding
+      # considerably more. `backend-dependencies` deliberately keeps its order:
+      # it audits pinned *Python* packages and never reaches npm's advisory
+      # service, which is why it stayed green all through that outage.
+      - name: Enforce dependency audit
+        if: steps.root-audit.outcome == 'failure'
+        run: exit 1
 
   # tools/agentkit/ is a Python package with no dependencies at all, so there is
   # nothing to install and nothing to audit -- which is why this job is four

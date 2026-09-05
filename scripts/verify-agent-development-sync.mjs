@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 
 const root = process.cwd();
 
@@ -83,9 +84,122 @@ assert.match(
   "fast-uri must stay pinned above GHSA-f65p-4m7j-42xc, GHSA-fph4-wmhf-6fwf and GHSA-jqff-g426-hqxp"
 );
 
+// `.ai/shared/CURRENT_STATE.md` is the baseline two different assistants read
+// before deciding what to do. It is hand-written, so it drifts. The question
+// worth asking is therefore not "is it fresh" -- nothing here can keep a
+// hand-written file fresh -- but "does it still claim to be fresh once it is
+// not".
+//
+// What this replaces asserted that "PR #100", "PR #101", "PR #103", "PR #104"
+// and "production lag" each appeared somewhere in the file, and then printed
+// "shared state are aligned". On 4 September 2026 all five were still present
+// while the file's two opening claims had been false for six weeks: it said
+// `main` was `fa9402a8...` when it was `ccaea37...`, and that no live
+// `claude/*` branch existed when origin carried eight. Every substring matched,
+// so the chain stayed green over it. A check that cannot fail on the thing it
+// names is the defect `CLAUDE.md` describes.
+//
+// Two halves now, and both must hold.
 const currentState = read(".ai/shared/CURRENT_STATE.md");
+
+// Half one, unchanged in intent: the audit record must survive. Deleting it
+// erases findings somebody actually made, and this is what stops that.
 for (const marker of ["PR #100", "PR #101", "PR #103", "PR #104", "production lag"]) {
   assert.match(currentState, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"));
+}
+
+// Half two: the file must name the commit it describes, and while that commit
+// is not the tip of `main` it must point at what is current instead.
+const baseline = /<!--\s*baseline:\s*([0-9a-f]{40})\s*-->/.exec(currentState);
+assert.ok(
+  baseline,
+  ".ai/shared/CURRENT_STATE.md must carry `<!-- baseline: <40-char sha> -->` naming the commit it describes. " +
+    "Without it there is no way to tell a current document from a stale one, which is how it went six weeks out of date."
+);
+const [, baselineSha] = baseline;
+
+function git(...args) {
+  return spawnSync("git", args, { cwd: root, encoding: "utf8" });
+}
+
+function resolveRef(ref) {
+  const result = git("rev-parse", "--verify", "--quiet", ref);
+  return result.status === 0 ? result.stdout.trim() : null;
+}
+
+// Is the baseline a real commit? A baseline nobody can resolve is a baseline
+// nobody checked, and it would satisfy every line below while meaning nothing.
+//
+// The catch is that `actions/checkout` clones at depth 1 unless a workflow asks
+// for more, and only two here do. In that clone the July baseline is simply not
+// present, and `cat-file` cannot tell "this SHA is fiction" from "this SHA was
+// never fetched" -- both are exit 128.
+//
+// The first version asserted the commit existed unconditionally and turned
+// three CI jobs red on a document that was correct. The shallow case was
+// reasoned about one line further down, for resolving the tip, and not applied
+// here: the same hazard, seen once and handled once.
+//
+// So: verify whenever the history is there to answer. Only when the object is
+// missing *and* the repository is truncated is that treated as "cannot prove"
+// rather than "is fiction" -- and it says so on stdout, because a check that
+// quietly stops checking is what this command was rewritten to stop.
+//
+// Both branches are reached by a real environment, checked rather than assumed
+// by grepping the workflows that run `verify:config`:
+//
+//   controlled-production-deploy.yml   fetch-depth: 0  -> strict branch
+//   sonara-industries-ci.yml           default depth 1 -> exemption branch
+//
+// The higher-stakes of the two is the one that verifies.
+//
+// **What that does not cover, stated plainly:** in a shallow clone a fabricated
+// SHA is indistinguishable from an unfetched one, so this cannot reject it
+// there -- and that includes most development containers, whose clone carries a
+// `.git/shallow` file even after being deepened enough to hold the baseline.
+// The null OID is the exception: it is git's own sentinel for "no object",
+// never a commit at any depth, so it is rejected everywhere. The guarantee that
+// survives truncation is the pointer requirement below, which does not depend
+// on history at all.
+assert.notEqual(
+  baselineSha,
+  "0".repeat(40),
+  ".ai/shared/CURRENT_STATE.md names the null commit as its baseline, which is git's way of saying no object."
+);
+
+if (git("cat-file", "-e", `${baselineSha}^{commit}`).status !== 0) {
+  assert.equal(
+    git("rev-parse", "--is-shallow-repository").stdout.trim(),
+    "true",
+    `.ai/shared/CURRENT_STATE.md names baseline ${baselineSha}, which is not a commit in this repository.`
+  );
+  process.stdout.write(
+    `Shared state: baseline ${baselineSha} is not in this checkout and the clone is truncated, so whether it is a ` +
+      "real commit was NOT verified. The superseded-by pointer below is required regardless.\n"
+  );
+}
+
+// A shallow CI checkout carries neither ref -- confirmed by cloning this
+// repository at depth 1 and running this command in it. That is not a reason to
+// pass: an unresolvable tip takes the same branch as a stale baseline, so the
+// pointer is then required unconditionally. Erring towards requiring it keeps
+// the failure in the safe direction -- the alternative is a check that quietly
+// stops checking on exactly the machines it runs on most.
+const mainTip = resolveRef("refs/remotes/origin/main") || resolveRef("refs/heads/main");
+
+if (mainTip !== baselineSha) {
+  const superseded = /<!--\s*superseded-by:\s*(\S+)\s*-->/.exec(currentState);
+  assert.ok(
+    superseded,
+    `.ai/shared/CURRENT_STATE.md describes ${baselineSha}, which is ${mainTip ? `not the tip of main (${mainTip})` : "not provably the tip of main from this checkout"}. ` +
+      "A document that is behind must say where the current picture is: add `<!-- superseded-by: <path> -->`, " +
+      "or refresh the file and move the baseline forward."
+  );
+  const target = path.join(root, superseded[1]);
+  assert.ok(
+    fs.existsSync(target),
+    `.ai/shared/CURRENT_STATE.md points at ${superseded[1]}, which does not exist. A pointer to nothing is worse than no pointer.`
+  );
 }
 
 const claudeSync = read(".ai/shared/CLAUDE_SYNC_2026-07-26.md");

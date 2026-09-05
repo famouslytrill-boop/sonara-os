@@ -26,7 +26,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const SOURCE = fs.readFileSync(path.join(__dirname, "..", "routes", "product-lifecycle-routes.cjs"), "utf8");
+const SOURCE = fs
+  .readFileSync(path.join(__dirname, "..", "routes", "product-lifecycle-routes.cjs"), "utf8")
+  .replace(/\r\n/g, "\n");
 
 /** The named function's body, to its closing brace at column 0. */
 function functionBody(name) {
