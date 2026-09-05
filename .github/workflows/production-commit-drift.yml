@@ -44,8 +44,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          # Needed to read the commit date of the tip of main.
-          fetch-depth: 2
+          # Full history, so the distance between the live commit and the tip of
+          # main can be counted. `fetch-depth: 2` was enough to read main's own
+          # commit date, which is all this used to report -- and "drifted" with
+          # no magnitude reads the same at three hours as at three weeks.
+          fetch-depth: 0
 
       - name: Compare the live commit against the tip of main
         shell: bash
@@ -90,7 +93,46 @@ jobs:
             exit 0
           fi
 
-          echo "::error::Production is running ${live} while main is ${expected}, and main has been that way for ${age}s."
-          echo "Something took the production alias away from the deployed commit."
-          echo "Re-run Controlled Production Deployment (it now accepts workflow_dispatch) rather than redeploying from the dashboard, so the migration and catalog gates run."
+          # How far behind, not merely that it is behind.
+          #
+          # This workflow was written for one cause -- a manual redeploy taking
+          # the production alias away from a commit that had already passed the
+          # deploy gate, which happened on 4 August and cost three and a half
+          # hours. Its failure message asserted that cause.
+          #
+          # On 5 September 2026 it had been failing continuously and the cause
+          # was a different one: no deployment had *succeeded* since 5 August,
+          # so nothing ever took the alias -- it was never handed over. A
+          # message that names the wrong cause is worse than one that names
+          # none, because it is what the next person reads instead of looking.
+          #
+          # Neither cause is derivable from git. The distance is, and the
+          # distance is what tells them apart: hours means a deploy was
+          # overtaken, weeks means none has landed.
+          behind="unknown"
+          live_age="unknown"
+          if git cat-file -e "${live}^{commit}" 2>/dev/null; then
+            behind="$(git rev-list --count "${live}..${expected}" 2>/dev/null || echo unknown)"
+            live_committed_at="$(git show -s --format=%ct "${live}" 2>/dev/null || echo '')"
+            if [ -n "${live_committed_at}" ]; then
+              live_age="$(( (now - live_committed_at) / 86400 )) days"
+            fi
+          else
+            # Not a failure in itself: a live commit this clone cannot resolve is
+            # a real state (a force-push, or a deploy from a branch that is gone)
+            # and saying so beats printing a distance computed from nothing.
+            echo "::warning::The live commit ${live} is not in this repository, so the distance behind main could not be counted."
+          fi
+
+          {
+            echo "- Commits behind main: \`${behind}\`"
+            echo "- Live commit age: \`${live_age}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::error::Production is running ${live} while main is ${expected} -- ${behind} commit(s) behind, live build ${live_age} old."
+          echo "Two causes look identical here and the distance tells them apart:"
+          echo "  hours behind  -- a redeploy took the production alias away from a commit that had already passed the deploy gate."
+          echo "  weeks behind  -- no deployment has succeeded, so the alias was never handed over in the first place."
+          echo "Check Controlled Production Deployment's recent runs before assuming the first."
+          echo "Re-run it (it accepts workflow_dispatch) rather than redeploying from the dashboard, so the migration and catalog gates run."
           exit 1

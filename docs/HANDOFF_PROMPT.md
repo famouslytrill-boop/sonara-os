@@ -106,6 +106,53 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - The drift alarm was right for a month and said the wrong reason
+
+Following the scheduler finding to its root: four workflows talk to production,
+and **Production Commit Drift** runs every two hours. It has **288 runs** and
+the recent ones are all `failure`.
+
+So this alarm has been correct the whole time. It is not lying — it is being
+ignored, which a permanently red scheduled workflow eventually earns.
+
+## What it said, and why that was the problem
+
+Its failure message asserted one cause:
+
+> Something took the production alias away from the deployed commit.
+
+That is the scenario it was built for, on 4 August: a manual redeploy overtook a
+commit that had already passed the deploy gate, and production served a stale
+build for three and a half hours while everything was green.
+
+**It is not the current cause.** No deployment has *succeeded* since 5 August —
+fourteen consecutive failures, then #125 — so nothing took the alias. It was
+never handed over. A message that names the wrong cause is worse than one that
+names none, because it is what the next person reads instead of looking.
+
+## The distance is what tells the two apart
+
+Neither cause can be derived from git. The magnitude can, and it separates them
+cleanly: hours behind means a deploy was overtaken; weeks behind means none has
+landed. Measured from this checkout:
+
+    commits behind main: 339
+    live commit age:     30 days
+
+That is the fact "drift detected" has been hiding for a month, and reporting it
+costs `fetch-depth: 0` and two git commands. The message now offers both causes
+with the distance attached and points at Controlled Production Deployment's run
+history before assuming the first.
+
+The unresolvable case is handled rather than papered over: a live commit this
+clone cannot resolve (a force-push, a deleted branch) says so instead of
+printing a distance computed from nothing.
+
+Three probes, each red by name: the counting removed, `fetch-depth` back to 2,
+and the single-cause message restored.
+
+Suite 3,824 -> 3,825.
+
 ### 2026-09-05 - The scheduler has reported success hourly while never running
 
 Sweeping the automation and scheduling surface, the agent schedule tick is the

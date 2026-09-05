@@ -77,4 +77,50 @@ describe('Vercel deployment policy', () => {
     // fail on every merge and be switched off within a week.
     assert.match(drift, /GRACE_SECONDS/, 'the drift check has no grace window for a deploy in flight');
   });
+
+  it('says how far behind production is, not merely that it is behind', () => {
+    // The workflow was written for one cause: a manual redeploy taking the
+    // production alias away from a commit that had already passed the deploy
+    // gate. Its failure message asserted that cause outright.
+    //
+    // On 5 September 2026 it had been failing continuously and the cause was a
+    // different one -- no deployment had *succeeded* since 5 August, so nothing
+    // took the alias; it was never handed over. Measured from this checkout at
+    // the time: production on `eebc80c`, **339 commits and 30 days behind**.
+    //
+    // Neither cause is derivable from git. The distance is, and the distance is
+    // what tells them apart: hours means a deploy was overtaken, weeks means
+    // none has landed. A message naming the wrong cause is worse than one
+    // naming none, because it is what the next person reads instead of looking.
+    const drift = fs.readFileSync(path.join(root, '.github', 'workflows', 'production-commit-drift.yml'), 'utf8');
+
+    assert.match(
+      drift,
+      /git rev-list --count/,
+      'the drift check no longer counts how many commits production is behind'
+    );
+    assert.match(
+      drift,
+      /fetch-depth: 0/,
+      'the drift check cannot count the distance without the history to count across'
+    );
+    assert.doesNotMatch(
+      drift,
+      /^\s*echo "Something took the production alias away/m,
+      'the drift check asserts one cause again; the distance is what tells the two apart'
+    );
+    assert.match(
+      drift,
+      /hours behind/,
+      'the drift check no longer offers the reader both causes to weigh the distance against'
+    );
+
+    // And the blindness case: a live commit this clone cannot resolve must be
+    // reported, not turned into a distance computed from nothing.
+    assert.match(
+      drift,
+      /is not in this repository, so the distance behind main could not be counted/,
+      'an unresolvable live commit no longer says so'
+    );
+  });
 });
