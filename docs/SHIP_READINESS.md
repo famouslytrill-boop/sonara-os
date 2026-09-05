@@ -475,12 +475,12 @@ reports these tables as used.
   two-sided register meanwhile, and would fail the day a *second* route module
   is written and never wired.
 
-- **Twenty-five tables have RLS enabled with no explicit policy**, which closes
+- **25 tables have RLS enabled with no explicit policy**, which closes
   them to everything except the service role. For a table the server only ever
   reads with the service-role key that is the posture you want — it is what
   stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
 
-  This entry said **thirteen** until 5 September 2026, and added "the deep
+  This entry said **thirteen**, spelled as a word, until 5 September 2026, and added "the deep
   verification reports it every run". Both were wrong. The number was written by
   hand and nothing derived it, and the deep verification is
   `scripts/verify-production-supabase.mjs`, which needs the service-role key and

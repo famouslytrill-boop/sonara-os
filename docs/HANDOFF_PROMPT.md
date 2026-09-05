@@ -106,6 +106,50 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - The number I wrote to replace a stale one had the same defect
+
+Having corrected "thirteen" to twenty-five, `verify-doc-counts.mjs` turned out
+to carry the diagnosis of why it went stale, written months ago against a
+different claim:
+
+> It also has to be written as a **DIGIT**. "eight" is invisible to every
+> pattern here, so a derived count spelled as a word cannot be checked at all --
+> which is worth knowing before writing one.
+
+The claim that drifted was "**Thirteen** tables have RLS enabled…", spelled as a
+word. And the replacement I had just written was "**Twenty-five** tables…" — the
+same blind spot, one hour old.
+
+## Making the figure checkable rather than merely correct
+
+The doc now says **25**, as a digit, and `verify-doc-counts.mjs` derives the
+truth from the set `verify-migration-replay.mjs` pins — which is not hand-written
+either: the replay asserts it against a real PostgreSQL with all 111 migrations
+applied and fails if a table joins or leaves.
+
+    database -> replay probe -> verify-doc-counts -> the document
+
+Every link checked. Two guards inside it: the probe states the figure twice, as
+a count and a list, and disagreement between them stops the run before any
+document is trusted; and a set that cannot be parsed out of the probe at all is
+an error rather than a zero.
+
+## The hole that was demonstrated, not imagined
+
+Probing the word-revert showed the check going **quiet** rather than red: claims
+checked dropped 14 -> 13 and it passed. A pattern that stops matching stops
+measuring, and nothing noticed — which is precisely how "thirteen" survived.
+
+The file already had that guard for one claim (`registerClaimsSeen`). It now has
+it for this one, and the message names the likely cause, because the next person
+to hit it will have done exactly what I did.
+
+Four probes: the number drifted back to 13, the number respelled as a word, the
+probe's own count and list disagreeing, and the pinned set made unreadable. Each
+fails by name.
+
+Suite unchanged at 3,825; countable claims 13 -> 14.
+
 ### 2026-09-05 - Thirteen was twenty-five, and nothing had looked in a month
 
 `docs/SHIP_READINESS.md` carried this under "Known and deliberate":
