@@ -47,7 +47,14 @@ const INVENTORIES = [
   "scripts/generate-member-read-policies.cjs",
   "scripts/report-orphan-tables.mjs",
   "scripts/verify-production-schema.mjs",
-  "scripts/verify-supabase-contract.mjs"
+  "scripts/verify-supabase-contract.mjs",
+  // Added 5 September 2026. Its closed-set probe asserts the exact list of
+  // tables that end up with RLS enabled and no policy, and that list lives in a
+  // SQL string rather than a comment -- so comment stripping does not remove
+  // it and `db_health_snapshots` started reading as queried. Naming a table in
+  // an assertion about tables is the same "mentions, not usage" mistake the
+  // comment below records, one file over.
+  "scripts/verify-migration-replay.mjs"
 ];
 
 const SOURCE_DIRS = ["lib", "routes", "api", "scripts", "data", "public", "openapi"];

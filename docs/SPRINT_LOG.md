@@ -2,6 +2,63 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - Thirteen was twenty-five, and nothing had looked in a month
+
+`docs/SHIP_READINESS.md` carried this under "Known and deliberate":
+
+> **Thirteen tables have RLS enabled with no explicit policy**, which closes them
+> to everything except the service role. That is the intent, and the deep
+> verification reports it every run.
+
+Both halves were wrong.
+
+**The number.** Measured in the replay — all 111 migrations against an empty
+database — it is **twenty-five**, out of 307 tables with RLS enabled. Written by
+hand, derived by nothing, and nearly doubled since somebody counted.
+
+**The reassurance.** "The deep verification reports it every run" points at
+`scripts/verify-production-supabase.mjs`, which needs the service-role key and
+runs **only** inside Controlled Production Deployment. That workflow has not
+succeeded since 5 August. It had reported nothing for a month, which is the more
+serious half: the sentence told a reader the set was being watched.
+
+## What this is not
+
+A claim that 25 tables are wrongly closed. This application reads Supabase with
+the service-role key, which bypasses RLS, so RLS-with-no-policy is the posture
+you *want* for a server-only table — it is what stops a leaked anon key reading
+`user_recovery_codes` or `user_auth_factors`. Several of the 25 are plainly
+meant to be there.
+
+Which of them are correctly closed and which are customer data that should be
+reachable is a separate audit, and it needs production's real shape rather than
+the replay's. Saying so beats implying an answer I have not measured.
+
+## Pinned as a set, not a count
+
+`verify-migration-replay.mjs` now asserts the exact 25 names, two-sided. A table
+**joining** the set has just become unreadable by every customer; a table
+**leaving** it has just become readable. Neither is a decision to make by
+accident, and both now turn the release chain red with the name in the message.
+
+Probed both directions: dropping `user_preferences`' policies gave
+`closed_count_26`, and adding a policy to `leads` failed the set comparison.
+
+## The check that caught my own documentation
+
+Listing the 25 names made `report-orphan-tables.mjs` fail: `db_health_snapshots`
+is a genuine orphan, and naming it in the probe's SQL string made it read as
+queried. That script already strips comments for exactly this reason — "the
+difference between measuring usage and measuring mentions" — but a name in a
+SQL string is not a comment.
+
+The fix is the mechanism already there: `verify-migration-replay.mjs` joins
+`INVENTORIES`, the list of files that *enumerate* tables rather than query them.
+Narrow rather than blinding, and proved so — a real `.from("db_health_snapshots")`
+added to a scanned file is still caught.
+
+Suite 3,824 -> 3,825. `verify:launch` exit 0.
+
 ### 2026-09-05 - The drift alarm was right for a month and said the wrong reason
 
 Following the scheduler finding to its root: four workflows talk to production,

@@ -475,6 +475,41 @@ reports these tables as used.
   two-sided register meanwhile, and would fail the day a *second* route module
   is written and never wired.
 
-- **Thirteen tables have RLS enabled with no explicit policy**, which closes them
-  to everything except the service role. That is the intent, and the deep
-  verification reports it every run.
+- **Twenty-five tables have RLS enabled with no explicit policy**, which closes
+  them to everything except the service role. For a table the server only ever
+  reads with the service-role key that is the posture you want — it is what
+  stops a leaked anon key reading `user_recovery_codes` or `user_auth_factors`.
+
+  This entry said **thirteen** until 5 September 2026, and added "the deep
+  verification reports it every run". Both were wrong. The number was written by
+  hand and nothing derived it, and the deep verification is
+  `scripts/verify-production-supabase.mjs`, which needs the service-role key and
+  runs only inside Controlled Production Deployment — a workflow that has not
+  succeeded since 5 August. So it had reported nothing for a month while the set
+  nearly doubled.
+
+  Measured against the replay (all 111 migrations on an empty database, so this
+  is the migrations' intended end state, not production's): **25 of 307 tables
+  with RLS enabled.**
+
+  ```
+  audit_log                 lead_icp_profiles      recurring_invoice_lines
+  business_payment_accounts lead_routing_rules     recurring_invoices
+  call_sessions             leads                  scroll_sites
+  call_signals              legal_acceptances      sonara_auth_rate_limits
+  consent_records           notification_preferences sonara_control_plane_checks
+  db_health_snapshots       pending_auth_challenges user_auth_factors
+  lead_capture_pages        platform_jobs          user_recovery_codes
+  lead_conversations        public_booking_pages
+  ```
+
+  `verify-migration-replay.mjs` now pins that exact set, two-sided: a table
+  joining it has just become unreadable by every customer, a table leaving it
+  has just become readable, and both turn the release chain red with the name in
+  the message. **Neither direction is a decision to make by accident.**
+
+  What this does not say is that all 25 are *correctly* closed. Several are
+  plainly meant to be — the auth tables above — and several hold customer data
+  that the application reaches through the service role with tenancy enforced in
+  code. Auditing which is which is a separate piece of work, and it needs
+  production's real shape rather than the replay's.

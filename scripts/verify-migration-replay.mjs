@@ -506,6 +506,48 @@ function main() {
             where p.schemaname = 'public' and p.tablename = t and p.policyname = t || '_select_member')) q;
     `, [`declared_${declared.length}`, `policied_${declared.length}`, "absent_none", "unpolicied_none"]);
 
+    // Which tables end up readable by nobody but the service role.
+    //
+    // Row level security with **no policy at all** closes a table to every
+    // authenticated user. For this application that is often correct rather
+    // than broken: the server reads Supabase with the service-role key, which
+    // bypasses RLS, so a server-only table wants exactly this posture -- it is
+    // what stops a leaked anon key reading `user_recovery_codes`.
+    //
+    // What is not correct is not knowing which tables are in that set.
+    // `docs/SHIP_READINESS.md` said **thirteen** and claimed "the deep
+    // verification reports it every run". Measured here on 5 September 2026:
+    // **twenty-five**, out of 307 tables with RLS enabled. And the deep
+    // verification is `scripts/verify-production-supabase.mjs`, which needs the
+    // service-role key and runs only inside Controlled Production Deployment --
+    // a workflow that has not succeeded since 5 August. So it had reported
+    // nothing for a month, and the number nobody derived had nearly doubled.
+    //
+    // Pinned as an exact set rather than a count, and two-sided on purpose. A
+    // table joining this list is a table that just became unreadable by every
+    // customer; a table leaving it is one that just became readable. Both are
+    // decisions somebody should make deliberately, and both turn this red with
+    // the name in the message.
+    //
+    // This is the intended end state of the migrations, not production's. The
+    // replay runs against an empty database.
+    behaves(psql, "the set of tables closed to everyone but the service role is the set we decided on", `
+      select 'closed_count_' || count(*)::text from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = c.relname);
+
+      select 'closed_set_' || coalesce(string_agg(c.relname, ',' order by c.relname), 'none')
+        from pg_class c
+        join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = c.relname);
+    `, ["closed_count_25", "closed_set_audit_log,business_payment_accounts,call_sessions,call_signals,consent_records,db_health_snapshots,lead_capture_pages,lead_conversations,lead_icp_profiles,lead_routing_rules,leads,legal_acceptances,notification_preferences,pending_auth_challenges,platform_jobs,public_booking_pages,push_subscriptions,record_change_log,recurring_invoice_lines,recurring_invoices,scroll_sites,sonara_auth_rate_limits,sonara_control_plane_checks,user_auth_factors,user_recovery_codes"]);
+
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text
         from pg_policies
