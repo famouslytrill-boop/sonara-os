@@ -43,7 +43,13 @@ describe("pricing", () => {
     for (const [plan, config] of Object.entries(PLANS)) {
       if (config.amountCents === null || config.amountCents === undefined) continue;
       const dollars = config.amountCents / 100;
-      const expected = config.amountCents === 0 ? "$0" : `$${dollars}/mo`;
+      // The suffix is the billing period, not decoration. This asserted "/mo"
+      // for every plan until annual billing arrived on 5 September 2026, which
+      // made it impossible for a yearly price to be written correctly: the only
+      // string it accepted for $190 a year was "$190/mo". A period a customer
+      // is charged on is exactly the thing a price string must not get wrong.
+      const period = config.billedAnnually ? "/yr" : "/mo";
+      const expected = config.amountCents === 0 ? "$0" : `$${dollars}${period}`;
       assert.equal(
         config.price,
         expected,
@@ -53,18 +59,37 @@ describe("pricing", () => {
   });
 
   it("stays below the competitor entry plans the page claims to beat", () => {
-    // docs/pricing/2026-07-28-COMPETITOR-PRICING.md, surveyed July 2026. The
-    // page claims Pro beats a ~$77 stack; if a price rises past the cheapest
-    // single competitor the claim stops being true and this fails first.
-    const CHEAPEST_COMPETITOR_ENTRY_CENTS = 900; // Brevo Starter
+    // docs/pricing/2026-09-05-PRICING-STRATEGY.md, re-surveyed 5 September 2026.
+    // If a price rises past the cheapest single competitor the claim stops
+    // being true and this fails first.
+    //
+    // The stack bound was pinned at 7700 for "~$77". That figure was corrected
+    // to $87 on 12 August -- it had compared Jobber's ANNUAL price against
+    // Podia's MONTHLY one, which is not a stack anybody is quoted -- and this
+    // test was never moved with it. A bound nobody updates when its source is
+    // corrected is a bound that stops meaning anything, so it now carries the
+    // arithmetic rather than a remembered total.
+    const CHEAPEST_COMPETITOR_ENTRY_CENTS = 900; // Brevo Starter, $9
+    const COMPETITOR_STACK_CENTS = 4900 + 4900 + 900; // Jobber Core + Podia Mover + Brevo Starter, monthly
+    assert.equal(COMPETITOR_STACK_CENTS, 10700, "the stack arithmetic no longer comes to the $107 the pricing doc states");
     assert.ok(
       PLANS.starter_monthly.amountCents < CHEAPEST_COMPETITOR_ENTRY_CENTS,
       "Starter must undercut the cheapest competitor entry plan, or the pricing page claim is false"
     );
-    assert.ok(
-      PLANS.pro_monthly.amountCents < 7700,
-      "Pro must stay under the ~$77 competitor stack the page compares against"
-    );
+    for (const key of ["pro_monthly", "all_three_monthly"]) {
+      assert.ok(
+        PLANS[key].amountCents < COMPETITOR_STACK_CENTS,
+        `${key} must stay under the $107 competitor stack the page compares against`
+      );
+    }
+    // A yearly plan is compared against a year of the stack, not a month of it.
+    for (const [key, config] of Object.entries(PLANS)) {
+      if (!config.billedAnnually) continue;
+      assert.ok(
+        config.amountCents < COMPETITOR_STACK_CENTS * 12,
+        `${key} costs more per year than the competitor stack does`
+      );
+    }
 
   });
 

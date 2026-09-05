@@ -2,6 +2,94 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - Annual billing, and three checks that could not express a yearly price
+
+The market was re-surveyed against live sources and the stack we compare
+against has moved: **$107 a month, not $87.** Jobber's monthly Core is $49 (was
+$39) and Podia's Mover is $49 monthly (the $42 everyone quotes is its annual
+rate). All three workspaces at $39 is now 36% of the stack rather than 45%. The
+argument got stronger without anybody doing anything, and it is written down
+with dates and URLs in `docs/pricing/2026-09-05-PRICING-STRATEGY.md`.
+
+## The gap worth acting on
+
+**No annual billing at all.** Every competitor discounts annually; we were being
+compared monthly-to-annual and losing a comparison we win on the absolute
+number. Added at **two months free** -- $190, $390, $790 -- rather than matching
+Jobber's 41% drop, because a percentage match here gives away margin to win a
+comparison already won.
+
+Entitlements and allowances for the three annual plans are **derived** from the
+monthly twin, never listed again. Four lists had to agree for a plan to work,
+and the last time they did not, seven products advertised plans that would have
+answered a paying customer with a 402.
+
+## What deriving them broke, which is the interesting part
+
+`PAID_ACCESS_RUNTIME_MARKERS` renders the entitlement lists back into the exact
+text they have in `lib/sonara-paid-access.cjs`, and the production deploy gate
+greps the shipped runtime for that text as proof the fail-closed path deployed.
+Expanding the lists in place made the rendered marker appear **nowhere in the
+source**, so the gate went looking for a string that no longer existed.
+
+A marker is only proof while it is something the source really says. So the
+literals stay literal in `BASE_ENTITLEMENT_KEYS`, the expansion happens to a
+copy, and `withAnnualTwins(BASE_ENTITLEMENT_KEYS.business_builder)` is itself a
+marker -- otherwise the three lines would ship and an annual subscriber would be
+refused by a bundle that passed every marker.
+
+## Three checks that made a correct yearly price impossible to write
+
+Each asserted "/mo" for every plan, so the only string they accepted for $190 a
+year was `$190/mo`:
+
+- `tests/pricing.test.js`
+- `scripts/verify-stripe-env.mjs`, twice -- the advertised-string comparison,
+  **and** a check that Stripe's recurring interval is `month` for every
+  subscription. That second one would have fired the first time the owner
+  created a yearly price, on a Stripe price that was right.
+
+## A stale bound nobody moved
+
+`tests/pricing.test.js` pinned Pro under "the ~$77 competitor stack". $77 was
+corrected to $87 on **12 August** -- it had compared Jobber's annual price with
+Podia's monthly one -- and the test never moved with it. Now `4900 + 4900 + 900`
+with the source named, so the arithmetic is in the file rather than a remembered
+total, and annual plans are compared against a *year* of the stack.
+
+## A correction to this work's own document
+
+The strategy document first said none of the six Stripe prices exist. Wrong:
+`docs/MANUAL_DASHBOARD_SETUP_FINAL.md` records the three breadth prices as
+created in the live account on **13 August**, with lookup keys. What is missing
+for those three is the three Vercel variables, not the prices -- so the
+restructure is one step from live, not four.
+
+## Broken, and confirmed red
+
+- `staff_portal` back to `["team_monthly"]`: *"opens team_monthly but not
+  team_annual. Somebody paying yearly for the same product is refused."*
+- `withAnnualAllowances` bypassed: *"INCLUDED_LOCATIONS has no entry for
+  workspace_annual, so it silently takes the free allowance."*
+- All three priced at $460 instead of $390: *"all_three_annual is not ten months
+  of all_three_monthly, but its description promises two months free."*
+
+3,838 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That any of it takes money. The three annual Stripe prices do not exist, and the
+three monthly ones exist behind unset variables -- so the page still shows the
+old Starter/Core/Pro ladder, which is `offeredPlanKeys` working rather than
+failing. And no paid signup has completed in production, so there is still no
+conversion data behind any price here.
+
+**Two decisions were left to the owner, not taken:** what happens to
+`business_builder_one_time` ("We quote you" is the only line in the price list
+that needs a person), and whether to build the usage layer -- six capabilities
+are priced in `lib/sonara-paid-capabilities.cjs` and that module is required by
+exactly two files, its own release check and its own test. It charges nobody.
+
 ### 2026-09-05 - The free tier is 5 per studio, and the migration that carries it had been dead for weeks
 
 The owner asked for five free tools in each studio instead of twenty-nine free
