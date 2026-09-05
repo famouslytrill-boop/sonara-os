@@ -106,6 +106,55 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - The scheduler has reported success hourly while never running
+
+Sweeping the automation and scheduling surface, the agent schedule tick is the
+one piece with moving parts outside this repository: an hourly GitHub Actions
+cron that POSTs to `/api/agents/schedule/tick` on production.
+
+Ten runs, every one green. Each about **one second** — far too fast for a call
+with `--max-time 60`, which is the tell. The job takes its first branch: the
+secret is unset, so it warns and exits 0.
+
+That much is deliberate and the workflow says so: an unconfigured scheduler is
+"a product with no scheduled work rather than a broken one". Defensible. What it
+does not say is that there is a **second, independent blocker**, and this one is
+not a configuration choice.
+
+## Measured against production, not inferred
+
+    POST https://sonaraindustries.com/api/agents/schedule/tick
+    404 {"ok":false,"code":"not_found","message":"Unknown route."}
+
+    GET /api/health
+    commitSha eebc80c2cae6ed6ec108aef503cb9ea1cf607625
+
+`eebc80c` has served production since 5 August and contains **no occurrence** of
+that path — the endpoint arrived after it. So setting the secret would not start
+scheduled runs; it would convert a quiet green no-op into an hourly red 404.
+**Deploy first, then set the secret.** The other order is strictly worse.
+
+## Two fixes to the workflow
+
+**A 404 branch that names the cause.** The generic case said only
+`Scheduler tick failed::HTTP 404`, which is true and sends the reader looking
+for a broken route rather than an old deployment.
+
+**`"ok":true` instead of `"ok"`.** The 200 branch asked whether the field was
+*present*. This application's own error bodies are `{"ok":false,...}` — the 404
+above is one — so a 200 carrying a refusal would have been read as a successful
+tick. Presence is not the value, and the distance between them is the whole
+defect this repository keeps finding.
+
+Both probed: the 404 branch deleted, and the grep loosened back to presence.
+Each fails by name.
+
+Recorded in `docs/SHIP_READINESS.md` with the closing order, because a green
+hourly workflow over "nothing has ever run" is exactly the kind of state that
+stays invisible until somebody asks why no schedule fired.
+
+Suite 3,822 -> 3,824. `verify:launch` exit 0.
+
 ### 2026-09-05 - What a skipped table costs, measured
 
 #217 landed on `main` while this branch was open, from

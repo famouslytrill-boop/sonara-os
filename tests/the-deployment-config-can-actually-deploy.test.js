@@ -130,6 +130,47 @@ describe("the deployment config can actually deploy", () => {
     );
   });
 
+  it("tells a stale deployment apart from a broken one", () => {
+    // Measured against production on 5 September 2026, not assumed:
+    //
+    //     POST https://sonaraindustries.com/api/agents/schedule/tick
+    //     404 {"ok":false,"code":"not_found","message":"Unknown route."}
+    //     /api/health -> commitSha eebc80c2cae6ed6ec108aef503cb9ea1cf607625
+    //
+    // `eebc80c` has served production since 5 August and contains no occurrence
+    // of that path. So there are two independent reasons no customer schedule
+    // runs, and only one of them is the missing secret: the deployment does not
+    // carry the endpoint either.
+    //
+    // Without a 404 branch the generic case says "HTTP 404", which sends the
+    // reader looking for a broken route instead of an old deployment.
+    const text = fs.readFileSync(path.join(REPO, ".github", "workflows", "agent-schedule-tick.yml"), "utf8");
+    assert.match(text, /^\s*404\)/m, "the tick workflow no longer names 404, so a stale deployment reads as a generic failure");
+    assert.match(
+      text,
+      /Deployment predates this endpoint/,
+      "the 404 branch no longer explains that the running deployment lacks the route"
+    );
+  });
+
+  it("requires the tick body to say ok:true, not merely to mention ok", () => {
+    // The earlier check was `grep -q '"ok"'`, which asks whether the field is
+    // present. This application's own error bodies are `{"ok":false,...}` --
+    // the 404 above is one -- so a 200 carrying a refusal would have been read
+    // as a successful tick. Presence is not the value.
+    const text = fs.readFileSync(path.join(REPO, ".github", "workflows", "agent-schedule-tick.yml"), "utf8");
+    assert.doesNotMatch(
+      text,
+      /grep -q '"ok"'/,
+      "the tick workflow is back to testing for the presence of an ok field, which {\"ok\":false} satisfies"
+    );
+    assert.match(
+      text,
+      /"ok"\[\[:space:\]\]\*:\[\[:space:\]\]\*true/,
+      "the tick workflow no longer requires ok:true in a 200 body"
+    );
+  });
+
   it("reads the cron shapes it claims to read", () => {
     // The helper decides both assertions above, so it gets its own cases. An
     // interval reader that quietly returns the wrong number would make both of

@@ -437,6 +437,28 @@ reports these tables as used.
 - **The language control translates roughly 12% of a page** — navigation,
   buttons and headings. It now says so before you choose. Full translation needs
   human translators.
+- **No customer schedule has ever run, and the workflow reports success every
+  hour.** Two independent blockers, both measured on 5 September 2026 rather
+  than inferred:
+
+  1. `SONARA_SCHEDULE_TICK_SECRET` is not set as a repository secret. The
+     workflow's first step warns and exits **0** — deliberately, because an
+     unconfigured scheduler is a product with no scheduled work rather than a
+     broken one. Ten runs, all green, each about one second, which is far too
+     fast for the HTTPS call it would otherwise make.
+  2. **The deployed commit does not contain the endpoint.** Production serves
+     `eebc80c` (confirmed from `/api/health`) and has since 5 August;
+     `POST /api/agents/schedule/tick` returns
+     `404 {"ok":false,"code":"not_found","message":"Unknown route."}`. The route
+     arrived after that commit, so setting the secret alone would change a green
+     no-op into a red 404.
+
+  Both are now named by the workflow rather than left to a generic message, and
+  `tests/the-deployment-config-can-actually-deploy.test.js` holds the 404 branch
+  in place. **Order matters when closing this:** deploy first, then set the
+  secret. Doing it the other way round turns a quiet workflow into an hourly
+  failing one for no gain.
+
 - **A finished page nobody can reach: `/free-launch-stack`.**
   `routes/free-launch-stack-routes.cjs` is 34 lines of complete markup for a
   free-tools directory. It has never been mounted in `server.js` on this
