@@ -160,6 +160,41 @@ trusting the pass. The rewrite reports the three numbers separately -- RLS
 state, member policy count, service policy count -- so a wrong answer is visible
 instead of averaged into one verdict word.
 
+## Then the same question asked of all 54, not just the one that broke
+
+The probe above checks `customers`, because that is the table deployment #125
+died on. It is one of **54** organization-scoped tables, and a repair that fixed
+the one named in the error message while leaving the other 53 skipped would pass
+it -- the same shape as the table repair that created the absent tables and did
+nothing for the present ones.
+
+So the final assertion now reads the list out of the generator at run time and
+asks the database for all of them. Two failure modes told apart on purpose:
+**absent** (the table is not there, `to_regclass` skipped it) and **no policy**
+(the table is there and the member policy is not). The second is the silent one.
+
+**Measured: all 54 present, all 54 policied, none absent.** That includes
+`shared_links`, whose own creating migration runs *after* this one -- so the
+ordering resolves rather than leaving it unpolicied. I had assumed the opposite
+and was wrong; the replay said so.
+
+### The fact that made the first falsification useless
+
+**51 of the 54 are also policied by an earlier migration.** Six files create
+`*_select_member` policies, and only three tables -- `shared_links`,
+`service_comments`, `research_sources` -- depend on this one alone.
+
+The first attempt to break the probe removed `bookings` from the generator and
+the probe stayed green. That looked like a weak check and was not: `bookings`
+gets its policy from `20260729233000` as well, so the end state was still
+correct and green was the right answer. Repeating it with `service_comments`
+gave `policied_53`, `unpolicied_service_comments`.
+
+Worth writing down because it is the second time in this piece of work that a
+result which looked like a defect turned out to be a badly chosen question, and
+the difference was only visible by reading what the database said rather than
+what the number implied.
+
 ## Probes
 
 - The guard removed entirely -> `failed against a table missing its tenant
@@ -167,6 +202,15 @@ instead of averaged into one verdict word.
   late.
 - The shape repair silently stopped restoring the column -> `Expected
   customers_organization_id_1 and did not get it`.
+
+### What this does not say
+
+The replay runs against an **empty** database, so "all 54 policied" is a
+statement that the migrations agree with each other. Production's shape is still
+unread, and 30 of the 54 are covered by neither repair migration -- not because
+they are broken, but because they were never part of the 42-table gap and their
+own migrations create them whole. Which of those exist in production, and in
+what shape, is exactly what `rollback-checkpoint-33807980211` would answer.
 
 Suite 3,821 -> 3,822 (a `supabase-clients` case arrived with #217).
 `verify:launch` exit 0, 111 migrations replayed.

@@ -441,6 +441,71 @@ function main() {
         `so the repair has not unblocked the deployment:\n${unblocked.stderr || unblocked.stdout}`
       );
     }
+    // Every table the generator declares, not just the one that broke.
+    //
+    // The probe below checks `customers`, because that is the table deployment
+    // #125 died on. That is one of **54** organization-scoped tables, and a
+    // repair that fixed the one in the error message while leaving the other 53
+    // skipped would pass it -- which is the same shape as the table repair that
+    // created the absent tables and did nothing for the present ones.
+    //
+    // The list is read from `scripts/generate-member-read-policies.cjs` at run
+    // time rather than copied, so a table added there is covered here without
+    // anybody remembering to.
+    //
+    // Two failure modes, told apart on purpose:
+    //   absent      the table does not exist at all, so `to_regclass` skipped it
+    //   no policy   the table is there and the member policy is not
+    // The second is the silent one -- RLS is already on from an earlier
+    // migration, so a table in that state is readable by nobody but the service
+    // role while the deployment reports success.
+    //
+    // Measured on 5 September 2026: all 54 present, all 54 policied, none
+    // absent. That includes `shared_links`, whose own migration runs *after*
+    // this one -- so the ordering resolves rather than leaving it unpolicied,
+    // which is worth having pinned because it is not obvious from reading the
+    // migrations in order.
+    //
+    // One more measured fact, because it changes how this migration should be
+    // read: **51 of the 54 are also policied by an earlier migration.** Six
+    // files create `*_select_member` policies, and only three tables --
+    // `shared_links`, `service_comments`, `research_sources` -- depend on this
+    // one alone. So a falsification that removes a table from the generator
+    // proves nothing unless it picks one of those three: drop `bookings` and
+    // the end state stays correct, because 20260729233000 already created it.
+    // That was tried first and correctly did not fail.
+    const declared = (() => {
+      const source = fs.readFileSync(path.join(root, "scripts", "generate-member-read-policies.cjs"), "utf8");
+      const list = /const ORGANIZATION_READ_TABLES = \[([\s\S]*?)\];/.exec(source);
+      if (!list) stop("could not read ORGANIZATION_READ_TABLES out of the member-policy generator");
+      const tables = list[1].split("\n").map((line) => (/"([a-z_0-9]+)"/.exec(line) || [])[1]).filter(Boolean);
+      if (tables.length < 40) {
+        stop(`only ${tables.length} organization-scoped tables parsed out of the generator; this probe has gone blind`);
+      }
+      return tables;
+    })();
+
+    const asArray = `array[${declared.map((table) => `'${table}'`).join(",")}]`;
+    behaves(psql, "every organization-scoped table the generator declares ends with its member policy", `
+      select 'declared_${declared.length}';
+
+      select 'policied_' || count(*)::text from (
+        select t from unnest(${asArray}) t
+        where exists (
+          select 1 from pg_policies p
+          where p.schemaname = 'public' and p.tablename = t and p.policyname = t || '_select_member')) q;
+
+      select 'absent_' || coalesce(string_agg(t, ',' order by t), 'none') from (
+        select t from unnest(${asArray}) t where to_regclass('public.' || t) is null) q;
+
+      select 'unpolicied_' || coalesce(string_agg(t, ',' order by t), 'none') from (
+        select t from unnest(${asArray}) t
+        where to_regclass('public.' || t) is not null
+          and not exists (
+            select 1 from pg_policies p
+            where p.schemaname = 'public' and p.tablename = t and p.policyname = t || '_select_member')) q;
+    `, [`declared_${declared.length}`, `policied_${declared.length}`, "absent_none", "unpolicied_none"]);
+
     behaves(psql, "the policy that could not be created now exists", `
       select 'customers_policy_' || count(*)::text
         from pg_policies
