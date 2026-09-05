@@ -2,6 +2,90 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - The free tier is 5 per studio, and the migration that carries it had been dead for weeks
+
+The owner asked for five free tools in each studio instead of twenty-nine free
+overall. Seven products move behind a plan: `shift-rota-cost-planner`,
+`deposit-payment-schedule`, `price-rise-planner`, `late-payment-escalation`,
+`usage-rights-expiry`, `storyboard-builder` to **starter**, and
+`review-recency-score` to **core**.
+
+`review-recency-score` is the one that is not like the others.
+`planFloorOpensProduct("growth_studio", "starter")` is **false** -- Growth Studio
+enforces `core_monthly` and `pro_monthly` and nothing below. Advertising Starter
+there would have answered a customer who bought the advertised plan with a 402,
+which is the failure `lib/sonara-recommended-product-catalog.cjs` already carries
+a long comment about. Core is the lowest plan that opens it.
+
+The seven account-level tools stay free and are outside the count. Gating
+`/pricing` means paying to reach the page where you pay, and `/account/data`
+tells customers "Leave whenever you want, with everything you put in" -- a
+paywall on an export would contradict published copy.
+
+## What the change ran into, which is the larger half
+
+Deployment #129 -- the first since #110 to get past the migrations, and it did
+get past them: **step 23, "Apply production database migrations", succeeded.**
+The shape repair worked. It failed one step later:
+
+```
+AssertionError: break-even-runway-planner entitlement verification mismatch
+false !== true
+```
+
+`entitlement_integration_verified` and `execution_enabled` are
+`not null default false`, and exactly one migration ever sets them: the
+generated catalog sync at `20260812120000`. Three migrations dated **after** it
+-- `20260818060000` (9 rows), `20260818070000` (9), `20260818080000` (1) --
+insert **nineteen** products and set neither column. The sync that would have
+corrected them sits six days earlier in history and never runs again.
+
+**The generator had been rewriting an applied migration.** Its own comment says
+"Add a filename here once its migration reaches main, and point `migrationName`
+at a new one", and the prose above the list names `20260812120000` as applied.
+It was never added to the list. So every release regenerated a file
+`supabase db push` skips by filename: a change that passes every local check and
+reaches no customer. That is this repository's recurring defect wearing a
+migration's clothes -- and it is why the owner's pricing change would have
+shipped green and never been seen.
+
+## What was done about it
+
+- `20260905190000_sync_catalog_plan_floors.sql` -- a new, pending sync carrying
+  the seven plan floors **and** both flags for all 42 products, which repairs the
+  nineteen rows as a side effect of being the first sync production will run
+  since 12 August.
+- `20260812120000` and `20260827100000` move into `APPLIED_MIGRATIONS`, and the
+  assertions move to `20260905193000` so they still run last -- the rule that
+  file states about itself.
+- **The list is no longer what the guard trusts.** `migrationsProductionHasRunPast`
+  reads `supabase/applied-migration-checksums.json`, takes the newest frozen
+  migration, and fails on any generated file older than it: a frozen migration
+  newer than the generator's output means the generator's output reached main
+  first and production has run past it. A hand-maintained list of things you must
+  not forget is the thing you forget; this one cannot go stale by omission,
+  because adding any migration moves the frontier on its own. It runs on
+  `--check`, not only on write, and refuses a manifest under 50 entries rather
+  than clearing every name against an empty list.
+
+## Broken, and confirmed red
+
+- `migrationName` pointed back at `20260812120000`: *"this generator writes into
+  migrations production has already applied ... older than the newest frozen
+  migration, 20260903120000"*, on `--check`.
+- The manifest emptied to `{}`: *"the frozen-migration manifest lists only 0
+  names; this check has gone blind"* -- not a pass.
+
+3,828 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the nineteen rows are fixed. The migration that fixes them is written and
+verified against a replayed database; **production has not run it**, because
+#129 failed before deploying and the fix is what makes the next run different.
+Whether `/service-catalog` was actually showing those nineteen as unavailable to
+customers was not measured -- the site serves a commit from before they existed.
+
 ### 2026-09-05 - A gate's most important property was a comment, not a test
 
 Last surface in the sweep: automation elevation — the path where an agent action

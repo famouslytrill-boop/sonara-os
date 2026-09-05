@@ -106,5 +106,7 @@
   "20260901150000_owner_records_can_be_archived.sql": "4bb83ecdd2669ea4e7b3197e03a1a9fb95e40e66050eef1515a3f61ae91a8e0a",
   "20260811210000_repair_missing_platform_tables.sql": "3c5bf4a5f6fd4e6e3d010ed4289a31f1df59b4302dfb9178027fe53b19ca510a",
   "20260903120000_stripe_events_cannot_arrive_backwards.sql": "fcacf37870f9a80afff54263a216a6d5cf65b12634f295cf8a86c170bc0628cb",
-  "20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql": "f1e5751386bac311ce8b84da2a4af630468234dd7c771f1e5d9a309c6ac0a967"
+  "20260812000000_existing_tables_reach_the_shape_later_migrations_expect.sql": "f1e5751386bac311ce8b84da2a4af630468234dd7c771f1e5d9a309c6ac0a967",
+  "20260812120000_retire_removed_catalog_products.sql": "3fe9ddd4103be01a88b49532ceab0699c2053e5c65aba93542cd7d074cc3f5c1",
+  "20260827100000_published_catalog_is_complete.sql": "78f762b6751b29c8c74db218b7d7c09b71f98090e389c6648a148c23b577d8a7"
 }

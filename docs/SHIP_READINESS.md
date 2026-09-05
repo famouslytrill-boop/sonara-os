@@ -194,7 +194,7 @@ branch — not a guess. It is written down here rather than acted on because
 acting on it wrongly locks customers out of their own records.
 
 **The blast radius is now measured rather than feared.**
-`scripts/report-security-definer-exposure.mjs` reads the 111 migrations, finds
+`scripts/report-security-definer-exposure.mjs` reads the 113 migrations, finds
 every `SECURITY DEFINER` function, and maps each one to the RLS policies that
 call it — 505 policies across the schema. Run it with `--check`; the release
 does. The answer is not one answer:
@@ -488,7 +488,7 @@ reports these tables as used.
   succeeded since 5 August. So it had reported nothing for a month while the set
   nearly doubled.
 
-  Measured against the replay (all 111 migrations on an empty database, so this
+  Measured against the replay (all 113 migrations on an empty database, so this
   is the migrations' intended end state, not production's): **25 of 307 tables
   with RLS enabled.**
 
