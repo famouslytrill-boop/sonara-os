@@ -41,6 +41,16 @@ begin
     raise notice 'skipping billing_entitlements: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'billing_entitlements'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping billing_entitlements: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.billing_entitlements enable row level security';
   execute 'drop policy if exists "billing_entitlements_select_member" on public.billing_entitlements';
@@ -52,6 +62,16 @@ do $$
 begin
   if to_regclass('public.billing_subscriptions') is null then
     raise notice 'skipping billing_subscriptions: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'billing_subscriptions'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping billing_subscriptions: required organization_id column not present';
     return;
   end if;
 
@@ -67,6 +87,16 @@ begin
     raise notice 'skipping business_memberships: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'business_memberships'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping business_memberships: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.business_memberships enable row level security';
   execute 'drop policy if exists "business_memberships_select_member" on public.business_memberships';
@@ -78,6 +108,16 @@ do $$
 begin
   if to_regclass('public.shared_links') is null then
     raise notice 'skipping shared_links: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'shared_links'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping shared_links: required organization_id column not present';
     return;
   end if;
 
@@ -93,6 +133,16 @@ begin
     raise notice 'skipping service_comments: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'service_comments'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping service_comments: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.service_comments enable row level security';
   execute 'drop policy if exists "service_comments_select_member" on public.service_comments';
@@ -104,6 +154,16 @@ do $$
 begin
   if to_regclass('public.accounting_exports') is null then
     raise notice 'skipping accounting_exports: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'accounting_exports'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping accounting_exports: required organization_id column not present';
     return;
   end if;
 
@@ -119,6 +179,16 @@ begin
     raise notice 'skipping business_service_catalog: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'business_service_catalog'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping business_service_catalog: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.business_service_catalog enable row level security';
   execute 'drop policy if exists "business_service_catalog_select_member" on public.business_service_catalog';
@@ -130,6 +200,16 @@ do $$
 begin
   if to_regclass('public.business_bookings') is null then
     raise notice 'skipping business_bookings: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'business_bookings'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping business_bookings: required organization_id column not present';
     return;
   end if;
 
@@ -145,6 +225,16 @@ begin
     raise notice 'skipping customer_records: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'customer_records'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping customer_records: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.customer_records enable row level security';
   execute 'drop policy if exists "customer_records_select_member" on public.customer_records';
@@ -156,6 +246,16 @@ do $$
 begin
   if to_regclass('public.customers') is null then
     raise notice 'skipping customers: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'customers'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping customers: required organization_id column not present';
     return;
   end if;
 
@@ -171,6 +271,16 @@ begin
     raise notice 'skipping customer_invoices: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'customer_invoices'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping customer_invoices: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.customer_invoices enable row level security';
   execute 'drop policy if exists "customer_invoices_select_member" on public.customer_invoices';
@@ -182,6 +292,16 @@ do $$
 begin
   if to_regclass('public.customer_invoice_lines') is null then
     raise notice 'skipping customer_invoice_lines: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'customer_invoice_lines'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping customer_invoice_lines: required organization_id column not present';
     return;
   end if;
 
@@ -197,6 +317,16 @@ begin
     raise notice 'skipping customer_invoice_payments: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'customer_invoice_payments'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping customer_invoice_payments: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.customer_invoice_payments enable row level security';
   execute 'drop policy if exists "customer_invoice_payments_select_member" on public.customer_invoice_payments';
@@ -208,6 +338,16 @@ do $$
 begin
   if to_regclass('public.quotes') is null then
     raise notice 'skipping quotes: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'quotes'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping quotes: required organization_id column not present';
     return;
   end if;
 
@@ -223,6 +363,16 @@ begin
     raise notice 'skipping module_outputs: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'module_outputs'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping module_outputs: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.module_outputs enable row level security';
   execute 'drop policy if exists "module_outputs_select_member" on public.module_outputs';
@@ -234,6 +384,16 @@ do $$
 begin
   if to_regclass('public.service_deliverables') is null then
     raise notice 'skipping service_deliverables: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'service_deliverables'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping service_deliverables: required organization_id column not present';
     return;
   end if;
 
@@ -249,6 +409,16 @@ begin
     raise notice 'skipping service_request_events: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'service_request_events'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping service_request_events: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.service_request_events enable row level security';
   execute 'drop policy if exists "service_request_events_select_member" on public.service_request_events';
@@ -260,6 +430,16 @@ do $$
 begin
   if to_regclass('public.service_requests') is null then
     raise notice 'skipping service_requests: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'service_requests'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping service_requests: required organization_id column not present';
     return;
   end if;
 
@@ -275,6 +455,16 @@ begin
     raise notice 'skipping sonara_formula_results: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'sonara_formula_results'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping sonara_formula_results: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.sonara_formula_results enable row level security';
   execute 'drop policy if exists "sonara_formula_results_select_member" on public.sonara_formula_results';
@@ -286,6 +476,16 @@ do $$
 begin
   if to_regclass('public.research_sources') is null then
     raise notice 'skipping research_sources: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'research_sources'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping research_sources: required organization_id column not present';
     return;
   end if;
 
@@ -301,6 +501,16 @@ begin
     raise notice 'skipping audio_assets: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'audio_assets'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping audio_assets: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.audio_assets enable row level security';
   execute 'drop policy if exists "audio_assets_select_member" on public.audio_assets';
@@ -312,6 +522,16 @@ do $$
 begin
   if to_regclass('public.automation_rules') is null then
     raise notice 'skipping automation_rules: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'automation_rules'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping automation_rules: required organization_id column not present';
     return;
   end if;
 
@@ -327,6 +547,16 @@ begin
     raise notice 'skipping business_workspaces: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'business_workspaces'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping business_workspaces: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.business_workspaces enable row level security';
   execute 'drop policy if exists "business_workspaces_select_member" on public.business_workspaces';
@@ -338,6 +568,16 @@ do $$
 begin
   if to_regclass('public.creator_generation_jobs') is null then
     raise notice 'skipping creator_generation_jobs: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'creator_generation_jobs'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping creator_generation_jobs: required organization_id column not present';
     return;
   end if;
 
@@ -353,6 +593,16 @@ begin
     raise notice 'skipping creator_voice_consents: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'creator_voice_consents'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping creator_voice_consents: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.creator_voice_consents enable row level security';
   execute 'drop policy if exists "creator_voice_consents_select_member" on public.creator_voice_consents';
@@ -364,6 +614,16 @@ do $$
 begin
   if to_regclass('public.employee_announcements') is null then
     raise notice 'skipping employee_announcements: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_announcements'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping employee_announcements: required organization_id column not present';
     return;
   end if;
 
@@ -379,6 +639,16 @@ begin
     raise notice 'skipping employee_schedules: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_schedules'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping employee_schedules: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.employee_schedules enable row level security';
   execute 'drop policy if exists "employee_schedules_select_member" on public.employee_schedules';
@@ -390,6 +660,16 @@ do $$
 begin
   if to_regclass('public.employee_tasks') is null then
     raise notice 'skipping employee_tasks: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_tasks'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping employee_tasks: required organization_id column not present';
     return;
   end if;
 
@@ -405,6 +685,16 @@ begin
     raise notice 'skipping employee_time_entries: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'employee_time_entries'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping employee_time_entries: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.employee_time_entries enable row level security';
   execute 'drop policy if exists "employee_time_entries_select_member" on public.employee_time_entries';
@@ -416,6 +706,16 @@ do $$
 begin
   if to_regclass('public.growth_audience_segments') is null then
     raise notice 'skipping growth_audience_segments: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_audience_segments'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_audience_segments: required organization_id column not present';
     return;
   end if;
 
@@ -431,6 +731,16 @@ begin
     raise notice 'skipping growth_campaigns: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_campaigns'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_campaigns: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.growth_campaigns enable row level security';
   execute 'drop policy if exists "growth_campaigns_select_member" on public.growth_campaigns';
@@ -442,6 +752,16 @@ do $$
 begin
   if to_regclass('public.growth_contact_consents') is null then
     raise notice 'skipping growth_contact_consents: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_contact_consents'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_contact_consents: required organization_id column not present';
     return;
   end if;
 
@@ -457,6 +777,16 @@ begin
     raise notice 'skipping growth_content_queue: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_content_queue'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_content_queue: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.growth_content_queue enable row level security';
   execute 'drop policy if exists "growth_content_queue_select_member" on public.growth_content_queue';
@@ -468,6 +798,16 @@ do $$
 begin
   if to_regclass('public.growth_conversions') is null then
     raise notice 'skipping growth_conversions: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_conversions'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_conversions: required organization_id column not present';
     return;
   end if;
 
@@ -483,6 +823,16 @@ begin
     raise notice 'skipping growth_experiments: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_experiments'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_experiments: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.growth_experiments enable row level security';
   execute 'drop policy if exists "growth_experiments_select_member" on public.growth_experiments';
@@ -494,6 +844,16 @@ do $$
 begin
   if to_regclass('public.growth_leads') is null then
     raise notice 'skipping growth_leads: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_leads'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_leads: required organization_id column not present';
     return;
   end if;
 
@@ -509,6 +869,16 @@ begin
     raise notice 'skipping growth_metric_snapshots: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_metric_snapshots'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_metric_snapshots: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.growth_metric_snapshots enable row level security';
   execute 'drop policy if exists "growth_metric_snapshots_select_member" on public.growth_metric_snapshots';
@@ -520,6 +890,16 @@ do $$
 begin
   if to_regclass('public.growth_provider_jobs') is null then
     raise notice 'skipping growth_provider_jobs: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_provider_jobs'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_provider_jobs: required organization_id column not present';
     return;
   end if;
 
@@ -535,6 +915,16 @@ begin
     raise notice 'skipping growth_touchpoints: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'growth_touchpoints'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping growth_touchpoints: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.growth_touchpoints enable row level security';
   execute 'drop policy if exists "growth_touchpoints_select_member" on public.growth_touchpoints';
@@ -546,6 +936,16 @@ do $$
 begin
   if to_regclass('public.inventory_items') is null then
     raise notice 'skipping inventory_items: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'inventory_items'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping inventory_items: required organization_id column not present';
     return;
   end if;
 
@@ -561,6 +961,16 @@ begin
     raise notice 'skipping location_events: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'location_events'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping location_events: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.location_events enable row level security';
   execute 'drop policy if exists "location_events_select_member" on public.location_events';
@@ -572,6 +982,16 @@ do $$
 begin
   if to_regclass('public.location_zones') is null then
     raise notice 'skipping location_zones: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'location_zones'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping location_zones: required organization_id column not present';
     return;
   end if;
 
@@ -587,6 +1007,16 @@ begin
     raise notice 'skipping market_intelligence_competitors: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'market_intelligence_competitors'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping market_intelligence_competitors: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.market_intelligence_competitors enable row level security';
   execute 'drop policy if exists "market_intelligence_competitors_select_member" on public.market_intelligence_competitors';
@@ -598,6 +1028,16 @@ do $$
 begin
   if to_regclass('public.market_intelligence_opportunities') is null then
     raise notice 'skipping market_intelligence_opportunities: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'market_intelligence_opportunities'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping market_intelligence_opportunities: required organization_id column not present';
     return;
   end if;
 
@@ -613,6 +1053,16 @@ begin
     raise notice 'skipping market_intelligence_reviews: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'market_intelligence_reviews'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping market_intelligence_reviews: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.market_intelligence_reviews enable row level security';
   execute 'drop policy if exists "market_intelligence_reviews_select_member" on public.market_intelligence_reviews';
@@ -624,6 +1074,16 @@ do $$
 begin
   if to_regclass('public.market_intelligence_segments') is null then
     raise notice 'skipping market_intelligence_segments: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'market_intelligence_segments'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping market_intelligence_segments: required organization_id column not present';
     return;
   end if;
 
@@ -639,6 +1099,16 @@ begin
     raise notice 'skipping market_intelligence_signals: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'market_intelligence_signals'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping market_intelligence_signals: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.market_intelligence_signals enable row level security';
   execute 'drop policy if exists "market_intelligence_signals_select_member" on public.market_intelligence_signals';
@@ -650,6 +1120,16 @@ do $$
 begin
   if to_regclass('public.menu_items') is null then
     raise notice 'skipping menu_items: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'menu_items'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping menu_items: required organization_id column not present';
     return;
   end if;
 
@@ -665,6 +1145,16 @@ begin
     raise notice 'skipping motion_sensor_events: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'motion_sensor_events'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping motion_sensor_events: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.motion_sensor_events enable row level security';
   execute 'drop policy if exists "motion_sensor_events_select_member" on public.motion_sensor_events';
@@ -676,6 +1166,16 @@ do $$
 begin
   if to_regclass('public.music_projects') is null then
     raise notice 'skipping music_projects: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'music_projects'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping music_projects: required organization_id column not present';
     return;
   end if;
 
@@ -691,6 +1191,16 @@ begin
     raise notice 'skipping product_lifecycle_initiatives: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'product_lifecycle_initiatives'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping product_lifecycle_initiatives: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.product_lifecycle_initiatives enable row level security';
   execute 'drop policy if exists "product_lifecycle_initiatives_select_member" on public.product_lifecycle_initiatives';
@@ -702,6 +1212,16 @@ do $$
 begin
   if to_regclass('public.recipe_cards') is null then
     raise notice 'skipping recipe_cards: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'recipe_cards'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping recipe_cards: required organization_id column not present';
     return;
   end if;
 
@@ -717,6 +1237,16 @@ begin
     raise notice 'skipping tactile_events: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'tactile_events'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping tactile_events: required organization_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.tactile_events enable row level security';
   execute 'drop policy if exists "tactile_events_select_member" on public.tactile_events';
@@ -728,6 +1258,16 @@ do $$
 begin
   if to_regclass('public.vendor_invoices') is null then
     raise notice 'skipping vendor_invoices: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'vendor_invoices'
+      and column_name = 'organization_id'
+  ) then
+    raise notice 'skipping vendor_invoices: required organization_id column not present';
     return;
   end if;
 
@@ -746,6 +1286,16 @@ begin
     raise notice 'skipping business_employee_profiles: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'business_employee_profiles'
+      and column_name = 'user_id'
+  ) then
+    raise notice 'skipping business_employee_profiles: required user_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.business_employee_profiles enable row level security';
   execute 'drop policy if exists "business_employee_profiles_select_own" on public.business_employee_profiles';
@@ -757,6 +1307,16 @@ do $$
 begin
   if to_regclass('public.sonara_platforms') is null then
     raise notice 'skipping sonara_platforms: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'sonara_platforms'
+      and column_name = 'user_id'
+  ) then
+    raise notice 'skipping sonara_platforms: required user_id column not present';
     return;
   end if;
 
@@ -772,6 +1332,16 @@ begin
     raise notice 'skipping user_notifications: table not present';
     return;
   end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'user_notifications'
+      and column_name = 'user_id'
+  ) then
+    raise notice 'skipping user_notifications: required user_id column not present';
+    return;
+  end if;
 
   execute 'alter table public.user_notifications enable row level security';
   execute 'drop policy if exists "user_notifications_select_own" on public.user_notifications';
@@ -783,6 +1353,16 @@ do $$
 begin
   if to_regclass('public.user_preferences') is null then
     raise notice 'skipping user_preferences: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'user_preferences'
+      and column_name = 'user_id'
+  ) then
+    raise notice 'skipping user_preferences: required user_id column not present';
     return;
   end if;
 

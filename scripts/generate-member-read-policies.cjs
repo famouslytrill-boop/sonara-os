@@ -164,13 +164,26 @@ const PERSONAL_READ_TABLES = [
   "user_preferences"
 ];
 
-function policyBlock(table, predicate, policyName) {
+function policyBlock(table, requiredColumn, predicate, policyName) {
   // to_regclass returns null rather than raising for a table that does not
   // exist, so a schema that has moved on does not fail the whole migration.
+  // Hosted legacy tables can also exist under an older shape. Checking the
+  // tenant column before enabling RLS prevents a generated policy from either
+  // failing the deployment or changing access on a table it cannot scope.
   return `do $$
 begin
   if to_regclass('public.${table}') is null then
     raise notice 'skipping ${table}: table not present';
+    return;
+  end if;
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = '${table}'
+      and column_name = '${requiredColumn}'
+  ) then
+    raise notice 'skipping ${table}: required ${requiredColumn} column not present';
     return;
   end if;
 
@@ -222,10 +235,12 @@ $$;
 const blocks = [
   "-- Organization-scoped: any member of the owning organization may read.\n",
   ...ORGANIZATION_READ_TABLES.map((table) =>
-    policyBlock(table, "public.is_org_member(organization_id)", `${table}_select_member`)
+    policyBlock(table, "organization_id", "public.is_org_member(organization_id)", `${table}_select_member`)
   ),
   "\n-- Person-scoped: these rows belong to one member, not to the organization.\n",
-  ...PERSONAL_READ_TABLES.map((table) => policyBlock(table, "auth.uid() = user_id", `${table}_select_own`))
+  ...PERSONAL_READ_TABLES.map((table) =>
+    policyBlock(table, "user_id", "auth.uid() = user_id", `${table}_select_own`)
+  )
 ];
 
 // A new file each time this list grows, never an edit to an applied one.

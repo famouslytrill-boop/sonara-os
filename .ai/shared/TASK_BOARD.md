@@ -4,7 +4,8 @@ Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 
 ## In progress
 
-- Push, review, merge, and run the controlled production deployment after the 217-record governance and customer-routing reconciliation passed locally.
+- Merge the hosted-schema compatibility repair and rerun the controlled production deployment from the resulting `main` commit.
+- Confirm exact-SHA production aliases and post-deploy health after the compatibility repair completes the controlled workflow.
 - Obtain network repository-health evidence and CI migration replay for the current branch.
 - Reconcile all Claude-authored development into the current source baseline and protect it with automated checks.
 - Verify the next controlled production deployment reaches current `main` rather than the older deployed commit.
@@ -27,6 +28,9 @@ Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 
 ## Done
 
+- Merged PR #216 as `7aa68a06`; every PR check passed. The automatic controlled deployment stopped safely before Vercel deployment when the hosted legacy `customers` table lacked the generated policy's `organization_id` column.
+- Added a generator-level required-column guard so a legacy-shaped table is not altered and cannot abort the remaining production migration sequence.
+- Passed the compatibility branch's complete local release gate with 3,802 tests and 6 explicitly pending.
 - Passed the complete local release gate with 3,801 tests passing, 6 explicitly pending, and all build, lint, client-secret, route, schema, policy, catalog, registry, JavaScript coverage, Python coverage, and documentation checks green.
 - Made the release gate portable on Windows without weakening it: path/EOL-sensitive assertions are normalized, Python discovery is cross-platform, and V8 coverage is reused only for an identical fingerprinted source tree after a successful test run.
 - Added 32 non-duplicate governed repository records to the latest branch without replacing newer records or reviving retired URLs.
