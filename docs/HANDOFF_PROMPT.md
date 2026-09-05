@@ -15228,3 +15228,20 @@ one successful suite and accepts the cache only for the identical source-tree
 fingerprint, avoiding a second loopback-heavy Windows run without weakening the
 coverage floor. Migration replay remains visibly skipped without local
 PostgreSQL binaries and remains mandatory in CI.
+
+### 2026-09-05 - A table existing does not mean it has the current tenant shape
+
+The controlled deployment for merge `7aa68a06` passed every source and dry-run
+gate, recorded a rollback checkpoint, then stopped while applying
+`20260819030000_member_read_policies_research_sources.sql`. Production's legacy
+`customers` table exists, but does not have the canonical `organization_id`
+column the generated member policy names. `to_regclass()` proved only that the
+table existed, so the generated policy failed before deployment.
+
+The policy generator now checks the column its predicate requires before it
+changes RLS or creates a policy: `organization_id` for organization reads and
+`user_id` for personal reads. A legacy-shaped table is left unchanged with an
+explicit notice. This is intentionally not a guessed mapping to a legacy key;
+granting access through the wrong tenant relationship would be worse than
+leaving that future user-scoped read unavailable. Current service-role reads
+are unchanged, and canonical tables still receive the same policy.

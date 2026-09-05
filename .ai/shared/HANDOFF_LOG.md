@@ -1,5 +1,13 @@
 # Handoff Log
 
+## 2026-09-05 UTC - Production member-policy compatibility repair
+
+- PR #216 merged to `main` as `7aa68a06235bfe44a1c9d5950caf34f5f0f0289c` after all exact-head checks passed.
+- Controlled deployment run 33973274001 validated credentials, dependencies, tests, client-secret boundaries, routes, database contracts, project identity, migration preview, and rollback checkpoint creation.
+- Production migration application then failed transactionally because hosted table `public.customers` exists without the canonical `organization_id` column. Vercel deployment and post-deploy verification did not run.
+- Updated the still-generator-owned migration to test its required scope column before enabling RLS or creating a policy. Tables with an incompatible legacy shape remain unchanged and emit an explicit skip notice; canonical tables keep the intended member policy.
+- Focused generator, policy, frozen-migration, and 145-table contract checks pass. The complete local release gate also passes with 3,802 tests and 6 explicitly pending. Follow-up PR, merge, and controlled deployment retry remain.
+
 ## 2026-09-05 UTC - Latest-branch release reconciliation
 
 - Rebased the routing work onto `fc2b151b`, preserving all 14 newer registry records and adding 32 non-duplicate reviewed records for a 217-record, 213-unique-GitHub-target register.

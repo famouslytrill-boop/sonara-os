@@ -131,6 +131,21 @@ describe("the policies that make user-scoped reads possible", () => {
     }
   });
 
+  it("leaves legacy-shaped tables untouched when the required scope column is absent", () => {
+    for (const table of ORGANIZATION_READ_TABLES) {
+      const block = sql.slice(sql.indexOf(`to_regclass('public.${table}')`));
+      const policy = block.indexOf(`create policy "${table}_select_member"`);
+      const columnGuard = block.indexOf(`and column_name = 'organization_id'`);
+      assert.ok(columnGuard >= 0 && columnGuard < policy, `${table} must verify organization_id before changing RLS`);
+    }
+    for (const table of PERSONAL_READ_TABLES) {
+      const block = sql.slice(sql.indexOf(`to_regclass('public.${table}')`));
+      const policy = block.indexOf(`create policy "${table}_select_own"`);
+      const columnGuard = block.indexOf(`and column_name = 'user_id'`);
+      assert.ok(columnGuard >= 0 && columnGuard < policy, `${table} must verify user_id before changing RLS`);
+    }
+  });
+
   it("scopes organization tables by membership", () => {
     for (const table of ORGANIZATION_READ_TABLES) {
       assert.match(
