@@ -39,7 +39,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROUTES = path.join(__dirname, "..", "routes", "creator-generation-routes.cjs");
-const source = fs.readFileSync(ROUTES, "utf8");
+const source = fs.readFileSync(ROUTES, "utf8").replace(/\r\n/g, "\n");
 
 /** The file with comments removed, so prose cannot be read as code. */
 const code = source

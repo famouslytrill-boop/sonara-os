@@ -4,6 +4,8 @@ Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 
 ## In progress
 
+- Push, review, merge, and run the controlled production deployment after the 217-record governance and customer-routing reconciliation passed locally.
+- Obtain network repository-health evidence and CI migration replay for the current branch.
 - Reconcile all Claude-authored development into the current source baseline and protect it with automated checks.
 - Verify the next controlled production deployment reaches current `main` rather than the older deployed commit.
 - Verify production migrations, catalog records, lifecycle restrictions, and paid entitlements after deployment.
@@ -25,6 +27,12 @@ Updated: 2026-07-26 UTC after Claude/Codex reconciliation.
 
 ## Done
 
+- Passed the complete local release gate with 3,801 tests passing, 6 explicitly pending, and all build, lint, client-secret, route, schema, policy, catalog, registry, JavaScript coverage, Python coverage, and documentation checks green.
+- Made the release gate portable on Windows without weakening it: path/EOL-sensitive assertions are normalized, Python discovery is cross-platform, and V8 coverage is reused only for an identical fingerprinted source tree after a successful test run.
+- Added 32 non-duplicate governed repository records to the latest branch without replacing newer records or reviving retired URLs.
+- Added a public Technology Radar and protected Business Builder, Creator Studio, and Growth Studio technology-reference modules.
+- Preserved 50 social-source evidence records, mapped 35 verified repositories, and left 17 unresolved or service-only sources unguessed.
+- Added cross-platform ZIP validation, deterministic UTC saved dates, path-normalized security tests, and EOL-stable applied-migration verification.
 - Confirmed `claude/fix-deploy-service-role-secret` was merged as PR #101.
 - Confirmed Claude head `375a2ef1b3809be76ccd4f3a00a107d8d9f788a9` is contained in current `main`.
 - Confirmed there are no open Claude-generated PRs or live `claude/*` branches in the accessible SONARA repository.

@@ -17,13 +17,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
 
 const { buildSite, slugify, framePath, SECTION_KINDS, MOTIONS, MAX_SECTIONS } = require("../lib/sonara-scroll-site.cjs");
 const { TEMPLATES, siteFromTemplate, templateByKey } = require("../lib/sonara-scroll-templates.cjs");
 const { renderSite, styleSheet, safeUrl } = require("../lib/sonara-scroll-render.cjs");
 const { buildExport, exportFilename } = require("../lib/sonara-scroll-export.cjs");
 const { contrastRatio } = require("../lib/sonara-contrast.cjs");
+const { extractZip } = require("./helpers/system-zip.cjs");
 
 const RUNTIME = fs.readFileSync(path.join(__dirname, "..", "public", "sonara-scroll.js"), "utf8");
 
@@ -36,7 +36,7 @@ function unpacked(site, { frames = [], audio = null } = {}) {
   try {
     const zipPath = path.join(dir, "site.zip");
     fs.writeFileSync(zipPath, zip);
-    execFileSync("unzip", ["-q", "-o", zipPath, "-d", path.join(dir, "out")]);
+    extractZip(zipPath, path.join(dir, "out"));
     const read = (name) => fs.readFileSync(path.join(dir, "out", name), "utf8");
     return { manifest, indexHtml: read("index.html"), runtime: read("scroll.js"), readme: read("README.md"), dir: path.join(dir, "out") };
   } finally {

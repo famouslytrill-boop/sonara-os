@@ -5068,6 +5068,1401 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: false,
   },
+  {
+    name: "Agent Room",
+    slug: "agent-room-local-developer-collaboration",
+    category: [
+      "developer tooling",
+      "multi-agent collaboration",
+      "local-first coordination",
+      "coding agents"
+    ],
+    useCase: [
+      "internal Codex and Claude coordination",
+      "human-observed engineering review",
+      "shared development handoffs"
+    ],
+    productFit: [
+      "Internal Development",
+      "Admin Command Center"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "review the installer and localhost server before any developer opt-in",
+      "keep repository contracts and Git history as the authoritative handoff",
+      "use only for human-observed internal engineering sessions",
+      "do not add it to customer or production runtimes"
+    ],
+    officialUrl: "https://github.com/steviebuilds/agent-room",
+    repoUrl: "https://github.com/steviebuilds/agent-room",
+    notes: "The Facebook research link resolves to steviebuilds/agent-room. Upstream describes an MIT-licensed localhost room for Codex, Claude Code, and other terminal agents, installed into user-level skill directories with transcripts stored under the user profile. SONARA records it as a development reference only; the repository is not cloned, installed, executed, bundled, or enabled by this intake.",
+    safetyBoundaries: [
+      "explicit developer opt-in",
+      "loopback-only binding",
+      "no secrets or customer data in transcripts",
+      "human observation and approval",
+      "repository contracts remain authoritative",
+      "review retention and deletion before use"
+    ],
+    blockedUses: [
+      "customer-facing agent rooms",
+      "production deployment",
+      "automatic installation or self-update",
+      "network-exposed room server",
+      "secret or customer-data sharing",
+      "permission bypass",
+      "automatic merge, push, or deployment"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "GitMCP",
+    slug: "gitmcp-public-repository-context",
+    category: [
+      "MCP tooling",
+      "public repository context",
+      "developer research",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "read-only context for public repositories",
+      "reducing code hallucinations during internal research"
+    ],
+    productFit: [
+      "Internal Development",
+      "AI Code Assistant",
+      "Research Lab"
+    ],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "prefer repository-local source and Git history",
+      "review a self-hosted adapter before any private-repository use"
+    ],
+    officialUrl: "https://gitmcp.io",
+    repoUrl: "https://github.com/idosal/git-mcp",
+    notes: "Identified from the submitted GitHub URL-swap reel. Recorded as a read-only developer reference; no remote MCP endpoint was connected and no source was copied.",
+    safetyBoundaries: [
+      "public repositories only unless owner-approved self-hosting exists",
+      "no secrets or customer data",
+      "read-only context",
+      "human review of generated answers"
+    ],
+    blockedUses: [
+      "sending private source to an unapproved service",
+      "customer runtime dependency",
+      "write access",
+      "automatic installation"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Gitingest",
+    slug: "gitingest-public-repository-extract",
+    category: [
+      "repository extraction",
+      "developer context",
+      "public source review",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "creating a bounded text view of a public repository for internal analysis"
+    ],
+    productFit: [
+      "Internal Development",
+      "AI Code Assistant",
+      "Research Lab"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "use repository-local tools for private code",
+      "apply file and size limits before any future adapter review"
+    ],
+    officialUrl: "https://gitingest.com",
+    repoUrl: "https://github.com/cyclotruc/gitingest",
+    notes: "Identified from the submitted GitHub URL-swap reel. No repository content was transmitted to the service and no code was adopted.",
+    safetyBoundaries: [
+      "public repositories only",
+      "no credentials",
+      "size-bounded extracts",
+      "respect upstream licences"
+    ],
+    blockedUses: [
+      "private-source upload",
+      "secret ingestion",
+      "customer-data processing",
+      "automatic installation"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "GitDiagram",
+    slug: "gitdiagram-public-architecture-reference",
+    category: [
+      "architecture diagrams",
+      "repository visualization",
+      "developer tooling",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "studying public repository structure",
+      "architecture-documentation patterns"
+    ],
+    productFit: [
+      "Internal Development",
+      "Admin Command Center",
+      "System Design Intelligence"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep SONARA architecture diagrams generated from first-party repository evidence",
+      "review privacy before any hosted adapter"
+    ],
+    officialUrl: "https://gitdiagram.com",
+    repoUrl: "https://github.com/ahmedkhaleel2004/gitdiagram",
+    notes: "Identified from the submitted GitHub URL-swap reel. SONARA already has its own generated architecture and integration-map contracts, so this remains a reference.",
+    safetyBoundaries: [
+      "public repositories only",
+      "no private-source transmission",
+      "diagram claims require code verification"
+    ],
+    blockedUses: [
+      "private repository upload to an unapproved host",
+      "treating generated diagrams as security proof",
+      "source copying"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "OpenVid",
+    slug: "openvid-browser-product-demo-editor",
+    category: [
+      "screen recording",
+      "product demos",
+      "browser video editing",
+      "non-commercial licence"
+    ],
+    useCase: [
+      "Creator Studio workflow research for product-demo framing and motion"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Research Lab"
+    ],
+    license: "PolyForm Noncommercial 1.0.0",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "study product-demo workflow concepts only",
+      "obtain separate commercial permission before any code use"
+    ],
+    officialUrl: "https://openvid.dev",
+    repoUrl: "https://github.com/cristianolivera1/openvid",
+    notes: "The social caption called this open source, but its repository licence permits non-commercial purposes only. SONARA is a revenue product, so no source or bundle may be adopted.",
+    safetyBoundaries: [
+      "research-only observation",
+      "commercial licence required",
+      "media rights review"
+    ],
+    blockedUses: [
+      "commercial bundling",
+      "source copying",
+      "automatic publishing",
+      "copyrighted-media redistribution"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Hugging Face Transformers",
+    slug: "huggingface-transformers-model-framework",
+    category: [
+      "model framework",
+      "multimodal inference",
+      "research dependency",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "model-provider abstraction research",
+      "understanding model and processor interfaces"
+    ],
+    productFit: [
+      "Private Model Mode",
+      "AI Governance",
+      "Research Lab"
+    ],
+    license: "Apache-2.0; every model and dataset licence remains separate",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep production model access behind provider adapters",
+      "review every model card, weight licence, hardware cost, and data boundary separately"
+    ],
+    officialUrl: "https://huggingface.co/docs/transformers",
+    repoUrl: "https://github.com/huggingface/transformers",
+    notes: "Visible as one repository in the submitted trending roundup. The framework licence does not grant rights to any model weights or training data.",
+    safetyBoundaries: [
+      "no bundled weights",
+      "model-specific licence review",
+      "no customer data for training",
+      "feature flag and quota before inference"
+    ],
+    blockedUses: [
+      "unreviewed model bundling",
+      "medical legal financial or high-stakes automation",
+      "production GPU inference in the Vercel request path"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Archify",
+    slug: "archify-verifiable-architecture-skill",
+    category: [
+      "agent skill",
+      "architecture diagrams",
+      "deterministic artifacts",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "architecture-diagram workflow research",
+      "validated self-contained documentation artifacts"
+    ],
+    productFit: [
+      "Internal Development",
+      "Admin Command Center",
+      "System Design Intelligence"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "review the skill instructions and installer before any developer opt-in",
+      "keep SONARA diagrams deterministic and repository-backed"
+    ],
+    officialUrl: "https://tt-a1i.github.io/archify/",
+    repoUrl: "https://github.com/tt-a1i/archify",
+    notes: "Identified from the submitted ARCHIFY reel. No skill, installer, package, or source was added to SONARA.",
+    safetyBoundaries: [
+      "developer opt-in",
+      "no automatic installation",
+      "generated claims verified against source",
+      "no secrets in diagrams"
+    ],
+    blockedUses: [
+      "silent global skill installation",
+      "private-source upload",
+      "diagram as security certification",
+      "automatic deployment"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "YT Short Clipper",
+    slug: "yt-short-clipper-creator-video-reference",
+    category: [
+      "video clipping",
+      "creator tooling",
+      "FFmpeg workflow",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "Creator Studio short-form video workflow research",
+      "caption and crop pipeline reference"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Render & Speed Tools"
+    ],
+    license: "MIT",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "build SONARA-native job contracts rather than adopting the desktop application",
+      "require rights, queue, quota, storage, and approval proof first"
+    ],
+    officialUrl: "https://github.com/jipraks/yt-short-clipper",
+    repoUrl: "https://github.com/jipraks/yt-short-clipper",
+    notes: "Identified visually from the submitted reel. Upstream includes video downloading, external telemetry endpoints, AI providers, and publishing helpers, so it is not installed or connected.",
+    safetyBoundaries: [
+      "owned or licensed source media",
+      "no platform-cookie ingestion",
+      "no automatic publishing",
+      "bounded worker jobs",
+      "human rights review"
+    ],
+    blockedUses: [
+      "unauthorized video downloading",
+      "cookie or credential capture",
+      "automatic social posting",
+      "Vercel request-path rendering"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "reverse-skill",
+    slug: "reverse-skill-restricted-security-router",
+    category: [
+      "reverse engineering",
+      "penetration testing",
+      "security tooling",
+      "restricted"
+    ],
+    useCase: [
+      "defensive security research policy only"
+    ],
+    productFit: [
+      "AI Safety Review",
+      "Internal Development"
+    ],
+    license: "MIT",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "retain only as an internal refusal and authorized-testing reference",
+      "use approved scanners with written scope instead"
+    ],
+    officialUrl: "https://github.com/zhaoxuya520/reverse-skill",
+    repoUrl: "https://github.com/zhaoxuya520/reverse-skill",
+    notes: "The repository explicitly covers reverse engineering and penetration testing and bootstraps security tools. It cannot become a customer feature or autonomous skill.",
+    safetyBoundaries: [
+      "written authorization",
+      "isolated test assets",
+      "human security lead",
+      "no offensive execution"
+    ],
+    blockedUses: [
+      "public security automation",
+      "unauthorized scanning",
+      "exploit automation",
+      "toolchain bootstrapping",
+      "customer-facing hacking features"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "x-cmd",
+    slug: "x-cmd-command-toolkit-reference",
+    category: [
+      "command-line tooling",
+      "developer productivity",
+      "shell automation",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "internal command-discovery research only"
+    ],
+    productFit: [
+      "Internal Development",
+      "AI Code Assistant"
+    ],
+    license: "Apache-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep SONARA automation on explicit allowlists",
+      "review individual commands and installers instead of adopting a broad toolkit"
+    ],
+    officialUrl: "https://www.x-cmd.com",
+    repoUrl: "https://github.com/x-cmd/x-cmd",
+    notes: "Identified from the submitted reel. A general command-line toolkit is not a safe production agent execution layer and was not installed.",
+    safetyBoundaries: [
+      "developer opt-in",
+      "explicit command allowlist",
+      "no production credentials",
+      "human approval"
+    ],
+    blockedUses: [
+      "arbitrary user-supplied command execution",
+      "production execution",
+      "unreviewed remote installer execution",
+      "permission bypass"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Metabigor",
+    slug: "metabigor-restricted-osint-reference",
+    category: [
+      "OSINT",
+      "attack-surface discovery",
+      "bug bounty",
+      "restricted security research"
+    ],
+    useCase: [
+      "authorized defensive asset-inventory policy reference only"
+    ],
+    productFit: [
+      "AI Safety Review",
+      "Internal Development"
+    ],
+    license: "MIT",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not expose as a product",
+      "use contracted security tooling only against owner-controlled assets"
+    ],
+    officialUrl: "https://github.com/j3ssie/metabigor",
+    repoUrl: "https://github.com/j3ssie/metabigor",
+    notes: "The caption advertises OSINT, subdomain discovery, vulnerability enrichment, and public-repository secret searches. Those capabilities are outside SONARA customer products.",
+    safetyBoundaries: [
+      "written asset ownership",
+      "defensive scope",
+      "security lead review",
+      "no stored discovered credentials"
+    ],
+    blockedUses: [
+      "unauthorized reconnaissance",
+      "secret harvesting",
+      "vulnerability scanning of third parties",
+      "customer-facing OSINT automation"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Paperless-ngx",
+    slug: "paperless-ngx-document-management-reference",
+    category: [
+      "document management",
+      "OCR",
+      "archival",
+      "reciprocal licence"
+    ],
+    useCase: [
+      "Business Builder document-lifecycle and inbox workflow reference"
+    ],
+    productFit: [
+      "Business Builder",
+      "Files & Records"
+    ],
+    license: "GPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not bundle or copy into SONARA",
+      "study document states and retention concepts",
+      "use a separately operated service only after legal and privacy review"
+    ],
+    officialUrl: "https://docs.paperless-ngx.com",
+    repoUrl: "https://github.com/paperless-ngx/paperless-ngx",
+    notes: "Identified from the submitted reel. GPL-3.0 and sensitive document processing keep it outside the proprietary application source.",
+    safetyBoundaries: [
+      "tenant isolation",
+      "document rights",
+      "retention and deletion",
+      "malware scanning",
+      "legal review"
+    ],
+    blockedUses: [
+      "source bundling",
+      "private document upload without consent",
+      "public-by-default storage",
+      "automatic legal conclusions"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Skills for Real Engineers",
+    slug: "mattpocock-engineering-skills-reference",
+    category: [
+      "agent skills",
+      "engineering guidance",
+      "developer workflow",
+      "submitted 2026-09-01"
+    ],
+    useCase: [
+      "reviewing concise engineering skill patterns",
+      "improving internal validation discipline"
+    ],
+    productFit: [
+      "Internal Development",
+      "AI Code Assistant"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "review each skill as executable policy before opt-in",
+      "keep SONARA repository contracts authoritative"
+    ],
+    officialUrl: "https://github.com/mattpocock/skills",
+    repoUrl: "https://github.com/mattpocock/skills",
+    notes: "Identified from the submitted reel. The skill repository was registered, not installed, and cannot override AGENTS.md or shared engineering contracts.",
+    safetyBoundaries: [
+      "per-skill review",
+      "no hidden prompt changes",
+      "no automatic installation",
+      "human approval for repository writes"
+    ],
+    blockedUses: [
+      "global silent installation",
+      "permission escalation",
+      "automatic push merge or deploy",
+      "production prompt mutation"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Plane",
+    slug: "plane-project-management-reference",
+    category: [
+      "project management",
+      "work tracking",
+      "reciprocal licence",
+      "external service reference"
+    ],
+    useCase: [
+      "Business Builder work-item and launch-checklist workflow research"
+    ],
+    productFit: [
+      "Business Builder",
+      "Project Launch Checklist"
+    ],
+    license: "AGPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not incorporate Plane source",
+      "retain SONARA-native task and checklist records",
+      "review external-service use separately if ever needed"
+    ],
+    officialUrl: "https://plane.so",
+    repoUrl: "https://github.com/makeplane/plane",
+    notes: "Identified from the submitted reel. Its AGPL licence and overlapping product scope make source adoption inappropriate for the proprietary application.",
+    safetyBoundaries: [
+      "legal review",
+      "no source copying",
+      "tenant data export and deletion",
+      "external service opt-in"
+    ],
+    blockedUses: [
+      "bundling into SONARA",
+      "claiming integration",
+      "automatic issue import",
+      "customer data transfer without approval"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "OpenViking",
+    slug: "openviking-agent-context-database-reference",
+    category: [
+      "agent memory",
+      "RAG",
+      "skills",
+      "reciprocal licence"
+    ],
+    useCase: [
+      "agent-memory and knowledge-namespace architecture research"
+    ],
+    productFit: [
+      "Smart Search",
+      "Private Model Mode",
+      "Research Lab"
+    ],
+    license: "AGPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep Supabase pgvector as the selected production vector contract",
+      "study memory lifecycle concepts only"
+    ],
+    officialUrl: "https://github.com/volcengine/openviking",
+    repoUrl: "https://github.com/volcengine/openviking",
+    notes: "Identified from the submitted reel. AGPL, memory privacy, and skill execution prevent direct integration.",
+    safetyBoundaries: [
+      "no source adoption",
+      "tenant-scoped memory",
+      "explicit deletion",
+      "no secrets in embeddings",
+      "human-approved skills"
+    ],
+    blockedUses: [
+      "bundling",
+      "cross-tenant memory",
+      "self-modifying production skills",
+      "unreviewed customer-data indexing"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "FreeToken",
+    slug: "freetoken-local-moe-runtime-research",
+    category: [
+      "local model inference",
+      "GPU runtime",
+      "MoE serving",
+      "future research"
+    ],
+    useCase: [
+      "Local Edge Mode hardware and inference-cost research"
+    ],
+    productFit: [
+      "Private Model Mode",
+      "Secure Compute Layer",
+      "Research Lab"
+    ],
+    license: "Apache-2.0; model weights and accelerator dependencies require separate review",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "research_only",
+    recommendedAction: [
+      "keep out of launch infrastructure",
+      "benchmark only in an isolated owner-approved hardware lab",
+      "retain provider-neutral model routing"
+    ],
+    officialUrl: "https://github.com/FlashML-org/FreeToken",
+    repoUrl: "https://github.com/FlashML-org/FreeToken",
+    notes: "Identified from the submitted reel and verified against the upstream repository. It is a heavy local inference runtime with active hardware-specific issues, not a Vercel dependency.",
+    safetyBoundaries: [
+      "feature flag default off",
+      "owner-provided hardware",
+      "model licence review",
+      "no customer data",
+      "resource quotas"
+    ],
+    blockedUses: [
+      "Vercel request-path inference",
+      "bundled model weights",
+      "unbounded GPU jobs",
+      "production performance claims without benchmarks"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Doop",
+    slug: "doop-multiplayer-ai-design-canvas-reference",
+    category: [
+      "design canvas",
+      "AI collaboration",
+      "MCP",
+      "reciprocal licence"
+    ],
+    useCase: [
+      "Creator Studio collaborative-canvas and visible-agent-state research"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Internal Development"
+    ],
+    license: "AGPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "study interaction patterns only",
+      "do not copy or bundle source",
+      "preserve SONARA-native approval and audit controls"
+    ],
+    officialUrl: "https://github.com/kgoedecke/doop",
+    repoUrl: "https://github.com/kgoedecke/doop",
+    notes: "Identified from the submitted reel. The AGPL design canvas overlaps Creator Studio but is not a source dependency or customer integration.",
+    safetyBoundaries: [
+      "legal review",
+      "human-observed agent edits",
+      "no private project upload",
+      "no automatic publishing"
+    ],
+    blockedUses: [
+      "bundling",
+      "silent agent edits",
+      "private design transmission",
+      "claiming integration"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Codegraff",
+    slug: "codegraff-self-evolving-agent-harness-reference",
+    category: [
+      "agent harness",
+      "self-evolution",
+      "coding workflow",
+      "modified reciprocal licence"
+    ],
+    useCase: [
+      "internal evaluation of agent persistence and validation risks"
+    ],
+    productFit: [
+      "Internal Development",
+      "AI Code Assistant",
+      "AI Governance"
+    ],
+    license: "Modified AGPL-3.0 with licensor-only reserved commercial and cloud rights",
+    licenseRisk: "critical",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "do not adopt source or self-evolution runtime",
+      "use SONARA deterministic approval-gated orchestration instead"
+    ],
+    officialUrl: "https://github.com/justrach/codegraff",
+    repoUrl: "https://github.com/justrach/codegraff",
+    notes: "The social caption described self-improving agents. The actual licence modifies AGPL and reserves proprietary cloud rights to the licensors, so GitHub NOASSERTION was not treated as permission.",
+    safetyBoundaries: [
+      "no self-modifying authority",
+      "legal review",
+      "human approval",
+      "repository contracts remain authoritative"
+    ],
+    blockedUses: [
+      "source adoption",
+      "self-evolving production agents",
+      "automatic code execution",
+      "automatic merge push or deploy"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "VoiceStudio",
+    slug: "voicestudio-restricted-local-voice-reference",
+    category: [
+      "voice cloning",
+      "dubbing",
+      "local speech",
+      "reciprocal licence"
+    ],
+    useCase: [
+      "voice-consent and local-processing policy research only"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Voice Safety Review"
+    ],
+    license: "AGPL-3.0",
+    licenseRisk: "critical",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not expose cloning or impersonation capabilities",
+      "use consent-safe provider adapters only after legal and security review"
+    ],
+    officialUrl: "https://github.com/debpalash/voicestudio",
+    repoUrl: "https://github.com/debpalash/voicestudio",
+    notes: "Identified from the submitted reel. Local processing does not remove consent, likeness, impersonation, or reciprocal-licence risk.",
+    safetyBoundaries: [
+      "explicit speaker consent",
+      "listening and generation disclosure",
+      "provenance",
+      "private transcripts",
+      "human review"
+    ],
+    blockedUses: [
+      "non-consensual cloning",
+      "impersonation",
+      "robocalls",
+      "source bundling",
+      "automatic publishing"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "OpenHuman",
+    slug: "openhuman-personal-memory-agent-reference",
+    category: [
+      "personal AI",
+      "agent memory",
+      "workflow orchestration",
+      "reciprocal licence"
+    ],
+    useCase: [
+      "local-memory privacy and agent-orchestration research"
+    ],
+    productFit: [
+      "Private Model Mode",
+      "AI Governance",
+      "Research Lab"
+    ],
+    license: "GPL-3.0",
+    licenseRisk: "high",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep Supabase as source of truth",
+      "study user-controlled memory and deletion patterns only",
+      "do not adopt the agent fleet"
+    ],
+    officialUrl: "https://github.com/tinyhumansai/openhuman",
+    repoUrl: "https://github.com/tinyhumansai/openhuman",
+    notes: "Identified from the submitted reel. Personal-life memory, autonomous workflows, and GPL code are not appropriate for direct product integration.",
+    safetyBoundaries: [
+      "explicit opt-in",
+      "local cache only",
+      "clear deletion",
+      "no secrets",
+      "human-approved actions"
+    ],
+    blockedUses: [
+      "source bundling",
+      "hidden personal-data collection",
+      "autonomous production actions",
+      "device surveillance"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Flint",
+    slug: "flint-local-knowledge-graph-reference",
+    category: [
+      "local knowledge base",
+      "Markdown",
+      "graph visualization",
+      "local AI"
+    ],
+    useCase: [
+      "Business Memory and local knowledge-graph UX research"
+    ],
+    productFit: [
+      "Business Memory",
+      "Smart Search",
+      "Research Lab"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "retain Supabase pgvector and tenant-scoped documents as production contracts",
+      "study local-first UX without adopting source"
+    ],
+    officialUrl: "https://github.com/chintanpatel24/flint",
+    repoUrl: "https://github.com/chintanpatel24/flint",
+    notes: "Identified from the submitted reel. It is recorded as a small local knowledge reference and was not installed.",
+    safetyBoundaries: [
+      "local data clear control",
+      "no secrets",
+      "tenant-scoped cloud sync",
+      "human-reviewed external browsing"
+    ],
+    blockedUses: [
+      "hidden sync",
+      "cross-tenant search",
+      "treating local cache as source of truth",
+      "automatic web ingestion"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "fal-3d-anything",
+    slug: "fal-3d-anything-image-to-3d-blocked",
+    category: [
+      "image-to-3D",
+      "browser extension",
+      "external model API",
+      "licence missing"
+    ],
+    useCase: [
+      "Creator Studio image-to-3D workflow research only"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Research Lab"
+    ],
+    license: "None declared; the README says MIT but the repository has no licence file, so default copyright still applies",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy, bundle, or install",
+      "revisit only if the copyright holder adds a valid licence and the external model provider passes review"
+    ],
+    officialUrl: "https://github.com/blendi-remade/fal-3d-anything",
+    repoUrl: "https://github.com/blendi-remade/fal-3d-anything",
+    notes: "Matched to the submitted image-to-3D reel by its exact description. A README licence claim is not a licence grant when no licence text exists.",
+    safetyBoundaries: [
+      "licence required",
+      "image rights",
+      "external API consent",
+      "no browser key storage"
+    ],
+    blockedUses: [
+      "source copying",
+      "extension installation",
+      "client-side API keys",
+      "non-consensual image processing"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Face Anything",
+    slug: "face-anything-biometric-research-blocked",
+    category: [
+      "face reconstruction",
+      "4D geometry",
+      "biometric processing",
+      "non-commercial licence"
+    ],
+    useCase: [
+      "safety-boundary research only"
+    ],
+    productFit: [
+      "AI Safety Review",
+      "Research Lab"
+    ],
+    license: "CC-BY-NC-4.0",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not integrate",
+      "retain only as a documented biometric and non-commercial refusal"
+    ],
+    officialUrl: "https://github.com/kocasariumut/FaceAnything",
+    repoUrl: "https://github.com/kocasariumut/faceanything",
+    notes: "Identified from the submitted reel. The repository is non-commercial and processes faces into reconstructable biometric geometry.",
+    safetyBoundaries: [
+      "no biometric processing",
+      "no likeness reconstruction",
+      "non-commercial licence",
+      "research note only"
+    ],
+    blockedUses: [
+      "product integration",
+      "people tracking",
+      "identity inference",
+      "non-consensual likeness",
+      "commercial use"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "OpenCompany",
+    slug: "opencompany-autonomous-business-agent-reference",
+    category: [
+      "agent workflows",
+      "business automation",
+      "durable listeners",
+      "high-risk actions"
+    ],
+    useCase: [
+      "Agent Control Plane threat modeling and orchestration UX research"
+    ],
+    productFit: [
+      "Worker Orchestration",
+      "AI Governance",
+      "Admin Command Center"
+    ],
+    license: "MIT",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "adopt no runtime code",
+      "keep SONARA actions previewed, approved, allowlisted, and audited"
+    ],
+    officialUrl: "https://github.com/zeenie-ai/OpenCompany",
+    repoUrl: "https://github.com/zeenie-ai/opencompany",
+    notes: "Identified from the submitted reel. Upstream advertises durable autonomous email, calendar, message, browser, and phone actions, which conflict with SONARA approval policy.",
+    safetyBoundaries: [
+      "human approval",
+      "tool allowlist",
+      "no production credentials",
+      "action audit",
+      "kill switch"
+    ],
+    blockedUses: [
+      "automatic customer email",
+      "automatic calls",
+      "browser automation by default",
+      "self-improving authority",
+      "automatic charges or deployments"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "NodeGraphQt",
+    slug: "nodegraphqt-visual-workflow-reference",
+    category: [
+      "node editor",
+      "Python Qt",
+      "visual pipelines",
+      "desktop UI"
+    ],
+    useCase: [
+      "node-graph interaction research for creator and internal workflow tools"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Internal Development"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "study interaction patterns only",
+      "build web-native SONARA components if a validated workflow needs them"
+    ],
+    officialUrl: "https://chantonic.com/NodeGraphQt/",
+    repoUrl: "https://github.com/jchanvfx/NodeGraphQt",
+    notes: "Identified from the submitted reel. Python and Qt do not fit the Express browser runtime, so no dependency or source was added.",
+    safetyBoundaries: [
+      "no desktop runtime dependency",
+      "accessible web controls",
+      "deterministic graph validation",
+      "human-approved execution"
+    ],
+    blockedUses: [
+      "arbitrary executable nodes",
+      "silent workflow execution",
+      "source copying without need",
+      "production Python desktop dependency"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "UniFace",
+    slug: "uniface-biometric-analysis-blocked",
+    category: [
+      "face recognition",
+      "gaze estimation",
+      "biometric analysis",
+      "blocked"
+    ],
+    useCase: [
+      "safety-boundary and refusal documentation only"
+    ],
+    productFit: [
+      "AI Safety Review",
+      "Research Lab"
+    ],
+    license: "MIT",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not integrate face recognition, gaze, attribute, or tracking capabilities"
+    ],
+    officialUrl: "https://github.com/yakhyo/uniface",
+    repoUrl: "https://github.com/yakhyo/uniface",
+    notes: "Identified from the submitted reel. A permissive code licence does not make biometric surveillance an acceptable SONARA feature.",
+    safetyBoundaries: [
+      "no biometric identification",
+      "no gaze or attribute inference",
+      "no tracking",
+      "consent cannot cure prohibited surveillance use"
+    ],
+    blockedUses: [
+      "face recognition",
+      "employee or customer monitoring",
+      "gaze tracking",
+      "anti-spoofing identity decisions",
+      "biometric profiling"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Donkey Cut",
+    slug: "donkey-cut-video-editor-reference",
+    category: [
+      "video editor",
+      "local-first media",
+      "AI-assisted editing",
+      "creator tooling"
+    ],
+    useCase: [
+      "Creator Studio timeline, local-processing, and render-worker architecture research"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Render & Speed Tools"
+    ],
+    license: "Apache-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "study architecture and interaction patterns",
+      "retain SONARA-native media rights, storage, queue, quota, and provider contracts"
+    ],
+    officialUrl: "https://donkeycut.com",
+    repoUrl: "https://github.com/DonkeyCut/Donkey",
+    notes: "Identified visually from the submitted reel. The Next.js, Prisma, R2, macOS, and hosted inference architecture is not copied into the Express Supabase application.",
+    safetyBoundaries: [
+      "owned media",
+      "private storage by default",
+      "quota and queue",
+      "provider consent",
+      "no automatic publishing"
+    ],
+    blockedUses: [
+      "blind source adoption",
+      "unbounded rendering",
+      "voice or likeness misuse",
+      "automatic publishing",
+      "client secret exposure"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "AnyCreature",
+    slug: "anycreature-3d-generation-reference",
+    category: [
+      "text-to-3D",
+      "game assets",
+      "agent workflow",
+      "creative research"
+    ],
+    useCase: [
+      "Creator Studio 3D asset workflow and quality-review research"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Research Lab"
+    ],
+    license: "MIT",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep 3D generation future-flagged",
+      "review models, assets, hardware, queues, and export rights before any prototype"
+    ],
+    officialUrl: "https://github.com/ariescar/anycreature",
+    repoUrl: "https://github.com/ariescar/anycreature",
+    notes: "Identified from the submitted reel. No model, 3D runtime, agent skill, or generated asset was added.",
+    safetyBoundaries: [
+      "original or licensed prompts and assets",
+      "human quality review",
+      "bounded jobs",
+      "model licence review",
+      "provenance"
+    ],
+    blockedUses: [
+      "copyrighted character imitation",
+      "non-consensual likeness",
+      "unbounded GPU jobs",
+      "automatic publishing",
+      "production claims without testing"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Bolt Slides",
+    slug: "bolt-slides-interactive-presentation-reference",
+    category: [
+      "interactive presentations",
+      "agent skill",
+      "React deck",
+      "creator tooling"
+    ],
+    useCase: [
+      "Creator Studio interactive-deck and presentation workflow research"
+    ],
+    productFit: [
+      "Creator Studio",
+      "Internal Development"
+    ],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "keep existing SONARA document and presentation tooling",
+      "review components and skill instructions before any isolated prototype"
+    ],
+    officialUrl: "https://github.com/stackblitz/bolt-slides",
+    repoUrl: "https://github.com/stackblitz/bolt-slides",
+    notes: "Identified from the submitted reel. It is a React and Vite application with a separate package graph, so it was not installed into the Express runtime.",
+    safetyBoundaries: [
+      "no automatic dependency install",
+      "customer asset rights",
+      "accessible exports",
+      "no secrets in generated decks"
+    ],
+    blockedUses: [
+      "blind source copy",
+      "automatic public sharing",
+      "unreviewed agent skill",
+      "claiming a shipped integration"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "SAM Sovereign Agent Mesh",
+    slug: "google-sam-agent-mesh-research",
+    category: [
+      "peer-to-peer agents",
+      "networking",
+      "tool discovery",
+      "high-risk infrastructure"
+    ],
+    useCase: [
+      "future agent-network threat modeling and protocol research"
+    ],
+    productFit: [
+      "Worker Orchestration",
+      "AI Governance",
+      "Research Lab"
+    ],
+    license: "Apache-2.0",
+    licenseRisk: "high",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_security_review",
+    recommendedAction: [
+      "do not expose a peer-to-peer agent mesh",
+      "retain server-side allowlisted tools and tenant boundaries",
+      "review protocol security in isolation"
+    ],
+    officialUrl: "https://github.com/google/sam",
+    repoUrl: "https://github.com/google/sam",
+    notes: "Identified from the submitted reel. Peer discovery and remote tool invocation create material authentication, authorization, egress, and data-boundary risks.",
+    safetyBoundaries: [
+      "mutual authentication",
+      "tenant isolation",
+      "tool allowlist",
+      "network deny by default",
+      "audit every call"
+    ],
+    blockedUses: [
+      "public peer discovery",
+      "remote arbitrary tools",
+      "customer-data exchange",
+      "production mesh deployment",
+      "trust-free claims"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "Gortex",
+    slug: "gortex-local-code-graph-reference",
+    category: [
+      "code intelligence",
+      "graph indexing",
+      "MCP",
+      "local developer tooling"
+    ],
+    useCase: [
+      "local code-search and impact-analysis research"
+    ],
+    productFit: [
+      "AI Code Assistant",
+      "Internal Development",
+      "Smart Search"
+    ],
+    license: "Apache-2.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "benchmark against repository-native search before any opt-in",
+      "keep private indexes local and disposable"
+    ],
+    officialUrl: "https://github.com/zzet/gortex",
+    repoUrl: "https://github.com/zzet/gortex",
+    notes: "Identified from the submitted reel. The single-install agent configurator was not run and no code index was created.",
+    safetyBoundaries: [
+      "local-only private indexes",
+      "no secrets",
+      "read-only default",
+      "developer opt-in",
+      "clear deletion"
+    ],
+    blockedUses: [
+      "automatic installation",
+      "network-exposed index",
+      "private-source upload",
+      "write-capable MCP tools",
+      "production runtime dependency"
+    ],
+    humanReviewRequired: true
+  },
+  {
+    name: "GEO SEO Claude",
+    slug: "geo-seo-claude-growth-skill-reference",
+    category: [
+      "SEO",
+      "AI search optimization",
+      "agent skill",
+      "growth research"
+    ],
+    useCase: [
+      "Growth Studio audit-checklist and structured-data research"
+    ],
+    productFit: [
+      "Growth Studio",
+      "Internal Development"
+    ],
+    license: "MIT",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "translate only validated checklist concepts into SONARA-native guidance",
+      "keep claims evidence-backed and customer-approved"
+    ],
+    officialUrl: "https://github.com/zubair-trabzada/geo-seo-claude",
+    repoUrl: "https://github.com/zubair-trabzada/geo-seo-claude",
+    notes: "Resolved from the submitted Facebook post link. The skill was not installed and does not grant authority to scrape, publish, or alter a customer site.",
+    safetyBoundaries: [
+      "customer-owned sites",
+      "no hidden scraping",
+      "human-approved changes",
+      "no ranking guarantees",
+      "audit outputs"
+    ],
+    blockedUses: [
+      "automatic publishing",
+      "competitor scraping",
+      "guaranteed ranking claims",
+      "hidden prompt changes",
+      "spam content"
+    ],
+    humanReviewRequired: true
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

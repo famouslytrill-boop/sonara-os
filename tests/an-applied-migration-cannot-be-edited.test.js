@@ -65,6 +65,9 @@ function run(args = []) {
 // A frozen migration to experiment on: the one whose policies were deleted with
 // nothing noticing.
 const FROZEN = "20260728120000_member_read_policies.sql";
+const digest = (file) => createHash("sha256")
+  .update(fs.readFileSync(file, "utf8").replace(/\r\n/g, "\n"))
+  .digest("hex");
 
 describe("an applied migration cannot be edited", () => {
   it("pins every migration no generator still owns", () => {
@@ -76,7 +79,7 @@ describe("an applied migration cannot be edited", () => {
     for (const [name, hash] of Object.entries(pinned)) {
       const file = path.join(migrationsDirectory, name);
       assert.ok(fs.existsSync(file), `${name} is pinned and missing`);
-      assert.equal(createHash("sha256").update(fs.readFileSync(file)).digest("hex"), hash, `${name} does not match its pin`);
+      assert.equal(digest(file), hash, `${name} does not match its pin`);
     }
   });
 
