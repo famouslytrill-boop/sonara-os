@@ -2,6 +2,51 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-05 - A gate's most important property was a comment, not a test
+
+Last surface in the sweep: automation elevation — the path where an agent action
+the rules refuse becomes a row in `agent_pending_actions`, and an owner approving
+it re-runs the action with the approval attached.
+
+The module is careful and its comments say the right things. One of them is the
+whole security posture:
+
+> **The classification is never read from the row.** `category` is stored so the
+> queue can be listed without re-classifying, and it is re-derived from
+> `action_type` on every decision.
+
+That is true — `approveAndRun` calls `classifyAction(action.action_type)`.
+**Fourteen tests covered this module and not one proved it.** So it was a reason
+somebody reasoned their way to rather than one anybody verified, which is the
+failure mode `CLAUDE.md` names in its own words.
+
+## Why this particular comment needed a test under it
+
+`agent_pending_actions` rows carry a `category` column, and a row is data
+somebody could write. If any decision read that column instead of re-deriving,
+a row claiming `self_serve` while its `action_type` is `issue_refund` would be
+approved under the wrong rules — **privilege escalation through a stored
+string**, and the one shape a gate like this must not have.
+
+The fixture therefore lies on purpose: the row states the least-privileged
+category the system has, alongside an action type that is one of the seven
+requiring an owner. The assertion is that the lie is ignored. A second case does
+the same one column over, for `requires_approval: false`, which the module also
+says it does not trust.
+
+## Broken, and confirmed red
+
+- **The escalation itself.** `approveAndRun` changed to prefer the row's stored
+  category: *"the approval took the category off the row instead of deriving it
+  from the action type"*.
+- **Blindness.** `classifyAction` stubbed to answer `self_serve` for everything,
+  so the test cannot pass by comparing two identical wrong answers.
+
+A third case pins that `issue_refund` really does derive to a gated category, so
+the first two are not two `undefined`s agreeing.
+
+Suite 3,825 -> 3,828. `verify:launch` exit 0.
+
 ### 2026-09-05 - The number I wrote to replace a stale one had the same defect
 
 Having corrected "thirteen" to twenty-five, `verify-doc-counts.mjs` turned out
