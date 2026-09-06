@@ -63,7 +63,11 @@ for (const [plan, config] of paidPlans) {
 
 for (const [plan, config] of Object.entries(STRIPE_PLANS)) {
   if (config.amountCents === null || config.amountCents === undefined) continue;
-  const expected = config.amountCents === 0 ? "$0" : `$${config.amountCents / 100}/mo`;
+  // The suffix is the billing period. This was "/mo" for every plan, which made
+  // a yearly price impossible to write correctly -- the only string it accepted
+  // for $190 a year was "$190/mo".
+  const period = config.billedAnnually ? "/yr" : "/mo";
+  const expected = config.amountCents === 0 ? "$0" : `$${config.amountCents / 100}${period}`;
   if (config.price === expected) ok(`${plan} advertises ${config.price}, matching its configured amount`);
   else fail(`${plan} advertises "${config.price}" but its configured amount is ${config.amountCents} cents`);
 }
@@ -138,8 +142,16 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
       fail(`${plan}: the pricing page quotes dollars but Stripe charges ${String(price.currency).toUpperCase()}`);
       continue;
     }
-    if (config.mode === "subscription" && price.recurring?.interval !== "month") {
-      fail(`${plan}: the pricing page says "/mo" but Stripe bills ${price.recurring?.interval || "one-off"}`);
+    // Against the period the plan actually advertises, not always "month".
+    // Pinned to "month" this rejected a correctly created yearly price as
+    // wrong -- the check would have fired the first time the owner set up
+    // annual billing, on a Stripe price that was right.
+    const expectedInterval = config.billedAnnually ? "year" : "month";
+    if (config.mode === "subscription" && price.recurring?.interval !== expectedInterval) {
+      fail(
+        `${plan}: the pricing page says "${config.billedAnnually ? "/yr" : "/mo"}" but Stripe bills ` +
+          `${price.recurring?.interval || "one-off"}`
+      );
       continue;
     }
     if (price.active === false) {

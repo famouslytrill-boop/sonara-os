@@ -56,9 +56,9 @@ automatically an executable one.
 | Bookings, Staff & Day-to-Day | Core | `active` | `/business-builder/owner` | Yes |
 | Records & Exports | Core | `active` | `/business-builder/owner/accounting-exports` | Yes |
 | Break-Even and Runway | Free | `active` | `/business-builder/tools/break-even` | Yes |
-| Shift Rota Cost Planner | Free | `active` | `/business-builder/tools/rota` | Yes |
-| Deposit and Payment Schedule | Free | `active` | `/business-builder/tools/payment-plan` | Yes |
-| Price Rise Planner | Free | `active` | `/business-builder/tools/price-rise` | Yes |
+| Shift Rota Cost Planner | Starter | `active` | `/business-builder/tools/rota` | Yes |
+| Deposit and Payment Schedule | Starter | `active` | `/business-builder/tools/payment-plan` | Yes |
+| Price Rise Planner | Starter | `active` | `/business-builder/tools/price-rise` | Yes |
 | Software Spend Auditor | Free | `active` | `/business-builder/tools/software-spend` | Yes |
 | Quiet Month Cash Plan | Free | `active` | `/business-builder/tools/quiet-months` | Yes |
 
@@ -74,9 +74,9 @@ automatically an executable one.
 | Split Sheet and Credits | Free | `active` | `/creator-studio/tools/split-sheet` | Yes |
 | Repurposing Planner | Free | `active` | `/creator-studio/tools/repurpose` | Yes |
 | Deal Memo Recorder | Free | `active` | `/creator-studio/tools/deal-memo` | Yes |
-| Late Payment Escalation | Free | `active` | `/creator-studio/tools/late-payment` | Yes |
-| Usage Rights Expiry | Free | `active` | `/creator-studio/tools/rights-expiry` | Yes |
-| Storyboard Builder | Free | `active` | `/creator-studio/tools/storyboard` | Yes |
+| Late Payment Escalation | Starter | `active` | `/creator-studio/tools/late-payment` | Yes |
+| Usage Rights Expiry | Starter | `active` | `/creator-studio/tools/rights-expiry` | Yes |
+| Storyboard Builder | Starter | `active` | `/creator-studio/tools/storyboard` | Yes |
 
 ## Growth Studio products
 
@@ -92,7 +92,7 @@ automatically an executable one.
 | Referral Reward Planner | Free | `active` | `/growth-studio/tools/referral` | Yes |
 | Follow-Up Schedule | Free | `active` | `/growth-studio/tools/follow-up-schedule` | Yes |
 | Referral Source Tracker | Free | `active` | `/growth-studio/tools/referral-source` | Yes |
-| Review Recency Score | Free | `active` | `/growth-studio/tools/review-recency` | Yes |
+| Review Recency Score | Core | `active` | `/growth-studio/tools/review-recency` | Yes |
 | Enquiry Response Clock | Free | `active` | `/growth-studio/tools/response-time` | Yes |
 
 ## Where this lives in the code

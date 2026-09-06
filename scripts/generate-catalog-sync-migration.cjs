@@ -55,10 +55,25 @@ function quote(value) {
 // 20260812120000 -- eleven products removed from the catalog, retired here too
 const APPLIED_MIGRATIONS = Object.freeze([
   "20260728130000_sync_published_catalog_names.sql",
-  "20260803180000_sync_catalog_paid_access.sql"
+  "20260803180000_sync_catalog_paid_access.sql",
+  "20260812120000_retire_removed_catalog_products.sql",
+  "20260827100000_published_catalog_is_complete.sql"
 ]);
 
-const migrationName = "20260812120000_retire_removed_catalog_products.sql";
+// 20260812120000 was named as applied in the comment above and left out of the
+// list below it, so the generator kept rewriting a file production had already
+// run. Deployment #129 is what that cost: the sync UPDATE sets
+// entitlement_integration_verified and execution_enabled, and three migrations
+// dated AFTER it -- 20260818060000, 20260818070000, 20260818080000 -- insert
+// nineteen products without those columns, which are `not null default false`.
+// The sync that would have corrected them was six days in the past and never
+// ran again. `break-even-runway-planner entitlement verification mismatch,
+// false !== true` is the first of the nineteen the verifier reached.
+//
+// Regenerating an applied file is not a no-op that is merely wasteful. It is a
+// change that passes every local check and reaches no customer, which is this
+// repository's recurring defect wearing a migration's clothes.
+const migrationName = "20260905190000_sync_catalog_plan_floors.sql";
 const outputPath = path.join(root, "supabase", "migrations", migrationName);
 
 // The assertions live in their own migration, at the END of the sequence, and
@@ -83,7 +98,7 @@ const outputPath = path.join(root, "supabase", "migrations", migrationName);
 // describe what changed on 12 August. The two assertions move here, because
 // they describe what must be true once the whole history has run -- and only
 // here are they checking the catalog the application actually ships.
-const assertionMigrationName = "20260827100000_published_catalog_is_complete.sql";
+const assertionMigrationName = "20260905193000_published_catalog_is_complete.sql";
 const assertionOutputPath = path.join(root, "supabase", "migrations", assertionMigrationName);
 
 // Every migration that puts a row into service_catalog_items must be dated
@@ -99,6 +114,36 @@ function catalogInsertingMigrationsAfterAssertions() {
     .readdirSync(dir)
     .filter((name) => name.endsWith(".sql") && name > assertionMigrationName)
     .filter((name) => /insert\s+into\s+(public\.)?service_catalog_items/i.test(fs.readFileSync(path.join(dir, name), "utf8")));
+}
+
+
+// APPLIED_MIGRATIONS is hand-maintained, and a hand-maintained list of things
+// you must not forget is the thing you forget. 20260812120000 sat outside it
+// for weeks while the generator rewrote it every release.
+//
+// So this derives the same fact instead. supabase/applied-migration-checksums.json
+// freezes a migration once no generator owns it, which happens when it reaches
+// main. If a FROZEN migration is newer than a file this generator writes, then
+// this generator's file reached main before that one did, and production --
+// which migrates forward by filename and never looks back -- has already run
+// past it. Rewriting it from here changes this repository and nothing else.
+//
+// Unlike the list, this cannot go out of date by omission: adding any migration
+// moves the frontier forward on its own.
+function migrationsProductionHasRunPast(names) {
+  const manifestPath = path.join(root, "supabase", "applied-migration-checksums.json");
+  if (!fs.existsSync(manifestPath)) {
+    console.error(`[fail] ${path.relative(root, manifestPath)} is missing, so whether these migrations are already applied was NOT checked.`);
+    process.exit(1);
+  }
+  const frozen = Object.keys(JSON.parse(fs.readFileSync(manifestPath, "utf8")));
+  // Shape 1: a manifest that came back empty would clear every name below.
+  if (frozen.length < 50) {
+    console.error(`[fail] the frozen-migration manifest lists only ${frozen.length} names; this check has gone blind.`);
+    process.exit(1);
+  }
+  const newestFrozen = frozen.reduce((a, b) => (a > b ? a : b));
+  return names.filter((name) => name < newestFrozen).map((name) => ({ name, newestFrozen }));
 }
 
 const rows = RECOMMENDED_PRODUCT_CATALOG.map((item) =>
@@ -284,6 +329,18 @@ function main() {
   // The guard for the bug this generator produced. Checked on --check as well
   // as on write, because the way it comes back is somebody adding a catalog
   // migration months from now, not somebody regenerating today.
+  const alreadyRun = migrationsProductionHasRunPast(wanted.map((entry) => entry.name));
+  if (alreadyRun.length) {
+    console.error(
+      "[fail] this generator writes into migrations production has already applied:\n" +
+        alreadyRun.map(({ name, newestFrozen }) => `  ${name} is older than the newest frozen migration, ${newestFrozen}`).join("\n") +
+        "\n\nsupabase db push tracks migrations by filename, so regenerating one of these changes this repository\n" +
+        "and reaches no customer -- every check here passes while production keeps the old rows.\n" +
+        "Add each name to APPLIED_MIGRATIONS and point the generator at a new, later filename."
+    );
+    process.exit(1);
+  }
+
   const tooLate = catalogInsertingMigrationsAfterAssertions();
   if (tooLate.length) {
     console.error(

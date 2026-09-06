@@ -507,7 +507,7 @@ your production database**. (28 were pending at that run; the repository has
 added more since.)
 
 It is in the repository. `010_sonara_platform_current_schema.sql` creates it,
-and `pnpm run verify:migration-replay` applies all 111 migrations to an empty
+and `pnpm run verify:migration-replay` applies all 113 migrations to an empty
 PostgreSQL and gets a working schema every time. So the migration set is fine.
 What has gone wrong is that production's migration history says
 `010_sonara_platform_current_schema.sql` is already applied and the table it
