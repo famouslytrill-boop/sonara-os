@@ -2,6 +2,71 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-06 - The pathway to the new prices, and the ordering that would take the page down
+
+Researching how to get from the live ladder to $29/$59/$109 turned on one fact,
+read rather than assumed: **nobody is subscribed to anything on sale.**
+`SHIP_READINESS.md` records the only two charges that ever happened -- both the
+owner's, both on prices now `active: false`, one refunded and one failed for
+insufficient funds. No migration, no grandfathering, no proration. That is what
+makes this a cutover rather than a project, and the window closes the moment
+somebody subscribes.
+
+`docs/owner/PRICE-CUTOVER-RUNBOOK.md` is the result: three pathways, the one
+chosen, and seven ordered steps each with what to run and what it should say.
+
+## The ordering that matters
+
+**Archiving the old Stripe prices first takes the page down.** A superseded plan
+drops off only when its *replacement* can be bought, so archiving Starter, Core
+and Pro before the new ladder is live leaves all three on the page saying
+checkout is not configured -- a pricing page with nothing purchasable on it.
+Archiving is step 7, not step 1, and the runbook says why rather than just
+saying when.
+
+## The check that only runs when somebody remembers the key
+
+`scripts/verify-stripe-env.mjs` is the only thing that compares an advertised
+amount against the live Stripe price -- and it **skips without
+`STRIPE_SECRET_KEY`, which is every CI run.** Pointing a variable at the 13
+August price would advertise $59 and charge $39, and nothing in the release
+chain would say so.
+
+So the offline half now exists: `tests/dashboard-setup-doc.test.js` parses the
+checklist's price table and fails when a row's amount disagrees with what the
+plan advertises. It checked variable *names* and never amounts, which is exactly
+how a document can name the right variable beside the wrong price.
+
+## Broken, and confirmed red
+
+- The checklist reverted to `$39/mo` beside `STRIPE_PRICE_ALL_THREE_MONTHLY`:
+  *"the checklist tells the owner to create STRIPE_PRICE_ALL_THREE_MONTHLY at
+  $39/mo, but all_three_monthly advertises $59/mo. Following it would put one
+  number on the pricing page and charge another."*
+- Amounts stripped from the table: *"the checklist row for
+  STRIPE_PRICE_WORKSPACE_MONTHLY prints no amount."*
+
+## A figure in prose that outlived its claim
+
+`SHIP_READINESS.md` said "No plan currently on the pricing page -- **$19, $39 or
+$79** -- has ever been bought." Neither half was right: those are the breadth
+ladder's amounts and the breadth ladder is not on the page (its variables are
+unset, so the page is Free / $7 / $19 / $39), and the breadth amounts moved on 6
+September. The sentence is now true without naming amounts, and the numbers live
+in the runbook where a check reads them.
+
+3,845 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the cutover has happened. Every step in the runbook is still the owner's:
+six Stripe prices to create, six variables to set, and the deploy that carries
+the plan table -- production still serves `eebc80c`.
+
+That step 6 is optional. Buying one plan with a real card is the only thing that
+exercises the entitlement half, which has never been observed working: the only
+subscription that ever existed lived 29 minutes.
+
 ### 2026-09-06 - The breadth ladder raised to $29 / $59 / $109
 
 The owner's instruction: competitive but cheaper. $19/$39/$79 becomes

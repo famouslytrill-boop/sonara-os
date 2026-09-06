@@ -47,6 +47,28 @@ function planEnvNames() {
   return { primary: [...primary], aliases: [...aliases] };
 }
 
+// Every row of the checklist's price table, as { env, amount }.
+//
+// The doc teaches the owner which Stripe price to point each variable at, and
+// prints the amount beside it. If that amount disagrees with STRIPE_PLANS, the
+// owner is told to create a price the page will not advertise -- and the
+// failure is the worst shape money has: the page says $59 and Stripe charges
+// $39. scripts/verify-stripe-env.mjs catches that against the live account, but
+// only on a run holding STRIPE_SECRET_KEY, and it skips without one, which is
+// every CI run. So this is the offline half.
+function checklistPriceRows() {
+  return doc
+    .split("\n")
+    .filter((line) => line.trim().startsWith("|") && /STRIPE_PRICE_/.test(line))
+    .map((line) => {
+      const cells = line.split("|").map((cell) => cell.trim());
+      const env = (cells.find((cell) => /^`STRIPE_PRICE_[A-Z_]+`$/.test(cell)) || "").replace(/`/g, "");
+      const amount = cells.find((cell) => /^\$[\d,]+\/(mo|yr)$/.test(cell)) || "";
+      return { env, amount, line: line.trim() };
+    })
+    .filter((row) => row.env);
+}
+
 // Retired Stripe prices. Products archived June 2026, prices archived
 // 2026-08-04. The doc may name them under "Retired" but must never list one as
 // a value to set.
@@ -86,6 +108,28 @@ describe("the manual dashboard setup checklist", () => {
     const nonPrice = new Set(["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "STRIPE_WEBHOOK_SECRET"]);
     const unknown = named.filter((name) => !known.has(name) && !nonPrice.has(name));
     assert.deepEqual(unknown, [], `the checklist names env vars nothing reads: ${unknown.join(", ")}`);
+  });
+
+  it("prints the amount each plan actually advertises, beside its variable", () => {
+    const rows = checklistPriceRows();
+    assert.ok(rows.length >= 6, `only ${rows.length} price rows parsed from the checklist; this check has gone blind`);
+
+    const byEnv = new Map();
+    for (const [key, config] of Object.entries(STRIPE_PLANS)) {
+      if (config.env) byEnv.set(config.env, { key, price: config.price });
+    }
+
+    for (const row of rows) {
+      const plan = byEnv.get(row.env);
+      assert.ok(plan, `the checklist names ${row.env}, which no plan reads`);
+      assert.ok(row.amount, `the checklist row for ${row.env} prints no amount: ${row.line}`);
+      assert.equal(
+        row.amount,
+        plan.price,
+        `the checklist tells the owner to create ${row.env} at ${row.amount}, but ${plan.key} advertises ${plan.price}. ` +
+          "Following it would put one number on the pricing page and charge another."
+      );
+    }
   });
 
   it("does not tell anyone to configure a retired price", () => {

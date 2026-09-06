@@ -52,8 +52,18 @@ actually means:
 - **Both customers are the owner.** One email across both, one postal code. No
   third party has ever attempted a purchase.
 - **Neither price still exists.** The $9.99 and the $7.00 are both `active: false`
-  and predate the August ladder. **No plan currently on the pricing page --
-  $19, $39 or $79 -- has ever been bought.**
+  and predate the August ladder. **No plan currently on the pricing page has ever
+  been bought.**
+
+  *Corrected 6 September 2026.* This named "$19, $39 or $79" as the plans on the
+  page. Neither half was right: those are the **breadth** ladder's amounts, and
+  the breadth ladder is not on the page -- its price variables are unset, so
+  `/api/readiness` offers `free`, `starter_monthly`, `core_monthly`,
+  `pro_monthly` and the quoted package, which is Free / $7 / $19 / $39. And the
+  breadth amounts moved to **$29 / $59 / $109** on 6 September. A figure written
+  into prose beside a claim outlives the claim; the sentence is now true without
+  naming amounts, and `docs/owner/PRICE-CUTOVER-RUNBOOK.md` carries the numbers
+  where they are checked.
 - **Net revenue is zero, and the balance is negative.** The one successful charge
   was refunded; the processing fee on it was not. The account balance is
   **-$0.67**.
