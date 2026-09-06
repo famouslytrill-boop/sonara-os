@@ -106,6 +106,95 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-06 - The breadth ladder raised to $29 / $59 / $109
+
+The owner's instruction: competitive but cheaper. $19/$39/$79 becomes
+**$29/$59/$109**, with the yearly plans following at $290/$590/$1090.
+
+Each is set against what the customer would otherwise pay for that job rather
+than against the plan below it. One workspace is 59% of Jobber Core or Podia
+Mover ($49). All three is 55% of the $107 stack. Team is 73-78% of Jobber
+Connect ($139) or Housecall Pro Essentials (~$149), and carries all three
+workspaces where those carry one.
+
+**$79 for all three was considered and rejected**, not out of caution: it is
+still "cheaper" at 74% of the stack, but the comparison is the whole commercial
+argument and an argument that needs explaining stops working. *"They cost $107
+between them; all three of ours cost $59"* is a sentence somebody repeats.
+
+## Why it could be done in place
+
+Raising a price normally means a fourth ladder and a migration story. Two facts
+made that unnecessary, and both were checked rather than assumed:
+
+- The breadth plans' price variables are unset in production, so
+  `/api/readiness` lists only free, starter, core, pro and the quoted package
+  under `checkoutPlans`. Checkout for them has never been possible.
+- No paid signup has completed in production at all -- `SHIP_READINESS.md` item
+  1, still open.
+
+Nobody is subscribed to any of them, so no existing charge changes. **The old
+Starter/Core/Pro ladder is deliberately untouched** for the opposite reason:
+those have live Stripe prices and are what the page shows today. The window
+closes the moment the owner sets those variables; after that a price change is a
+new key and a supersession.
+
+## The trap this creates, and where the guard is
+
+A Stripe price is immutable. The three created on 13 August still exist and
+still charge $19/$39/$79. Pointing a variable at one would put "$59/mo" on the
+pricing page and charge **$39**.
+
+`scripts/verify-stripe-env.mjs` compares the advertised amount against the live
+price and catches exactly that -- **but only on a run holding
+`STRIPE_SECRET_KEY`, and it skips without one, which is every CI run.** So the
+offline guard is `docs/MANUAL_DASHBOARD_SETUP_FINAL.md`, which no longer prints
+the old IDs and says why in the paragraph that replaced them.
+
+## Two more literal prices that made a price change hard
+
+`tests/one-ladder-on-the-pricing-page.test.js` pinned `/Team - \$79\/mo/`,
+`/Move to Starter at \$7/` and `/All three cost \$39 together/`. What that test
+exists to prove is that **the prose follows the table** -- so the amounts are now
+read from `STRIPE_PLANS`, and a page that names a plan at the wrong price still
+fails. Same lesson as the "/mo" suffix and the $77 stack bound: a literal price
+inside a check about prices is the thing that makes changing prices expensive.
+
+## The requirement itself is now checked
+
+"Cheaper than the competitor it replaces" was an instruction and nothing
+enforced it. `tests/pricing.test.js` now compares each paid plan against the
+tool it actually replaces -- One workspace against $49, All three against the
+$107 stack, Team against $139 -- with a blindness guard on the list length.
+
+## Broken, and confirmed red
+
+- Team at $149: *"team_monthly costs 14900 against 13900 for Jobber Connect at 5
+  users ... so it is not cheaper."*
+- One workspace at $55: *"workspace_monthly costs 5500 against 4900 for Jobber
+  Core / Podia Mover ... so it is not cheaper."*
+
+**The first probe attempted was invalid and is recorded because of it.** Pricing
+All three at $119 did fail the suite -- but on the *stack* assertion earlier in
+the same `it` block, which aborts before the new loop runs. It would have been
+recorded as proof of a check it never reached. The two probes above trip plans
+only the new comparison covers.
+
+3,844 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That these prices convert better than $19/$39/$79. No paid signup has completed,
+so there is no conversion data for either set.
+
+That One workspace is cheaper than every competitor in every column. Against
+Brevo Starter at $9, or Standard at $18, $29 is more expensive. That comparison
+is not like for like -- Growth Studio is a control plane and does not send -- but
+the honest reading is that One workspace is priced for the Business Builder and
+Creator Studio columns and is a poor deal bought for Growth alone. It is written
+down in `docs/pricing/2026-09-06-PRICE-INCREASE.md` rather than left for a
+customer to discover.
+
 ### 2026-09-06 - The largest thing we built was recorded everywhere as the largest thing we lacked
 
 The owner's brief: our products have to be better than the competition, cheaper

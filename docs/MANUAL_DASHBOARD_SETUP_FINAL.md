@@ -26,15 +26,15 @@ are not set up with no indication of why.
 | Starter | `STRIPE_PRICE_STARTER_MONTHLY` | `price_1TjCkh0dKtlEU3lAsSDgFblT` | $7/mo   |
 | Core    | `STRIPE_PRICE_CORE_MONTHLY`    | `price_1TjClL0dKtlEU3lAXi7RHc5j` | $19/mo  |
 | Pro     | `STRIPE_PRICE_PRO_MONTHLY`     | `price_1TjClr0dKtlEU3lA0EWKaSBS` | $39/mo  |
-| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | `price_1U47yP0dKtlEU3lAvkakKNgm` | $19/mo |
-| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | `price_1U47yd0dKtlEU3lAeTBQ8o3D` | $39/mo |
-| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | `price_1U47yp0dKtlEU3lAhPqsCS7r` | $79/mo |
-| One workspace, yearly | `STRIPE_PRICE_WORKSPACE_ANNUAL` | *not created yet* | $190/yr |
-| All three, yearly | `STRIPE_PRICE_ALL_THREE_ANNUAL` | *not created yet* | $390/yr |
-| Team, yearly | `STRIPE_PRICE_TEAM_ANNUAL` | *not created yet* | $790/yr |
+| One workspace | `STRIPE_PRICE_WORKSPACE_MONTHLY` | **must be recreated** | $29/mo |
+| All three | `STRIPE_PRICE_ALL_THREE_MONTHLY` | **must be recreated** | $59/mo |
+| Team    | `STRIPE_PRICE_TEAM_MONTHLY`    | **must be recreated** | $109/mo |
+| One workspace, yearly | `STRIPE_PRICE_WORKSPACE_ANNUAL` | *not created yet* | $290/yr |
+| All three, yearly | `STRIPE_PRICE_ALL_THREE_ANNUAL` | *not created yet* | $590/yr |
+| Team, yearly | `STRIPE_PRICE_TEAM_ANNUAL` | *not created yet* | $1090/yr |
 
 The last three are annual billing, added 5 September 2026 — two months free
-against the monthly price. **Their Stripe prices do not exist yet**, unlike the
+against the monthly price, and repriced with the monthly ladder on 6 September. **Their Stripe prices do not exist yet**, unlike the
 breadth ladder above them, so these are two steps rather than one: create a
 recurring yearly price at each amount (lookup keys `sonara_workspace_annual`,
 `sonara_all_three_annual`, `sonara_team_annual` keep them findable without this
@@ -43,11 +43,30 @@ the monthly twin already sells the same product, so an unbuyable yearly card
 would tell a customer nothing. See `docs/pricing/2026-09-05-PRICING-STRATEGY.md`
 for why two months free rather than a deeper discount.
 
-The bottom three are the breadth ladder, and their prices now exist in the live
-account — created 13 August 2026, with lookup keys `sonara_workspace_monthly`,
-`sonara_all_three_monthly` and `sonara_team_monthly` so they can be found again
-without this table. Creating them charges nobody; a Stripe price is inert until
-a checkout session names it.
+### The breadth ladder was repriced on 6 September 2026 — do not use the old IDs
+
+Those three were created in the live account on 13 August 2026 at **$19, $39 and
+$79**, with lookup keys `sonara_workspace_monthly`, `sonara_all_three_monthly`
+and `sonara_team_monthly`. On 6 September the owner raised them to **$29, $59
+and $109** (see `docs/pricing/2026-09-06-PRICE-INCREASE.md`).
+
+**A Stripe price is immutable.** The three IDs previously printed here still
+exist and still charge the old amounts, so this table no longer prints them:
+pointing `STRIPE_PRICE_ALL_THREE_MONTHLY` at the 13 August price would put
+"$59/mo" on the pricing page and charge the customer **$39**. That mismatch is
+caught by `scripts/verify-stripe-env.mjs` — but only on a run that has
+`STRIPE_SECRET_KEY`, and it *skips* without one, which is every CI run. So this
+paragraph is the guard offline.
+
+**Create three new recurring monthly prices** at $29, $59 and $109, with fresh
+lookup keys (`sonara_workspace_monthly_v2` and so on) rather than moving the old
+ones, so the old and new stay tellable apart in the dashboard. Archive the
+13 August three once the new variables are set: nobody is subscribed to them,
+because their variables were never set and no paid signup has completed in
+production at all.
+
+Creating a price charges nobody; a Stripe price is inert until a checkout
+session names it.
 
 **The one step left is yours:** set those three variables in the Vercel project
 and redeploy. Until they are set, those plans show as not open

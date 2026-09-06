@@ -82,6 +82,26 @@ describe("pricing", () => {
         `${key} must stay under the $107 competitor stack the page compares against`
       );
     }
+    // Each plan against the competitor it actually replaces, not just against
+    // the stack. The owner's requirement on 6 September 2026 was "competitive
+    // but cheaper", and a requirement nothing checks is a requirement that stops
+    // being true the first time somebody raises a price without opening this
+    // file. Figures dated 5 September, sourced in
+    // docs/pricing/2026-09-05-PRICING-STRATEGY.md.
+    const REPLACES = [
+      ["workspace_monthly", 4900, "Jobber Core / Podia Mover, the single-column tools One workspace replaces"],
+      ["all_three_monthly", COMPETITOR_STACK_CENTS, "the whole stack All three replaces"],
+      ["team_monthly", 13900, "Jobber Connect at 5 users, the cheapest tool Team competes with"]
+    ];
+    assert.ok(REPLACES.length >= 3, `only ${REPLACES.length} plans compared; this check has gone blind`);
+    for (const [key, competitorCents, what] of REPLACES) {
+      assert.ok(PLANS[key], `${key} is compared against a competitor here and is not a plan`);
+      assert.ok(
+        PLANS[key].amountCents < competitorCents,
+        `${key} costs ${PLANS[key].amountCents} against ${competitorCents} for ${what}, so it is not cheaper`
+      );
+    }
+
     // A yearly plan is compared against a year of the stack, not a month of it.
     for (const [key, config] of Object.entries(PLANS)) {
       if (!config.billedAnnually) continue;

@@ -145,12 +145,19 @@ describe("the pricing page shows one ladder", () => {
       assert.ok(!html.includes(`value="${plan}"`), `${plan} is on the page at a price a working plan already charges`);
     }
     // Team is on the page and must not look purchasable.
-    assert.match(html, /Team - \$79\/mo/);
+    //
+    // The amounts below are read from STRIPE_PLANS rather than written out.
+    // They were literals -- /Team - \$79\/mo/ and /Move to Starter at \$7/ --
+    // until the breadth ladder was repriced on 6 September 2026, and a literal
+    // price in a test that exists to prove the prose follows the table is the
+    // one thing that makes changing the table hard. What must hold is that the
+    // page says the plan's own price, whatever that is.
+    assert.match(html, new RegExp(`Team - \\${STRIPE_PLANS.team_monthly.price.replace("/", "\\/")}`));
     assert.match(html, /Checkout is not configured for this plan yet|Not open yet/);
     // The prose has to move with the cards, or the page names plans it is not
     // showing. This is the sentence that used to be written out by hand.
-    assert.match(html, /Move to Starter at \$7/);
-    assert.doesNotMatch(html, /One workspace at \$19/);
+    assert.match(html, new RegExp(`Move to Starter at \\$${STRIPE_PLANS.starter_monthly.amountCents / 100}`));
+    assert.doesNotMatch(html, /One workspace at \$/);
   });
 
   it("renders the new ladder once its prices exist, and stops naming the old plans", async function render() {
@@ -159,14 +166,14 @@ describe("the pricing page shows one ladder", () => {
     const { names, html } = await planNamesOnPage();
     assert.deepEqual(names, ["Free", "One workspace", "All three", "Team", "Business Builder setup"]);
     for (const plan of OLD) assert.ok(!html.includes(`value="${plan}"`), `${plan} is superseded and still has a checkout button`);
-    assert.match(html, /Move to One workspace at \$19/);
-    assert.match(html, /Team at \$79/);
-    assert.doesNotMatch(html, /Starter at \$7/);
+    assert.match(html, new RegExp(`Move to One workspace at \\$${STRIPE_PLANS.workspace_monthly.amountCents / 100}`));
+    assert.match(html, new RegExp(`Team at \\$${STRIPE_PLANS.team_monthly.amountCents / 100}`));
+    assert.doesNotMatch(html, /Starter at \$/);
     // "Pro covers all three for $39" was written out, and Pro is not on this
     // page. The successor is called "All three", so naming the plan here would
     // have read "All three covers all three".
     assert.doesNotMatch(html, /Pro covers all three/);
-    assert.match(html, /All three cost \$39 together/);
+    assert.match(html, new RegExp(`All three cost \\$${STRIPE_PLANS.all_three_monthly.amountCents / 100} together`));
   });
 
   it("says paid plans are not open yet when none of them are", async function render() {
