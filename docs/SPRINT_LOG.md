@@ -2,6 +2,99 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-06 - The largest thing we built was recorded everywhere as the largest thing we lacked
+
+The owner's brief: our products have to be better than the competition, cheaper
+than the competition, and affordable. Checking whether the first of those is
+true turned up something worse than a gap.
+
+**Stripe Connect exists.** `lib/sonara-connected-payments.cjs`,
+`routes/sonara-connected-payment-routes.cjs`,
+`20260826090000_business_payment_accounts.sql`, mounted at server.js:1501,
+covered by `tests/a-business-can-be-paid-by-its-own-customers.test.js`. Charges
+are created **on the connected account** via the `Stripe-Account` header, so the
+money lands in the business's own Stripe balance and never enters SONARA's.
+
+**Two places still said it did not.**
+
+- `lib/sonara-invoice-settlement.cjs` opened its reasoning with *"There is no
+  Stripe Connect in this application. No connected-account model, no
+  `on_behalf_of`, no `transfer_data`, no table holding a business's Stripe
+  account."*
+- `docs/market/2026-08-26-PER-PRODUCT-COMPETITOR-REASSESSMENT.md` carried the
+  same belief into the competitive record **twice**, as "the gap that is worth
+  closing first" for two of the three products.
+
+The survey was written on 26 August. So was the migration. The record and the
+capability were a day apart and never met.
+
+This is `CLAUDE.md`'s fifth shape -- an exemption whose reason has expired --
+and the damage is specific: asked what we do better than Jobber and Podia, our
+own documentation answered with the thing we had just built.
+
+## What was corrected, and what deliberately was not
+
+The invoice-settlement comment gave **two** reasons for having no pay button.
+Only the first was stale. The second -- that the shared invoice's footnote tells
+its reader never to pay from a link, because a forwarded invoice with a pay
+button is the exact shape of a payment-redirection fraud -- is still true and is
+still the design. `sonara-connected-payments.cjs` preserves it deliberately. So
+the correction is surgical: the false reason is replaced and dated, the true one
+stays, and payment remains something the business initiates from inside the
+product.
+
+The survey is amended rather than rewritten, because a dated survey is a record
+and rewriting one destroys what it is for. Each "cannot do" line that stopped
+being true is struck through and dated inline, with an amendment box at the top.
+
+## The check, and why it is two-sided
+
+`tests/a-capability-we-built-is-not-described-as-missing.test.js` registers a
+capability, how to tell the code really has it, and the sentences that must not
+be said while it does. `presentWhen` is more than "a file exists" -- it requires
+the module, the route file, the migration **and** the mount, because this
+repository has shipped a route file nobody mounted.
+
+It fails in both directions: when a document claims the capability is missing
+while the code has it, and when the code loses it while the documents have
+stopped saying so. Only the first is the bug that happened; a check written for
+that direction alone goes blind the day Connect is removed.
+
+Two refinements the first draft needed:
+
+- A **correction has to be writable.** A checker that cannot tell a quotation
+  from an assertion makes the honest fix impossible, so quoted and dated lines
+  are exempt.
+- **Strikethrough alone is not an exemption.** Struck-through text is still text
+  somebody reads. A crossed-out claim counts as a claim unless the same line
+  says when it stopped being true, and there is a case asserting exactly that.
+
+## Broken, and confirmed red
+
+- The original sentence restored into `sonara-invoice-settlement.cjs`:
+  *"lib/sonara-invoice-settlement.cjs:24 still says the product lacks Stripe
+  Connect."*
+- The mount removed from `server.js`: *"is registered here as present and the
+  code no longer has it."*
+
+**The second probe was invalid on the first attempt and is recorded because of
+it.** Breaking the mount makes `server.js` throw, so every test that loads it
+fails and mocha aborts before reaching this file -- which looks from the outside
+exactly like a check that passed. It was re-run with the repository's spec
+config bypassed so the file ran alone, and only then did it fail by name.
+
+3,844 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That the product is better than its competitors. Connect closes the gap this
+survey called the widest, and the survey's other findings still stand: nothing
+here answers a phone, there is no mobile application and no offline mode, no GPS
+or routing, and Growth Studio still cannot send -- it is a control plane over
+Klaviyo and HubSpot, and is only honest sold as one. The amended survey now
+names **the phone** as the gap worth closing first for Business Builder, and
+**charging for generation** for Creator Studio.
+
 ### 2026-09-05 - Annual billing, and three checks that could not express a yearly price
 
 The market was re-surveyed against live sources and the stack we compare

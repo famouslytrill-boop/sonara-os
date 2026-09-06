@@ -1,8 +1,31 @@
 # Each product against its own competitors
 
-Surveyed 26 August 2026.
+Surveyed 26 August 2026. **Amended 6 September 2026** — see the box below.
 
 Review by: 2026-11-26
+
+> ## Amendment, 6 September 2026
+>
+> The single finding this survey repeated most — that the gap worth closing
+> first, for two of the three products, is a way for the customer to take money
+> — **was closed on 26 August, the same day this was written.**
+>
+> `lib/sonara-connected-payments.cjs`,
+> `routes/sonara-connected-payment-routes.cjs` and
+> `20260826090000_business_payment_accounts.sql` build Stripe Connect, and
+> `tests/a-business-can-be-paid-by-its-own-customers.test.js` covers it. Charges
+> are created **on the connected account** using the `Stripe-Account` header, so
+> the money lands in the business's own Stripe balance and never enters
+> SONARA's. The money-custody objection this document records was answered
+> rather than worked around.
+>
+> The paragraphs below are left as they were written, because a survey is a
+> dated record and rewriting it would destroy the thing it is for. What is
+> corrected is each "cannot do" line that is no longer true, marked inline.
+> `tests/a-capability-we-built-is-not-described-as-missing.test.js` now fails if
+> either this file or the source starts claiming the capability is missing while
+> the code has it — and fails the other way too, if the code loses it while the
+> documents have stopped saying so.
 
 Earlier surveys in this directory compared the *stack* — what somebody pays for
 all three jobs at once. This one compares each product against the tools that
@@ -64,12 +87,13 @@ arithmetic over the customer's own rows — no engine, no service, no key.
 
 ### What it cannot do, stated plainly
 
-- **A customer cannot pay an invoice through it.**
-  `lib/sonara-invoice-settlement.cjs:29` says so in the source: *"There is no
-  Stripe Connect in this application. No connected-account model, no
-  `on_behalf_of`, no `transfer_data`, no table holding a business's own Stripe
-  account."* The product knows what is owed and cannot collect it. Stripe here
-  charges for SONARA's own subscriptions, not for the customer's work.
+- ~~**A customer cannot pay an invoice through it.**~~ **No longer true, 26
+  August 2026.** As surveyed, `lib/sonara-invoice-settlement.cjs` said in the
+  source that there was no Stripe Connect here, so the product knew what was
+  owed and could not collect it. `lib/sonara-connected-payments.cjs` closed
+  that: a business connects its own Stripe account through Stripe's hosted
+  onboarding and is paid directly, at `/business-builder/owner/payments`. No
+  card data reaches this application and SONARA takes no cut of the charge.
 - No phone, no SMS, no voice. Nothing answers a call.
 - No mobile application and no offline mode. It is a website.
 - No GPS or route optimisation, so the drive-time claim above has no
@@ -77,10 +101,16 @@ arithmetic over the customer's own rows — no engine, no service, no key.
 
 ### The gap that is worth closing first
 
-Invoice payment, and it is not close. Every competitor at every price point
-takes money on a job; this one produces a statement. The blocker is named in the
-source and is not a code problem — Stripe Connect needs a platform account the
-owner has to open.
+~~Invoice payment~~ — **closed 26 August 2026.** As surveyed: *"Invoice payment,
+and it is not close. Every competitor at every price point takes money on a job;
+this one produces a statement."* That is no longer the state. The blocker named
+here — a Connect platform account the owner has to open — is the remaining
+manual step, not the code.
+
+**The gap now worth closing first is the phone.** Jobber sells an AI
+Receptionist, Housecall Pro has CSR AI auto-booking and a Voice integration, and
+nothing here answers a call. That is the one item in "what they have that this
+does not" with no counterpart built.
 
 ---
 
@@ -119,16 +149,27 @@ device cues, and artist records.
   `OPTIONAL_CAPABILITY` in `scripts/verify-env.mjs`, which by that file's own
   rule means "a feature is unavailable without these and every path falls back
   to a stated setup-required. None may become a launch dependency."
-- **A creator cannot sell anything through it.** Same missing Connect as
-  Business Builder. Podia at 5% and Gumroad at 10% are taking a cut of a
-  transaction this product cannot process at all.
+- ~~**A creator cannot sell anything through it.**~~ **No longer true, 26
+  August 2026** — the same Connect path serves both products. What was the
+  weakest line in this survey is now the strongest comparison in it: Podia takes
+  **5%** on Mover, Teachable **7.5%**, Gumroad **10% + $0.50**, and this takes
+  **nothing** on top of Stripe's own processing fee, because the charge is
+  created on the creator's own account rather than passing through ours.
 - No credit system, so there is no way to charge for generation even once a
   provider is configured.
 
 ### The gap that is worth closing first
 
-The same one: a way for the customer to take money. Everything above it is
-built; the till is missing.
+~~The same one: a way for the customer to take money.~~ **Closed 26 August
+2026.** The till exists.
+
+**The gap now worth closing first is charging for generation.** The survey line
+below still stands: there is no credit system, so even with a provider
+configured there is no way to bill for a GPU second.
+`lib/sonara-paid-capabilities.cjs` prices six such capabilities against dated
+cost floors and is required by exactly two files — its own release check and its
+own test. It charges nobody. See
+`docs/pricing/2026-09-05-PRICING-STRATEGY.md` section 4.
 
 ---
 
