@@ -2,6 +2,20 @@
 
 Review by: 2026-12-05
 
+> ## Amended 6 September 2026
+>
+> **The prices in this document were raised the day after it was written.**
+> One workspace $19 → **$29**, All three $39 → **$59**, Team $79 → **$109**, and
+> the yearly plans $190/$390/$790 → **$290/$590/$1090**. The case is in
+> `2026-09-06-PRICE-INCREASE.md` and the steps are in
+> `docs/owner/PRICE-CUTOVER-RUNBOOK.md`.
+>
+> The competitor figures below are unchanged and still sourced. The analysis is
+> left as written, because a dated document is a record. What is corrected
+> inline is every sentence stating a SONARA price — above all the comparison in
+> section 1, which `CLAUDE.md` warns is the kind of thing copied into marketing
+> copy. **All three is 55% of the stack, not 36%.**
+
 Written 5 September 2026. Supersedes the figures in
 `2026-07-28-COMPETITOR-PRICING.md` and updates the argument in
 `2026-08-11-PRICING-RESTRUCTURE.md`. The recommendation in that second document
@@ -52,10 +66,12 @@ claim nobody can dispute is worth more than a bigger one somebody can.
 ### What this does to the comparison
 
 > Jobber, Podia and Brevo cost **$107 a month** between them on monthly billing,
-> at their cheapest plans. All three SONARA workspaces cost **$39**.
+> at their cheapest plans. All three SONARA workspaces cost **$59**.
 
-That is 36% of the stack, against 45% when the restructure was written. The
-argument got stronger without anybody doing anything.
+That is 55% of the stack. *As written on 5 September this said $39 and 36%; the
+price was raised on 6 September and the sentence is corrected here rather than
+left for somebody to quote.* Against 45% when the August restructure was
+written, the comparison is still stronger than it was.
 
 ---
 
@@ -67,9 +83,9 @@ argument got stronger without anybody doing anything.
 | Plan | Monthly | State |
 | --- | --- | --- |
 | Free | $0 | Live |
-| One workspace | $19 | Stripe price created 13 Aug; **variable unset** |
-| All three | $39 | Stripe price created 13 Aug; **variable unset** |
-| Team | $79 | Stripe price created 13 Aug; **variable unset** |
+| One workspace | **$29** | 13 Aug price is $19 and immutable — **a new one is needed**; variable unset |
+| All three | **$59** | 13 Aug price is $39 and immutable — **a new one is needed**; variable unset |
+| Team | **$109** | 13 Aug price is $79 and immutable — **a new one is needed**; variable unset |
 
 The old Starter $7 / Core $19 / Pro $39 ladder is still what a visitor sees,
 because `offeredPlanKeys` will not swap ladders until the replacements can
@@ -91,8 +107,10 @@ annual; Podia drops 14%. We had no annual option, which means:
 - We were being compared monthly-to-annual and losing a comparison we win.
 - We collected no cash up front and had no annual retention step.
 
-**Added: two months free.** `$190`, `$390` and `$790` against `$228`, `$468` and
-`$948` paid monthly — a 16.7% discount.
+**Added: two months free.** As repriced on 6 September: `$290`, `$590` and
+`$1090` against `$348`, `$708` and `$1308` paid monthly — a 16.7% discount.
+*Written on 5 September as $190/$390/$790 against $228/$468/$948, at the prices
+of that day.*
 
 Why two months free rather than matching Jobber's 41%: the deep discounts in
 this market are anchored on much higher monthly prices, where a 40% cut still
@@ -169,8 +187,8 @@ It has now been re-pinned to the figure in this document, with the source.
 
 ### Layer 1 — Subscription, priced on breadth
 
-Free / One workspace $19 / All three $39 / Team $79, monthly or yearly. Already
-built. Needs six Stripe Price objects (three monthly, three annual).
+Free / One workspace $29 / All three $59 / Team $109, monthly or yearly.
+*Written on 5 September as $19/$39/$79.* Already built. Needs six Stripe Price objects (three monthly, three annual).
 
 ### Layer 2 — Usage, sold as prepaid credits rather than metered invoices
 
@@ -221,7 +239,7 @@ So the work is asymmetric, and it matters which is which:
 - **One workspace / All three / Team, monthly** — price exists, variable unset.
   One step, and the restructure goes live the moment it is taken.
 - **The three annual plans** — price does not exist. Two steps: create a yearly
-  recurring price at $190, $390 and $790, then set the variables.
+  recurring price at $290, $590 and $1090, then set the variables.
 
 Until each is done, `offeredPlanKeys` keeps the old ladder on the page and the
 annual plans off it entirely, which is the correct behaviour and also means none

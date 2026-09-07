@@ -2,6 +2,97 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-06 - Deployment #130 got one step further, and the next step was a parser that stopped matching
+
+PR #218 merged. **The catalog boundary step it was written to fix now passes** --
+step 25 of Controlled Production Deployment, green for the first time. The
+failure moved to step 26, "Verify complete production Supabase state", which had
+been *skipped* in #129 because 25 failed ahead of it. New ground rather than a
+regression.
+
+```
+active application table is missing from production: public.sonara_billing_customers
+active application table is missing from production: public.sonara_permission_matrix
+active application table is missing from production: public.sonara_subscriptions
+```
+
+**The gate was demanding tables the codebase deliberately dropped on 6 August.**
+
+## Why it could not see the drop
+
+`deriveMigrationState` in `scripts/verify-production-supabase.mjs` builds the
+expected-table set from a regex over literal statements -- `create table
+public.<name>` adds, `drop table public.<name>` removes.
+`20260806000000_drop_retired_superseded_tables.sql` drops **thirteen** tables by
+iterating an array and calling `execute format('drop table ... public.%I', t)`.
+At parse time the name is `%I`. The creates were counted; the drops were
+invisible.
+
+Ten of the thirteen are still present in production -- that migration keeps a
+table that has rows unless explicitly forced -- so only the three genuinely gone
+surfaced. The other ten were quietly being verified as active tables.
+
+That is `CLAUDE.md`'s own phrase, *a report whose parser silently stopped
+matching*, and it had been sitting between production and every deployment for a
+month.
+
+## The fix, in two halves
+
+**The list.** All thirteen added to `RETIRED_DATABASE_TABLES`, which is what
+"production is not required to have this table" means. Checked first that none
+of them is queried by runtime code, because four names came *off* this list on
+18 August for exactly that reason.
+
+**The half that stops it reopening.**
+`tests/a-dynamic-drop-still-retires-the-table.test.js` reads that migration's own
+array and fails when a name in it is missing from the contract. It deliberately
+does **not** teach the parser to follow `format()` through a loop: a regex that
+tries to read generated SQL is a parser with its own silent failure mode, which
+is the thing being fixed. The array the migration iterates is a fact; inferred
+intent is a guess.
+
+It also asserts the gate's regex still *cannot* see these drops -- so if that
+ever changes, somebody finds out rather than the file quietly checking nothing.
+
+## The check I nearly shipped broken
+
+`tests/a-price-in-prose-is-the-price-we-charge.test.js` guards the sentence
+`CLAUDE.md` warns is copied into marketing copy. Its first draft treated any
+line beginning `>` as a historical quotation -- and the canonical comparison in
+`2026-09-05-PRICING-STRATEGY.md` **is written as a blockquote**. Reverting it to
+`$39` left the suite green.
+
+Shape 6, a check too weak to catch the bug it was written for, caught by
+falsifying rather than by trusting it green. A line is historical because it
+says so, not because of how it is indented. One of the test's own cases asserted
+the wrong thing and was rewritten to assert the opposite.
+
+## Broken, and confirmed red
+
+- `sonara_subscriptions` removed from the contract: *"these tables are dropped by
+  a migration and are not in RETIRED_DATABASE_TABLES ... That is what failed
+  deployment #130."*
+- The migration's array declaration renamed: *"no longer declares `superseded
+  constant text[] := array[`; this check has gone blind."*
+- The comparison sentence reverted to `$39`: *"says all_three_monthly costs $39,
+  but it charges $59."* (Only after the blockquote exclusion was removed. Before
+  that, silent.)
+
+The retirement contract's count ratchet moved 23 → 36 with the reason written
+in, rather than being derived: growing that list means production stops being
+required to have a table, which should cost somebody a deliberate keystroke.
+
+3,853 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That deployment #131 will pass. Step 26 reported more than the three missing
+tables -- it also said the service role cannot read `shared_links`,
+`user_auth_factors` and `user_recovery_codes`, all created by migrations applied
+in that same run seconds earlier. **That was not investigated here**, and it may
+be a PostgREST schema-cache race rather than a permissions fault. It is the next
+thing to look at if #132 fails.
+
 ### 2026-09-06 - The pathway to the new prices, and the ordering that would take the page down
 
 Researching how to get from the live ladder to $29/$59/$109 turned on one fact,

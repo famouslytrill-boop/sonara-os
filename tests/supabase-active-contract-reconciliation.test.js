@@ -109,7 +109,19 @@ describe("Supabase active contract reconciliation", () => {
     // 27 until 18 August 2026, when employee_announcements, employee_tasks,
     // quotes and reviews came off it -- all four were queried by live code while
     // listed as retired, which made production not required to have them.
-    assert.equal(RETIRED_DATABASE_TABLES.length, 23);
+    //
+    // 23 until 6 September 2026, when the thirteen tables dropped by
+    // 20260806000000_drop_retired_superseded_tables.sql were added. They belonged
+    // here from the day that migration ran: the production gate was demanding
+    // them as active tables, which is what failed deployment #130. The drop is
+    // dynamic SQL, so the gate's regex never saw it -- see
+    // tests/a-dynamic-drop-still-retires-the-table.test.js, which now fails when
+    // a name that migration drops is missing from this list.
+    //
+    // The number stays pinned rather than derived. Growing this list means
+    // production is no longer required to have a table, which is exactly the
+    // change that should require somebody to type a new number here and say why.
+    assert.equal(RETIRED_DATABASE_TABLES.length, 36);
     assert.equal(new Set(RETIRED_DATABASE_TABLES).size, RETIRED_DATABASE_TABLES.length);
     for (const table of RETIRED_DATABASE_TABLES) assert.ok(!DATABASE_TABLES.includes(table), `${table} is still canonical`);
     assert.match(verifier, /RETIRED_DATABASE_TABLES/);
