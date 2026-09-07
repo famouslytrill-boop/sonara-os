@@ -101,7 +101,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
 | [LiveKit Agents](https://github.com/livekit/agents) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Research only | realtime voice |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
-| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | Adapt after review | agent skills |
+| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | short-form video |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
@@ -119,7 +119,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
-| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | Adapt after review | agent skills |
+| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [Spleeter](https://github.com/deezer/spleeter) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio processing |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
@@ -159,7 +159,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [GEO SEO Claude](https://github.com/zubair-trabzada/geo-seo-claude) | MIT | Read only | SEO |
 | [Ghost](https://github.com/TryGhost/Ghost) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | publishing |
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
-| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | Adapt after review | agent skills |
+| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
@@ -171,7 +171,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
-| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | Adapt after review | agent skills |
+| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Not classifiable by GitHub. Its detected licence on 18 August 20 | Licence unresolved | CRM |
