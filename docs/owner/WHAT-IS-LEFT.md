@@ -9,7 +9,7 @@ done" means two different things and only one of them is countable.
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
-across all 41 commands. The test count is deliberately not written here
+across all 43 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
@@ -52,9 +52,9 @@ MIDI, film theory, voice modulation, catering, RSVP, venues, concerts, maps,
 tickets, presentations. Each of those is a product, not a page. Any number I
 gave would be a number for my interpretation of them.
 
-**Some of it cannot be built as stated.** Of 217 reviewed repositories, 30 carry a
+**Some of it cannot be built as stated.** Of 227 reviewed repositories, 31 carry a
 reciprocal licence (AGPL/GPL/OSL/SSPL), which triggers on network use and so
-reaches a hosted product; 12 declare no licence at all — which is not a review
+reaches a hosted product; 13 declare no licence at all — which is not a review
 item, it is an absence of permission — and 2 rest on n8n's fair-code Sustainable
 Use Licence, which permits internal use but restricts offering it as a hosted
 service. "Install all repositories" has no completion state that is also legal.
@@ -85,7 +85,7 @@ Counted from the repository on 12 August 2026, not recalled.
 - **248** registered GET routes
 - **325** tables created by the migrations, **228** of them organization-scoped
 - **23** owner record pages, **22** record checks
-- **41** verification commands in the release chain
+- **43** verification commands in the release chain
 - **82** external repositories reviewed with their licences read off each one
 - **0** modules under `lib/` or `routes/` that nothing references
 - **0** tables created and never queried without a recorded decision

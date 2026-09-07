@@ -195,14 +195,29 @@ for (const block of toolBlocks) {
 
   // adapter_built is the one status that claims something about this repository
   // rather than about the upstream project, so it is the one that can be false
-  // without anybody noticing. It has to name a module that exists.
+  // without anybody noticing. It has to name something that exists.
+  //
+  // Two shapes of adapter, not one. This matched only `lib/*.cjs` until
+  // 7 September 2026, which was right while every adapter here was a runtime
+  // module. Then two skill libraries were adapted into `.claude/skills/`, which
+  // is an adapter by the same definition -- shipped in this repository, loaded
+  // when an agent works here -- and the pattern could not see it. Widened rather
+  // than relaxed: a named path of either shape must still exist on disk, which
+  // is the guarantee this block is actually for.
+  //
+  // scripts/verify-adapted-skills.mjs checks the other direction for the skills
+  // half: that the skill naming a source names one this register cleared.
   if (record.integrationStatus === "adapter_built") {
-    const named = [...block.matchAll(/(lib\/[a-z0-9-]+\.cjs)/g)].map((match) => match[1]);
+    const named = [...block.matchAll(/(lib\/[a-z0-9-]+\.cjs|\.claude\/skills\/[a-z0-9-]+)/g)].map((match) => match[1]);
     if (named.length === 0) {
-      errors.push(`${record.name} claims adapter_built without naming the adapter module in its notes.`);
+      errors.push(`${record.name} claims adapter_built without naming the adapter module or skill in its notes.`);
     }
     for (const modulePath of named) {
-      if (!fs.existsSync(path.join(root, modulePath))) {
+      const full = path.join(root, modulePath);
+      const present = modulePath.startsWith(".claude/skills/")
+        ? fs.existsSync(path.join(full, "SKILL.md"))
+        : fs.existsSync(full);
+      if (!present) {
         errors.push(`${record.name} claims adapter_built and names ${modulePath}, which does not exist.`);
       }
     }

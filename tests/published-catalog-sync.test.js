@@ -158,4 +158,42 @@ describe("the deploy gate and the code cannot drift apart unnoticed", () => {
     // published and fails on each one it cannot find in the code.
     assert.match(gate, /searchParams\.set\("status", "eq\.active"\)/);
   });
+
+  it("only objects to an applied migration when the bytes would actually change", () => {
+    // The guard in generate-catalog-sync-migration.cjs measures filename order:
+    // a generated migration older than the newest frozen migration is treated as
+    // one production has already pushed. That inference is sound; guarding on it
+    // unconditionally was not.
+    //
+    // The newest frozen migration moves every time anybody hand-writes one. When
+    // 20260907120000_declare_service_role_data_api_surface.sql landed -- nothing
+    // to do with the catalog -- this generator failed and demanded its two files
+    // be renamed with their content byte-identical. Rewriting a file to the bytes
+    // it already holds reaches production no differently from leaving it alone,
+    // so there was nothing to warn about, and unfixed it was a treadmill: every
+    // future migration renaming these two forever.
+    //
+    // So the guard now sees only entries whose content would change. Both halves
+    // matter and both are pinned here, because widening it back is a one-line
+    // change that passes every other check on a day when no migration is newer.
+    const generator = fs.readFileSync(
+      path.join(__dirname, "..", "scripts", "generate-catalog-sync-migration.cjs"),
+      "utf8"
+    );
+    assert.match(
+      generator,
+      /const drifted = wanted\.filter\(\(\{ file, body \}\) => !fs\.existsSync\(file\) \|\| fs\.readFileSync\(file, "utf8"\) !== body\);/,
+      "the generator no longer works out which entries would actually change"
+    );
+    assert.match(
+      generator,
+      /migrationsProductionHasRunPast\(drifted\.map\(/,
+      "the applied-migration guard is back to judging every entry, so any newer hand-written migration fails this generator"
+    );
+    assert.doesNotMatch(
+      generator,
+      /migrationsProductionHasRunPast\(wanted\.map\(/,
+      "the applied-migration guard is judging every wanted entry again rather than the drifted ones"
+    );
+  });
 });

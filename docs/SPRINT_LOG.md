@@ -2,6 +2,420 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-07 - Three marketing skills adapted, and the licence review wired to the folder
+
+Three skills added under `.claude/skills/`, adapted from two of the MIT
+libraries cleared in the review earlier today:
+
+- **`writing-sonara-marketing-copy`** -- from Corey Haines's `copywriting`,
+  `copy-editing` and `product-marketing`.
+- **`comparing-sonara-to-a-competitor`** -- from his `competitors` and
+  `competitor-profiling`.
+- **`writing-a-social-post-for-sonara`** -- from Charlie Hills's
+  `hook-generator`, `post-writer`, `post-formatter` and `post-scorer`.
+
+Rewritten rather than copied, and what was left behind matters as much as what
+was taken.
+
+**The context document.** The marketing library's foundation skill interviews
+the user and writes `.agents/product-marketing.md`, which every other skill then
+reads. SONARA's positioning is already fixed in `AGENTS.md` and its market
+figures are dated in `docs/market/`. A second, undated statement of who we are
+is exactly the uncheckable second copy this repository keeps deleting, so the
+adapted skills point at the existing ones -- and at the two claims here that are
+checked against code: a price written into prose, and saying a reviewed
+repository ships.
+
+**Apify.** The social library's `post-scorer` pulls the author's real post
+history through Apify and scores drafts against what performed. Better than a
+static rubric, and unavailable here: Apify is a hosted paid service in no record
+in the register, and `CLAUDE.md` is explicit that a free tier is a price rather
+than a licence. A rubric that silently scores nothing when a key is missing is
+worse than a plain one, so the adapted skill ships a plain five-axis rubric --
+with truthfulness as a veto axis rather than one fifth of a score.
+
+**The hook formula.** That library requires a "How I" statement and a digit in
+every hook, on clickbait principles. Right for a personal brand, wrong for a
+company whose own rule is plain customer-facing language -- and manufacturing a
+digit is how a post acquires a number nothing supports.
+
+**The audience numbers.** Its banner reads "the 17 skills behind 350k followers
+and 100M+ views a year". The frameworks travel; the proof does not.
+
+All three skills end at a draft. Customer campaigns and proof publishing are two
+of the seven categories `lib/sonara-agent-authority.cjs` holds for the owner,
+and each skill says so in its own text rather than leaving it to be remembered.
+
+## The half that stops it reopening
+
+Nothing checked `.claude/skills/` before today. Fine while every skill in it was
+written here; not fine the moment skills came from outside repositories, because
+an adapted skill looks the same whatever its source was licensed under.
+
+`scripts/verify-adapted-skills.mjs` closes the loop both ways. **Forward**: a
+skill naming a source must name one `data/open-source-tools.ts` has reviewed and
+cleared, and that record must read `adapter_built`. **Backward**: a record
+marked `adapter_built` in the "agent skills" category must be named by a skill
+that exists, so "we did" cannot be claimed for work nobody did.
+
+It found its own first defect on its first run -- both records still said
+`optional_adapter_after_review` while the skills were already written.
+
+## A pattern that had stopped covering its population
+
+`verify-open-source-registry.mjs` requires an `adapter_built` record to name
+something that exists, and matched only `lib/*.cjs`. A skill is an adapter by
+the same definition and the pattern could not see it. Widened to accept
+`.claude/skills/<name>` and to check its `SKILL.md` is really there, so the
+guarantee survives. Same shape as the dynamic-drop parser fixed this morning:
+not a wrong rule, a rule whose pattern stopped matching its population.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Source switched to `plannotator/artifact-server` | *"which the register BLOCKS (integrationStatus: blocked, commercialUseStatus: blocked_until_review)"* -- the AGPL repository, which is the case this check exists for |
+| Source switched to an unreviewed repository | *"has no record in data/open-source-tools.ts. Review it first"* |
+| The social skill directory deleted | *"recorded as adapter_built ... but no skill under .claude/skills names it. Either the skill was removed, or the record claims work that was never done"* |
+
+## What this does not claim
+
+**That the skills have been used.** Written and loadable; no copy produced with
+them yet.
+
+**That a post or campaign can now be sent.** All three end at a draft.
+
+---
+
+### 2026-09-07 - Fourteen recommendations, read licence-first
+
+Fourteen things arrived as social-media screenshots with the instruction to
+incorporate them. Ten are repositories and are now recorded in
+`data/open-source-tools.ts` (217 records to 227). Every licence was read from
+the LICENSE file in a shallow clone; every count was measured rather than taken
+from a README.
+
+**The spread is the finding.** All of these were posted in the same voice, as
+useful open source to adopt:
+
+| Repository | Licence read | Verdict |
+| --- | --- | --- |
+| coreyhaines31/marketingskills | MIT | adapted -- see the entry above |
+| mattpocock/skills | MIT | cleared to adapt |
+| charlie947/social-media-skills | MIT | adapted -- see the entry above |
+| msitarzewski/agency-agents | MIT | reference only -- personas, not skills |
+| ashishpatel26/500-ai-agents-projects | MIT | reference only -- an index |
+| microsoft/ai-agents-for-beginners | MIT + trademark policy | reference only |
+| cyb3rxp/awesome-soc | **CC0-1.0** | reference only, nothing to install |
+| diffusionstudio/editor | **MPL-2.0** | needs licence review |
+| cporter202/automate-for-growth | **none** | **blocked** |
+| plannotator/artifact-server | **AGPL-3.0** | **blocked** |
+
+## The one that mattered
+
+`plannotator/artifact-server` is described as "the open-source, self-hostable
+alternative to Claude Code artifacts", and it is open source. It is also
+**AGPL-3.0**, whose preamble states the case it was written for: it "requires
+the operator of a network server to" offer source to the community. SONARA One
+is a hosted network service. Adopting it would oblige publishing this product's
+own source.
+
+`cporter202/automate-for-growth` has **no LICENSE file**, so it is all rights
+reserved. Measured for the affiliate pattern recorded against that author's
+three API directories -- 114 links, zero carrying `?fpr=` -- so it is a
+different artefact and the objection is purely the missing licence. Sixteen
+files, all prose; there was nothing to depend on either way.
+
+Two narrower constraints a badge does not show. Microsoft's MIT grant covers the
+code and **not the name** -- its README carries an explicit trademark section --
+and its examples wire directly to Azure OpenAI, which AGENTS.md forbids in
+favour of the Provider Gateway. And MPL-2.0 on the video editor is reciprocal
+*per file*: `reciprocalLicense` is recorded false because this register's field
+asks whether the licence obliges releasing SONARA's own source, which MPL does
+not, while the record says plainly that it is copyleft.
+
+## Four that are not repositories
+
+- **fingerprint.to** -- a hosted username and email search across 700+
+  platforms. Not adopted, and not a close call: aggregating people's accounts
+  from an identifier is the consent problem AGENTS.md names, and this register
+  already blocks bulk contact scrapers on that ground.
+- **drafted.ai** -- hosted architectural generation. No source to review.
+- **A Quran database** shown under a "GAIT" banner. **The screenshot never shows
+  the owner**, only a file listing. The review skill's first rule is not to
+  guess an owner into a permanent register, so nothing was recorded.
+- The sixth screenshot was **this repository's own Languages panel**, which
+  turned out to be the more interesting one.
+
+## Every language, held to something
+
+The instruction alongside the screenshots was that all our languages be at 35%
+or better. Read literally against the Languages panel that cannot be done: those
+are shares of the codebase and six shares cannot each exceed a third. Read as
+this repository's own 35% coverage floor it is a real and unmet requirement, and
+that is how it was taken.
+
+**The panel was measuring dead code.** 489 of the 500 TypeScript files and four
+of the five app-level stylesheets are under `archive/`. `.gitattributes` now
+marks `archive/**` as `linguist-vendored`, so the panel describes the product
+that is actually shipped.
+
+Six languages ship outside `archive/`: JavaScript 681 files, SQL 117, Python 49,
+CSS 15, TypeScript 11, HTML 1. Two had a floor. The other four were not failing
+anything because nothing was asking.
+
+`scripts/verify-language-coverage-floors.mjs` now requires every one of them to
+be either held to the floor by an executed check, or to carry a dated reason why
+executed-line coverage cannot mean anything for it, naming the checks that
+govern it instead. **SQL turned out to be the best-covered language we have** --
+`verify:migration-replay` applies all 117 migrations to an empty PostgreSQL on
+every release, so its executed fraction is 100%, not 35%. TypeScript here is
+data registers that nothing runs; CSS and HTML have no executed lines at all.
+Bolting a percentage onto those would have been a number nobody could act on,
+which is this codebase's recurring defect wearing a percentage.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| The CSS entry deleted | *"CSS is shipped in 15 file(s) and nothing in this repository holds it to the 35% floor or records why a floor cannot apply"* |
+| A reason pointed at a missing script | *"names scripts/verify-colour-contrast-GONE.mjs, which does not exist -- the reason points at nothing"* |
+| A COBOL entry added | *"still describes COBOL, which no longer appears outside archive/"* |
+| The Python floor removed from package.json | *"Python's floor ... is not called by any package.json script, so it never runs"* |
+| Multi-fit records forced onto one surface | *"routing disagrees with FIT_LABEL_TO_SURFACE about where records belong"* |
+
+The third probe is the half that matters most: an exemption whose reason has
+expired is the shape `.claude/skills/checks-that-cannot-lie` records as worse
+than no exemption, because it is what the next person reads instead of checking.
+
+The fifth is a separate repair. `tests/repository-product-routing.test.js` pinned
+217 records, 306 placements, 42 governance-only records and a per-surface map as
+literals. They were a second copy of the register and failed on this change while
+nothing was wrong. The per-surface totals are now recomputed independently from
+`FIT_LABEL_TO_SURFACE` and compared against the routing function, which is a real
+cross-check rather than a tautology.
+
+## What this does not claim
+
+**That the four non-floor languages are tested.** They are governed by named
+checks that measure what can go wrong with them. That is a different claim from
+a coverage percentage, and it is deliberately written as one.
+
+---
+
+### 2026-09-07 - The tables the server was never given permission to read
+
+Deployment **#131** failed with eight findings. Three are what PR #219 fixes.
+**Five were a different fault entirely, and two of them break a feature:**
+
+```
+service role cannot read table: public.shared_links
+service role cannot read table: public.user_auth_factors
+service role cannot read table: public.user_recovery_codes
+service role cannot read retired table: public.audio_assets
+service role cannot read retired table: public.daw_sessions
+```
+
+`lib/sonara-two-factor.cjs` reads `user_auth_factors` through the service-role
+client on every sign-in that checks for a second factor, and
+`routes/sonara-shared-result-routes.cjs` reads `shared_links`. **A table the
+service role cannot select from is a feature that does not work in production**,
+not a gate being fussy.
+
+## The guess in the #219 body was wrong
+
+That PR said the five "may be a PostgREST schema-cache race". It is not, and the
+way to tell took one grep: `service_role_select` is
+`has_table_privilege('service_role', ...)`, computed inside
+`sonara_database_deep_snapshot()`. That is a catalog privilege, not a cache --
+it does not settle after a moment, and it would never have gone green on a
+retry. Recorded here because it is exactly the failure `CLAUDE.md` warns about:
+a reason reasoned to rather than verified, and it reads the same as a real one.
+
+## What is actually happening, in the repository's own words
+
+`20260718064853_data_api_privilege_hardening.sql`:
+
+> Existing objects retain their current explicit/legacy grants. New public
+> objects become opt-in so a future migration must declare its Data API surface
+> alongside RLS.
+
+```
+alter default privileges for role postgres in schema public
+  revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+```
+
+**The boundary is working exactly as designed.** What keeps getting forgotten is
+the declaration. A migration adds a table, never says who may reach it, and the
+table lands with `service_role` holding everything except the four verbs that
+matter. This already happened once -- 27 July, `sonara_auth_rate_limits`, fixed
+one table at a time by `20260727190000`, whose comment explains the whole
+mechanism. Nobody generalised it, so it happened again.
+
+It also explains why only five surfaced out of 48 candidates: several of these
+migrations use `create table if not exists`, which is a no-op when the table is
+already there and therefore keeps its legacy pre-July grants. Whether a given
+table really was created after 18 July lives in the production database and
+cannot be read out of this repository.
+
+## The fix, in two halves
+
+**The declaration.** `20260907120000_declare_service_role_data_api_surface.sql`
+grants `select, insert, update, delete` to `service_role` on all 48 candidates
+rather than the five the deploy happened to name -- because the deploy log only
+sees production as it is today, and granting a table that already holds the
+grant changes nothing. The two retired names are guarded by `to_regclass`, since
+production is not required to have them.
+
+**`anon` and `authenticated` are deliberately untouched.** The 27 July precedent
+also revoked from the browser roles, and copying that half here would have taken
+down `public_booking_pages`, `scroll_sites`, `lead_capture_pages` and
+`creator_follows` -- tables that back pages an unauthenticated visitor is meant
+to load. This migration widens nothing for the browser roles and narrows nothing
+either.
+
+**The half that stops it reopening.**
+`tests/a-new-table-declares-its-data-api-surface.test.js` fails when a migration
+dated after the hardening creates a table that no migration grants. Offline, on
+every release, instead of on a deploy.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| `'user_auth_factors'` removed from the declaration | *"public.user_auth_factors lost its service_role grant. That is the exact failure deployment #131 reported."* -- and the general case named the file too |
+| The `to_regclass` presence guard removed | *"the retired grants lost their presence guard, so the migration will fail on a database that dropped them"* |
+| The hardening's own revoke narrowed to drop `service_role` | *"no longer revokes default table privileges from service_role ... new tables are silently inheriting grants"* |
+
+One case had to be rewritten before it was trustworthy: it first asserted that
+the only retired tables granted anywhere in history were these two, and
+`integration_statuses` failed it -- granted legitimately, long before
+`20260806000000` dropped it. Measuring all of history was the wrong population;
+it now reads the new migration's own array.
+
+`pnpm run verify:migration-replay` executes this SQL against an empty PostgreSQL
+-- 114 migrations in order, so the `RAISE EXCEPTION` for a missing table is
+proven not to fire. `pnpm run verify:launch` exit 0, suite **3,859 passing**.
+
+## One more check that was failing for the wrong reason
+
+Adding the migration failed `generate-catalog-sync-migration.cjs`, with a message
+saying it "writes into migrations production has already applied" -- naming two
+catalog files this change never touched. The guard (added in #218) measures
+filename order against the newest *frozen* migration, and frozen means
+"not owned by a generator", so it moves every time anybody hand-writes one.
+
+The remedy it printed was to rename both files. Their content was byte-identical,
+and rewriting a file to the bytes it already holds reaches production no
+differently from leaving it alone -- so there was nothing to fix, and following
+the instruction would have set up a treadmill: every future migration renaming
+those two forever.
+
+It now guards only entries whose content would actually change, which is the case
+it was written for. Falsified both ways: appending a line to a generated file
+brings the failure back, and widening it to every entry again is caught by a new
+case in `tests/published-catalog-sync.test.js`. The message also no longer states
+as fact something it inferred -- it says what it measured.
+
+## What this does not claim
+
+**That deployment #132 will pass.** These five plus #219's three are all eight
+findings #131 reported, but the gate stops at the first failing step and there
+are steps after it that have never run.
+
+**That production has deployed.** It still serves `eebc80c`.
+
+### 2026-09-06 - Deployment #130 got one step further, and the next step was a parser that stopped matching
+
+PR #218 merged. **The catalog boundary step it was written to fix now passes** --
+step 25 of Controlled Production Deployment, green for the first time. The
+failure moved to step 26, "Verify complete production Supabase state", which had
+been *skipped* in #129 because 25 failed ahead of it. New ground rather than a
+regression.
+
+```
+active application table is missing from production: public.sonara_billing_customers
+active application table is missing from production: public.sonara_permission_matrix
+active application table is missing from production: public.sonara_subscriptions
+```
+
+**The gate was demanding tables the codebase deliberately dropped on 6 August.**
+
+## Why it could not see the drop
+
+`deriveMigrationState` in `scripts/verify-production-supabase.mjs` builds the
+expected-table set from a regex over literal statements -- `create table
+public.<name>` adds, `drop table public.<name>` removes.
+`20260806000000_drop_retired_superseded_tables.sql` drops **thirteen** tables by
+iterating an array and calling `execute format('drop table ... public.%I', t)`.
+At parse time the name is `%I`. The creates were counted; the drops were
+invisible.
+
+Ten of the thirteen are still present in production -- that migration keeps a
+table that has rows unless explicitly forced -- so only the three genuinely gone
+surfaced. The other ten were quietly being verified as active tables.
+
+That is `CLAUDE.md`'s own phrase, *a report whose parser silently stopped
+matching*, and it had been sitting between production and every deployment for a
+month.
+
+## The fix, in two halves
+
+**The list.** All thirteen added to `RETIRED_DATABASE_TABLES`, which is what
+"production is not required to have this table" means. Checked first that none
+of them is queried by runtime code, because four names came *off* this list on
+18 August for exactly that reason.
+
+**The half that stops it reopening.**
+`tests/a-dynamic-drop-still-retires-the-table.test.js` reads that migration's own
+array and fails when a name in it is missing from the contract. It deliberately
+does **not** teach the parser to follow `format()` through a loop: a regex that
+tries to read generated SQL is a parser with its own silent failure mode, which
+is the thing being fixed. The array the migration iterates is a fact; inferred
+intent is a guess.
+
+It also asserts the gate's regex still *cannot* see these drops -- so if that
+ever changes, somebody finds out rather than the file quietly checking nothing.
+
+## The check I nearly shipped broken
+
+`tests/a-price-in-prose-is-the-price-we-charge.test.js` guards the sentence
+`CLAUDE.md` warns is copied into marketing copy. Its first draft treated any
+line beginning `>` as a historical quotation -- and the canonical comparison in
+`2026-09-05-PRICING-STRATEGY.md` **is written as a blockquote**. Reverting it to
+`$39` left the suite green.
+
+Shape 6, a check too weak to catch the bug it was written for, caught by
+falsifying rather than by trusting it green. A line is historical because it
+says so, not because of how it is indented. One of the test's own cases asserted
+the wrong thing and was rewritten to assert the opposite.
+
+## Broken, and confirmed red
+
+- `sonara_subscriptions` removed from the contract: *"these tables are dropped by
+  a migration and are not in RETIRED_DATABASE_TABLES ... That is what failed
+  deployment #130."*
+- The migration's array declaration renamed: *"no longer declares `superseded
+  constant text[] := array[`; this check has gone blind."*
+- The comparison sentence reverted to `$39`: *"says all_three_monthly costs $39,
+  but it charges $59."* (Only after the blockquote exclusion was removed. Before
+  that, silent.)
+
+The retirement contract's count ratchet moved 23 → 36 with the reason written
+in, rather than being derived: growing that list means production stops being
+required to have a table, which should cost somebody a deliberate keystroke.
+
+3,853 passing, `verify:launch` exit 0.
+
+## What this does not claim
+
+That deployment #131 will pass. Step 26 reported more than the three missing
+tables -- it also said the service role cannot read `shared_links`,
+`user_auth_factors` and `user_recovery_codes`, all created by migrations applied
+in that same run seconds earlier. **That was not investigated here**, and it may
+be a PostgREST schema-cache race rather than a permissions fault. It is the next
+thing to look at if #132 fails.
+
 ### 2026-09-06 - The pathway to the new prices, and the ordering that would take the page down
 
 Researching how to get from the live ladder to $29/$59/$109 turned on one fact,

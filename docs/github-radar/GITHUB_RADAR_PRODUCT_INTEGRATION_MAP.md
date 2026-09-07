@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-217 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 217.
+227 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 227.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -74,7 +74,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-51 repositories.
+54 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -87,6 +87,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [brightbean-studio (self-hosted social scheduling)](https://github.com/brightbeanxyz/brightbean-studio) | AGPL-3.0. Read on 18 August 2026 from GitHub's own detected lice | Research only | social media scheduling |
 | [Chakra UI](https://github.com/chakra-ui/chakra-ui) | MIT | Read only | component library |
 | [CrewAI](https://github.com/crewAIInc/crewAI) | MIT | Adapt after review | multi-agent framework |
+| [Diffusion Studio Editor](https://github.com/diffusionstudio/editor) | MPL-2.0 | Licence unresolved | video editing |
 | [Dify](https://github.com/langgenius/dify) | Dify Open Source License, Apache-2.0 based with additional condi | adapter_built | AI application platform |
 | [Donkey Cut](https://github.com/DonkeyCut/Donkey) | Apache-2.0 | Read only | video editor |
 | [Doop](https://github.com/kgoedecke/doop) | AGPL-3.0 | Read only | design canvas |
@@ -100,6 +101,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Godot Engine](https://github.com/godotengine/godot) | MIT | Read only | game engine |
 | [LiveKit Agents](https://github.com/livekit/agents) | Apache-2.0, read from the GitHub API's detected license.spdx_id  | Research only | realtime voice |
 | [LocalSend local file-sharing reference](https://github.com/localsend/localsend) | Review repository license before any implementation. | Read only | local file transfer |
+| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [MoneyPrinterTurbo](https://github.com/harry0703/MoneyPrinterTurbo) | MIT, read from the GitHub API's detected license.spdx_id on 19 A | Research only | short-form video |
 | [NodeGraphQt](https://github.com/jchanvfx/NodeGraphQt) | MIT | Read only | node editor |
@@ -117,6 +119,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Roboflow / object detection references](https://github.com/roboflow) | External provider terms and model licenses require review. | Research only | object detection |
 | [seek-tune (Shazam-style audio fingerprinting)](https://github.com/cgzirim/seek-tune) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio fingerprinting |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
+| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [Spleeter](https://github.com/deezer/spleeter) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | audio processing |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
@@ -134,7 +137,7 @@ Organize, protect, publish, monetize and grow creative work.
 
 Attract customers, leads, fans, referrals, reviews and revenue.
 
-36 repositories.
+38 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -156,6 +159,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [GEO SEO Claude](https://github.com/zubair-trabzada/geo-seo-claude) | MIT | Read only | SEO |
 | [Ghost](https://github.com/TryGhost/Ghost) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | publishing |
 | [Hi.Events (event management and ticket selling)](https://github.com/HiEventsDev/Hi.Events) | Not classifiable by GitHub. Detected licence on 18 August 2026 i | Licence unresolved | events |
+| [Marketing Skills (Corey Haines)](https://github.com/coreyhaines31/marketingskills) | MIT | adapter_built | agent skills |
 | [Miro AI / agent resources](https://miro.com/) | Terms and API permissions require review. | Read only | collaboration |
 | [n8n](https://github.com/n8n-io/n8n) | Sustainable Use License with separate enterprise terms. | Licence unresolved | workflow automation |
 | [n8n Self-hosted AI Starter Kit](https://github.com/n8n-io/self-hosted-ai-starter-kit) | Apache-2.0 for the starter kit itself; the n8n runtime it provis | Read only | local AI stack |
@@ -167,6 +171,7 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 | [QR Code generator (Project Nayuki)](https://github.com/nayuki/QR-Code-generator) | MIT | Adapt after review | QR code generation |
 | [Remotion / MapLibre-style video and map animation references](https://github.com/remotion-dev/remotion) | Remotion: source-available under the Remotion License — free for | Read only | video rendering |
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
+| [Social Media Skills (Charlie Hills)](https://github.com/charlie947/social-media-skills) | MIT | adapter_built | agent skills |
 | [SocialMedia-App (CharlyKeleb)](https://github.com/CharlyKeleb/SocialMedia-App) | MIT | Read only | social feed reference |
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [twenty (open Salesforce alternative)](https://github.com/twentyhq/twenty) | Not classifiable by GitHub. Its detected licence on 18 August 20 | Licence unresolved | CRM |
@@ -179,25 +184,31 @@ Attract customers, leads, fans, referrals, reviews and revenue.
 
 SONARA One, the Admin Command Center, and the Research Lab behind all three.
 
-122 repositories.
+129 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
 | [500 AI Agents Projects](https://github.com/ashishpatel26/500-AI-Agents-Projects) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Research only | link directory |
+| [500 AI Agents Projects (ashishpatel26)](https://github.com/ashishpatel26/500-ai-agents-projects) | MIT | Read only | curated list |
 | [Academic Research Skills](https://github.com/Imbad0202/academic-research-skills) | Creative Commons Attribution-NonCommercial 4.0 International (CC | Blocked | Claude Code skills |
+| [Agency Agents / The Agency (msitarzewski)](https://github.com/msitarzewski/agency-agents) | MIT | Read only | agent personas |
 | [Agent Room](https://github.com/steviebuilds/agent-room) | MIT | Read only | developer tooling |
 | [Agentic AI Starters](https://github.com/cporter202/agentic-ai-starters) | MIT | Read only | agent design references |
 | [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | course |
+| [AI Agents for Beginners (Microsoft)](https://github.com/microsoft/ai-agents-for-beginners) | MIT | Read only | course material |
 | [Anthropic Cybersecurity Skills (community)](https://github.com/mukul975/Anthropic-Cybersecurity-Skills) | Apache-2.0 | Research only | Claude Code skills |
 | [AnyCreature](https://github.com/ariescar/anycreature) | MIT | Read only | text-to-3D |
 | [Archify](https://github.com/tt-a1i/archify) | MIT | Read only | agent skill |
 | [Archon](https://github.com/coleam00/Archon) | MIT, read from the GitHub API's detected license.spdx_id on 18 A | Read only | AI coding harness |
+| [Artifact Server (Plannotator)](https://github.com/plannotator/artifact-server) | AGPL-3.0 | Blocked | artifact hosting |
 | [authentik](https://github.com/goauthentik/authentik) | MIT core, with CC BY-SA 4.0 docs and a separate enterprise licen | Research only | identity provider |
+| [Automate for Growth (cporter202)](https://github.com/cporter202/automate-for-growth) | No licence declared (all rights reserved) | Blocked | course material |
 | [Awesome (sindresorhus)](https://github.com/sindresorhus/awesome) | CC0-1.0 | Read only | index of curated lists |
 | [Awesome AI Tools (cporter202)](https://github.com/cporter202/awesome-ai-tools) | None declared (all rights reserved) | Blocked | tool directory |
 | [Awesome DeepSeek Agent](https://github.com/deepseek-ai/awesome-deepseek-agent) | None declared. Checked three ways on 17 August 2026 rather than  | Blocked | model integration guides |
 | [Awesome Free LLM APIs (mnfst)](https://github.com/mnfst/awesome-free-llm-apis) | CC0-1.0 | Read only | provider directory |
 | [Awesome LLM Apps](https://github.com/Shubhamsaboo/awesome-llm-apps) | Apache-2.0 | Adapt after review | AI agent examples |
+| [Awesome SOC (cyb3rxp)](https://github.com/cyb3rxp/awesome-soc) | CC0-1.0 | Read only | security operations |
 | [awesome-freellm-apis (open-free-llm-api)](https://github.com/open-free-llm-api/awesome-freellm-apis) | MIT | Read only | provider directory |
 | [Better Auth](https://github.com/better-auth/better-auth) | MIT | Research only | authentication library |
 | [Bolt Slides](https://github.com/stackblitz/bolt-slides) | MIT | Read only | interactive presentations |
@@ -290,6 +301,7 @@ SONARA One, the Admin Command Center, and the Research Lab behind all three.
 | [Scrapling](https://github.com/D4Vinci/Scrapling) | BSD-3-Clause, read from the GitHub API's detected license.spdx_i | Research only | web scraping |
 | [sherpa-onnx (k2-fsa)](https://github.com/k2-fsa/sherpa-onnx) | Apache-2.0, read from the GitHub API licence field on 18 August  | Adapt after review | speech to text |
 | [Skills for Real Engineers](https://github.com/mattpocock/skills) | MIT | Read only | agent skills |
+| [Skills for Real Engineers (Matt Pocock)](https://github.com/mattpocock/skills) | MIT | Adapt after review | agent skills |
 | [Stratum](https://github.com/stratumauth/app) | GPL-3.0-or-later | Blocked | two-factor authentication |
 | [The Algorithms repositories](https://github.com/TheAlgorithms) | Repository licenses require review before copying examples. | Read only | education |
 | [TidyFactor Styler](https://github.com/TidyFactor/Styler) | Apache-2.0 | Read only | Claude Code skill |
