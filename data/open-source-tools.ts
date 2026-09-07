@@ -6463,6 +6463,258 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true
   },
+  // ---------------------------------------------------------------------------
+  // Reviewed 7 September 2026. Eleven repositories and three hosted services
+  // arrived together as social-media screenshots. Every licence below was read
+  // from the LICENSE file in a shallow clone, never from a badge, and every
+  // count was measured with find/grep rather than taken from a README.
+  //
+  // The batch is worth reading as a batch, because the spread is the lesson:
+  // four permissive skill libraries that are genuinely usable, one AGPL server
+  // that would oblige publishing SONARA's own source, and one course with no
+  // licence at all. All six were posted in the same voice, as "open source".
+  // ---------------------------------------------------------------------------
+  {
+    name: "Marketing Skills (Corey Haines)",
+    slug: "coreyhaines-marketing-skills",
+    category: ["agent skills", "marketing workflows", "permissive licence"],
+    useCase: ["marketing frameworks an agent can follow when working on Growth Studio copy, SEO and lifecycle tasks"],
+    productFit: ["Growth Studio", "Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "adapt individual skills into .claude/skills/ with attribution, rather than vendoring the tree",
+      "rewrite any adopted skill against SONARA's own product vocabulary -- these are written for a generic SaaS and name funnels we do not run",
+      "keep the MIT notice with anything copied, which is the whole of what MIT asks",
+    ],
+    officialUrl: "https://github.com/coreyhaines31/marketingskills",
+    repoUrl: "https://github.com/coreyhaines31/marketingskills",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2025 Corey Haines. 465 files, 335 markdown, 67 code files, and 50 SKILL.md files -- so it is a real skill library rather than a README with a directory listing. The structure the screenshot advertises is real: a product-marketing skill the others read first, then SEO, CRO, content, paid, retention and GTM branches. Useful as a source of frameworks for Growth Studio, and the reason it is not adapter_built is that nothing here has been adopted yet -- adopting a skill means rewriting it for our products, not copying it.",
+    safetyBoundaries: [
+      "no marketing skill may publish a customer campaign, a review or a proof claim -- AGENTS.md puts all three behind owner approval regardless of what a skill instructs",
+      "MIT notice retained on anything copied",
+    ],
+  },
+  {
+    name: "Awesome SOC (cyb3rxp)",
+    slug: "cyb3rxp-awesome-soc",
+    category: ["security operations", "reference material", "public domain dedication"],
+    useCase: ["reference when writing SONARA's own detection and incident-response practice -- not a dependency"],
+    productFit: ["Internal Development"],
+    license: "CC0-1.0",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read it when writing SECURITY_NOTES.md or an incident runbook; there is nothing to install",
+      "do not treat its tool lists as vetted -- a curated link is not a licence review, and each named tool would need its own record here",
+    ],
+    officialUrl: "https://github.com/cyb3rxp/awesome-soc",
+    repoUrl: "https://github.com/cyb3rxp/awesome-soc",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: Creative Commons CC0 1.0 Universal -- a public-domain dedication, which is the most permissive result this register has recorded and asks for nothing in return, not even attribution. 32 files, 23 markdown, zero code. That makes it reference-only as a fact rather than as a caution: there is no dependency to take. Covers SOC basics, detection engineering, threat intelligence, SOC metrics and playbooks. SONARA runs no SOC, so its value here is as a checklist against which to write our own security practice.",
+    safetyBoundaries: ["no tool named in its lists may be adopted on the strength of appearing there"],
+  },
+  {
+    name: "Skills for Real Engineers (Matt Pocock)",
+    slug: "mattpocock-skills",
+    category: ["agent skills", "engineering workflows", "permissive licence"],
+    useCase: ["engineering-practice skills for the agents that work in this repository"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "adapt individual skills into .claude/skills/, keeping the MIT notice",
+      "check each against AGENTS.md before adopting -- a general engineering skill does not know this repository's pnpm-only rule or its owner-approval categories",
+    ],
+    officialUrl: "https://github.com/mattpocock/skills",
+    repoUrl: "https://github.com/mattpocock/skills",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2026 Matt Pocock. 163 files, 112 markdown, 37 SKILL.md. Its own README describes them as deliberately small and composable rather than a framework that owns the process, which is the right shape for adoption here -- this repository already keeps its skills in .claude/skills/ and would take one at a time. The star count in the submitted screenshot (201k) was not verified and is not a licence fact; it is recorded here only as something the screenshot claimed.",
+    safetyBoundaries: ["MIT notice retained on anything copied", "no adopted skill may relax a check in the release chain"],
+  },
+  {
+    name: "Social Media Skills (Charlie Hills)",
+    slug: "charliehills-social-media-skills",
+    category: ["agent skills", "social content", "permissive licence"],
+    useCase: ["social content frameworks for Growth Studio and Creator Studio"],
+    productFit: ["Growth Studio", "Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "optional_adapter_after_review",
+    recommendedAction: [
+      "adapt individual skills with the MIT notice retained",
+      "strip the follower-count framing before anything reaches a customer -- audience numbers from somebody else's account are not evidence about ours",
+    ],
+    officialUrl: "https://github.com/charlie947/social-media-skills",
+    repoUrl: "https://github.com/charlie947/social-media-skills",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2026 Charlie Hills. 27 files, 22 markdown, 17 SKILL.md, one shell script. Small and readable. Its framing is one person's audience results, which is a reason to take the frameworks and leave the claims: repeating '350k followers' inside SONARA copy would be somebody else's proof presented as ours, and AGENTS.md puts proof publishing behind owner approval.",
+    safetyBoundaries: [
+      "no scheduled posting or customer campaign may run unattended -- AGENTS.md requires owner approval for customer campaigns",
+      "no borrowed audience metric may appear in SONARA copy",
+    ],
+  },
+  {
+    name: "Agency Agents / The Agency (msitarzewski)",
+    slug: "msitarzewski-agency-agents",
+    category: ["agent personas", "role libraries", "permissive licence"],
+    useCase: ["reference for how role-specialised agent definitions are written"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read for structure; do not import personas wholesale into a product that already has a defined agent authority model",
+      "any agent that acts here goes through lib/sonara-agent-runner.cjs and its seven approval categories, whatever a persona file says about autonomy",
+    ],
+    officialUrl: "https://github.com/msitarzewski/agency-agents",
+    repoUrl: "https://github.com/msitarzewski/agency-agents",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2025 AgentLand Contributors -- note the copyright holder is not the account name the screenshot showed, which is normal and worth recording. 356 files, 319 markdown, 18 code files, and zero SKILL.md: these are agent persona documents, not Claude Skills, so 'install it into Claude Code' means something different from the four skill libraries above. Reference-only because SONARA's agent behaviour is already governed by lib/sonara-agent-authority.cjs, and a persona describing an autonomous specialist is exactly the kind of instruction that module exists to refuse.",
+    safetyBoundaries: [
+      "no persona may widen what an agent may do unattended -- the seven approval categories in lib/sonara-agent-authority.cjs are the authority, not a persona file",
+    ],
+  },
+  {
+    name: "500 AI Agents Projects (ashishpatel26)",
+    slug: "ashishpatel26-500-ai-agents-projects",
+    category: ["curated list", "reference material", "permissive licence"],
+    useCase: ["survey of agent use cases by industry when deciding what to build next"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "use as a survey, not a shortlist -- a linked project is not a reviewed one",
+      "any project reached through it needs its own record here before a line of its code is adapted",
+    ],
+    officialUrl: "https://github.com/ashishpatel26/500-ai-agents-projects",
+    repoUrl: "https://github.com/ashishpatel26/500-ai-agents-projects",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) 2025 ashishpatel26. 145 files, 30 markdown, 27 code files. It is a curated index of other people's projects organised by industry. The licence covers this repository's own text; it says nothing about the rights in the 500 projects it points at, which is the same boundary recorded for book-to-skill -- a permissive licence on an index is not permission for what the index lists.",
+    safetyBoundaries: ["nothing linked from it may be adopted without its own licence review recorded here"],
+  },
+  {
+    name: "AI Agents for Beginners (Microsoft)",
+    slug: "microsoft-ai-agents-for-beginners",
+    category: ["course material", "reference material", "permissive licence"],
+    useCase: ["training material for agent patterns -- RAG, planning, tool use, memory"],
+    productFit: ["Internal Development"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "allowed_after_review",
+    integrationStatus: "reference_only",
+    recommendedAction: [
+      "read the lessons; do not adopt its Azure OpenAI wiring, which conflicts with the Provider Gateway rule in AGENTS.md",
+      "do not use Microsoft names or logos in SONARA material -- the MIT grant covers the code, the trademark policy is separate and explicit",
+    ],
+    officialUrl: "https://github.com/microsoft/ai-agents-for-beginners",
+    repoUrl: "https://github.com/microsoft/ai-agents-for-beginners",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: MIT, Copyright (c) Microsoft Corporation. 10,226 files, the bulk being translated copies and images rather than 10,000 lessons. Eighteen lessons covering agentic frameworks, RAG, planning, tool use, memory, metacognition and production patterns. Two constraints the MIT badge does not show. First, its README carries an explicit Trademarks section: authorised use of Microsoft marks follows Microsoft's brand guidelines, so the licence on the code is not permission to use the name. Second, the examples are wired to Azure OpenAI, which is not how this application reaches a model -- AGENTS.md requires the Provider Gateway or an approved server-side adapter.",
+    safetyBoundaries: [
+      "no Microsoft trademark or logo in SONARA material",
+      "no direct provider SDK call copied out of it -- provider calls go through the Provider Gateway",
+    ],
+  },
+  {
+    name: "Diffusion Studio Editor",
+    slug: "diffusionstudio-editor",
+    category: ["video editing", "agent tooling", "file-level copyleft"],
+    useCase: ["not adopted -- a possible reference for how an agent-driven video editor is structured"],
+    productFit: ["Creator Studio"],
+    license: "MPL-2.0",
+    licenseRisk: "medium",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "if ever used, use unmodified -- MPL-2.0's obligation attaches per file, so patching one file obliges publishing that file's source",
+      "do not vendor it into this repository, which would mix MPL files into a tree whose source stays private",
+      "price the GPU cost before treating video rendering as a product feature -- lib/sonara-paid-capabilities.cjs already prices media generation per GPU second and the release chain fails below its floor",
+    ],
+    officialUrl: "https://github.com/diffusionstudio/editor",
+    repoUrl: "https://github.com/diffusionstudio/editor",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE read: Mozilla Public License Version 2.0. 930 files. MPL-2.0 is reciprocal per file rather than per product: modifications to its own files must be published, but combining it with separately-licensed code does not oblige releasing that code -- the same distinction already recorded for Logto, and the reason this is needs_license_review rather than blocked. reciprocalLicense is false against this register's own definition of the field, which asks whether the licence obliges releasing SONARA's own source; MPL-2.0 does not. That is a narrower answer than 'is this copyleft', which for MPL-2.0 is yes, and the difference is the whole record.",
+    safetyBoundaries: [
+      "no MPL file modified without meeting the file-level source obligation",
+      "no rendering feature shipped without its per-second cost priced against the floor",
+    ],
+  },
+  {
+    name: "Automate for Growth (cporter202)",
+    slug: "cporter202-automate-for-growth",
+    category: ["course material", "no licence declared"],
+    useCase: ["none -- unlicensed, so there is nothing anybody here can grant"],
+    productFit: ["Internal Development"],
+    license: "No licence declared (all rights reserved)",
+    licenseRisk: "critical",
+    reciprocalLicense: false,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not copy, adapt or quote it -- with no licence file the default is all rights reserved, and no internal review can unblock that; only the author declaring a licence can",
+      "note that this is the fifth cporter202 repository in this register and the second with no licence at all",
+    ],
+    officialUrl: "https://github.com/cporter202/automate-for-growth",
+    repoUrl: "https://github.com/cporter202/automate-for-growth",
+    notes:
+      "Cloned and measured 7 September 2026. There is no LICENSE file, so it is all rights reserved: the absence of a licence is not permission. Sixteen files, every one a README.md, arranged as an eleven-module course on content automation, plus a resources/FOLLOW-ME.md. Measured for the affiliate pattern recorded against this author's three API directories -- 114 links, zero carrying an `?fpr=` parameter -- so this is a different artefact from those and the objection is purely the missing licence. There is also nothing here to depend on: no code, no data, only prose.",
+    safetyBoundaries: ["no text copied or paraphrased into SONARA material"],
+    blockedUses: [
+      "copying or adapting any of its course text",
+      "reusing its module structure as SONARA documentation",
+    ],
+    humanReviewRequired: true,
+  },
+  {
+    name: "Artifact Server (Plannotator)",
+    slug: "plannotator-artifact-server",
+    category: ["artifact hosting", "agent collaboration", "reciprocal licence"],
+    useCase: ["none -- AGPL-3.0, and this is a hosted product"],
+    productFit: ["Internal Development"],
+    license: "AGPL-3.0",
+    licenseRisk: "critical",
+    reciprocalLicense: true,
+    commercialUseStatus: "blocked_until_review",
+    integrationStatus: "blocked",
+    recommendedAction: [
+      "do not incorporate any part of it into SONARA One -- AGPL-3.0 obliges the operator of a network server to offer the source to everyone it serves, and this application is exactly that",
+      "if the capability is wanted, build it rather than adapt it; the idea of a place to keep agent-produced artifacts is not owned by anybody",
+      "if it were ever run, run it as a separate self-hosted tool nothing in this product links against, and take advice first",
+    ],
+    officialUrl: "https://github.com/plannotator/artifact-server",
+    repoUrl: "https://github.com/plannotator/artifact-server",
+    notes:
+      "Cloned and measured 7 September 2026. LICENSE.md read: GNU Affero General Public License Version 3, whose preamble states the point plainly -- it 'requires the operator of a network server to' provide source to the community, the clause written for exactly this case. 891 files. The submitted post described it as 'the open-source, self-hostable alternative to Claude Code artifacts', and open source it is; that is not the question. The question is what adopting it would oblige, and the answer is publishing SONARA One's own source. This is the most consequential finding in the 7 September batch and the reason the batch was reviewed rather than adopted.",
+    safetyBoundaries: [
+      "no AGPL code enters this repository",
+      "no AGPL service is linked into the hosted product",
+    ],
+    blockedUses: [
+      "incorporating any of its code into SONARA One",
+      "deploying it as part of the hosted product",
+      "adapting its schema or server code into our own artifact storage",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

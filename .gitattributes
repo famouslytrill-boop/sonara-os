@@ -18,3 +18,12 @@
 *.gif binary
 *.webp binary
 *.ico binary
+
+# The archive/ tree is retired code kept for history, not the running product.
+# Without this, GitHub's Languages panel measured it: 489 of the repository's
+# 500 TypeScript files and most of its CSS live in archive/, so the panel
+# described a frontend that stopped being shipped. Marking it vendored leaves
+# the files exactly where they are and stops them being counted as what we
+# build. scripts/verify-language-coverage-floors.mjs excludes the same tree, so
+# the panel and the coverage assurance now measure the same thing.
+archive/** linguist-vendored
