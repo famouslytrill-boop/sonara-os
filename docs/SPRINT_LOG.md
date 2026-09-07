@@ -2,6 +2,207 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-07 - Three marketing skills adapted, and the licence review wired to the folder
+
+Three skills added under `.claude/skills/`, adapted from two of the MIT
+libraries cleared in the review earlier today:
+
+- **`writing-sonara-marketing-copy`** -- from Corey Haines's `copywriting`,
+  `copy-editing` and `product-marketing`.
+- **`comparing-sonara-to-a-competitor`** -- from his `competitors` and
+  `competitor-profiling`.
+- **`writing-a-social-post-for-sonara`** -- from Charlie Hills's
+  `hook-generator`, `post-writer`, `post-formatter` and `post-scorer`.
+
+Rewritten rather than copied, and what was left behind matters as much as what
+was taken.
+
+**The context document.** The marketing library's foundation skill interviews
+the user and writes `.agents/product-marketing.md`, which every other skill then
+reads. SONARA's positioning is already fixed in `AGENTS.md` and its market
+figures are dated in `docs/market/`. A second, undated statement of who we are
+is exactly the uncheckable second copy this repository keeps deleting, so the
+adapted skills point at the existing ones -- and at the two claims here that are
+checked against code: a price written into prose, and saying a reviewed
+repository ships.
+
+**Apify.** The social library's `post-scorer` pulls the author's real post
+history through Apify and scores drafts against what performed. Better than a
+static rubric, and unavailable here: Apify is a hosted paid service in no record
+in the register, and `CLAUDE.md` is explicit that a free tier is a price rather
+than a licence. A rubric that silently scores nothing when a key is missing is
+worse than a plain one, so the adapted skill ships a plain five-axis rubric --
+with truthfulness as a veto axis rather than one fifth of a score.
+
+**The hook formula.** That library requires a "How I" statement and a digit in
+every hook, on clickbait principles. Right for a personal brand, wrong for a
+company whose own rule is plain customer-facing language -- and manufacturing a
+digit is how a post acquires a number nothing supports.
+
+**The audience numbers.** Its banner reads "the 17 skills behind 350k followers
+and 100M+ views a year". The frameworks travel; the proof does not.
+
+All three skills end at a draft. Customer campaigns and proof publishing are two
+of the seven categories `lib/sonara-agent-authority.cjs` holds for the owner,
+and each skill says so in its own text rather than leaving it to be remembered.
+
+## The half that stops it reopening
+
+Nothing checked `.claude/skills/` before today. Fine while every skill in it was
+written here; not fine the moment skills came from outside repositories, because
+an adapted skill looks the same whatever its source was licensed under.
+
+`scripts/verify-adapted-skills.mjs` closes the loop both ways. **Forward**: a
+skill naming a source must name one `data/open-source-tools.ts` has reviewed and
+cleared, and that record must read `adapter_built`. **Backward**: a record
+marked `adapter_built` in the "agent skills" category must be named by a skill
+that exists, so "we did" cannot be claimed for work nobody did.
+
+It found its own first defect on its first run -- both records still said
+`optional_adapter_after_review` while the skills were already written.
+
+## A pattern that had stopped covering its population
+
+`verify-open-source-registry.mjs` requires an `adapter_built` record to name
+something that exists, and matched only `lib/*.cjs`. A skill is an adapter by
+the same definition and the pattern could not see it. Widened to accept
+`.claude/skills/<name>` and to check its `SKILL.md` is really there, so the
+guarantee survives. Same shape as the dynamic-drop parser fixed this morning:
+not a wrong rule, a rule whose pattern stopped matching its population.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Source switched to `plannotator/artifact-server` | *"which the register BLOCKS (integrationStatus: blocked, commercialUseStatus: blocked_until_review)"* -- the AGPL repository, which is the case this check exists for |
+| Source switched to an unreviewed repository | *"has no record in data/open-source-tools.ts. Review it first"* |
+| The social skill directory deleted | *"recorded as adapter_built ... but no skill under .claude/skills names it. Either the skill was removed, or the record claims work that was never done"* |
+
+## What this does not claim
+
+**That the skills have been used.** Written and loadable; no copy produced with
+them yet.
+
+**That a post or campaign can now be sent.** All three end at a draft.
+
+---
+
+### 2026-09-07 - Fourteen recommendations, read licence-first
+
+Fourteen things arrived as social-media screenshots with the instruction to
+incorporate them. Ten are repositories and are now recorded in
+`data/open-source-tools.ts` (217 records to 227). Every licence was read from
+the LICENSE file in a shallow clone; every count was measured rather than taken
+from a README.
+
+**The spread is the finding.** All of these were posted in the same voice, as
+useful open source to adopt:
+
+| Repository | Licence read | Verdict |
+| --- | --- | --- |
+| coreyhaines31/marketingskills | MIT | adapted -- see the entry above |
+| mattpocock/skills | MIT | cleared to adapt |
+| charlie947/social-media-skills | MIT | adapted -- see the entry above |
+| msitarzewski/agency-agents | MIT | reference only -- personas, not skills |
+| ashishpatel26/500-ai-agents-projects | MIT | reference only -- an index |
+| microsoft/ai-agents-for-beginners | MIT + trademark policy | reference only |
+| cyb3rxp/awesome-soc | **CC0-1.0** | reference only, nothing to install |
+| diffusionstudio/editor | **MPL-2.0** | needs licence review |
+| cporter202/automate-for-growth | **none** | **blocked** |
+| plannotator/artifact-server | **AGPL-3.0** | **blocked** |
+
+## The one that mattered
+
+`plannotator/artifact-server` is described as "the open-source, self-hostable
+alternative to Claude Code artifacts", and it is open source. It is also
+**AGPL-3.0**, whose preamble states the case it was written for: it "requires
+the operator of a network server to" offer source to the community. SONARA One
+is a hosted network service. Adopting it would oblige publishing this product's
+own source.
+
+`cporter202/automate-for-growth` has **no LICENSE file**, so it is all rights
+reserved. Measured for the affiliate pattern recorded against that author's
+three API directories -- 114 links, zero carrying `?fpr=` -- so it is a
+different artefact and the objection is purely the missing licence. Sixteen
+files, all prose; there was nothing to depend on either way.
+
+Two narrower constraints a badge does not show. Microsoft's MIT grant covers the
+code and **not the name** -- its README carries an explicit trademark section --
+and its examples wire directly to Azure OpenAI, which AGENTS.md forbids in
+favour of the Provider Gateway. And MPL-2.0 on the video editor is reciprocal
+*per file*: `reciprocalLicense` is recorded false because this register's field
+asks whether the licence obliges releasing SONARA's own source, which MPL does
+not, while the record says plainly that it is copyleft.
+
+## Four that are not repositories
+
+- **fingerprint.to** -- a hosted username and email search across 700+
+  platforms. Not adopted, and not a close call: aggregating people's accounts
+  from an identifier is the consent problem AGENTS.md names, and this register
+  already blocks bulk contact scrapers on that ground.
+- **drafted.ai** -- hosted architectural generation. No source to review.
+- **A Quran database** shown under a "GAIT" banner. **The screenshot never shows
+  the owner**, only a file listing. The review skill's first rule is not to
+  guess an owner into a permanent register, so nothing was recorded.
+- The sixth screenshot was **this repository's own Languages panel**, which
+  turned out to be the more interesting one.
+
+## Every language, held to something
+
+The instruction alongside the screenshots was that all our languages be at 35%
+or better. Read literally against the Languages panel that cannot be done: those
+are shares of the codebase and six shares cannot each exceed a third. Read as
+this repository's own 35% coverage floor it is a real and unmet requirement, and
+that is how it was taken.
+
+**The panel was measuring dead code.** 489 of the 500 TypeScript files and four
+of the five app-level stylesheets are under `archive/`. `.gitattributes` now
+marks `archive/**` as `linguist-vendored`, so the panel describes the product
+that is actually shipped.
+
+Six languages ship outside `archive/`: JavaScript 681 files, SQL 117, Python 49,
+CSS 15, TypeScript 11, HTML 1. Two had a floor. The other four were not failing
+anything because nothing was asking.
+
+`scripts/verify-language-coverage-floors.mjs` now requires every one of them to
+be either held to the floor by an executed check, or to carry a dated reason why
+executed-line coverage cannot mean anything for it, naming the checks that
+govern it instead. **SQL turned out to be the best-covered language we have** --
+`verify:migration-replay` applies all 117 migrations to an empty PostgreSQL on
+every release, so its executed fraction is 100%, not 35%. TypeScript here is
+data registers that nothing runs; CSS and HTML have no executed lines at all.
+Bolting a percentage onto those would have been a number nobody could act on,
+which is this codebase's recurring defect wearing a percentage.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| The CSS entry deleted | *"CSS is shipped in 15 file(s) and nothing in this repository holds it to the 35% floor or records why a floor cannot apply"* |
+| A reason pointed at a missing script | *"names scripts/verify-colour-contrast-GONE.mjs, which does not exist -- the reason points at nothing"* |
+| A COBOL entry added | *"still describes COBOL, which no longer appears outside archive/"* |
+| The Python floor removed from package.json | *"Python's floor ... is not called by any package.json script, so it never runs"* |
+| Multi-fit records forced onto one surface | *"routing disagrees with FIT_LABEL_TO_SURFACE about where records belong"* |
+
+The third probe is the half that matters most: an exemption whose reason has
+expired is the shape `.claude/skills/checks-that-cannot-lie` records as worse
+than no exemption, because it is what the next person reads instead of checking.
+
+The fifth is a separate repair. `tests/repository-product-routing.test.js` pinned
+217 records, 306 placements, 42 governance-only records and a per-surface map as
+literals. They were a second copy of the register and failed on this change while
+nothing was wrong. The per-surface totals are now recomputed independently from
+`FIT_LABEL_TO_SURFACE` and compared against the routing function, which is a real
+cross-check rather than a tautology.
+
+## What this does not claim
+
+**That the four non-floor languages are tested.** They are governed by named
+checks that measure what can go wrong with them. That is a different claim from
+a coverage percentage, and it is deliberately written as one.
+
+---
+
 ### 2026-09-07 - The tables the server was never given permission to read
 
 Deployment **#131** failed with eight findings. Three are what PR #219 fixes.
