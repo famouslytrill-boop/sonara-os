@@ -2,6 +2,128 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-07 - The tables the server was never given permission to read
+
+Deployment **#131** failed with eight findings. Three are what PR #219 fixes.
+**Five were a different fault entirely, and two of them break a feature:**
+
+```
+service role cannot read table: public.shared_links
+service role cannot read table: public.user_auth_factors
+service role cannot read table: public.user_recovery_codes
+service role cannot read retired table: public.audio_assets
+service role cannot read retired table: public.daw_sessions
+```
+
+`lib/sonara-two-factor.cjs` reads `user_auth_factors` through the service-role
+client on every sign-in that checks for a second factor, and
+`routes/sonara-shared-result-routes.cjs` reads `shared_links`. **A table the
+service role cannot select from is a feature that does not work in production**,
+not a gate being fussy.
+
+## The guess in the #219 body was wrong
+
+That PR said the five "may be a PostgREST schema-cache race". It is not, and the
+way to tell took one grep: `service_role_select` is
+`has_table_privilege('service_role', ...)`, computed inside
+`sonara_database_deep_snapshot()`. That is a catalog privilege, not a cache --
+it does not settle after a moment, and it would never have gone green on a
+retry. Recorded here because it is exactly the failure `CLAUDE.md` warns about:
+a reason reasoned to rather than verified, and it reads the same as a real one.
+
+## What is actually happening, in the repository's own words
+
+`20260718064853_data_api_privilege_hardening.sql`:
+
+> Existing objects retain their current explicit/legacy grants. New public
+> objects become opt-in so a future migration must declare its Data API surface
+> alongside RLS.
+
+```
+alter default privileges for role postgres in schema public
+  revoke select, insert, update, delete on tables from anon, authenticated, service_role;
+```
+
+**The boundary is working exactly as designed.** What keeps getting forgotten is
+the declaration. A migration adds a table, never says who may reach it, and the
+table lands with `service_role` holding everything except the four verbs that
+matter. This already happened once -- 27 July, `sonara_auth_rate_limits`, fixed
+one table at a time by `20260727190000`, whose comment explains the whole
+mechanism. Nobody generalised it, so it happened again.
+
+It also explains why only five surfaced out of 48 candidates: several of these
+migrations use `create table if not exists`, which is a no-op when the table is
+already there and therefore keeps its legacy pre-July grants. Whether a given
+table really was created after 18 July lives in the production database and
+cannot be read out of this repository.
+
+## The fix, in two halves
+
+**The declaration.** `20260907120000_declare_service_role_data_api_surface.sql`
+grants `select, insert, update, delete` to `service_role` on all 48 candidates
+rather than the five the deploy happened to name -- because the deploy log only
+sees production as it is today, and granting a table that already holds the
+grant changes nothing. The two retired names are guarded by `to_regclass`, since
+production is not required to have them.
+
+**`anon` and `authenticated` are deliberately untouched.** The 27 July precedent
+also revoked from the browser roles, and copying that half here would have taken
+down `public_booking_pages`, `scroll_sites`, `lead_capture_pages` and
+`creator_follows` -- tables that back pages an unauthenticated visitor is meant
+to load. This migration widens nothing for the browser roles and narrows nothing
+either.
+
+**The half that stops it reopening.**
+`tests/a-new-table-declares-its-data-api-surface.test.js` fails when a migration
+dated after the hardening creates a table that no migration grants. Offline, on
+every release, instead of on a deploy.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| `'user_auth_factors'` removed from the declaration | *"public.user_auth_factors lost its service_role grant. That is the exact failure deployment #131 reported."* -- and the general case named the file too |
+| The `to_regclass` presence guard removed | *"the retired grants lost their presence guard, so the migration will fail on a database that dropped them"* |
+| The hardening's own revoke narrowed to drop `service_role` | *"no longer revokes default table privileges from service_role ... new tables are silently inheriting grants"* |
+
+One case had to be rewritten before it was trustworthy: it first asserted that
+the only retired tables granted anywhere in history were these two, and
+`integration_statuses` failed it -- granted legitimately, long before
+`20260806000000` dropped it. Measuring all of history was the wrong population;
+it now reads the new migration's own array.
+
+`pnpm run verify:migration-replay` executes this SQL against an empty PostgreSQL
+-- 114 migrations in order, so the `RAISE EXCEPTION` for a missing table is
+proven not to fire. `pnpm run verify:launch` exit 0, suite **3,859 passing**.
+
+## One more check that was failing for the wrong reason
+
+Adding the migration failed `generate-catalog-sync-migration.cjs`, with a message
+saying it "writes into migrations production has already applied" -- naming two
+catalog files this change never touched. The guard (added in #218) measures
+filename order against the newest *frozen* migration, and frozen means
+"not owned by a generator", so it moves every time anybody hand-writes one.
+
+The remedy it printed was to rename both files. Their content was byte-identical,
+and rewriting a file to the bytes it already holds reaches production no
+differently from leaving it alone -- so there was nothing to fix, and following
+the instruction would have set up a treadmill: every future migration renaming
+those two forever.
+
+It now guards only entries whose content would actually change, which is the case
+it was written for. Falsified both ways: appending a line to a generated file
+brings the failure back, and widening it to every entry again is caught by a new
+case in `tests/published-catalog-sync.test.js`. The message also no longer states
+as fact something it inferred -- it says what it measured.
+
+## What this does not claim
+
+**That deployment #132 will pass.** These five plus #219's three are all eight
+findings #131 reported, but the gate stops at the first failing step and there
+are steps after it that have never run.
+
+**That production has deployed.** It still serves `eebc80c`.
+
 ### 2026-09-06 - Deployment #130 got one step further, and the next step was a parser that stopped matching
 
 PR #218 merged. **The catalog boundary step it was written to fix now passes** --

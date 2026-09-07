@@ -329,14 +329,33 @@ function main() {
   // The guard for the bug this generator produced. Checked on --check as well
   // as on write, because the way it comes back is somebody adding a catalog
   // migration months from now, not somebody regenerating today.
-  const alreadyRun = migrationsProductionHasRunPast(wanted.map((entry) => entry.name));
+  //
+  // Only the entries whose content would actually change are passed to it, and
+  // that qualifier is the whole point. The first version guarded every entry on
+  // every run, which read as a stricter check and was in fact a broken one: the
+  // measurement is "older than the newest frozen migration", and the newest
+  // frozen migration moves every time anybody hand-writes one. Adding
+  // 20260907120000_declare_service_role_data_api_surface.sql -- a migration with
+  // nothing to do with the catalog -- failed this generator and demanded its two
+  // files be renamed, with their content byte-identical. Rewriting a file to the
+  // bytes it already holds reaches production no differently from not touching
+  // it, so there was no hazard to report. Left alone it was a treadmill: every
+  // future migration renaming these two forever.
+  //
+  // A drifted entry is the real case. Then the generator genuinely wants to put
+  // new bytes into an old filename, `supabase db push` will not re-run it, and
+  // the name has to move forward.
+  const drifted = wanted.filter(({ file, body }) => !fs.existsSync(file) || fs.readFileSync(file, "utf8") !== body);
+  const alreadyRun = migrationsProductionHasRunPast(drifted.map((entry) => entry.name));
   if (alreadyRun.length) {
     console.error(
-      "[fail] this generator writes into migrations production has already applied:\n" +
+      "[fail] this generator wants to change migrations that have almost certainly been applied:\n" +
         alreadyRun.map(({ name, newestFrozen }) => `  ${name} is older than the newest frozen migration, ${newestFrozen}`).join("\n") +
         "\n\nsupabase db push tracks migrations by filename, so regenerating one of these changes this repository\n" +
         "and reaches no customer -- every check here passes while production keeps the old rows.\n" +
-        "Add each name to APPLIED_MIGRATIONS and point the generator at a new, later filename."
+        "Add each name to APPLIED_MIGRATIONS and point the generator at a new, later filename.\n\n" +
+        "What was measured is the filename order, not production: being older than the newest hand-written\n" +
+        "migration is evidence a deployment has pushed it, not proof. The remedy is the same either way."
     );
     process.exit(1);
   }
