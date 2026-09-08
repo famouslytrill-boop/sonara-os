@@ -26,7 +26,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - One Express 4 CommonJS server (`server.js`, currently 3876 lines) served on Vercel through `api/index.js`.
 - **No bundler and no build step.** Pages are HTML strings built on the server. There is no React, no JSX, no TypeScript compilation in the runtime path.
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
-- Supabase over PostgREST for data. 114 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
+- Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
 - 298 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
@@ -105,6 +105,89 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-08 - Deployment #132 reached one fault, and it was one I had reported as absent
+
+PR #219 merged and **deployment #132 got further than any run before it**. Step
+25 passed, step 23 applied the migrations, and step 26 -- which had reported
+eight faults in #131 -- reported one:
+
+```
+Supabase deep verification failed (1):
+- active application table is missing from production: public.reviews
+```
+
+Every service-role grant fault is gone and every missing-retired-table fault is
+gone. Both halves of yesterday's work did what they were for.
+
+## A correction I have to make first
+
+**I reported #131 as having eight findings, and it had at least nine.**
+
+I read those failures from `get_job_logs` with `tail_lines`, and the window
+began at `- service role cannot read table: public.shared_links`. The header
+line, `Supabase deep verification failed (N)`, was above the window and I never
+saw it. The gate sorts its active-table failures alphabetically and **`reviews`
+sorts immediately before `shared_links`** -- so it was the line directly above
+the first one I read.
+
+I then wrote "these eight are every finding #131 reported" into a pull request
+body. That is a truncated population reported as the complete one, which is the
+defect this repository exists to catch, and no check would have caught it
+because it was in prose. When reading a truncated log, the count in its header
+is the population; the lines are a sample.
+
+## Why reviews was missing, and why nothing found it sooner
+
+`20260811210000_repair_missing_platform_tables.sql` records the root cause in
+its own words:
+
+> Production's own migration history says `010` is applied and the table is not
+> there -- which is what happens when an existing database is adopted into the
+> Supabase CLI and its early migrations are marked applied rather than run.
+
+That migration repaired the tables it could *find*: the ones later migrations
+alter, index, or point a foreign key at without creating. **Nothing in this
+repository references `public.reviews`.** No migration after 010 names it at
+all. So it fell outside a search that was otherwise sound, and stayed missing
+for as long as there were louder faults ahead of it in the report.
+
+It is not cosmetic. `lib/sonara-customer-journey.cjs` reads `reviews` through
+the service-role client and `lib/sonara-tenant-scoped-tables.cjs` lists it as
+tenant-scoped, so this was a 42P01 waiting for the first customer down that
+path.
+
+## The repair
+
+`20260908000000_repair_missing_reviews_table.sql` creates the one table, with
+the definition copied unchanged from 010 lines 235-247 so a repaired database
+and a replayed one agree. Not a re-run of 010, for the reason the August repair
+gave: 010 also creates `billing_customers`, which `20260805120000` deliberately
+retired, and replaying it would resurrect a table somebody removed.
+
+It carries its Data API grant, because it is dated after the July hardening and
+a table created now without one lands unreadable by the server -- the fault that
+took five tables down in #131. It also asserts its own three post-conditions:
+the table exists, RLS is on, and `service_role` can select from it.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| The grant removed, then replayed | *"ERROR: service_role cannot read public.reviews after the grant"* -- the migration refuses to apply to an empty database |
+| The same, checked offline | `tests/a-new-table-declares-its-data-api-surface.test.js` named `reviews (20260908000000_repair_missing_reviews_table.sql)` |
+
+Yesterday's check caught today's migration, from both directions, which is what
+it was written for.
+
+## What this does not claim
+
+**That deployment #133 will pass.** Steps 28 to 30 have never executed in 132
+runs. Step 28 is the one that actually deploys; 29 and 30 verify aliases,
+commit, catalog pages and plan infrastructure, and a first-run failure there
+would be new ground rather than a regression.
+
+**That production has deployed.** It still serves `eebc80c`.
 
 ### 2026-09-07 - Three marketing skills adapted, and the licence review wired to the folder
 
