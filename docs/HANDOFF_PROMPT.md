@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 304 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 305 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,57 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-08 - Three adapters an owner could configure and never see
+
+The intent was to wire Workers AI into a product path. The first candidate was
+chase drafts, and reading it stopped that: `lib/sonara-chase-drafts.cjs` says
+**"No model call"** in its own header, and gives the reason -- a template cannot
+hallucinate a payment that was never made or a term nobody agreed -- followed by
+three things a draft may never invent. Putting a model there would have been
+building toward the adapter rather than toward the product, so it was not done.
+
+What the survey found instead: of the ten adapters, only Crawl4AI is *called* by
+any runtime path. The other nine are readiness-only, which is the design. But
+`routes/sonara-assistant-routes.cjs` says its own purpose out loud --
+
+    // Every adapter on one page, because "which of these is on" is one question.
+
+-- and had six of the ten. voice-clone is deliberately elsewhere, on the voice
+studio. **whisper, workers-ai and d1 were on no page at all.** whisper.cpp was
+built in full on 18 August -- licence read, request-forwarding guarded, the
+fetchability check shared with Crawl4AI rather than copied -- and an owner who
+set its two variables had nowhere to learn it was on.
+
+All three are on the page now, with what they cost said on the page rather than
+in a file nobody opens: Cloudflare's free allowance is a price, and a price is
+the vendor's to change.
+
+## The check, and why it does not name that page
+
+`tests/an-adapter-nobody-can-see-is-not-configured.test.js` derives the adapters
+from `lib/` and requires each to be named by *some* route. Not by the assistant
+page specifically -- voice-clone is deliberately on the voice studio, and a rule
+forcing every adapter into one list would be wrong about it. Visibility is the
+property worth asserting; which page is a judgement.
+
+It also re-checks, against the real readiness objects rather than the base
+module, that every adapter renders a host and never its configured URL -- a base
+URL can carry a token in its query string, and a new adapter could build its own
+readiness.
+
+**Falsified** by removing Workers AI from the page: the adapter is named and the
+test fails.
+
+## And an existing check caught my copy
+
+`no-page-lies-when-the-database-is-down` failed on the sentence I had just
+written. "...so nothing here depends on it" contains **"nothing here"**, which
+that check reads as a page telling somebody they have no records. It was a false
+positive about my meaning and a true positive about the phrase, and the right
+fix was to reword rather than to add an exemption -- an exemption would have put
+a permanent hole in a check for the sake of one sentence. It now reads "so no
+part of this product depends on it".
 
 ### 2026-09-08 - The same comment-stripping bug, in two more reports
 
