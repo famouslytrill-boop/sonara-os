@@ -2,7 +2,8 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const { withoutComments } = require("../lib/sonara-comment-stripping.cjs");
+const path = require("node:path");
+const { withoutComments, withoutSqlComments } = require("../lib/sonara-comment-stripping.cjs");
 
 // Two release-chain reports decide what the code "names" by stripping comments
 // first, so this function is the parser both of them measure through. When it
@@ -46,21 +47,101 @@ describe("stripping comments before measuring what code names", () => {
     assert.doesNotMatch(withoutComments("alpha/* x */beta"), /alphabeta/);
   });
 
-  describe("the two reports that depend on it", () => {
-    const scripts = ["scripts/report-orphan-tables.mjs", "scripts/report-unused-selected-columns.mjs"];
+  describe("every script that strips comments", () => {
+    // This list was two names, typed by hand: report-orphan-tables and
+    // report-unused-selected-columns, the two whose copies were fixed when the
+    // shared module was written.
+    //
+    // Two others were never added to it. scripts/report-unreferenced-modules.mjs
+    // kept the original two-pass strip for as long as the module has existed --
+    // and it was not harmless there: on routes/sonara-last9-routes.cjs the line
+    // comment `// /business-builder/owner/*` opened a false block that ran 971
+    // lines, erasing 57% of the file and with it a require. That direction of
+    // error makes a module that IS required look unreferenced, and --check
+    // fails the build over it. scripts/report-security-definer-exposure.mjs had
+    // the same shape for SQL.
+    //
+    // A hand-typed list is updated by whoever remembers, and the person adding
+    // a fourth copy is the person who forgets. So the population is read from
+    // scripts/ instead: anything that looks like it strips comments must use
+    // the shared module.
+    const scriptsDirectory = path.join(__dirname, "..", "scripts");
 
-    // Both had their own copy and both copies had the same bug. One
-    // implementation is the only reason fixing it once is enough.
+    // How a stripping script is recognised, and why it is not "contains the
+    // buggy regex".
+    //
+    // That was the first version of this and it defeats itself: the moment a
+    // script is fixed it stops containing the literal, so the population decays
+    // to zero as the bug is fixed and the check goes quiet exactly when it has
+    // finished working. The gone-blind guard below caught it on the first run.
+    //
+    // So the population is "scripts that strip comments at all" -- by calling
+    // one of the shared functions, or by carrying a private block-comment regex
+    // literal. A fixed script still matches through its call; a new script with
+    // its own copy matches through the literal. Both are then required to use
+    // the shared module, which only the second can fail.
+    const PRIVATE_BLOCK_REGEX = "/\\*[\\s\\S]*?\\*\\/";
+
+    const strippers = fs
+      .readdirSync(scriptsDirectory)
+      .filter((name) => /\.(mjs|cjs|js)$/.test(name))
+      .filter((name) => {
+        const source = fs.readFileSync(path.join(scriptsDirectory, name), "utf8");
+        // Importing the shared module keeps a fixed script in the population,
+        // so the check cannot decay to zero as the bug is fixed. The literal
+        // catches a new private copy. A script that strips only `--` line
+        // comments and never looks at block comments -- as
+        // generate-tenant-scoped-tables.cjs did -- has no ordering hazard to
+        // get wrong, so naming a variable `withoutComments` is not enough to
+        // be in scope here.
+        return source.includes("sonara-comment-stripping.cjs") || source.includes(PRIVATE_BLOCK_REGEX);
+      });
+
+    it("finds the scripts that strip, so this does not pass by matching none", () => {
+      assert.ok(
+        strippers.length >= 2,
+        `only ${strippers.length} comment-stripping scripts found in scripts/; this check has gone blind`
+      );
+    });
+
+    // Four copies of one function is four chances for one of them to be subtly
+    // wrong, and the wrong one is the one nobody re-reads.
     it("share this one implementation rather than each keeping a copy", () => {
-      for (const script of scripts) {
-        const source = fs.readFileSync(require.resolve(`../${script}`), "utf8");
-        assert.match(source, /sonara-comment-stripping\.cjs/, `${script} should use the shared stripper`);
+      for (const name of strippers) {
+        const source = fs.readFileSync(path.join(scriptsDirectory, name), "utf8");
+        assert.match(
+          source,
+          /sonara-comment-stripping\.cjs/,
+          `scripts/${name} strips comments without using the shared stripper; that is how the same bug shipped three times`
+        );
+      }
+    });
+
+    it("does not define a local withoutComments alongside the shared one", () => {
+      for (const name of strippers) {
+        const source = fs.readFileSync(path.join(scriptsDirectory, name), "utf8");
         assert.doesNotMatch(
           source,
           /function withoutComments/,
-          `${script} has its own copy again; the next bug in it will only be fixed here`
+          `scripts/${name} has its own copy again; the next bug in it will only be fixed here`
         );
       }
+    });
+  });
+
+  describe("the SQL form", () => {
+    it("does not let a slash-star inside a line comment swallow the SQL after it", () => {
+      // The real case: six migrations carry this line.
+      const sql = [
+        "-- lib/catalog/*.cjs, so the table wins wherever it holds a value.",
+        "create function f() returns void as $x$ begin end $x$ security definer;"
+      ].join("\n");
+      assert.match(withoutSqlComments(sql), /security definer/, "the statement after the line comment was swallowed");
+    });
+
+    it("still removes the comments it is for", () => {
+      assert.doesNotMatch(withoutSqlComments("/* block */ select 1;"), /block/);
+      assert.doesNotMatch(withoutSqlComments("select 1; -- trailing note"), /trailing note/);
     });
   });
 });

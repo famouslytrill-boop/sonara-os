@@ -1,5 +1,7 @@
 "use strict";
 
+const { withoutSqlComments } = require("../lib/sonara-comment-stripping.cjs");
+
 // Derive which tables carry organization_id, straight from the migrations.
 //
 // lib/sonara-tenant-guard.cjs needs to know which tables are tenant-scoped so
@@ -73,7 +75,15 @@ function classify(sql) {
   // migration comment and reported a table called "to" -- the same way a
   // semicolon inside a comment once broke the licence-union parser. A
   // cross-check that reports phantoms is one people switch off.
-  const withoutComments = sql.replace(/^\s*--.*$/gm, "");
+  // Was `sql.replace(/^\s*--.*$/gm, "")`: whole-line `--` comments only, and
+  // block comments left in place. No ordering hazard -- it never looked at
+  // `/* */` -- but it meant a `create table` inside a block comment would be
+  // counted as a real table, and this list is the tenant boundary.
+  //
+  // Verified before switching: across every migration, the two strippings
+  // produce an identical set of table names today. The hole was latent, and it
+  // is closed rather than left for the first commented-out CREATE TABLE.
+  const withoutComments = withoutSqlComments(sql);
   const declared = new Set(
     [...withoutComments.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:public\.)?([a-z0-9_]+)\s*\(/gi)].map((match) => match[1].toLowerCase())
   );

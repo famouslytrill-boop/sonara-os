@@ -25,7 +25,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+
+const { withoutComments } = createRequire(import.meta.url)("../lib/sonara-comment-stripping.cjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const checkOnly = process.argv.includes("--check");
@@ -77,12 +80,31 @@ if (candidates.length === 0) {
 // the modules it reports on, and scripts/report-orphan-tables.mjs once shipped
 // with exactly this bug -- a table mentioned in a comment counted as a table
 // somebody queried, so a table nothing touched looked used.
-function withoutComments(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/.*$/gm, "$1")
-    .replace(/^\s*#.*$/gm, " ");
-}
+//
+// ## Why this no longer strips them itself
+//
+// It used to, in two passes: block comments, then line comments. That is the
+// obvious order and it is wrong, and lib/sonara-comment-stripping.cjs exists
+// because two other reports had the identical bug. This one was not changed
+// with them, so it carried the original for as long as the module has existed.
+//
+// The damage was not hypothetical. In routes/sonara-last9-routes.cjs the line
+//
+//     // /business-builder/owner/* and this module already receives ...
+//
+// contains `/*`, the block pass read it as an opener, and everything to the
+// next `*/` -- 971 lines later, inside a catch -- stopped being code. The file
+// went from 171,348 characters to 74,306: **57% of it erased before matching**,
+// taking `require("./sonara-sub-app-routes.cjs")` with it.
+//
+// That direction of error is the dangerous one here. Losing a reference makes a
+// module that IS required look unreferenced, and `--check` fails the build over
+// it. The report currently prints zero only because nothing has yet landed in
+// one of the swallowed regions.
+//
+// One left-to-right pass with both forms in one alternation fixes it: at the
+// `//` the block branch cannot match, so a `/*` inside a line comment is never
+// an opener.
 
 const sources = new Map(searchable.map((file) => [file, withoutComments(fs.readFileSync(file, "utf8"))]));
 

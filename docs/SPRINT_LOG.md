@@ -2,6 +2,79 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The same comment-stripping bug, in two more reports
+
+Started from something narrower: the two Cloudflare adapters I added are called
+by no runtime file, and `scripts/report-unreferenced-modules.mjs` said
+`Unreferenced: 0`. It counts `tests/` as referencers, so a lib module reachable
+only from its own test reads as referenced. Eight of the ten adapters are wired
+into runtime; whisper and my two are not.
+
+Measuring that turned up something worse in the report itself.
+
+## 57% of a file, erased before matching
+
+`lib/sonara-comment-stripping.cjs` exists because two release-chain reports
+stripped comments in two passes -- block first, then line -- and a line comment
+mentioning a path contains `/*`, which the block pass reads as an opener. Its
+header names the exact line and the exact file.
+
+**A third report was never switched over.** `report-unreferenced-modules.mjs`
+carried the original for as long as the module has existed, and on
+`routes/sonara-last9-routes.cjs` it erased **57% of the file**: 171,348
+characters down to 74,306, taking `require("./sonara-sub-app-routes.cjs")` with
+it. Through the shared stripper the same file keeps 112,523 characters and the
+require survives.
+
+That direction of error is the dangerous one. Losing a reference makes a module
+that *is* required look unreferenced, and `--check` fails the build over it. The
+report printed zero only because nothing had yet landed in a swallowed region.
+
+`report-security-definer-exposure.mjs` had the same shape for SQL: six
+migrations carry `-- lib/catalog/*.cjs, ...` and it removed 9-10% of each. None
+of the six mentions SECURITY DEFINER either way, so **no verdict changed** --
+latent rather than wrong, and fixed for the same reason. `withoutSqlComments`
+joins the shared module.
+
+## The test for this bug had a hand-typed list of two
+
+`tests/a-line-comment-cannot-open-a-block-comment.test.js` asserted that the
+scripts sharing the implementation actually share it -- across
+`const scripts = [two names]`. The two whose copies were fixed. Nobody added the
+third, so the check written for exactly this could not see it.
+
+The population is read from `scripts/` now. **The first honest attempt at that
+defeated itself** and the gone-blind guard caught it on the first run: detecting
+"contains the buggy regex" means the population decays to zero as the bug is
+fixed, so the check goes quiet precisely when it has finished working. It now
+matches a script that imports the shared module *or* carries a private
+block-comment literal -- fixed scripts stay in, new copies are caught.
+
+**Falsified**: a temporary script with a private two-pass stripper is named and
+fails; reverting the unreferenced report to its own copy fails by name.
+
+## And a fourth script, found on the derived check's first run
+
+`scripts/generate-tenant-scoped-tables.cjs`, which produces the tenant boundary
+itself. It turned out **not** to have the ordering bug -- it stripped only
+whole-line `--` comments and never looked at block comments -- so the detector
+was narrowed to exclude that shape rather than accuse it.
+
+Its incompleteness was real though: a `create table` inside a block comment
+would have counted as a real table. Verified across every migration that both
+strippings produce an identical set of names today, then switched it to the
+shared one. Latent hole closed rather than left for the first commented-out
+CREATE TABLE.
+
+## Still open, and named rather than quietly left
+
+`report-unreferenced-modules.mjs` still cannot distinguish "referenced by the
+product" from "referenced only by a test". Three lib modules are reachable from
+no runtime path -- `sonara-whisper-adapter.cjs`, `sonara-workers-ai-adapter.cjs`
+and `sonara-d1-adapter.cjs` -- and the report says nothing about them. Wiring
+Workers AI into a real product path is the next piece of work; that is what
+makes the capability exist in the application rather than only in `lib/`.
+
 ### 2026-09-08 - A read-only key is enough, and requiring a full one was silent about it
 
 The owner asked me to add `STRIPE_SECRET_KEY` to GitHub. I cannot, and should
