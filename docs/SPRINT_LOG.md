@@ -2,6 +2,397 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The module-level version of that gap has nothing in it
+
+The entry below records a gap and says it was not closed: the module report
+counts `tests/` as referencers, so a lib module only its own test requires reads
+as referenced.
+
+Measured rather than assumed. Two modules are referenced by tests and by neither
+runtime nor scripts, and **both are correct**:
+
+- `lib/sonara-form-reachability.cjs` -- a measurement three tests share. Test
+  infrastructure that lives in `lib/` on purpose.
+- `lib/sonara-supabase-clients.cjs` -- deliberately not yet wired. It is the
+  machinery for moving off the service-role key, and
+  `tests/the-revoke-reasoning-is-still-true.test.js` reasons about it explicitly,
+  down to what its deletion would mean.
+
+So no runtime-versus-test tier was added. It would carry two permanent
+exemptions and catch nothing, and a gate whose entire population is exemptions
+only makes noise. The measurement is written into the report's own header so the
+next person can read it instead of repeating it.
+
+Worth separating the two halves of that gap, because only one of them was real.
+At **function** level it hid 108 lines of homepage and a 14-line status panel,
+and that half is now checked by
+`scripts/report-uncalled-factory-functions.mjs`. At **module** level it hides
+nothing today. Same-sounding gap, opposite answers, and the difference is only
+visible by counting.
+
+### 2026-09-08 - A check for the dead code no check could see
+
+The dead homepage in the entry below was found by accident. This is the check
+that would have found it, plus the second one it found immediately.
+
+`scripts/report-unreferenced-modules.mjs` asks whether anything requires a
+module. It cannot ask whether anything uses what a module *returns*, and
+`lib/sonara-page-frame.cjs` is heavily required -- so it was correct and silent
+while 108 lines of homepage sat inside it.
+
+## Four wrong definitions came first, and each was rejected by measurement
+
+Written down because the wrong ones are the useful part:
+
+1. **Names a module exposes that nothing else names** -- 201 results. Mostly
+   internal helpers a module exports for its own use. Dead surface, not dead
+   code.
+2. **Named functions whose identifier appears nowhere but their declaration**
+   -- 1 result, and it misses the case this exists for: the homepage function's
+   name appeared in a return list and a test's list. Referenced everywhere,
+   called nowhere.
+3. **Factory-returned names never called** -- 98, because `return { fit,
+   urgency, score, band }` is a result object. Filtered to actual `function`
+   declarations: 2.
+4. **Factory-returned functions no runtime file names** -- 40. Modules
+   legitimately export helpers so their own tests can exercise them.
+
+**Definition 3 flagged `rejectCustomerBearerFromAdminLogin`.** That function is
+live and load-bearing: Express middleware, passed by reference into
+`app.get("/admin/login", ...)` and never "called" anywhere. A gate on that
+definition would have accused a security control guarding the admin login. It
+was spared only because each candidate was checked by hand before the check was
+built.
+
+So both conditions are required, and each spares a real pattern: *never called
+anywhere* spares a helper exported for its tests, and *never named by a runtime
+file outside its module* spares middleware. Together: 86 inspected, 1 flagged.
+
+## What it found
+
+`renderInterfaceStatusPanel` -- 14 lines, same shape as the homepage: returned
+by `createPageFrame`, destructured by nobody, called by nothing. Deleted rather
+than allow-listed.
+
+Removing it made `readinessStatusClass` unused, and that one mattered more than
+it looked: it was a **declared required dependency**, so `createPageFrame` threw
+without it and every caller was made to supply a function no line of the module
+used. Removed from `REQUIRED`, from the destructuring, and from the call site.
+
+**And then lint caught me writing a false reason.** I recorded that
+`readinessStatusClass` "stays in server.js, where the readiness screens use it".
+It does not -- the dead panel was its only caller anywhere, so the function was
+dead too. Corrected in place, and the correction left in the comment rather than
+tidied away, because a reason that sounds verified and is not is exactly what
+`CLAUDE.md` warns about, and this one took thirty seconds to produce.
+
+## Falsified, on the third attempt
+
+The first two probe runs reported the check missing an injected dead function --
+and the injection had silently not applied, because the return list starts with
+`adminActions` and the probe targeted `layout`. Both probes were no-ops reporting
+a pass. Corrected, and then:
+
+- a dead factory-returned function is named and exits 1,
+- the same function passed by reference in `server.js` is spared, exit 0,
+- blinding the scan trips the population guard by name.
+
+The release chain is 44 commands now, and the two derived counts in
+`WHAT-IS-LEFT.md` were updated because `verify-doc-counts` failed on both.
+
+### 2026-09-08 - A homepage nobody has seen since the split
+
+Went to fix a flagged item: `lib/sonara-page-frame.cjs` said **"Fifteen
+deterministic tools"** as a typed word, tied to no register.
+
+Checked it before changing it, and it was **correct** -- `PLANNER_TOOLS` holds
+exactly fifteen, and `tests/planning-tools-do-the-arithmetic.test.js` pins that
+length deliberately. So the sentence was right, and right by nobody's
+arrangement: the person who updated that pin to sixteen would get no prompt to
+update the sentence.
+
+Wired the count to the register, wrote a test that the page prints it, and the
+test failed. Not on the count -- **the string is not on the homepage at all.**
+
+## renderHomepageContent rendered nothing
+
+`app.get("/")` builds the live homepage inline in `server.js`, and it is the
+current one: it links to `/business-builder/tools/break-even`, `/creator-studio/tools/rate-card`
+and the rest. `renderHomepageContent` in the page frame is a superseded body of
+**108 lines** that nothing called. `server.js` destructures what it needs from
+`createPageFrame` and never took this one. The only other mentions were a comment
+in `lib/sonara-shell.cjs` and the function list in `tests/server-split.test.js`,
+which records where the split *put* code rather than that anything calls it.
+
+So the flagged defect was real and the fix was not the one flagged: the sentence
+did not need deriving, the function needed deleting. It is gone, with the reason
+left where it stood.
+
+**`scripts/report-unreferenced-modules.mjs` could not see this.** It works at
+module granularity and this module is heavily referenced. Its own header
+describes two homepage renderers -- `sonara-cohesive-homepage.cjs` and
+`sonara-advanced-builder-homepage.cjs` -- that were "noticed three separate
+times, and left there each time, because noticing is free and deleting needs
+somebody to be sure". This is the same thing one level down: a third dead
+homepage, found by accident rather than by a check, because nothing looks inside
+a module that is itself used.
+
+That gap is recorded rather than closed. A function-level reachability report
+would have to follow destructuring from a factory's return value, which is a
+real piece of work and not this one.
+
+## And a note on the two edits that did not survive
+
+The derived count and its test were written against dead code and were removed
+with it -- polish on a page nobody renders would have implied the homepage was
+fixed when it was not. The live homepage makes no count claim, so there is
+nothing there to drift.
+
+One self-inflicted detour worth recording: the first deletion attempt used a
+regex over the whole file, which matched far more than intended and left
+`module.exports` referring to a function that no longer existed. Restored from
+HEAD and redone with line-based edits. A multi-line regex across a whole source
+file is the same hazard as the comment-stripping bug two entries above, and it
+bit in the same session.
+
+### 2026-09-08 - Three adapters an owner could configure and never see
+
+The intent was to wire Workers AI into a product path. The first candidate was
+chase drafts, and reading it stopped that: `lib/sonara-chase-drafts.cjs` says
+**"No model call"** in its own header, and gives the reason -- a template cannot
+hallucinate a payment that was never made or a term nobody agreed -- followed by
+three things a draft may never invent. Putting a model there would have been
+building toward the adapter rather than toward the product, so it was not done.
+
+What the survey found instead: of the ten adapters, only Crawl4AI is *called* by
+any runtime path. The other nine are readiness-only, which is the design. But
+`routes/sonara-assistant-routes.cjs` says its own purpose out loud --
+
+    // Every adapter on one page, because "which of these is on" is one question.
+
+-- and had six of the ten. voice-clone is deliberately elsewhere, on the voice
+studio. **whisper, workers-ai and d1 were on no page at all.** whisper.cpp was
+built in full on 18 August -- licence read, request-forwarding guarded, the
+fetchability check shared with Crawl4AI rather than copied -- and an owner who
+set its two variables had nowhere to learn it was on.
+
+All three are on the page now, with what they cost said on the page rather than
+in a file nobody opens: Cloudflare's free allowance is a price, and a price is
+the vendor's to change.
+
+## The check, and why it does not name that page
+
+`tests/an-adapter-nobody-can-see-is-not-configured.test.js` derives the adapters
+from `lib/` and requires each to be named by *some* route. Not by the assistant
+page specifically -- voice-clone is deliberately on the voice studio, and a rule
+forcing every adapter into one list would be wrong about it. Visibility is the
+property worth asserting; which page is a judgement.
+
+It also re-checks, against the real readiness objects rather than the base
+module, that every adapter renders a host and never its configured URL -- a base
+URL can carry a token in its query string, and a new adapter could build its own
+readiness.
+
+**Falsified** by removing Workers AI from the page: the adapter is named and the
+test fails.
+
+## And an existing check caught my copy
+
+`no-page-lies-when-the-database-is-down` failed on the sentence I had just
+written. "...so nothing here depends on it" contains **"nothing here"**, which
+that check reads as a page telling somebody they have no records. It was a false
+positive about my meaning and a true positive about the phrase, and the right
+fix was to reword rather than to add an exemption -- an exemption would have put
+a permanent hole in a check for the sake of one sentence. It now reads "so no
+part of this product depends on it".
+
+### 2026-09-08 - The same comment-stripping bug, in two more reports
+
+Started from something narrower: the two Cloudflare adapters I added are called
+by no runtime file, and `scripts/report-unreferenced-modules.mjs` said
+`Unreferenced: 0`. It counts `tests/` as referencers, so a lib module reachable
+only from its own test reads as referenced. Eight of the ten adapters are wired
+into runtime; whisper and my two are not.
+
+Measuring that turned up something worse in the report itself.
+
+## 57% of a file, erased before matching
+
+`lib/sonara-comment-stripping.cjs` exists because two release-chain reports
+stripped comments in two passes -- block first, then line -- and a line comment
+mentioning a path contains `/*`, which the block pass reads as an opener. Its
+header names the exact line and the exact file.
+
+**A third report was never switched over.** `report-unreferenced-modules.mjs`
+carried the original for as long as the module has existed, and on
+`routes/sonara-last9-routes.cjs` it erased **57% of the file**: 171,348
+characters down to 74,306, taking `require("./sonara-sub-app-routes.cjs")` with
+it. Through the shared stripper the same file keeps 112,523 characters and the
+require survives.
+
+That direction of error is the dangerous one. Losing a reference makes a module
+that *is* required look unreferenced, and `--check` fails the build over it. The
+report printed zero only because nothing had yet landed in a swallowed region.
+
+`report-security-definer-exposure.mjs` had the same shape for SQL: six
+migrations carry `-- lib/catalog/*.cjs, ...` and it removed 9-10% of each. None
+of the six mentions SECURITY DEFINER either way, so **no verdict changed** --
+latent rather than wrong, and fixed for the same reason. `withoutSqlComments`
+joins the shared module.
+
+## The test for this bug had a hand-typed list of two
+
+`tests/a-line-comment-cannot-open-a-block-comment.test.js` asserted that the
+scripts sharing the implementation actually share it -- across
+`const scripts = [two names]`. The two whose copies were fixed. Nobody added the
+third, so the check written for exactly this could not see it.
+
+The population is read from `scripts/` now. **The first honest attempt at that
+defeated itself** and the gone-blind guard caught it on the first run: detecting
+"contains the buggy regex" means the population decays to zero as the bug is
+fixed, so the check goes quiet precisely when it has finished working. It now
+matches a script that imports the shared module *or* carries a private
+block-comment literal -- fixed scripts stay in, new copies are caught.
+
+**Falsified**: a temporary script with a private two-pass stripper is named and
+fails; reverting the unreferenced report to its own copy fails by name.
+
+## And a fourth script, found on the derived check's first run
+
+`scripts/generate-tenant-scoped-tables.cjs`, which produces the tenant boundary
+itself. It turned out **not** to have the ordering bug -- it stripped only
+whole-line `--` comments and never looked at block comments -- so the detector
+was narrowed to exclude that shape rather than accuse it.
+
+Its incompleteness was real though: a `create table` inside a block comment
+would have counted as a real table. Verified across every migration that both
+strippings produce an identical set of names today, then switched it to the
+shared one. Latent hole closed rather than left for the first commented-out
+CREATE TABLE.
+
+## Still open, and named rather than quietly left
+
+`report-unreferenced-modules.mjs` still cannot distinguish "referenced by the
+product" from "referenced only by a test". Three lib modules are reachable from
+no runtime path -- `sonara-whisper-adapter.cjs`, `sonara-workers-ai-adapter.cjs`
+and `sonara-d1-adapter.cjs` -- and the report says nothing about them. Wiring
+Workers AI into a real product path is the next piece of work; that is what
+makes the capability exist in the application rather than only in `lib/`.
+
+### 2026-09-08 - A read-only key is enough, and requiring a full one was silent about it
+
+The owner asked me to add `STRIPE_SECRET_KEY` to GitHub. I cannot, and should
+not: creating a GitHub Actions secret means holding the plaintext to encrypt it,
+so doing it here would put a live Stripe key into a chat transcript. That step
+stays with the owner.
+
+What could be fixed is what they are about to put there. The check makes exactly
+one kind of call, `GET /v1/prices/{id}`, so a Stripe **restricted key** with
+read access to Prices covers it -- and a restricted key that leaks cannot charge
+anybody, refund anybody, or read a customer. Requiring `sk_` meant the only key
+that worked was the one that can do everything, which now had to sit in CI to
+perform three reads.
+
+**And the rejection was silent in the worst way.** A restricted key starts
+`rk_`, fell into the not-a-key branch, and was reported as
+`STRIPE_SECRET_KEY is not set` -- sending somebody to set a variable they had
+already set. Under `--require-live` that is a failed deployment with a message
+naming the wrong cause.
+
+Three states now, where there were two: absent, present-but-not-a-Stripe-key,
+and usable. The value is never printed in any of them. The no-key message also
+names the least-privilege option, because otherwise the full secret key is the
+only one anybody hears about.
+
+`tests/a-read-only-key-is-enough-to-check-a-price.test.js` runs the script as a
+subprocess across all three. **Falsified** by reverting the pattern to `sk_`
+only: the restricted-key case fails by name. Reaching a 401 from Stripe is the
+assertion in that case -- it proves the key was accepted rather than dismissed.
+
+`SETUP-STEP-BY-STEP.md` and the cutover runbook now say `rk_live_...`, name the
+Stripe screen that issues one, and say where in GitHub it goes.
+
+### 2026-09-08 - The deploy now proves the price before it ships it
+
+The owner repointed the three Vercel variables at the new price ids and asked
+for the deployment. Controlled Production Deployment **#137** was dispatched
+through Actions rather than Vercel's Redeploy button -- `OWNER-STEPS.md` records
+that button as what took the alias on 4 August -- and went green across all 30
+substantive steps. Production serves `36c1b2a` on a new deployment and
+`/pricing` advertises $29 / $59 / $109 with no $19 / $39 / $79 anywhere on it.
+
+**What that does not establish, stated plainly:** nothing reachable from outside
+production reveals which price id a variable holds. `/api/readiness` reports
+`checkout: enabled`, which it also did while the variables pointed at the
+$19 / $39 / $79 prices, because `enabled` has only ever meant "a variable is
+set". So the cutover is *expected* to be complete and is not *proven* complete.
+
+## Which is the whole reason for the change in this entry
+
+`scripts/verify-stripe-env.mjs` is the only thing that compares an advertised
+amount against the price Stripe would actually charge, and it had never run
+anywhere with a key. It now runs inside
+`.github/workflows/controlled-production-deploy.yml` with `--require-live`, as
+step 26 of 32:
+
+- **Against the pulled production environment**, so it checks what production is
+  configured with rather than what the repository hopes. Step 24 already pulls
+  it for the two Supabase verifications.
+- **With `STRIPE_SECRET_KEY` injected from the protected GitHub environment**,
+  because Vercel does not return sensitive variables as plaintext -- the
+  workflow says so itself, which is why the service-role key is injected the
+  same way. Verified on Node 22 that a variable already set in the environment
+  beats one from `--env-file`, so a redacted key in the pulled file cannot
+  shadow the injected one.
+- **Before the deploy step**, so a mismatch stops the release instead of
+  being noticed once it is already live.
+
+`tests/the-deploy-proves-the-price-before-it-ships-it.test.js` asserts each of
+those properties, because a step can be deleted as easily as it was added.
+**Falsified three ways**: dropping `--require-live`, moving the check after the
+deploy, and removing the secret injection each fail by name.
+
+## And a fault that looked like a different fault
+
+Resolving the price id was `.find(v => v.startsWith("price_"))`, which returns
+undefined for "unset" and for "set to something that is not a price id" alike --
+so both reported "no Stripe price configured yet". On the new path that is the
+likely case rather than a hypothetical: a price id marked sensitive in Vercel
+pulls through redacted, and the old message would have sent somebody to create a
+price that already exists. Set-but-unusable is now its own failure, naming the
+variable and the probable cause. The value is never printed; on that path it may
+be a redaction marker of unknown shape.
+
+**This step will fail the next deployment until `STRIPE_SECRET_KEY` is added to
+the protected GitHub environment.** That is deliberate and it is the lesson of
+today: a deployment that cannot prove it charges what it advertises is exactly
+what shipped the September mismatch.
+
+### 2026-09-08 - The three prices exist now, and that on its own changed nothing
+
+The owner said to create them, so they were created on the live account, on the
+existing products so the invoice description a customer sees stays right:
+
+    One workspace  $29.00/mo  price_1UDTj00dKtlEU3lAmimC5cN7  sonara_workspace_monthly_v2
+    All three      $59.00/mo  price_1UDToK0dKtlEU3lAWURVCj6H  sonara_all_three_monthly_v2
+    Team          $109.00/mo  price_1UDUKr0dKtlEU3lAJzu0pVoe  sonara_team_monthly_v2
+
+Read back from Stripe rather than taken from the create responses: all three
+`active: true`, `livemode: true`, USD, `interval: month`, `interval_count: 1`.
+The account was re-listed first, so a duplicate could not be created by acting
+on a stale reading -- a Stripe price cannot be edited or deleted, only archived.
+
+**The refused checkouts are unchanged.** `STRIPE_PRICE_WORKSPACE_MONTHLY` and
+its two siblings still point at the 13 August prices, so `/api/readiness` still
+reports all three plans `configured` -- which has always meant "a variable is
+set", not "a price that can be sold" -- and
+`assertPriceMatchesAdvertised` still refuses each one. Worth stating in the log
+because the create call *looks* like the fix and is not: the repointing is, and
+no tool in this session can set a Vercel environment variable.
+
+Both owner documents now carry the ids and say exactly that, so neither reads as
+though the job is done.
+
 ### 2026-09-08 - Serverless AI and a second database, and the env check that could not see either
 
 The owner asked to install software for running complex systems, databases and

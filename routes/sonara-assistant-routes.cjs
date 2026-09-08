@@ -44,6 +44,9 @@ const openWebUi = require("../lib/sonara-open-webui-adapter.cjs");
 const crawl4ai = require("../lib/sonara-crawl4ai-adapter.cjs");
 const dify = require("../lib/sonara-dify-adapter.cjs");
 const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
+const whisper = require("../lib/sonara-whisper-adapter.cjs");
+const workersAi = require("../lib/sonara-workers-ai-adapter.cjs");
+const d1 = require("../lib/sonara-d1-adapter.cjs");
 
 // Every adapter on one page, because "which of these is on" is one question.
 // Each reports a host and never a URL -- readiness objects carry the configured
@@ -54,7 +57,19 @@ const SERVICES = Object.freeze([
   Object.freeze({ label: "Open WebUI", what: "Puts a chat interface and an OpenAI-compatible interface in front of models you already run. Its licence restricts altering its branding in a deployment you publish; calling it from here is not restricted, and none of it ships inside this product.", readiness: (o) => openWebUi.getOpenWebUiReadiness(o) }),
   Object.freeze({ label: "Crawl4AI", what: "Fetches a page and returns readable text. Apache-2.0. Refuses private, loopback and cloud-metadata addresses.", readiness: (o) => crawl4ai.getCrawl4aiReadiness(o) }),
   Object.freeze({ label: "Dify", what: "Runs a workflow you built in Dify. Its licence allows this for a Dify you run yourself; it does not allow one shared Dify serving many businesses.", readiness: (o) => dify.getDifyReadiness(o) }),
-  Object.freeze({ label: "RAGFlow", what: "Answers a question from documents you have loaded into it, and shows which document each passage came from. Apache-2.0. It reads; it never loads your records into it.", readiness: (o) => ragflow.getRagflowReadiness(o) })
+  Object.freeze({ label: "RAGFlow", what: "Answers a question from documents you have loaded into it, and shows which document each passage came from. Apache-2.0. It reads; it never loads your records into it.", readiness: (o) => ragflow.getRagflowReadiness(o) }),
+  // whisper.cpp was built in full on 18 August 2026 and then appeared on no
+  // page at all, so an owner who configured it had nowhere to see that it was
+  // on. That is what tests/an-adapter-nobody-can-see-is-not-configured.test.js
+  // now prevents.
+  Object.freeze({ label: "whisper.cpp", what: "Transcripts and captions from audio you already hold, on a whisper-server you run. MIT, and no per-minute cost. The model weights it loads are licensed separately by whoever published them.", readiness: (o) => whisper.getWhisperReadiness(o) }),
+  // The two hosted ones. Everything above is software the owner runs, which is
+  // why they all carry the loopback-on-serverless check; these are public APIs
+  // this server can already reach. What they cost is the other half of the
+  // sentence, and it belongs on the page rather than in a file nobody opens: a
+  // free tier is a price, and a price is the vendor's to change.
+  Object.freeze({ label: "Cloudflare Workers AI", what: "Runs models on Cloudflare's network, so there is nothing for you to host. Priced per use against a free allowance, which is a price rather than a licence — if that allowance changes it is Cloudflare's decision, so no part of this product depends on it.", readiness: (o) => workersAi.getWorkersAiReadiness(o) }),
+  Object.freeze({ label: "Cloudflare D1", what: "A SQL database at the edge, for derived data only — counters, caches, rollups, anything whose loss costs a recomputation. Supabase stays the system of record: this refuses any statement naming a table your migrations create.", readiness: (o) => d1.getD1Readiness(o) })
 ]);
 
 const ROW_LIMIT = 500;

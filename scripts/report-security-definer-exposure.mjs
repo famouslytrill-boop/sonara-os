@@ -32,7 +32,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+
+const { withoutSqlComments: withoutComments } = createRequire(import.meta.url)("../lib/sonara-comment-stripping.cjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const migrationsDirectory = path.join(root, "supabase", "migrations");
@@ -92,9 +95,15 @@ const ADVISOR_REPORTED = [
 // call, and the orphan-table report in this repository shipped once with
 // exactly that bug -- comments counted as usage, so a table nobody queried
 // looked used.
-function withoutComments(sql) {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
-}
+//
+// The stripping moved to lib/sonara-comment-stripping.cjs, which is where the
+// JavaScript reports already get theirs. This file had its own two-pass copy --
+// block comments, then `--` comments -- and that is the same bug one language
+// over: six migrations carry `-- lib/catalog/*.cjs, ...`, and the block pass
+// read that `/*` as an opener, removing 9-10% of each file before matching.
+// None of the six mentions SECURITY DEFINER either way, so no verdict changed;
+// it was latent rather than wrong, and the next migration to land in a
+// swallowed region would have been invisible with nothing to say so.
 
 if (!fs.existsSync(migrationsDirectory)) {
   console.error("ERROR: supabase/migrations does not exist; this report would be empty and would look clean");

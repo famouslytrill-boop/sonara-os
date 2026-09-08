@@ -22,10 +22,41 @@
 // something staged behind a flag, or a file kept deliberately -- and the
 // allowlist below takes those with a reason attached, which is the part that
 // stops the list becoming a place to hide things.
+//
+// ## Tests count as referencers here, and that was measured rather than assumed
+//
+// The searched set below includes tests/, so a module only its own test
+// requires reads as referenced. That is a real gap in principle: a lib module
+// nothing in the product uses is dead whatever its tests do, and it is exactly
+// the shape that hid 108 lines of homepage from this report (see
+// scripts/report-uncalled-factory-functions.mjs, which covers the function-level
+// version of it).
+//
+// Measured on 8 September 2026, the module-level version of that gap has **no
+// defects in it**. Two modules are referenced by tests and by neither runtime
+// nor scripts, and both are correct:
+//
+//   lib/sonara-form-reachability.cjs   -- a measurement three tests share. Test
+//                                         infrastructure that lives in lib/ on
+//                                         purpose.
+//   lib/sonara-supabase-clients.cjs    -- deliberately not yet wired. It is the
+//                                         machinery for moving off the
+//                                         service-role key, and
+//                                         tests/the-revoke-reasoning-is-still-true.test.js
+//                                         reasons about it explicitly, including
+//                                         what its deletion would mean.
+//
+// So no runtime-versus-test tier was added. It would carry two permanent
+// exemptions and catch nothing, and a gate whose entire population is
+// exemptions is a gate that only makes noise. This note is here so the next
+// person can see the measurement rather than repeat it.
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+
+const { withoutComments } = createRequire(import.meta.url)("../lib/sonara-comment-stripping.cjs");
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const checkOnly = process.argv.includes("--check");
@@ -77,12 +108,31 @@ if (candidates.length === 0) {
 // the modules it reports on, and scripts/report-orphan-tables.mjs once shipped
 // with exactly this bug -- a table mentioned in a comment counted as a table
 // somebody queried, so a table nothing touched looked used.
-function withoutComments(source) {
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/(^|[^:])\/\/.*$/gm, "$1")
-    .replace(/^\s*#.*$/gm, " ");
-}
+//
+// ## Why this no longer strips them itself
+//
+// It used to, in two passes: block comments, then line comments. That is the
+// obvious order and it is wrong, and lib/sonara-comment-stripping.cjs exists
+// because two other reports had the identical bug. This one was not changed
+// with them, so it carried the original for as long as the module has existed.
+//
+// The damage was not hypothetical. In routes/sonara-last9-routes.cjs the line
+//
+//     // /business-builder/owner/* and this module already receives ...
+//
+// contains `/*`, the block pass read it as an opener, and everything to the
+// next `*/` -- 971 lines later, inside a catch -- stopped being code. The file
+// went from 171,348 characters to 74,306: **57% of it erased before matching**,
+// taking `require("./sonara-sub-app-routes.cjs")` with it.
+//
+// That direction of error is the dangerous one here. Losing a reference makes a
+// module that IS required look unreferenced, and `--check` fails the build over
+// it. The report currently prints zero only because nothing has yet landed in
+// one of the swallowed regions.
+//
+// One left-to-right pass with both forms in one alternation fixes it: at the
+// `//` the block branch cannot match, so a `/*` inside a line comment is never
+// an opener.
 
 const sources = new Map(searchable.map((file) => [file, withoutComments(fs.readFileSync(file, "utf8"))]));
 
