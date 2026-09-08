@@ -123,7 +123,6 @@ const EXTRACTED = [
     functions: [
       "layout",
       "responsePage",
-      "renderHomepageContent",
       "renderHead",
       "pageBrandClass",
       "renderInterfaceStatusPanel",

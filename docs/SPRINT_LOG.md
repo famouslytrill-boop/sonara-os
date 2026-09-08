@@ -2,6 +2,61 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - A homepage nobody has seen since the split
+
+Went to fix a flagged item: `lib/sonara-page-frame.cjs` said **"Fifteen
+deterministic tools"** as a typed word, tied to no register.
+
+Checked it before changing it, and it was **correct** -- `PLANNER_TOOLS` holds
+exactly fifteen, and `tests/planning-tools-do-the-arithmetic.test.js` pins that
+length deliberately. So the sentence was right, and right by nobody's
+arrangement: the person who updated that pin to sixteen would get no prompt to
+update the sentence.
+
+Wired the count to the register, wrote a test that the page prints it, and the
+test failed. Not on the count -- **the string is not on the homepage at all.**
+
+## renderHomepageContent rendered nothing
+
+`app.get("/")` builds the live homepage inline in `server.js`, and it is the
+current one: it links to `/business-builder/tools/break-even`, `/creator-studio/tools/rate-card`
+and the rest. `renderHomepageContent` in the page frame is a superseded body of
+**108 lines** that nothing called. `server.js` destructures what it needs from
+`createPageFrame` and never took this one. The only other mentions were a comment
+in `lib/sonara-shell.cjs` and the function list in `tests/server-split.test.js`,
+which records where the split *put* code rather than that anything calls it.
+
+So the flagged defect was real and the fix was not the one flagged: the sentence
+did not need deriving, the function needed deleting. It is gone, with the reason
+left where it stood.
+
+**`scripts/report-unreferenced-modules.mjs` could not see this.** It works at
+module granularity and this module is heavily referenced. Its own header
+describes two homepage renderers -- `sonara-cohesive-homepage.cjs` and
+`sonara-advanced-builder-homepage.cjs` -- that were "noticed three separate
+times, and left there each time, because noticing is free and deleting needs
+somebody to be sure". This is the same thing one level down: a third dead
+homepage, found by accident rather than by a check, because nothing looks inside
+a module that is itself used.
+
+That gap is recorded rather than closed. A function-level reachability report
+would have to follow destructuring from a factory's return value, which is a
+real piece of work and not this one.
+
+## And a note on the two edits that did not survive
+
+The derived count and its test were written against dead code and were removed
+with it -- polish on a page nobody renders would have implied the homepage was
+fixed when it was not. The live homepage makes no count claim, so there is
+nothing there to drift.
+
+One self-inflicted detour worth recording: the first deletion attempt used a
+regex over the whole file, which matched far more than intended and left
+`module.exports` referring to a function that no longer existed. Restored from
+HEAD and redone with line-based edits. A multi-line regex across a whole source
+file is the same hazard as the comment-stripping bug two entries above, and it
+bit in the same session.
+
 ### 2026-09-08 - Three adapters an owner could configure and never see
 
 The intent was to wire Workers AI into a product path. The first candidate was
