@@ -178,7 +178,14 @@ async function checkReadiness() {
     for (const [service, expected] of Object.entries(requiredStates)) {
       assertCheck(payload?.services?.[service] === expected, `${path}: expected ${service}=${expected}, received ${payload?.services?.[service] || "missing"}`);
     }
-    assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google OAuth should remain explicitly deferred until configured`);
+    // "until configured" is what the old message here said, and it described a
+    // state this value cannot reach: `services.googleOAuth` is the string
+    // literal "deferred" in lib/sonara-readiness.cjs, and no route reads
+    // GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET or GOOGLE_REDIRECT_URI. Setting
+    // those variables empties `missing.googleOAuth` and adds no sign-in button.
+    // So this asserts what it can: the live site says out loud that Google
+    // sign-in is off, rather than leaving somebody to infer it from an absence.
+    assertCheck(payload?.services?.googleOAuth === "deferred", `${path}: Google sign-in must stay explicitly deferred; it is a literal in lib/sonara-readiness.cjs and no route implements it`);
     // Two different claims, asserted two different ways, and the difference is
     // about what this script can know.
     //
@@ -207,9 +214,32 @@ async function checkReadiness() {
     );
     assertCheck(payload?.services?.legalReviewBoundary === "not_attorney_reviewed", `${path}: legal review boundary must remain explicit`);
 
-    for (const plan of ["free", "starter_monthly", "core_monthly", "pro_monthly"]) {
-      assertCheck(payload?.checkoutPlans?.[plan]?.checkout === "enabled", `${path}: checkout plan ${plan} is not enabled`);
-    }
+    // Which plans are for sale is a decision that moves, and this check used to
+    // name three of them: starter_monthly, core_monthly and pro_monthly. The
+    // breadth ladder superseded all three on 6 September 2026, and
+    // docs/owner/PRICE-CUTOVER-RUNBOOK.md step 7 archives their Stripe prices --
+    // at which point they report setup_required on a *correct* site and this
+    // check goes red for doing its job. Naming a retired catalogue is the same
+    // mistake as the legalPages pin above: an assertion this script cannot keep
+    // true, because the plan table it is asserting against lives in the
+    // deployment, not in the branch.
+    //
+    // What survives a catalogue change, and is what the check was for: the free
+    // plan is open, and something can actually be bought. Both are read out of
+    // the payload rather than named here.
+    const paidPlanStates = Object.entries(payload?.checkoutPlans || {}).filter(([plan]) => plan !== "free");
+    // The guard against measuring nothing. Every claim below is satisfied by an
+    // absent or truncated checkoutPlans, so the population is asserted first.
+    assertCheck(
+      paidPlanStates.length >= 3,
+      `${path}: only ${paidPlanStates.length} paid plans reported; this check has gone blind`
+    );
+    assertCheck(payload?.checkoutPlans?.free?.checkout === "enabled", `${path}: the free plan is not open`);
+    const buyablePlans = paidPlanStates.filter(([, status]) => status?.checkout === "enabled");
+    assertCheck(
+      buyablePlans.length >= 1,
+      `${path}: no paid plan can be bought, so the pricing page has nothing purchasable on it`
+    );
     // The setup package is quoted rather than sold self-serve. That is asserted
     // in scripts/verify-production-product-catalog.mjs, which runs *after* the
     // Vercel deploy, not here.

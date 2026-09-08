@@ -5,7 +5,7 @@ done" means two different things and only one of them is countable.
 
 ---
 
-## Shipping what exists: 7 steps, all yours
+## Shipping what exists: 6 steps, all yours
 
 The repository side is finished. There are no TODOs, no unimplemented paths, no
 failing checks: the whole suite passes and the `verify:launch` chain is green
@@ -13,26 +13,35 @@ across all 43 commands. The test count is deliberately not written here
 -- it changes every time anybody adds one, and a number typed into prose has
 nothing watching it. `docs/HANDOFF_PROMPT.md` carries it and is generated.
 
-**Green here does not mean shipped, and right now it does not.** Production has
-been serving 5 August code since 5 August: every Controlled Production
-Deployment since has failed, on a migration that cannot find a table production
-is missing. That is step 8 in OWNER-STEPS.md, it is the first one to do, and none of the
-checks above could see it -- they read this repository, and that is not where
-the problem is.
+**Green here does not mean shipped.** Updated 8 September 2026: production is
+now serving current code -- `/api/health` reports the head of `main`, and
+Controlled Production Deployment run #134 was the first end-to-end green run
+since #110 on 5 August. Step 8 in OWNER-STEPS.md is closed.
 
-The seven remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
-rather than interpreted:
+What replaced it is the same shape one layer out. **The pricing page advertises
+$29 / $59 / $109 and the live Stripe account holds no price at any of those
+amounts**, so every headline plan refuses checkout. Nothing in this repository
+could see that either: the check that compares advertised amounts against live
+Stripe prices skips without `STRIPE_SECRET_KEY`, which is every CI run, and it
+used to exit 0 while skipping. It now takes `--require-live`, which makes not
+comparing a failure. That is step 5 in OWNER-STEPS.md and section 1 of
+`docs/owner/SETUP-STEP-BY-STEP.md`, and it is the first one to do.
+
+The six remaining steps are in `docs/owner/OWNER-STEPS.md`, written to be run
+rather than interpreted. The numbers below are that document's own, so items 3
+and 8 are absent: both are closed and kept there as records.
 
 | # | Step | Why it cannot be done here |
 | --- | --- | --- |
-| 1 | Buy a plan in production, once | Needs a real card on the live account |
+| 5 | Create three Stripe prices at $29 / $59 / $109 and repoint the variables | Needs the live Stripe account. **Do this first** — until it is done, no plan on the pricing page can be bought |
+| 1 | Buy a plan in production, once | Needs a real card on the live account, and is blocked behind item 5 |
 | 2 | Turn on Supabase leaked-password protection, and set the env var that makes it a gate | Dashboard toggle; the MCP connection is read-only by contract |
-| 3 | Export four authorization functions into version control | They exist in the live database and in no migration |
 | 4 | Try one `EXECUTE` revoke on a preview branch | Needs a database you can afford to break |
-| 5 | Make a private `sonara-uploads` bucket in Supabase Storage | A dashboard setting nothing here can read, and a public bucket would make every signed link pointless |
+| 6 | Make a private `sonara-uploads` bucket in Supabase Storage | A dashboard setting nothing here can read, and a public bucket would make every signed link pointless |
+| 7 | Enable Stripe Connect, so your customers can be paid | Accepting a platform agreement is a decision, not a setting |
 
 Nothing else is blocking a launch of what is built. `OWNER-STEPS.md` carries one
-further item below those four, deliberately unnumbered because it blocks nothing:
+further item below those six, deliberately unnumbered because it blocks nothing:
 asking HyperFormula's vendor for a price, which is the single open fact left from
 the reciprocal-licence decision of 18 August 2026.
 

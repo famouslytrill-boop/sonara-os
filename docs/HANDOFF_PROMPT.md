@@ -106,6 +106,96 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The pricing page advertises three plans that cannot be bought
+
+The owner asked for a step-by-step guide to installing the API keys and the
+Stripe pricing. Answering it required reading the live state rather than the
+documents, and the live state has a hole in it.
+
+`/pricing` advertises **One workspace $29, All three $59, Team $109**. Read from
+`acct_1TRSqj0dKtlEU3lA` in live mode on 8 September 2026, that account holds
+**thirteen prices in its entire history and none of them is $29, $59 or $109.**
+The closest are the three created on 13 August, charging $19 / $39 / $79.
+
+`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` fetches the price on
+every checkout and returns `price_mismatch` rather than creating the session, so
+nobody is charged the wrong amount. The cost is quieter: **every headline plan on
+the pricing page refuses checkout.** Only Free works. `/api/readiness` reports
+`checkout: enabled` throughout, because `enabled` is computed from "a price
+variable is set" and not from "a price that can be sold".
+
+## The check that would have caught it exits 0 when it does not run
+
+`scripts/verify-stripe-env.mjs` compares every advertised amount against the
+live Stripe price, and it is the only thing that does. It skips without
+`STRIPE_SECRET_KEY`, which is every CI run — **and it exited 0 while skipping.**
+Both `docs/owner/OWNER-STEPS.md` and `docs/owner/PRICE-CUTOVER-RUNBOOK.md`
+compensated with prose: "read the last line rather than the exit code". That is
+a check whose correctness depends on somebody reading carefully, which is the
+same as not having one.
+
+It now takes `--require-live`. With the flag, three things become failures
+rather than skips: no key; a plan on the page with no price id (a
+`hiddenUntilBuyable` plan is still allowed to have none, matching how
+`lib/sonara-readiness.cjs` reports it as deferred); and a run that compared no
+live price at all, which is the guard against measuring nothing.
+
+**Verified by failing it.** Without a key, `--require-live` exits 1 naming
+`STRIPE_SECRET_KEY`; with a syntactically valid but unusable key it names each
+offered plan and stays silent about all three annual plans. Without the flag it
+still exits 0 and prints the same honest `[SKIP]`, so the release chain is
+unchanged.
+
+## The instruction that produced it is fixed, not just annotated
+
+`OWNER-STEPS.md` item 5 was written on 19 August, when the plans cost
+$19 / $39 / $79, and it names those price ids in a table under "set each
+variable above to its price id". Correct that day. When the amounts moved on
+6 September the ids stopped matching, and the instruction still read like a
+current one. It has been rewritten as "create three prices at the amounts the
+page now advertises", with the August table kept and labelled as a record.
+
+## Two other checks that name things that have retired
+
+Both found while reading the same paths, both the exemption-whose-reason-expired
+shape:
+
+- `scripts/smoke-live-routes.mjs` required `starter_monthly`, `core_monthly` and
+  `pro_monthly` to be `checkout: enabled` on the live site. Those three left the
+  pricing page on 6 September, and runbook step 7 archives their prices — after
+  which this check goes red for a correct site. **Falsified both ways** against a
+  local server serving crafted readiness payloads: the old assertion fails on the
+  post-archive payload and the new one passes, while an absent `checkoutPlans`,
+  a closed free plan and a payload where nothing is buyable each fail by name.
+- The same file asserted `googleOAuth === "deferred"` with the message "should
+  remain explicitly deferred **until configured**". It cannot become configured:
+  the value is a string literal in `lib/sonara-readiness.cjs` and no route reads
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` or `GOOGLE_REDIRECT_URI`. The
+  message said something the code cannot do; only the message was wrong, so only
+  the message changed. Worth knowing for the owner: `missing.googleOAuth`
+  listing `GOOGLE_REDIRECT_URI` is not a task, and setting it would make the
+  payload claim a capability that does not exist.
+
+## And a comment recommending prices nobody should create
+
+`lib/sonara-stripe-plans.cjs` said "Two months free -- $190, $390 and $790
+against $228, $468 and $948 paid monthly" directly above a table holding $290,
+$590 and $1090. Those are the figures for the $19/$39/$79 ladder. Somebody
+creating the annual Stripe prices reads the comment. The figures are gone; the
+ratio is stated instead, and
+`tests/an-annual-plan-opens-what-its-monthly-twin-opens.test.js` already fails if
+any annual amount stops being ten months of its twin.
+
+## What the owner gets
+
+`docs/owner/SETUP-STEP-BY-STEP.md`, dated and read from the live site, the live
+Stripe account and this repository. Section 1 is the recovery in four steps;
+section 2 is what is genuinely still open; sections 3 to 5 are the reference for
+every key. `WHAT-IS-LEFT.md` and `OWNER-STEPS.md` are reconciled with it — item 8
+(production serving 5 August code) is closed, run #134 having been the first
+end-to-end green deployment since #110, and the step counts in both documents now
+agree with the headings they describe.
+
 ### 2026-09-08 - The pricing page was checked against a survey that had been superseded
 
 The live pricing page quoted the **August** competitor survey — "$39 for the

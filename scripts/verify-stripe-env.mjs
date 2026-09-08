@@ -83,14 +83,38 @@ else fail("no Stripe webhook signature verification found in server.js");
 const secret = process.env.STRIPE_SECRET_KEY;
 const isPlaceholder = (value) => !value || /^(?:changeme|placeholder|your[_-]|xxx|todo)/i.test(value) || value.includes("...");
 
+// --require-live turns every reason this script has for not comparing into a
+// failure, so the run's exit code means what its last line says.
+//
+// Without it the online half skips and the script exits 0, and both
+// docs/owner/OWNER-STEPS.md and docs/owner/PRICE-CUTOVER-RUNBOOK.md have to
+// tell the owner to "read the last line rather than the exit code". That
+// instruction was followed exactly as written and the thing it guards against
+// happened anyway: on 8 September 2026 the live pricing page advertised
+// $29/$59/$109 while acct_1TRSqj0dKtlEU3lA held no price at any of those
+// amounts, so every headline plan refused checkout with `price_mismatch`. A
+// green run had been recorded before the cutover and told nobody.
+//
+// So the cutover step is now a command that fails rather than a paragraph
+// somebody has to read carefully.
+const requireLive = process.argv.includes("--require-live");
+
 if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
-  skip("STRIPE_SECRET_KEY is not set, so live prices cannot be compared. Verify the amounts by hand -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md.");
+  const message = "STRIPE_SECRET_KEY is not set, so live prices cannot be compared. Verify the amounts by hand -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md.";
+  if (requireLive) fail(`${message} --require-live was passed, so not comparing is a failure.`);
+  else skip(message);
 } else {
   for (const [plan, config] of paidPlans) {
     const priceId = [config.env, ...(config.envAliases || [])].map((name) => process.env[name]).find((value) => value && value.startsWith("price_"));
 
     if (!priceId) {
-      skip(`${plan} has no Stripe price configured yet, so it cannot be sold and there is nothing to compare`);
+      // A plan the page deliberately does not show yet is allowed to have no
+      // price; a plan on the page is not. hiddenUntilBuyable is the same flag
+      // lib/sonara-readiness.cjs uses to report a price as deferred rather than
+      // missing, so the two agree about which absences are intended.
+      const message = `${plan} has no Stripe price configured yet, so it cannot be sold and there is nothing to compare`;
+      if (requireLive && !config.hiddenUntilBuyable) fail(`${message}. It is offered on the pricing page, so --require-live treats that as unfinished.`);
+      else skip(message);
       continue;
     }
 
@@ -165,6 +189,13 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
     comparedLivePrices = true;
     ok(`${plan}: Stripe charges exactly what the pricing page advertises`);
   }
+}
+
+// The guard against measuring nothing. Every claim above is satisfied by a run
+// that compared no prices at all, so under --require-live the population is
+// asserted before the exit code is decided.
+if (requireLive && !comparedLivePrices) {
+  fail("--require-live was passed and no live price was compared, so this run proves nothing about what Stripe charges");
 }
 
 if (failed) {
