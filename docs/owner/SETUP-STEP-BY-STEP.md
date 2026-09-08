@@ -101,8 +101,25 @@ to a deployment that is already running. Redeploy afterwards.**
 **Step 3. Prove the amounts agree, with the key present.**
 
 ```
-STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live
+STRIPE_SECRET_KEY=rk_live_... node scripts/verify-stripe-env.mjs --require-live
 ```
+
+**Use a restricted key, not your live secret key.** This script makes one kind
+of call — `GET /v1/prices/{id}` — so a Stripe **restricted key** with read
+access to Prices is enough. Create one at Developers → API keys → Create
+restricted key, grant *Prices: read*, and grant nothing else. A restricted key
+that leaks cannot charge anybody, refund anybody, or read a customer.
+
+The variable is still named `STRIPE_SECRET_KEY`, because that is what the code
+reads; the value can be `rk_...` or `sk_...`.
+
+**The same key is what the deployment needs.** The controlled production
+deployment runs this check as step 26 of 32, so add that restricted key to the
+repository's protected GitHub environment as `STRIPE_SECRET_KEY`
+(Settings → Environments → the production environment → Add secret). Until it is
+there, every deployment fails at that step — deliberately: a deployment that
+cannot prove it charges what it advertises is what shipped the September
+mismatch.
 
 `--require-live` was added on 8 September 2026 and is the point of this whole
 section. Without it the script skips the live comparison when there is no key

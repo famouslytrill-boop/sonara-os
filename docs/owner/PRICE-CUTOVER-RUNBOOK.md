@@ -146,7 +146,7 @@ Vercel does not apply environment changes to a running deployment. **Redeploy.**
 ### 4. Prove the amounts agree, with the key present
 
 ```
-STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live
+STRIPE_SECRET_KEY=rk_live_... node scripts/verify-stripe-env.mjs --require-live
 ```
 
 This is the step that catches the 13 August prices. **It was skipped on the real

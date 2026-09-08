@@ -99,8 +99,30 @@ const isPlaceholder = (value) => !value || /^(?:changeme|placeholder|your[_-]|xx
 // somebody has to read carefully.
 const requireLive = process.argv.includes("--require-live");
 
-if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
-  const message = "STRIPE_SECRET_KEY is not set, so live prices cannot be compared. Verify the amounts by hand -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md.";
+// `rk_` is accepted as well as `sk_`, and that is the point rather than a
+// loosening.
+//
+// Everything this script does with the key is one call: GET /v1/prices/{id}.
+// A Stripe *restricted* key with read access to Prices covers it, and a
+// restricted key that leaks cannot charge anybody, refund anybody, or read a
+// customer. Requiring `sk_` meant the only key that worked here was the one
+// that can do everything -- and this now runs inside
+// .github/workflows/controlled-production-deploy.yml, so that was a full
+// live secret key sitting in CI to perform three reads.
+//
+// Rejecting `rk_` was also silent in the worst way: a restricted key fell into
+// the branch below and was reported as "STRIPE_SECRET_KEY is not set", sending
+// somebody to set a variable they had already set.
+const looksLikeStripeKey = /^(?:sk|rk)_/.test(String(secret || ""));
+
+if (!isPlaceholder(secret) && !looksLikeStripeKey) {
+  // Present, and not a Stripe API key. A third state, and neither of the two
+  // messages below describes it. The value is never printed.
+  const message = "STRIPE_SECRET_KEY is set but does not look like a Stripe API key (sk_... or rk_...), so live prices cannot be compared.";
+  if (requireLive) fail(`${message} --require-live was passed, so not comparing is a failure.`);
+  else skip(message);
+} else if (isPlaceholder(secret) || !looksLikeStripeKey) {
+  const message = "STRIPE_SECRET_KEY is not set, so live prices cannot be compared. Verify the amounts by hand -- see docs/pricing/2026-07-28-COMPETITOR-PRICING.md. A restricted key (rk_...) with read access to Prices is enough; this script only reads prices.";
   if (requireLive) fail(`${message} --require-live was passed, so not comparing is a failure.`);
   else skip(message);
 } else {

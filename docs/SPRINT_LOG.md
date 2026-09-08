@@ -2,6 +2,39 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - A read-only key is enough, and requiring a full one was silent about it
+
+The owner asked me to add `STRIPE_SECRET_KEY` to GitHub. I cannot, and should
+not: creating a GitHub Actions secret means holding the plaintext to encrypt it,
+so doing it here would put a live Stripe key into a chat transcript. That step
+stays with the owner.
+
+What could be fixed is what they are about to put there. The check makes exactly
+one kind of call, `GET /v1/prices/{id}`, so a Stripe **restricted key** with
+read access to Prices covers it -- and a restricted key that leaks cannot charge
+anybody, refund anybody, or read a customer. Requiring `sk_` meant the only key
+that worked was the one that can do everything, which now had to sit in CI to
+perform three reads.
+
+**And the rejection was silent in the worst way.** A restricted key starts
+`rk_`, fell into the not-a-key branch, and was reported as
+`STRIPE_SECRET_KEY is not set` -- sending somebody to set a variable they had
+already set. Under `--require-live` that is a failed deployment with a message
+naming the wrong cause.
+
+Three states now, where there were two: absent, present-but-not-a-Stripe-key,
+and usable. The value is never printed in any of them. The no-key message also
+names the least-privilege option, because otherwise the full secret key is the
+only one anybody hears about.
+
+`tests/a-read-only-key-is-enough-to-check-a-price.test.js` runs the script as a
+subprocess across all three. **Falsified** by reverting the pattern to `sk_`
+only: the restricted-key case fails by name. Reaching a 401 from Stripe is the
+assertion in that case -- it proves the key was accepted rather than dismissed.
+
+`SETUP-STEP-BY-STEP.md` and the cutover runbook now say `rk_live_...`, name the
+Stripe screen that issues one, and say where in GitHub it goes.
+
 ### 2026-09-08 - The deploy now proves the price before it ships it
 
 The owner repointed the three Vercel variables at the new price ids and asked
