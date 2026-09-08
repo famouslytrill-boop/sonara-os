@@ -2,6 +2,34 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The module-level version of that gap has nothing in it
+
+The entry below records a gap and says it was not closed: the module report
+counts `tests/` as referencers, so a lib module only its own test requires reads
+as referenced.
+
+Measured rather than assumed. Two modules are referenced by tests and by neither
+runtime nor scripts, and **both are correct**:
+
+- `lib/sonara-form-reachability.cjs` -- a measurement three tests share. Test
+  infrastructure that lives in `lib/` on purpose.
+- `lib/sonara-supabase-clients.cjs` -- deliberately not yet wired. It is the
+  machinery for moving off the service-role key, and
+  `tests/the-revoke-reasoning-is-still-true.test.js` reasons about it explicitly,
+  down to what its deletion would mean.
+
+So no runtime-versus-test tier was added. It would carry two permanent
+exemptions and catch nothing, and a gate whose entire population is exemptions
+only makes noise. The measurement is written into the report's own header so the
+next person can read it instead of repeating it.
+
+Worth separating the two halves of that gap, because only one of them was real.
+At **function** level it hid 108 lines of homepage and a 14-line status panel,
+and that half is now checked by
+`scripts/report-uncalled-factory-functions.mjs`. At **module** level it hides
+nothing today. Same-sounding gap, opposite answers, and the difference is only
+visible by counting.
+
 ### 2026-09-08 - A check for the dead code no check could see
 
 The dead homepage in the entry below was found by accident. This is the check

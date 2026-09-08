@@ -22,6 +22,34 @@
 // something staged behind a flag, or a file kept deliberately -- and the
 // allowlist below takes those with a reason attached, which is the part that
 // stops the list becoming a place to hide things.
+//
+// ## Tests count as referencers here, and that was measured rather than assumed
+//
+// The searched set below includes tests/, so a module only its own test
+// requires reads as referenced. That is a real gap in principle: a lib module
+// nothing in the product uses is dead whatever its tests do, and it is exactly
+// the shape that hid 108 lines of homepage from this report (see
+// scripts/report-uncalled-factory-functions.mjs, which covers the function-level
+// version of it).
+//
+// Measured on 8 September 2026, the module-level version of that gap has **no
+// defects in it**. Two modules are referenced by tests and by neither runtime
+// nor scripts, and both are correct:
+//
+//   lib/sonara-form-reachability.cjs   -- a measurement three tests share. Test
+//                                         infrastructure that lives in lib/ on
+//                                         purpose.
+//   lib/sonara-supabase-clients.cjs    -- deliberately not yet wired. It is the
+//                                         machinery for moving off the
+//                                         service-role key, and
+//                                         tests/the-revoke-reasoning-is-still-true.test.js
+//                                         reasons about it explicitly, including
+//                                         what its deletion would mean.
+//
+// So no runtime-versus-test tier was added. It would carry two permanent
+// exemptions and catch nothing, and a gate whose entire population is
+// exemptions is a gate that only makes noise. This note is here so the next
+// person can see the measurement rather than repeat it.
 
 import fs from "node:fs";
 import path from "node:path";
