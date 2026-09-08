@@ -2,6 +2,82 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - Serverless AI and a second database, and the env check that could not see either
+
+The owner asked to install software for running complex systems, databases and
+AI serverlessly, and chose the Cloudflare route over self-hosting. Two adapters,
+built on the existing base: **Workers AI** for inference and **D1** for SQL.
+
+Both are hosted APIs, which inverts this family's premise -- every previous
+adapter talks to something the owner runs, which is why they all carry the
+loopback-on-serverless check. They use the same base anyway, because placeholder
+rejection, bounded timeouts, a token that cannot reach a page and an error
+message that never carries the URL are not about where a service runs.
+
+Neither is a licence question; no Cloudflare code ships here. Both are a price,
+which `CLAUDE.md` treats with the same weight, so both are off by default and
+neither may become a launch dependency.
+
+## D1 refuses to become a second source of truth
+
+This product's entire tenant boundary is `organization_id` filtering against
+Supabase, because the service-role key bypasses row-level security. A customer
+row in a second database is a customer row outside the only boundary there is.
+
+So `derivedOnlyViolation` refuses any statement naming a table the migrations
+create -- both `TENANT_SCOPED_TABLES` and `GLOBAL_TABLES`, read from the
+generated list rather than typed -- plus SQL comments and any second statement.
+It over-refuses on purpose. **Falsified three ways**: emptying the reserved set
+trips the gone-blind guard, dropping the statement check fails the batch test,
+and widening the model-id pattern to `/.*/ ` lets `../../user/tokens` through
+and fails by name.
+
+The test also caught a guard that could not fire: `query(sql, params = [])`
+meant a caller who *forgot* params got an empty array and sailed past the check
+written to catch exactly them. The default is gone.
+
+## The environment check had never seen a single adapter variable
+
+`pnpm run verify:env` reported "82 variables read by the code, all classified".
+It could not see one variable belonging to any adapter. Every adapter names its
+variables through `base.envKeysFor(PREFIX, [...])`, which builds them by
+concatenation, so no pass matching string literals could ever find one.
+
+Adding a pass for that shape surfaced **44 unclassified variables across ten
+adapters** in a single run -- 35 of them years older than this change. All 44
+are now classified, and the pass carries the non-empty guard the file's three
+earlier passes established. Its first version matched only a literal prefix,
+found zero, and said so, which is what that guard is for.
+
+## And the reverse direction of that check had been dead
+
+Worse, and found by probing rather than by reading. `verify-env.mjs` excludes
+itself from its own scan, because the string-literal pass matches any classified
+name it finds -- so a file holding the lists makes every name in them count as
+"used", and the stale-name check can never fire.
+
+**It excluded one path, and the lists had moved.** They now live in
+`lib/sonara-environment-classification.cjs`, so this gate and the owner's key
+guide read one list, and `lib/` is scanned. From that move until today, every
+classified name matched itself and the reverse direction was dead.
+
+Proven both ways: classify `SONARA_INVENTED_NEVER_READ`, which nothing reads.
+With the exclusion as it was, a clean run reported **127 variables "read by the
+code"**. With both files excluded, it errors by name. The comment above it read
+"Verified by renaming an entry and watching the stale error appear" -- true when
+written, and quietly false since. That is the exemption-whose-reason-expired
+shape inside the check written to prevent it.
+
+## A tenth adapter nobody had registered
+
+`tests/service-adapters.test.js` asserted `ADAPTERS.length === 7` under the
+message "an adapter was added without being added here", while
+`lib/sonara-voice-clone-adapter.cjs` sat in the same folder registered nowhere.
+A hand-typed count is updated by the person who remembers, and the person who
+forgets to register an adapter is the person who forgets. The count is now read
+from `lib/`, so an adapter file that is not listed fails the test -- verified by
+unregistering one and watching it name the file.
+
 ### 2026-09-08 - The pricing page advertises three plans that cannot be bought
 
 The owner asked for a step-by-step guide to installing the API keys and the

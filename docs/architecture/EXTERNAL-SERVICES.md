@@ -5,6 +5,32 @@ governs all of them.
 
 ---
 
+## Two of them are not services you run
+
+Added 8 September 2026. Cloudflare Workers AI and Cloudflare D1 join this family
+and invert its premise: they are hosted APIs on a public hostname, reachable
+from a Vercel function with nothing tunnelled and nothing hosted. The constraint
+below does not apply to them, and they use the same base anyway, because
+placeholder rejection, bounded timeouts, a token that cannot reach a page and an
+error message that never carries the URL are not about where a service runs.
+
+What does apply to them is the cost rule. `CLAUDE.md`: a hosted service with a
+free tier is a price, not a licence, and a shipped feature resting on one stops
+working when the tier changes -- which is the vendor's decision, not this
+project's. So they obey the same four rules: off by default, never a dependency,
+never render their configuration, and validate anything that becomes part of a
+request.
+
+**D1 carries one rule the others do not need.** Supabase is the system of
+record, and this product's entire tenant boundary is `organization_id` filtering
+against it, because the service-role key bypasses row-level security. A customer
+row in a second database is a customer row outside the only boundary there is.
+So `lib/sonara-d1-adapter.cjs` refuses any statement naming a table the
+migrations create -- tenant-scoped or global, read out of
+`lib/sonara-tenant-scoped-tables.cjs` rather than listed by hand. D1 is for
+derived data: counters, caches, rollups, things whose loss costs a
+recomputation. The refusal over-reaches, and that is the direction to fail in.
+
 ## The constraint
 
 This application deploys to Vercel as serverless functions. Every service in

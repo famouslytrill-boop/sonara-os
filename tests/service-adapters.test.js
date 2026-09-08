@@ -1,6 +1,8 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const base = require("../lib/sonara-service-adapter.cjs");
 const langflow = require("../lib/sonara-langflow-adapter.cjs");
 const openWebUi = require("../lib/sonara-open-webui-adapter.cjs");
@@ -9,6 +11,9 @@ const ollama = require("../lib/sonara-ollama-adapter.cjs");
 const dify = require("../lib/sonara-dify-adapter.cjs");
 const ragflow = require("../lib/sonara-ragflow-adapter.cjs");
 const whisper = require("../lib/sonara-whisper-adapter.cjs");
+const workersAi = require("../lib/sonara-workers-ai-adapter.cjs");
+const d1 = require("../lib/sonara-d1-adapter.cjs");
+const voiceClone = require("../lib/sonara-voice-clone-adapter.cjs");
 
 const saved = {};
 function setEnv(values) {
@@ -26,7 +31,22 @@ const ADAPTERS = [
   { name: "Crawl4AI", keys: crawl.ENV_KEYS, readiness: (o) => crawl.getCrawl4aiReadiness(o), extras: {} },
   { name: "Dify", keys: dify.ENV_KEYS, readiness: (o) => dify.getDifyReadiness(o), extras: { key: "secret-key-value" }, secrets: ["key"] },
   { name: "RAGFlow", keys: ragflow.ENV_KEYS, readiness: (o) => ragflow.getRagflowReadiness(o), extras: { dataset: "ds-1", key: "secret-key-value" }, secrets: ["key"] },
-  { name: "Whisper", keys: whisper.ENV_KEYS, readiness: (o) => whisper.getWhisperReadiness(o), extras: {} }
+  { name: "Whisper", keys: whisper.ENV_KEYS, readiness: (o) => whisper.getWhisperReadiness(o), extras: {} },
+  {
+    name: "Workers AI",
+    keys: workersAi.ENV_KEYS,
+    readiness: (o) => workersAi.getWorkersAiReadiness(o),
+    extras: { account: "0123456789abcdef0123456789abcdef", model: "@cf/meta/llama-3.1-8b-instruct", token: "secret-key-value" },
+    secrets: ["token"]
+  },
+  { name: "Voice clone", keys: voiceClone.ENV_KEYS, readiness: (o) => voiceClone.getVoiceCloneReadiness(o), extras: { token: "secret-key-value" }, secrets: ["token"] },
+  {
+    name: "D1",
+    keys: d1.ENV_KEYS,
+    readiness: (o) => d1.getD1Readiness(o),
+    extras: { account: "0123456789abcdef0123456789abcdef", database: "3f1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d", token: "secret-key-value" },
+    secrets: ["token"]
+  }
 ];
 
 describe("every external service adapter", () => {
@@ -39,7 +59,26 @@ describe("every external service adapter", () => {
   });
 
   it("covers every adapter, so a new one cannot skip these rules", () => {
-    assert.equal(ADAPTERS.length, 7, "an adapter was added without being added here");
+    // Derived from the directory rather than typed.
+    //
+    // This assertion read `ADAPTERS.length === 7` and passed, while
+    // lib/sonara-voice-clone-adapter.cjs sat in the same folder registered
+    // nowhere -- an adapter added without being added here, which is the exact
+    // sentence the old failure message used. A hand-typed count cannot catch
+    // that: it is updated by the person who remembers to update it, and the
+    // person who forgets to register an adapter is the person who forgets.
+    //
+    // Reading lib/ makes the population the source. Adding an adapter file now
+    // fails this test until it is listed above.
+    const files = fs.readdirSync(path.join(__dirname, "..", "lib"))
+      .filter((name) => /-adapter\.cjs$/.test(name) && name !== "sonara-service-adapter.cjs");
+
+    assert.ok(files.length >= 8, `only ${files.length} adapter files found; this check has gone blind`);
+    assert.equal(
+      ADAPTERS.length,
+      files.length,
+      `lib/ holds ${files.length} adapters and ${ADAPTERS.length} are covered here: ${files.join(", ")}`
+    );
   });
 
   for (const adapter of ADAPTERS) {
