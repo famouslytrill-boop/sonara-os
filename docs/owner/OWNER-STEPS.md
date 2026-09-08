@@ -1,7 +1,12 @@
 # The steps only you can take
 
-Five of them, and two records of what is already closed. Each is written to be run, not interpreted — the SQL, the exact
-dashboard path, and how to tell whether it worked.
+Six of them, and two records of what is already closed — items 3 and 8. Each is
+written to be run, not interpreted: the SQL, the exact dashboard path, and how
+to tell whether it worked.
+
+**Start with item 5.** As of 8 September 2026 the pricing page advertises three
+plans that cannot be bought, because no Stripe price exists at the amounts it
+names. Item 1 is blocked behind it.
 
 Nothing in this list can be done from inside the repository, which is why it is
 a list rather than a commit. Everything that could be done from inside it has
@@ -247,16 +252,34 @@ Then tell me, and I will write whatever survived as a migration.
 
 ---
 
-## 5 — Set three variables in Vercel
+## 5 — Create three Stripe prices at the amounts the page now advertises
 
-**Checked against the live account on 19 August 2026, and most of this step was
-already done.** The prices exist. What is left is three environment variables.
+> **Rewritten 8 September 2026, because this step as previously written no
+> longer worked and following it exactly produced the live defect below.**
+>
+> The page advertises **$29 / $59 / $109**. The live account holds no price at
+> any of those amounts, so the three `STRIPE_PRICE_*_MONTHLY` variables cannot
+> be pointing at one, and **every headline plan on the pricing page refuses
+> checkout** — `assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs`
+> compares the Stripe amount against the advertised one and returns
+> `price_mismatch` rather than creating the session. Nobody is charged wrongly;
+> nobody can buy anything either.
+>
+> **What to do is in `docs/owner/SETUP-STEP-BY-STEP.md` section 1**, in four
+> steps. In short: create prices at $29, $59 and $109 on the existing products,
+> repoint the three variables, redeploy, then run
+> `STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live`.
+>
+> The table below is kept because the price ids in it are real and you will see
+> them in the dashboard. **It is a record of August, not an instruction.**
 
-### What is already in Stripe
+### What was in Stripe on 19 August 2026 — historical, do not set these
 
-Read from `acct_1TRSqj0dKtlEU3lA` in live mode. All three amounts match
-`lib/sonara-stripe-plans.cjs` exactly, and each product's description on Stripe
-matches the description in that file **verbatim**:
+Read from `acct_1TRSqj0dKtlEU3lA` in live mode. All three amounts matched
+`lib/sonara-stripe-plans.cjs` **as it stood on that date**, when the plans cost
+$19 / $39 / $79. Each product's description on Stripe matched the description in
+that file verbatim. The amounts moved on 6 September 2026 and these price ids
+did not, because a Stripe price is immutable:
 
 | Plan | Amount | Price id | Variable to set |
 | --- | --- | --- | --- |
@@ -274,19 +297,25 @@ three` and `— Team`.
 
 ### Do this
 
-In Vercel, for **Production**, set each variable above to its price id. That is
-the whole step.
+**Not what this section used to say.** Follow
+`docs/owner/SETUP-STEP-BY-STEP.md` section 1: create three new prices at $29,
+$59 and $109 on the existing products, set the three variables to the new price
+ids, and redeploy.
 
 ### How to tell it worked
 
 ```
-pnpm run verify:stripe
+STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live
 ```
 
 With `STRIPE_SECRET_KEY` present it fetches each price from Stripe and compares
-the amount against what the pricing page promises. Read the last line rather
-than the exit code: without the key it checks the offline half and says plainly
-that live prices were not compared.
+the amount against what the pricing page promises.
+
+`--require-live` is not optional here, and it is the lesson of this section.
+Without it the script skips the live comparison when there is no key **and
+exits 0 anyway**, so this step used to end with the instruction "read the last
+line rather than the exit code". Somebody did read it, and the mismatch shipped
+regardless. With the flag, every reason for not comparing is a failure.
 
 Once all three are set, the pricing page switches ladders on its own. Free /
 Starter $7 / Core $19 / Pro $39 drops off and Free / One workspace $19 / All
@@ -470,7 +499,30 @@ payment-redirection fraud — and that advice protects your customers only while
 it is always true. Connecting an account and collecting a payment are separate
 pieces of work; this is the first.
 
-## 8 — Production has been serving 5 August code, and the deploy is failing
+## 8 — Closed 8 September 2026
+
+**Production is serving current code.** `/api/health` reports commit `6f4c7b1`
+on branch `main`, which is the head of `main`. Controlled Production Deployment
+run **#134** was the first end-to-end green run since #110 on 5 August 2026: all
+30 substantive steps passed, and #135 landed the merge after it.
+
+Three separate causes had to be found and fixed, and each one was invisible to
+the check that should have caught it:
+
+- **Thirteen tables the migrations create and production did not have**, because
+  early migrations were marked applied rather than run when an existing database
+  was adopted into the CLI.
+- **Forty-eight tables with no `service_role` grant**, added after the 18 July
+  hardening and never declared, so PostgREST could not see them.
+- **`public.reviews`**, missing outright.
+
+The record of the diagnosis is kept below, because the shape of it recurs: a
+migration marked applied that never ran leaves a database that no replay against
+an empty PostgreSQL can detect. `pnpm run verify:migration-replay` now says that
+limit in its own output rather than leaving it to be inferred.
+
+<details>
+<summary>The original diagnosis, written 3 September 2026</summary>
 
 **This is the one that matters most, and it needs your database.**
 
@@ -678,6 +730,8 @@ limit is now stated in the command's own output rather than left to be inferred.
 
 The deploy workflow was honestly red for fourteen consecutive runs. Nothing was
 watching it.
+
+</details>
 
 ## Before any of the above: what has to be switched on
 

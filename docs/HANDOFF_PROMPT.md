@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 301 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 302 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,172 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-08 - Serverless AI and a second database, and the env check that could not see either
+
+The owner asked to install software for running complex systems, databases and
+AI serverlessly, and chose the Cloudflare route over self-hosting. Two adapters,
+built on the existing base: **Workers AI** for inference and **D1** for SQL.
+
+Both are hosted APIs, which inverts this family's premise -- every previous
+adapter talks to something the owner runs, which is why they all carry the
+loopback-on-serverless check. They use the same base anyway, because placeholder
+rejection, bounded timeouts, a token that cannot reach a page and an error
+message that never carries the URL are not about where a service runs.
+
+Neither is a licence question; no Cloudflare code ships here. Both are a price,
+which `CLAUDE.md` treats with the same weight, so both are off by default and
+neither may become a launch dependency.
+
+## D1 refuses to become a second source of truth
+
+This product's entire tenant boundary is `organization_id` filtering against
+Supabase, because the service-role key bypasses row-level security. A customer
+row in a second database is a customer row outside the only boundary there is.
+
+So `derivedOnlyViolation` refuses any statement naming a table the migrations
+create -- both `TENANT_SCOPED_TABLES` and `GLOBAL_TABLES`, read from the
+generated list rather than typed -- plus SQL comments and any second statement.
+It over-refuses on purpose. **Falsified three ways**: emptying the reserved set
+trips the gone-blind guard, dropping the statement check fails the batch test,
+and widening the model-id pattern to `/.*/ ` lets `../../user/tokens` through
+and fails by name.
+
+The test also caught a guard that could not fire: `query(sql, params = [])`
+meant a caller who *forgot* params got an empty array and sailed past the check
+written to catch exactly them. The default is gone.
+
+## The environment check had never seen a single adapter variable
+
+`pnpm run verify:env` reported "82 variables read by the code, all classified".
+It could not see one variable belonging to any adapter. Every adapter names its
+variables through `base.envKeysFor(PREFIX, [...])`, which builds them by
+concatenation, so no pass matching string literals could ever find one.
+
+Adding a pass for that shape surfaced **44 unclassified variables across ten
+adapters** in a single run -- 35 of them years older than this change. All 44
+are now classified, and the pass carries the non-empty guard the file's three
+earlier passes established. Its first version matched only a literal prefix,
+found zero, and said so, which is what that guard is for.
+
+## And the reverse direction of that check had been dead
+
+Worse, and found by probing rather than by reading. `verify-env.mjs` excludes
+itself from its own scan, because the string-literal pass matches any classified
+name it finds -- so a file holding the lists makes every name in them count as
+"used", and the stale-name check can never fire.
+
+**It excluded one path, and the lists had moved.** They now live in
+`lib/sonara-environment-classification.cjs`, so this gate and the owner's key
+guide read one list, and `lib/` is scanned. From that move until today, every
+classified name matched itself and the reverse direction was dead.
+
+Proven both ways: classify `SONARA_INVENTED_NEVER_READ`, which nothing reads.
+With the exclusion as it was, a clean run reported **127 variables "read by the
+code"**. With both files excluded, it errors by name. The comment above it read
+"Verified by renaming an entry and watching the stale error appear" -- true when
+written, and quietly false since. That is the exemption-whose-reason-expired
+shape inside the check written to prevent it.
+
+## A tenth adapter nobody had registered
+
+`tests/service-adapters.test.js` asserted `ADAPTERS.length === 7` under the
+message "an adapter was added without being added here", while
+`lib/sonara-voice-clone-adapter.cjs` sat in the same folder registered nowhere.
+A hand-typed count is updated by the person who remembers, and the person who
+forgets to register an adapter is the person who forgets. The count is now read
+from `lib/`, so an adapter file that is not listed fails the test -- verified by
+unregistering one and watching it name the file.
+
+### 2026-09-08 - The pricing page advertises three plans that cannot be bought
+
+The owner asked for a step-by-step guide to installing the API keys and the
+Stripe pricing. Answering it required reading the live state rather than the
+documents, and the live state has a hole in it.
+
+`/pricing` advertises **One workspace $29, All three $59, Team $109**. Read from
+`acct_1TRSqj0dKtlEU3lA` in live mode on 8 September 2026, that account holds
+**thirteen prices in its entire history and none of them is $29, $59 or $109.**
+The closest are the three created on 13 August, charging $19 / $39 / $79.
+
+`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` fetches the price on
+every checkout and returns `price_mismatch` rather than creating the session, so
+nobody is charged the wrong amount. The cost is quieter: **every headline plan on
+the pricing page refuses checkout.** Only Free works. `/api/readiness` reports
+`checkout: enabled` throughout, because `enabled` is computed from "a price
+variable is set" and not from "a price that can be sold".
+
+## The check that would have caught it exits 0 when it does not run
+
+`scripts/verify-stripe-env.mjs` compares every advertised amount against the
+live Stripe price, and it is the only thing that does. It skips without
+`STRIPE_SECRET_KEY`, which is every CI run — **and it exited 0 while skipping.**
+Both `docs/owner/OWNER-STEPS.md` and `docs/owner/PRICE-CUTOVER-RUNBOOK.md`
+compensated with prose: "read the last line rather than the exit code". That is
+a check whose correctness depends on somebody reading carefully, which is the
+same as not having one.
+
+It now takes `--require-live`. With the flag, three things become failures
+rather than skips: no key; a plan on the page with no price id (a
+`hiddenUntilBuyable` plan is still allowed to have none, matching how
+`lib/sonara-readiness.cjs` reports it as deferred); and a run that compared no
+live price at all, which is the guard against measuring nothing.
+
+**Verified by failing it.** Without a key, `--require-live` exits 1 naming
+`STRIPE_SECRET_KEY`; with a syntactically valid but unusable key it names each
+offered plan and stays silent about all three annual plans. Without the flag it
+still exits 0 and prints the same honest `[SKIP]`, so the release chain is
+unchanged.
+
+## The instruction that produced it is fixed, not just annotated
+
+`OWNER-STEPS.md` item 5 was written on 19 August, when the plans cost
+$19 / $39 / $79, and it names those price ids in a table under "set each
+variable above to its price id". Correct that day. When the amounts moved on
+6 September the ids stopped matching, and the instruction still read like a
+current one. It has been rewritten as "create three prices at the amounts the
+page now advertises", with the August table kept and labelled as a record.
+
+## Two other checks that name things that have retired
+
+Both found while reading the same paths, both the exemption-whose-reason-expired
+shape:
+
+- `scripts/smoke-live-routes.mjs` required `starter_monthly`, `core_monthly` and
+  `pro_monthly` to be `checkout: enabled` on the live site. Those three left the
+  pricing page on 6 September, and runbook step 7 archives their prices — after
+  which this check goes red for a correct site. **Falsified both ways** against a
+  local server serving crafted readiness payloads: the old assertion fails on the
+  post-archive payload and the new one passes, while an absent `checkoutPlans`,
+  a closed free plan and a payload where nothing is buyable each fail by name.
+- The same file asserted `googleOAuth === "deferred"` with the message "should
+  remain explicitly deferred **until configured**". It cannot become configured:
+  the value is a string literal in `lib/sonara-readiness.cjs` and no route reads
+  `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` or `GOOGLE_REDIRECT_URI`. The
+  message said something the code cannot do; only the message was wrong, so only
+  the message changed. Worth knowing for the owner: `missing.googleOAuth`
+  listing `GOOGLE_REDIRECT_URI` is not a task, and setting it would make the
+  payload claim a capability that does not exist.
+
+## And a comment recommending prices nobody should create
+
+`lib/sonara-stripe-plans.cjs` said "Two months free -- $190, $390 and $790
+against $228, $468 and $948 paid monthly" directly above a table holding $290,
+$590 and $1090. Those are the figures for the $19/$39/$79 ladder. Somebody
+creating the annual Stripe prices reads the comment. The figures are gone; the
+ratio is stated instead, and
+`tests/an-annual-plan-opens-what-its-monthly-twin-opens.test.js` already fails if
+any annual amount stops being ten months of its twin.
+
+## What the owner gets
+
+`docs/owner/SETUP-STEP-BY-STEP.md`, dated and read from the live site, the live
+Stripe account and this repository. Section 1 is the recovery in four steps;
+section 2 is what is genuinely still open; sections 3 to 5 are the reference for
+every key. `WHAT-IS-LEFT.md` and `OWNER-STEPS.md` are reconciled with it — item 8
+(production serving 5 August code) is closed, run #134 having been the first
+end-to-end green deployment since #110, and the step counts in both documents now
+agree with the headings they describe.
 
 ### 2026-09-08 - The pricing page was checked against a survey that had been superseded
 

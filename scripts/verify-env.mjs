@@ -57,22 +57,45 @@ function walk(directory) {
 // unrelated constant cannot be mistaken for an environment variable.
 const candidateNames = new Set([...REQUIRED, ...PLATFORM_PROVIDED, ...OPTIONAL_CAPABILITY, ...RATCHET, ...DEVELOPMENT_ONLY]);
 
-// This file is excluded from its own scan.
+// Wherever the classification is written is excluded from the scan.
 //
-// It lives under scripts/, and the string-literal pass matches any classified
-// name it finds -- so every name in the lists above counted as "used" purely by
-// being listed, and the stale-name check could never fire. That is the exact
-// check that would have caught STRIPE_PRICE_STARTER, quietly answering its own
-// question. Verified by renaming an entry and watching the stale error appear.
-const SELF = path.join(root, "scripts", "verify-env.mjs");
+// The string-literal pass matches any classified name it finds, so a file
+// holding the lists makes every name in them count as "used" purely by being
+// listed, and the stale-name check can never fire. That is the exact check that
+// would have caught STRIPE_PRICE_STARTER, quietly answering its own question.
+//
+// **This was one path, and it had become the wrong one.** It named
+// scripts/verify-env.mjs, which is where the lists used to live. They moved to
+// lib/sonara-environment-classification.cjs so this gate and the owner's key
+// guide could read one list -- and lib/ is scanned. From that move until
+// 8 September 2026 every classified name matched itself in that file and the
+// reverse direction was dead. Verified by classifying SONARA_INVENTED_NEVER_READ,
+// which nothing reads: a clean run reported 127 variables "read by the code".
+//
+// The comment here used to end "Verified by renaming an entry and watching the
+// stale error appear". That was true when written and had quietly stopped being
+// true, which is the exemption-whose-reason-expired shape from
+// .claude/skills/checks-that-cannot-lie -- inside the check written to prevent
+// it.
+//
+// Both files are excluded now. The classification module reads no environment
+// variable of its own, so excluding it costs no coverage; this file must stay
+// excluded because the comments above name example variables that would
+// otherwise be scanned as real ones.
+const EXCLUDED_FROM_SCAN = new Set([
+  path.join(root, "scripts", "verify-env.mjs"),
+  path.join(root, "lib", "sonara-environment-classification.cjs")
+].map((file) => path.resolve(file)));
 
 const files = [...SOURCE_FILES.map((name) => path.join(root, name)), ...SOURCE_DIRS.flatMap((dir) => walk(path.join(root, dir)))]
-  .filter((file) => path.resolve(file) !== SELF);
+  .filter((file) => !EXCLUDED_FROM_SCAN.has(path.resolve(file)));
 const used = new Set();
 // Names only the constant-resolving pass below can see. Asserted non-empty:
 // if it finds nothing, either the shape has left the codebase or the pass has
 // stopped matching, and those two look identical from in here.
 const resolvedThroughConstant = new Set();
+// Names only the adapter-prefix pass can see, guarded the same way.
+const resolvedThroughAdapterPrefix = new Set();
 for (const file of files) {
   const source = fs.readFileSync(file, "utf8");
     const constantNames = new Map();
@@ -155,6 +178,45 @@ for (const match of source.matchAll(/process\.env\.([A-Z][A-Z0-9_]{2,})/g)) used
   for (const match of source.matchAll(/\benvAliases:\s*\[([^\]]*)\]/g)) {
     for (const alias of match[1].matchAll(/["'`]([A-Z][A-Z0-9_]{2,})["'`]/g)) used.add(alias[1]);
   }
+
+  // The same hole a fourth time, and the widest of them.
+  //
+  // Every external service adapter names its variables through
+  // envKeysFor(PREFIX, ["model", "key"]), which builds PREFIX_ENABLED,
+  // PREFIX_URL, PREFIX_TIMEOUT_MS, PREFIX_MODEL and PREFIX_KEY by
+  // concatenation. None of those five strings exists anywhere in the source, so
+  // not one of the passes above could see them -- and this check reported
+  // "82 variables read by the code, all classified" while all 44 variables
+  // belonging to all ten adapters were read by the code and classified by
+  // nothing.
+  //
+  // That is the shape this file already documents three times: a scan reporting
+  // on the population it can see and calling it the population. The adapters
+  // were the largest group hiding in it, and they hid because the helper that
+  // makes a new adapter safe to write is the same helper that makes its
+  // variables invisible here.
+  //
+  // The prefix is written both ways -- as a literal in the base module's doc
+  // comment, and as the file-level constant in every real adapter. The first
+  // version of this pass matched only the literal form and found zero, caught
+  // immediately by the non-empty guard below. That guard is why the pass is
+  // trustworthy rather than merely present.
+  //
+  // The three unsuffixed keys are the contract in lib/sonara-service-adapter.cjs
+  // and are synthesised for every prefix; the extras come from the call.
+  for (const match of source.matchAll(/envKeysFor\(\s*(?:["'`]([A-Z][A-Z0-9_]{2,})["'`]|([A-Za-z_$][\w$]*))\s*(?:,\s*\[([^\]]*)\])?/g)) {
+    const prefix = match[1] || constantNames.get(match[2]);
+    if (!prefix) continue;
+    for (const suffix of ["ENABLED", "URL", "TIMEOUT_MS"]) {
+      used.add(`${prefix}_${suffix}`);
+      resolvedThroughAdapterPrefix.add(`${prefix}_${suffix}`);
+    }
+    for (const extra of (match[3] || "").matchAll(/["'`]([A-Za-z][A-Za-z0-9_]*)["'`]/g)) {
+      const name = `${prefix}_${extra[1].toUpperCase()}`;
+      used.add(name);
+      resolvedThroughAdapterPrefix.add(name);
+    }
+  }
 }
 
 const errors = [];
@@ -170,6 +232,12 @@ if (used.size < 30) errors.push(`only ${used.size} environment variables found i
 // means the shape has left the codebase or the pass has stopped matching, and
 // from in here those are indistinguishable -- so it stops rather than reporting
 // a clean scan over a form it can no longer see.
+if (resolvedThroughAdapterPrefix.size < 20) {
+  errors.push(
+    `only ${resolvedThroughAdapterPrefix.size} environment variables were reached through envKeysFor(); ` +
+      "there were 44 across ten adapters when this pass was written, so it has stopped matching rather than the shape having gone"
+  );
+}
 if (resolvedThroughConstant.size === 0) {
   errors.push(
     "no environment variable was reached through a constant-bound identifier; " +

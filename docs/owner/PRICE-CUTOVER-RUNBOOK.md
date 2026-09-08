@@ -8,6 +8,30 @@ is live now to what the code already holds.
 
 ---
 
+## What actually happened, added 8 September 2026
+
+**Steps 1, 3 and 5 were done. Step 2 was not, and step 4 was not.** The code
+deployed, the three monthly variables were set, and the pricing page swapped
+ladders — it now advertises $29 / $59 / $109 and no longer offers Starter, Core
+or Pro. But no Stripe price at $29, $59 or $109 was ever created: read from
+`acct_1TRSqj0dKtlEU3lA` on 8 September 2026, the account holds thirteen prices
+in its entire history and the closest are the 13 August three at $19 / $39 / $79.
+
+So the three variables point at prices charging the old amounts, and
+`assertPriceMatchesAdvertised` in `lib/sonara-billing.cjs` refuses every
+checkout with `price_mismatch`. Nobody is charged the wrong amount. Nobody can
+buy anything either.
+
+**This is exactly the trap named under "The trap, stated before the steps"
+below, and step 4 is the step that catches it.** Step 4 did not run, and without
+`STRIPE_SECRET_KEY` the script skipped the comparison and exited 0 — so nothing
+reported a problem. `--require-live` was added on 8 September 2026 to make that
+impossible; step 4 below now uses it.
+
+`docs/owner/SETUP-STEP-BY-STEP.md` section 1 is the recovery, in four steps.
+
+---
+
 ## Where this starts
 
 Read from the live site and the repository on 6 September 2026, not recalled.
@@ -122,12 +146,18 @@ Vercel does not apply environment changes to a running deployment. **Redeploy.**
 ### 4. Prove the amounts agree, with the key present
 
 ```
-STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs
+STRIPE_SECRET_KEY=sk_live_... node scripts/verify-stripe-env.mjs --require-live
 ```
 
-This is the step that catches the 13 August prices. Without the key it prints
+This is the step that catches the 13 August prices. **It was skipped on the real
+cutover and the 13 August prices went live behind the new page** — see the top
+of this document.
+
+Without the key the script prints
 `[SKIP] STRIPE_SECRET_KEY is not set, so live prices cannot be compared` and
-passes, which is not the same as agreeing.
+passes, which is not the same as agreeing. `--require-live` turns that skip, and
+every other reason for not comparing, into a failure — so the exit code means
+what the last line says, and this step can no longer be passed by not running.
 
 Expect one `[OK] … Stripe charges exactly what the pricing page advertises` per
 plan. Anything else stops the cutover.
