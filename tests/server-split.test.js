@@ -559,7 +559,12 @@ describe("the server.js split stays safe", () => {
     // deciding what gets documented -- the wrong way round.
     const lines = serverSource.split("\n").length;
     assert.ok(
-      lines <= 3876,
+      // 3876 -> 3877 on 8 September 2026. The competitor figures moved OUT of
+      // server.js into lib/sonara-competitor-stack.cjs -- roughly 600 characters
+      // of prose gone -- and the one line back is the require that replaced
+      // them. The split got what it wanted; the line count is simply a coarser
+      // measure than the thing it is standing in for.
+      lines <= 3877,
       `server.js is ${lines} lines. The split is meant to reduce it; if this grew on purpose, raise the ceiling in this test and say why.`
     );
   });

@@ -2,6 +2,92 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The pricing page was checked against a survey that had been superseded
+
+The live pricing page quoted the **August** competitor survey — "$39 for the
+business side, $39 for the creator side, and $9 for the marketing side — around
+$87 a month … from published prices in August 2026" — three days after the
+5 September re-survey moved Jobber to $49, Podia to $49 and the stack to **$107**.
+
+It drifted in the direction that costs us. All three at $59 is **55%** of the
+real stack; quoted against $87 it reads as 68%, so the page was making the
+weaker version of its own argument.
+
+## I said nothing checked this. Something did
+
+Earlier today I told the owner "no check covers competitor figures in
+customer-facing code". That was wrong, and the way it was wrong is more useful
+than the fix.
+
+`tests/pricing-claim-matches-research.test.js` has checked exactly this since the
+`$77` incident. It reads a survey document, finds the stack total, and asserts
+the page quotes that figure and no other. **It never went quiet and it never
+went green on a lie.** It was reading
+`docs/market/2026-08-12-MARKET-AUDIT.md` — and when the market was re-surveyed
+into `docs/pricing/2026-09-05-PRICING-STRATEGY.md`, nothing moved its authority.
+So it went on requiring the page to say $87, and the page obligingly did.
+
+`tests/pricing.test.js` had the same pin on the same document for the date, and
+so required the page to say "August 2026".
+
+That is the exemption-whose-reason-expired shape from
+`.claude/skills/checks-that-cannot-lie` wearing a different coat: not a check
+that stopped measuring, but a check still measuring faithfully **against a
+document that had been replaced**. A newer survey was written and two checks
+kept pointing at the older one.
+
+## One authority instead of one per test
+
+`lib/sonara-competitor-stack.cjs` now holds the September figures — each column
+with its product, plan and amount, the stack derived by summing them rather than
+restated, the automation figure, the 5% creator fee, the survey date, and the
+name of the document it came from.
+
+`server.js` renders both sentences from it. Our own price was already derived
+(`allThreeSentence` comes from `STRIPE_PLANS`); the competitor half was two
+hand-typed sentences, and now neither half is typed.
+
+Both older tests read the survey **named by that module**, so "which survey is
+current" has one answer, in the module the page itself uses.
+
+## What the page says now, and one thing it no longer claims
+
+The August copy said "$105 once you remove another company's logo from your
+emails and turn automation on". The September survey is careful in a way that
+copy was not:
+
+> $116 — the same stack with marketing automation switched on (Brevo Standard
+> $18 rather than Starter $9). *Whether the logo add-on is still required on
+> Standard was not confirmed and is not included.*
+
+So the page now says $116 for the plan that turns automation on, and **drops the
+logo claim entirely**, because the survey explicitly did not settle it. A check
+enforces that: the automation sentence may not mention the logo while the survey
+still records it as unconfirmed.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Jobber reverted to the August $39 | *"does not show Jobber at $39. Either the survey was re-run and this module was not updated, or the module holds a figure nobody surveyed."* |
+| The date dropped from the sentence | *"a pricing sentence states figures without saying when they were read"* |
+| The figures typed back into server.js | *"the pricing page no longer renders the cost-elsewhere sentence from the module"* |
+| The logo claim reattached to the automation figure | *"the automation figure is claiming the logo add-on again, which the survey says it does not include"* |
+
+The first probe is the original bug, reproduced and caught.
+
+Two things I got wrong while doing it, both caught by tests that already existed.
+I widened a regex to `\$(\d+) a month` and it matched "$49 a month for the
+business side" — a per-product figure, not the stack claim — which is precisely
+what that test's own comment warned about. And I briefly required the
+11 August restructure document to carry the September total, which would mean
+rewriting a dated record every time the market moves; that case now guards what
+it was actually for, that a corrected figure is not left standing as current.
+
+The `server.js` line ceiling went 3876 → 3877. Roughly 600 characters of prose
+left the file and one `require` came back, which the split wanted; the line count
+is simply a coarser measure than the thing it stands in for.
+
 ### 2026-09-08 - Voicebox reviewed, and the licence that matters is not the one on the badge
 
 Five repositories arrived. Three were already recorded earlier today --
