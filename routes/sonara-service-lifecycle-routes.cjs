@@ -12,6 +12,7 @@ const { STORYBOARD_TOOL } = require("../lib/sonara-storyboard-tool.cjs");
 
 const { getOptionalAiGatewayReadiness, AI_GATEWAY_ENV_KEYS } = require("../lib/optional-ai-gateway.cjs");
 const { getRecommendedProductCatalog } = require("../lib/sonara-recommended-product-catalog.cjs");
+const { catalogItemToRow, catalogRowAccessReason } = require("../lib/sonara-catalog-boundary.cjs");
 const { readOpenSourceTools } = require("../lib/sonara-open-source-registry.cjs");
 const { getPlacementCounts } = require("../lib/sonara-social-repository-product-routing.cjs");
 const plainLanguage = require("../lib/sonara-plain-language.cjs");
@@ -55,12 +56,13 @@ const DEFAULT_SERVICE_CATALOG = [...getRecommendedProductCatalog(), ...LEGACY_DE
 // Why a catalog entry is or is not open to this customer. Both the card body
 // and the card buttons used to work this out separately from the same four
 // fields, and drifted apart; they now share one answer.
+//
+// The rule itself moved to lib/sonara-catalog-boundary.cjs on 8 September 2026,
+// because the production deploy gate needs the same answer from the row shape
+// and a copy there would be the third. This stays as the item-shaped door onto
+// it, so callers here read the same way they always did.
 function catalogAccessReason(item) {
-  if (!item.serviceKey) return "open";
-  if (["planned", "validation_required", "setup_required"].includes(String(item.lifecycleStatus || ""))) return "awaiting_review";
-  if (item.planFloor !== "free" && item.entitlementIntegrationVerified !== true) return "awaiting_paid_access";
-  if (item.executionEnabled !== true) return "awaiting_setup";
-  return "open";
+  return catalogRowAccessReason(catalogItemToRow(item));
 }
 
 // What the button offers to do about it. This was written inline inside

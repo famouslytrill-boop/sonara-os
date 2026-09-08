@@ -160,8 +160,20 @@ describe("Recommended product catalog production boundary", () => {
     assert.match(routes, /Ask about this one/);
     assert.match(routes, /Ask us to open access/);
     assert.match(routes, /See what is ready now/);
-    assert.match(routes, /item\.executionEnabled !== true/);
-    assert.match(routes, /entitlementIntegrationVerified !== true/);
+
+    // The rule moved to lib/sonara-catalog-boundary.cjs on 8 September 2026, so
+    // the production deploy gate could ask the same question of production's
+    // rows. These two assertions used to read `item.executionEnabled !== true`
+    // and `entitlementIntegrationVerified !== true` out of the route file --
+    // pinning where the rule was written rather than that it exists, which is
+    // what made moving it to one shared place fail a test that had no quarrel
+    // with the move. They now check the rule where it lives and that the route
+    // still goes through it.
+    const boundary = read("lib/sonara-catalog-boundary.cjs");
+    assert.match(routes, /catalogRowAccessReason\(catalogItemToRow\(item\)\)/);
+    assert.match(boundary, /row\.execution_enabled !== true/);
+    assert.match(boundary, /row\.entitlement_integration_verified !== true/);
+    assert.match(boundary, /RESTRICTED_LIFECYCLE_STATUSES\.includes\(String\(row\.lifecycle_status/);
     // The customer sees the reason in plain words; the reasons themselves live
     // in lib/sonara-plain-language.cjs so both the card body and its buttons
     // read from one place.

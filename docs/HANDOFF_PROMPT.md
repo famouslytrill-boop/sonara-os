@@ -28,7 +28,7 @@ Use plain customer-facing language. Avoid overusing internal engine names or "AI
 - Content-Security-Policy is `script-src 'self'`. Nothing loads from a CDN. Every asset is served from this origin.
 - Supabase over PostgREST for data. 115 migrations, 145 canonical tables. Every tenant-scoped table is filtered by `organization_id`; the service-role key never reaches a browser.
 - 38 public routes, 18 customer routes, 29 admin routes.
-- 298 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
+- 299 test files run under mocha. `pnpm test` is the whole suite and takes about ten seconds.
 
 Because there is no build step, a change to a `.cjs` file under `lib/` or `routes/` is live as soon as it is saved. There is no compile error to catch a typo -- `pnpm run typecheck` parses every runtime file, and that is the substitute.
 
@@ -105,6 +105,98 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-08 - Production is deployed, and the last gate could only pass while the product was broken
+
+**Deployment #133 deployed.** Step 26 passed for the first time, step 28 --
+"Deploy validated source to Vercel production" -- ran for the first time in 133
+attempts, and `/api/health` now answers:
+
+```json
+{"commitSha":"6fcd09e81fbc4cb98657f1a82f522c62a69e802b","branch":"main","environment":"production"}
+```
+
+Production had served `eebc80c` since 5 August. It does not any more.
+
+Step 30 then failed, on its first ever execution:
+
+```
+AssertionError: Production catalog is missing boundary text:
+not open yet — we are still checking this one.
+```
+
+## The page was right and the gate was wrong
+
+Every one of the five strings in `CATALOG_BOUNDARY_TEXT` is rendered by the
+`else` branch of `catalogActions` in
+`routes/sonara-service-lifecycle-routes.cjs`, reached only when a product is
+**not** open. All 42 products are active and execution-enabled, so the live page
+says *"You can use this now."* and never needs the other wording. Measured, not
+inferred: the page was fetched and all five strings confirmed absent while the
+open note was present.
+
+Requiring all five unconditionally made this **a gate that gets harder to
+satisfy the better the product gets.** To keep it green, some product would have
+to stay shut. Promoting the last beta products — deliberate work, recorded in
+this log — is what finally broke it.
+
+The same discovery had already been made one layer down and not carried across.
+That route file says `catalogRequestLabel` was moved out of `catalogActions`
+because *"once every product in the catalog was open, there was no closed
+product to find, so the only check on this wording went vacuous"*. That fix
+reached the offline test and never reached the deploy gate.
+
+## Why nothing caught it for a month
+
+The rule was inline in `scripts/verify-production-product-catalog.mjs`, which
+needs production credentials, so **nothing could execute it** — it was wrong
+from the day the last product was promoted and could only be discovered by a
+deployment getting far enough to run it.
+
+It now lives in `lib/sonara-catalog-boundary.cjs` as
+`catalogPageAccessViolations`, a pure function beside the row-shaped predicate
+that was already there, and
+`tests/the-catalog-gate-follows-production-not-a-wish.test.js` runs it against
+**the page production actually served on 8 September**, saved as a fixture.
+
+The access rule itself moved too. `catalogAccessReason` was item-shaped inside
+the router; the gate needed the same answer from database rows, and a copy there
+would have been the third — in a file whose own comment records what happened
+the last time it was two. It is now `catalogRowAccessReason` in the shared
+module, with the router as an item-shaped door onto it.
+
+## The promise is not weakened
+
+A non-open note on the page still obliges the sentence *and* the way to ask
+beside it. Added on top: the page and the database must **agree** about whether
+anything is shut, in both directions, so a page that silently stopped mentioning
+a genuinely restricted product now fails where before it would have passed by
+saying nothing.
+
+## Broken, and confirmed red
+
+| Probe | Result |
+| --- | --- |
+| The empty-page guard removed | red — the rule would pass on a page that rendered no cards |
+| The database cross-check removed | red, two cases — both directions of page-vs-database disagreement |
+| The gate reverted to requiring all five strings | *"the gate is requiring every boundary string unconditionally again, which can only pass while a product is shut"* |
+
+One test had to be repointed rather than satisfied.
+`tests/product-catalog-production-boundary.test.js` asserted the route file
+literally contained `item.executionEnabled !== true` — pinning **where** the
+rule was written rather than that it exists, which failed a move it had no
+quarrel with. It now checks the rule where it lives and that the router still
+goes through it.
+
+## What this does not claim
+
+**That deployment #134 will pass.** Step 30 has now run twice and failed twice;
+the second failure would be a different one.
+
+**That anything has been bought.** `docs/SHIP_READINESS.md` item 1 is still
+open: no paid signup has completed in production, and the six Stripe prices and
+six Vercel variables in `docs/owner/PRICE-CUTOVER-RUNBOOK.md` are still the
+owner's to create.
 
 ### 2026-09-08 - Deployment #132 reached one fault, and it was one I had reported as absent
 

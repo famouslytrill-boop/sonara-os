@@ -10,8 +10,13 @@ const {
   RECOMMENDED_PRODUCT_CATALOG,
   getRecommendedProductCatalogSummary
 } = require("../lib/sonara-recommended-product-catalog.cjs");
-const { CATALOG_BOUNDARY_TEXT } = require("../lib/sonara-plain-language.cjs");
-const { RESTRICTED_LIFECYCLE_STATUSES, catalogRowBoundaryViolations } = require("../lib/sonara-catalog-boundary.cjs");
+const { ACCESS_REASONS } = require("../lib/sonara-plain-language.cjs");
+const {
+  RESTRICTED_LIFECYCLE_STATUSES,
+  catalogRowAccessReason,
+  catalogPageAccessViolations,
+  catalogRowBoundaryViolations
+} = require("../lib/sonara-catalog-boundary.cjs");
 const { PAID_ACCESS_RUNTIME_MARKERS } = require("../lib/sonara-paid-access.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +36,7 @@ const result = {
 
 if (!pagesOnly) result.database = await verifyProductionDatabase();
 result.entitlementBoundary = verifyEntitlementSourceContract();
-if (!databaseOnly) result.pages = await verifyProductionPages();
+if (!databaseOnly) result.pages = await verifyProductionPages(result.database);
 
 console.log(JSON.stringify({ ok: true, ...result }, null, 2));
 
@@ -140,6 +145,10 @@ async function verifyProductionDatabase() {
     planFloorCounts: countBy(rows, "plan_floor"),
     executionEnabled: enabledRows.length,
     executionRestricted: rows.length - enabledRows.length,
+    // What the catalog page will actually say about each row. Counted with the
+    // same predicate the page uses, so the gate can tell whether the page
+    // *should* be showing "not open yet" rather than demanding it always does.
+    accessReasonCounts: countBy(rows.map((row) => ({ access_reason: catalogRowAccessReason(row) })), "access_reason"),
     paidEntitlementVerificationPending: paidRows.filter((row) => row.entitlement_integration_verified !== true).length
   };
 }
@@ -213,7 +222,7 @@ function verifyEntitlementSourceContract() {
   };
 }
 
-async function verifyProductionPages() {
+async function verifyProductionPages(database) {
   const baseUrl = firstEnv("PRODUCTION_BASE_URL", "APEX_URL", "PUBLIC_SITE_URL", "NEXT_PUBLIC_SITE_URL").replace(/\/$/, "");
   assert.match(baseUrl, /^https:\/\//, "PRODUCTION_BASE_URL is required for production page verification");
 
@@ -256,29 +265,52 @@ async function verifyProductionPages() {
     "the standard services are shown"
   ]) assert.equal(visibleText.includes(forbiddenFallback), false, `Production catalog is using fallback content: ${forbiddenFallback}`);
 
-  // The catalog page must still tell a customer, in the open, that a governed
-  // product is not available and why -- and still offer them a way to ask.
+  // The catalog page must tell a customer, in the open, that a governed product
+  // is not available and why -- and still offer them a way to ask.
   //
-  // These used to be five literal strings: "execution: restricted until
-  // lifecycle evidence and launch approval are complete" and four like it. That
-  // is the vocabulary the plain-language work removed from every customer-facing
-  // screen, so this gate was requiring copy that AGENTS.md forbids putting back.
-  // It failed on a page that states the boundary perfectly well, in words a
-  // customer can read.
+  // This asserted all five strings in CATALOG_BOUNDARY_TEXT were on the page,
+  // unconditionally, and it failed deployment #133 -- the first run in 133 ever
+  // to reach this step -- on "Not open yet -- we are still checking this one."
   //
-  // The list now lives in lib/sonara-plain-language.cjs, read by this gate and
-  // by tests/product-catalog-production-boundary.test.js, so the gate follows
-  // the vocabulary instead of pinning it and the two cannot disagree.
-  for (const requiredBoundary of CATALOG_BOUNDARY_TEXT) {
-    const needle = normalizeText(requiredBoundary);
-    assert.ok(visibleText.includes(needle), `Production catalog is missing boundary text: ${needle}`);
-  }
+  // **The page was right and the gate was wrong.** Every one of those five
+  // strings is rendered by the `else` branch of catalogActions in
+  // routes/sonara-service-lifecycle-routes.cjs, reached only when a product is
+  // not open. All 42 products are active and execution-enabled, so the page
+  // correctly says "You can use this now." and never needs the other wording.
+  // Requiring it unconditionally made this a gate that can only pass while some
+  // product is still shut: it would have to be kept broken to keep the deploy
+  // green, and promoting the last beta products -- which was deliberate work --
+  // is what finally broke it.
+  //
+  // The same discovery is already recorded one layer down, about the offline
+  // half: catalogRequestLabel was moved out of catalogActions because "once
+  // every product in the catalog was open, there was no closed product to find,
+  // so the only check on this wording went vacuous". That fix was applied to the
+  // test and not to this gate.
+  //
+  // So the promise is now checked against the states production is actually in,
+  // in both directions, and it cannot pass by finding nothing.
+  const boundaryViolations = catalogPageAccessViolations({
+    visibleText,
+    accessReasonCounts: database?.accessReasonCounts
+  });
+  assert.deepEqual(
+    boundaryViolations,
+    [],
+    `The production catalog page does not keep the access promise:\n  ${boundaryViolations.join("\n  ")}`
+  );
+
+  const notesOnPage = Object.keys(ACCESS_REASONS).filter((reason) =>
+    visibleText.includes(normalizeText(ACCESS_REASONS[reason]))
+  );
 
   return {
     baseUrl,
     deploymentCommit: health.deployment?.commitSha,
     catalogStatus: catalogResponse.status,
     productsVisible: RECOMMENDED_PRODUCT_CATALOG.length,
+    accessNotesOnPage: notesOnPage,
+    boundaryCopyExercised: notesOnPage.some((reason) => reason !== "open"),
     readiness: {
       supabase: readiness.services?.supabase,
       stripe: readiness.services?.stripe,
