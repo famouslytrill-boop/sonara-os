@@ -2,6 +2,76 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - A check for the dead code no check could see
+
+The dead homepage in the entry below was found by accident. This is the check
+that would have found it, plus the second one it found immediately.
+
+`scripts/report-unreferenced-modules.mjs` asks whether anything requires a
+module. It cannot ask whether anything uses what a module *returns*, and
+`lib/sonara-page-frame.cjs` is heavily required -- so it was correct and silent
+while 108 lines of homepage sat inside it.
+
+## Four wrong definitions came first, and each was rejected by measurement
+
+Written down because the wrong ones are the useful part:
+
+1. **Names a module exposes that nothing else names** -- 201 results. Mostly
+   internal helpers a module exports for its own use. Dead surface, not dead
+   code.
+2. **Named functions whose identifier appears nowhere but their declaration**
+   -- 1 result, and it misses the case this exists for: the homepage function's
+   name appeared in a return list and a test's list. Referenced everywhere,
+   called nowhere.
+3. **Factory-returned names never called** -- 98, because `return { fit,
+   urgency, score, band }` is a result object. Filtered to actual `function`
+   declarations: 2.
+4. **Factory-returned functions no runtime file names** -- 40. Modules
+   legitimately export helpers so their own tests can exercise them.
+
+**Definition 3 flagged `rejectCustomerBearerFromAdminLogin`.** That function is
+live and load-bearing: Express middleware, passed by reference into
+`app.get("/admin/login", ...)` and never "called" anywhere. A gate on that
+definition would have accused a security control guarding the admin login. It
+was spared only because each candidate was checked by hand before the check was
+built.
+
+So both conditions are required, and each spares a real pattern: *never called
+anywhere* spares a helper exported for its tests, and *never named by a runtime
+file outside its module* spares middleware. Together: 86 inspected, 1 flagged.
+
+## What it found
+
+`renderInterfaceStatusPanel` -- 14 lines, same shape as the homepage: returned
+by `createPageFrame`, destructured by nobody, called by nothing. Deleted rather
+than allow-listed.
+
+Removing it made `readinessStatusClass` unused, and that one mattered more than
+it looked: it was a **declared required dependency**, so `createPageFrame` threw
+without it and every caller was made to supply a function no line of the module
+used. Removed from `REQUIRED`, from the destructuring, and from the call site.
+
+**And then lint caught me writing a false reason.** I recorded that
+`readinessStatusClass` "stays in server.js, where the readiness screens use it".
+It does not -- the dead panel was its only caller anywhere, so the function was
+dead too. Corrected in place, and the correction left in the comment rather than
+tidied away, because a reason that sounds verified and is not is exactly what
+`CLAUDE.md` warns about, and this one took thirty seconds to produce.
+
+## Falsified, on the third attempt
+
+The first two probe runs reported the check missing an injected dead function --
+and the injection had silently not applied, because the return list starts with
+`adminActions` and the probe targeted `layout`. Both probes were no-ops reporting
+a pass. Corrected, and then:
+
+- a dead factory-returned function is named and exits 1,
+- the same function passed by reference in `server.js` is spared, exit 0,
+- blinding the scan trips the population guard by name.
+
+The release chain is 44 commands now, and the two derived counts in
+`WHAT-IS-LEFT.md` were updated because `verify-doc-counts` failed on both.
+
 ### 2026-09-08 - A homepage nobody has seen since the split
 
 Went to fix a flagged item: `lib/sonara-page-frame.cjs` said **"Fifteen

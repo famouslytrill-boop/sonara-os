@@ -125,7 +125,6 @@ const EXTRACTED = [
       "responsePage",
       "renderHead",
       "pageBrandClass",
-      "renderInterfaceStatusPanel",
       "adminActions",
       "adminRowsPage",
       "adminLoginForm",
