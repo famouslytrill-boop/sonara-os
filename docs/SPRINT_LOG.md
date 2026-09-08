@@ -2,6 +2,88 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The price cutover happened, and it turned every pull request red
+
+The owner set the three monthly price variables. `/pricing` now advertises
+**$29 / $59 / $109**, Starter and Core have dropped off, and `offeredPlanKeys`
+swapped the ladders exactly as designed. The restructure has been one owner step
+away since 13 August; it is live.
+
+Within minutes, `production-connectivity` went red on PR #221:
+
+```
+Production connectivity smoke failed with 1 issue(s):
+- /api/readiness: stripe reports missing configuration
+```
+
+## It was not transient, and it was ours
+
+The first reading looked like a deployment window: `/api/readiness` reported
+`stripe: configured` when read by hand a few minutes later. It was re-run on
+that basis and **failed again**, which is the rule for a reason — a second
+failure is real.
+
+The service status was never the point. `scripts/smoke-live-routes.mjs` reads
+`payload.missing.stripe`, not `services.stripe`, and that list held:
+
+```
+STRIPE_PRICE_WORKSPACE_ANNUAL
+STRIPE_PRICE_ALL_THREE_ANNUAL
+STRIPE_PRICE_TEAM_ANNUAL
+```
+
+The three annual plans, added on 6 September with `hiddenUntilBuyable` so
+`offeredPlanKeys` keeps them off the page entirely until their Stripe prices
+exist. `docs/owner/PRICE-CUTOVER-RUNBOOK.md` names staging the monthly ladder
+first as **pathway B**, supported and costing one extra deploy.
+
+`lib/sonara-readiness.cjs` put every unset plan price into `missing.stripe`.
+That was right while every plan was meant to be buyable, and stopped being right
+the day a plan existed that deliberately was not. So taking the pathway the
+runbook offered turned every pull request red, naming three prices nobody had
+promised to create.
+
+**The deployment was fine. The classification was wrong**, and it was wrong
+because of work recorded three entries above this one.
+
+## Deferred, not missing, and not dropped
+
+A variable nobody is waiting for is deferred — the same shape as `googleOAuth`,
+which has read that way in this file for months. It now goes into its own
+`deferred.stripe` bucket rather than `missing.stripe`.
+
+Reported rather than dropped, deliberately. "Nobody is waiting for this" and
+"nobody has noticed this" are different facts and the owner needs both. A fix
+that simply stopped counting them would be this codebase's recurring defect
+wearing a bug fix: a signal that reports success by measuring less.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Reverted to reporting every unset price as missing | *"belongs to a plan the page does not show yet and is still reported as missing. That is what turned production connectivity red on every pull request."* |
+| Deferred plans dropped silently instead | *"is neither missing nor deferred, so it has vanished from readiness entirely. The owner still needs to see that it is unset."* |
+
+The second probe is the one worth keeping: it is the shape of a fix that makes
+the symptom go away by looking at less, and it fails.
+
+## Two things the owner still has to do
+
+**Run `verify-stripe-env.mjs` with the key.** Runbook step 4, and the only check
+that compares each advertised amount against the live Stripe price. A Stripe
+price is immutable and the 13 August prices still charge $19 / $39 / $79.
+Nothing in CI can catch a variable pointed at one of those — it skips without
+`STRIPE_SECRET_KEY` — and the result would be $59 on the page and $39 on the
+card.
+
+**The live /pricing page still quotes the August survey**: "$39 … $39 … $9 —
+around $87 a month … from published prices in August 2026", where `docs/market/`
+was re-surveyed on 5 September to Jobber $49, Podia $49, stack **$107**. Dated,
+so stale rather than false, and it understates us: All three at $59 is 55% of
+the real stack, not the 68% the page implies. No check covers competitor figures
+in customer-facing code — `tests/a-price-in-prose-is-the-price-we-charge.test.js`
+only reads `docs/`.
+
 ### 2026-09-08 - Production is deployed, and the last gate could only pass while the product was broken
 
 **Deployment #133 deployed.** Step 26 passed for the first time, step 28 --
