@@ -2,6 +2,251 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - Voicebox reviewed, and the licence that matters is not the one on the badge
+
+Five repositories arrived. Three were already recorded earlier today --
+`mattpocock/skills`, `diffusionstudio/editor` and `langflow-ai/langflow`, the
+last already in the register from an earlier batch -- and one screenshot was
+again the Quran database whose owner it still does not show. One is new.
+
+**`jamiepine/voicebox`.** LICENSE read: MIT, Copyright (c) 2026 Voicebox
+Contributors. 681 files. A local-first voice studio: cloning from a short
+sample, 23 languages across 7 TTS engines, a bundled local LLM, all on the
+user's own machine. The privacy posture is real and genuinely different from
+the hosted voice APIs already in the register.
+
+It is recorded `needs_license_review`, and **not because of its own licence**.
+
+## The licence on the badge is not the licence that decides
+
+MIT covers Voicebox's code and says nothing about the models it runs. The
+project keeps its own licence watch-list in `docs/PROJECT_STATUS.md`, and it is
+explicit:
+
+> **XTTS-v2** … Candidate — CPML license likely blocker
+>
+> Fish Speech V1.5 … benchmark leader but research/non-commercial license — same
+> blocker
+>
+> **Watch-list / blocked** … Sarashina2.2, Higgs Audio v3, T5Gemma-TTS,
+> Step-Audio-EditX, MisoTTS (non-commercial terms …)
+
+So adopting Voicebox means clearing each engine we actually switch on, one at a
+time. This is the boundary already recorded against `book-to-skill`: a
+permissive licence on a tool is not permission for what the tool processes. It
+is the reason this record exists rather than an adapter.
+
+## Consent, and who carries it
+
+It ships `RESPONSIBLE_USE.md`, which is more than most projects here do, and its
+own words put the obligation exactly where we would have to carry it anyway:
+
+> Voicebox does not and cannot independently verify who owns a voice sample.
+>
+> Developers building products on top of Voicebox should treat consent records,
+> disclosure, and jurisdiction-specific requirements as part of their own
+> application design.
+
+AGENTS.md requires provenance, consent and anti-clone safety, and this
+repository already has the machinery that would have to do the enforcing:
+`lib/sonara-record-checks.cjs` carries `consent_scope`, `consent_attested`,
+`expires_at` and `revoked_at`. Their disclaimer is theirs; the enforcement would
+be ours.
+
+Worth remembering alongside it: `consent_scope` is the field that
+`.claude/skills/checks-that-cannot-lie` records as the sharpest defect this
+codebase has found -- selected on every voice job, and compared to nothing.
+Being in the `select` list is what made it look checked.
+
+## Everything up to date, checked rather than assumed
+
+| | |
+| --- | --- |
+| Production commit | `6fcd09e` |
+| `main` HEAD | `6fcd09e` — **they match** |
+| Migrations pinned and unchanged | 112 frozen, 3 generator-owned |
+| Migrations execute in order | 115 applied to an empty PostgreSQL |
+| Register | 228 records, integration map regenerated |
+| Derived doc counts | 14 claims, 43 chain commands, 300 test files |
+
+Production and `main` agree. What is **not** in either is PR #221, which holds
+the catalog-gate fix and the readiness `deferred` fix; it cannot go green on its
+own head because `smoke:live` reads the site that is live now.
+
+### 2026-09-08 - The price cutover happened, and it turned every pull request red
+
+The owner set the three monthly price variables. `/pricing` now advertises
+**$29 / $59 / $109**, Starter and Core have dropped off, and `offeredPlanKeys`
+swapped the ladders exactly as designed. The restructure has been one owner step
+away since 13 August; it is live.
+
+Within minutes, `production-connectivity` went red on PR #221:
+
+```
+Production connectivity smoke failed with 1 issue(s):
+- /api/readiness: stripe reports missing configuration
+```
+
+## It was not transient, and it was ours
+
+The first reading looked like a deployment window: `/api/readiness` reported
+`stripe: configured` when read by hand a few minutes later. It was re-run on
+that basis and **failed again**, which is the rule for a reason — a second
+failure is real.
+
+The service status was never the point. `scripts/smoke-live-routes.mjs` reads
+`payload.missing.stripe`, not `services.stripe`, and that list held:
+
+```
+STRIPE_PRICE_WORKSPACE_ANNUAL
+STRIPE_PRICE_ALL_THREE_ANNUAL
+STRIPE_PRICE_TEAM_ANNUAL
+```
+
+The three annual plans, added on 6 September with `hiddenUntilBuyable` so
+`offeredPlanKeys` keeps them off the page entirely until their Stripe prices
+exist. `docs/owner/PRICE-CUTOVER-RUNBOOK.md` names staging the monthly ladder
+first as **pathway B**, supported and costing one extra deploy.
+
+`lib/sonara-readiness.cjs` put every unset plan price into `missing.stripe`.
+That was right while every plan was meant to be buyable, and stopped being right
+the day a plan existed that deliberately was not. So taking the pathway the
+runbook offered turned every pull request red, naming three prices nobody had
+promised to create.
+
+**The deployment was fine. The classification was wrong**, and it was wrong
+because of work recorded three entries above this one.
+
+## Deferred, not missing, and not dropped
+
+A variable nobody is waiting for is deferred — the same shape as `googleOAuth`,
+which has read that way in this file for months. It now goes into its own
+`deferred.stripe` bucket rather than `missing.stripe`.
+
+Reported rather than dropped, deliberately. "Nobody is waiting for this" and
+"nobody has noticed this" are different facts and the owner needs both. A fix
+that simply stopped counting them would be this codebase's recurring defect
+wearing a bug fix: a signal that reports success by measuring less.
+
+## Broken, and confirmed red
+
+| Probe | What it said |
+| --- | --- |
+| Reverted to reporting every unset price as missing | *"belongs to a plan the page does not show yet and is still reported as missing. That is what turned production connectivity red on every pull request."* |
+| Deferred plans dropped silently instead | *"is neither missing nor deferred, so it has vanished from readiness entirely. The owner still needs to see that it is unset."* |
+
+The second probe is the one worth keeping: it is the shape of a fix that makes
+the symptom go away by looking at less, and it fails.
+
+## Two things the owner still has to do
+
+**Run `verify-stripe-env.mjs` with the key.** Runbook step 4, and the only check
+that compares each advertised amount against the live Stripe price. A Stripe
+price is immutable and the 13 August prices still charge $19 / $39 / $79.
+Nothing in CI can catch a variable pointed at one of those — it skips without
+`STRIPE_SECRET_KEY` — and the result would be $59 on the page and $39 on the
+card.
+
+**The live /pricing page still quotes the August survey**: "$39 … $39 … $9 —
+around $87 a month … from published prices in August 2026", where `docs/market/`
+was re-surveyed on 5 September to Jobber $49, Podia $49, stack **$107**. Dated,
+so stale rather than false, and it understates us: All three at $59 is 55% of
+the real stack, not the 68% the page implies. No check covers competitor figures
+in customer-facing code — `tests/a-price-in-prose-is-the-price-we-charge.test.js`
+only reads `docs/`.
+
+### 2026-09-08 - Production is deployed, and the last gate could only pass while the product was broken
+
+**Deployment #133 deployed.** Step 26 passed for the first time, step 28 --
+"Deploy validated source to Vercel production" -- ran for the first time in 133
+attempts, and `/api/health` now answers:
+
+```json
+{"commitSha":"6fcd09e81fbc4cb98657f1a82f522c62a69e802b","branch":"main","environment":"production"}
+```
+
+Production had served `eebc80c` since 5 August. It does not any more.
+
+Step 30 then failed, on its first ever execution:
+
+```
+AssertionError: Production catalog is missing boundary text:
+not open yet — we are still checking this one.
+```
+
+## The page was right and the gate was wrong
+
+Every one of the five strings in `CATALOG_BOUNDARY_TEXT` is rendered by the
+`else` branch of `catalogActions` in
+`routes/sonara-service-lifecycle-routes.cjs`, reached only when a product is
+**not** open. All 42 products are active and execution-enabled, so the live page
+says *"You can use this now."* and never needs the other wording. Measured, not
+inferred: the page was fetched and all five strings confirmed absent while the
+open note was present.
+
+Requiring all five unconditionally made this **a gate that gets harder to
+satisfy the better the product gets.** To keep it green, some product would have
+to stay shut. Promoting the last beta products — deliberate work, recorded in
+this log — is what finally broke it.
+
+The same discovery had already been made one layer down and not carried across.
+That route file says `catalogRequestLabel` was moved out of `catalogActions`
+because *"once every product in the catalog was open, there was no closed
+product to find, so the only check on this wording went vacuous"*. That fix
+reached the offline test and never reached the deploy gate.
+
+## Why nothing caught it for a month
+
+The rule was inline in `scripts/verify-production-product-catalog.mjs`, which
+needs production credentials, so **nothing could execute it** — it was wrong
+from the day the last product was promoted and could only be discovered by a
+deployment getting far enough to run it.
+
+It now lives in `lib/sonara-catalog-boundary.cjs` as
+`catalogPageAccessViolations`, a pure function beside the row-shaped predicate
+that was already there, and
+`tests/the-catalog-gate-follows-production-not-a-wish.test.js` runs it against
+**the page production actually served on 8 September**, saved as a fixture.
+
+The access rule itself moved too. `catalogAccessReason` was item-shaped inside
+the router; the gate needed the same answer from database rows, and a copy there
+would have been the third — in a file whose own comment records what happened
+the last time it was two. It is now `catalogRowAccessReason` in the shared
+module, with the router as an item-shaped door onto it.
+
+## The promise is not weakened
+
+A non-open note on the page still obliges the sentence *and* the way to ask
+beside it. Added on top: the page and the database must **agree** about whether
+anything is shut, in both directions, so a page that silently stopped mentioning
+a genuinely restricted product now fails where before it would have passed by
+saying nothing.
+
+## Broken, and confirmed red
+
+| Probe | Result |
+| --- | --- |
+| The empty-page guard removed | red — the rule would pass on a page that rendered no cards |
+| The database cross-check removed | red, two cases — both directions of page-vs-database disagreement |
+| The gate reverted to requiring all five strings | *"the gate is requiring every boundary string unconditionally again, which can only pass while a product is shut"* |
+
+One test had to be repointed rather than satisfied.
+`tests/product-catalog-production-boundary.test.js` asserted the route file
+literally contained `item.executionEnabled !== true` — pinning **where** the
+rule was written rather than that it exists, which failed a move it had no
+quarrel with. It now checks the rule where it lives and that the router still
+goes through it.
+
+## What this does not claim
+
+**That deployment #134 will pass.** Step 30 has now run twice and failed twice;
+the second failure would be a different one.
+
+**That anything has been bought.** `docs/SHIP_READINESS.md` item 1 is still
+open: no paid signup has completed in production, and the six Stripe prices and
+six Vercel variables in `docs/owner/PRICE-CUTOVER-RUNBOOK.md` are still the
+owner's to create.
+
 ### 2026-09-08 - Deployment #132 reached one fault, and it was one I had reported as absent
 
 PR #219 merged and **deployment #132 got further than any run before it**. Step
