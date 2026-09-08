@@ -4,8 +4,18 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
+const {
+  COMPETITOR_STACK,
+  stackMonthlyUsd,
+  whatItCostsElsewhereSentence,
+  whyCheaperSentence
+} = require("../lib/sonara-competitor-stack.cjs");
+
 const root = path.join(__dirname, "..");
-const AUDIT = fs.readFileSync(path.join(root, "docs", "market", "2026-08-12-MARKET-AUDIT.md"), "utf8");
+// The survey the page actually quotes, named by the module the page renders
+// from. This read docs/market/2026-08-12-MARKET-AUDIT.md until 8 September 2026
+// -- see the second note below.
+const SURVEY = fs.readFileSync(path.join(root, COMPETITOR_STACK.sourceDocument), "utf8");
 const SERVER = fs.readFileSync(path.join(root, "server.js"), "utf8");
 const RESTRUCTURE = fs.readFileSync(path.join(root, "docs", "pricing", "2026-08-11-PRICING-RESTRUCTURE.md"), "utf8");
 
@@ -17,43 +27,78 @@ const RESTRUCTURE = fs.readFileSync(path.join(root, "docs", "pricing", "2026-08-
 //
 // A number a customer reads has to come from somewhere that can be checked.
 // This ties the claim on screen to the document that establishes it.
+//
+// It did that against the WRONG document for three days. It read the 12 August
+// audit, and on 5 September the market was re-surveyed into
+// docs/pricing/2026-09-05-PRICING-STRATEGY.md -- Jobber $39 to $49, Podia $39 to
+// $49, the stack $87 to $107. Nothing moved this check's authority, so it went
+// on requiring the page to say $87, and the page obligingly did. The check was
+// not broken and never went quiet; it was pinned to a survey that had been
+// superseded, which is the exemption-whose-reason-expired shape in
+// `.claude/skills/checks-that-cannot-lie` wearing a different coat.
+//
+// Both halves are now read from lib/sonara-competitor-stack.cjs: the figures the
+// page renders, and the name of the survey they came from. One answer to "which
+// survey is current", in the module the page itself uses.
 describe("the comparison a customer reads matches the research behind it", () => {
-  // The headline figure, read out of the audit rather than restated here.
-  const headline = AUDIT.match(/\*\*Stack\*\* \| \| \*\*\$(\d+)\*\*/)?.[1];
+  const headline = String(stackMonthlyUsd());
 
-  it("can read the researched figure from the audit", () => {
-    assert.ok(headline, "the audit's stack row could not be parsed; this check is inert");
-    assert.ok(Number(headline) > 50, `a stack figure of $${headline} is implausible; the parse is wrong`);
+  it("can read the researched figure from the survey it names", () => {
+    assert.ok(SURVEY.length > 2000, `${COMPETITOR_STACK.sourceDocument} is too short to be the survey; this check is inert`);
+    assert.ok(Number(headline) > 50, `a stack figure of $${headline} is implausible; the module is wrong`);
+    assert.match(
+      SURVEY,
+      new RegExp(`\\*\\*The stack\\*\\*[^\\n]*\\*\\*\\$${headline}\\*\\*`),
+      `${COMPETITOR_STACK.sourceDocument} does not establish $${headline}`
+    );
   });
 
-  it("quotes that figure on the customer-facing pages, and no other", () => {
-    // Only the sentence that totals the stack. An earlier version matched any
-    // "$N a month" and caught "$39 a month for the business side" -- a
-    // per-product figure in the same sentence, which is not the claim.
-    const claims = [...SERVER.matchAll(/(?:around|about) \$(\d+) a month on monthly billing|(?:around|about) \$(\d+) a month for the set/g)]
-      .map((match) => match[1] || match[2]);
-    assert.ok(claims.length > 0, "no stack comparison found in server.js; this check has gone blind");
+  it("quotes that figure to customers, and no other", () => {
+    // Read from the rendered sentences rather than scraped out of server.js.
+    // The figures left server.js on 8 September -- that is the fix -- so a regex
+    // over that file now finds nothing and would pass by measuring nothing.
+    const sentences = [whatItCostsElsewhereSentence(), whyCheaperSentence()];
+    // Only the sentence that totals the stack. The original comment here warned
+    // that matching any "$N a month" catches "$49 a month for the business side"
+    // -- a per-product figure in the same sentence, which is not the claim. I
+    // widened it while rewriting this and the test caught it immediately, which
+    // is the whole argument for leaving the narrow pattern alone.
+    const claims = sentences.flatMap((sentence) =>
+      [
+        ...sentence.matchAll(/(?:around|about) \$(\d+) a month on monthly billing/g),
+        ...sentence.matchAll(/(?:around|about) \$(\d+) a month for the set/g)
+      ].map((match) => match[1])
+    );
+    assert.ok(claims.length > 0, "no stack comparison found in the rendered sentences; this check has gone blind");
     for (const claim of claims) {
-      assert.equal(claim, headline, `a page claims $${claim} while the audit establishes $${headline}`);
+      assert.equal(claim, headline, `a page claims $${claim} while ${COMPETITOR_STACK.sourceDocument} establishes $${headline}`);
     }
   });
 
   it("says which billing period the comparison is on", () => {
-    // The whole error was comparing an annual price to a monthly one. A figure
-    // without its billing period is the same mistake waiting to be repeated.
-    const comparisons = SERVER.match(/[^.]*\$\d+ a month[^.]*\./g) || [];
-    assert.ok(comparisons.length > 0, "no comparison sentence found");
+    // The whole original error was comparing an annual price to a monthly one.
+    // A figure without its billing period is the same mistake waiting.
+    const sentences = [whatItCostsElsewhereSentence(), whyCheaperSentence()];
     assert.ok(
-      comparisons.some((sentence) => /monthly billing/i.test(sentence)),
+      sentences.some((sentence) => /monthly billing/i.test(sentence)),
       "no comparison sentence names the billing period; that is the error this check exists for"
     );
   });
 
-  it("keeps the recommendation document on the same figure", () => {
-    assert.ok(
-      RESTRUCTURE.includes(`$${headline}`),
-      `the restructure document does not mention $${headline}, so it is arguing against a different stack`
-    );
+  it("does not let a superseded figure stand as current", () => {
+    // This required the 11 August restructure document to mention the current
+    // stack total. That was right while the August audit was the survey and
+    // wrong the moment a later one existed: 2026-08-11-PRICING-RESTRUCTURE.md is
+    // a dated record of an argument made in August, and the September strategy
+    // says so itself -- "updates the argument in
+    // 2026-08-11-PRICING-RESTRUCTURE.md. The recommendation in that second
+    // document still stands; the numbers underneath it moved in our favour."
+    // Demanding a historical document carry a later figure would mean rewriting
+    // the record every time the market moves, which is how a dated document
+    // stops being one.
+    //
+    // What still matters, and is what this case was really for, is that a
+    // corrected figure is not left standing as current anywhere.
     assert.doesNotMatch(
       RESTRUCTURE,
       /costs \$77 a month/,
@@ -66,7 +111,11 @@ describe("the comparison a customer reads matches the research behind it", () =>
   });
 
   it("carries sources, so the figure can be re-checked rather than trusted", () => {
-    const sources = (AUDIT.match(/^- \[.+\]\(https?:\/\//gm) || []).length;
-    assert.ok(sources >= 4, `the audit cites ${sources} sources; a pricing claim needs more than a memory`);
+    // Counted as URLs rather than bullets. The August audit listed one link per
+    // line; the September survey groups several under each product, so a
+    // per-bullet count read 3 where the document actually cites nine. What the
+    // claim needs is checkable references, not a particular layout.
+    const sources = (SURVEY.match(/https?:\/\/[^ ,>)\n]+/g) || []).length;
+    assert.ok(sources >= 4, `${COMPETITOR_STACK.sourceDocument} cites ${sources} sources; a pricing claim needs more than a memory`);
   });
 });
