@@ -70,7 +70,7 @@ Anything not on either list goes to the owner. The default is deny, deliberately
 
 ## Using other people's code
 
-227 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
+228 external repositories have been reviewed and recorded in `data/open-source-tools.ts`. `docs/github-radar/GITHUB_RADAR_PRODUCT_INTEGRATION_MAP.md` says which product each one is for.
 
 Before adapting anything from a repository, check its record. The statuses mean what they say:
 
@@ -105,6 +105,77 @@ Practically, that means: when you add a check, verify it fails on bad input befo
 Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
+
+### 2026-09-08 - Voicebox reviewed, and the licence that matters is not the one on the badge
+
+Five repositories arrived. Three were already recorded earlier today --
+`mattpocock/skills`, `diffusionstudio/editor` and `langflow-ai/langflow`, the
+last already in the register from an earlier batch -- and one screenshot was
+again the Quran database whose owner it still does not show. One is new.
+
+**`jamiepine/voicebox`.** LICENSE read: MIT, Copyright (c) 2026 Voicebox
+Contributors. 681 files. A local-first voice studio: cloning from a short
+sample, 23 languages across 7 TTS engines, a bundled local LLM, all on the
+user's own machine. The privacy posture is real and genuinely different from
+the hosted voice APIs already in the register.
+
+It is recorded `needs_license_review`, and **not because of its own licence**.
+
+## The licence on the badge is not the licence that decides
+
+MIT covers Voicebox's code and says nothing about the models it runs. The
+project keeps its own licence watch-list in `docs/PROJECT_STATUS.md`, and it is
+explicit:
+
+> **XTTS-v2** … Candidate — CPML license likely blocker
+>
+> Fish Speech V1.5 … benchmark leader but research/non-commercial license — same
+> blocker
+>
+> **Watch-list / blocked** … Sarashina2.2, Higgs Audio v3, T5Gemma-TTS,
+> Step-Audio-EditX, MisoTTS (non-commercial terms …)
+
+So adopting Voicebox means clearing each engine we actually switch on, one at a
+time. This is the boundary already recorded against `book-to-skill`: a
+permissive licence on a tool is not permission for what the tool processes. It
+is the reason this record exists rather than an adapter.
+
+## Consent, and who carries it
+
+It ships `RESPONSIBLE_USE.md`, which is more than most projects here do, and its
+own words put the obligation exactly where we would have to carry it anyway:
+
+> Voicebox does not and cannot independently verify who owns a voice sample.
+>
+> Developers building products on top of Voicebox should treat consent records,
+> disclosure, and jurisdiction-specific requirements as part of their own
+> application design.
+
+AGENTS.md requires provenance, consent and anti-clone safety, and this
+repository already has the machinery that would have to do the enforcing:
+`lib/sonara-record-checks.cjs` carries `consent_scope`, `consent_attested`,
+`expires_at` and `revoked_at`. Their disclaimer is theirs; the enforcement would
+be ours.
+
+Worth remembering alongside it: `consent_scope` is the field that
+`.claude/skills/checks-that-cannot-lie` records as the sharpest defect this
+codebase has found -- selected on every voice job, and compared to nothing.
+Being in the `select` list is what made it look checked.
+
+## Everything up to date, checked rather than assumed
+
+| | |
+| --- | --- |
+| Production commit | `6fcd09e` |
+| `main` HEAD | `6fcd09e` — **they match** |
+| Migrations pinned and unchanged | 112 frozen, 3 generator-owned |
+| Migrations execute in order | 115 applied to an empty PostgreSQL |
+| Register | 228 records, integration map regenerated |
+| Derived doc counts | 14 claims, 43 chain commands, 300 test files |
+
+Production and `main` agree. What is **not** in either is PR #221, which holds
+the catalog-gate fix and the readiness `deferred` fix; it cannot go green on its
+own head because `smoke:live` reads the site that is live now.
 
 ### 2026-09-08 - The price cutover happened, and it turned every pull request red
 

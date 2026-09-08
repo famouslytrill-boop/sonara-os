@@ -6715,6 +6715,34 @@ export const openSourceTools: OpenSourceToolRecord[] = [
     ],
     humanReviewRequired: true,
   },
+  {
+    name: "Voicebox",
+    slug: "jamiepine-voicebox",
+    category: ["voice synthesis", "voice cloning", "local-first inference", "permissive licence"],
+    useCase: ["reference for local voice generation -- not adopted, and the models it runs are the reason"],
+    productFit: ["Creator Studio"],
+    license: "MIT",
+    licenseRisk: "low",
+    reciprocalLicense: false,
+    commercialUseStatus: "needs_review",
+    integrationStatus: "needs_license_review",
+    recommendedAction: [
+      "treat the MIT licence as covering Voicebox's own code and nothing it runs -- each TTS engine and model carries its own terms, and the project's own docs/PROJECT_STATUS.md records several as commercially blocked",
+      "before any adoption, pick the specific engines and clear each model licence separately; XTTS-v2 is flagged there as 'CPML likely kills commercial use' and Fish Speech V1.5 as research/non-commercial",
+      "any voice feature built on it inherits this product's consent rules, not Voicebox's disclaimer -- AGENTS.md requires provenance, consent and anti-clone safety, and lib/sonara-record-checks.cjs already carries consent_scope, consent_attested, expires_at and revoked_at for exactly this",
+      "price the GPU cost before treating local generation as free: lib/sonara-paid-capabilities.cjs prices media generation per GPU second against a dated floor and the release chain fails below it",
+    ],
+    officialUrl: "https://voicebox.sh",
+    repoUrl: "https://github.com/jamiepine/voicebox",
+    notes:
+      "Cloned and measured 8 September 2026. LICENSE read: MIT, Copyright (c) 2026 Voicebox Contributors. 681 files. A local-first voice studio -- voice cloning from a short sample, speech in 23 languages across 7 TTS engines, dictation, and a bundled local LLM, all running on the user's own machine. The privacy claim is real and is the genuinely interesting part: audio never leaves the machine, which is a materially different posture from the hosted voice APIs already recorded here.\n\nTwo boundaries, and the second is the one that decides this.\n\nFirst, consent. It ships RESPONSIBLE_USE.md, which is more than most projects in this register do, and its own words put the obligation where we would have to carry it anyway: 'Developers building products on top of Voicebox should treat consent records, disclosure, and jurisdiction-specific requirements as part of their own application design.' Voicebox cannot verify who owns a voice sample. SONARA already has the machinery that would have to -- consent_scope with an attestation, an expiry and a revocation -- and this register already carries 21 anti-clone notes.\n\nSecond, and the reason this is needs_license_review rather than optional_adapter_after_review: MIT covers Voicebox's code and says nothing about the models it runs. Its own docs/PROJECT_STATUS.md keeps a licence watch-list -- XTTS-v2 'CPML license likely blocker ... CPML likely kills commercial use', Fish Speech V1.5 'research/non-commercial license -- same blocker', and a blocked list naming Sarashina2.2, Higgs Audio v3, T5Gemma-TTS and others on 'non-commercial terms'. That is the same boundary recorded against book-to-skill: a permissive licence on a tool is not permission for what the tool processes. Adopting Voicebox would mean clearing each engine we actually enable, one at a time.",
+    safetyBoundaries: [
+      "no voice cloned without a recorded consent_scope, an attestation, and an expiry -- the disclaimer in RESPONSIBLE_USE.md is theirs, the enforcement would be ours",
+      "no model enabled whose own licence has not been read and recorded here separately from Voicebox's MIT",
+      "no generated speech published as a customer campaign or as proof without owner approval",
+    ],
+    humanReviewRequired: true,
+  },
 ];
 
 export function getOpenSourceTool(slug: string) {

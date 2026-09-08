@@ -2,7 +2,7 @@
 
 Generated from `data/open-source-tools.ts` by `scripts/generate-product-integration-map.mjs`. Do not edit by hand -- the release runs it with `--check` and fails if this file and the register disagree.
 
-227 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 227.
+228 reviewed repositories. A repository appears under every product it was assessed for, so the totals below add to more than 228.
 
 `Read only` and `Research only` mean the patterns are studied and no code is taken. `Adapt after review` means code may be adapted into SONARA's own implementation once someone has looked at it. `Blocked` and `Licence unresolved` mean neither, and the register says why for each one.
 
@@ -74,7 +74,7 @@ Create, launch, run and manage a business.
 
 Organize, protect, publish, monetize and grow creative work.
 
-54 repositories.
+55 repositories.
 
 | Repository | Licence | How far it may go | What it contributes |
 | --- | --- | --- | --- |
@@ -124,6 +124,7 @@ Organize, protect, publish, monetize and grow creative work.
 | [Transformers.js](https://github.com/huggingface/transformers.js) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | browser-side AI |
 | [UI/UX Pro Max Skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill) | MIT | Read only | design system reference |
 | [Voice cloning cluster: GPT-SoVITS, VoxCPM, CosyVoice, dia](https://github.com/RVC-Boss/GPT-SoVITS) | MIT on the repository code. Read on 18 August 2026 from GitHub's | Security review first | voice cloning |
+| [Voicebox](https://github.com/jamiepine/voicebox) | MIT | Licence unresolved | voice synthesis |
 | [VoiceStudio](https://github.com/debpalash/voicestudio) | AGPL-3.0 | Blocked | voice cloning |
 | [Vosk](https://github.com/alphacep/vosk-api) | Apache-2.0, from GitHub's detected licence field on 18 August 20 | Adapt after review | speech recognition |
 | [WebAV (browser video editing SDK on WebCodecs)](https://github.com/WebAV-Tech/WebAV) | MIT, from GitHub's detected licence field on 18 August 2026 (lic | Adapt after review | video editing |
