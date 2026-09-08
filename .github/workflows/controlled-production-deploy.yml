@@ -255,6 +255,34 @@ jobs:
           set -euo pipefail
           node --env-file=.env.production.catalog-verification scripts/verify-production-supabase.mjs
 
+      - name: Verify live Stripe prices match what the pricing page advertises
+        shell: bash
+        # The one check that compares every advertised amount against the price
+        # Stripe would actually charge, and until 8 September 2026 it had never
+        # run anywhere with a key.
+        #
+        # It skips without STRIPE_SECRET_KEY and used to exit 0 while skipping,
+        # so two owner runbooks compensated in prose: "read the last line rather
+        # than the exit code". That was followed, and the thing it guards
+        # against happened anyway -- the pricing page advertised $29/$59/$109
+        # while the configured prices charged $19/$39/$79, every headline plan
+        # refused checkout, and nothing reported a problem. --require-live turns
+        # every reason for not comparing into a failure.
+        #
+        # The price ids come from the pulled production environment, so this
+        # checks what production is actually configured with rather than what
+        # the repository hopes. The secret key cannot come from there: Vercel
+        # does not return sensitive variables as plaintext, which is the same
+        # reason the two steps above inject the service-role key from the
+        # protected GitHub environment. Verified on Node 22 that a variable
+        # already set in the environment beats one in --env-file, so a redacted
+        # key in the pulled file cannot shadow the injected one.
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          node --env-file=.env.production.catalog-verification scripts/verify-stripe-env.mjs --require-live
+
       - name: Remove temporary production environment material
         if: always()
         shell: bash

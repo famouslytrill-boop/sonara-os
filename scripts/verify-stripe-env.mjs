@@ -105,9 +105,35 @@ if (isPlaceholder(secret) || !secret.startsWith("sk_")) {
   else skip(message);
 } else {
   for (const [plan, config] of paidPlans) {
-    const priceId = [config.env, ...(config.envAliases || [])].map((name) => process.env[name]).find((value) => value && value.startsWith("price_"));
+    const names = [config.env, ...(config.envAliases || [])];
+    const values = names.map((name) => process.env[name]).filter(Boolean);
+    const priceId = values.find((value) => value.startsWith("price_"));
 
     if (!priceId) {
+      // Set-but-unusable is a different fault from unset, and it looked
+      // identical here: `.find(v => v.startsWith("price_"))` returns undefined
+      // for both, so a variable holding something that is not a price id was
+      // reported as "no Stripe price configured yet".
+      //
+      // The case that matters is not hypothetical. This check is meant to run
+      // inside .github/workflows/controlled-production-deploy.yml against an
+      // environment pulled with `vercel env pull`, and that workflow already
+      // records why: "Sensitive variables pulled from Vercel are not returned
+      // as plaintext." A price id marked sensitive in Vercel therefore arrives
+      // redacted, and the old message would have sent somebody to create a
+      // price that already exists.
+      //
+      // The value is never printed. It is configuration, and on this path it
+      // may be a redaction marker of unknown shape.
+      if (values.length) {
+        fail(
+          `${plan}: ${names.filter((name) => process.env[name]).join(" / ")} is set but does not hold a Stripe price id. ` +
+            "If this ran against an environment pulled from Vercel, the variable is probably marked sensitive there and pulls through redacted; " +
+            "a price id is not a secret and does not need that flag."
+        );
+        continue;
+      }
+
       // A plan the page deliberately does not show yet is allowed to have no
       // price; a plan on the page is not. hiddenUntilBuyable is the same flag
       // lib/sonara-readiness.cjs uses to report a price as deferred rather than

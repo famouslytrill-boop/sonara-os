@@ -2,6 +2,62 @@ Newest first. Each entry says what changed, what was verified, and what the next
 person should not have to rediscover. This is the hand-written half of
 `docs/HANDOFF_PROMPT.md`; everything else in that file is generated.
 
+### 2026-09-08 - The deploy now proves the price before it ships it
+
+The owner repointed the three Vercel variables at the new price ids and asked
+for the deployment. Controlled Production Deployment **#137** was dispatched
+through Actions rather than Vercel's Redeploy button -- `OWNER-STEPS.md` records
+that button as what took the alias on 4 August -- and went green across all 30
+substantive steps. Production serves `36c1b2a` on a new deployment and
+`/pricing` advertises $29 / $59 / $109 with no $19 / $39 / $79 anywhere on it.
+
+**What that does not establish, stated plainly:** nothing reachable from outside
+production reveals which price id a variable holds. `/api/readiness` reports
+`checkout: enabled`, which it also did while the variables pointed at the
+$19 / $39 / $79 prices, because `enabled` has only ever meant "a variable is
+set". So the cutover is *expected* to be complete and is not *proven* complete.
+
+## Which is the whole reason for the change in this entry
+
+`scripts/verify-stripe-env.mjs` is the only thing that compares an advertised
+amount against the price Stripe would actually charge, and it had never run
+anywhere with a key. It now runs inside
+`.github/workflows/controlled-production-deploy.yml` with `--require-live`, as
+step 26 of 32:
+
+- **Against the pulled production environment**, so it checks what production is
+  configured with rather than what the repository hopes. Step 24 already pulls
+  it for the two Supabase verifications.
+- **With `STRIPE_SECRET_KEY` injected from the protected GitHub environment**,
+  because Vercel does not return sensitive variables as plaintext -- the
+  workflow says so itself, which is why the service-role key is injected the
+  same way. Verified on Node 22 that a variable already set in the environment
+  beats one from `--env-file`, so a redacted key in the pulled file cannot
+  shadow the injected one.
+- **Before the deploy step**, so a mismatch stops the release instead of
+  being noticed once it is already live.
+
+`tests/the-deploy-proves-the-price-before-it-ships-it.test.js` asserts each of
+those properties, because a step can be deleted as easily as it was added.
+**Falsified three ways**: dropping `--require-live`, moving the check after the
+deploy, and removing the secret injection each fail by name.
+
+## And a fault that looked like a different fault
+
+Resolving the price id was `.find(v => v.startsWith("price_"))`, which returns
+undefined for "unset" and for "set to something that is not a price id" alike --
+so both reported "no Stripe price configured yet". On the new path that is the
+likely case rather than a hypothetical: a price id marked sensitive in Vercel
+pulls through redacted, and the old message would have sent somebody to create a
+price that already exists. Set-but-unusable is now its own failure, naming the
+variable and the probable cause. The value is never printed; on that path it may
+be a redaction marker of unknown shape.
+
+**This step will fail the next deployment until `STRIPE_SECRET_KEY` is added to
+the protected GitHub environment.** That is deliberate and it is the lesson of
+today: a deployment that cannot prove it charges what it advertises is exactly
+what shipped the September mismatch.
+
 ### 2026-09-08 - The three prices exist now, and that on its own changed nothing
 
 The owner said to create them, so they were created on the live account, on the
